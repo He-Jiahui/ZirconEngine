@@ -516,9 +516,6 @@ class GitFinalizeService:
         is revalidated under that mutex, and ``update-ref`` uses the baseline
         HEAD as a compare-and-swap guard.
         """
-        normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
-        if not normalized:
-            raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
         if (
             not isinstance(failure_workflow_node_keys, tuple)
             or not failure_workflow_node_keys
@@ -532,14 +529,113 @@ class GitFinalizeService:
                 "milestone_failure_scope_invalid",
                 "Milestone commit requires explicit workflow node Failure scope",
             )
+        return self._commit_scoped(
+            session_id,
+            paths=paths,
+            message=message,
+            validation_commands=validation_commands,
+            precommit_guard=precommit_guard,
+            request_id=request_id,
+            allowed_statuses=frozenset(
+                {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}
+            ),
+            status_error_code="milestone_session_not_active",
+            acceptance_guard=lambda session, normalized: (
+                self._require_milestone_failure_acceptance(
+                    session,
+                    failure_workflow_node_keys,
+                    normalized,
+                )
+            ),
+            allow_proof_only_paths=False,
+        )
+
+    def commit_failure_closeout(
+        self,
+        session_id: str,
+        *,
+        paths: list[str] | tuple[str, ...],
+        message: str,
+        lifecycle_key: str,
+        precommit_guard: Callable[[], None] | None = None,
+        request_id: str | None = None,
+    ) -> FinalizeResult:
+        return self.commit_failure_closeouts(
+            session_id,
+            paths=paths,
+            message=message,
+            lifecycle_keys=(lifecycle_key,),
+            precommit_guard=precommit_guard,
+            request_id=request_id,
+        )
+
+    def commit_failure_closeouts(
+        self,
+        session_id: str,
+        *,
+        paths: list[str] | tuple[str, ...],
+        message: str,
+        lifecycle_keys: list[str] | tuple[str, ...],
+        precommit_guard: Callable[[], None] | None = None,
+        request_id: str | None = None,
+    ) -> FinalizeResult:
+        """Atomically commit exact fixed Failure lifecycles without closing the Session."""
+        normalized_keys = tuple(
+            sorted(
+                {str(key).strip() for key in lifecycle_keys if str(key).strip()},
+                key=str.casefold,
+            )
+        )
+        if not normalized_keys:
+            raise CoordinatorError(
+                "failure_closeout_lifecycle_missing",
+                "Failure closeout requires at least one stable lifecycle key",
+            )
+        return self._commit_scoped(
+            session_id,
+            paths=paths,
+            message=message,
+            validation_commands=(),
+            precommit_guard=precommit_guard,
+            request_id=request_id,
+            allowed_statuses=frozenset({SessionStatus.RESOLVING_FAILURE}),
+            status_error_code="failure_closeout_session_not_resolving",
+            acceptance_guard=lambda session, normalized: (
+                self._require_failure_closeouts_acceptance(
+                    session,
+                    normalized_keys,
+                    normalized,
+                )
+            ),
+            allow_proof_only_paths=True,
+        )
+
+    def _commit_scoped(
+        self,
+        session_id: str,
+        *,
+        paths: list[str] | tuple[str, ...],
+        message: str,
+        validation_commands: tuple[tuple[str, ...], ...],
+        precommit_guard: Callable[[], None] | None,
+        request_id: str | None,
+        allowed_statuses: frozenset[SessionStatus],
+        status_error_code: str,
+        acceptance_guard: Callable[[object, tuple[str, ...]], None],
+        allow_proof_only_paths: bool,
+    ) -> FinalizeResult:
+        normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
+        if not normalized:
+            raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
+        commit_paths: tuple[str, ...] = ()
         untracked_paths: tuple[str, ...] = ()
         request_id = request_id or uuid.uuid4().hex
         session = self.sessions.get(session_id)
         formatted_message = self._format_message(message)
-        if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
+        if session.status not in allowed_statuses:
             raise CoordinatorError(
-                "milestone_session_not_active",
-                f"Session {session_id} cannot commit a milestone while {session.status.value}",
+                status_error_code,
+                f"Session {session_id} cannot commit scoped work while {session.status.value}",
             )
         committed = False
         commit_sha = ""
@@ -548,10 +644,10 @@ class GitFinalizeService:
             session_id, retain_on_error=lambda: retain_mutex
         ):
             session = self.sessions.get(session_id)
-            if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
+            if session.status not in allowed_statuses:
                 raise CoordinatorError(
-                    "milestone_session_not_active",
-                    f"Session {session_id} changed status before commit",
+                    status_error_code,
+                    f"Session {session_id} changed status before scoped commit",
                 )
             baseline = self.baselines.current()
             expected_head = baseline.head_commit
@@ -560,20 +656,28 @@ class GitFinalizeService:
                     "milestone_baseline_head_changed",
                     "HEAD changed after the coordinator baseline was captured",
                 )
-            head_tracked = self._head_tracked_paths(normalized)
-            untracked_paths = tuple(path for path in normalized if path not in head_tracked)
-            ordinary_paths, force_add_paths = self._partition_add_paths(
+            self._require_attribution(session_id, normalized, maintenance=False)
+            commit_paths = self._require_owned_scope(
+                session_id,
                 normalized,
+                maintenance=False,
+                allow_proof_only_paths=allow_proof_only_paths,
+            )
+            if not commit_paths:
+                raise CoordinatorError(
+                    "finalize_commit_paths_empty",
+                    "Finalize proof set contains no workspace changes to commit",
+                )
+            head_tracked = self._head_tracked_paths(commit_paths)
+            untracked_paths = tuple(
+                path for path in commit_paths if path not in head_tracked
+            )
+            ordinary_paths, force_add_paths = self._partition_add_paths(
+                commit_paths,
                 error_code="milestone_ignored_path_forbidden",
             )
-            self._require_attribution(session_id, normalized, maintenance=False)
-            self._require_owned_scope(session_id, normalized, maintenance=False)
             self._require_plan_outputs(session, normalized, maintenance=False)
-            self._require_milestone_failure_acceptance(
-                session,
-                failure_workflow_node_keys,
-                normalized,
-            )
+            acceptance_guard(session, normalized)
             self._require_live_owned_leases(session_id, normalized)
             self._require_no_pending_patches(session_id)
             with self.database.transaction() as connection:
@@ -588,8 +692,8 @@ class GitFinalizeService:
                         request_id,
                         session_id,
                         formatted_message,
-                        json.dumps(normalized),
-                        json.dumps({key: list(value) for key, value in self._categorize(normalized).items()}),
+                        json.dumps(commit_paths),
+                        json.dumps({key: list(value) for key, value in self._categorize(commit_paths).items()}),
                         json.dumps(untracked_paths),
                         json.dumps(validation_commands),
                         utc_text(),
@@ -611,15 +715,15 @@ class GitFinalizeService:
                 # staged work remains intact and cannot enter this commit.
                 self._git("read-tree", expected_head)
                 self._git_add_partition(ordinary_paths, force_add_paths)
-                self._require_index_scope(normalized)
+                self._require_index_scope(commit_paths)
                 self._require_post_stage_attribution(
                     session_id, normalized, maintenance=False
                 )
-                self._require_index_matches_worktree(normalized)
+                self._require_index_matches_worktree(commit_paths)
                 self._require_post_stage_attribution(
                     session_id, normalized, maintenance=False
                 )
-                expected_blobs = self._staged_blobs(normalized)
+                expected_blobs = self._staged_blobs(commit_paths)
                 self._require_no_staged_secrets()
                 for command in validation_commands:
                     result = subprocess.run(command, cwd=self.repo_root, check=False)
@@ -629,15 +733,11 @@ class GitFinalizeService:
                             f"Milestone validation failed with exit code {result.returncode}",
                             details={"command": list(command), "exit_code": result.returncode},
                         )
-                self._require_index_scope(normalized)
+                self._require_index_scope(commit_paths)
                 self._require_staged_attribution(expected_blobs, maintenance=False)
                 self._require_no_staged_secrets()
                 self._require_live_owned_leases(session_id, normalized)
-                self._require_milestone_failure_acceptance(
-                    session,
-                    failure_workflow_node_keys,
-                    normalized,
-                )
+                acceptance_guard(session, normalized)
                 if precommit_guard is not None:
                     precommit_guard()
                 commit_sha = self._create_scoped_commit(
@@ -651,7 +751,7 @@ class GitFinalizeService:
                         (commit_sha, request_id),
                     )
                 self.baselines.accept_commit(
-                    normalized,
+                    commit_paths,
                     commit_sha=commit_sha,
                     reason=f"milestone commit {commit_sha}",
                 )
@@ -662,7 +762,7 @@ class GitFinalizeService:
                 try:
                     self._restore_index(index_path, index_existed, index_content)
                     if committed:
-                        self._reset_index_paths(commit_sha, normalized)
+                        self._reset_index_paths(commit_sha, commit_paths)
                 except BaseException:
                     retain_mutex = True
                     raise
@@ -677,7 +777,7 @@ class GitFinalizeService:
                            WHERE request_id = ?""",
                         (commit_sha, commit_sha, utc_text(), request_id),
                     )
-        categories = self._categorize(normalized)
+        categories = self._categorize(commit_paths)
         return FinalizeResult(
             request_id,
             commit_sha,
@@ -807,14 +907,28 @@ class GitFinalizeService:
             commit_sha = row["commit_sha"] or row["ref_updated_sha"]
             if not commit_sha:
                 return None
-            if self._git("rev-parse", "HEAD") != commit_sha:
+            current_head = self._git("rev-parse", "HEAD")
+            paths = tuple(json.loads(row["paths_json"]))
+            historical = current_head != commit_sha
+            if historical and not (
+                self._match_recovered_commit(
+                    str(commit_sha),
+                    start_head=str(row["start_head"]) if row["start_head"] else None,
+                    message=str(row["message"]),
+                    paths=paths,
+                )
+                and self._is_ancestor(str(commit_sha), current_head)
+            ):
                 raise CoordinatorError(
                     "finalize_reconcile_head_changed",
-                    "Cannot reconcile a finalized commit after HEAD changed",
+                    "Cannot reconcile a finalized commit after unrelated HEAD movement",
                     details={"requestId": request_id, "commitSha": commit_sha},
                 )
-            paths = tuple(json.loads(row["paths_json"]))
-            if row["index_existed"] is not None and row["index_snapshot"] is not None:
+            if (
+                not historical
+                and row["index_existed"] is not None
+                and row["index_snapshot"] is not None
+            ):
                 try:
                     self._restore_index(
                         self._index_path(),
@@ -826,7 +940,7 @@ class GitFinalizeService:
                     retain_mutex = True
                     raise
             baseline = self.baselines.current()
-            if baseline.head_commit != commit_sha:
+            if not historical and baseline.head_commit != commit_sha:
                 self.baselines.accept_commit(
                     paths,
                     commit_sha=commit_sha,
@@ -926,29 +1040,39 @@ class GitFinalizeService:
                 index_existed = recovery.get("index_existed")
                 index_snapshot = recovery.get("index_snapshot")
                 paths = tuple(json.loads(str(recovery["paths_json"])))
-                recovered_commit = self._match_recovered_commit(
-                    current_head,
+                ref_updated_sha = recovery.get("ref_updated_sha")
+                recovered_sha: str | None = None
+                candidate_sha = str(ref_updated_sha) if ref_updated_sha else current_head
+                if self._match_recovered_commit(
+                    candidate_sha,
                     start_head=str(start_head) if start_head else None,
                     message=str(recovery["message"]),
                     paths=paths,
-                )
-                ref_updated_sha = recovery.get("ref_updated_sha")
-                if ref_updated_sha == current_head:
-                    recovered_commit = True
-                if recovered_commit:
-                    if index_existed is not None and index_snapshot is not None:
+                ) and (
+                    candidate_sha == current_head
+                    or self._is_ancestor(candidate_sha, current_head)
+                ):
+                    recovered_sha = candidate_sha
+                if recovered_sha is not None:
+                    historical = recovered_sha != current_head
+                    if (
+                        not historical
+                        and index_existed is not None
+                        and index_snapshot is not None
+                    ):
                         self._restore_index(
                             self._index_path(),
                             bool(index_existed),
                             bytes(index_snapshot),
                         )
                         self._reset_index_paths(current_head, paths)
-                    self.baselines.accept_commit(
-                        paths,
-                        commit_sha=current_head,
-                        reason=f"recovered finalize commit {current_head}",
-                    )
-                    reason = f"recovered finalized commit {current_head}"
+                    if not historical:
+                        self.baselines.accept_commit(
+                            paths,
+                            commit_sha=recovered_sha,
+                            reason=f"recovered finalize commit {recovered_sha}",
+                        )
+                    reason = f"recovered finalized commit {recovered_sha}"
                     with self.database.transaction() as connection:
                         connection.execute(
                             """
@@ -957,7 +1081,7 @@ class GitFinalizeService:
                                 completed_at = ?, index_snapshot = NULL
                             WHERE request_id = ?
                             """,
-                            (current_head, utc_text(), request_id),
+                            (recovered_sha, utc_text(), request_id),
                         )
                         connection.execute(
                             """
@@ -1069,10 +1193,15 @@ class GitFinalizeService:
                 )
 
     def _require_owned_scope(
-        self, session_id: str, approved: tuple[str, ...], *, maintenance: bool
-    ) -> None:
+        self,
+        session_id: str,
+        approved: tuple[str, ...],
+        *,
+        maintenance: bool,
+        allow_proof_only_paths: bool = False,
+    ) -> tuple[str, ...]:
         if maintenance:
-            return
+            return approved
         with self.database.connect() as connection:
             rows = connection.execute(
                 "SELECT display_path, content_hash FROM attributions WHERE session_id = ?",
@@ -1111,12 +1240,13 @@ class GitFinalizeService:
                 details={"paths": omitted},
             )
         unchanged = sorted(set(approved) - owned_dirty, key=str.casefold)
-        if unchanged:
+        if unchanged and not allow_proof_only_paths:
             raise CoordinatorError(
                 "finalize_path_unchanged",
                 "Finalize manifest contains paths without workspace changes",
                 details={"paths": unchanged},
             )
+        return tuple(path for path in approved if path in owned_dirty)
 
     def _require_plan_outputs(self, session, paths: tuple[str, ...], *, maintenance: bool) -> None:
         plan_paths = [path for path in paths if path.casefold().startswith("docs/plans/")]
@@ -1184,6 +1314,60 @@ class GitFinalizeService:
                 manifest_paths,
             )
         )
+
+    def _require_failure_closeout_acceptance(
+        self,
+        session,
+        lifecycle_key: str,
+        manifest_paths: tuple[str, ...],
+    ) -> None:
+        self._require_failure_closeouts_acceptance(
+            session,
+            (lifecycle_key,),
+            manifest_paths,
+        )
+
+    def _require_failure_closeouts_acceptance(
+        self,
+        session,
+        lifecycle_keys: tuple[str, ...],
+        manifest_paths: tuple[str, ...],
+    ) -> None:
+        if self.failures is None or not session.plan_path:
+            raise CoordinatorError(
+                "failure_closeout_graph_unavailable",
+                "Failure closeout requires the canonical Failure graph and an owner plan",
+            )
+        # This closeout is intentionally lifecycle-scoped. Other open failures
+        # remain actionable and may still carry legacy formatting diagnostics;
+        # the service binds and revalidates only the fixed target lifecycle.
+        self.failures.import_repository()
+        manifest = set(manifest_paths)
+        with self.database.connect() as connection:
+            for lifecycle_key in lifecycle_keys:
+                row = connection.execute(
+                    """SELECT artifact_path, fixing_plan, related_code_json
+                       FROM failure_nodes
+                       WHERE lifecycle_key=? AND kind='fixed' AND status='fixed'""",
+                    (lifecycle_key,),
+                ).fetchone()
+                if row is None or row["fixing_plan"] != session.plan_path:
+                    raise CoordinatorError(
+                        "failure_closeout_target_not_fixed",
+                        "Every Failure closeout target must be fixed by the Session plan",
+                        details={"lifecycleKey": lifecycle_key},
+                    )
+                related_code = tuple(json.loads(row["related_code_json"]))
+                required = {str(row["artifact_path"]), *related_code}
+                if not required <= manifest:
+                    raise CoordinatorError(
+                        "failure_closeout_manifest_incomplete",
+                        "Failure closeout manifest omits a target artifact or related code",
+                        details={
+                            "lifecycleKey": lifecycle_key,
+                            "missing": sorted(required - manifest, key=str.casefold),
+                        },
+                    )
 
     def _require_failure_graph_valid(self, session) -> None:
         self.failures.import_repository()
@@ -1621,6 +1805,18 @@ class GitFinalizeService:
         except CoordinatorError:
             return False
         return parent == start_head and subject == message and changed == set(paths)
+
+    def _is_ancestor(self, ancestor: str, descendant: str) -> bool:
+        return (
+            subprocess.run(
+                ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+                cwd=self.repo_root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            ).returncode
+            == 0
+        )
 
     @staticmethod
     def _categorize(paths: tuple[str, ...]) -> dict[str, tuple[str, ...]]:

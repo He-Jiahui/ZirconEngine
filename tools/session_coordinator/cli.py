@@ -28,8 +28,13 @@ from .server import (
 )
 
 
+class _CoordinatorArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        raise CoordinatorError("cli_arguments_invalid", message)
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="zircon-session")
+    parser = _CoordinatorArgumentParser(prog="zircon-session")
     parser.add_argument("--repo-root", default=str(Path.cwd()))
     parser.add_argument("--state-root")
     parser.add_argument(
@@ -42,6 +47,8 @@ def _parser() -> argparse.ArgumentParser:
     serve = commands.add_parser("serve")
     serve.add_argument("--automatic-start", action="store_true")
     commands.add_parser("status")
+    request_status = commands.add_parser("request-status")
+    request_status.add_argument("request_id")
     commands.add_parser("stop")
     bootstrap_handoff = commands.add_parser("bootstrap-handoff")
     bootstrap_handoff.add_argument("--reservation-id", required=True)
@@ -81,6 +88,8 @@ def _parser() -> argparse.ArgumentParser:
     register.add_argument("--display-name")
     register.add_argument("--plan-path")
     register.add_argument("--write-scope", action="append", default=[])
+    register.add_argument("--session-role", choices=("primary", "reviewer"))
+    register.add_argument("--parent-session-id")
 
     listing = session_commands.add_parser("list")
     listing.add_argument("--include-archived", action="store_true")
@@ -105,6 +114,19 @@ def _parser() -> argparse.ArgumentParser:
     baseline_attribute = baseline_commands.add_parser("attribute")
     baseline_attribute.add_argument("paths", nargs="+")
     baseline_attribute.add_argument("--session-id")
+
+    ownership = commands.add_parser("ownership")
+    ownership_commands = ownership.add_subparsers(dest="ownership_command", required=True)
+    ownership_matrix = ownership_commands.add_parser("matrix")
+    ownership_matrix.add_argument("--prefix")
+    ownership_transfer_preview = ownership_commands.add_parser("transfer-preview")
+    ownership_transfer_preview.add_argument("--target-session-id", required=True)
+    ownership_transfer_preview.add_argument("paths", nargs="+")
+    ownership_transfer_apply = ownership_commands.add_parser("transfer-apply")
+    ownership_transfer_apply.add_argument("--fingerprint", required=True)
+    ownership_transfer_apply.add_argument("--confirm-fingerprint", required=True)
+    ownership_transfer_apply.add_argument("--actor")
+    ownership_transfer_apply.add_argument("--maintenance-capability")
 
     ai_effort = commands.add_parser("ai-effort")
     ai_effort_commands = ai_effort.add_subparsers(dest="ai_effort_command", required=True)
@@ -176,6 +198,15 @@ def _parser() -> argparse.ArgumentParser:
     failure_commands.add_parser("audit")
     failure_open = failure_commands.add_parser("open")
     failure_open.add_argument("fixing_plan")
+    failure_materialize = failure_commands.add_parser("materialize-local-validation")
+    failure_materialize.add_argument("--session-id", required=True)
+    failure_materialize.add_argument("--summary-slug", required=True)
+    failure_materialize.add_argument("--source-slice", required=True)
+    failure_materialize.add_argument("--reproduction", required=True)
+    failure_materialize.add_argument("--lowest-known-cause", required=True)
+    failure_materialize.add_argument("--acceptance-criterion", action="append", default=[])
+    failure_materialize.add_argument("--related-code", action="append", default=[])
+    failure_materialize.add_argument("--created-at")
     failure_return = failure_commands.add_parser("return")
     failure_return.add_argument("lifecycle_key")
     failure_return.add_argument("--session-id")
@@ -184,6 +215,37 @@ def _parser() -> argparse.ArgumentParser:
     failure_return.add_argument("--architecture-fix", required=True)
     failure_return.add_argument("--validation", required=True)
     failure_return.add_argument("--return-summary", required=True)
+    closeout_prepare = failure_commands.add_parser("closeout-prepare")
+    closeout_prepare.add_argument("lifecycle_key")
+    closeout_prepare.add_argument("--session-id", required=True)
+    closeout_prepare.add_argument("--snapshot-id", type=int, required=True)
+    closeout_prepare.add_argument("--validation-command-json", required=True)
+    closeout_prepare.add_argument("--job-id", required=True)
+    closeout_prepare.add_argument("--cargo-run-id", required=True)
+    closeout_combined = failure_commands.add_parser("closeout-prepare-combined")
+    closeout_combined.add_argument("lifecycle_keys", nargs="+")
+    closeout_combined.add_argument("--delivery-record", action="append", default=[])
+    closeout_combined.add_argument("--session-id", required=True)
+    closeout_combined.add_argument("--snapshot-id", type=int, required=True)
+    closeout_combined.add_argument("--validation-command-json", required=True)
+    closeout_combined.add_argument("--job-id", required=True)
+    closeout_combined.add_argument("--cargo-run-id", required=True)
+    closeout_validate = failure_commands.add_parser("closeout-validate")
+    closeout_validate.add_argument("closeout_id")
+    closeout_validate.add_argument("--session-id", required=True)
+    closeout_validate.add_argument("--job-id", required=True)
+    closeout_validate.add_argument("--cargo-run-id", required=True)
+    closeout_review = failure_commands.add_parser("closeout-review")
+    closeout_review.add_argument("closeout_id")
+    closeout_review.add_argument("--executor-session-id", required=True)
+    closeout_review.add_argument("--critical-count", type=int, required=True)
+    closeout_review.add_argument("--important-count", type=int, required=True)
+    closeout_review.add_argument("--moderate-count", type=int, required=True)
+    closeout_review.add_argument("--summary", required=True)
+    closeout_commit = failure_commands.add_parser("closeout-commit")
+    closeout_commit.add_argument("closeout_id")
+    closeout_commit.add_argument("--session-id", required=True)
+    closeout_commit.add_argument("--summary", required=True)
 
     cargo = commands.add_parser("cargo")
     cargo_commands = cargo.add_subparsers(dest="cargo_command", required=True)
@@ -200,6 +262,8 @@ def _parser() -> argparse.ArgumentParser:
     cargo_reserve_cpu.add_argument("--compatibility-json", required=True)
     cargo_reserve_cpu.add_argument("--target-dir")
     cargo_reserve_cpu.add_argument("--ttl-seconds", type=int, default=900)
+    cargo_reserve_cpu.add_argument("--dependency-lifecycle-key")
+    cargo_reserve_cpu.add_argument("--dependency-fixed-sha256")
     burst_choice = cargo_reserve_cpu.add_mutually_exclusive_group()
     burst_choice.add_argument("--burst-eligible", action="store_const", const=True, dest="burst_eligible")
     burst_choice.add_argument("--no-burst", action="store_const", const=False, dest="burst_eligible")
@@ -280,13 +344,20 @@ def _parser() -> argparse.ArgumentParser:
     milestone_validate.add_argument("--run-id", required=True)
     milestone_validate.add_argument("--milestone", required=True)
     milestone_validate.add_argument(
-        "--template", choices=("coordinator-actions", "web-check"), required=True
+        "--template",
+        choices=("coordinator-actions", "web-check", "runtime14-rust-focused"),
+        required=True,
     )
     milestone_commit = milestone_commands.add_parser("commit")
     milestone_commit.add_argument("--session-id", required=True)
     milestone_commit.add_argument("--run-id", required=True)
     milestone_commit.add_argument("--milestone", required=True)
     milestone_commit.add_argument("--summary", required=True)
+    milestone_defer = milestone_commands.add_parser("defer-failure")
+    milestone_defer.add_argument("--session-id", required=True)
+    milestone_defer.add_argument("--source-milestone", required=True)
+    milestone_defer.add_argument("--target-milestone", required=True)
+    milestone_defer.add_argument("--failure-lifecycle-key", required=True)
     milestone_goal = milestone_commands.add_parser("close-goal")
     milestone_goal.add_argument("--session-id", required=True)
     milestone_goal.add_argument("--run-id", required=True)
@@ -332,6 +403,12 @@ def _parser() -> argparse.ArgumentParser:
         copy_parser = validation_copy_commands.add_parser(copy_name)
         copy_parser.add_argument("--session-id")
         copy_parser.add_argument("--path", action="append", required=True)
+        copy_parser.add_argument("--external-source-json", action="append", default=[])
+    copy_cargo = validation_copy_commands.add_parser("materialize-cargo")
+    copy_cargo.add_argument("--session-id")
+    copy_cargo.add_argument("--path", action="append", default=[])
+    copy_cargo.add_argument("--external-source-json", action="append", default=[])
+    copy_cargo.add_argument("command_args", nargs=argparse.REMAINDER)
     copy_status = validation_copy_commands.add_parser("status")
     copy_status.add_argument("job_id")
     copy_status.add_argument("--session-id")
@@ -363,6 +440,56 @@ def _parser() -> argparse.ArgumentParser:
     retention_apply.add_argument("--plan-id", required=True)
     retention_apply.add_argument("--dry-run", action="store_true")
     retention_apply.add_argument("--report")
+
+    governance = commands.add_parser("governance")
+    governance_commands = governance.add_subparsers(
+        dest="governance_command", required=True
+    )
+    governance_preview = governance_commands.add_parser("converge-preview")
+    governance_preview.add_argument("--actor", default="local-cli")
+    governance_apply = governance_commands.add_parser("converge-apply")
+    governance_apply.add_argument("--fingerprint", required=True)
+    governance_apply.add_argument("--actor", default="local-cli")
+    governance_retention_preview = governance_commands.add_parser("retention-preview")
+    governance_retention_preview.add_argument("--actor", default="local-cli")
+    governance_retention_apply = governance_commands.add_parser("retention-apply")
+    governance_retention_apply.add_argument("--fingerprint", required=True)
+    governance_retention_apply.add_argument("--actor", default="local-cli")
+    governance_retention_compact = governance_commands.add_parser("retention-compact")
+    governance_retention_compact.add_argument("--batch-id", required=True)
+    governance_retention_compact.add_argument("--actor", default="local-cli")
+
+    validation = commands.add_parser("validation")
+    validation_commands = validation.add_subparsers(dest="validation_command", required=True)
+    validation_submit = validation_commands.add_parser("submit")
+    validation_submit.add_argument("--session-id", required=True)
+    validation_submit.add_argument("--request-id", required=True)
+    validation_submit.add_argument("--source-manifest-json", required=True)
+    validation_submit.add_argument("--command-json", required=True)
+    validation_submit.add_argument("--toolchain-json", required=True)
+    validation_submit.add_argument("--coverage-json", required=True)
+    validation_status = validation_commands.add_parser("status")
+    validation_status.add_argument("--ticket-id", required=True)
+    validation_result = validation_commands.add_parser("record-result")
+    validation_result.add_argument("--ticket-id", required=True)
+    validation_result.add_argument(
+        "--status", required=True, choices=("passed", "failed", "snapshot_stale")
+    )
+    validation_result.add_argument("--evidence-json", default="{}")
+    validation_result.add_argument("--failure-json")
+
+    integration = commands.add_parser("integration")
+    integration_commands = integration.add_subparsers(dest="integration_command", required=True)
+    integration_submit = integration_commands.add_parser("submit")
+    integration_submit.add_argument("--session-id", required=True)
+    integration_submit.add_argument("--request-id", required=True)
+    integration_submit.add_argument("--compile-ticket-id", required=True)
+    integration_submit.add_argument("--path", action="append", required=True)
+    integration_status = integration_commands.add_parser("status")
+    integration_status.add_argument("--candidate-id", required=True)
+    integration_finalize = integration_commands.add_parser("finalize")
+    integration_finalize.add_argument("--candidate-id", required=True)
+    integration_finalize.add_argument("--message", required=True)
 
     maintenance = commands.add_parser("maintenance")
     maintenance_commands = maintenance.add_subparsers(
@@ -426,6 +553,8 @@ def _offline_queue_intent(arguments: argparse.Namespace) -> tuple[str, dict[str,
                     "display_name": arguments.display_name,
                     "plan_path": arguments.plan_path,
                     "write_scope": arguments.write_scope,
+                    "session_role": arguments.session_role,
+                    "parent_session_id": arguments.parent_session_id,
                 },
             )
         session_id = _session_id(explicit_session_id)
@@ -771,6 +900,8 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         result = client.health()
         result["offlineReplay"] = _replay_offline_queue(config, client)
         return result
+    if arguments.command == "request-status":
+        return client.command_request_status(arguments.request_id)
     if arguments.command == "stop":
         result = client.shutdown()
         for _ in range(50):
@@ -812,6 +943,8 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "display_name": arguments.display_name,
                 "plan_path": arguments.plan_path,
                 "write_scope": arguments.write_scope,
+                "session_role": arguments.session_role,
+                "parent_session_id": arguments.parent_session_id,
             },
         )
     if arguments.command == "session" and arguments.session_command == "list":
@@ -843,6 +976,26 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "baseline.attribute",
                 {"session_id": _session_id(arguments.session_id), "paths": arguments.paths},
             )
+    if arguments.command == "ownership":
+        if arguments.ownership_command == "matrix":
+            return client.command("ownership.matrix", {"prefix": arguments.prefix})
+        if arguments.ownership_command == "transfer-preview":
+            return client.command(
+                "ownership.transfer.preview",
+                {
+                    "target_session_id": _session_id(arguments.target_session_id),
+                    "paths": arguments.paths,
+                },
+            )
+        return client.command(
+            "ownership.transfer.apply",
+            {
+                "fingerprint": arguments.fingerprint,
+                "confirm_fingerprint": arguments.confirm_fingerprint,
+                "actor": arguments.actor,
+                "maintenance_capability": arguments.maintenance_capability,
+            },
+        )
     if arguments.command == "ai-effort":
         if arguments.ai_effort_command == "report":
             return client.command("ai_effort.report", {})
@@ -929,6 +1082,20 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             return client.command(f"failure.{arguments.failure_command}")
         if arguments.failure_command == "open":
             return client.command("failure.open", {"fixing_plan": arguments.fixing_plan})
+        if arguments.failure_command == "materialize-local-validation":
+            return client.command(
+                "failure.materialize_local_validation",
+                {
+                    "session_id": arguments.session_id,
+                    "summary_slug": arguments.summary_slug,
+                    "source_slice": arguments.source_slice,
+                    "reproduction": arguments.reproduction,
+                    "lowest_known_cause": arguments.lowest_known_cause,
+                    "acceptance_criteria": arguments.acceptance_criterion,
+                    "related_code": arguments.related_code,
+                    "created_at": arguments.created_at,
+                },
+            )
         if arguments.failure_command == "return":
             return client.command(
                 "failure.return",
@@ -940,6 +1107,89 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "architecture_fix": arguments.architecture_fix,
                     "validation": arguments.validation,
                     "return_summary": arguments.return_summary,
+                },
+            )
+        if arguments.failure_command in {"closeout-prepare", "closeout-prepare-combined"}:
+            command = json.loads(arguments.validation_command_json)
+            if not isinstance(command, list) or not all(
+                isinstance(item, str) for item in command
+            ):
+                raise CoordinatorError(
+                    "failure_closeout_validation_command_invalid",
+                    "Failure closeout --validation-command-json must encode a string array",
+                )
+            executor_thread_id = os.environ.get("CODEX_THREAD_ID")
+            if not executor_thread_id:
+                raise CoordinatorError(
+                    "failure_closeout_executor_thread_missing",
+                    "Failure closeout prepare must run from a discoverable Codex task",
+                )
+            combined = arguments.failure_command == "closeout-prepare-combined"
+            payload = {
+                    "session_id": arguments.session_id,
+                    "snapshot_id": arguments.snapshot_id,
+                    "validation_command": command,
+                    "validation_job_id": arguments.job_id,
+                    "validation_run_id": arguments.cargo_run_id,
+                    "executor_thread_id": executor_thread_id,
+                    "actor": arguments.session_id,
+                }
+            if combined:
+                payload.update(
+                    {
+                        "lifecycle_keys": arguments.lifecycle_keys,
+                        "delivery_records": arguments.delivery_record,
+                    }
+                )
+            else:
+                payload["lifecycle_key"] = arguments.lifecycle_key
+            return client.command(
+                (
+                    "failure.closeout_prepare_combined"
+                    if combined
+                    else "failure.closeout_prepare"
+                ),
+                payload,
+            )
+        if arguments.failure_command == "closeout-validate":
+            return client.command(
+                "failure.closeout_validate",
+                {
+                    "session_id": arguments.session_id,
+                    "closeout_id": arguments.closeout_id,
+                    "job_id": arguments.job_id,
+                    "cargo_run_id": arguments.cargo_run_id,
+                    "actor": arguments.session_id,
+                },
+            )
+        if arguments.failure_command == "closeout-review":
+            reviewer_thread_id = os.environ.get("CODEX_THREAD_ID")
+            if not reviewer_thread_id:
+                raise CoordinatorError(
+                    "failure_closeout_reviewer_thread_missing",
+                    "Failure closeout review must run from a discoverable Codex task",
+                )
+            return client.command(
+                "failure.closeout_review",
+                {
+                    "session_id": reviewer_thread_id,
+                    "reviewer_thread_id": reviewer_thread_id,
+                    "executor_session_id": arguments.executor_session_id,
+                    "closeout_id": arguments.closeout_id,
+                    "critical_count": arguments.critical_count,
+                    "important_count": arguments.important_count,
+                    "moderate_count": arguments.moderate_count,
+                    "summary": arguments.summary,
+                },
+            )
+        if arguments.failure_command == "closeout-commit":
+            return client.command(
+                "failure.closeout_commit",
+                {
+                    "session_id": arguments.session_id,
+                    "closeout_id": arguments.closeout_id,
+                    "summary": arguments.summary,
+                    "actor": arguments.session_id,
                 },
             )
     if arguments.command == "cargo":
@@ -956,6 +1206,10 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             }
             if arguments.burst_eligible is not None:
                 payload["burst_eligible"] = arguments.burst_eligible
+            if arguments.dependency_lifecycle_key is not None:
+                payload["dependency_lifecycle_key"] = arguments.dependency_lifecycle_key
+            if arguments.dependency_fixed_sha256 is not None:
+                payload["dependency_fixed_sha256"] = arguments.dependency_fixed_sha256
             return client.command(
                 "cargo.reserve_cpu",
                 payload,
@@ -1161,6 +1415,17 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     f"{arguments.summary}"
                 ),
             )
+        elif arguments.milestone_command == "defer-failure":
+            return client.command(
+                "milestone.defer_failure",
+                {
+                    "session_id": arguments.session_id,
+                    "source_milestone_key": arguments.source_milestone.strip().upper(),
+                    "target_milestone_key": arguments.target_milestone.strip().upper(),
+                    "failure_lifecycle_key": arguments.failure_lifecycle_key,
+                    "actor": arguments.session_id,
+                },
+            )
         else:
             action = client.execute_control_action(
                 "session.complete",
@@ -1271,11 +1536,28 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "job_id": arguments.job_id,
                 },
             )
+        external_sources = [
+            json.loads(payload) for payload in arguments.external_source_json
+        ]
+        if arguments.validation_copy_command == "materialize-cargo":
+            command = list(arguments.command_args)
+            if command and command[0] == "--":
+                command = command[1:]
+            return client.command(
+                "validation_copy.materialize_cargo",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "paths": arguments.path,
+                    "external_sources": external_sources,
+                    "command": command,
+                },
+            )
         return client.command(
             f"validation_copy.{arguments.validation_copy_command}",
             {
                 "session_id": _session_id(arguments.session_id),
                 "paths": arguments.path,
+                "external_sources": external_sources,
             },
         )
     if arguments.command == "legacy":
@@ -1309,6 +1591,132 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 ),
             },
         )
+    if arguments.command == "governance":
+        if arguments.governance_command == "converge-preview":
+            return client.command(
+                "governance.converge.preview", {"actor": arguments.actor}
+            )
+        if arguments.governance_command == "converge-apply":
+            return client.command(
+                "governance.converge.apply",
+                {
+                    "fingerprint": arguments.fingerprint,
+                    "actor": arguments.actor,
+                    "maintenance_capability": os.environ.get(
+                        "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                    ),
+                },
+            )
+        if arguments.governance_command == "retention-preview":
+            return client.command(
+                "governance.retention.preview", {"actor": arguments.actor}
+            )
+        if arguments.governance_command == "retention-apply":
+            return client.command(
+                "governance.retention.apply",
+                {
+                    "fingerprint": arguments.fingerprint,
+                    "actor": arguments.actor,
+                    "maintenance_capability": os.environ.get(
+                        "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                    ),
+                },
+            )
+        return client.command(
+            "governance.retention.compact",
+            {
+                "batch_id": arguments.batch_id,
+                "actor": arguments.actor,
+                "maintenance_capability": os.environ.get(
+                    "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                ),
+            },
+        )
+    if arguments.command == "integration":
+        if arguments.integration_command == "status":
+            return client.command("integration.status", {"candidate_id": arguments.candidate_id})
+        if arguments.integration_command == "finalize":
+            return client.command(
+                "integration.finalize",
+                {"candidate_id": arguments.candidate_id, "message": arguments.message},
+            )
+        return client.command(
+            "integration.submit",
+            {
+                "session_id": arguments.session_id,
+                "request_id": arguments.request_id,
+                "compile_ticket_id": arguments.compile_ticket_id,
+                "paths": arguments.path,
+            },
+        )
+    if arguments.command == "validation":
+        if arguments.validation_command == "status":
+            return client.command("validation.status", {"ticket_id": arguments.ticket_id})
+        if arguments.validation_command == "record-result":
+            try:
+                evidence = json.loads(arguments.evidence_json)
+                failure = (
+                    json.loads(arguments.failure_json)
+                    if arguments.failure_json is not None
+                    else None
+                )
+            except json.JSONDecodeError as error:
+                raise CoordinatorError(
+                    "validation_ticket_json_invalid",
+                    "Validation result JSON arguments must be valid JSON",
+                ) from error
+            if not isinstance(evidence, dict) or (
+                failure is not None and not isinstance(failure, dict)
+            ):
+                raise CoordinatorError(
+                    "validation_ticket_json_invalid",
+                    "Validation result evidence and failure context must be JSON objects",
+                )
+            if arguments.status == "failed" and failure is None:
+                raise CoordinatorError(
+                    "validation_ticket_failure_context_missing",
+                    "A failed validation result requires --failure-json for the forward repair",
+                )
+            return client.command(
+                "validation.record_result",
+                {
+                    "ticket_id": arguments.ticket_id,
+                    "status": arguments.status,
+                    "evidence": evidence,
+                    "failure": failure,
+                },
+            )
+        try:
+            source_manifest = json.loads(arguments.source_manifest_json)
+            command = json.loads(arguments.command_json)
+            toolchain = json.loads(arguments.toolchain_json)
+            coverage = json.loads(arguments.coverage_json)
+        except json.JSONDecodeError as error:
+            raise CoordinatorError(
+                "validation_ticket_json_invalid",
+                "Validation submit JSON arguments must be valid JSON",
+            ) from error
+        if not isinstance(source_manifest, dict) or not isinstance(command, list):
+            raise CoordinatorError(
+                "validation_ticket_json_invalid",
+                "Validation submit requires an object manifest and string-array command",
+            )
+        if not isinstance(toolchain, dict) or not isinstance(coverage, dict):
+            raise CoordinatorError(
+                "validation_ticket_json_invalid",
+                "Validation submit toolchain and coverage must be JSON objects",
+            )
+        return client.command(
+            "validation.submit",
+            {
+                "session_id": arguments.session_id,
+                "request_id": arguments.request_id,
+                "source_manifest": source_manifest,
+                "command": command,
+                "toolchain": toolchain,
+                "coverage": coverage,
+            },
+        )
     if arguments.command == "maintenance" and arguments.maintenance_command == "tick":
         return client.command(
             "maintenance.tick",
@@ -1335,8 +1743,11 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    arguments = _parser().parse_args(argv)
+    raw_arguments = list(sys.argv[1:] if argv is None else argv)
+    json_output = "--json" in raw_arguments
+    arguments: argparse.Namespace | None = None
     try:
+        arguments = _parser().parse_args(raw_arguments)
         result = _run(arguments)
     except (
         CoordinatorClientError,
@@ -1350,7 +1761,7 @@ def main(argv: list[str] | None = None) -> int:
             and error.code == "offline"
             and error.details.get("transport") in {"descriptor_absent", "connection_refused"}
         ):
-            intent = _offline_queue_intent(arguments)
+            intent = _offline_queue_intent(arguments) if arguments is not None else None
             if intent is not None:
                 try:
                     queued = _offline_spool(_config(arguments)).enqueue(*intent)
@@ -1361,7 +1772,7 @@ def main(argv: list[str] | None = None) -> int:
                         "details": {},
                     }
                     payload = {"status": "error", "error": issue}
-                    print(json.dumps(payload, ensure_ascii=False) if arguments.json_output else issue["message"])
+                    print(json.dumps(payload, ensure_ascii=False) if json_output else issue["message"])
                     return 2
                 result = {
                     "status": "queued",
@@ -1370,7 +1781,7 @@ def main(argv: list[str] | None = None) -> int:
                 }
                 print(
                     json.dumps(result, ensure_ascii=False, sort_keys=True)
-                    if arguments.json_output
+                    if json_output
                     else json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
                 )
                 return 0
@@ -1385,7 +1796,14 @@ def main(argv: list[str] | None = None) -> int:
         else:
             issue = {"code": "invalid_request", "message": str(error), "details": {}}
         payload = {"status": "offline" if issue["code"] == "offline" else "error", "error": issue}
-        print(json.dumps(payload, ensure_ascii=False) if arguments.json_output else issue["message"])
+        preserve_recovery_identity = isinstance(error, CoordinatorClientError) and issue[
+            "code"
+        ].startswith("command_post_")
+        print(
+            json.dumps(payload, ensure_ascii=False)
+            if json_output or preserve_recovery_identity
+            else issue["message"]
+        )
         return 3 if issue["code"] == "offline" else 2
     _write_report(getattr(arguments, "report", None), result)
     print(

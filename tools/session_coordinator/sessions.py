@@ -19,6 +19,7 @@ from .models import (
     utc_now,
     utc_text,
 )
+from .plan_wip import PlanWipGate
 
 
 class SessionService:
@@ -32,6 +33,7 @@ class SessionService:
         self.database = database
         self.repo_root = Path(repo_root).resolve()
         self.session_change_hook = session_change_hook
+        self.plan_wip = PlanWipGate(self.repo_root)
 
     def register(
         self,
@@ -40,9 +42,15 @@ class SessionService:
         display_name: str | None = None,
         plan_path: str | None = None,
         write_scope: list[str] | tuple[str, ...] | None = None,
+        session_role: str | None = None,
+        parent_session_id: str | None = None,
+        requested_status: SessionStatus | None = None,
+        status_reason: str | None = None,
     ) -> SessionRecord:
         if not session_id.strip():
             raise ValueError("session_id cannot be empty")
+        if requested_status is not None and not isinstance(requested_status, SessionStatus):
+            raise ValueError("requested_status must be a SessionStatus enum value")
         normalized_scope = tuple(dict.fromkeys(write_scope or ()))
         now = utc_text()
         base_head = self._head_commit()
@@ -51,25 +59,39 @@ class SessionService:
                 "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
             ).fetchone()
             if existing is None:
+                target_status = requested_status or SessionStatus.REGISTERED
+                admission = self.plan_wip.admit_in_connection(
+                    connection,
+                    session_id=session_id,
+                    plan_path=plan_path,
+                    session_role=session_role or "primary",
+                    parent_session_id=parent_session_id,
+                    write_scope=normalized_scope,
+                    existing=None,
+                )
                 epoch_row = connection.execute(
                     "SELECT MAX(epoch_id) FROM baseline_epochs"
                 ).fetchone()
                 baseline_epoch = epoch_row[0] if epoch_row else None
-                connection.execute(
+                cursor = connection.execute(
                     """
                     INSERT INTO sessions(
                         session_id, display_name, plan_path, status, base_head,
-                        baseline_epoch, write_scope_json, created_at, updated_at,
+                        baseline_epoch, plan_family_key, session_role, parent_session_id,
+                        write_scope_json, created_at, updated_at,
                         last_heartbeat_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         session_id,
                         display_name,
                         plan_path,
-                        SessionStatus.REGISTERED.value,
+                        target_status.value,
                         base_head,
                         baseline_epoch,
+                        admission.plan_family_key,
+                        admission.session_role,
+                        admission.parent_session_id,
                         json.dumps(normalized_scope),
                         now,
                         now,
@@ -77,26 +99,82 @@ class SessionService:
                     ),
                 )
                 self._event(connection, session_id, "session.registered", {"base_head": base_head})
+                if target_status is not SessionStatus.REGISTERED:
+                    self._event(
+                        connection,
+                        session_id,
+                        "session.status_changed",
+                        {
+                            "from": SessionStatus.REGISTERED.value,
+                            "to": target_status.value,
+                            "reason": status_reason,
+                        },
+                    )
             else:
+                existing_scope = tuple(json.loads(existing["write_scope_json"]))
+                if normalized_scope and normalized_scope != existing_scope:
+                    raise CoordinatorError(
+                        "session_write_scope_immutable",
+                        "An existing Session write scope is immutable; use an explicit "
+                        "audited scope-transfer operation",
+                    )
+                current_status = SessionStatus(existing["status"])
+                target_status = requested_status or current_status
+                if (
+                    target_status is not current_status
+                    and target_status not in ALLOWED_STATUS_TRANSITIONS[current_status]
+                ):
+                    raise InvalidStatusTransition(current_status, target_status)
+                admission = self.plan_wip.admit_in_connection(
+                    connection,
+                    session_id=session_id,
+                    plan_path=plan_path or existing["plan_path"],
+                    session_role=session_role or str(existing["session_role"]),
+                    parent_session_id=(
+                        parent_session_id
+                        if parent_session_id is not None
+                        else existing["parent_session_id"]
+                    ),
+                    write_scope=existing_scope,
+                    existing=existing,
+                )
                 connection.execute(
                     """
                     UPDATE sessions
                     SET display_name = COALESCE(?, display_name),
                         plan_path = COALESCE(?, plan_path),
-                        write_scope_json = CASE WHEN ? <> '[]' THEN ? ELSE write_scope_json END,
+                        plan_family_key = ?,
+                        session_role = ?,
+                        parent_session_id = ?,
+                        status = ?,
+                        status_reason = ?,
                         updated_at = ?, last_heartbeat_at = ?
                     WHERE session_id = ?
                     """,
                     (
                         display_name,
                         plan_path,
-                        json.dumps(normalized_scope),
-                        json.dumps(normalized_scope),
+                        admission.plan_family_key,
+                        admission.session_role,
+                        admission.parent_session_id,
+                        target_status.value,
+                        status_reason if target_status is not current_status else existing["status_reason"],
                         now,
                         now,
                         session_id,
                     ),
                 )
+                if target_status is not current_status:
+                    self._event(
+                        connection,
+                        session_id,
+                        "session.status_changed",
+                        {
+                            "from": current_status.value,
+                            "to": target_status.value,
+                            "reason": status_reason,
+                        },
+                    )
             session = self._changed_session(connection, session_id)
         return session
 
@@ -123,14 +201,71 @@ class SessionService:
     def heartbeat(self, session_id: str) -> SessionRecord:
         now = utc_text()
         with self.database.transaction() as connection:
-            cursor = connection.execute(
-                "UPDATE sessions SET last_heartbeat_at = ?, updated_at = ? WHERE session_id = ?",
-                (now, now, session_id),
-            )
-            if cursor.rowcount != 1:
+            row = connection.execute(
+                "SELECT status FROM sessions WHERE session_id = ?", (session_id,)
+            ).fetchone()
+            if row is None:
                 raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
+            current = SessionStatus(row["status"])
+            if current is SessionStatus.STALE:
+                connection.execute(
+                    """
+                    UPDATE sessions
+                    SET status = ?, status_reason = ?, last_heartbeat_at = ?, updated_at = ?
+                    WHERE session_id = ?
+                    """,
+                    (
+                        SessionStatus.ACTIVE.value,
+                        "heartbeat resumed active work",
+                        now,
+                        now,
+                        session_id,
+                    ),
+                )
+                self._event(
+                    connection,
+                    session_id,
+                    "session.status_changed",
+                    {
+                        "from": SessionStatus.STALE.value,
+                        "to": SessionStatus.ACTIVE.value,
+                        "reason": "heartbeat resumed active work",
+                    },
+                )
+            else:
+                connection.execute(
+                    "UPDATE sessions SET last_heartbeat_at = ?, updated_at = ? WHERE session_id = ?",
+                    (now, now, session_id),
+                )
             session = self._changed_session(connection, session_id)
         return session
+
+    def extend_write_scope_in_connection(
+        self,
+        connection: Connection,
+        session_id: str,
+        paths: tuple[str, ...],
+        *,
+        transfer_fingerprint: str,
+    ) -> SessionRecord:
+        """Append an audited exact-path scope during an ownership transfer."""
+        row = connection.execute(
+            "SELECT write_scope_json FROM sessions WHERE session_id=?", (session_id,)
+        ).fetchone()
+        if row is None:
+            raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
+        scope = tuple(dict.fromkeys((*json.loads(row["write_scope_json"]), *paths)))
+        connection.execute(
+            "UPDATE sessions SET write_scope_json=?, updated_at=? WHERE session_id=?",
+            (json.dumps(scope), utc_text(), session_id),
+        )
+        self._event(
+            connection,
+            session_id,
+            "session.write_scope_transferred",
+            {"paths": list(paths), "transferFingerprint": transfer_fingerprint},
+        )
+        return self._changed_session(connection, session_id)
 
     def set_status(
         self,
@@ -198,13 +333,33 @@ class SessionService:
                 WHERE status IN (?, ?, ?, ?, ?)
                   AND last_heartbeat_at < ?
                   AND NOT EXISTS (
+                      SELECT 1 FROM leases
+                      WHERE leases.session_id = sessions.session_id
+                        AND leases.expires_at > ?
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM patches
+                      WHERE patches.session_id = sessions.session_id
+                        AND patches.status IN ('queued', 'applying', 'needs_rebase')
+                  )
+                  AND NOT EXISTS (
                       SELECT 1 FROM cargo_jobs
                       WHERE cargo_jobs.session_id = sessions.session_id
-                        AND cargo_jobs.status = 'running'
+                        AND cargo_jobs.status IN ('leased', 'running')
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM cargo_lane_reservations
+                      WHERE cargo_lane_reservations.session_id = sessions.session_id
+                        AND cargo_lane_reservations.status IN ('pending', 'leased', 'running')
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM validation_copies
+                      WHERE validation_copies.session_id = sessions.session_id
+                        AND validation_copies.status IN ('planned', 'materialized', 'running', 'cleanup_pending')
                   )
                 ORDER BY session_id
                 """,
-                (*eligible_statuses, cutoff),
+                (*eligible_statuses, cutoff, now),
             ).fetchall()
             for row in rows:
                 session_id = row["session_id"]
@@ -219,9 +374,29 @@ class SessionService:
                       AND last_heartbeat_at = ?
                       AND last_heartbeat_at < ?
                       AND NOT EXISTS (
+                          SELECT 1 FROM leases
+                          WHERE leases.session_id = sessions.session_id
+                            AND leases.expires_at > ?
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM patches
+                          WHERE patches.session_id = sessions.session_id
+                            AND patches.status IN ('queued', 'applying', 'needs_rebase')
+                      )
+                      AND NOT EXISTS (
                           SELECT 1 FROM cargo_jobs
                           WHERE cargo_jobs.session_id = sessions.session_id
-                            AND cargo_jobs.status = 'running'
+                            AND cargo_jobs.status IN ('leased', 'running')
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM cargo_lane_reservations
+                          WHERE cargo_lane_reservations.session_id = sessions.session_id
+                            AND cargo_lane_reservations.status IN ('pending', 'leased', 'running')
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM validation_copies
+                          WHERE validation_copies.session_id = sessions.session_id
+                            AND validation_copies.status IN ('planned', 'materialized', 'running', 'cleanup_pending')
                       )
                     """,
                     (
@@ -231,6 +406,7 @@ class SessionService:
                         row["status"],
                         row["last_heartbeat_at"],
                         cutoff,
+                        now,
                     ),
                 )
                 if cursor.rowcount != 1:
@@ -267,34 +443,73 @@ class SessionService:
                 SELECT session_id FROM sessions
                 WHERE status = 'stale' AND updated_at < ?
                   AND NOT EXISTS (
-                      SELECT 1 FROM leases WHERE leases.session_id = sessions.session_id
+                      SELECT 1 FROM leases
+                      WHERE leases.session_id = sessions.session_id
+                        AND leases.expires_at > ?
                   )
                    AND NOT EXISTS (
                        SELECT 1 FROM patches
                        WHERE patches.session_id = sessions.session_id
                          AND patches.status IN ('queued', 'applying', 'needs_rebase')
                    )
-                   AND NOT EXISTS (
-                       SELECT 1 FROM cargo_jobs
-                       WHERE cargo_jobs.session_id = sessions.session_id
-                         AND cargo_jobs.status IN ('leased', 'running')
-                   )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM cargo_jobs
+                      WHERE cargo_jobs.session_id = sessions.session_id
+                        AND cargo_jobs.status IN ('leased', 'running')
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM cargo_lane_reservations
+                      WHERE cargo_lane_reservations.session_id = sessions.session_id
+                        AND cargo_lane_reservations.status IN ('pending', 'leased', 'running')
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM validation_copies
+                      WHERE validation_copies.session_id = sessions.session_id
+                        AND validation_copies.status IN ('planned', 'materialized', 'running', 'cleanup_pending')
+                  )
                 ORDER BY session_id
                 """,
-                (cutoff,),
+                (cutoff, now),
             ).fetchall()
             for row in rows:
                 session_id = row["session_id"]
                 if session_id in (excluded_session_ids or set()):
                     continue
-                connection.execute(
+                cursor = connection.execute(
                     """
                     UPDATE sessions
                     SET status = 'archived', status_reason = ?, updated_at = ?, archived_at = ?
-                    WHERE session_id = ? AND status = 'stale'
+                    WHERE session_id = ? AND status = 'stale' AND updated_at < ?
+                      AND NOT EXISTS (
+                          SELECT 1 FROM leases
+                          WHERE leases.session_id = sessions.session_id
+                            AND leases.expires_at > ?
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM patches
+                          WHERE patches.session_id = sessions.session_id
+                            AND patches.status IN ('queued', 'applying', 'needs_rebase')
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM cargo_jobs
+                          WHERE cargo_jobs.session_id = sessions.session_id
+                            AND cargo_jobs.status IN ('leased', 'running')
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM cargo_lane_reservations
+                          WHERE cargo_lane_reservations.session_id = sessions.session_id
+                            AND cargo_lane_reservations.status IN ('pending', 'leased', 'running')
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM validation_copies
+                          WHERE validation_copies.session_id = sessions.session_id
+                            AND validation_copies.status IN ('planned', 'materialized', 'running', 'cleanup_pending')
+                      )
                     """,
-                    ("stale retention elapsed", now, now, session_id),
-                )
+                    ("stale retention elapsed", now, now, session_id, cutoff, now),
+                ).rowcount
+                if not cursor:
+                    continue
                 self._event(
                     connection,
                     session_id,
@@ -346,6 +561,9 @@ class SessionService:
             status=SessionStatus(row["status"]),
             display_name=row["display_name"],
             plan_path=row["plan_path"],
+            plan_family_key=row["plan_family_key"],
+            session_role=row["session_role"],
+            parent_session_id=row["parent_session_id"],
             write_scope=tuple(json.loads(row["write_scope_json"])),
             status_reason=row["status_reason"],
             base_head=row["base_head"],

@@ -13,7 +13,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 48
+LATEST_SCHEMA_VERSION = 58
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2138,6 +2138,409 @@ def _migration_48(connection: Connection) -> None:
     )
 
 
+def _migration_49(connection: Connection) -> None:
+    """Allow an audited open-failure reservation to outrank blocked FIFO work."""
+    connection.executescript(
+        """
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN priority_rank INTEGER NOT NULL DEFAULT 1000
+            CHECK (priority_rank >= 0);
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN failure_lifecycle_key TEXT;
+        CREATE INDEX cargo_lane_reservations_cpu_priority_fifo
+            ON cargo_lane_reservations(
+                lane_scope, execution_mode, status, priority_rank, created_at, reservation_id
+            )
+            WHERE lane_scope='cpu' AND execution_mode='warm';
+        """
+    )
+
+
+def _migration_50(connection: Connection) -> None:
+    """Persist command admission and proof-bound Cargo start acknowledgements."""
+    connection.executescript(
+        """
+        CREATE TABLE command_requests (
+            request_id TEXT PRIMARY KEY,
+            command TEXT NOT NULL,
+            arguments_hash TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('accepted', 'completed', 'failed')),
+            received_at TEXT NOT NULL,
+            accepted_at TEXT NOT NULL,
+            completed_at TEXT,
+            response_json TEXT,
+            error_json TEXT,
+            payload_compacted_at TEXT,
+            retention_class TEXT NOT NULL DEFAULT 'durable'
+                CHECK (retention_class IN ('durable', 'ephemeral'))
+        );
+        CREATE INDEX command_requests_status_created
+            ON command_requests(status, received_at, request_id);
+        CREATE INDEX command_requests_compaction_candidates
+            ON command_requests(retention_class, payload_compacted_at, status, completed_at, request_id)
+            WHERE retention_class='durable'
+              AND payload_compacted_at IS NULL;
+        CREATE INDEX command_requests_ephemeral_retention
+            ON command_requests(retention_class, status, completed_at, request_id);
+
+        CREATE TABLE cargo_start_requests (
+            request_id TEXT PRIMARY KEY,
+            reservation_id TEXT NOT NULL UNIQUE,
+            job_id TEXT NOT NULL UNIQUE,
+            session_id TEXT NOT NULL,
+            command_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (
+                status IN ('start_pending', 'started', 'launch_failed')
+            ),
+            acknowledged_at TEXT NOT NULL,
+            deadline_at TEXT NOT NULL,
+            run_id TEXT,
+            error_code TEXT,
+            error_message TEXT,
+            completed_at TEXT
+        );
+        CREATE INDEX cargo_start_requests_pending_deadline
+            ON cargo_start_requests(status, deadline_at, request_id);
+
+        CREATE TRIGGER cargo_jobs_preserve_valid_start_pending
+        BEFORE UPDATE OF status ON cargo_jobs
+        WHEN OLD.status='leased'
+          AND NEW.status='orphaned'
+          AND EXISTS (
+              SELECT 1 FROM cargo_start_requests
+              WHERE job_id=OLD.job_id
+                AND status='start_pending'
+                AND deadline_at>NEW.last_heartbeat_at
+          )
+        BEGIN
+            SELECT RAISE(IGNORE);
+        END;
+
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN dependency_lifecycle_key TEXT;
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN dependency_fixed_sha256 TEXT;
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN source_copy_job_id TEXT REFERENCES validation_copies(job_id);
+        ALTER TABLE cargo_jobs
+            ADD COLUMN source_copy_job_id TEXT REFERENCES validation_copies(job_id);
+        ALTER TABLE cargo_jobs
+            ADD COLUMN source_copy_manifest_hash TEXT;
+        CREATE INDEX cargo_lane_reservations_dependency
+            ON cargo_lane_reservations(dependency_lifecycle_key, status, reservation_id)
+            WHERE dependency_lifecycle_key IS NOT NULL;
+        CREATE INDEX cargo_jobs_source_copy
+            ON cargo_jobs(source_copy_job_id, status, job_id)
+            WHERE source_copy_job_id IS NOT NULL;
+
+        ALTER TABLE validation_copies
+            ADD COLUMN external_sources_json TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE validation_copies
+            ADD COLUMN input_manifest_hash TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN error_code TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN error_stage TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN error_path TEXT;
+
+        CREATE TABLE workflow_failure_deferrals (
+            deferral_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            plan_path TEXT NOT NULL,
+            topology_hash TEXT NOT NULL,
+            source_milestone_key TEXT NOT NULL,
+            target_milestone_key TEXT NOT NULL,
+            failure_lifecycle_key TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            action_id TEXT,
+            created_at TEXT NOT NULL,
+            UNIQUE(
+                session_id, plan_path, topology_hash, source_milestone_key,
+                failure_lifecycle_key
+            )
+        );
+        CREATE INDEX workflow_failure_deferrals_context
+            ON workflow_failure_deferrals(
+                session_id, plan_path, topology_hash, source_milestone_key,
+                failure_lifecycle_key
+            );
+
+        CREATE TABLE workflow_validation_template_bindings (
+            validation_run_id TEXT PRIMARY KEY
+                REFERENCES workflow_validation_bindings(validation_run_id) ON DELETE CASCADE,
+            template TEXT NOT NULL
+        );
+        """
+    )
+
+
+def _migration_51(connection: Connection) -> None:
+    """Persist durable, restartable Cargo validation-copy materialization phases."""
+    connection.executescript(
+        """
+        ALTER TABLE validation_copies
+            ADD COLUMN materialization_kind TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN materialization_request_json TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN materialization_phase TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN materialization_worker_id TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN materialization_attempt INTEGER NOT NULL DEFAULT 0;
+        CREATE INDEX validation_copies_cargo_materialization_recovery
+            ON validation_copies(status, materialization_kind, materialization_phase, job_id)
+            WHERE status='planned' AND materialization_kind='cargo';
+        """
+    )
+
+
+def _migration_52(connection: Connection) -> None:
+    """Persist bounded, indexed state-convergence preview and apply audits."""
+    connection.executescript(
+        """
+        CREATE TABLE governance_previews (
+            fingerprint TEXT PRIMARY KEY,
+            operation TEXT NOT NULL,
+            candidate_count INTEGER NOT NULL,
+            candidates_json TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX governance_previews_created
+            ON governance_previews(created_at, fingerprint);
+
+        CREATE TABLE governance_applies (
+            apply_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fingerprint TEXT NOT NULL REFERENCES governance_previews(fingerprint),
+            actor TEXT NOT NULL,
+            candidate_count INTEGER NOT NULL,
+            applied_count INTEGER NOT NULL,
+            skipped_count INTEGER NOT NULL,
+            conflict_count INTEGER NOT NULL,
+            result_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX governance_applies_fingerprint_created
+            ON governance_applies(fingerprint, created_at, apply_id);
+        """
+    )
+
+
+def _migration_53(connection: Connection) -> None:
+    """Store immutable validation submissions outside business Session state."""
+    connection.executescript(
+        """
+        CREATE TABLE validation_tickets (
+            ticket_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            plan_path TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'queued', 'materializing', 'running', 'passed', 'failed', 'snapshot_stale'
+            )),
+            dedupe_key TEXT NOT NULL,
+            source_manifest_hash TEXT NOT NULL,
+            source_manifest_json TEXT NOT NULL,
+            command_json TEXT NOT NULL,
+            toolchain_json TEXT NOT NULL,
+            coverage_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE INDEX validation_tickets_reusable
+            ON validation_tickets(dedupe_key, status, created_at, ticket_id);
+        CREATE INDEX validation_tickets_session_status
+            ON validation_tickets(session_id, status, created_at);
+
+        CREATE TABLE validation_ticket_requests (
+            request_id TEXT PRIMARY KEY,
+            ticket_id TEXT NOT NULL REFERENCES validation_tickets(ticket_id),
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX validation_ticket_requests_ticket
+            ON validation_ticket_requests(ticket_id, created_at);
+
+        CREATE TABLE validation_ticket_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id TEXT NOT NULL REFERENCES validation_tickets(ticket_id),
+            event_type TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX validation_ticket_events_ticket
+            ON validation_ticket_events(ticket_id, event_id);
+        """
+    )
+
+
+def _migration_54(connection: Connection) -> None:
+    """Persist exact Git blob candidates after their compile gate passes."""
+    connection.executescript(
+        """
+        CREATE TABLE integration_candidates (
+            candidate_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            plan_path TEXT NOT NULL,
+            request_id TEXT NOT NULL UNIQUE,
+            base_head TEXT NOT NULL,
+            compile_ticket_id TEXT NOT NULL REFERENCES validation_tickets(ticket_id),
+            status TEXT NOT NULL CHECK (status IN (
+                'integration_ready', 'integrated_validation_pending', 'accepted', 'delayed_merge'
+            )),
+            commit_sha TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE INDEX integration_candidates_session_status
+            ON integration_candidates(session_id, status, created_at);
+        CREATE INDEX integration_candidates_compile_ticket
+            ON integration_candidates(compile_ticket_id, status, created_at);
+
+        CREATE TABLE integration_candidate_paths (
+            candidate_id TEXT NOT NULL REFERENCES integration_candidates(candidate_id) ON DELETE CASCADE,
+            path TEXT NOT NULL,
+            blob_oid TEXT NOT NULL,
+            PRIMARY KEY(candidate_id, path)
+        );
+
+        CREATE TABLE integration_candidate_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_id TEXT NOT NULL REFERENCES integration_candidates(candidate_id),
+            event_type TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX integration_candidate_events_candidate
+            ON integration_candidate_events(candidate_id, event_id);
+        """
+    )
+
+
+def _migration_55(connection: Connection) -> None:
+    """Retain the live lease proof that authorized each sealed candidate."""
+    connection.executescript(
+        """
+        ALTER TABLE integration_candidates
+            ADD COLUMN lease_evidence_json TEXT NOT NULL DEFAULT '[]';
+        """
+    )
+
+
+def _migration_56(connection: Connection) -> None:
+    """Add bounded retention metadata for large baseline and copy manifests."""
+    connection.executescript(
+        """
+        ALTER TABLE baseline_epochs
+            ADD COLUMN manifest_sha256 TEXT;
+        ALTER TABLE baseline_epochs
+            ADD COLUMN manifest_entry_count INTEGER;
+        ALTER TABLE baseline_epochs
+            ADD COLUMN manifest_byte_count INTEGER;
+        ALTER TABLE baseline_epochs
+            ADD COLUMN manifest_archive_path TEXT;
+        ALTER TABLE baseline_epochs
+            ADD COLUMN manifest_archived_at TEXT;
+        CREATE INDEX baseline_epochs_manifest_retention
+            ON baseline_epochs(manifest_archive_path, created_at, epoch_id);
+
+        ALTER TABLE validation_copies
+            ADD COLUMN manifest_sha256 TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN manifest_entry_count INTEGER;
+        ALTER TABLE validation_copies
+            ADD COLUMN manifest_byte_count INTEGER;
+        ALTER TABLE validation_copies
+            ADD COLUMN manifest_archive_path TEXT;
+        ALTER TABLE validation_copies
+            ADD COLUMN manifest_archived_at TEXT;
+        CREATE INDEX validation_copies_manifest_retention
+            ON validation_copies(manifest_archive_path, status, removed_at, created_at, job_id);
+
+        CREATE TABLE manifest_retention_previews (
+            fingerprint TEXT PRIMARY KEY,
+            actor TEXT NOT NULL,
+            candidate_count INTEGER NOT NULL,
+            candidates_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX manifest_retention_previews_created
+            ON manifest_retention_previews(created_at, fingerprint);
+
+        CREATE TABLE manifest_retention_batches (
+            batch_id TEXT PRIMARY KEY,
+            actor TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (
+                status IN ('applying', 'retired', 'compact_pending', 'compacted', 'failed')
+            ),
+            candidate_count INTEGER NOT NULL,
+            archive_path TEXT,
+            backup_path TEXT,
+            created_at TEXT NOT NULL,
+            retired_at TEXT,
+            compacted_at TEXT,
+            error_text TEXT
+        );
+        CREATE INDEX manifest_retention_batches_status_created
+            ON manifest_retention_batches(status, created_at, batch_id);
+        """
+    )
+
+
+def _migration_57(connection: Connection) -> None:
+    """Persist numbered-Plan WIP ownership on each Session."""
+    connection.executescript(
+        """
+        ALTER TABLE sessions
+            ADD COLUMN plan_family_key TEXT;
+        ALTER TABLE sessions
+            ADD COLUMN session_role TEXT NOT NULL DEFAULT 'primary'
+                CHECK (session_role IN ('primary', 'reviewer'));
+        ALTER TABLE sessions
+            ADD COLUMN parent_session_id TEXT REFERENCES sessions(session_id);
+        CREATE INDEX sessions_plan_wip_primary
+            ON sessions(plan_family_key, session_role, status, last_heartbeat_at, session_id);
+        CREATE INDEX sessions_plan_wip_reviewer_parent
+            ON sessions(parent_session_id, status, session_id)
+            WHERE parent_session_id IS NOT NULL;
+        """
+    )
+
+
+def _migration_58(connection: Connection) -> None:
+    """Audit explicit transfers of abandoned exact-path ownership."""
+    connection.executescript(
+        """
+        CREATE TABLE ownership_transfer_previews (
+            fingerprint TEXT PRIMARY KEY,
+            target_session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            baseline_epoch INTEGER NOT NULL REFERENCES baseline_epochs(epoch_id),
+            candidates_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            applied_at TEXT
+        );
+        CREATE INDEX ownership_transfer_previews_target_created
+            ON ownership_transfer_previews(target_session_id, created_at, fingerprint);
+
+        CREATE TABLE ownership_transfers (
+            fingerprint TEXT NOT NULL REFERENCES ownership_transfer_previews(fingerprint),
+            path_key TEXT NOT NULL,
+            display_path TEXT NOT NULL,
+            target_session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            source_session_id TEXT REFERENCES sessions(session_id),
+            baseline_epoch INTEGER NOT NULL REFERENCES baseline_epochs(epoch_id),
+            content_hash TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            transferred_at TEXT NOT NULL,
+            PRIMARY KEY(fingerprint, path_key)
+        );
+        CREATE INDEX ownership_transfers_target_created
+            ON ownership_transfers(target_session_id, transferred_at, path_key);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2187,6 +2590,16 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     46: _migration_46,
     47: _migration_47,
     48: _migration_48,
+    49: _migration_49,
+    50: _migration_50,
+    51: _migration_51,
+    52: _migration_52,
+    53: _migration_53,
+    54: _migration_54,
+    55: _migration_55,
+    56: _migration_56,
+    57: _migration_57,
+    58: _migration_58,
 }
 
 

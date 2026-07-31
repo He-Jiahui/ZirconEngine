@@ -71,6 +71,7 @@ class BaselineService:
     def __init__(self, database: Database, repo_root: str | Path):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
+        self._workspace_capture_epochs: dict[int, bool] = {}
 
     def initialize(self) -> BaselineEpoch:
         try:
@@ -348,7 +349,11 @@ class BaselineService:
     def accept(self, *, reason: str) -> BaselineEpoch:
         if not reason.strip():
             raise ValueError("baseline acceptance requires a reason")
-        return self._capture(BaselineHealth.HEALTHY, reason=reason)
+        return self._capture(
+            BaselineHealth.HEALTHY,
+            reason=reason,
+            capture_mode="workspace",
+        )
 
     def accept_commit(
         self,
@@ -476,6 +481,7 @@ class BaselineService:
         reason: str,
         manifest: dict[str, str] | None = None,
         head_commit: str | None = None,
+        capture_mode: str = "commit",
     ) -> BaselineEpoch:
         manifest = self.build_manifest() if manifest is None else manifest
         now = utc_text()
@@ -500,11 +506,43 @@ class BaselineService:
                 "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
                 (
                     "baseline.created",
-                    json.dumps({"epoch_id": epoch_id, "reason": reason}),
+                    json.dumps(
+                        {
+                            "capture_mode": capture_mode,
+                            "epoch_id": epoch_id,
+                            "reason": reason,
+                        },
+                        sort_keys=True,
+                    ),
                     now,
                 ),
             )
+        self._workspace_capture_epochs[epoch_id] = capture_mode == "workspace"
         return self.current()
+
+    def _is_workspace_capture_epoch(self, epoch_id: int) -> bool:
+        if epoch_id in self._workspace_capture_epochs:
+            return self._workspace_capture_epochs[epoch_id]
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload_json FROM events
+                WHERE event_type = ? AND payload_json LIKE ?
+                ORDER BY event_id DESC
+                LIMIT 1
+                """,
+                ("baseline.created", f'%"epoch_id": {epoch_id},%'),
+            ).fetchone()
+        if row is None:
+            self._workspace_capture_epochs[epoch_id] = False
+            return False
+        try:
+            payload = json.loads(row["payload_json"])
+        except (TypeError, ValueError):
+            payload = {}
+        is_workspace_capture = payload.get("capture_mode") == "workspace"
+        self._workspace_capture_epochs[epoch_id] = is_workspace_capture
+        return is_workspace_capture
 
     def _git_output(self, *arguments: str) -> str:
         result = subprocess.run(
@@ -545,12 +583,17 @@ class BaselineService:
     def _baseline_manifest_for_head(
         self, baseline: BaselineEpoch, new_head: str
     ) -> dict[str, str]:
+        if (
+            new_head == baseline.head_commit
+            and self._is_workspace_capture_epoch(baseline.epoch_id)
+        ):
+            # ``accept`` deliberately captures the live worktree. Rebuilding
+            # from the same Git tree would discard those accepted bytes and
+            # immediately report them as new workspace drift.
+            return baseline.manifest
+
         old_tracked = self._tracked_paths(baseline.head_commit)
-        changes = (
-            []
-            if new_head == baseline.head_commit
-            else self._commit_path_changes(baseline.head_commit, new_head)
-        )
+        changes = self._commit_path_changes(baseline.head_commit, new_head)
         filters_changed = any(
             path.rsplit("/", 1)[-1] == ".gitattributes"
             for _status, paths in changes
@@ -560,8 +603,8 @@ class BaselineService:
             path not in baseline.manifest for path in old_tracked
         ):
             # Historical partial baselines cannot be advanced from a delta without
-            # falsely treating an unchanged tracked path as absent. A same-HEAD
-            # repair likewise has no tree delta that can restore a stale value.
+            # falsely treating an unchanged tracked path as absent. A non-workspace
+            # epoch at the same HEAD is repaired from its pinned Git tree.
             # Rebuild once from the pinned commit, then subsequent managed
             # commits stay incremental.
             manifest = {

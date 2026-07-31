@@ -22,6 +22,8 @@ _TESTING = re.compile(r"test|验证|测试", re.IGNORECASE)
 
 @dataclass(frozen=True, slots=True)
 class ContinuationCandidate:
+    kind: str
+    plan_path: str
     milestone: str
     title: str
 
@@ -43,38 +45,77 @@ class WorkContinuationService:
             return []
         rows = connection.execute(
             """
-            SELECT session_id, plan_path, status
+            SELECT session_id, plan_path, status,
+                   CASE
+                       WHEN status='waiting_lease' THEN 'lease'
+                       WHEN EXISTS (
+                           SELECT 1
+                           FROM cargo_lane_reservations AS reservation
+                           WHERE reservation.session_id=sessions.session_id
+                             AND reservation.status='pending'
+                       ) THEN 'validation'
+                       ELSE 'external'
+                   END AS wait_kind
             FROM sessions
-            WHERE status IN ('waiting_validation', 'waiting_lease')
-              AND plan_path IS NOT NULL
+            WHERE plan_path IS NOT NULL
+              AND (
+                  status IN ('waiting_validation', 'waiting_lease')
+                  OR (
+                      status='active'
+                      AND EXISTS (
+                          SELECT 1
+                          FROM cargo_lane_reservations AS reservation
+                          WHERE reservation.session_id=sessions.session_id
+                            AND reservation.status='pending'
+                      )
+                  )
+              )
             ORDER BY updated_at, session_id
             LIMIT ?
             """,
             (_MAX_CONTINUATIONS,),
         ).fetchall()
         continuations: list[dict[str, object]] = []
+        without_same_plan_work = []
         for row in rows:
             candidate = self._next_implementation_slice(str(row["plan_path"]))
             if candidate is None:
+                without_same_plan_work.append(row)
                 continue
             continuations.append(
-                {
-                    "sessionId": row["session_id"],
-                    "planPath": row["plan_path"],
-                    "waitKind": (
-                        "validation"
-                        if row["status"] == "waiting_validation"
-                        else "lease"
-                    ),
-                    "candidate": {
-                        "milestone": candidate.milestone,
-                        "title": candidate.title,
-                    },
-                    "scopeClaimRequired": True,
-                    "returnToPrimary": True,
-                }
+                self._projection(row, candidate)
+            )
+        # A validation queue must never become the only work item.  When a
+        # plan has no declared implementation slice left, expose one distinct
+        # unowned code Failure per waiting Session.  The cards are advisory:
+        # each worker still claims the target scope and returns to its primary
+        # plan after the repair, so they cannot steal active work or turn the
+        # queue into a global drain.
+        if without_same_plan_work:
+            fallbacks = self._next_unowned_code_failures(
+                connection, limit=len(without_same_plan_work)
+            )
+            continuations.extend(
+                self._projection(row, fallback)
+                for row, fallback in zip(without_same_plan_work, fallbacks, strict=False)
             )
         return continuations
+
+    @staticmethod
+    def _projection(row, candidate: ContinuationCandidate) -> dict[str, object]:
+        return {
+            "sessionId": row["session_id"],
+            "planPath": row["plan_path"],
+            "waitKind": row["wait_kind"],
+            "candidate": {
+                "kind": candidate.kind,
+                "planPath": candidate.plan_path,
+                "milestone": candidate.milestone,
+                "title": candidate.title,
+            },
+            "scopeClaimRequired": True,
+            "returnToPrimary": True,
+        }
 
     def _next_implementation_slice(self, plan_path: str) -> ContinuationCandidate | None:
         try:
@@ -110,5 +151,57 @@ class WorkContinuationService:
             if match := _UNCHECKED.match(line):
                 title = match.group("title").strip()
                 if 0 < len(title) <= _MAX_TITLE_CHARS:
-                    return ContinuationCandidate(milestone=milestone, title=title)
+                    return ContinuationCandidate(
+                        kind="same_plan",
+                        plan_path=plan_path,
+                        milestone=milestone,
+                        title=title,
+                    )
         return None
+
+    @staticmethod
+    def _next_unowned_code_failures(
+        connection, *, limit: int
+    ) -> list[ContinuationCandidate]:
+        rows = connection.execute(
+            """
+            WITH ranked AS (
+                SELECT failure.fixing_plan, failure.summary_slug, failure.priority,
+                       failure.created_at, failure.node_id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY failure.fixing_plan
+                           ORDER BY failure.priority, failure.created_at, failure.node_id
+                       ) AS plan_rank
+                FROM failure_nodes AS failure
+                WHERE failure.status='open'
+                  AND lower(failure.summary_slug) NOT LIKE '%plan-output%'
+                  AND lower(failure.summary_slug) NOT LIKE '%archive-notice%'
+                  AND lower(failure.summary_slug) NOT LIKE '%documentation%'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM sessions AS owner
+                      WHERE owner.plan_path=failure.fixing_plan
+                        AND owner.status IN (
+                            'registered', 'active', 'resolving_failure',
+                            'waiting_lease', 'waiting_validation', 'finalizing'
+                        )
+                  )
+            )
+            SELECT fixing_plan, summary_slug, priority
+            FROM ranked
+            WHERE plan_rank=1
+            ORDER BY priority, created_at, node_id
+            LIMIT ?
+            """
+            ,
+            (limit,),
+        ).fetchall()
+        return [
+            ContinuationCandidate(
+                kind="unowned_failure",
+                plan_path=str(row["fixing_plan"]),
+                milestone=f"Failure P{int(row['priority'])}",
+                title=str(row["summary_slug"]),
+            )
+            for row in rows
+        ]

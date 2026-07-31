@@ -25,6 +25,12 @@ from .ai_effort import (
 )
 from .baselines import BaselineService
 from .database import Database
+from .governance import StateConvergenceService
+from .integration_candidates import IntegrationCandidateService
+from .manifest_retention import ManifestRetentionService
+from .ownership_matrix import OwnershipMatrixService
+from .ownership_transfers import OwnershipTransferService
+from .validation_tickets import ValidationTicketService
 from .leases import LeaseService, PathPolicy, lease_paths_overlap
 from .migrations import LATEST_SCHEMA_VERSION, migrate
 from .models import CoordinatorError, SessionStatus, SupervisionState, utc_text
@@ -276,6 +282,8 @@ class CoordinatorApplication:
             "validation_copy.status",
             "legacy.report",
             "retention.show",
+            "governance.retention.preview",
+            "ownership.matrix",
             "audit.all",
             "artifact.audit",
             "ai_effort.report",
@@ -319,6 +327,10 @@ class CoordinatorApplication:
             "validation_copy.run",
             "validation_copy.cleanup",
             "artifact.cleanup",
+            "governance.retention.apply",
+            "governance.retention.compact",
+            "ownership.transfer.preview",
+            "ownership.transfer.apply",
         }
     )
 
@@ -359,6 +371,12 @@ class CoordinatorApplication:
             ttl_seconds=config.lease_ttl_seconds,
             grace_seconds=config.lease_grace_seconds,
         )
+        self.ownership_matrix = OwnershipMatrixService(
+            self.database, self.baselines, self.leases
+        )
+        self.ownership_transfers = OwnershipTransferService(
+            self.database, config.repo_root, self.leases, self.sessions
+        )
         self.patches = PatchService(
             self.database,
             config.repo_root,
@@ -370,6 +388,12 @@ class CoordinatorApplication:
         self.watcher = WorkspaceWatcher(self.baselines)
         self.plans = PlanRepository(config.repo_root)
         self.failures = FailureGraphService(self.database, config.repo_root)
+        self.governance = StateConvergenceService(self.database, config.repo_root)
+        self.manifest_retention = ManifestRetentionService(self.database, config.state_root)
+        self.validation_tickets = ValidationTicketService(self.database)
+        self.integration_candidates = IntegrationCandidateService(
+            self.database, config.repo_root, self.leases
+        )
         self.legacy = LegacyMigrationService(
             self.database, config.repo_root, self.sessions, process_alive=process_is_alive
         )
@@ -403,6 +427,10 @@ class CoordinatorApplication:
                 repo_root=config.repo_root,
                 log_root=config.cargo_run_log_root,
             )
+            # Orphan detection owns the live PID-tree observation. Reconcile it
+            # before closing run projections so an abandoned runner cannot stay
+            # "running" until another coordinator restart.
+            self.cargo_jobs.reconcile_orphans()
             self.cargo_runner.reconcile_terminal_runs()
             self.cleanup: CleanupService | None = CleanupService(
                 self.database,
@@ -967,23 +995,35 @@ class CoordinatorApplication:
         if name == "supervision.force_stop_ack":
             return self.lifecycle.acknowledge_force_stop(str(arguments["actionId"]))
         if name == "session.register":
-            session = self.sessions.register(
-                session_id=str(arguments["session_id"]),
-                display_name=arguments.get("display_name"),
-                plan_path=arguments.get("plan_path"),
-                write_scope=arguments.get("write_scope") or [],
-            )
-            if session.plan_path:
+            session_id = str(arguments["session_id"])
+            requested_plan = arguments.get("plan_path")
+            try:
+                existing = self.sessions.get(session_id)
+            except CoordinatorError as error:
+                if error.code != "session_not_found":
+                    raise
+                existing = None
+            effective_plan = requested_plan or (existing.plan_path if existing else None)
+            if effective_plan:
                 self.failures.import_repository()
-                open_failures = self.failures.open_for_plan(session.plan_path)
+                open_failures = self.failures.open_for_plan(str(effective_plan))
             else:
                 open_failures = []
-            if open_failures:
-                session = self.sessions.set_status(
-                    session.session_id,
-                    SessionStatus.RESOLVING_FAILURE,
-                    reason=f"{len(open_failures)} open failure handoff(s) require priority",
-                )
+            failure_reason = (
+                f"{len(open_failures)} open failure handoff(s) require priority"
+                if open_failures
+                else None
+            )
+            session = self.sessions.register(
+                session_id=session_id,
+                display_name=arguments.get("display_name"),
+                plan_path=requested_plan,
+                write_scope=arguments.get("write_scope") or [],
+                session_role=arguments.get("session_role"),
+                parent_session_id=arguments.get("parent_session_id"),
+                requested_status=(SessionStatus.RESOLVING_FAILURE if open_failures else None),
+                status_reason=failure_reason,
+            )
             return {
                 "session": session.to_dict(),
                 "open_failures": [asdict(item) for item in open_failures],
@@ -1021,6 +1061,27 @@ class CoordinatorApplication:
         if name in {"baseline.diff", "baseline.scan"}:
             changes = self.baselines.scan() if name == "baseline.scan" else self.baselines.diff()
             return {"changes": [asdict(change) for change in changes]}
+        if name == "ownership.matrix":
+            return {"matrix": self.ownership_matrix.build(prefix=arguments.get("prefix")).to_dict()}
+        if name == "ownership.transfer.preview":
+            preview = self.ownership_transfers.preview(
+                target_session_id=str(arguments["target_session_id"]),
+                paths=tuple(str(path) for path in arguments.get("paths") or ()),
+            )
+            return {"preview": preview.to_dict()}
+        if name == "ownership.transfer.apply":
+            fingerprint = str(arguments["fingerprint"])
+            if str(arguments.get("confirm_fingerprint") or "") != fingerprint:
+                raise CoordinatorError(
+                    "ownership_transfer_confirmation_required",
+                    "Ownership transfer apply requires an exact reviewed fingerprint confirmation",
+                )
+            self._require_maintenance_capability(arguments)
+            result = self.ownership_transfers.apply(
+                fingerprint,
+                actor=str(arguments.get("actor") or "coordinator"),
+            )
+            return {"result": result.to_dict()}
         if name == "baseline.attribute":
             session_id = str(arguments["session_id"])
             paths = arguments.get("paths") or []
@@ -1139,6 +1200,161 @@ class CoordinatorApplication:
             return {"patches": [self._patch_dict(item) for item in self.patches.process_queue()]}
         if name == "watch.scan":
             return {"changes": [asdict(item) for item in self.watcher.scan_once()]}
+        if name == "governance.converge.preview":
+            actor = str(arguments.get("actor") or "coordinator")
+            preview = self.governance.preview()
+            self.governance.record_preview(preview, actor=actor)
+            return {
+                "preview": {
+                    "operation": preview.operation,
+                    "fingerprint": preview.fingerprint,
+                    "candidates": [candidate.payload() for candidate in preview.candidates],
+                }
+            }
+        if name == "governance.converge.apply":
+            self._require_maintenance_capability(arguments)
+            fingerprint = str(arguments["fingerprint"])
+            preview = self.governance.load_preview(fingerprint)
+            result = self.governance.apply(
+                preview,
+                fingerprint=fingerprint,
+                actor=str(arguments.get("actor") or "coordinator"),
+            )
+            return {"result": result.to_dict()}
+        if name == "governance.retention.preview":
+            actor = str(arguments.get("actor") or "coordinator")
+            preview = self.manifest_retention.preview()
+            self.manifest_retention.record_preview(preview, actor=actor)
+            return {"preview": preview.to_dict()}
+        if name == "governance.retention.apply":
+            self._require_maintenance_capability(arguments)
+            fingerprint = str(arguments["fingerprint"])
+            preview = self.manifest_retention.load_preview(fingerprint)
+            result = self.manifest_retention.apply(
+                preview,
+                fingerprint=fingerprint,
+                actor=str(arguments.get("actor") or "coordinator"),
+            )
+            return {
+                "result": {
+                    "batchId": result.batch_id,
+                    "archivePath": str(result.archive_path),
+                    "backupPath": str(result.backup_path),
+                    "retiredCount": result.retired_count,
+                }
+            }
+        if name == "governance.retention.compact":
+            self._require_maintenance_capability(arguments)
+            receipt = self.manifest_retention.queue_compact(
+                str(arguments["batch_id"]),
+                actor=str(arguments.get("actor") or "coordinator"),
+            )
+            return {
+                "receipt": {
+                    "batchId": receipt.batch_id,
+                    "status": receipt.status,
+                }
+            }
+        if name == "validation.submit":
+            receipt = self.validation_tickets.submit(
+                session_id=str(arguments["session_id"]),
+                request_id=str(arguments["request_id"]),
+                source_manifest=arguments.get("source_manifest") or {},
+                command=tuple(str(part) for part in arguments.get("command") or ()),
+                toolchain=arguments.get("toolchain") or {},
+                coverage=arguments.get("coverage") or {},
+            )
+            return {
+                "receipt": {
+                    "requestId": receipt.request_id,
+                    "reused": receipt.reused,
+                    "ticket": asdict(receipt.ticket),
+                }
+            }
+        if name == "validation.status":
+            ticket = self.validation_tickets.get(str(arguments["ticket_id"]))
+            return {"ticket": asdict(ticket)}
+        if name == "integration.submit":
+            candidate = self.integration_candidates.submit(
+                session_id=str(arguments["session_id"]),
+                request_id=str(arguments["request_id"]),
+                paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                compile_ticket_id=str(arguments["compile_ticket_id"]),
+            )
+            return {"candidate": asdict(candidate)}
+        if name == "integration.status":
+            candidate = self.integration_candidates.get(str(arguments["candidate_id"]))
+            return {"candidate": asdict(candidate)}
+        if name == "integration.finalize":
+            candidate = self.integration_candidates.finalize(
+                str(arguments["candidate_id"]), message=str(arguments["message"])
+            )
+            return {"candidate": asdict(candidate)}
+        if name == "validation.record_result":
+            status = str(arguments["status"])
+            evidence = arguments.get("evidence") or {}
+            if not isinstance(evidence, dict):
+                raise CoordinatorError(
+                    "validation_ticket_evidence_invalid",
+                    "Validation result evidence must be a JSON object",
+                )
+            ticket = self.validation_tickets.get(str(arguments["ticket_id"]))
+            failure_result: dict[str, object] | None = None
+            if status == "failed":
+                failure = arguments.get("failure")
+                if not isinstance(failure, dict):
+                    raise CoordinatorError(
+                        "validation_ticket_failure_context_missing",
+                        "A failed validation result requires failure context for a forward repair",
+                    )
+                session = self.sessions.get(ticket.session_id)
+                if not session.plan_path:
+                    raise CoordinatorError(
+                        "failure_materialization_plan_missing",
+                        "Validation failure materialization requires a Session registered to a numbered Plan",
+                    )
+                created_at = date.fromisoformat(
+                    str(failure.get("created_at") or date.today().isoformat())
+                )
+                owner = self.plans.resolve_owner(session.plan_path)
+                summary_slug = str(failure.get("summary_slug") or "")
+                target = (
+                    f"{owner.child_dir}/failure-{created_at.isoformat()}-"
+                    f"{summary_slug.strip()}.md"
+                )
+                decision = self.plans.authorize_write(session.plan_path, target)
+                if not decision.allowed:
+                    raise CoordinatorError(decision.code, decision.message)
+                artifact = self.failures.materialize_local_validation_failure(
+                    origin_plan=session.plan_path,
+                    summary_slug=summary_slug,
+                    source_slice=str(failure.get("source_slice") or ticket.ticket_id),
+                    reproduction=str(
+                        failure.get("reproduction")
+                        or " ".join(ticket.command)
+                    ),
+                    lowest_known_cause=str(failure.get("lowest_known_cause") or ""),
+                    acceptance_criteria=failure.get("acceptance_criteria") or [],
+                    related_code=failure.get("related_code") or [],
+                    created_at=created_at,
+                )
+                failure_result = {
+                    "failure_artifact": artifact.relative_to(self.config.repo_root).as_posix(),
+                    "repair_plan": owner.path,
+                    "failure_scope": "local",
+                    "integration_disposition": "forward_fix_required",
+                }
+            ticket = self.validation_tickets.record_result(
+                ticket.ticket_id, status, evidence=evidence
+            )
+            result: dict[str, object] = {"ticket": asdict(ticket)}
+            if failure_result is not None:
+                result.update(failure_result)
+            elif status == "passed":
+                result["integration_disposition"] = "integration_candidate_eligible"
+            else:
+                result["integration_disposition"] = "validation_resubmit_required"
+            return {"result": result}
         if name == "plan.audit":
             inventory = self.plans.scan()
             return {
@@ -1166,6 +1382,39 @@ class CoordinatorApplication:
         if name == "failure.open":
             nodes = self.failures.open_for_plan(str(arguments["fixing_plan"]))
             return {"failures": [asdict(item) for item in nodes]}
+        if name == "failure.materialize_local_validation":
+            session_id = str(arguments["session_id"])
+            session = self.sessions.get(session_id)
+            if not session.plan_path:
+                raise CoordinatorError(
+                    "failure_materialization_plan_missing",
+                    "Validation failure materialization requires a Session registered to a numbered Plan",
+                )
+            created_at = date.fromisoformat(str(arguments.get("created_at") or date.today().isoformat()))
+            owner = self.plans.resolve_owner(session.plan_path)
+            target = (
+                f"{owner.child_dir}/failure-{created_at.isoformat()}-"
+                f"{str(arguments['summary_slug']).strip()}.md"
+            )
+            decision = self.plans.authorize_write(session.plan_path, target)
+            if not decision.allowed:
+                raise CoordinatorError(decision.code, decision.message)
+            artifact = self.failures.materialize_local_validation_failure(
+                origin_plan=session.plan_path,
+                summary_slug=str(arguments["summary_slug"]),
+                source_slice=str(arguments["source_slice"]),
+                reproduction=str(arguments["reproduction"]),
+                lowest_known_cause=str(arguments["lowest_known_cause"]),
+                acceptance_criteria=arguments.get("acceptance_criteria") or [],
+                related_code=arguments.get("related_code") or [],
+                created_at=created_at,
+            )
+            return {
+                "failure_artifact": artifact.relative_to(self.config.repo_root).as_posix(),
+                "repair_plan": owner.path,
+                "failure_scope": "local",
+                "integration_disposition": "forward_fix_required",
+            }
         if name == "failure.return":
             session_id = arguments.get("session_id")
             if isinstance(session_id, str) and session_id:
@@ -1848,11 +2097,13 @@ class CoordinatorApplication:
         stale: list[str] = []
         archived: list[str] = []
         orphaned: list[str] = []
+        reconciled_runs: list[str] = []
         launch_failed: list[str] = []
         legacy_archive_run_id: str | None = None
         retention_plan_id: str | None = None
         cleanup_plan_id: str | None = None
         unmanaged_artifacts_deleted: list[str] = []
+        compacted_manifest_batches: list[str] = []
         try:
             self.command_requests.prune()
             legacy_report = self.legacy.report()
@@ -1879,6 +2130,8 @@ class CoordinatorApplication:
                 orphaned = [
                     job.job_id for job in self.cargo_jobs.reconcile_orphans()
                 ]
+                if self.cargo_runner is not None:
+                    reconciled_runs = list(self.cargo_runner.reconcile_terminal_runs())
                 reservation_reconciliation = self.cargo_jobs.reconcile_pending_reservations()
                 if any(reservation_reconciliation.values()):
                     with self.database.transaction() as connection:
@@ -1905,6 +2158,9 @@ class CoordinatorApplication:
                     self.cleanup.apply(cleanup_plan)
             if self.artifact_governance is not None:
                 unmanaged_artifacts_deleted = list(self.artifact_governance.cleanup().deleted)
+            for batch_id in self.manifest_retention.pending_compactions():
+                self.manifest_retention.compact(batch_id, actor="maintenance")
+                compacted_manifest_batches.append(batch_id)
             with self.database.connect() as connection:
                 connection.execute("PRAGMA wal_checkpoint(PASSIVE)")
             with self.database.transaction() as connection:
@@ -1956,11 +2212,13 @@ class CoordinatorApplication:
             "stale_sessions": stale,
             "archived_sessions": archived,
             "orphaned_cargo_jobs": orphaned,
+            "reconciled_cargo_runs": reconciled_runs,
             "launch_failed_requests": launch_failed,
             "legacy_archive_run_id": legacy_archive_run_id,
             "retention_plan_id": retention_plan_id,
             "cleanup_plan_id": cleanup_plan_id,
             "unmanaged_artifacts_deleted": unmanaged_artifacts_deleted,
+            "compacted_manifest_batches": compacted_manifest_batches,
         }
 
     @staticmethod
@@ -2362,6 +2620,11 @@ class RunningCoordinator:
             if application.cargo_jobs is not None:
                 try:
                     orphaned = application.cargo_jobs.reconcile_orphans()
+                    reconciled_runs = (
+                        application.cargo_runner.reconcile_terminal_runs()
+                        if application.cargo_runner is not None
+                        else ()
+                    )
                     reservation_reconciliation = (
                         application.cargo_jobs.reconcile_pending_reservations()
                     )
@@ -2373,6 +2636,18 @@ class RunningCoordinator:
                                     "cargo.jobs_orphaned",
                                     json.dumps(
                                         {"job_ids": [job.job_id for job in orphaned]},
+                                        sort_keys=True,
+                                    ),
+                                ),
+                            )
+                    if reconciled_runs:
+                        with application.database.transaction() as connection:
+                            connection.execute(
+                                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                                (
+                                    "cargo.runs_reconciled",
+                                    json.dumps(
+                                        {"run_ids": list(reconciled_runs)},
                                         sort_keys=True,
                                     ),
                                 ),

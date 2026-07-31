@@ -119,6 +119,9 @@ class MilestoneWorkflowService:
             )
         milestone = self._milestone_node(run_id, milestone_key)
         fingerprint = self.gates.input_fingerprint(run_id, milestone_key, context)
+        legacy_template = (
+            template if template in {"coordinator-actions", "web-check"} else "coordinator-actions"
+        )
         with self.database.transaction() as connection:
             connection.execute(
                 """INSERT INTO workflow_validation_bindings(
@@ -134,7 +137,7 @@ class MilestoneWorkflowService:
                     context.topology_version_id,
                     milestone["node_id"],
                     session_id,
-                    template,
+                    legacy_template,
                     source_manifest_hash,
                     json.dumps(paths),
                     fingerprint,
@@ -143,17 +146,26 @@ class MilestoneWorkflowService:
                     utc_text(),
                 ),
             )
+            connection.execute(
+                """INSERT INTO workflow_validation_template_bindings(
+                       validation_run_id, template
+                   ) VALUES (?, ?)""",
+                (validation_run_id, template),
+            )
         self.import_validation_result(validation_run_id)
 
     def import_validation_result(self, validation_run_id: str) -> bool:
         with self.database.connect() as connection:
             row = connection.execute(
-                """SELECT binding.*, validation.exit_code, validation.command_json,
+                """SELECT binding.*, template_binding.template AS exact_template,
+                          validation.exit_code, validation.command_json,
                           validation.stdout_text, validation.stderr_text,
                           validation.completed_at, node.node_key, copy.source_root
                    FROM workflow_validation_bindings binding
                    LEFT JOIN validation_copy_runs validation
                      ON validation.run_id=binding.validation_run_id
+                   LEFT JOIN workflow_validation_template_bindings template_binding
+                     ON template_binding.validation_run_id=binding.validation_run_id
                    JOIN validation_copies copy ON copy.job_id=binding.job_id
                    JOIN workflow_nodes node ON node.node_id=binding.node_id
                    WHERE binding.validation_run_id=?""",
@@ -185,7 +197,7 @@ class MilestoneWorkflowService:
             payload={
                 "validationRunId": validation_run_id,
                 "jobId": row["job_id"],
-                "template": row["template"],
+                "template": row["exact_template"] or row["template"],
                 "command": json.loads(row["command_json"]),
                 "exitCode": int(row["exit_code"]),
                 "completedAt": row["completed_at"],
@@ -378,10 +390,10 @@ class MilestoneWorkflowService:
                 }
                 continue
             failure_node_keys = self._failure_node_keys(run_id, milestone["node_key"])
-            failures = (
-                self.failures.open_for_manifest(plan_path, failure_node_keys, paths)
-                if self.failures is not None and plan_path
-                else []
+            failures = self.open_failures_for_milestone(
+                run_id=run_id,
+                milestone_key=milestone["node_key"],
+                paths=paths,
             )
             context = self.prepare_context(
                 run_id,
@@ -505,6 +517,16 @@ class MilestoneWorkflowService:
                 )
             plan_path = run["plan_path"]
         if self.failures is not None:
+            open_failures = self.failures.open_for_manifest(
+                plan_path,
+                failure_workflow_node_keys,
+                normalized,
+            )
+            applicable, deferrals = self._apply_failure_deferrals(
+                run_id,
+                failure_workflow_node_keys,
+                open_failures,
+            )
             failure_rows = [
                 {
                     "lifecycle_key": item.lifecycle_key,
@@ -512,12 +534,8 @@ class MilestoneWorkflowService:
                     "kind": item.kind,
                     "artifact_path": item.artifact_path,
                 }
-                for item in self.failures.open_for_manifest(
-                    plan_path,
-                    failure_workflow_node_keys,
-                    normalized,
-                )
-            ]
+                for item in applicable
+            ] + list(deferrals)
         else:
             placeholders = ", ".join("?" for _ in failure_workflow_node_keys)
             with self.database.connect() as connection:
@@ -551,6 +569,225 @@ class MilestoneWorkflowService:
             failure_revision=_hash_json(failure_rows),
             plan_content_hash=current_plan.content_hash,
         )
+
+    def defer_failure(
+        self,
+        *,
+        session_id: str,
+        source_milestone_key: str,
+        target_milestone_key: str,
+        failure_lifecycle_key: str,
+        actor: str,
+        action_id: str | None,
+    ) -> dict[str, object]:
+        """Persist one strict-successor Failure deferral bound to plan topology.
+
+        The durable identity deliberately omits a consuming workflow run id. A
+        topology import changes the semantic hash and therefore makes the old
+        decision inapplicable without mutating or deleting its audit record.
+        """
+        with self.database.transaction() as connection:
+            session = connection.execute(
+                "SELECT plan_path FROM sessions WHERE session_id=?",
+                (session_id,),
+            ).fetchone()
+            run = connection.execute(
+                """SELECT run.run_id, version.plan_path, version.topology_hash,
+                          run.current_topology_version_id
+                   FROM workflow_runs run
+                   JOIN workflow_topology_versions version
+                     ON version.topology_version_id=run.current_topology_version_id
+                   WHERE run.session_id=?
+                   ORDER BY run.updated_at DESC, run.run_id DESC LIMIT 1""",
+                (session_id,),
+            ).fetchone()
+            if run is None or session is None:
+                raise CoordinatorError(
+                    "workflow_run_owner_mismatch",
+                    "Failure deferral requires the executor Session's active workflow",
+                )
+            plan_path = str(run["plan_path"])
+            if session["plan_path"] != plan_path:
+                raise CoordinatorError(
+                    "milestone_failure_deferral_plan_mismatch",
+                    "Failure deferral must use the executor Session's numbered plan",
+                )
+            nodes = connection.execute(
+                """SELECT node_id, node_key FROM workflow_nodes
+                   WHERE run_id=? AND node_key IN (?, ?) AND kind='milestone'""",
+                (
+                    run["run_id"],
+                    source_milestone_key,
+                    target_milestone_key,
+                ),
+            ).fetchall()
+            by_key = {str(row["node_key"]): str(row["node_id"]) for row in nodes}
+            if set(by_key) != {source_milestone_key, target_milestone_key}:
+                raise CoordinatorError(
+                    "milestone_failure_deferral_target_invalid",
+                    "Failure deferral requires two current-topology milestones",
+                )
+            reachable = connection.execute(
+                """WITH RECURSIVE successors(node_id) AS (
+                       SELECT edge.to_node_id
+                       FROM workflow_edges edge
+                       WHERE edge.run_id=? AND edge.from_node_id=?
+                       UNION
+                       SELECT edge.to_node_id
+                       FROM workflow_edges edge
+                       JOIN successors prior ON prior.node_id=edge.from_node_id
+                       WHERE edge.run_id=?
+                   )
+                   SELECT 1 FROM successors WHERE node_id=? LIMIT 1""",
+                (
+                    run["run_id"],
+                    by_key[source_milestone_key],
+                    run["run_id"],
+                    by_key[target_milestone_key],
+                ),
+            ).fetchone()
+            if reachable is None:
+                raise CoordinatorError(
+                    "milestone_failure_deferral_target_invalid",
+                    "Failure deferral target must be a strict reachable successor",
+                )
+            failure = connection.execute(
+                """SELECT lifecycle_key FROM failure_nodes
+                   WHERE lifecycle_key=? AND kind='failure' AND status='open'
+                     AND fixing_plan=?""",
+                (failure_lifecycle_key, plan_path),
+            ).fetchone()
+            if failure is None:
+                raise CoordinatorError(
+                    "milestone_failure_deferral_failure_invalid",
+                    "Failure deferral requires an open lifecycle owned by the executor plan",
+                )
+            existing = connection.execute(
+                """SELECT * FROM workflow_failure_deferrals
+                   WHERE session_id=? AND plan_path=? AND topology_hash=?
+                     AND source_milestone_key=? AND failure_lifecycle_key=?""",
+                (
+                    session_id,
+                    plan_path,
+                    run["topology_hash"],
+                    source_milestone_key,
+                    failure_lifecycle_key,
+                ),
+            ).fetchone()
+            if existing is not None:
+                if existing["target_milestone_key"] != target_milestone_key:
+                    raise CoordinatorError(
+                        "milestone_failure_deferral_conflict",
+                        "Failure is already deferred to another milestone in this topology",
+                    )
+                row = existing
+            else:
+                deferral_id = uuid.uuid4().hex
+                connection.execute(
+                    """INSERT INTO workflow_failure_deferrals(
+                           deferral_id, session_id, plan_path, topology_hash,
+                           source_milestone_key, target_milestone_key,
+                           failure_lifecycle_key, actor, action_id, created_at
+                       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        deferral_id,
+                        session_id,
+                        plan_path,
+                        run["topology_hash"],
+                        source_milestone_key,
+                        target_milestone_key,
+                        failure_lifecycle_key,
+                        actor,
+                        action_id,
+                        utc_text(),
+                    ),
+                )
+                row = connection.execute(
+                    "SELECT * FROM workflow_failure_deferrals WHERE deferral_id=?",
+                    (deferral_id,),
+                ).fetchone()
+        return {
+            "deferralId": row["deferral_id"],
+            "sourceMilestoneId": row["source_milestone_key"],
+            "targetMilestoneId": row["target_milestone_key"],
+            "failureLifecycleKey": row["failure_lifecycle_key"],
+            "topologyHash": row["topology_hash"],
+        }
+
+    def open_failures_for_milestone(
+        self,
+        *,
+        run_id: str,
+        milestone_key: str,
+        paths: tuple[str, ...] | list[str],
+    ):
+        if self.failures is None:
+            return []
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT version.plan_path
+                   FROM workflow_runs run
+                   JOIN workflow_topology_versions version
+                     ON version.topology_version_id=run.current_topology_version_id
+                   WHERE run.run_id=?""",
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            raise CoordinatorError(
+                "workflow_topology_not_active", "Workflow has no active topology version"
+            )
+        keys = self._failure_node_keys(run_id, milestone_key)
+        failures = self.failures.open_for_manifest(str(row["plan_path"]), keys, paths)
+        applicable, _ = self._apply_failure_deferrals(run_id, keys, failures)
+        return applicable
+
+    def _apply_failure_deferrals(
+        self,
+        run_id: str,
+        failure_node_keys: tuple[str, ...],
+        failures,
+    ):
+        placeholders = ", ".join("?" for _ in failure_node_keys)
+        with self.database.connect() as connection:
+            run = connection.execute(
+                """SELECT run.session_id, version.plan_path, version.topology_hash
+                   FROM workflow_runs run
+                   JOIN workflow_topology_versions version
+                     ON version.topology_version_id=run.current_topology_version_id
+                   WHERE run.run_id=?""",
+                (run_id,),
+            ).fetchone()
+        if run is None:
+            rows = ()
+        else:
+            current_topology_hash = TopologyParser(self.repo_root).parse(
+                run["plan_path"]
+            ).topology_hash
+            with self.database.connect() as connection:
+                rows = connection.execute(
+                    f"""SELECT * FROM workflow_failure_deferrals
+                        WHERE session_id=? AND plan_path=? AND topology_hash=?
+                          AND source_milestone_key IN ({placeholders})
+                        ORDER BY failure_lifecycle_key""",
+                    (
+                        run["session_id"],
+                        run["plan_path"],
+                        current_topology_hash,
+                        *failure_node_keys,
+                    ),
+                ).fetchall()
+        deferred = {str(row["failure_lifecycle_key"]) for row in rows}
+        applicable = [item for item in failures if item.lifecycle_key not in deferred]
+        evidence = tuple(
+            {
+                "lifecycle_key": row["failure_lifecycle_key"],
+                "status": "deferred",
+                "kind": "deferral",
+                "artifact_path": row["target_milestone_key"],
+            }
+            for row in rows
+        )
+        return applicable, evidence
 
     def attributed_changes(self, session_id: str) -> tuple[str, ...]:
         with self.database.connect() as connection:
@@ -619,6 +856,25 @@ class MilestoneWorkflowService:
         actor: str,
         action_id: str | None,
     ) -> tuple[str, ...]:
+        prepared = self.prepare_milestone(
+            session_id=session_id,
+            run_id=run_id,
+            milestone_key=milestone_key,
+            actor=actor,
+            action_id=action_id,
+        )
+        return tuple(prepared["paths"])
+
+    def prepare_milestone(
+        self,
+        *,
+        session_id: str,
+        run_id: str,
+        milestone_key: str,
+        actor: str,
+        action_id: str | None,
+    ) -> dict[str, object]:
+        """Bind and expose one exact current-version milestone manifest."""
         self._require_run_owner(run_id, session_id)
         paths = self._derive_milestone_paths(session_id, run_id, milestone_key)
         failure_node_keys = self._failure_node_keys(run_id, milestone_key)
@@ -628,7 +884,7 @@ class MilestoneWorkflowService:
             failure_workflow_node_keys=failure_node_keys,
         )
         milestone = self._milestone_node(run_id, milestone_key)
-        self._record_manifest(
+        manifest_id = self._record_manifest(
             session_id=session_id,
             run_id=run_id,
             milestone=milestone,
@@ -637,7 +893,14 @@ class MilestoneWorkflowService:
             actor=actor,
             action_id=action_id,
         )
-        return paths
+        return {
+            "milestoneId": milestone_key,
+            "nodeId": str(milestone["node_id"]),
+            "topologyVersionId": context.topology_version_id,
+            "manifestId": manifest_id,
+            "manifestHash": context.manifest_hash,
+            "paths": list(paths),
+        }
 
     def live_eligibility(self, run_id: str, milestone_key: str) -> dict[str, object]:
         paths = self.milestone_paths(run_id, milestone_key)

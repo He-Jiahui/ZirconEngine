@@ -10,12 +10,13 @@ import tempfile
 from dataclasses import dataclass
 from dataclasses import replace
 from datetime import date
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import ModuleType
 from typing import Any
 
 from .database import Database
 from .models import CoordinatorError, utc_text
+from .plans import PlanRepository
 
 
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -26,6 +27,8 @@ DATE_FIRST_HANDOFF = re.compile(
     re.IGNORECASE,
 )
 WORKFLOW_NODE_ID = re.compile(r"M[1-9]\d*(?:\.[1-9]\d*)?")
+SUMMARY_SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+LOCAL_FAILURE_SCOPE = "local"
 
 
 def _is_failure_artifact(path: Path) -> bool:
@@ -177,8 +180,19 @@ class FailureGraphService:
             if canonical_status == "open":
                 origin = self._relative(record.origin_plan)
                 fixing = self._relative(record.fixing_plan)
-                edges.setdefault(origin, set()).add(fixing)
-                if origin.casefold() == fixing.casefold():
+                failure_scope = record.metadata.get("failure_scope", "")
+                if failure_scope == LOCAL_FAILURE_SCOPE:
+                    if origin.casefold() != fixing.casefold():
+                        diagnostics.append(
+                            GraphDiagnostic(
+                                "invalid_local_failure_scope",
+                                f"Failure {record.summary_slug} declares local scope across plans",
+                                (record.relative_path,),
+                            )
+                        )
+                else:
+                    edges.setdefault(origin, set()).add(fixing)
+                if origin.casefold() == fixing.casefold() and failure_scope != LOCAL_FAILURE_SCOPE:
                     diagnostics.append(
                         GraphDiagnostic(
                             "self_edge",
@@ -519,6 +533,292 @@ class FailureGraphService:
             if any(marker in error.replace("\\", "/").casefold() for marker in markers)
         ]
 
+    def materialize_local_validation_failure(
+        self,
+        *,
+        origin_plan: str | Path,
+        summary_slug: str,
+        source_slice: str,
+        reproduction: str,
+        lowest_known_cause: str,
+        acceptance_criteria: tuple[str, ...] | list[str],
+        related_code: tuple[str, ...] | list[str],
+        created_at: date | None = None,
+    ) -> Path:
+        """Persist a validation failure as a same-plan, forward-fix work item.
+
+        Local failures deliberately have no graph dependency edge: the same
+        numbered Plan owns both the already-integrated snapshot and its repair.
+        The child-only record lets the coordinator wake that Plan without
+        mutating the shared plan definition or blocking unrelated Sessions.
+        """
+        owner = PlanRepository(self.repo_root).resolve_owner(origin_plan)
+        normalized_slug = self._require_failure_text("summary_slug", summary_slug)
+        if SUMMARY_SLUG.fullmatch(normalized_slug) is None:
+            raise CoordinatorError(
+                "failure_summary_slug_invalid",
+                "Validation failure summary_slug must be lowercase hyphenated text",
+            )
+        normalized_slice = self._require_failure_text("source_slice", source_slice)
+        normalized_reproduction = self._require_failure_text("reproduction", reproduction)
+        normalized_cause = self._require_failure_text("lowest_known_cause", lowest_known_cause)
+        normalized_acceptance = tuple(
+            self._require_failure_text("acceptance_criteria", item)
+            for item in acceptance_criteria
+        )
+        if not normalized_acceptance:
+            raise CoordinatorError(
+                "failure_acceptance_empty",
+                "Validation failure requires at least one forward-repair acceptance criterion",
+            )
+        normalized_related_code = self._normalize_related_code(related_code)
+        stamp = created_at or date.today()
+        child_dir = self.repo_root / owner.child_dir
+        if not child_dir.is_dir():
+            raise CoordinatorError(
+                "failure_child_directory_missing",
+                f"Numbered Plan child directory does not exist: {owner.child_dir}",
+            )
+        artifact = child_dir / f"failure-{stamp.isoformat()}-{normalized_slug}.md"
+        if artifact.exists():
+            content = self._update_local_validation_failure(
+                artifact,
+                owner_path=owner.path,
+                source_slice=normalized_slice,
+                reproduction=normalized_reproduction,
+            )
+        else:
+            content = self._local_validation_failure_content(
+                owner_path=owner.path,
+                child_dir=owner.child_dir,
+                created_at=stamp,
+                summary_slug=normalized_slug,
+                source_slice=normalized_slice,
+                reproduction=normalized_reproduction,
+                lowest_known_cause=normalized_cause,
+                acceptance_criteria=normalized_acceptance,
+                related_code=normalized_related_code,
+            )
+        self._atomic_write(artifact, content)
+        self._index_local_validation_failure(
+            artifact=artifact,
+            owner_path=owner.path,
+            child_dir=owner.child_dir,
+            created_at=stamp,
+            summary_slug=normalized_slug,
+            related_code=normalized_related_code,
+        )
+        return artifact
+
+    def _index_local_validation_failure(
+        self,
+        *,
+        artifact: Path,
+        owner_path: str,
+        child_dir: str,
+        created_at: date,
+        summary_slug: str,
+        related_code: tuple[str, ...],
+    ) -> None:
+        """Upsert the coordinator-owned local failure without a global rescan.
+
+        Validation completion is on the latency-sensitive path.  The generated
+        artifact has already passed the same input validation as its frontmatter,
+        so rebuilding the entire failure graph here only delays the caller and
+        can turn a successfully observed test failure into a client timeout.
+        A later explicit graph import remains the full-repository audit path.
+        """
+        relative_artifact = self._relative(artifact)
+        owner_absolute = (self.repo_root / owner_path).resolve().as_posix().casefold()
+        lifecycle_key = "|".join((owner_absolute, owner_absolute, summary_slug))
+        imported_at = utc_text()
+        with self.database.transaction() as connection:
+            duplicate = connection.execute(
+                """
+                SELECT artifact_path FROM failure_nodes
+                WHERE lifecycle_key = ? AND artifact_path <> ?
+                """,
+                (lifecycle_key, relative_artifact),
+            ).fetchone()
+            if duplicate is not None:
+                raise CoordinatorError(
+                    "failure_lifecycle_conflict",
+                    "A local validation failure already owns this lifecycle key",
+                    details={
+                        "artifact": relative_artifact,
+                        "existingArtifact": str(duplicate["artifact_path"]),
+                    },
+                )
+            connection.execute(
+                """
+                INSERT INTO failure_nodes(
+                    lifecycle_key, artifact_path, kind, status, created_at,
+                    resolved_at, summary_slug, origin_plan, origin_workflow_node,
+                    fixing_plan, origin_child_dir, fixing_child_dir, priority,
+                    plan_link_mode, related_code_json, imported_at
+                ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, NULL, ?, ?, ?, 0, ?, ?, ?)
+                ON CONFLICT(artifact_path) DO UPDATE SET
+                    lifecycle_key=excluded.lifecycle_key,
+                    kind=excluded.kind,
+                    status=excluded.status,
+                    created_at=excluded.created_at,
+                    resolved_at=excluded.resolved_at,
+                    summary_slug=excluded.summary_slug,
+                    origin_plan=excluded.origin_plan,
+                    origin_workflow_node=excluded.origin_workflow_node,
+                    fixing_plan=excluded.fixing_plan,
+                    origin_child_dir=excluded.origin_child_dir,
+                    fixing_child_dir=excluded.fixing_child_dir,
+                    priority=excluded.priority,
+                    plan_link_mode=excluded.plan_link_mode,
+                    related_code_json=excluded.related_code_json,
+                    imported_at=excluded.imported_at
+                """,
+                (
+                    lifecycle_key,
+                    relative_artifact,
+                    created_at.isoformat(),
+                    summary_slug,
+                    owner_path,
+                    owner_path,
+                    child_dir,
+                    child_dir,
+                    "child_record_only",
+                    json.dumps(related_code),
+                    imported_at,
+                ),
+            )
+
+    @staticmethod
+    def _require_failure_text(field_name: str, value: object) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise CoordinatorError(
+                "failure_materialization_invalid",
+                f"Validation failure {field_name} must be non-empty text",
+            )
+        return value.strip()
+
+    @staticmethod
+    def _normalize_related_code(values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
+        normalized: set[str] = set()
+        for value in values:
+            if not isinstance(value, str):
+                raise CoordinatorError(
+                    "failure_related_code_invalid",
+                    "Validation failure related_code paths must be text",
+                )
+            candidate = value.strip().replace("\\", "/")
+            path = PurePosixPath(candidate)
+            if (
+                not candidate
+                or path.is_absolute()
+                or any(part in {"", ".", ".."} for part in path.parts)
+            ):
+                raise CoordinatorError(
+                    "failure_related_code_invalid",
+                    "Validation failure related_code paths must be safe repo-relative paths",
+                )
+            normalized.add(path.as_posix())
+        if not normalized:
+            raise CoordinatorError(
+                "failure_related_code_empty",
+                "Validation failure requires at least one owned related_code path",
+            )
+        return tuple(sorted(normalized, key=str.casefold))
+
+    def _update_local_validation_failure(
+        self,
+        artifact: Path,
+        *,
+        owner_path: str,
+        source_slice: str,
+        reproduction: str,
+    ) -> str:
+        content = artifact.read_text(encoding="utf-8")
+        header, _errors = self._validator_module()._parse_frontmatter(artifact, content)
+        if (
+            header.get("failure_scope") != LOCAL_FAILURE_SCOPE
+            or header.get("origin_plan") != owner_path
+            or header.get("fixing_plan") != owner_path
+        ):
+            raise CoordinatorError(
+                "failure_artifact_conflict",
+                "Existing validation failure artifact has incompatible ownership or scope",
+                details={"artifact": self._relative(artifact)},
+            )
+        evidence = f"- 验证回写：`{source_slice}` — {reproduction}"
+        if evidence in content:
+            return content
+        marker = "## 最低共享层根因"
+        if marker not in content:
+            raise CoordinatorError(
+                "failure_artifact_conflict",
+                "Existing local validation failure is missing its root-cause section",
+                details={"artifact": self._relative(artifact)},
+            )
+        return content.replace(marker, f"{evidence}\n\n{marker}", 1)
+
+    @staticmethod
+    def _local_validation_failure_content(
+        *,
+        owner_path: str,
+        child_dir: str,
+        created_at: date,
+        summary_slug: str,
+        source_slice: str,
+        reproduction: str,
+        lowest_known_cause: str,
+        acceptance_criteria: tuple[str, ...],
+        related_code: tuple[str, ...],
+    ) -> str:
+        related_lines = "\n".join(f"  - {path}" for path in related_code)
+        acceptance_lines = "\n".join(f"- {criterion}" for criterion in acceptance_criteria)
+        return f"""---
+handoff_kind: failure
+status: open
+failure_scope: local
+created_at: {created_at.isoformat()}
+summary_slug: {summary_slug}
+origin_plan: {owner_path}
+fixing_plan: {owner_path}
+origin_child_dir: {child_dir}
+fixing_child_dir: {child_dir}
+plan_link_mode: child_record_only
+related_code:
+{related_lines}
+---
+
+# {summary_slug}: 验证失败回写
+
+## 来源执行者
+
+- 来源计划：`{owner_path}`
+- 来源执行切片：{source_slice}
+- 修复责任计划：`{owner_path}`
+- 交接原因：同一编号计划拥有已集成快照及其前向修复。
+
+## 失败现象与复现证据
+
+- 验证回写：`{source_slice}` — {reproduction}
+
+## 最低共享层根因
+
+{lowest_known_cause}
+
+## 架构修复验收
+
+{acceptance_lines}
+
+## 禁止临时方案
+
+- 不回滚已集成快照来掩盖普通测试失败；应通过前向修复返回 `fixed-*` 记录。
+- 不得添加别名、兼容垫片、静默回退、测试旁路或调用点特例。
+
+## 修复结果与回传
+
+Open state: `待修复`; the coordinator must keep the validation ticket and route this Plan to repair work.
+"""
+
     def return_fixed(
         self,
         lifecycle_key: str,
@@ -627,6 +927,7 @@ class FailureGraphService:
                 f"origin_plan: {node.origin_plan}",
                 f"fixing_plan: {node.fixing_plan}",
                 "plan_link_mode: child_record_only",
+                f"source_artifact: {node.artifact_path}",
                 "---",
                 "",
                 f"# {node.summary_slug} 回传摘要",

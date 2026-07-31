@@ -138,7 +138,12 @@ ALLOWED_STATUS_TRANSITIONS: dict[SessionStatus, frozenset[SessionStatus]] = {
         {SessionStatus.ACTIVE, SessionStatus.FINALIZING, SessionStatus.ARCHIVED}
     ),
     SessionStatus.STALE: frozenset(
-        {SessionStatus.ACTIVE, SessionStatus.ARCHIVED, SessionStatus.CANCELLED}
+        {
+            SessionStatus.ACTIVE,
+            SessionStatus.RESOLVING_FAILURE,
+            SessionStatus.ARCHIVED,
+            SessionStatus.CANCELLED,
+        }
     ),
     SessionStatus.ARCHIVED: frozenset(),
     SessionStatus.CANCELLED: frozenset({SessionStatus.ARCHIVED}),
@@ -171,6 +176,9 @@ class SessionRecord:
     status: SessionStatus
     display_name: str | None
     plan_path: str | None
+    plan_family_key: str | None
+    session_role: str
+    parent_session_id: str | None
     write_scope: tuple[str, ...]
     status_reason: str | None
     base_head: str

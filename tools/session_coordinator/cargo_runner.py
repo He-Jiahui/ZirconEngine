@@ -68,11 +68,23 @@ class CargoJobRunner:
         job_id: str,
         command: tuple[str, ...] | list[str],
         environment: Mapping[str, str] | None = None,
+        working_directory: str | Path | None = None,
     ) -> CargoRun:
         command_tuple = tuple(str(part) for part in command if str(part))
         if not command_tuple:
             raise CoordinatorError("cargo_run_command_empty", "Managed Cargo command cannot be empty")
         environment_values = self._validate_environment(environment)
+        working_root = (
+            Path(working_directory).resolve()
+            if working_directory is not None
+            else self.repo_root
+        )
+        if not working_root.is_dir():
+            raise CoordinatorError(
+                "cargo_run_source_root_invalid",
+                "Managed Cargo source root must be an existing directory",
+                details={"sourceRoot": str(working_root)},
+            )
         job = self.cargo_jobs.get(job_id)
         if job.session_id != session_id:
             raise CoordinatorError("cargo_job_owner_mismatch", f"Cargo job {job_id} belongs to another Session")
@@ -97,7 +109,7 @@ class CargoJobRunner:
                 environment.update(environment_values)
                 process = self.popen(
                     command_tuple,
-                    cwd=self.repo_root,
+                    cwd=working_root,
                     env=environment,
                     stdout=stdout_file,
                     stderr=stderr_file,
@@ -138,9 +150,22 @@ class CargoJobRunner:
                 daemon=True,
             ).start()
         except BaseException:
-            if process is not None and process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
+            cleanup_error: BaseException | None = None
+            if process is not None:
+                try:
+                    if process.poll() is None:
+                        process.kill()
+                        process.wait(timeout=5)
+                except BaseException as error:
+                    cleanup_error = error
+            if cleanup_error is not None and process is not None:
+                with self._running_lock:
+                    self._running[job_id] = process
+                raise CoordinatorError(
+                    "cargo_launch_cleanup_unproven",
+                    "Spawned Cargo process could not be confirmed stopped after launch setup failed",
+                    details={"jobId": job_id, "pid": int(process.pid)},
+                ) from cleanup_error
             with self._running_lock:
                 self._running.pop(job_id, None)
             raise
@@ -190,12 +215,19 @@ class CargoJobRunner:
         with self.database.connect() as connection:
             rows = connection.execute(
                 """SELECT run.run_id, run.stdout_path, run.stderr_path,
-                          job.exit_code, job.finished_at, job.released_at
+                          job.status AS job_status, job.exit_code, job.finished_at,
+                          job.released_at, job.process_tree_live_pids_json
                    FROM cargo_job_runs AS run
                    JOIN cargo_jobs AS job ON job.job_id=run.job_id
                    WHERE run.status='running'
-                     AND job.status IN ('succeeded', 'failed', 'released')
-                     AND job.exit_code IS NOT NULL
+                     AND (
+                        (job.status IN ('succeeded', 'failed', 'released')
+                         AND job.exit_code IS NOT NULL)
+                        OR (job.status='orphaned'
+                            AND job.process_tree_live_pids_json='[]')
+                        OR (job.status='released' AND job.exit_code IS NULL
+                            AND job.process_tree_live_pids_json='[]')
+                     )
                      AND (? IS NULL OR run.job_id=?)
                    ORDER BY run.started_at, run.run_id""",
                 (job_id, job_id),
@@ -206,16 +238,24 @@ class CargoJobRunner:
         reconciled: list[str] = []
         with self.database.transaction() as connection:
             for row in rows:
+                job_status = str(row["job_status"])
+                if job_status == "orphaned":
+                    error_code = "cargo_run_reconciled_from_orphaned_job"
+                elif row["exit_code"] is None:
+                    error_code = "cargo_run_reconciled_from_released_job_missing_exit_code"
+                else:
+                    error_code = "cargo_run_reconciled_from_terminal_job"
                 updated = connection.execute(
                     """UPDATE cargo_job_runs
                        SET status='completed', exit_code=?, stdout_tail=?, stderr_tail=?,
-                           error_code='cargo_run_reconciled_from_terminal_job',
+                           error_code=?,
                            completed_at=?
                        WHERE run_id=? AND status='running'""",
                     (
-                        int(row["exit_code"]),
+                        int(row["exit_code"]) if row["exit_code"] is not None else None,
                         self._read_tail(Path(row["stdout_path"])),
                         self._read_tail(Path(row["stderr_path"])),
+                        error_code,
                         row["released_at"] or row["finished_at"] or completed_at,
                         row["run_id"],
                     ),
