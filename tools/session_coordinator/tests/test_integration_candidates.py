@@ -130,6 +130,14 @@ class IntegrationCandidateTests(unittest.TestCase):
         ).stdout
         self.assertEqual("value = 1\n", committed)
         self.assertEqual("value = 2\n", source.read_text(encoding="utf-8"))
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--", "tools/candidate.py"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual("", staged)
         self.assertEqual(1, len(messages))
         with self.database.connect() as connection:
             notification = connection.execute(
@@ -198,6 +206,40 @@ class IntegrationCandidateTests(unittest.TestCase):
                 "SELECT COUNT(*) FROM notification_attempts"
             ).fetchone()[0]
         self.assertEqual(0, notification_count)
+
+    def test_finalize_realigns_a_stale_index_for_an_integrated_candidate(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        candidate = self.service.submit(
+            session_id="primary",
+            request_id="candidate-index-recovery",
+            paths=("tools/candidate.py",),
+            compile_ticket_id="compile-pass",
+        )
+        integrated = self.service.finalize(
+            candidate.candidate_id, message="integration: candidate"
+        )
+        subprocess.run(
+            ["git", "update-index", "--force-remove", "tools/candidate.py"],
+            cwd=self.repo,
+            check=True,
+        )
+
+        recovered = self.service.finalize(
+            candidate.candidate_id, message="integration: candidate"
+        )
+
+        self.assertEqual("integrated_validation_pending", recovered.status)
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--", "tools/candidate.py"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual("", staged)
 
 
 if __name__ == "__main__":

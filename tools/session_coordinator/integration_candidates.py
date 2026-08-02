@@ -188,7 +188,12 @@ class IntegrationCandidateService:
         message = self._text("message", message)
         with self._git_mutex(f"candidate:{candidate_id}"):
             candidate = self.get(candidate_id)
-            if candidate.status in {"integrated_validation_pending", "accepted", "delayed_merge"}:
+            if candidate.status == "integrated_validation_pending":
+                current_head = self._git("rev-parse", "HEAD")
+                if self._head_contains_candidate(current_head, candidate.paths):
+                    self._align_shared_index(candidate.paths)
+                return candidate
+            if candidate.status in {"accepted", "delayed_merge"}:
                 return candidate
             if candidate.status != "integration_ready":
                 raise CoordinatorError(
@@ -203,6 +208,7 @@ class IntegrationCandidateService:
 
             current_head = self._git("rev-parse", "HEAD")
             if candidate.commit_sha and current_head == candidate.commit_sha:
+                self._align_shared_index(candidate.paths)
                 integrated = self._mark_integrated(
                     candidate, candidate.commit_sha, recovered=True
                 )
@@ -225,6 +231,7 @@ class IntegrationCandidateService:
                 self._git("update-ref", "HEAD", commit_sha, current_head)
             except subprocess.CalledProcessError:
                 return self._delay_merge(candidate, self._git("rev-parse", "HEAD"), "head_cas_failed")
+            self._align_shared_index(candidate.paths)
             integrated = self._mark_integrated(candidate, commit_sha, recovered=False)
             self._notify_integrated(candidate, commit_sha, message)
             return integrated
@@ -354,6 +361,16 @@ class IntegrationCandidateService:
             if result.returncode != 0 or result.stdout.strip() != item.blob_oid:
                 return False
         return True
+
+    def _align_shared_index(self, paths: tuple[CandidatePath, ...]) -> None:
+        """Advance only committed candidate entries in the shared index."""
+        for item in paths:
+            self._git(
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                f"100644,{item.blob_oid},{item.path}",
+            )
 
     def _record_prepared_commit(
         self, candidate: IntegrationCandidate, commit_sha: str, parent: str
