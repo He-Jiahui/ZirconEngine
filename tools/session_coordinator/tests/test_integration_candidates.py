@@ -9,6 +9,7 @@ from tools.session_coordinator.database import Database
 from tools.session_coordinator.integration_candidates import IntegrationCandidateService
 from tools.session_coordinator.leases import LeaseService, PathPolicy
 from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.notifications import WeComNotificationService
 from tools.session_coordinator.tests.helpers import init_repo
 
 
@@ -48,6 +49,22 @@ class IntegrationCandidateTests(unittest.TestCase):
         )
         self.service = IntegrationCandidateService(self.database, self.repo, self.leases)
 
+    def _enable_notifications(self) -> list[str]:
+        messages: list[str] = []
+
+        def notify(command: list[str]) -> subprocess.CompletedProcess[str]:
+            messages.append(command[command.index("-Message") + 1])
+            return subprocess.CompletedProcess(command, 0, '{"errcode":0}', "")
+
+        self.service.set_notifications(
+            WeComNotificationService(
+                self.database,
+                script_path=self.repo / "send-wecom-message.ps1",
+                runner=notify,
+            )
+        )
+        return messages
+
     def _lease(self, path: str) -> None:
         acquisition = self.leases.acquire("primary", [path])
         self.assertTrue(acquisition.acquired, acquisition.conflicts)
@@ -85,6 +102,7 @@ class IntegrationCandidateTests(unittest.TestCase):
         self.assertEqual("value = 1\n", blob_content)
 
     def test_finalize_commits_sealed_blob_without_touching_later_worktree_edits(self) -> None:
+        messages = self._enable_notifications()
         source = self.repo / "tools" / "candidate.py"
         source.parent.mkdir(parents=True)
         source.write_text("value = 1\n", encoding="utf-8")
@@ -112,6 +130,13 @@ class IntegrationCandidateTests(unittest.TestCase):
         ).stdout
         self.assertEqual("value = 1\n", committed)
         self.assertEqual("value = 2\n", source.read_text(encoding="utf-8"))
+        self.assertEqual(1, len(messages))
+        with self.database.connect() as connection:
+            notification = connection.execute(
+                "SELECT commit_sha, status FROM notification_attempts"
+            ).fetchone()
+        self.assertEqual(integrated.commit_sha, notification["commit_sha"])
+        self.assertEqual("succeeded", notification["status"])
 
     def test_finalize_defers_when_main_changed_the_same_candidate_path(self) -> None:
         source = self.repo / "tools" / "candidate.py"
@@ -134,6 +159,45 @@ class IntegrationCandidateTests(unittest.TestCase):
 
         self.assertEqual("delayed_merge", delayed.status)
         self.assertIsNone(delayed.commit_sha)
+
+    def test_finalize_accepts_when_main_already_contains_the_sealed_blob(self) -> None:
+        messages = self._enable_notifications()
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        candidate = self.service.submit(
+            session_id="primary",
+            request_id="candidate-already-integrated",
+            paths=("tools/candidate.py",),
+            compile_ticket_id="compile-pass",
+        )
+        subprocess.run(["git", "add", "tools/candidate.py"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "test: integrate sealed blob"],
+            cwd=self.repo,
+            check=True,
+        )
+        current_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        accepted = self.service.finalize(
+            candidate.candidate_id, message="integration: sealed candidate"
+        )
+
+        self.assertEqual("accepted", accepted.status)
+        self.assertEqual(current_head, accepted.commit_sha)
+        self.assertEqual([], messages)
+        with self.database.connect() as connection:
+            notification_count = connection.execute(
+                "SELECT COUNT(*) FROM notification_attempts"
+            ).fetchone()[0]
+        self.assertEqual(0, notification_count)
 
 
 if __name__ == "__main__":

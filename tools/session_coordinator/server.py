@@ -542,6 +542,7 @@ class CoordinatorApplication:
         self.topology_importer = TopologyImporter(self.database, config.repo_root)
         self.notifications = WeComNotificationService(self.database)
         self.notifications.recover_reserved()
+        self.integration_candidates.set_notifications(self.notifications)
         self.milestone_workflows = MilestoneWorkflowService(
             self.database,
             config.repo_root,

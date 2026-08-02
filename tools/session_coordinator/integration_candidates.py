@@ -16,6 +16,7 @@ from uuid import uuid4
 from .database import Database
 from .leases import LeaseService
 from .models import CoordinatorError, utc_text
+from .notifications import WeComNotificationService
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +51,10 @@ class IntegrationCandidateService:
         self.database = database
         self.repo_root = Path(repo_root).resolve()
         self.leases = leases
+        self.notifications: WeComNotificationService | None = None
+
+    def set_notifications(self, notifications: WeComNotificationService) -> None:
+        self.notifications = notifications
 
     def submit(
         self,
@@ -176,6 +181,8 @@ class IntegrationCandidateService:
         Later edits in the shared worktree therefore remain untouched.  A head
         advance touching one of the candidate paths becomes a durable
         ``delayed_merge`` decision instead of a wait, retry loop, or overwrite.
+        If the advance already contains every sealed blob, the candidate is
+        accepted as converged instead of being misclassified as a conflict.
         """
         candidate_id = self._text("candidate_id", candidate_id)
         message = self._text("message", message)
@@ -196,7 +203,13 @@ class IntegrationCandidateService:
 
             current_head = self._git("rev-parse", "HEAD")
             if candidate.commit_sha and current_head == candidate.commit_sha:
-                return self._mark_integrated(candidate, candidate.commit_sha, recovered=True)
+                integrated = self._mark_integrated(
+                    candidate, candidate.commit_sha, recovered=True
+                )
+                self._notify_integrated(candidate, candidate.commit_sha, message)
+                return integrated
+            if self._head_contains_candidate(current_head, candidate.paths):
+                return self._mark_accepted_existing(candidate, current_head)
             if not self._is_ancestor(candidate.base_head, current_head):
                 return self._delay_merge(candidate, current_head, "base_not_ancestor")
             conflicts = self._overlapping_paths(candidate, current_head)
@@ -212,7 +225,9 @@ class IntegrationCandidateService:
                 self._git("update-ref", "HEAD", commit_sha, current_head)
             except subprocess.CalledProcessError:
                 return self._delay_merge(candidate, self._git("rev-parse", "HEAD"), "head_cas_failed")
-            return self._mark_integrated(candidate, commit_sha, recovered=False)
+            integrated = self._mark_integrated(candidate, commit_sha, recovered=False)
+            self._notify_integrated(candidate, commit_sha, message)
+            return integrated
 
     def _write_blob(self, path: str) -> str:
         source = (self.repo_root / path).resolve()
@@ -326,6 +341,20 @@ class IntegrationCandidateService:
             item.path for item in candidate.paths if item.path in changed
         )
 
+    def _head_contains_candidate(
+        self, current_head: str, paths: tuple[CandidatePath, ...]
+    ) -> bool:
+        for item in paths:
+            result = subprocess.run(
+                ["git", "rev-parse", f"{current_head}:{item.path}"],
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0 or result.stdout.strip() != item.blob_oid:
+                return False
+        return True
+
     def _record_prepared_commit(
         self, candidate: IntegrationCandidate, commit_sha: str, parent: str
     ) -> None:
@@ -364,6 +393,67 @@ class IntegrationCandidateService:
                 (candidate.candidate_id, json.dumps({"commitSha": commit_sha, "recovered": recovered}, sort_keys=True), now),
             )
             return self._get_in_connection(connection, candidate.candidate_id)
+
+    def _mark_accepted_existing(
+        self, candidate: IntegrationCandidate, current_head: str
+    ) -> IntegrationCandidate:
+        now = utc_text()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE integration_candidates
+                SET status='accepted', commit_sha=?, updated_at=?
+                WHERE candidate_id=?
+                """,
+                (current_head, now, candidate.candidate_id),
+            )
+            connection.execute(
+                """
+                INSERT INTO integration_candidate_events(candidate_id, event_type, payload_json, created_at)
+                VALUES (?, 'integration.accepted_existing', ?, ?)
+                """,
+                (
+                    candidate.candidate_id,
+                    json.dumps({"commitSha": current_head}, sort_keys=True),
+                    now,
+                ),
+            )
+            return self._get_in_connection(connection, candidate.candidate_id)
+
+    def _notify_integrated(
+        self, candidate: IntegrationCandidate, commit_sha: str, message: str
+    ) -> None:
+        if self.notifications is None:
+            return
+        try:
+            parts = [
+                part
+                for part in candidate.plan_path.replace("\\", "/").rstrip("/").split("/")
+                if part
+            ]
+            if len(parts) < 2:
+                raise CoordinatorError(
+                    "notification_module_unavailable",
+                    "Integration notification requires a plan path inside a module folder",
+                )
+            formatted = self.notifications.format_message(
+                module=parts[-2],
+                summary=f"scoped candidate {candidate.candidate_id[:8]}: {message}",
+                commit_time=self._git("show", "-s", "--format=%cI", commit_sha),
+                shortstat=(
+                    self._git("show", "--shortstat", "--format=", commit_sha).strip()
+                    or "0 files changed"
+                ),
+                commit_content=(
+                    f"{commit_sha} {self._git('show', '-s', '--format=%s', commit_sha)}"
+                ),
+            )
+            self.notifications.notify_once(commit_sha=commit_sha, message=formatted)
+        except Exception as error:
+            self.notifications.record_post_commit_failure(
+                commit_sha=commit_sha,
+                error=error,
+            )
 
     def _delay_merge(
         self,
