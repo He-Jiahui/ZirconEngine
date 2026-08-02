@@ -29,6 +29,38 @@ const TRANSPORT_ACTIONS: &[(&str, &str)] = &[
 ];
 
 #[test]
+fn workbench_transport_controls_use_shared_dense_control_tokens() {
+    let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(
+        "assets/ui/editor/components/workbench/composites/animation/\
+                 workbench_transport_controls.zui",
+    ))
+    .expect("Workbench transport controls asset should be readable");
+
+    for required in [
+        "gap = \"$editor.density.gap.xsmall\"",
+        "height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" }",
+        "layout_padding_left = \"$editor.density.gap.xsmall\"",
+        "layout_padding_right = \"$editor.density.gap.xsmall\"",
+        "layout_padding_top = \"$editor.density.gap.xsmall\"",
+        "layout_padding_bottom = \"$editor.density.gap.xsmall\"",
+        "width = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" }",
+    ] {
+        assert!(
+            source.contains(required),
+            "transport controls must consume the shared dense-control contract: {required}"
+        );
+    }
+    assert!(
+        !source.contains("layout_padding_left = 2.0"),
+        "transport controls must not retain feature-local horizontal padding"
+    );
+    assert!(
+        !source.contains("width = { min = 28.0"),
+        "transport control button geometry must follow the central dense-control metric"
+    );
+}
+
+#[test]
 fn blend_space_transport_buttons_dispatch_unique_registered_actions() {
     let mut bridge = open_blend_space_bridge(1260, 780);
     let mut routed_actions = BTreeSet::new();

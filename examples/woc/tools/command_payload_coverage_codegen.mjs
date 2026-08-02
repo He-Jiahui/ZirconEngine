@@ -84,7 +84,7 @@ function validateInputs(commandCatalog, sourcePayloadCatalog, contracts) {
   invariant(contracts.source_commit === SOURCE_COMMIT, 'command payload schema source commit drifted');
   invariant(commandCatalog.entries.length === 165, 'command catalog count drifted');
   invariant(sourcePayloadCatalog.entries.length === 165, 'source payload catalog count drifted');
-  invariant(contracts.schema_version === 38, 'command payload schema version drifted');
+  invariant(contracts.schema_version === 60, 'command payload schema version drifted');
   const catalogSha = commandCatalogSha(commandCatalog.entries);
   invariant(sourcePayloadCatalog.command_catalog_sha256 === catalogSha, 'source payload catalog command fingerprint drifted');
   invariant(contracts.command_catalog_sha256 === catalogSha, 'command payload schema command fingerprint drifted');
@@ -99,10 +99,10 @@ function validateInputs(commandCatalog, sourcePayloadCatalog, contracts) {
 function validateCoverage(document, contracts) {
   invariant(document.totals.commands === 165, 'coverage command count drifted');
   invariant(document.totals.typed_contract_commands === contracts.length, 'typed coverage count drifted');
-  invariant(document.totals.typed_contract_commands === 135, 'typed command coverage drifted');
-  invariant(document.totals.typed_contract_client_send_commands === 134, 'typed client-send coverage drifted');
+  invariant(document.totals.typed_contract_commands === 157, 'typed command coverage drifted');
+  invariant(document.totals.typed_contract_client_send_commands === 156, 'typed client-send coverage drifted');
   invariant(document.totals.typed_contract_dispatch_only_commands === 1, 'typed dispatch coverage drifted');
-  invariant(document.totals.source_shape_only_commands === 22, 'source-only coverage drifted');
+  invariant(document.totals.source_shape_only_commands === 0, 'source-only coverage drifted');
   invariant(document.totals.unmapped_dispatch_commands === 8, 'unmapped dispatch coverage drifted');
   for (const entry of document.entries) {
     if (entry.transport_coverage === 'typed_contract') {
@@ -128,6 +128,7 @@ function descriptor(entry) {
     max_byte_length: entry.max_byte_length,
     max_utf8_bytes: entry.max_utf8_bytes ?? null,
     max_utf16_code_units: entry.max_utf16_code_units ?? null,
+    max_collection_entries: entry.max_collection_entries ?? null,
     encoding: entry.encoding,
     source_shape: entry.source_shape,
   };
@@ -149,7 +150,8 @@ function payloadSchemaSha(entries) {
       (entry) =>
         `${entry.id}\0${entry.name}\0${entry.kind}\0${entry.min_byte_length}\0` +
         `${entry.max_byte_length}\0${entry.max_utf8_bytes ?? ''}\0` +
-        `${entry.max_utf16_code_units ?? ''}\0${entry.encoding}\n`,
+        `${entry.max_utf16_code_units ?? ''}\0${entry.max_collection_entries ?? ''}\0` +
+        `${entry.encoding}\n`,
     )
     .join('');
   return sha256(Buffer.from(source, 'utf8'));

@@ -35,11 +35,6 @@ class PluginDocsCurrentStatusPlatformBundleMaterializationOwnerTests(
                     "PlatformBundle materialization owner",
                     "bundle copy/cleanup helpers",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_platform_bundle_materialize_owner_split",
-                    "platform_bundle_materialize.py",
-                    "PlatformBundle materialization owner",
-                ],
             },
             "Current export/plugin docs do not reflect PlatformBundle materialize owner split",
         )
@@ -70,11 +65,6 @@ class PluginDocsCurrentStatusPlatformBundleMaterializationOwnerTests(
                     "platform_bundle_native_plugins_payload.py",
                     "PlatformBundle native plugins payload owner",
                     "native_plugins_payload bundle-path rewriting",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_platform_bundle_native_plugins_payload_owner_split",
-                    "platform_bundle_native_plugins_payload.py",
-                    "PlatformBundle native plugins payload owner",
                 ],
             },
             "Current export/plugin docs do not reflect PlatformBundle native plugins payload owner split",
@@ -108,11 +98,6 @@ class PluginDocsCurrentStatusPlatformBundleMaterializationOwnerTests(
                     owner_file,
                     "PlatformBundle native plugins materialize owner",
                     "native plugins directory overwrite and recursive copy",
-                ],
-                "active session notes": [
-                    slug,
-                    owner_file,
-                    "PlatformBundle native plugins materialize owner",
                 ],
             },
             "Current plugin docs do not reflect PlatformBundle native plugins materialize owner split",

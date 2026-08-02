@@ -16,17 +16,17 @@
 - workflow 运行结果中明确成功的子计划摘要，作为已落盘状态说明。
 - API 502、断连、stall、工具噪声和未经核验的完整草稿，不直接当作事实写入子计划正文；只在来源审计中登记为可恢复资料。
 
-详细来源与缺口见 [workflow-source-audit.md](workflow-source-audit.md)。
+详细来源与缺口见 [workflow-source-audit.md](../workflow-source-audit.md)。
 
 ## 计划集入口
 
 | 计划集 | 入口 | 来源 workflow / memory | 当前整理状态 | 下一步口径 |
 | --- | --- | --- | --- | --- |
-| Runtime 渲染管线 | [zircon_runtime/render/index.md](zircon_runtime/render/index.md) | `memory/render-alignment-plan-set.md`，origin session `fcc4034f-230c-490a-af30-7036916f8ad9` | 已形成 `index.md + 01-16` 子计划，是渲染 RDG / MeshDrawCommand / GPUScene / visibility / lighting / temporal / postprocess / permutation / 能力层计划的权威入口。 | 渲染任务先读该 index；与旧 `.codex/plans` 冲突时以该目录为准。 |
-| Runtime 架构收束 | [zircon_runtime/runtime/index.md](zircon_runtime/runtime/index.md) | `wf_a76fbb0c-aac` (`refine-runtime-plans`) | `01-tech-stack-and-dependency-governance.md` 已出现 `last_refined: 2026-06-12` 和执行前检查清单；`02-07` 仍主要是基线版。workflow 的 gather 阶段 01-07 全部完成，部分 draft 完成，但 verify/落盘多处失败。 | 先核验 01；再按来源审计恢复或重跑 03/04/05/07 草稿，重新生成 02/06，最后统一更新 runtime index。 |
-| Runtime / Editor UI | [zircon_editor/editor_ui/index.md](zircon_editor/editor_ui/index.md) | `editor-ui-plan-engineering-deepening-wf_cbcbc1a2-cd3.js` | 现有 `index.md + 01-09` 是可读基线；源目录没有保存顶层 workflow 结果 JSON，仅有脚本和子代理日志，不能证明细化/核验完成。 | 以脚本中的 9 个领域和全局约束为继续细化输入；需要重跑 Explore -> Refine -> Verify -> Repair -> Index 或人工逐文档补齐工程化章节。 |
-| Zircon Hub | [zircon_hub/index.md](zircon_hub/index.md) | `wf_234cfcdf-454` (`deepen-hub-plans`) | `01-action-dispatch-and-typed-payload.md` 与 `06-layout-and-visual-standard.md` 已被工程级细化；`02-05/07` 仍是短基线版。index-update 阶段失败。 | 保留 01/06；补跑 02-05/07 的 deepen + verify；最后同步 Hub index 的跨计划所有权地图和切片执行清单。 |
-| 插件生态 | [zircon_plugins/index.md](zircon_plugins/index.md) | `wf_39de3956-0fa` (`deepen-plugin-plans`) | `index.md + 01-10` 基线计划存在；workflow 在 01 core 深化阶段因 502 失败，未进入下游插件并行深化。 | 必须先定稿 01 插件核心 API，再让 02-10 照用同一调度锚点、注册 API、plugin.toml schema 与 ABI v3 名称。 |
+| Runtime 渲染管线 | [zircon_runtime/render/index.md](../zircon_runtime/render/index.md) | `memory/render-alignment-plan-set.md`，origin session `fcc4034f-230c-490a-af30-7036916f8ad9` | 已形成 `index.md + 01-16` 子计划，是渲染 RDG / MeshDrawCommand / GPUScene / visibility / lighting / temporal / postprocess / permutation / 能力层计划的权威入口。 | 渲染任务先读该 index；与旧 `.codex/plans` 冲突时以该目录为准。 |
+| Runtime 架构收束 | [zircon_runtime/runtime/index.md](../zircon_runtime/runtime/index.md) | `wf_a76fbb0c-aac` (`refine-runtime-plans`) | `01-tech-stack-and-dependency-governance.md` 已出现 `last_refined: 2026-06-12` 和执行前检查清单；`02-07` 仍主要是基线版。workflow 的 gather 阶段 01-07 全部完成，部分 draft 完成，但 verify/落盘多处失败。 | 先核验 01；再按来源审计恢复或重跑 03/04/05/07 草稿，重新生成 02/06，最后统一更新 runtime index。 |
+| Runtime / Editor UI | [zircon_editor/editor_ui/index.md](../zircon_editor/editor_ui/index.md) | `editor-ui-plan-engineering-deepening-wf_cbcbc1a2-cd3.js` | 现有 `index.md + 01-09` 是可读基线；源目录没有保存顶层 workflow 结果 JSON，仅有脚本和子代理日志，不能证明细化/核验完成。 | 以脚本中的 9 个领域和全局约束为继续细化输入；需要重跑 Explore -> Refine -> Verify -> Repair -> Index 或人工逐文档补齐工程化章节。 |
+| Zircon Hub | [zircon_hub/index.md](../zircon_hub/index.md) | `wf_234cfcdf-454` (`deepen-hub-plans`) | `01-action-dispatch-and-typed-payload.md` 与 `06-layout-and-visual-standard.md` 已被工程级细化；`02-05/07` 仍是短基线版。index-update 阶段失败。 | 保留 01/06；补跑 02-05/07 的 deepen + verify；最后同步 Hub index 的跨计划所有权地图和切片执行清单。 |
+| 插件生态 | [zircon_plugins/index.md](../zircon_plugins/index.md) | `wf_39de3956-0fa` (`deepen-plugin-plans`) | `index.md + 01-10` 基线计划存在；workflow 在 01 core 深化阶段因 502 失败，未进入下游插件并行深化。 | 必须先定稿 01 插件核心 API，再让 02-10 照用同一调度锚点、注册 API、plugin.toml schema 与 ABI v3 名称。 |
 
 ## 使用规则
 
@@ -38,17 +38,17 @@
 
 ## 引擎级结构规范
 
-[`engine-code-structure-convention.md`](engine-code-structure-convention.md) 是 ZirconEngine **代码结构与模块接口约定的唯一权威**（模块布局 / 命名 / 公共 API / 测试组织 / 资源放置 / 插件 DX 框架）。各计划集只引用、不重定义其规则。落地与覆盖：
+[`engine-code-structure-convention.md`](../engine-code-structure-convention.md) 是 ZirconEngine **代码结构与模块接口约定的唯一权威**（模块布局 / 命名 / 公共 API / 测试组织 / 资源放置 / 插件 DX 框架）。各计划集只引用、不重定义其规则。落地与覆盖：
 
 | 计划集 | 结构优化落地 | 强制门禁 |
 | --- | --- | --- |
-| Runtime | [runtime/15-code-structure-and-module-conventions.md](zircon_runtime/runtime/15-code-structure-and-module-conventions.md) | `module_convention_gate` + `runtime_structure_audits/module_convention_boundary.py` |
-| Editor UI | [editor_ui/10-code-structure-and-module-conventions.md](zircon_editor/editor_ui/10-code-structure-and-module-conventions.md) | editor `module_convention_gate` + `editor_structure_audits/` |
-| 插件生态 | [zircon_plugins/12-plugin-dx-and-structure-framework.md](zircon_plugins/12-plugin-dx-and-structure-framework.md) | `plugin_skeleton_gate` + `tools/plugin_structure_audits/` |
+| Runtime | [runtime/15-code-structure-and-module-conventions.md](../zircon_runtime/runtime/15-code-structure-and-module-conventions.md) | `module_convention_gate` + `runtime_structure_audits/module_convention_boundary.py` |
+| Editor UI | [editor_ui/10-code-structure-and-module-conventions.md](../zircon_editor/editor_ui/10-code-structure-and-module-conventions.md) | editor `module_convention_gate` + `editor_structure_audits/` |
+| 插件生态 | [zircon_plugins/12-plugin-dx-and-structure-framework.md](../zircon_plugins/12-plugin-dx-and-structure-framework.md) | `plugin_skeleton_gate` + `tools/plugin_structure_audits/` |
 | Runtime 渲染 | render index「代码结构规范」节 | graphics 热点纳入 Runtime 15 + `large_file_ownership_gate` |
 | Zircon Hub | hub index「代码结构规范」节 | 巨型文件 + 前端组件化纳入规范 §1/§3/§4 |
 
-补充输入：[`engine-code-review-findings-2026-06.md`](engine-code-review-findings-2026-06.md) 是 2026-06 一轮聚焦代码审查的发现目录（F1–F19 接口/质量 + D 系列插件 DX，带 file:line 证据），规范级结论已并入 convention §7.5，结构级发现已并入三套结构子计划，安全/性能类 P0（F1 native 回调缺 catch_unwind、F2 scene 每帧 lock().unwrap、F3 每帧整帧 clone）登记建议补入 Runtime 06/07。
+补充输入：[`engine-code-review-findings-2026-06.md`](../engine-code-review-findings-2026-06.md) 是 2026-06 一轮聚焦代码审查的发现目录（F1–F19 接口/质量 + D 系列插件 DX，带 file:line 证据），规范级结论已并入 convention §7.5，结构级发现已并入三套结构子计划，安全/性能类 P0（F1 native 回调缺 catch_unwind、F2 scene 每帧 lock().unwrap、F3 每帧整帧 clone）登记建议补入 Runtime 06/07。
 
 ## 当前高优先缺口
 

@@ -18,11 +18,13 @@ fn fixed_component_registrations_exist_in_empty_world() {
             .reflect_schema(type_path)
             .expect("fixed component schema should be registered");
         assert!(registration.is_component);
-        assert!(world
-            .type_registry()
-            .runtime_registration(type_path)
-            .expect("fixed runtime registration should exist")
-            .component
-            .is_some());
+        assert!(
+            world
+                .type_registry()
+                .runtime_registration(type_path)
+                .expect("fixed runtime registration should exist")
+                .component
+                .is_some()
+        );
     }
 }

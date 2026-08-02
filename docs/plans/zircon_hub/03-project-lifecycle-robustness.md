@@ -20,10 +20,12 @@ plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/zircon_hub/02-background-task-framework-and-persistence.md
   - docs/zircon_hub/projects/lifecycle-workflows.md
-status: planned
+status: in_progress
 ---
 
 # 03 项目生命周期健壮性（create / import / delete / fixture 剥离）
+
+> 2026-08-01 实仓复核：M1 的路径归一、shared manifest 校验、picker 注入、create 保目录恢复与相关单测，M2 的生产 fixture 判定删除与守卫，M3 的 recycler 注入、平台 recovery 与确定性测试均已落在当前源码。本文保留终态设计与验收口径，状态改为 `in_progress`；在受管 Hub package gate 与截图矩阵通过前，不把三个里程碑记为完成。
 
 ## 现状与证据
 

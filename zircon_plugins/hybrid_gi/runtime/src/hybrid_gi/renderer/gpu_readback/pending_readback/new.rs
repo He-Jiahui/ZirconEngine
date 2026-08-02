@@ -29,9 +29,7 @@ impl HybridGiGpuPendingReadback {
         scene_prepare_probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
         scene_prepare_probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
         scene_prepare_probe_trace_tile_buffer: Option<wgpu::Buffer>,
-        scene_prepare_probe_trace_tile_readback: Option<wgpu::Buffer>,
         scene_prepare_probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
-        scene_prepare_probe_trace_indirect_args_readback: Option<wgpu::Buffer>,
         scene_prepare_probe_trace_tile_word_count: usize,
         scene_prepare_probe_trace_tile_record_count: usize,
         scene_prepare_probe_trace_indirect_arg_word_count: usize,
@@ -63,11 +61,8 @@ impl HybridGiGpuPendingReadback {
             _scene_prepare_probe_trace_tile_seed_buffer: scene_prepare_probe_trace_tile_seed_buffer,
             _scene_prepare_probe_trace_tile_params_buffer:
                 scene_prepare_probe_trace_tile_params_buffer,
-            _scene_prepare_probe_trace_tile_buffer: scene_prepare_probe_trace_tile_buffer,
-            scene_prepare_probe_trace_tile_readback,
-            _scene_prepare_probe_trace_indirect_args_buffer:
-                scene_prepare_probe_trace_indirect_args_buffer,
-            scene_prepare_probe_trace_indirect_args_readback,
+            scene_prepare_probe_trace_tile_buffer,
+            scene_prepare_probe_trace_indirect_args_buffer,
             scene_prepare_probe_trace_tile_word_count,
             scene_prepare_probe_trace_tile_record_count,
             scene_prepare_probe_trace_indirect_arg_word_count,

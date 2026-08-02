@@ -2,10 +2,10 @@ use crate::asset::AssetImporterDescriptor;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 use crate::core::framework::render::{
-    GBufferChannelMask, GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind,
-    GeometrySourceBindingRequirement, GeometrySourceDescriptor, GeometrySourceId,
-    GeometrySourceVertexAttribute, RenderShaderDefinitionValue, SHADING_MODEL_PLUGIN_ID_START,
-    ShadingModelDescriptor, ShadingModelId,
+    GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    RenderShaderDefinitionValue, ShadingModelDescriptor, ShadingModelId,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
@@ -126,18 +126,14 @@ fn plugin_package_manifest_declares_public_package_metadata() {
         vec!["assets".to_string()]
     );
     assert_eq!(manifest.content_roots, vec!["content".to_string()]);
-    assert!(
-        manifest
-            .modules
-            .iter()
-            .any(|module| module.kind == PluginModuleKind::Native)
-    );
-    assert!(
-        manifest
-            .modules
-            .iter()
-            .any(|module| module.kind == PluginModuleKind::Vm)
-    );
+    assert!(manifest
+        .modules
+        .iter()
+        .any(|module| module.kind == PluginModuleKind::Native));
+    assert!(manifest
+        .modules
+        .iter()
+        .any(|module| module.kind == PluginModuleKind::Vm));
 
     let encoded = toml::to_string(&manifest).expect("manifest toml");
     assert!(encoded.contains("sdk_api_version = \"0.2.0\""));
@@ -436,18 +432,14 @@ fn plugin_package_manifest_declares_optional_feature_bundles() {
     assert_eq!(manifest.optional_features, vec![feature]);
     assert!(!manifest.optional_features[0].enabled_by_default);
     assert_eq!(manifest.optional_features[0].owner_plugin_id, "sound");
-    assert!(
-        manifest.optional_features[0]
-            .dependencies
-            .iter()
-            .any(|dependency| dependency.plugin_id == "sound" && dependency.primary)
-    );
-    assert!(
-        manifest.optional_features[0]
-            .modules
-            .iter()
-            .any(|module| module.crate_name == "zircon_plugin_sound_timeline_animation_runtime")
-    );
+    assert!(manifest.optional_features[0]
+        .dependencies
+        .iter()
+        .any(|dependency| dependency.plugin_id == "sound" && dependency.primary));
+    assert!(manifest.optional_features[0]
+        .modules
+        .iter()
+        .any(|module| module.crate_name == "zircon_plugin_sound_timeline_animation_runtime"));
 
     let encoded = toml::to_string(&manifest).expect("manifest toml");
     let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");

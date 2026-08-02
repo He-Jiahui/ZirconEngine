@@ -10,7 +10,8 @@ crate-type = ["cdylib"]
 
 [features]
 default = ["dist"]
-dist = []
+dist = ["zircon_plugin_native_window_hosting_editor/declaration"]
 
 [dependencies]
+zircon_plugin_native_window_hosting_editor = { path = "../editor", default-features = false }
 zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

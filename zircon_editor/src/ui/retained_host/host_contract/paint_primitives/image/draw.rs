@@ -55,9 +55,6 @@ pub(in crate::ui::retained_host::host_contract) fn draw_rgba_image_clipped_with_
     rgba: &[u8],
     atlas: &HostPaintAtlasImage,
 ) -> bool {
-    if atlas.rgba.is_none() {
-        return false;
-    }
     draw_rgba_image_clipped_with_recording(
         frame,
         rect,

@@ -21,17 +21,17 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_locate_button]
 kind = "native"
-type = "Button"
+type = "IconButton"
 control_id = "LocateSelectedAsset"
-props = { text = "Locate In Assets" }
-layout = { width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Locate selected asset", icon = "editor_pages/asset_browser/navigation/search.svg", icon_placement = "icon_only" }
+layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_title_row]
 kind = "native"
 type = "HorizontalBox"
 control_id = "AssetBrowserToolbarTitleRow"
 layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
-children = [{ child = "toolbar_title_text" }, { child = "toolbar_locate_button" }]
+children = [{ child = "toolbar_title_text" }]
 
 [nodes.toolbar_subtitle_text]
 kind = "native"
@@ -109,24 +109,24 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_view_mode_list_button]
 kind = "native"
-type = "Button"
+type = "IconButton"
 control_id = "AssetBrowserViewModeListButton"
-props = { text = "List" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "List view", icon = "list-outline", icon_placement = "icon_only" }
+layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_view_mode_thumb_button]
 kind = "native"
-type = "Button"
+type = "IconButton"
 control_id = "AssetBrowserViewModeThumbButton"
-props = { text = "Thumb" }
-layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Thumbnail view", icon = "grid-outline", icon_placement = "icon_only" }
+layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_kind_primary_row]
 kind = "native"
 type = "HorizontalBox"
 control_id = "AssetBrowserToolbarKindPrimaryRow"
 layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
-children = [{ child = "toolbar_kind_all_chip" }, { child = "toolbar_kind_texture_chip" }, { child = "toolbar_kind_material_chip" }, { child = "toolbar_kind_scene_chip" }, { child = "toolbar_kind_model_chip" }, { child = "toolbar_kind_shader_chip" }, { child = "toolbar_kind_primary_spacer" }, { child = "toolbar_view_mode_list_button" }, { child = "toolbar_view_mode_thumb_button" }]
+children = [{ child = "toolbar_kind_all_chip" }, { child = "toolbar_kind_texture_chip" }, { child = "toolbar_kind_material_chip" }, { child = "toolbar_kind_scene_chip" }, { child = "toolbar_kind_model_chip" }, { child = "toolbar_kind_shader_chip" }, { child = "toolbar_kind_primary_spacer" }, { child = "toolbar_view_mode_list_button" }, { child = "toolbar_view_mode_thumb_button" }, { child = "toolbar_locate_button" }]
 
 [nodes.toolbar_kind_physics_chip]
 kind = "native"

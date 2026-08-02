@@ -109,26 +109,18 @@ fn ui_ecs_projection_snapshot_roundtrips_and_recomputes_totals() {
         snapshot.dirty_domain_impacts()
     );
     assert!(snapshot.derived_fields_are_fresh());
-    assert!(
-        snapshot
-            .schedule_mask
-            .requires_stage(UiPipelineStage::InputCollect)
-    );
-    assert!(
-        snapshot
-            .schedule_mask
-            .requires_stage(UiPipelineStage::WidgetBehavior)
-    );
-    assert!(
-        snapshot
-            .schedule_mask
-            .requires_stage(UiPipelineStage::A11yExtract)
-    );
-    assert!(
-        snapshot
-            .schedule_mask
-            .requires_stage(UiPipelineStage::RenderExtract)
-    );
+    assert!(snapshot
+        .schedule_mask
+        .requires_stage(UiPipelineStage::InputCollect));
+    assert!(snapshot
+        .schedule_mask
+        .requires_stage(UiPipelineStage::WidgetBehavior));
+    assert!(snapshot
+        .schedule_mask
+        .requires_stage(UiPipelineStage::A11yExtract));
+    assert!(snapshot
+        .schedule_mask
+        .requires_stage(UiPipelineStage::RenderExtract));
     assert_eq!(round_trip(&snapshot), snapshot);
 }
 
@@ -196,23 +188,19 @@ fn ui_ecs_projection_legacy_payload_without_derived_fields_can_recompute_from_no
     assert_eq!(recovered.schedule_mask(), expected_mask);
     assert_eq!(recovered.schedule_impacts(), expected_impacts);
     assert_eq!(recovered.dirty_domain_impacts(), expected_domain_impacts);
-    assert!(
-        recovered
-            .clone()
-            .with_recomputed_derived_fields()
-            .derived_fields_are_fresh()
-    );
+    assert!(recovered
+        .clone()
+        .with_recomputed_derived_fields()
+        .derived_fields_are_fresh());
     recovered.recompute_derived_fields();
     assert_eq!(recovered.totals, expected_totals);
     assert_eq!(recovered.schedule_mask, expected_mask);
     assert_eq!(recovered.schedule_impacts, expected_impacts);
     assert_eq!(recovered.dirty_domain_impacts, expected_domain_impacts);
     assert!(recovered.derived_fields_are_fresh());
-    assert!(
-        recovered
-            .schedule_mask
-            .requires_stage(UiPipelineStage::TextMeasure)
-    );
+    assert!(recovered
+        .schedule_mask
+        .requires_stage(UiPipelineStage::TextMeasure));
 }
 
 #[test]
@@ -342,11 +330,9 @@ fn ui_ecs_projection_delta_reports_added_removed_and_updated_domains() {
     assert!(delta.derived_fields_are_fresh());
     assert!(delta.component_structure_changed());
     assert!(!delta.interaction_only());
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::TextMeasure)
-    );
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::TextMeasure));
     assert!(delta.schedule_mask.requires_stage(UiPipelineStage::Layout));
 
     assert_eq!(root_change.kind, UiEcsProjectionChangeKind::Updated);
@@ -517,32 +503,22 @@ fn ui_ecs_projection_delta_classifies_interaction_fast_path_without_component_st
     assert!(change.is_interaction_change());
     assert!(change.is_interaction_only());
     assert!(!change.changes_component_structure());
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::InputCollect)
-    );
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::InputCollect));
     assert!(delta.schedule_mask.requires_stage(UiPipelineStage::Focus));
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::WidgetBehavior)
-    );
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::A11yExtract)
-    );
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::RenderExtract)
-    );
-    assert!(
-        !delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::TextMeasure)
-    );
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::WidgetBehavior));
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::A11yExtract));
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::RenderExtract));
+    assert!(!delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::TextMeasure));
     assert!(!delta.schedule_mask.requires_stage(UiPipelineStage::Layout));
     assert!(!delta.schedule_mask.requires_stage(UiPipelineStage::Picking));
 }
@@ -598,39 +574,27 @@ fn ui_ecs_projection_delta_classifies_render_only_fast_path_without_layout_or_in
     assert!(change.is_render_only_change());
     assert!(!change.is_interaction_change());
     assert!(!change.changes_component_structure());
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::RenderExtract)
-    );
-    assert!(
-        delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::BatchPrepare)
-    );
-    assert!(
-        !delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::InputCollect)
-    );
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::RenderExtract));
+    assert!(delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::BatchPrepare));
+    assert!(!delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::InputCollect));
     assert!(!delta.schedule_mask.requires_stage(UiPipelineStage::Focus));
-    assert!(
-        !delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::WidgetBehavior)
-    );
-    assert!(
-        !delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::TextMeasure)
-    );
+    assert!(!delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::WidgetBehavior));
+    assert!(!delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::TextMeasure));
     assert!(!delta.schedule_mask.requires_stage(UiPipelineStage::Layout));
     assert!(!delta.schedule_mask.requires_stage(UiPipelineStage::Picking));
-    assert!(
-        !delta
-            .schedule_mask
-            .requires_stage(UiPipelineStage::A11yExtract)
-    );
+    assert!(!delta
+        .schedule_mask
+        .requires_stage(UiPipelineStage::A11yExtract));
 }
 
 #[test]
@@ -694,23 +658,19 @@ fn ui_ecs_projection_delta_legacy_payload_without_derived_fields_can_recompute_f
     assert_eq!(recovered.schedule_mask(), expected_mask);
     assert_eq!(recovered.schedule_impacts(), expected_impacts);
     assert_eq!(recovered.dirty_domain_impacts(), expected_domain_impacts);
-    assert!(
-        recovered
-            .clone()
-            .with_recomputed_derived_fields()
-            .derived_fields_are_fresh()
-    );
+    assert!(recovered
+        .clone()
+        .with_recomputed_derived_fields()
+        .derived_fields_are_fresh());
     recovered.recompute_derived_fields();
     assert_eq!(recovered.totals, expected_totals);
     assert_eq!(recovered.schedule_mask, expected_mask);
     assert_eq!(recovered.schedule_impacts, expected_impacts);
     assert_eq!(recovered.dirty_domain_impacts, expected_domain_impacts);
     assert!(recovered.derived_fields_are_fresh());
-    assert!(
-        recovered
-            .schedule_mask
-            .requires_stage(UiPipelineStage::Layout)
-    );
+    assert!(recovered
+        .schedule_mask
+        .requires_stage(UiPipelineStage::Layout));
 }
 
 #[test]
@@ -872,11 +832,9 @@ fn ui_ecs_projection_snapshot_schedule_impacts_group_dirty_nodes_by_stage() {
         snapshot.node_ids_in_dirty_domain(UiEcsDirtyDomainKind::Input),
         vec![UiNodeId::new(2)]
     );
-    assert!(
-        snapshot
-            .dirty_domain_impact(UiEcsDirtyDomainKind::Layout)
-            .is_none()
-    );
+    assert!(snapshot
+        .dirty_domain_impact(UiEcsDirtyDomainKind::Layout)
+        .is_none());
 }
 
 #[test]

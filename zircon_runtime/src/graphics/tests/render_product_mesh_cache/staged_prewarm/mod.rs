@@ -2,14 +2,15 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    CorePipelineKind, DisplayMode, GEOMETRY_SOURCE_ID_SKINNED_MESH, PostProcessGraphResourceNames,
-    RenderFramework, RenderPhase, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderViewportDescriptor, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderQualityTier,
-    ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest,
-    ShaderVariantPrewarmReport, ShaderVariantRuntimeDimensionCount,
+    CorePipelineKind, DisplayMode, PostProcessGraphResourceNames, RenderFramework, RenderPhase,
+    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
+    ShaderFeatureBits, ShaderQualityTier, ShaderVariantMissReport,
+    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    ShaderVariantRuntimeDimensionCount, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
@@ -275,18 +276,17 @@ fn assert_runtime_dimension_disk_hit(
 }
 
 fn base_mesh_shader_cache_product_manifest() -> ShaderVariantPrewarmManifest {
-    let mut variants = builtin_fallback_shader_prewarm_manifest().variants;
-    variants.extend(
-        builtin_standard_material_shader_prewarm_manifest_for_geometry(
-            ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
-            SHADING_MODEL_ID_STANDARD_PBR,
-            None,
-            GEOMETRY_SOURCE_ID_SKINNED_MESH,
-            &[ShaderQualityTier::Medium],
-        )
-        .variants,
+    let mut manifest = builtin_fallback_shader_prewarm_manifest();
+    let extra = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+        ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
+        SHADING_MODEL_ID_STANDARD_PBR,
+        None,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        &[ShaderQualityTier::Medium],
     );
-    ShaderVariantPrewarmManifest::new(variants)
+    manifest.sources.extend(extra.sources);
+    manifest.variants.extend(extra.variants);
+    manifest
 }
 
 fn base_mesh_shader_cache_product_pipeline() -> RenderPipelineAsset {

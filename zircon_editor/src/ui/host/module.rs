@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use zircon_runtime::asset::{ASSET_MODULE_NAME, project_asset_manager_handle};
+use zircon_runtime::asset::{project_asset_manager_handle, ASSET_MODULE_NAME};
 use zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME;
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::manager::RegisteredManagerService;
@@ -11,15 +11,15 @@ use zircon_runtime::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
     ServiceKind, StartupMode,
 };
-use zircon_runtime::engine_module::{EngineModule, dependency_on, factory, qualified_name};
+use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::ui::UI_MODULE_NAME;
 
 use crate::core::commands::EditorCommandRegistryHandle;
-use crate::ui::host::EditorManager;
 use crate::ui::host::editor_asset_manager::{
     DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManager,
 };
+use crate::ui::host::EditorManager;
 
 pub const EDITOR_MODULE_NAME: &str = "EditorModule";
 pub const EDITOR_HOST_DRIVER_NAME: &str = "EditorModule.Driver.EditorHostDriver";

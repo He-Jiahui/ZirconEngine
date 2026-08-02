@@ -215,9 +215,6 @@ related_code:
   - zircon_plugins/timeline_sequence/dist/Cargo.toml
   - zircon_plugins/timeline_sequence/dist/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/plugin.toml
-  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
-  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
-  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
   - zircon_plugins/editor_build_export_desktop/dist/Cargo.toml
   - zircon_plugins/editor_build_export_desktop/dist/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/plugin.toml
@@ -260,23 +257,16 @@ related_code:
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/dist/Cargo.toml
   - zircon_plugins/ui_document_importer/dist/src/lib.rs
-  - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/src/capability.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/src/capability.rs
-  - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
   - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
-  - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/asset_importers/texture/runtime/src/capability.rs
-  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
-  - zircon_plugins/asset_importers/texture/plugin.toml
-  - zircon_plugins/asset_importers/texture/dist/Cargo.toml
-  - zircon_plugins/asset_importers/texture/dist/src/lib.rs
   - zircon_plugins/ai/plugin.toml
   - zircon_plugins/ai/dist/Cargo.toml
   - zircon_plugins/ai/dist/src/lib.rs
@@ -304,15 +294,6 @@ related_code:
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/plugin.rs
   - zircon_plugins/navigation/runtime/src/tests/registration.rs
-  - zircon_plugins/particles/plugin.toml
-  - zircon_plugins/particles/dist/Cargo.toml
-  - zircon_plugins/particles/dist/src/lib.rs
-  - zircon_plugins/physics/plugin.toml
-  - zircon_plugins/physics/dist/Cargo.toml
-  - zircon_plugins/physics/dist/src/lib.rs
-  - zircon_plugins/texture/plugin.toml
-  - zircon_plugins/texture/dist/Cargo.toml
-  - zircon_plugins/texture/dist/src/lib.rs
   - zircon_plugins/native_window_hosting/editor/src/lib.rs
   - zircon_plugins/native_window_hosting/editor/src/capability.rs
   - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
@@ -477,28 +458,8 @@ related_code:
   - tools/zircon_export/plugin_build_package.py
   - tools/zircon_export/plugin_build_asset_pack.py
   - tools/zircon_export/plugin_build_signature.py
-  - tools/zircon_export/plugin_package_source.py
-  - tools/zircon_export/plugin_package_template.py
-  - tools/zircon_export/plugin_package_identity.py
   - tools/zircon_export/plugin_validate.py
-  - tools/zircon_export/plugin_validate_report.py
-  - tools/zircon_export/plugin_validate_engine_version.py
   - tools/zircon_export/plugin_validate_distribution_modules.py
-  - tools/zircon_export/plugin_validate_distribution_module_target_modes.py
-  - tools/zircon_export/plugin_validate_modules.py
-  - tools/zircon_export/plugin_validate_module_crates.py
-  - tools/zircon_export/plugin_validate_module_systems.py
-  - tools/zircon_export/plugin_validate_interfaces.py
-  - tools/zircon_export/plugin_validate_interface_methods.py
-  - tools/zircon_export/plugin_validate_interface_signatures.py
-  - tools/zircon_export/plugin_validate_capability_statuses.py
-  - tools/zircon_export/plugin_validate_capability_status_targets.py
-  - tools/zircon_export/plugin_validate_capability_status_references.py
-  - tools/zircon_export/plugin_validate_layout.py
-  - tools/zircon_export/plugin_validate_layout_coordinates.py
-  - tools/zircon_export/plugin_validate_layout_public_metadata.py
-  - tools/zircon_export/plugin_validate_layout_targets.py
-  - tools/zircon_export/plugin_validate_layout_roots.py
   - tools/zircon_export/plugin_validate_common.py
   - tools/zircon_export/plugin_validate_feature_provider.py
   - tools/zircon_export/plugin_validate_feature_provider_capabilities.py
@@ -506,8 +467,6 @@ related_code:
   - tools/zircon_export/plugin_validate_feature_provider_extension.py
   - tools/zircon_export/tests/test_plugin_build.py
   - tools/zircon_export/tests/test_plugin_validate.py
-  - tools/zircon_export/tests/test_plugin_validate_distribution_contract.py
-  - tools/zircon_export/tests/test_plugin_validate_distribution_modules.py
   - tools/zircon_export/tests/test_plugin_validate_feature_provider.py
   - tools/zircon_export/tests/plugin_validate_support.py
   - tools/zircon_export/native_build.py
@@ -689,9 +648,6 @@ implementation_files:
   - zircon_plugins/timeline_sequence/dist/Cargo.toml
   - zircon_plugins/timeline_sequence/dist/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/plugin.toml
-  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
-  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
-  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
   - zircon_plugins/editor_build_export_desktop/dist/Cargo.toml
   - zircon_plugins/editor_build_export_desktop/dist/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/plugin.toml
@@ -1354,16 +1310,16 @@ status: in_progress
 4. **产物包规范**：`plugins/<id>/` { `<id>.{dll,so,dylib}` + `plugin.toml` + `native_dynamic_package.toml` 报告 + 可选 `<id>.zrpack` 资产子包 + 签名/hash }，被 `native_plugin_load_manifest` 收集、被 loader 加载。
 5. **可重复构建与兼容性钉**：同输入 byte 相同产物；manifest 钉 `sdk_api_version` / ABI 版本 / 引擎兼容区间，loader 加载期协商，不匹配出结构化诊断而非崩溃。
 
-## 2. 现状基线（实查，带路径证据）
+## 2. 初始基线与当前收敛（保留历史路径证据）
 
-独立构建的**工具链与 ABI 大半已在**，缺的是"对所有插件成立"和"依赖边界解耦"：
+以下工具链描述是当前仍成立的基础；后续缺口表记录 2026-06-23 之前的起点，不代表 2026-08-01 的当前缺口：
 
 - **ABI v3 表面完整**：`zircon_plugins/plugin_sdk/src/native.rs` 已有 `NativePluginAbiV3`/`NativePluginEntryReportV3`/`NativePluginBehaviorV3`/`NativePluginHostFunctionTableV3`/`NativePluginBridgeMethodTableV3` 全套 `repr(C)`、SDK-owned byte buffer、panic guard、capability 协商（`host_supports_all_capabilities_v3`），以及 `native_command_plugin_v3!` / `export_native_plugin_descriptor_v3!` / `export_native_plugin_entry_v3!` helper 宏。
 - **打包/加载契约在**：`export_build_plan/native_dynamic_package_plan.rs`（`plugins/<dir>/plugin.toml` + `native_dynamic_package.toml` + ABI v3 契约表 + 目录去重诊断）、`native_plugin_loader/native_plugin_load_manifest.rs`（`NativePluginLoadManifest` + ABI 契约），loader 在 `builtin/runtime_modules/plugin_modules/loader.rs`。
 - **导出 CLI 阶段在**：`tools/zircon_export/` 已有完整 NativeDynamic 阶段（`native_build.py` 真编译、`native_signing.py` 签名、`native_dynamic.py`、`pipeline_report_native_dynamic_loader_manifest.py` loader manifest、pack delta、platform bundle）。
 - **staged 构建已区分形态**：`tools/zircon_build.py` 的 `PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")`、`is_native_dynamic`/`native_dynamic_crates`/`rlib_static_crates`、`--plugins`、`PLUGIN_LOAD_MANIFEST = "plugins/native_plugins.toml"`。
 
-主要缺口：
+2026-06-23 初始缺口基线：
 
 | #  | 缺口                                                                                                                                                                                                                                                              | 规范条目     | 证据路径                                                                                                                                                                      |
 | -- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1376,9 +1332,13 @@ status: in_progress
 | B7 | **资产子包未按插件切分**：zrpack（09-M2）是发行整包级；插件自带资产（shader/preset）无 per-plugin 子包随 cdylib 分发                                                                                                                                        | §资产子包   | 09 §3.3 zrpack 为 profile 级；`native_dynamic_package_plan.rs` 产物目录无资产入口                                                                                          |
 | B8 | **`RuntimePluginId` 封闭枚举**：第三方/独立插件自带 id 必须改引擎核心（与 12-S12/D6 同根；2026-06-23 M5/T3 前基线）                                                                                                                                          | 架构         | 已由 M5/T3 改为开放 string-newtype；`builtin/runtime_modules/ids/plugin_id.rs` 保留内建常量并接受合法外部 key                                                                  |
 
+当前收敛（2026-08-01）：B1-B8 均为历史问题。根级结构审计仍以 37 个 dist-capable plugin root 为统计口径；文件系统共有 38 个 `dist/Cargo.toml`，额外项来自 feature-local/non-root dist carrier，不应与根级矩阵混算。代表性 `zircon_plugins/ai/dist` 已是仅依赖 native SDK 的 `cdylib`，并通过 ABI v3 宏导出 registration manifest；单插件 build/validate、dist dependency guard、per-plugin zrpack/package/signature 与开放 string-newtype 均已有后续记录。计划继续保持 `in_progress`，未关闭范围仅为更广 editor/export/full regression 与独立 open failure。
+
 > B3 是本计划的**最深依赖**：它决定"每插件独立构建"的覆盖面——在 B3 闭合前，只有 command/bridge 型插件能做成 cdylib；闭合后，系统型插件才能全量独立构建。B3 必须与 [Plugins 01](01-plugin-architecture-core.md) ABI v3 / register 通道、[Plugins 11](11-plugin-call-bridge.md) bridge dense 通道协同推进，不在本计划内独立发明第二套注册模型。
 >
 > 2026-06-23 M1 首切已把 `native_dynamic_fixture` 明确为首个 `dist` 形态插件：根 manifest 增 `[distribution]`，native crate 增 `dist` feature，并由 `tools/plugin_structure_audits/dependency_boundary.py` + `plugins_13_dist_dependency_boundary_clean` 锁定当时 `dist_capable_plugin_count = 1`、`distribution_section_violations = 0`、`dist_dependency_boundary_violations = 0`。后续记录已关闭 B3/B5/B7 focused 路径与 B8 string-newtype；M5/T1 skeleton owner rollout 已把插件骨架迁移债清零，Solari、AI、ZrVM Language、Navigation、Physics、Texture、Particles、Animation、Hybrid GI、Terrain、Tilemap 2D、Prefab Tools、Net、Rendering、Virtual Geometry、importer family、split importer、`sound` 主插件与 editor-only `runtime_diagnostics`/`native_window_hosting`/`ui_asset_authoring`/`material_editor`/`animation_graph`/`timeline_sequence`/`editor_build_export_desktop`/`plugin_sdk_examples` dist rollouts 已把真实 dist-capable 插件根矩阵扩到三十七项；当前插件根 `[distribution]` 缺口为 0。2026-06-27 后续权威更新已补齐 sound optional feature 的 feature-local dist ABI wrapper，并完成 feature-provider 独立 `plugin build <feature-provider-id>` 包物化路径；M5/T1 剩余项是更广 runtime/editor/export/full regression。
+>
+> 2026-08-01 当前源码与计划收敛记录：[`13/2026-08-01-current-source-plan-convergence.md`](13/2026-08-01-current-source-plan-convergence.md)。该记录不关闭 Virtual Geometry failure 或更广回归。
 >
 > 2026-06-27 权威更新（Sound optional feature dist wrapper rollout）：`plugins_13_m5_t1_sound_optional_feature_dist_rollout` 已把 `sound.timeline_animation_track` 与 `sound.ray_traced_convolution_reverb` 两个可选 feature 补到 feature-local `dist` ABI wrapper：新增 `zircon_plugin_sound_timeline_animation_dist` 与 `zircon_plugin_sound_ray_traced_convolution_dist` 两个 cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`sound/plugin.toml`、两条 feature runtime manifest 和 `sound/runtime` 聚合 feature manifest 均声明 `NativeDynamic` default packaging 与对应 native module row。该切片保持两个 feature 作为 `sound` owner 下的 feature extension，不新增嵌套 `plugin.toml` 或新插件根，所以插件根审计仍为 `dist_capable_plugin_count = 37`、`dist_build_matrix_count = 37`、distribution 缺口为 0。验证：两个 feature dist crate 测试各 2/2，两个 feature runtime manifest 测试各 1/1，`zircon_plugin_sound_runtime optional_feature_manifest` 151/151、`sound_package_manifest_declares_dist_contract` 1/1、metadata sync focused test 1/1，CI matrix unittest 与 audit JSON 均通过。后续 `plugins_13_m5_t1_feature_provider_plugin_build_materialization` 已关闭单独 `plugin build <feature-provider-id>` 包物化；更广 editor/export/full regression 仍待后续长窗口复跑。
 >
@@ -2893,7 +2853,7 @@ cargo fmt --all --check
 
 ### 2026-07-03 状态补证：Plugin workspace locked all-targets check
 
-`plugins_13_m5_t1_plugin_workspace_locked_all_targets_check_passed` 已完成 M5-T1 本轮 standalone plugin workspace 编译门禁。`cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-workspace-check-0703-codex --message-format short --color never` 通过，日志尾部包含 Finished `dev` profile。最终结构验证同步保持绿色：`plugin validate --all` 为 `target_count=39`、`failed_count=0`、`diagnostics=0`，结构审计为 `manifest_schema_violations=0`、`retired_ui_asset_files=0`、`zui-only-clean`。回归锚点：`tools/tests/test_plugin_docs_current_status_plugin_workspace_locked_all_targets_check.py`。本补证声明插件 workspace 编译门禁和结构验证通过；不声明 Hub/editor E2E、完整 export matrix、startup-to-first-frame、完整 Cargo test/export 或真实平台包发布完成。
+`plugins_13_m5_t1_plugin_workspace_locked_all_targets_check_passed` 已完成 M5-T1 本轮 standalone plugin workspace 编译门禁。`cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-workspace-check-0703-codex --message-format short --color never` 通过，日志尾部包含 Finished `dev` profile。最终结构验证同步保持绿色：`plugin validate --all` 为 `target_count=39`、`failed_count=0`、`diagnostics=0`，结构审计为 `manifest_schema_violations=0`、`retired_ui_asset_files=0`、`zui-only-clean`。该命令与本机 target-dir 只作为历史证据保留；当前回归由结构审计、`plugin validate --all` 与 current-status 合同套件承担，不再复制本机回执。本补证声明插件 workspace 编译门禁和结构验证通过；不声明 Hub/editor E2E、完整 export matrix、startup-to-first-frame、完整 Cargo test/export 或真实平台包发布完成。
 
 ### 2026-07-03 状态补证：NativeDynamic fixture real plugin build rerun
 
@@ -2905,11 +2865,11 @@ cargo fmt --all --check
 
 ### 2026-07-03 状态补证：Plugin workspace test compile attempt unaccepted
 
-`plugins_13_m5_t1_plugin_workspace_test_compile_attempt_unaccepted` 记录 M5-T1 完整插件工作区测试编译门禁尚未取得可采信结果。尝试命令为 `CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --no-run --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun --message-format short --color never`；stdout/stderr 目标日志为 `D:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun.out.log` 与 `D:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun.err.log`。该尝试被工具层 `command timed out after 1201s` 中断，两个日志保持空文件，退出结果不可作为 Cargo 通过证据。未采信 target dir 已按 `D:\cargo-targets\` 边界校验后清理；当时 D 盘可用空间仍低于 50GB，且存在其他会话 Cargo/rustc 进程，所以本轮没有继续复跑完整 `cargo test --no-run`。回归锚点：`tools/tests/test_plugin_docs_current_status_plugin_workspace_test_compile_attempt_unaccepted.py`。本补证只记录阻塞/未采信测试编译门禁；不声明 `cargo test --no-run` 通过，不声明完整 Cargo test/export、Hub/editor E2E、PlatformBundle 聚合安装包、startup-to-first-frame 或真实平台发布全矩阵完成。
+`plugins_13_m5_t1_plugin_workspace_test_compile_attempt_unaccepted` 记录 M5-T1 完整插件工作区测试编译门禁尚未取得可采信结果。尝试命令为 `CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --no-run --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun --message-format short --color never`；stdout/stderr 目标日志为 `D:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun.out.log` 与 `D:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun.err.log`。该尝试被工具层 `command timed out after 1201s` 中断，两个日志保持空文件，退出结果不可作为 Cargo 通过证据。未采信 target dir 已按 `D:\cargo-targets\` 边界校验后清理；当时 D 盘可用空间仍低于 50GB，且存在其他会话 Cargo/rustc 进程，所以本轮没有继续复跑完整 `cargo test --no-run`。该未采信尝试只作为历史失败证据保留，不是当前回归锚点。本补证只记录阻塞/未采信测试编译门禁；不声明 `cargo test --no-run` 通过，不声明完整 Cargo test/export、Hub/editor E2E、PlatformBundle 聚合安装包、startup-to-first-frame 或真实平台发布全矩阵完成。
 
 ### 2026-07-03 状态补证：Plugin workspace locked all-targets test compile passed
 
-`plugins_13_m5_t1_plugin_workspace_locked_all_targets_test_compile_passed` 已把 M5-T1 插件工作区测试编译门禁推进到可采信通过。复跑命令改用 E 盘外部 target dir：`CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --no-run --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2 --message-format short --color never`。状态文件 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2.status.json` 记录 `ExitCode=0`、`ElapsedSeconds=2225`、`FinishedAt=2026-07-03T14:50:07.0568604+08:00`；stderr 日志 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2.err.log` 记录 Finished `test` profile `[unoptimized] target(s) in 36m 55s`，并列出 `ExecutableLines=123` 个测试二进制条目。命令完成后无匹配 `zircon-plugin-workspace-test-0703-codex-rerun2` 的 cargo/rustc/link 残留进程。回归锚点：`tools/tests/test_plugin_docs_current_status_plugin_workspace_test_compile_passed.py`。本补证声明插件 workspace `cargo test --no-run` 测试编译通过；不声明完整测试执行、Hub/editor E2E、PlatformBundle 聚合安装包、startup-to-first-frame、完整 export 或真实平台发布全矩阵完成。
+`plugins_13_m5_t1_plugin_workspace_locked_all_targets_test_compile_passed` 已把 M5-T1 插件工作区测试编译门禁推进到可采信通过。复跑命令改用 E 盘外部 target dir：`CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --no-run --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2 --message-format short --color never`。状态文件 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2.status.json` 记录 `ExitCode=0`、`ElapsedSeconds=2225`、`FinishedAt=2026-07-03T14:50:07.0568604+08:00`；stderr 日志 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2.err.log` 记录 Finished `test` profile `[unoptimized] target(s) in 36m 55s`，并列出 `ExecutableLines=123` 个测试二进制条目。命令完成后无匹配 `zircon-plugin-workspace-test-0703-codex-rerun2` 的 cargo/rustc/link 残留进程。该通过结果属于 2026-07-03 历史验收，不再由 current-status 测试复制本机回执。本补证声明插件 workspace `cargo test --no-run` 测试编译通过；不声明完整测试执行、Hub/editor E2E、PlatformBundle 聚合安装包、startup-to-first-frame、完整 export 或真实平台发布全矩阵完成。
 
 ### 2026-07-03 状态补证：AsyncCompute workload contract and workspace followups
 
@@ -2917,7 +2877,9 @@ cargo fmt --all --check
 
 ### 2026-07-04 状态补证：Plugin workspace locked all-targets test execution passed
 
-`plugins_13_m5_t1_plugin_workspace_locked_all_targets_test_execution_passed` 已把 M5-T1 standalone plugin workspace 从测试编译推进到完整测试执行通过。最终采信命令为 `CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-net-runtime-worker-rerun-0703 --message-format short --color never -- --nocapture --test-threads=1`；状态文件 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.status.json` 记录 `ExitCode=0`、`StartedAt=2026-07-04T00:16:01.5688471+08:00`、`FinishedAt=2026-07-04T00:47:52.6590709+08:00`、`ElapsedSeconds=1911.09`，stdout/stderr 日志为 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.out.log` 与 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.err.log`。阻塞修复按最低 owner 收束：`zircon_plugins/net/runtime/src/tests/worker.rs` 的 `.block_on(` 结构守卫改用 `env!("CARGO_MANIFEST_DIR")`，避免 workspace CWD 影响；`zircon_plugins/sound/runtime/src/engine/render/orchestration.rs` 移除 final master mix clamp，保留 multichannel/HRTF routing sentinel；`zircon_plugins/sound/runtime/src/service_types/automation_timeline.rs` 把 NaN 交回具体参数校验，`zircon_plugins/sound/runtime/src/automation/target/apply.rs` 只在 `SynthParameter` fallback 上补 `ensure_finite_value("synth automation value", value)`；`zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview.rs` 与 `apply/listener.rs` 用 HRTF preview ownership 避免 HRTF 后再叠普通 pan；`zircon_runtime/src/core/framework/render/mod.rs` 补出 `ShaderIdePreviewVariant` re-export，关闭插件侧 shader importer 编译漂移。`rerun11-final` 曾在 sound 358/367 处暴露 9 个失败，focused `zircon_plugin_sound_runtime --lib` 修复后通过 368/368；`rerun12-final` 曾在 texture importer DDS dual-cubemap 处 143/144 失败，随后 focused `zircon_plugin_texture_importer_runtime --all-targets` 通过 144/144，并由最终 `rerun13-final` 全量复跑确认。回归锚点：`tools/tests/test_plugin_docs_current_status_plugin_workspace_test_execution_passed.py`。本补证声明 `zircon_plugins` workspace `cargo test --workspace --locked --all-targets` 完整执行通过；仍不声明 Hub/editor E2E、PlatformBundle 聚合安装包、startup-to-first-frame、完整 export 或真实平台发布全矩阵完成。
+`plugins_13_m5_t1_plugin_workspace_locked_all_targets_test_execution_passed` 已把 M5-T1 standalone plugin workspace 从测试编译推进到完整测试执行通过。最终采信命令为 `CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-net-runtime-worker-rerun-0703 --message-format short --color never -- --nocapture --test-threads=1`；状态文件 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.status.json` 记录 `ExitCode=0`、`StartedAt=2026-07-04T00:16:01.5688471+08:00`、`FinishedAt=2026-07-04T00:47:52.6590709+08:00`、`ElapsedSeconds=1911.09`，stdout/stderr 日志为 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.out.log` 与 `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.err.log`。阻塞修复按最低 owner 收束：`zircon_plugins/net/runtime/src/tests/worker.rs` 的 `.block_on(` 结构守卫改用 `env!("CARGO_MANIFEST_DIR")`，避免 workspace CWD 影响；`zircon_plugins/sound/runtime/src/engine/render/orchestration.rs` 移除 final master mix clamp，保留 multichannel/HRTF routing sentinel；`zircon_plugins/sound/runtime/src/service_types/automation_timeline.rs` 把 NaN 交回具体参数校验，`zircon_plugins/sound/runtime/src/automation/target/apply.rs` 只在 `SynthParameter` fallback 上补 `ensure_finite_value("synth automation value", value)`；`zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview.rs` 与 `apply/listener.rs` 用 HRTF preview ownership 避免 HRTF 后再叠普通 pan；`zircon_runtime/src/core/framework/render/mod.rs` 补出 `ShaderIdePreviewVariant` re-export，关闭插件侧 shader importer 编译漂移。`rerun11-final` 曾在 sound 358/367 处暴露 9 个失败，focused `zircon_plugin_sound_runtime --lib` 修复后通过 368/368；`rerun12-final` 曾在 texture importer DDS dual-cubemap 处 143/144 失败，随后 focused `zircon_plugin_texture_importer_runtime --all-targets` 通过 144/144，并由最终 `rerun13-final` 全量复跑确认。该通过结果属于 2026-07-04 历史验收，不再由 current-status 测试复制本机回执。本补证声明 `zircon_plugins` workspace `cargo test --workspace --locked --all-targets` 完整执行通过；仍不声明 Hub/editor E2E、PlatformBundle 聚合安装包、startup-to-first-frame、完整 export 或真实平台发布全矩阵完成。
+> 维护说明（2026-08-02）：2026-07-03/04 的 workspace check、未采信 compile attempt、compile pass 与完整执行证据继续由本记录及归档 output record 保存；复制 raw Cargo 命令、本机 target-dir、时间戳和历史回执的 current-status Python 测试已退役，不再作为当前源码契约门禁。
+
 ### 2026-07-04 current-status 补证：PluginValidate module description Python guard expansion
 
 `frameworks_02_m3_plugin_validate_module_description_python_guard_expansion_passed_full_integration_pending` / `plugins_13_m5_t1_plugin_validate_module_description_projection_gate` 补充上一条 module `description` 投影修复的完整低干扰 Python 验证。生产 owner 仍是 `tools/zircon_export/plugin_validate_modules.py`，不改变 module 字段闭集、不删除 generated descriptions、不新增旧 schema 兼容。

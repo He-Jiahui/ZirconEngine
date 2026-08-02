@@ -8,22 +8,26 @@ use crate::core::commands::{
 };
 use crate::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use crate::core::editor_extension::{
-    EditorExtensionRegistration, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorUiTemplateDescriptor, EditorUiTemplatePaneDataSource, ViewDescriptor,
+    EditorExtensionRegistryError, EditorUiTemplateDescriptor, EditorUiTemplatePaneDataSource,
+    ViewDescriptor,
 };
 use crate::core::editor_operation::EditorOperationPath;
-use crate::core::plugin::EditorPluginRegistrationReport;
+use crate::core::extension::{
+    CapabilitySet, ContributionBatch, ContributionError, ContributionSource, PluginContributionId,
+};
 use crate::core::plugin::run_editor_plugin_boundary;
+use crate::core::plugin::EditorPluginRegistrationReport;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 impl EditorHostEventController {
     pub fn register_editor_extension(
         &self,
-        extension: EditorExtensionRegistry,
+        extension: ContributionBatch,
     ) -> Result<(), EditorExtensionRegistryError> {
         self.register_editor_extension_owned(
             "editor.extension.direct",
+            ContributionSource::Builtin,
             extension,
             Vec::<String>::new(),
         )
@@ -41,9 +45,15 @@ impl EditorHostEventController {
             .runtime_event_consumers
             .prepare_registration(registration.runtime_event_consumers)
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        let owner_id = registration.package_manifest.id;
+        let source = ContributionSource::Plugin(
+            PluginContributionId::parse(owner_id.clone()).map_err(map_contribution_error)?,
+        );
+        let extension = registration.extensions.into_contribution_batch()?;
         self.register_editor_extension_owned(
-            registration.package_manifest.id,
-            registration.extensions,
+            owner_id,
+            source,
+            extension,
             registration.capabilities,
         )?;
         self.runtime_event_consumers
@@ -59,29 +69,29 @@ impl EditorHostEventController {
         pane_data_sources: BTreeMap<String, Arc<dyn EditorUiTemplatePaneDataSource>>,
     ) -> Result<(), EditorExtensionRegistryError> {
         let mut shell = self.shell().lock();
-        let matching_owners = shell
-            .editor_extensions
+        let mut matching = shell
+            .contribution_owners
             .iter()
-            .filter(|registration| registration.owner_id() == owner_id)
-            .count();
-        if matching_owners == 0 {
-            return Err(EditorExtensionRegistryError::UnknownExtensionOwner {
-                owner_id: owner_id.to_string(),
-            });
-        }
-        if matching_owners != 1 {
-            return Err(EditorExtensionRegistryError::DuplicateContribution {
-                kind: "editor extension owner",
-                id: owner_id.to_string(),
-            });
-        }
-        let registration = shell
-            .editor_extensions
-            .iter_mut()
-            .find(|registration| registration.owner_id() == owner_id)
-            .expect("single matching editor extension owner should be present");
-        registration.replace_ui_template_contributions(templates, pane_data_sources)?;
-        shell.template_contributions_changed();
+            .filter(|contribution| contribution.owner_id() == owner_id)
+            .map(|contribution| contribution.ticket());
+        let ticket = match (matching.next(), matching.next()) {
+            (None, _) => {
+                return Err(EditorExtensionRegistryError::UnknownExtensionOwner {
+                    owner_id: owner_id.to_string(),
+                });
+            }
+            (Some(_), Some(_)) => {
+                return Err(EditorExtensionRegistryError::DuplicateContribution {
+                    kind: "editor extension owner",
+                    id: owner_id.to_string(),
+                });
+            }
+            (Some(ticket), None) => ticket,
+        };
+        shell
+            .contributions
+            .replace_ui_template_contributions(ticket, templates, pane_data_sources)
+            .map_err(map_contribution_error)?;
         drop(shell);
         self.refresh_workbench(
             crate::core::editor_message::EditorViewInvalidationMask::PRESENTATION_DATA,
@@ -91,11 +101,12 @@ impl EditorHostEventController {
 
     pub fn register_editor_extension_with_required_capabilities(
         &self,
-        extension: EditorExtensionRegistry,
+        extension: ContributionBatch,
         required_capabilities: Vec<String>,
     ) -> Result<(), EditorExtensionRegistryError> {
         self.register_editor_extension_owned(
             "editor.extension.direct",
+            ContributionSource::Builtin,
             extension,
             required_capabilities,
         )
@@ -104,10 +115,12 @@ impl EditorHostEventController {
     fn register_editor_extension_owned(
         &self,
         owner_id: impl Into<String>,
-        mut extension: EditorExtensionRegistry,
+        source: ContributionSource,
+        mut extension: ContributionBatch,
         required_capabilities: Vec<String>,
     ) -> Result<(), EditorExtensionRegistryError> {
         let owner_id = owner_id.into();
+        extension = extension.with_required_capabilities(required_capabilities.clone());
         extension.bind_matching_ui_templates_to_views();
         let mut shell = self.shell().lock();
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
@@ -115,9 +128,13 @@ impl EditorHostEventController {
             .manager
             .validate_extension_views(&views)
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
-        validate_asset_type_contributions(&shell.editor_extensions, &extension, &owner_id)?;
-        validate_extension_contribution_conflicts(&shell.editor_extensions, &extension)?;
+        validate_asset_type_contributions(&shell.contributions.snapshot(), &extension, &owner_id)?;
+        shell
+            .contributions
+            .validate_contribution(&source, &extension)
+            .map_err(map_contribution_error)?;
         validate_viewport_overlay_provider_bindings(&extension)?;
+        let contributed_extension = extension.clone();
         let scene_modes = extension
             .take_scene_modes()
             .into_iter()
@@ -244,7 +261,6 @@ impl EditorHostEventController {
                     ))
                     .map_err(EditorExtensionRegistryError::Command)?;
             }
-            extension.record_registered_command_id(operation_path);
         }
         for (operation, target) in asset_write_targets {
             command_registry
@@ -256,7 +272,7 @@ impl EditorHostEventController {
             .map(|descriptor| descriptor.id().clone())
             .collect::<std::collections::BTreeSet<_>>();
         validate_menu_item_operation_bindings(&extension, &available_operations)?;
-        validate_component_drawer_operation_bindings(&extension, &available_operations)?;
+        validate_inspector_customization_operation_bindings(&extension, &available_operations)?;
         validate_asset_importer_operation_bindings(&extension, &available_operations)?;
         validate_asset_type_operation_bindings(&extension, &available_operations)?;
         shell
@@ -280,12 +296,16 @@ impl EditorHostEventController {
             .state
             .viewport_controller
             .set_viewport_overlay_capabilities(&enabled_capabilities);
-        shell.editor_extensions.push(
-            EditorExtensionRegistration::new(extension)
-                .with_owner_id(owner_id)
-                .with_required_capabilities(required_capabilities),
-        );
-        shell.extension_registered();
+        let ticket = shell
+            .contributions
+            .contribute(source, contributed_extension)
+            .map_err(map_contribution_error)?;
+        shell
+            .contribution_owners
+            .push(crate::ui::workbench::shell_state::OwnedContribution::new(
+                owner_id, ticket,
+            ));
+        shell.contributions_changed();
         *self.commands().lock() = command_registry;
         drop(shell);
         Ok(())
@@ -293,7 +313,7 @@ impl EditorHostEventController {
 }
 
 fn validate_viewport_overlay_provider_bindings(
-    extension: &EditorExtensionRegistry,
+    extension: &ContributionBatch,
 ) -> Result<(), EditorExtensionRegistryError> {
     for descriptor in extension.scene_mode_descriptors() {
         let Some(provider_id) = descriptor.overlay_provider_id() else {
@@ -311,7 +331,7 @@ fn validate_viewport_overlay_provider_bindings(
 }
 
 fn asset_write_targets(
-    extension: &EditorExtensionRegistry,
+    extension: &ContributionBatch,
 ) -> Result<
     std::collections::BTreeMap<EditorOperationPath, AssetWriteTargetDescriptor>,
     EditorExtensionRegistryError,
@@ -374,7 +394,7 @@ fn extension_view_open_event(view: &ViewDescriptor) -> EditorEvent {
 }
 
 fn validate_menu_item_operation_bindings(
-    extension: &EditorExtensionRegistry,
+    extension: &ContributionBatch,
     available_operations: &std::collections::BTreeSet<EditorOperationPath>,
 ) -> Result<(), EditorExtensionRegistryError> {
     for menu_item in extension.menu_items() {
@@ -387,109 +407,15 @@ fn validate_menu_item_operation_bindings(
     Ok(())
 }
 
-fn validate_extension_contribution_conflicts(
-    registrations: &[EditorExtensionRegistration],
-    extension: &EditorExtensionRegistry,
-) -> Result<(), EditorExtensionRegistryError> {
-    validate_contribution_ids(
-        registrations.iter().flat_map(|registration| {
-            registration
-                .registry()
-                .drawers()
-                .into_iter()
-                .map(|drawer| drawer.id().to_string())
-        }),
-        extension
-            .drawers()
-            .into_iter()
-            .map(|drawer| drawer.id().to_string()),
-        "drawer",
-    )?;
-    validate_contribution_ids(
-        registrations.iter().flat_map(|registration| {
-            registration
-                .registry()
-                .menu_items()
-                .into_iter()
-                .map(|menu_item| menu_item.path().to_string())
-        }),
-        extension
-            .menu_items()
-            .into_iter()
-            .map(|menu_item| menu_item.path().to_string()),
-        "menu item",
-    )?;
-    validate_contribution_ids(
-        registrations.iter().flat_map(|registration| {
-            registration
-                .registry()
-                .component_drawers()
-                .into_iter()
-                .map(|drawer| drawer.component_type().to_string())
-        }),
-        extension
-            .component_drawers()
-            .into_iter()
-            .map(|drawer| drawer.component_type().to_string()),
-        "component drawer",
-    )?;
-    validate_contribution_ids(
-        registrations.iter().flat_map(|registration| {
-            registration
-                .registry()
-                .ui_templates()
-                .into_iter()
-                .map(|template| template.id().to_string())
-        }),
-        extension
-            .ui_templates()
-            .into_iter()
-            .map(|template| template.id().to_string()),
-        "ui template",
-    )?;
-    validate_contribution_ids(
-        registrations.iter().flat_map(|registration| {
-            registration
-                .registry()
-                .asset_importers()
-                .into_iter()
-                .map(|importer| importer.id().to_string())
-        }),
-        extension
-            .asset_importers()
-            .into_iter()
-            .map(|importer| importer.id().to_string()),
-        "asset importer",
-    )?;
-    Ok(())
-}
-
-fn validate_contribution_ids<I, J>(
-    existing_ids: I,
-    candidate_ids: J,
-    kind: &'static str,
-) -> Result<(), EditorExtensionRegistryError>
-where
-    I: IntoIterator<Item = String>,
-    J: IntoIterator<Item = String>,
-{
-    let mut ids = existing_ids
-        .into_iter()
-        .collect::<std::collections::BTreeSet<_>>();
-    for id in candidate_ids {
-        if !ids.insert(id.clone()) {
-            return Err(EditorExtensionRegistryError::DuplicateContribution { kind, id });
-        }
-    }
-    Ok(())
-}
-
-fn validate_component_drawer_operation_bindings(
-    extension: &EditorExtensionRegistry,
+fn validate_inspector_customization_operation_bindings(
+    extension: &ContributionBatch,
     available_operations: &std::collections::BTreeSet<EditorOperationPath>,
 ) -> Result<(), EditorExtensionRegistryError> {
-    for component_drawer in extension.component_drawers() {
-        for binding in component_drawer.bindings() {
+    for customization in extension.inspector_customizations() {
+        let Some(surface) = customization.surface() else {
+            continue;
+        };
+        for binding in surface.bindings() {
             let path = EditorOperationPath::parse(binding.clone())
                 .map_err(EditorExtensionRegistryError::OperationPath)?;
             if !available_operations.contains(&path) {
@@ -503,7 +429,7 @@ fn validate_component_drawer_operation_bindings(
 }
 
 fn validate_asset_importer_operation_bindings(
-    extension: &EditorExtensionRegistry,
+    extension: &ContributionBatch,
     available_operations: &std::collections::BTreeSet<EditorOperationPath>,
 ) -> Result<(), EditorExtensionRegistryError> {
     for importer in extension.asset_importers() {
@@ -517,7 +443,7 @@ fn validate_asset_importer_operation_bindings(
 }
 
 fn validate_asset_type_operation_bindings(
-    extension: &EditorExtensionRegistry,
+    extension: &ContributionBatch,
     available_operations: &std::collections::BTreeSet<EditorOperationPath>,
 ) -> Result<(), EditorExtensionRegistryError> {
     for contribution in extension.asset_type_contributions() {
@@ -547,34 +473,36 @@ fn validate_asset_type_operation_bindings(
 }
 
 fn validate_asset_type_contributions(
-    registrations: &[EditorExtensionRegistration],
-    candidate: &EditorExtensionRegistry,
+    snapshot: &crate::core::extension::ContributionSnapshot,
+    candidate: &ContributionBatch,
     candidate_owner: &str,
 ) -> Result<(), EditorExtensionRegistryError> {
     let mut asset_types = AssetTypeRegistry::with_builtins()?;
-    for registration in registrations {
-        for contribution in registration.registry().asset_type_contributions() {
-            asset_types.apply_contribution(registration.owner_id(), (*contribution).clone())?;
-        }
+    for (source, contribution) in snapshot.all_asset_type_contributions_with_source() {
+        asset_types.apply_contribution(contribution_owner(source), contribution.clone())?;
     }
     for contribution in candidate.asset_type_contributions() {
-        asset_types.apply_contribution(candidate_owner, (*contribution).clone())?;
+        asset_types.apply_contribution(candidate_owner, contribution.clone())?;
     }
     Ok(())
 }
 
 pub(crate) fn materialize_enabled_asset_types(
-    registrations: &[EditorExtensionRegistration],
+    snapshot: &crate::core::extension::ContributionSnapshot,
     enabled_capabilities: &[String],
 ) -> Result<AssetTypeRegistry, EditorExtensionRegistryError> {
     let mut asset_types = AssetTypeRegistry::with_builtins()?;
-    for registration in registrations
+    let capabilities = enabled_capabilities
         .iter()
-        .filter(|registration| registration.is_enabled_by(enabled_capabilities))
-    {
-        for contribution in registration.registry().asset_type_contributions() {
-            asset_types.apply_contribution(registration.owner_id(), (*contribution).clone())?;
-        }
+        .cloned()
+        .collect::<CapabilitySet>();
+    let report = asset_types.apply_contributions(
+        snapshot
+            .asset_type_contributions_with_source(&capabilities)
+            .map(|(source, contribution)| (contribution_owner(source), contribution.clone())),
+    );
+    if let Some((_, error)) = report.into_errors().into_iter().next() {
+        return Err(error.into());
     }
     Ok(asset_types)
 }
@@ -591,11 +519,28 @@ pub(crate) fn enabled_asset_types_for_shell(
         return Ok(registry);
     }
     let registry = Arc::new(materialize_enabled_asset_types(
-        &shell.editor_extensions,
+        &shell.contributions.snapshot(),
         &enabled_capabilities,
     )?);
     shell
         .asset_type_registry_cache
         .store(enabled_capabilities, Arc::clone(&registry));
     Ok(registry)
+}
+
+fn contribution_owner(source: &ContributionSource) -> &str {
+    match source {
+        ContributionSource::Builtin => "editor.builtin",
+        ContributionSource::Plugin(plugin_id) => plugin_id.as_str(),
+    }
+}
+
+fn map_contribution_error(error: ContributionError) -> EditorExtensionRegistryError {
+    match error {
+        ContributionError::Batch(error) => error,
+        ContributionError::DuplicateContribution { kind, id } => {
+            EditorExtensionRegistryError::DuplicateContribution { kind, id }
+        }
+        error => EditorExtensionRegistryError::View(error.to_string()),
+    }
 }

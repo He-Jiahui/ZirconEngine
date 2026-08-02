@@ -1,4 +1,4 @@
-use super::{assert_contains_all, read_repo, read_runtime_src};
+use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_ssr_gpu_context_tests_are_child_owner_split() {
@@ -86,7 +86,7 @@ fn runtime_15_ssr_gpu_context_tests_are_child_owner_split() {
         ("post-process docs", &post_process_docs),
         ("render product submit docs", &render_product_submit),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             doc,
             &[

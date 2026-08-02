@@ -2,10 +2,10 @@
 pub const CONTRACT_SCHEMA_VERSION: u16 = 1;
 pub const PROTOCOL_VERSION: u16 = 3;
 pub const SCHEMA_FINGERPRINT_HEX: &str =
-    "8e1dfa0c6b13d4149d09f86412e638d8d1b971d6d37877f50c023744a8ef0923";
+    "7e69e47677529a0cbe4352a5f555cdddb5e8586fed885cca5612abaa93752719";
 pub const SCHEMA_FINGERPRINT_BYTES: [u8; 32] = [
-    0x8e, 0x1d, 0xfa, 0x0c, 0x6b, 0x13, 0xd4, 0x14, 0x9d, 0x09, 0xf8, 0x64, 0x12, 0xe6, 0x38, 0xd8,
-    0xd1, 0xb9, 0x71, 0xd6, 0xd3, 0x78, 0x77, 0xf5, 0x0c, 0x02, 0x37, 0x44, 0xa8, 0xef, 0x09, 0x23,
+    0x7e, 0x69, 0xe4, 0x76, 0x77, 0x52, 0x9a, 0x0c, 0xbe, 0x43, 0x52, 0xa5, 0xf5, 0x55, 0xcd, 0xdd,
+    0xb5, 0xe8, 0x58, 0x6f, 0xed, 0x88, 0x5c, 0xca, 0x56, 0x12, 0xab, 0xaa, 0x93, 0x75, 0x27, 0x19,
 ];
 
 pub mod contract_id {
@@ -39,7 +39,7 @@ pub mod fixed_tick_input_field_id {
     pub const MOVEMENT_FRAMES: u16 = 7;
     pub const MOVEMENT_FRAMES_MAX_LENGTH: u64 = 65536;
     pub const OFFLINE_BOOTSTRAP: u16 = 8;
-    pub const OFFLINE_BOOTSTRAP_MAX_LENGTH: u64 = 64;
+    pub const OFFLINE_BOOTSTRAP_MAX_LENGTH: u64 = 66;
 }
 
 pub mod command_field_id {
@@ -126,6 +126,10 @@ pub mod offline_session_bootstrap_field_id {
     pub const PLAYER_NAME: u16 = 4;
     pub const PLAYER_NAME_MAX_LENGTH: u64 = 16;
     pub const SKIN_VARIANT: u16 = 5;
+    pub const WEAPON_SKIN_OWNED: u16 = 6;
+    pub const WEAPON_SKIN_OWNED_MAX_LENGTH: u64 = 29;
+    pub const WEAPON_SKIN_LOADOUT_CODES: u16 = 7;
+    pub const WEAPON_SKIN_LOADOUT_CODES_MAX_LENGTH: u64 = 8;
 }
 
 pub mod message_kind_value {

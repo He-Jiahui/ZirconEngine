@@ -33,10 +33,12 @@ fn text_rich_bbcode_table_wraps_each_cell_inside_its_column() {
     );
 
     assert!(layout.lines.len() >= 3);
-    assert!(layout
-        .lines
-        .iter()
-        .all(|line| line.frame.x >= frame.x && line.frame.right() <= frame.right() + 0.01));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .all(|line| line.frame.x >= frame.x && line.frame.right() <= frame.right() + 0.01)
+    );
 }
 
 #[test]
@@ -110,10 +112,12 @@ fn text_rich_bbcode_table_colspan_uses_the_combined_track_width() {
         None,
     );
 
-    assert!(layout
-        .lines
-        .iter()
-        .any(|line| line.text == "merged heading across tracks"));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .any(|line| line.text == "merged heading across tracks")
+    );
     let heading = find_line(&layout, "merged heading");
     let first = find_line(&layout, "A");
     let second = find_line(&layout, "B");

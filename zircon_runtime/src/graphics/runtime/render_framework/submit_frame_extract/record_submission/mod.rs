@@ -19,7 +19,9 @@ mod tests {
         let non_viewport_source = include_str!("../submit/record_camera_history.rs");
 
         assert!(capture_source.contains("compiled_pipeline_shared()"));
-        assert!(capture_source.contains("capture_graph_dump"));
+        assert!(capture_source.contains("if !frame.capture_admitted"));
+        assert!(capture_source.contains("register_async_capture"));
+        assert!(!capture_source.contains("capture_graph_dump"));
         assert!(present_source.contains("compiled_pipeline_shared()"));
         assert!(!capture_source.contains(concat!("compiled_pipeline()", ".clone()")));
         assert!(!present_source.contains(concat!("compiled_pipeline()", ".clone()")));

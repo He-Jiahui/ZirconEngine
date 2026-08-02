@@ -21,13 +21,16 @@ tests:
 ## 来源执行者
 
 - 来源计划：`docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md`
-- 来源切片：Editor02 runtime event consumer bounded fair pump
+- 来源执行切片：Editor02 runtime event consumer bounded fair pump
 - 修复责任计划：`docs/plans/zircon_plugins/01-plugin-architecture-core.md`
+- 交接原因：Plugins01/runtime event transport 在 Editor02 帧预算检查前完成全量 delivery 构造与 encode；Editor02 只能消费有界协议，不能复制第二套 runtime mirror 或伪分页 transport。
 - 生命周期键：`plugin-event-drain-frame-budget`
 
 ## 失败现象与复现证据
 
 Editor02 已限制每 tick callback count、per-consumer count 与 elapsed time，并把未消费 delivery 放入 generation 绑定 pending queue；但生产 `drain_plugin_events` 仍在预算循环前一次构造全部 delivery、整批 JSON 序列化，并由 SessionGateway 完整解码。1k/10k backlog 的首 tick 因此仍可能在第一次 elapsed 检查前承担 O(backlog bytes) 的 transport 成本。
+
+## 最低共享层根因
 
 现有 fake gateway 只移动预构造 `Vec`，无法证明真实 ABI encode/decode 不突破 editor frame budget。该最低根因属于 Plugins01/runtime event transport；Editor02 不复制第二套 runtime mirror 或直接改写外部 owner。
 
@@ -37,9 +40,12 @@ Editor02 已限制每 tick callback count、per-consumer count 与 elapsed time�
 - runtime 构造、wire 编码与 editor 解码的单次工作量都受同一请求预算约束；未取出的 delivery 留在 runtime authority，不丢失、不重复。
 - 1k/10k backlog 记录每 tick drained count/bytes、encode/decode 时间、pending peak 与 p95；首 tick 不再随总 backlog 线性增长。
 - Editor02 只消费该有界协议并保留自身 callback/fairness/pending 预算；不得长期并存 unbounded/bounded 两条 writer/reader 真相。
+
+## 禁止临时方案
+
 - 禁止用扩大 frame budget、预分配全量 Vec、test-only fake 分页或静默截断替代协议修复。
 
-## 产出记录与时间
+## 修复结果与回传
 
 | 里程碑 | 状态 | 完成日期 | 完成项目与证据 |
 |---|---|---|---|

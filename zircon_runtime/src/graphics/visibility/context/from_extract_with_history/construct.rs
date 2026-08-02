@@ -1,15 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     ProjectionMode, RenderFrameExtract, RenderHybridGiExtract, RenderVirtualGeometryExtract,
     ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
-use crate::core::math::{Real, is_finite_vec3};
+use crate::core::math::{is_finite_vec3, Real};
+use crate::core::TaskPool;
 
 use super::super::super::culling::parallel_frustum::{
-    MeshFrustumCandidate, mesh_frustum_visibility,
+    mesh_frustum_visibility, MeshFrustumCandidate,
 };
 use super::super::super::declarations::{
     VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
@@ -30,6 +30,7 @@ use super::collect_batching_result::collect_batching_result;
 use super::collect_gpu_instancing_candidates::collect_gpu_instancing_candidates;
 
 const STATIC_INDEX_PREFILTER_MIN_STATIC_INSTANCES: usize = 10_000;
+const STATIC_INDEX_PREFILTER_MAX_CELL_COUNT: usize = 4_096;
 
 impl VisibilityContext {
     pub fn from_extract_with_history(
@@ -62,6 +63,7 @@ impl VisibilityContext {
             value,
             previous,
             previous_static_index,
+            None,
             task_pool,
             value.lighting.hybrid_global_illumination.as_ref(),
             value.geometry.virtual_geometry.as_ref(),
@@ -72,6 +74,7 @@ impl VisibilityContext {
         value: &RenderFrameExtract,
         previous: Option<&VisibilityHistorySnapshot>,
         previous_static_index: Option<&VisibilityStaticIndex>,
+        previous_dynamic_index: Option<&VisibilityStaticIndex>,
         task_pool: Option<&TaskPool>,
         _hybrid_global_illumination: Option<&RenderHybridGiExtract>,
         virtual_geometry: Option<&RenderVirtualGeometryExtract>,
@@ -88,9 +91,15 @@ impl VisibilityContext {
 
         let bvh_update_plan = build_bvh_update_plan(&history_entries, previous);
         let static_index_instances = static_bvh_instances(&bvh_instances);
+        let dynamic_index_instances = dynamic_bvh_instances(&bvh_instances);
         let (static_index, mut static_index_report) = build_static_index(
             previous_static_index,
             &static_index_instances,
+            &bvh_update_plan,
+        );
+        let dynamic_index = build_dynamic_index(
+            previous_dynamic_index,
+            &dynamic_index_instances,
             &bvh_update_plan,
         );
         let main_view_culling = cull_main_view_with_static_index(
@@ -111,12 +120,15 @@ impl VisibilityContext {
             &value.lighting,
             &bvh_instances,
             &primitive_relevance,
-            &main_view_culling.visible_entities,
+            &main_view_culling.visible_stable_instance_keys,
             task_pool,
         );
-        let main_view_visible_entities = frame_visibility.main_view_visible_entity_set();
-        let visible_batches =
-            Self::visible_batches_for_entities(&batches, &main_view_visible_entities);
+        let main_view_visible_stable_instance_keys =
+            frame_visibility.main_view_visible_stable_instance_key_set();
+        let visible_batches = Self::visible_batches_for_stable_instance_keys(
+            &batches,
+            &main_view_visible_stable_instance_keys,
+        );
         let (visible_instances, draw_commands) = build_draw_commands(&visible_batches);
         let hybrid_gi_active_probes: Vec<VisibilityHybridGiProbe> = Vec::new();
         let hybrid_gi_update_plan = Default::default();
@@ -131,7 +143,7 @@ impl VisibilityContext {
             virtual_geometry_history_visible_cluster_ids,
         ) = build_virtual_geometry_plan(
             virtual_geometry,
-            &main_view_visible_entities,
+            &frame_visibility.main_view_visible_stable_instance_key_set(),
             &value.view.camera,
             previous,
         );
@@ -174,6 +186,7 @@ impl VisibilityContext {
             virtual_geometry_feedback,
             gpu_instancing_candidates,
             static_index,
+            dynamic_index,
         }
     }
 }
@@ -186,34 +199,60 @@ fn static_bvh_instances(instances: &[VisibilityBvhInstance]) -> Vec<VisibilityBv
         .collect()
 }
 
+fn dynamic_bvh_instances(instances: &[VisibilityBvhInstance]) -> Vec<VisibilityBvhInstance> {
+    instances
+        .iter()
+        .filter(|instance| matches!(instance.key.mobility, Mobility::Dynamic))
+        .cloned()
+        .collect()
+}
+
 fn build_static_index(
     previous_static_index: Option<&VisibilityStaticIndex>,
     static_instances: &[VisibilityBvhInstance],
     bvh_update_plan: &VisibilityBvhUpdatePlan,
 ) -> (VisibilityStaticIndex, VisibilityStaticIndexReport) {
-    let mut static_index = previous_static_index.cloned().unwrap_or_default();
-    if previous_static_index.is_none() {
-        if static_instances.is_empty() {
-            let report = static_index.report();
-            return (static_index, report);
+    let (index, report) =
+        build_spatial_index(previous_static_index, static_instances, bvh_update_plan);
+    (index, report)
+}
+
+fn build_dynamic_index(
+    previous_dynamic_index: Option<&VisibilityStaticIndex>,
+    dynamic_instances: &[VisibilityBvhInstance],
+    bvh_update_plan: &VisibilityBvhUpdatePlan,
+) -> VisibilityStaticIndex {
+    build_spatial_index(previous_dynamic_index, dynamic_instances, bvh_update_plan).0
+}
+
+fn build_spatial_index(
+    previous_index: Option<&VisibilityStaticIndex>,
+    instances: &[VisibilityBvhInstance],
+    bvh_update_plan: &VisibilityBvhUpdatePlan,
+) -> (VisibilityStaticIndex, VisibilityStaticIndexReport) {
+    let mut index = previous_index.cloned().unwrap_or_default();
+    if previous_index.is_none() {
+        if instances.is_empty() {
+            let report = index.report();
+            return (index, report);
         }
-        let report = static_index.rebuild(static_instances);
-        return (static_index, report);
+        let report = index.rebuild(instances);
+        return (index, report);
     }
 
     let report = if matches!(
         bvh_update_plan.strategy,
         VisibilityBvhUpdateStrategy::FullRebuild
     ) {
-        static_index.rebuild(static_instances)
+        index.rebuild(instances)
     } else {
-        static_index.apply_update_plan(static_instances, bvh_update_plan)
+        index.apply_update_plan(instances, bvh_update_plan)
     };
-    (static_index, report)
+    (index, report)
 }
 
 struct MainViewCullingResult {
-    visible_entities: BTreeSet<EntityId>,
+    visible_stable_instance_keys: BTreeSet<u64>,
     prefilter_used: bool,
     static_input_count: usize,
     static_candidate_count: usize,
@@ -226,9 +265,9 @@ fn cull_main_view_with_static_index(
     static_index: &VisibilityStaticIndex,
     task_pool: Option<&TaskPool>,
 ) -> MainViewCullingResult {
-    let relevance_by_entity = primitive_relevance
+    let relevance_by_stable_instance_key = primitive_relevance
         .iter()
-        .map(|entry| (entry.entity, entry.relevance))
+        .map(|entry| (entry.stable_instance_key, entry.relevance))
         .collect::<BTreeMap<_, _>>();
     let static_input_count = bvh_instances
         .iter()
@@ -242,8 +281,8 @@ fn cull_main_view_with_static_index(
     let candidates = bvh_instances
         .iter()
         .filter_map(|instance| {
-            let relevance = relevance_by_entity
-                .get(&instance.entity)
+            let relevance = relevance_by_stable_instance_key
+                .get(&instance.stable_instance_key)
                 .copied()
                 .unwrap_or_default();
             if !relevance.main_view() {
@@ -252,23 +291,24 @@ fn cull_main_view_with_static_index(
             if matches!(instance.key.mobility, Mobility::Static)
                 && static_prefilter_candidates
                     .as_ref()
-                    .is_some_and(|entities| !entities.contains(&instance.entity))
+                    .is_some_and(|keys| !keys.contains(&instance.stable_instance_key))
             {
                 return None;
             }
             Some(MeshFrustumCandidate {
-                entity: instance.entity,
+                stable_instance_key: instance.stable_instance_key,
                 bounds: instance.bounds,
             })
         })
         .collect::<Vec<_>>();
-    let visible_entities = mesh_frustum_visibility(&candidates, &value.view.camera, task_pool)
-        .into_iter()
-        .filter_map(|entry| entry.visible.then_some(entry.entity))
-        .collect::<BTreeSet<_>>();
+    let visible_stable_instance_keys =
+        mesh_frustum_visibility(&candidates, &value.view.camera, task_pool)
+            .into_iter()
+            .filter_map(|entry| entry.visible.then_some(entry.stable_instance_key))
+            .collect::<BTreeSet<_>>();
 
     MainViewCullingResult {
-        visible_entities,
+        visible_stable_instance_keys,
         prefilter_used: static_prefilter_candidates.is_some(),
         static_input_count,
         static_candidate_count,
@@ -279,17 +319,14 @@ fn static_index_prefilter_candidates(
     static_index: &VisibilityStaticIndex,
     camera: &ViewportCameraSnapshot,
     static_input_count: usize,
-) -> Option<BTreeSet<EntityId>> {
+) -> Option<BTreeSet<u64>> {
     if static_input_count < STATIC_INDEX_PREFILTER_MIN_STATIC_INSTANCES {
         return None;
     }
     let query_bounds = conservative_camera_query_bounds(camera)?;
-    Some(
-        static_index
-            .query_bounds(query_bounds)
-            .into_iter()
-            .collect(),
-    )
+    static_index
+        .query_bounds_with_stats_limited(query_bounds, STATIC_INDEX_PREFILTER_MAX_CELL_COUNT)
+        .map(|query| query.stable_instance_keys.into_iter().collect())
 }
 
 fn conservative_camera_query_bounds(camera: &ViewportCameraSnapshot) -> Option<VisibilityBounds> {

@@ -63,8 +63,10 @@ fn controller_does_not_republish_cached_image_when_capture_fails() {
     framework.state.lock().unwrap().capture_error = Some("planned capture failure".to_string());
 
     assert!(controller.poll_image().is_none());
-    assert!(controller
-        .take_error()
-        .is_some_and(|error| error.contains("planned capture failure")));
+    assert!(
+        controller
+            .take_error()
+            .is_some_and(|error| error.contains("planned capture failure"))
+    );
     assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
 }

@@ -1,8 +1,8 @@
 use std::ptr;
 
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle, ZrRuntimeOperationSubmitRequestV1,
-    ZrRuntimeSessionHandle, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle, ZrRuntimeOperationStatusV2,
+    ZrRuntimeSessionHandle, ZrStatus, ZrStatusCode,
 };
 
 use crate::operation::RuntimeOperationServiceError;
@@ -27,16 +27,8 @@ pub(crate) unsafe fn submit_operation(
         if request_json.len > runtime.operations.max_retained_bytes() {
             return invalid_argument(b"runtime operation request exceeds retained byte capacity");
         }
-        let request = match serde_json::from_slice::<ZrRuntimeOperationSubmitRequestV1>(unsafe {
-            request_json.as_slice()
-        }) {
-            Ok(request) => request,
-            Err(_) => return invalid_argument(b"invalid runtime operation request"),
-        };
-        if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-            return unsupported_version();
-        }
-        match runtime.operations.submit(request) {
+        let request_json = unsafe { request_json.as_slice() };
+        match runtime.operations.submit_json(request_json) {
             Ok(handle) => {
                 unsafe { ptr::write(out_handle, handle) };
                 ZrStatus::ok()
@@ -49,16 +41,22 @@ pub(crate) unsafe fn submit_operation(
 pub(crate) unsafe fn poll_operation(
     session: ZrRuntimeSessionHandle,
     handle: ZrRuntimeOperationHandle,
-    out_progress: *mut ZrOwnedByteBuffer,
+    out_status: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
     with_session(session, |runtime| {
-        if out_progress.is_null() {
-            return invalid_argument(b"missing runtime operation progress output");
+        if out_status.is_null() {
+            return invalid_argument(b"missing runtime operation status output");
         }
         if !handle.is_valid() {
             return invalid_argument(b"invalid runtime operation handle");
         }
-        write_json_result(out_progress, runtime.operations.poll(handle))
+        match runtime.operations.poll(handle) {
+            Ok(status) => {
+                unsafe { ptr::write(out_status, status) };
+                ZrStatus::ok()
+            }
+            Err(error) => operation_error_status(error),
+        }
     })
 }
 
@@ -74,11 +72,11 @@ pub(crate) unsafe fn harvest_operation(
         if !handle.is_valid() {
             return invalid_argument(b"invalid runtime operation handle");
         }
-        write_json_result(out_result, runtime.operations.harvest(handle))
+        write_harvest_json_result(out_result, runtime.operations.harvest(handle))
     })
 }
 
-fn write_json_result<T: serde::Serialize>(
+fn write_harvest_json_result<T: serde::Serialize>(
     destination: *mut ZrOwnedByteBuffer,
     result: Result<T, RuntimeOperationServiceError>,
 ) -> ZrStatus {
@@ -126,6 +124,9 @@ unsafe extern "C" fn free_runtime_operation_bytes(buffer: ZrOwnedByteBuffer) -> 
 fn operation_error_status(error: RuntimeOperationServiceError) -> ZrStatus {
     match error {
         RuntimeOperationServiceError::UnsupportedAbiVersion { .. } => unsupported_version(),
+        RuntimeOperationServiceError::InvalidRequest => {
+            invalid_argument(b"invalid runtime operation request")
+        }
         RuntimeOperationServiceError::EmptyOperationId => {
             invalid_argument(b"runtime operation id cannot be empty")
         }
@@ -133,6 +134,14 @@ fn operation_error_status(error: RuntimeOperationServiceError) -> ZrStatus {
         | RuntimeOperationServiceError::UnknownHandle { .. } => {
             not_found(b"runtime operation not found")
         }
+        RuntimeOperationServiceError::OperationCancelled { .. } => ZrStatus::new(
+            ZrStatusCode::Error,
+            ZrByteSlice::from_static(b"operation cancelled"),
+        ),
+        RuntimeOperationServiceError::OperationExpired { .. } => ZrStatus::new(
+            ZrStatusCode::Error,
+            ZrByteSlice::from_static(b"operation result expired"),
+        ),
         other => error_status(other),
     }
 }

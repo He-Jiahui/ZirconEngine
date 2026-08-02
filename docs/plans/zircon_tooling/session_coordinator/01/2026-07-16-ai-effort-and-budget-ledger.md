@@ -7,7 +7,7 @@ related_code:
   - tools/session_coordinator/server.py
   - tools/session_coordinator/control_plane/snapshot.py
   - tools/session_coordinator/codex_sync/history.py
-  - tools/session_coordinator/tests/test_ai_effort_ledger.py
+  - tools/session_coordinator/tests/test_ai_effort_api.py
 plan_sources:
   - user: 2026-07-15 AI 会话工期、挣值、日历工期与预算记录口径
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -40,7 +40,7 @@ plan_sources:
 - `tools/session_coordinator/ai_effort.py`：解析、写入、去重与聚合规则；只接受结构化值并计算 hours/day、quality cost、EV 区间和 calendar weeks。
 - `tools/session_coordinator/server.py`：提供 `ai_effort.seed_baseline`、`ai_effort.record`、`ai_effort.report` 三个本地协调器命令；写入仍受协调器 mutation gate 约束，报告只读。
 - `tools/session_coordinator/control_plane/snapshot.py`：把简洁预算投影加入实时 snapshot，供现有网页和本地状态页读取。
-- `tools/session_coordinator/tests/test_ai_effort_ledger.py`：覆盖枚举拒绝、accepted-only EV、失败质量成本、superseded 排除、区间和 calendar forecast。
+- `tools/session_coordinator/tests/test_ai_effort_api.py`：覆盖枚举拒绝、accepted-only EV、失败质量成本、superseded 排除、区间和 calendar forecast。
 - `docs/tools/session_coordinator/ai-effort-ledger.md`：记录字段语义、隐私边界、录入示例和预测公式。
 
 ## M1：结构化账本与用户确认 baseline
@@ -59,9 +59,9 @@ plan_sources:
 
 **Testing stage:**
 
-- [ ] 运行 `python -m unittest -v tools.session_coordinator.tests.test_ai_effort_ledger`。
+- [ ] 运行 `python -m unittest -v tools.session_coordinator.tests.test_ai_effort_api`。
 - [ ] 运行 `python -m py_compile tools/session_coordinator/ai_effort.py tools/session_coordinator/server.py tools/session_coordinator/migrations.py`。
-- [ ] 运行 `git diff --check -- tools/session_coordinator/migrations.py tools/session_coordinator/ai_effort.py tools/session_coordinator/server.py tools/session_coordinator/tests/test_ai_effort_ledger.py`。
+- [ ] 运行 `git diff --check -- tools/session_coordinator/migrations.py tools/session_coordinator/ai_effort.py tools/session_coordinator/server.py tools/session_coordinator/tests/test_ai_effort_api.py`。
 - [ ] 若服务重载窗口存在，执行一次受控 restart 后使用 `ai_effort.report` 读取 seed 结果；不得为该检查启动 Cargo。
 
 **Exit evidence:** 枚举、seed 分离、重复防护与结构化记录的聚焦测试全绿；本地报告包含两组独立总计。
@@ -82,7 +82,7 @@ plan_sources:
 
 **Testing stage:**
 
-- [ ] 批量运行 `python -m unittest -v tools.session_coordinator.tests.test_ai_effort_ledger tools.session_coordinator.tests.test_control_snapshot`。
+- [ ] 批量运行 `python -m unittest -v tools.session_coordinator.tests.test_ai_effort_api tools.session_coordinator.tests.test_control_snapshot`。
 - [ ] 运行 `python .codex/skills/zircon-project-skills/write-plan-output-records/scripts/audit_plan_output_records.py --repo-root E:\Git\ZirconEngine`，只处理本次造成的归属问题，不修改外部计划。
 - [ ] 运行 `git diff --check -- tools/session_coordinator/ai_effort.py tools/session_coordinator/control_plane/snapshot.py tools/session_coordinator/server.py docs/tools/session_coordinator/ai-effort-ledger.md docs/plans/zircon_tooling/session_coordinator/01/2026-07-16-ai-effort-and-budget-ledger.md`。
 - [ ] 在下一次无外部 Cargo 的受控 reload 后，调用 `ai_effort.report`，核对 750.6、671.3、79.3、114、47% 和三档日历区间均与本计划一致。

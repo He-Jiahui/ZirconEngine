@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
-use super::super::style::{field_stroke_color, field_stroke_width, MUI_FIELD_STANDARD_UNDERLINE};
+use super::super::style::{MUI_FIELD_STANDARD_UNDERLINE, field_stroke_color, field_stroke_width};
 
 pub(super) fn push_underline(
     commands: &mut Vec<HostPaintCommand>,

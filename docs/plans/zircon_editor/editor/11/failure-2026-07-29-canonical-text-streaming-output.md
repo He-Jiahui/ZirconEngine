@@ -23,10 +23,10 @@ tests:
 
 ## 来源执行者
 
-- 来源计划: `docs/plans/zircon_runtime/runtime/11-job-system-task-model.md`
-- 来源执行切片: Runtime11 dynamic scene session bounded asynchronous I/O prerequisite audit
-- 修复责任计划: `docs/plans/zircon_editor/editor/11-serialization-and-versioning.md`
-- 交接原因: `zircon_runtime_interface::serialization` owns canonical text wire construction. Runtime04 supplies a sealed archive artifact and Runtime11 owns the I/O lane, but neither can replace the shared canonical writer with a consumer-local serializer.
+- 来源计划：`docs/plans/zircon_runtime/runtime/11-job-system-task-model.md`
+- 来源执行切片：Runtime11 dynamic scene session bounded asynchronous I/O prerequisite audit
+- 修复责任计划：`docs/plans/zircon_editor/editor/11-serialization-and-versioning.md`
+- 交接原因：`zircon_runtime_interface::serialization` owns canonical text wire construction. Runtime04 supplies a sealed archive artifact and Runtime11 owns the I/O lane, but neither can replace the shared canonical writer with a consumer-local serializer.
 - 生命周期键: `canonical-text-streaming-output`
 
 ## 失败现象与复现证据

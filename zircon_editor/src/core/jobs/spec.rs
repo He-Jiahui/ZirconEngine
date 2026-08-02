@@ -1,4 +1,10 @@
-use super::{CancellationToken, JobCategory, JobId, JobPriority, MutexGroup};
+use std::time::Duration;
+
+use super::{
+    CancellationToken, EditorJobAdmissionKey, JobCategory, JobId, JobPriority, MutexGroup,
+};
+
+const DEFAULT_ESTIMATED_PENDING_BYTES: usize = 4 * 1024;
 
 #[derive(Clone, Debug)]
 pub struct EditorJobSpec {
@@ -8,6 +14,9 @@ pub struct EditorJobSpec {
     pub(super) mutex_group: Option<MutexGroup>,
     pub(super) cancel: CancellationToken,
     pub(super) after: Vec<JobId>,
+    pub(super) estimated_pending_bytes: usize,
+    pub(super) admission_key: Option<EditorJobAdmissionKey>,
+    pub(super) max_pending_age: Option<Duration>,
 }
 
 impl EditorJobSpec {
@@ -19,6 +28,9 @@ impl EditorJobSpec {
             mutex_group: None,
             cancel: CancellationToken::default(),
             after: Vec::new(),
+            estimated_pending_bytes: DEFAULT_ESTIMATED_PENDING_BYTES,
+            admission_key: None,
+            max_pending_age: None,
         }
     }
 
@@ -34,6 +46,21 @@ impl EditorJobSpec {
 
     pub fn with_cancel(mut self, cancel: CancellationToken) -> Self {
         self.cancel = cancel;
+        self
+    }
+
+    pub fn with_estimated_bytes(mut self, estimated_pending_bytes: usize) -> Self {
+        self.estimated_pending_bytes = estimated_pending_bytes.max(1);
+        self
+    }
+
+    pub fn with_admission_key(mut self, admission_key: EditorJobAdmissionKey) -> Self {
+        self.admission_key = Some(admission_key);
+        self
+    }
+
+    pub fn with_max_pending_age(mut self, max_pending_age: Duration) -> Self {
+        self.max_pending_age = Some(max_pending_age);
         self
     }
 

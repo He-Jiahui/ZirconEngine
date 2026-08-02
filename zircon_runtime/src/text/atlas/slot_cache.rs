@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::core::math::UVec2;
 
@@ -19,6 +19,7 @@ pub(crate) struct GlyphAtlasPersistentSlot {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct GlyphAtlasSlotCache {
     slots: HashMap<GlyphRasterKey, GlyphAtlasPersistentSlot>,
+    page_slots: HashMap<GlyphAtlasPageKey, HashSet<GlyphRasterKey>>,
     allocators: BTreeMap<GlyphAtlasPageKey, GlyphAtlasShelfAllocator>,
 }
 
@@ -28,11 +29,25 @@ impl GlyphAtlasSlotCache {
     }
 
     pub(super) fn remove_slot(&mut self, key: GlyphRasterKey) {
-        self.slots.remove(&key);
+        if let Some(slot) = self.slots.remove(&key) {
+            self.remove_page_slot(slot.page_key, key);
+        }
     }
 
     pub(super) fn insert_slot(&mut self, key: GlyphRasterKey, slot: GlyphAtlasPersistentSlot) {
-        self.slots.insert(key, slot);
+        if let Some(previous) = self.slots.insert(key, slot) {
+            if previous.page_key != slot.page_key {
+                self.remove_page_slot(previous.page_key, key);
+            }
+        }
+        self.page_slots
+            .entry(slot.page_key)
+            .or_default()
+            .insert(key);
+    }
+
+    pub(super) fn page_key_for_slot(&self, key: GlyphRasterKey) -> Option<GlyphAtlasPageKey> {
+        self.slots.get(&key).map(|slot| slot.page_key)
     }
 
     pub(super) fn allocate(
@@ -56,9 +71,28 @@ impl GlyphAtlasSlotCache {
         Some(allocation)
     }
 
-    pub(super) fn invalidate_page(&mut self, page_key: GlyphAtlasPageKey) {
+    pub(super) fn invalidate_page(&mut self, page_key: GlyphAtlasPageKey) -> Vec<GlyphRasterKey> {
         self.allocators.remove(&page_key);
-        self.slots.retain(|_, slot| slot.page_key != page_key);
+        let invalidated_keys = self
+            .page_slots
+            .remove(&page_key)
+            .map_or_else(Vec::new, |keys| keys.into_iter().collect());
+        for key in &invalidated_keys {
+            self.slots.remove(key);
+        }
+        invalidated_keys
+    }
+
+    fn remove_page_slot(&mut self, page_key: GlyphAtlasPageKey, key: GlyphRasterKey) {
+        let remove_page = if let Some(keys) = self.page_slots.get_mut(&page_key) {
+            keys.remove(&key);
+            keys.is_empty()
+        } else {
+            false
+        };
+        if remove_page {
+            self.page_slots.remove(&page_key);
+        }
     }
 
     pub(super) fn slot_rects_by_page(&self) -> BTreeMap<GlyphAtlasPageKey, Vec<GlyphAtlasRect>> {

@@ -1,5 +1,5 @@
 use super::model::WorkbenchTooltipStyle;
-use super::palette::{tooltip_normal_style_from_palette, tooltip_palette, WorkbenchTooltipPalette};
+use super::palette::{WorkbenchTooltipPalette, tooltip_normal_style_from_palette, tooltip_palette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_state_style(

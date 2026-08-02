@@ -31,28 +31,28 @@ children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "sta
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusReady"
 classes = ["workbench-status-item"]
-props = { text = "Ready", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = "$editor.density.gap.medium", text_color = "$editor.text.secondary", icon_fill = "$editor.semantic.success", icon_size = 8.0 }
+props = { text = "Ready", component_variant = "semantic_status_signal", text_tone = "primary" }
 layout = { width = { min = 160.0, preferred = 160.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.status_errors]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusErrors"
 classes = ["workbench-status-item"]
-props = { text = "No Errors", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = "$editor.density.gap.medium", text_color = "$editor.text.secondary", icon_fill = "$editor.semantic.success", icon_size = 8.0, responsive_min_tier = "regular" }
+props = { text = "No Errors", component_variant = "semantic_status_signal", text_tone = "muted", responsive_min_tier = "regular" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.status_warnings]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusWarnings"
-classes = ["workbench-status-item", "workbench-status-warning"]
-props = { text = "2 Warnings", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = "$editor.density.gap.medium", text_color = "$editor.text.secondary", icon_fill = "$editor.semantic.warning", icon_size = 8.0, responsive_min_tier = "regular" }
+classes = ["workbench-status-item"]
+props = { text = "2 Warnings", component_variant = "semantic_status_signal", text_tone = "muted", responsive_min_tier = "regular" }
 layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.status_messages]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusMessages"
 classes = ["workbench-status-item"]
-props = { text = "0 Messages", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = "$editor.density.gap.medium", text_color = "$editor.text.secondary", icon_fill = "$editor.semantic.info", icon_size = 8.0, responsive_min_tier = "regular" }
+props = { text = "0 Messages", component_variant = "semantic_status_signal", text_tone = "muted", responsive_min_tier = "regular" }
 layout = { width = { min = 100.0, preferred = 100.0, max = 100.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.status_task]

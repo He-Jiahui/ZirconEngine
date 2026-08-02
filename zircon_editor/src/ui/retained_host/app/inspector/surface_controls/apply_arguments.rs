@@ -35,7 +35,7 @@ impl RetainedEditorHost {
             inspector
                 .plugin_components
                 .iter()
-                .filter(|component| component.drawer_available)
+                .filter(|component| component.customization_available)
                 .flat_map(|component| component.properties.iter())
                 .filter(|property| property.editable)
                 .map(|property| {

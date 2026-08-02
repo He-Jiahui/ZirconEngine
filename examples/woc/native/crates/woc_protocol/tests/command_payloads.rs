@@ -1,44 +1,598 @@
+use std::collections::BTreeMap;
+
 use woc_protocol::{
     command_payload_descriptor, talent_option_code, talent_spec_code, validate_command_payload,
     AbandonQuestCommandPayload, AcceptQuestCommandPayload, ApplyTalentsCommandPayload,
     ArenaAugmentCommandPayload, ArenaFormat, ArenaQueueCommandPayload, BankAction,
     BankSlotCommandPayload, BuyItemCommandPayload, BuybackItemCommandPayload,
     CancelAuraCommandPayload, CastAbilityCommandPayload, CastAtCommandPayload,
-    CastSlotCommandPayload, ChangeSkinCommandPayload, CommandPayloadKind,
-    DeleteLoadoutCommandPayload, DiscardItemCommandPayload, DuelRequestCommandPayload,
-    DungeonFinderActivitiesPayload, DungeonFinderApplicationResponsePayload,
-    DungeonFinderListingIdPayload, DungeonFinderListingPayload, DungeonFinderListingTag,
-    DungeonFinderRole, DungeonFinderRolesPayload, EquipBagCommandPayload, EquipItemPayload,
-    EquipmentSlot, GuildEventCreateCommandPayload, LinkedQuestAcceptancePayload,
-    LockpickAbortCommandPayload, LockpickAction, LockpickActionCommandPayload,
-    LockpickEngageCommandPayload, MailAction, MailIdCommandPayload, MasterLootThreshold,
-    PartyLootMasterCommandPayload, PartyMarkerClearCommandPayload, PartyMarkerCommandPayload,
-    ProtocolError, ReadyCheckRespondCommandPayload, ResurrectRespondCommandPayload,
+    CastSlotCommandPayload, ChallengeResponseCommandPayload, ChangeSkinCommandPayload,
+    ChangeWeaponSkinCommandPayload, ChatCommandPayload, CommandPayloadKind,
+    CompanionUpgradeCommandPayload, CraftItemCommandPayload, DeedSetTitleCommandPayload,
+    DeleteLoadoutCommandPayload, DelveBuyCommandPayload, DiscardItemCommandPayload,
+    DuelRequestCommandPayload, DungeonFinderActivitiesPayload,
+    DungeonFinderApplicationResponsePayload, DungeonFinderListingIdPayload,
+    DungeonFinderListingPayload, DungeonFinderListingTag, DungeonFinderRole,
+    DungeonFinderRolesPayload, EmoteCommandPayload, EmoteId, EnterDelveCommandPayload,
+    EquipBagCommandPayload, EquipItemPayload, EquipmentSlot, GuildEventCreateCommandPayload,
+    HarvestNodeCommandPayload, HeroicBuyCommandPayload, InventoryMovePayload,
+    LinkedQuestAcceptancePayload, LockpickAbortCommandPayload, LockpickAction,
+    LockpickActionCommandPayload, LockpickEngageCommandPayload, MailAction, MailIdCommandPayload,
+    MailSendAttachment, MailSendCommandPayload, MarketListCommandPayload,
+    MarketSearchCommandPayload, MasterLootThreshold, PartyLootMasterCommandPayload,
+    PartyMarkerClearCommandPayload, PartyMarkerCommandPayload, ProtocolError,
+    ReadyCheckRespondCommandPayload, ResurrectRespondCommandPayload, SaveLoadoutCommandPayload,
     SelectTalentRowCommandPayload, SellItemCommandPayload, SetSpecCommandPayload, SkinCatalog,
-    SwitchLoadoutCommandPayload, TargetCommandPayload, TradeRequestCommandPayload,
-    TurnInQuestCommandPayload, UnequipBagCommandPayload, UnequipItemPayload, UseItemCommandPayload,
-    ValeCupBetCommandPayload, ValeCupBracket, ValeCupNation, ValeCupPracticeCommandPayload,
-    ValeCupQueueCommandPayload, ValeCupRole, ValeCupRoleCommandPayload, ValeCupSide,
-    WorldObjectAction, WorldObjectIdPayload, ABANDON_QUEST_COMMAND_ID, ACCEPT_QUEST_COMMAND_ID,
+    SwitchLoadoutCommandPayload, TargetCommandPayload, TelemetryPayload, TradeOfferCommandPayload,
+    TradeOfferItem, TradeRequestCommandPayload, TurnInQuestCommandPayload,
+    UnequipBagCommandPayload, UnequipItemPayload, UnequipMechChromaCommandPayload,
+    UseItemCommandPayload, ValeCupBetCommandPayload, ValeCupBracket, ValeCupNation,
+    ValeCupPracticeCommandPayload, ValeCupQueueCommandPayload, ValeCupRole,
+    ValeCupRoleCommandPayload, ValeCupSide, WeaponSkinChange, WeaponSkinType, WorldObjectAction,
+    WorldObjectIdPayload, ABANDON_QUEST_COMMAND_ID, ACCEPT_QUEST_COMMAND_ID,
     APPLY_TALENTS_COMMAND_ID, ARENA_AUGMENT_COMMAND_ID, ARENA_QUEUE_COMMAND_ID, ATTACK_COMMAND_ID,
     AUTO_LOOT_COMMAND_ID, BANK_DEPOSIT_COMMAND_ID, BANK_WITHDRAW_COMMAND_ID, BUYBACK_COMMAND_ID,
     BUY_COMMAND_ID, CANCEL_AURA_COMMAND_ID, CAST_AT_COMMAND_ID, CAST_COMMAND_ID,
-    CAST_SLOT_COMMAND_ID, CHANGE_SKIN_COMMAND_ID, COLLECT_DELVE_CHEST_LOOT_COMMAND_ID,
-    DELETE_LOADOUT_COMMAND_ID, DELVE_INTERACT_COMMAND_ID, DISCARD_ITEM_COMMAND_ID,
-    DUEL_REQUEST_COMMAND_ID, DUNGEON_FINDER_APPLICATION_RESPONSE_COMMAND_ID,
-    DUNGEON_FINDER_APPLY_COMMAND_ID, DUNGEON_FINDER_LIST_CREATE_COMMAND_ID,
-    DUNGEON_FINDER_QUEUE_COMMAND_ID, DUNGEON_FINDER_ROLES_COMMAND_ID, EQUIP_BAG_COMMAND_ID,
-    GUILD_EVENT_CREATE_COMMAND_ID, INTERACT_COMMAND_ID, LOCKPICK_ABORT_COMMAND_ID,
-    LOCKPICK_ACTION_COMMAND_ID, LOCKPICK_ENGAGE_COMMAND_ID, LOOT_COMMAND_ID,
-    MAIL_DELETE_COMMAND_ID, MAIL_READ_COMMAND_ID, MAIL_TAKE_COMMAND_ID,
+    CAST_SLOT_COMMAND_ID, CHALLENGE_RESPONSE_COMMAND_ID, CHANGE_SKIN_COMMAND_ID,
+    CHANGE_WEAPON_SKIN_COMMAND_ID, CHAT_COMMAND_ID, COLLECT_DELVE_CHEST_LOOT_COMMAND_ID,
+    CRAFT_ITEM_COMMAND_ID, DEED_SET_TITLE_COMMAND_ID, DELETE_LOADOUT_COMMAND_ID,
+    DELVE_INTERACT_COMMAND_ID, DISCARD_ITEM_COMMAND_ID, DUEL_REQUEST_COMMAND_ID,
+    DUNGEON_FINDER_APPLICATION_RESPONSE_COMMAND_ID, DUNGEON_FINDER_APPLY_COMMAND_ID,
+    DUNGEON_FINDER_LIST_CREATE_COMMAND_ID, DUNGEON_FINDER_QUEUE_COMMAND_ID,
+    DUNGEON_FINDER_ROLES_COMMAND_ID, EMOTE_COMMAND_ID, ENTER_DELVE_COMMAND_ID,
+    EQUIP_BAG_COMMAND_ID, GUILD_EVENT_CREATE_COMMAND_ID, HARVEST_NODE_COMMAND_ID,
+    HEROIC_BUY_COMMAND_ID, INTERACT_COMMAND_ID, INVENTORY_MOVE_COMMAND_ID,
+    LOCKPICK_ABORT_COMMAND_ID, LOCKPICK_ACTION_COMMAND_ID, LOCKPICK_ENGAGE_COMMAND_ID,
+    LOOT_COMMAND_ID, MAIL_DELETE_COMMAND_ID, MAIL_READ_COMMAND_ID, MAIL_SEND_COMMAND_ID,
+    MAIL_TAKE_COMMAND_ID, MARKET_LIST_COMMAND_ID, MARKET_SEARCH_COMMAND_ID,
     PARTY_CLEAR_MARKER_COMMAND_ID, PARTY_READY_RESPOND_COMMAND_ID,
     PARTY_SET_LOOT_MASTER_COMMAND_ID, PARTY_SET_MARKER_COMMAND_ID, PICKUP_COMMAND_ID,
-    RESPEC_COMMAND_ID, RESURRECT_RESPOND_COMMAND_ID, SELECT_TALENT_ROW_COMMAND_ID, SELL_COMMAND_ID,
-    SET_SPEC_COMMAND_ID, STOP_ATTACK_COMMAND_ID, SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID,
+    RESPEC_COMMAND_ID, RESURRECT_RESPOND_COMMAND_ID, SAVE_LOADOUT_COMMAND_ID,
+    SELECT_TALENT_ROW_COMMAND_ID, SELL_COMMAND_ID, SET_SPEC_COMMAND_ID, STOP_ATTACK_COMMAND_ID,
+    SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID, TELEMETRY_COMMAND_ID, TRADE_OFFER_COMMAND_ID,
     TRADE_REQUEST_COMMAND_ID, TURN_IN_QUEST_COMMAND_ID, UNEQUIP_BAG_COMMAND_ID,
-    USE_ITEM_COMMAND_ID, VALE_CUP_BET_COMMAND_ID, VALE_CUP_PRACTICE_COMMAND_ID,
-    VALE_CUP_QUEUE_COMMAND_ID, VALE_CUP_ROLE_COMMAND_ID,
+    UNEQUIP_MECH_CHROMA_COMMAND_ID, USE_ITEM_COMMAND_ID, VALE_CUP_BET_COMMAND_ID,
+    VALE_CUP_PRACTICE_COMMAND_ID, VALE_CUP_QUEUE_COMMAND_ID, VALE_CUP_ROLE_COMMAND_ID,
 };
+
+#[test]
+fn challenge_response_payload_preserves_raw_strings_without_signature_policy() {
+    assert_eq!(CHALLENGE_RESPONSE_COMMAND_ID, 36);
+    let payload = ChallengeResponseCommandPayload {
+        nonce: " nonce ".to_owned(),
+        response: "42".to_owned(),
+        signature: "sig:unknown".to_owned(),
+    };
+    let encoded = payload.encode().expect("challenge-response payload");
+
+    assert_eq!(
+        ChallengeResponseCommandPayload::decode(&encoded).expect("decode challenge response"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(CHALLENGE_RESPONSE_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert!(ChallengeResponseCommandPayload {
+        nonce: "n".repeat(257),
+        response: "42".to_owned(),
+        signature: "sig".to_owned(),
+    }
+    .encode()
+    .is_err());
+
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(ChallengeResponseCommandPayload::decode(&trailing).is_err());
+}
+
+#[test]
+fn deed_set_title_payload_preserves_select_and_clear() {
+    assert_eq!(DEED_SET_TITLE_COMMAND_ID, 159);
+    for deed_id in [Some("prog_veteran".to_owned()), None] {
+        let payload = DeedSetTitleCommandPayload {
+            deed_id: deed_id.clone(),
+        };
+        let encoded = payload.encode().expect("deed-set-title payload");
+        assert_eq!(
+            DeedSetTitleCommandPayload::decode(&encoded).expect("decode deed title"),
+            payload
+        );
+        assert_eq!(
+            validate_command_payload(DEED_SET_TITLE_COMMAND_ID, &encoded),
+            Ok(())
+        );
+    }
+
+    assert_eq!(
+        DeedSetTitleCommandPayload {
+            deed_id: Some("x".repeat(257)),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "DeedSetTitleCommandPayload.deed_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn harvest_node_payload_preserves_the_source_node_identity() {
+    let payload = HarvestNodeCommandPayload {
+        node_id: "ore_eastbrook_1".to_owned(),
+    };
+    let encoded = payload.encode().expect("harvest-node payload");
+
+    assert_eq!(
+        HarvestNodeCommandPayload::decode(&encoded).expect("decode harvest-node payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(HARVEST_NODE_COMMAND_ID, &encoded),
+        Ok(())
+    );
+
+    assert_eq!(
+        HarvestNodeCommandPayload {
+            node_id: "x".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "HarvestNodeCommandPayload.node_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn craft_item_payload_preserves_the_source_recipe_identity() {
+    let payload = CraftItemCommandPayload {
+        recipe_id: "recipe_minor_healing_potion".to_owned(),
+    };
+    let encoded = payload.encode().expect("craft-item payload");
+
+    assert_eq!(
+        CraftItemCommandPayload::decode(&encoded).expect("decode craft-item payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(CRAFT_ITEM_COMMAND_ID, &encoded),
+        Ok(())
+    );
+
+    assert_eq!(
+        CraftItemCommandPayload {
+            recipe_id: "x".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "CraftItemCommandPayload.recipe_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn heroic_buy_payload_preserves_the_source_item_identity() {
+    let payload = HeroicBuyCommandPayload {
+        item_id: "seal_of_the_nine_oaths".to_owned(),
+    };
+    let encoded = payload.encode().expect("heroic-buy payload");
+
+    assert_eq!(
+        HeroicBuyCommandPayload::decode(&encoded).expect("decode heroic-buy payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(HEROIC_BUY_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert_eq!(
+        HeroicBuyCommandPayload {
+            item_id: "x".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "HeroicBuyCommandPayload.item_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn delve_buy_payload_preserves_both_source_identities() {
+    let payload = DelveBuyCommandPayload {
+        delve_id: "collapsed_reliquary".to_owned(),
+        item_id: "reliquary_legs".to_owned(),
+    };
+    let encoded = payload.encode().expect("Delve-buy payload");
+
+    assert_eq!(
+        DelveBuyCommandPayload::decode(&encoded).expect("decode Delve-buy payload"),
+        payload
+    );
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(DelveBuyCommandPayload::decode(&trailing).is_err());
+    assert_eq!(
+        DelveBuyCommandPayload {
+            delve_id: "x".repeat(257),
+            item_id: "reliquary_legs".to_owned(),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "DelveBuyCommandPayload.id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+    assert_eq!(
+        DelveBuyCommandPayload {
+            delve_id: "collapsed_reliquary".to_owned(),
+            item_id: "x".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "DelveBuyCommandPayload.id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn enter_delve_payload_preserves_raw_delve_and_tier_identities() {
+    assert_eq!(ENTER_DELVE_COMMAND_ID, 115);
+    let payload = EnterDelveCommandPayload {
+        delve_id: "drowned_litany".to_owned(),
+        tier_id: "heroic".to_owned(),
+    };
+    let encoded = payload.encode().expect("enter-delve payload");
+
+    assert_eq!(
+        EnterDelveCommandPayload::decode(&encoded).expect("decode enter-delve payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(ENTER_DELVE_COMMAND_ID, &encoded),
+        Ok(())
+    );
+
+    let unknown = EnterDelveCommandPayload {
+        delve_id: " unknown delve ".to_owned(),
+        tier_id: "unknown tier".to_owned(),
+    };
+    assert_eq!(
+        EnterDelveCommandPayload::decode(&unknown.encode().expect("unknown ids"))
+            .expect("decode unknown ids"),
+        unknown
+    );
+
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(EnterDelveCommandPayload::decode(&trailing).is_err());
+}
+
+#[test]
+fn market_list_payload_preserves_raw_item_and_finite_inputs_without_market_policy() {
+    assert_eq!(MARKET_LIST_COMMAND_ID, 102);
+    let payload = MarketListCommandPayload {
+        item_id: " unknown reagent ".to_owned(),
+        count: 2.75,
+        price: -0.0,
+    };
+    let encoded = payload.encode().expect("market-list payload");
+
+    assert_eq!(
+        MarketListCommandPayload::decode(&encoded).expect("decode market-list payload"),
+        MarketListCommandPayload {
+            item_id: " unknown reagent ".to_owned(),
+            count: 2.75,
+            price: 0.0,
+        }
+    );
+    assert_eq!(
+        validate_command_payload(MARKET_LIST_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert!(MarketListCommandPayload {
+        item_id: "ore_copper".to_owned(),
+        count: f64::INFINITY,
+        price: 1.0,
+    }
+    .encode()
+    .is_err());
+    assert!(MarketListCommandPayload {
+        item_id: "ore_copper".to_owned(),
+        count: 1.0,
+        price: f64::NAN,
+    }
+    .encode()
+    .is_err());
+
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(MarketListCommandPayload::decode(&trailing).is_err());
+}
+
+#[test]
+fn market_search_payload_preserves_raw_filters_and_page_without_normalization() {
+    assert_eq!(MARKET_SEARCH_COMMAND_ID, 101);
+    let payload = MarketSearchCommandPayload {
+        search: "  Worn Blade  ".to_owned(),
+        item_type: "unknown-kind".to_owned(),
+        subtype: "?".to_owned(),
+        rarity: "legendary".to_owned(),
+        page: -2.75,
+    };
+    let encoded = payload.encode().expect("market-search payload");
+
+    assert_eq!(
+        MarketSearchCommandPayload::decode(&encoded).expect("decode market-search payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(MARKET_SEARCH_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert!(MarketSearchCommandPayload {
+        search: String::new(),
+        item_type: "all".to_owned(),
+        subtype: "all".to_owned(),
+        rarity: "all".to_owned(),
+        page: f64::INFINITY,
+    }
+    .encode()
+    .is_err());
+    assert!(MarketSearchCommandPayload {
+        search: "x".repeat(257),
+        item_type: "all".to_owned(),
+        subtype: "all".to_owned(),
+        rarity: "all".to_owned(),
+        page: 0.0,
+    }
+    .encode()
+    .is_err());
+
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(MarketSearchCommandPayload::decode(&trailing).is_err());
+}
+
+#[test]
+fn companion_upgrade_payload_preserves_the_source_identity() {
+    let payload = CompanionUpgradeCommandPayload {
+        companion_id: "companion_tessa".to_owned(),
+    };
+    let encoded = payload.encode().expect("companion-upgrade payload");
+
+    assert_eq!(
+        CompanionUpgradeCommandPayload::decode(&encoded).expect("decode companion-upgrade payload"),
+        payload
+    );
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(CompanionUpgradeCommandPayload::decode(&trailing).is_err());
+    assert!(CompanionUpgradeCommandPayload {
+        companion_id: "x".repeat(256),
+    }
+    .encode()
+    .is_ok());
+    assert_eq!(
+        CompanionUpgradeCommandPayload {
+            companion_id: "x".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "CompanionUpgradeCommandPayload.companion_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn unequip_mech_chroma_payload_preserves_the_source_identity() {
+    let payload = UnequipMechChromaCommandPayload {
+        chroma_id: "vanguard_chrome".to_owned(),
+    };
+    let encoded = payload.encode().expect("unequip-mech-chroma payload");
+
+    assert_eq!(UNEQUIP_MECH_CHROMA_COMMAND_ID, 32);
+    assert_eq!(
+        UnequipMechChromaCommandPayload::decode(&encoded)
+            .expect("decode unequip-mech-chroma payload"),
+        payload
+    );
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(UnequipMechChromaCommandPayload::decode(&trailing).is_err());
+    assert!(UnequipMechChromaCommandPayload {
+        chroma_id: "x".repeat(256),
+    }
+    .encode()
+    .is_ok());
+    assert_eq!(
+        UnequipMechChromaCommandPayload {
+            chroma_id: "x".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "UnequipMechChromaCommandPayload.chroma_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn change_weapon_skin_payload_preserves_apply_and_detach_variants() {
+    assert_eq!(CHANGE_WEAPON_SKIN_COMMAND_ID, 34);
+    let apply = ChangeWeaponSkinCommandPayload {
+        change: WeaponSkinChange::Apply {
+            skin_id: "guildmark_arming_sword".to_owned(),
+        },
+    };
+    let apply_bytes = apply.encode().expect("weapon-skin apply payload");
+    assert_eq!(
+        ChangeWeaponSkinCommandPayload::decode(&apply_bytes)
+            .expect("decode weapon-skin apply payload"),
+        apply
+    );
+
+    for weapon_type in [
+        WeaponSkinType::Sword,
+        WeaponSkinType::Axe,
+        WeaponSkinType::Mace,
+        WeaponSkinType::Dagger,
+        WeaponSkinType::Staff,
+        WeaponSkinType::Wand,
+        WeaponSkinType::Bow,
+        WeaponSkinType::Crossbow,
+    ] {
+        let detach = ChangeWeaponSkinCommandPayload {
+            change: WeaponSkinChange::Detach { weapon_type },
+        };
+        let bytes = detach.encode().expect("weapon-skin detach payload");
+        assert_eq!(bytes, [0, weapon_type.wire_code()]);
+        assert_eq!(
+            ChangeWeaponSkinCommandPayload::decode(&bytes)
+                .expect("decode weapon-skin detach payload"),
+            detach
+        );
+    }
+
+    assert!(ChangeWeaponSkinCommandPayload::decode(&[2, 1]).is_err());
+    assert!(ChangeWeaponSkinCommandPayload::decode(&[0, 9]).is_err());
+    assert!(ChangeWeaponSkinCommandPayload::decode(&[0, 1, 0]).is_err());
+    assert!(ChangeWeaponSkinCommandPayload::decode(&[1, 2, 0, 0, 0, 192, 128]).is_err());
+    assert!(ChangeWeaponSkinCommandPayload {
+        change: WeaponSkinChange::Apply {
+            skin_id: "x".repeat(256),
+        },
+    }
+    .encode()
+    .is_ok());
+    assert_eq!(
+        ChangeWeaponSkinCommandPayload {
+            change: WeaponSkinChange::Apply {
+                skin_id: "x".repeat(257),
+            },
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "ChangeWeaponSkinCommandPayload.skin_id",
+            actual: 257,
+            maximum: 256,
+        })
+    );
+}
+
+#[test]
+fn chat_payload_preserves_source_utf16_admission() {
+    let payload = ChatCommandPayload {
+        text: format!("{}a", "😀".repeat(127)),
+    };
+    let encoded = payload.encode().expect("255-unit chat payload");
+
+    assert_eq!(
+        ChatCommandPayload::decode(&encoded).expect("decode chat payload"),
+        payload
+    );
+    assert_eq!(validate_command_payload(CHAT_COMMAND_ID, &encoded), Ok(()));
+    assert_eq!(
+        ChatCommandPayload {
+            text: "😀".repeat(128),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "ChatCommandPayload.text",
+            actual: 256,
+            maximum: 255,
+        })
+    );
+}
+
+#[test]
+fn save_loadout_payload_preserves_optional_allocation_and_bounded_action_bar() {
+    let spec_code = talent_spec_code("warrior", "arms").expect("current spec code");
+    let option_code = talent_option_code("war_row_double_charge").expect("current option code");
+    let payload = SaveLoadoutCommandPayload {
+        name: "Raid Build".to_owned(),
+        allocation: Some(ApplyTalentsCommandPayload {
+            spec_code,
+            row_option_codes: [option_code, 0, 0, 0, 0, 0],
+        }),
+        action_bar: vec![Some("charge".to_owned()), None, Some("rend".to_owned())],
+    };
+    let encoded = payload.encode().expect("save-loadout payload");
+    assert_eq!(
+        SaveLoadoutCommandPayload::decode(&encoded).expect("decode save-loadout payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(SAVE_LOADOUT_COMMAND_ID, &encoded),
+        Ok(())
+    );
+
+    let mut too_many_slots = payload.clone();
+    too_many_slots.action_bar = vec![None; 23];
+    assert_eq!(
+        too_many_slots.encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "SaveLoadoutCommandPayload.action_bar",
+            actual: 23,
+            maximum: 22,
+        })
+    );
+
+    let mut long_name = payload;
+    long_name.name = "x".repeat(25);
+    assert_eq!(
+        long_name.encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "SaveLoadoutCommandPayload.name_utf16_code_units",
+            actual: 25,
+            maximum: 24,
+        })
+    );
+}
+
+#[test]
+fn inventory_move_payload_preserves_signed_dense_index_and_target_cell() {
+    let payload = InventoryMovePayload { from: -2, to: 17 };
+    let encoded = payload.encode();
+    let mut expected = (-2_i32).to_le_bytes().to_vec();
+    expected.extend_from_slice(&17_i32.to_le_bytes());
+
+    assert_eq!(encoded, expected);
+    assert_eq!(InventoryMovePayload::decode(&encoded), Ok(payload));
+    assert_eq!(
+        validate_command_payload(INVENTORY_MOVE_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert!(InventoryMovePayload::decode(&encoded[..7]).is_err());
+}
+
+#[test]
+fn emote_payload_preserves_the_closed_source_id_order() {
+    let payload = EmoteCommandPayload {
+        emote: EmoteId::Kneel,
+    };
+    let encoded = payload.encode();
+
+    assert_eq!(encoded, [13]);
+    assert_eq!(EmoteCommandPayload::decode(&encoded), Ok(payload));
+    assert_eq!(validate_command_payload(EMOTE_COMMAND_ID, &encoded), Ok(()));
+    assert_eq!(
+        validate_command_payload(EMOTE_COMMAND_ID, &[14]),
+        Err(ProtocolError::InvalidEmoteId(14))
+    );
+}
 
 #[test]
 fn target_payload_round_trips_a_target_and_the_clear_sentinel() {
@@ -344,6 +898,63 @@ fn trade_request_payload_preserves_the_source_number_without_trade_policy() {
             expected: 8,
         })
     );
+}
+
+#[test]
+fn trade_offer_payload_preserves_raw_items_and_finite_copper_without_trade_policy() {
+    assert_eq!(TRADE_OFFER_COMMAND_ID, 66);
+    let payload = TradeOfferCommandPayload {
+        items: vec![
+            TradeOfferItem {
+                item_id: " unknown ore ".to_owned(),
+                count: 2.75,
+            },
+            TradeOfferItem {
+                item_id: " unknown ore ".to_owned(),
+                count: -1.5,
+            },
+            TradeOfferItem {
+                item_id: "gem_amber".to_owned(),
+                count: 0.0,
+            },
+        ],
+        copper: -10.25,
+    };
+    let encoded = payload.encode().expect("trade-offer payload");
+
+    assert_eq!(
+        TradeOfferCommandPayload::decode(&encoded).expect("decode trade-offer payload"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(TRADE_OFFER_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert!(TradeOfferCommandPayload {
+        items: vec![TradeOfferItem {
+            item_id: "ore_copper".to_owned(),
+            count: f64::NAN,
+        }],
+        copper: 0.0,
+    }
+    .encode()
+    .is_err());
+    assert!(TradeOfferCommandPayload {
+        items: vec![
+            TradeOfferItem {
+                item_id: "ore_copper".to_owned(),
+                count: 1.0,
+            };
+            7
+        ],
+        copper: 0.0,
+    }
+    .encode()
+    .is_err());
+
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(TradeOfferCommandPayload::decode(&trailing).is_err());
 }
 
 #[test]
@@ -662,6 +1273,23 @@ fn equipment_payloads_preserve_optional_and_required_source_slots() {
         UnequipItemPayload::decode(&[0]),
         Err(ProtocolError::InvalidEquipmentSlot(0))
     );
+}
+
+#[test]
+fn telemetry_payload_preserves_kind_and_numeric_spread_fields() {
+    let payload = TelemetryPayload {
+        kind: "render".to_owned(),
+        data: BTreeMap::from([("fps".to_owned(), 60.0), ("ping".to_owned(), 24.0)]),
+    };
+    let encoded = payload.clone().encode().expect("telemetry payload encodes");
+    assert_eq!(
+        validate_command_payload(TELEMETRY_COMMAND_ID, &encoded),
+        Ok(())
+    );
+    assert_eq!(&encoded[..4], &6_u32.to_le_bytes());
+    assert_eq!(&encoded[4..10], b"render");
+    assert_eq!(&encoded[10..12], &2_u16.to_le_bytes());
+    assert_eq!(TelemetryPayload::decode(&encoded), Ok(payload));
 }
 
 #[test]
@@ -1375,6 +2003,132 @@ fn mail_id_payloads_preserve_the_source_number_without_mail_policy() {
             field: "MailIdCommandPayload.mail_id",
             ..
         })
+    ));
+}
+
+#[test]
+fn mail_send_payload_preserves_raw_source_fields_without_escrow_policy() {
+    let payload = MailSendCommandPayload {
+        to: "  Raven Receiver  ".to_owned(),
+        subject: " subject ".to_owned(),
+        body: " body ".to_owned(),
+        copper: -2.75,
+        items: vec![
+            MailSendAttachment {
+                item_id: "wolf_fang".to_owned(),
+                count: 1.75,
+            },
+            MailSendAttachment {
+                item_id: "wolf_fang".to_owned(),
+                count: -4.5,
+            },
+            MailSendAttachment {
+                item_id: "webwood_silk".to_owned(),
+                count: 2.0,
+            },
+        ],
+    };
+    let encoded = payload.encode().expect("mail-send payload");
+
+    assert_eq!(
+        MailSendCommandPayload::decode(&encoded).expect("decode mail-send"),
+        payload
+    );
+    assert_eq!(
+        validate_command_payload(MAIL_SEND_COMMAND_ID, &encoded),
+        Ok(())
+    );
+
+    assert!(matches!(
+        MailSendCommandPayload {
+            to: "receiver".to_owned(),
+            subject: String::new(),
+            body: String::new(),
+            copper: 0.0,
+            items: vec![
+                MailSendAttachment {
+                    item_id: "a".to_owned(),
+                    count: 1.0
+                },
+                MailSendAttachment {
+                    item_id: "b".to_owned(),
+                    count: 1.0
+                },
+                MailSendAttachment {
+                    item_id: "c".to_owned(),
+                    count: 1.0
+                },
+                MailSendAttachment {
+                    item_id: "d".to_owned(),
+                    count: 1.0
+                },
+            ],
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "MailSendCommandPayload.items",
+            maximum: 3,
+            ..
+        })
+    ));
+    assert!(matches!(
+        MailSendCommandPayload {
+            to: "receiver".to_owned(),
+            subject: String::new(),
+            body: String::new(),
+            copper: f64::NAN,
+            items: Vec::new(),
+        }
+        .encode(),
+        Err(ProtocolError::NonFinite {
+            field: "MailSendCommandPayload.copper",
+            ..
+        })
+    ));
+    assert!(matches!(
+        MailSendCommandPayload {
+            to: "receiver".to_owned(),
+            subject: String::new(),
+            body: String::new(),
+            copper: 0.0,
+            items: vec![MailSendAttachment {
+                item_id: "x".to_owned(),
+                count: f64::INFINITY,
+            }],
+        }
+        .encode(),
+        Err(ProtocolError::NonFinite {
+            field: "MailSendAttachment.count",
+            ..
+        })
+    ));
+    assert!(matches!(
+        MailSendCommandPayload {
+            to: "receiver".to_owned(),
+            subject: String::new(),
+            body: "x".repeat(16 * 1024),
+            copper: 0.0,
+            items: Vec::new(),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge {
+            context: "MailSendCommandPayload.payload",
+            maximum: 16 * 1024,
+            ..
+        })
+    ));
+    let mut invalid_utf8 = vec![0; 22];
+    invalid_utf8[..4].copy_from_slice(&1_u32.to_le_bytes());
+    invalid_utf8[4] = 0xff;
+    assert!(matches!(
+        MailSendCommandPayload::decode(&invalid_utf8),
+        Err(ProtocolError::InvalidUtf8 { .. })
+    ));
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert!(matches!(
+        MailSendCommandPayload::decode(&trailing),
+        Err(ProtocolError::TrailingPayload { remaining: 1 })
     ));
 }
 

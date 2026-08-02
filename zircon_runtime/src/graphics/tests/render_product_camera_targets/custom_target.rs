@@ -1,12 +1,12 @@
 use super::assertions::{
-    RenderViewportRegion, dominant_blue_pixels, dominant_blue_pixels_in_region,
-    dominant_blue_pixels_in_rgba_region, dominant_green_pixels, dominant_green_pixels_in_region,
-    dominant_green_pixels_in_rgba_region, dominant_red_pixels, dominant_red_pixels_in_region,
-    dominant_red_pixels_in_rgba_region, is_dominant_green, is_dominant_red, rgba_pixel_at,
+    dominant_blue_pixels, dominant_blue_pixels_in_region, dominant_blue_pixels_in_rgba_region,
+    dominant_green_pixels, dominant_green_pixels_in_region, dominant_green_pixels_in_rgba_region,
+    dominant_red_pixels, dominant_red_pixels_in_region, dominant_red_pixels_in_rgba_region,
+    is_dominant_green, is_dominant_red, rgba_pixel_at, RenderViewportRegion,
 };
 use super::camera::{
-    CameraDescriptorTestExt, camera_target_product_profile, primary_surface_camera_descriptor,
-    texture_camera_descriptor,
+    camera_target_product_profile, primary_surface_camera_descriptor, texture_camera_descriptor,
+    CameraDescriptorTestExt,
 };
 use super::fixture::RenderFixture;
 use super::mesh::{

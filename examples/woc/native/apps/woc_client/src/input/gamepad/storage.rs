@@ -6,24 +6,42 @@ use super::{
     bindings::{is_bindable_gamepad_button, GamepadBindingEntry, GamepadBindings},
     layout::BINDABLE_GAMEPAD_BUTTONS,
 };
-use crate::preferences::PreferenceStorage;
+use crate::preferences::{read_preference_text, submit_preference_text, PreferenceRead};
+use zircon_runtime::core::framework::platform::{PreferenceMutationSubmission, PreferenceStorage};
 
 pub const GAMEPAD_STORAGE_KEY: &str = "woc_gamepad";
 
 pub struct StoredGamepadBindings<S> {
     storage: S,
     bindings: GamepadBindings,
+    last_persistence_submission: Option<PreferenceMutationSubmission>,
 }
 
 impl<S> StoredGamepadBindings<S>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
     pub fn new(storage: S) -> Self {
         let bindings = read_stored_entries(&storage)
-            .map(GamepadBindings::from_stored)
+            .into_ready()
             .unwrap_or_default();
-        Self { storage, bindings }
+        Self {
+            storage,
+            bindings,
+            last_persistence_submission: None,
+        }
+    }
+
+    pub fn refresh_from_storage(&mut self) -> bool {
+        let Some(bindings) = read_stored_entries(&self.storage).into_ready() else {
+            return false;
+        };
+        self.bindings = bindings;
+        true
+    }
+
+    pub fn take_persistence_submission(&mut self) -> Option<PreferenceMutationSubmission> {
+        self.last_persistence_submission.take()
     }
 
     pub fn bind(&mut self, button: usize, action: impl Into<String>) {
@@ -43,9 +61,10 @@ where
         self.storage
     }
 
-    fn save(&self) {
+    fn save(&mut self) {
         let encoded = encode_stored_gamepad_bindings(&self.bindings);
-        let _ = self.storage.write(GAMEPAD_STORAGE_KEY, &encoded);
+        self.last_persistence_submission =
+            submit_preference_text(self.storage.as_ref(), GAMEPAD_STORAGE_KEY, &encoded);
     }
 }
 
@@ -91,12 +110,16 @@ pub fn encode_stored_gamepad_bindings(bindings: &GamepadBindings) -> String {
     Value::Object(entries).to_string()
 }
 
-fn read_stored_entries<S>(storage: &S) -> Option<Vec<GamepadBindingEntry>>
+fn read_stored_entries<S>(storage: &S) -> PreferenceRead<GamepadBindings>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
-    let raw = storage.read(GAMEPAD_STORAGE_KEY).ok()??;
-    decode_stored_gamepad_bindings(&raw)
+    read_preference_text(storage.as_ref(), GAMEPAD_STORAGE_KEY).map(|raw| {
+        raw.as_deref()
+            .and_then(decode_stored_gamepad_bindings)
+            .map(GamepadBindings::from_stored)
+            .unwrap_or_default()
+    })
 }
 
 fn ordered_object_entries(entries: Map<String, Value>) -> Vec<(String, Value)> {

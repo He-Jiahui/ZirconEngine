@@ -79,9 +79,11 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
     );
     assert!(
         registry
-            .component_drawers()
+            .inspector_customizations()
             .iter()
-            .any(|drawer| drawer.component_type() == "sdk.example.ModelImportSettings")
+            .any(|customization| {
+                customization.target_type() == "sdk.example.ModelImportSettings"
+            })
     );
 
     let stages = ["sdk_example_window", "sdk_example_asset"]
@@ -625,7 +627,10 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
 
     runtime
         .runtime
-        .register_editor_extension_with_required_capabilities(extension, vec![capability.clone()])
+        .register_editor_extension_with_required_capabilities(
+            extension.into_contribution_batch().unwrap(),
+            vec![capability.clone()],
+        )
         .expect("register asset authoring extension");
     assert!(
         runtime

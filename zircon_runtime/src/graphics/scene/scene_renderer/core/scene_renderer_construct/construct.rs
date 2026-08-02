@@ -7,6 +7,7 @@ use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescr
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
+use crate::plugin::PluginShaderModuleSource;
 
 use crate::graphics::types::GraphicsError;
 
@@ -64,6 +65,7 @@ impl SceneRenderer {
             runtime_prepare_collectors,
             Vec::new(),
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -74,6 +76,7 @@ impl SceneRenderer {
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_icon_source_and_plugin_render_features_and_shading_models(
             asset_manager,
@@ -83,6 +86,7 @@ impl SceneRenderer {
             runtime_prepare_collectors,
             plugin_geometry_sources,
             plugin_shading_models,
+            plugin_shader_module_sources,
         )
     }
 
@@ -94,6 +98,7 @@ impl SceneRenderer {
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_render_extensions_and_shading_models(
             ProjectAssetManagerAccess::for_test(asset_manager),
@@ -102,6 +107,7 @@ impl SceneRenderer {
             runtime_prepare_collectors,
             plugin_geometry_sources,
             plugin_shading_models,
+            plugin_shader_module_sources,
         )
     }
 }

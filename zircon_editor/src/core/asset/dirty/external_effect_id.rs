@@ -8,6 +8,14 @@ const MAX_EXTERNAL_EFFECT_ID_LEN: usize = 96;
 pub struct DirtyExternalEffectId(String);
 
 impl DirtyExternalEffectId {
+    pub fn ui_source_buffer() -> Self {
+        Self("ui.source_buffer".to_string())
+    }
+
+    pub fn animation_document() -> Self {
+        Self("animation.document".to_string())
+    }
+
     pub fn parse(value: impl Into<String>) -> Result<Self, DirtyExternalEffectIdError> {
         let value = value.into();
         if value.is_empty() {

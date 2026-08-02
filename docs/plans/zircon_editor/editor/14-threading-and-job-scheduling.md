@@ -24,15 +24,26 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 implementation_files:
   - zircon_editor/src/core/jobs/mod.rs
+  - zircon_editor/src/core/jobs/category.rs
+  - zircon_editor/src/core/jobs/context.rs
+  - zircon_editor/src/core/jobs/error.rs
+  - zircon_editor/src/core/jobs/event.rs
   - zircon_editor/src/core/jobs/event_sink.rs
+  - zircon_editor/src/core/jobs/id.rs
+  - zircon_editor/src/core/jobs/job.rs
+  - zircon_editor/src/core/jobs/limits.rs
+  - zircon_editor/src/core/jobs/mutex_group.rs
   - zircon_editor/src/core/jobs/progress.rs
   - zircon_editor/src/core/jobs/pump.rs
+  - zircon_editor/src/core/jobs/shutdown.rs
+  - zircon_editor/src/core/jobs/spec.rs
   - zircon_editor/src/core/jobs/system/mod.rs
   - zircon_editor/src/core/jobs/system/pending.rs
   - zircon_editor/src/core/jobs/system/state.rs
   - zircon_editor/src/core/jobs/test_support.rs
   - zircon_editor/src/core/jobs/cancellation_token.rs
   - zircon_editor/src/core/jobs/ticket.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
@@ -40,7 +51,6 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
@@ -51,13 +61,15 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/viewport/viewport_state.rs
   - zircon_editor/src/ui/retained_host/viewport/viewport_state_drop.rs
 tests:
+  - zircon_editor/src/core/jobs/tests/admission_scaling_contract.rs
   - zircon_editor/src/core/jobs/tests/scheduling_contract.rs
+  - zircon_editor/src/core/jobs/tests/progress_contract.rs
   - zircon_editor/src/core/jobs/tests/pump_contract.rs
   - zircon_editor/src/core/jobs/tests/background_storm_contract.rs
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
@@ -153,13 +165,20 @@ impl EditorJobSystem {
 zircon_editor/src/core/jobs/
   mod.rs
   system/          # EditorJobSystem：submit/准入状态/待执行任务
-  spec.rs          # EditorJobSpec
   category.rs      # JobCategory/JobPriority
+  context.rs       # JobContext：进度上报与取消检查点
+  error.rs         # JobError/JobFailure/submit 与 mutex 错误
+  id.rs / job.rs   # JobId / EditorJob trait
+  spec.rs          # EditorJobSpec
+  limits.rs        # 类别并发配额
+  mutex_group.rs   # 互斥组 authority
   cancellation_token.rs
   ticket.rs        # JobTicket 推拉双态
   pump.rs          # bus 回流泵（JobEvent 折算）
-  event.rs         # 可序列化 JobEvent 消息族
+  event.rs / event_sink.rs # JobEvent 消息族与回流 sink
   progress.rs      # M3 进度中心数据源
+  shutdown.rs      # deadline 与未竟 job 清单
+  test_support.rs / tests/ # 夹具与契约测试
 ```
 
 `EditorContext`（01）持 `jobs: EditorJobSystem` 服务位。
@@ -235,10 +254,10 @@ zircon_editor/src/core/jobs/
   Editor13 [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)和PERF-MVP-557。
 - 2026-07-22 Welcome probe准入补充：PERF-MVP-559要求draft input debounce同时有max feedback latency，queued stale generation在I/O前supersede，同target共享ticket；Editor14把probe计入submit entry+draft bytes+oldest-age预算，禁止取消token后仍无界排队。语义owner见Editor10 [open failure](10/failure-2026-07-22-welcome-project-probe-admission-storm.md)。
 
-## Code Review 建议 (2026-07-31)
+## Code Review 同步结论 (2026-08-01)
 
-### 与代码现状不符，需修订
+### 已同步到主计划
 
-- 「架构设计 §模块布局」列出 `core/jobs/` 为 `mod.rs / system/ / spec.rs / category.rs / cancellation_token.rs / ticket.rs / pump.rs / event.rs / progress.rs` 九项。当前实读已扩展到更细的拆分：除计划所列外还有 `context.rs`（`JobCtx` owner）、`error.rs`（`JobError`）、`id.rs`（`JobId`）、`job.rs`（`EditorJob` trait）、`limits.rs`（类别配额表，对应目标 3）、`mutex_group.rs`（`MutexGroup`，对应目标 3）、`shutdown.rs`（对应目标 5 `shutdown(deadline)`）、`event_sink.rs`、`test_support.rs`，且 `tests/` 已含 `admission_scaling_contract.rs`、`progress_contract.rs`（front-matter tests 字段只列到 `scheduling/pump/background_storm/thread_ownership` 四项）。模块布局图与 front-matter tests 清单的正文引用宜同步为当前拆分，避免读者按九项结构核对时误判 `limits.rs`/`mutex_group.rs`/`shutdown.rs` 为缺失。这些新增文件恰好证明目标 3（类别配额/互斥）与目标 5（收尾协议）已落地为独立 owner，与产出记录「M3.2 关停 deadline/未竟清单已完成」一致。（注：front-matter 本身不改，仅提示正文与之对齐。）
+- `implementation_files`、tests 清单与模块布局已补齐 `context/error/id/job/limits/mutex_group/shutdown/event_sink/test_support` 等当前 owner，以及 `admission_scaling_contract`、`progress_contract`；目标 3 与目标 5 的独立 authority 不再被主计划误示为缺失。
 
 - 2026-07-31 retained progress adapter补证：`primary_snapshot()`已把全active job clone降为一项，但stable tick仍clone label/message、format task id/detail并调用setter；setter为比较又读取owned current status。Editor14按PERF-MVP-017发布immutable primary snapshot+generation，EditorUI08只在generation变化时投影，100K stable ticks的snapshot/String/format/setter/invalidation均为0。证据见`../../performance/01/2026-07-31-editor-retained-tick-projection-adapters-current-review.md`。

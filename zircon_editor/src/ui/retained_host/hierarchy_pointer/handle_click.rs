@@ -11,6 +11,7 @@ impl HierarchyPointerBridge {
         &mut self,
         point: UiPoint,
     ) -> Result<HierarchyPointerDispatch, String> {
+        self.refresh_row_metrics();
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
         match route.as_ref() {
             Some(HierarchyPointerRoute::Node { item_index, .. }) => {

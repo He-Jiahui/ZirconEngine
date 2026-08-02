@@ -11,6 +11,7 @@ use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::project::project_root_path;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
+use super::super::project_access::percent_encode_diagnostic_token;
 use super::common::{open_view, scene_effects, scene_intent_event};
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_menu_action(
@@ -32,18 +33,22 @@ pub(super) fn execute_menu_action(
                 ],
             })
         }
-        MenuAction::OpenScene | MenuAction::CreateScene => {
-            shell
-                .state
-                .set_status_line("Scene open/create workflow is not wired yet");
-            Ok(ExecutionOutcome {
-                changed: false,
-                effects: vec![
-                    EditorEventEffect::PresentationChanged,
-                    EditorEventEffect::ReflectionChanged,
-                ],
-            })
-        }
+        MenuAction::OpenScene => Ok(ExecutionOutcome {
+            changed: false,
+            effects: vec![
+                EditorEventEffect::OpenScenePickerRequested,
+                EditorEventEffect::PresentationChanged,
+                EditorEventEffect::ReflectionChanged,
+            ],
+        }),
+        MenuAction::CreateScene => Ok(ExecutionOutcome {
+            changed: false,
+            effects: vec![
+                EditorEventEffect::CreateScenePickerRequested,
+                EditorEventEffect::PresentationChanged,
+                EditorEventEffect::ReflectionChanged,
+            ],
+        }),
         MenuAction::SaveProject => {
             let path = PathBuf::from(shell.state.snapshot().project_path);
             let transactions = shell.state.transactions();
@@ -160,6 +165,31 @@ pub(super) fn execute_menu_action(
                 ],
             })
         }
+        MenuAction::ClearConsole => Ok(ExecutionOutcome {
+            changed: shell.state.clear_console_history(),
+            effects: vec![EditorEventEffect::PresentationChanged],
+        }),
+        MenuAction::SetConsoleMessageFilter(filter) => Ok(ExecutionOutcome {
+            changed: shell.state.set_console_message_filter(*filter),
+            effects: vec![EditorEventEffect::PresentationChanged],
+        }),
+        MenuAction::SelectPlayMode(kind) => {
+            let changed = controller.play_sessions().set_preferred_kind(*kind);
+            let label = match kind {
+                PlayKind::Play => "Play In Editor",
+                PlayKind::Simulate => "Simulate",
+            };
+            shell
+                .state
+                .set_status_line(format!("Run mode set to {label}"));
+            Ok(ExecutionOutcome {
+                changed,
+                effects: vec![
+                    EditorEventEffect::PresentationChanged,
+                    EditorEventEffect::ReflectionChanged,
+                ],
+            })
+        }
         MenuAction::EnterPlayMode => {
             let project_root = project_root_path(&shell.state.snapshot().project_path).ok();
             let scene_source = shell
@@ -169,8 +199,9 @@ pub(super) fn execute_menu_action(
                 .and_then(|scene| PlaySceneSource::from_world(&scene))?;
             let changed = shell.state.enter_play_mode()?;
             if changed {
+                let play_kind = controller.play_sessions().preferred_kind();
                 match controller.play_sessions().request_play(
-                    PlayStartRequest::immediate(PlayKind::Play, project_root.as_deref())
+                    PlayStartRequest::immediate(play_kind, project_root.as_deref())
                         .with_scene_source(scene_source),
                 ) {
                     Ok(transition) => {
@@ -290,9 +321,9 @@ fn project_save_started_diagnostic(
     pre_save_dirty_generation: u64,
     save_token_generation: u64,
 ) -> String {
+    let project = percent_encode_diagnostic_token(&path.to_string_lossy());
     format!(
-        "editor_project_save result=started project={} pre_save_dirty={pre_save_dirty} pre_save_dirty_generation={pre_save_dirty_generation} save_token_generation={save_token_generation}",
-        path.display()
+        "editor_project_save result=started project={project} pre_save_dirty={pre_save_dirty} pre_save_dirty_generation={pre_save_dirty_generation} save_token_generation={save_token_generation}",
     )
 }
 
@@ -306,9 +337,9 @@ fn project_save_completed_diagnostic(
     let persisted_generation = persisted_generation
         .map(|generation| generation.to_string())
         .unwrap_or_else(|| "unavailable".to_string());
+    let project = percent_encode_diagnostic_token(&path.to_string_lossy());
     format!(
-        "editor_project_save result=completed project={} pre_save_dirty_generation={pre_save_dirty_generation} save_token_generation={save_token_generation} persisted_generation={persisted_generation} save_mark={save_mark:?}",
-        path.display()
+        "editor_project_save result=completed project={project} pre_save_dirty_generation={pre_save_dirty_generation} save_token_generation={save_token_generation} persisted_generation={persisted_generation} save_mark={save_mark:?}",
     )
 }
 
@@ -317,10 +348,8 @@ fn project_save_failed_diagnostic(
     phase: &str,
     error: &impl std::fmt::Display,
 ) -> String {
-    format!(
-        "editor_project_save result=failed project={} phase={phase} error={error}",
-        path.display()
-    )
+    let project = percent_encode_diagnostic_token(&path.to_string_lossy());
+    format!("editor_project_save result=failed project={project} phase={phase} error={error}",)
 }
 
 #[cfg(test)]
@@ -336,26 +365,29 @@ mod tests {
 
     #[test]
     fn project_save_diagnostics_record_the_save_generation_lifecycle() {
-        let path = Path::new("C:/projects/f3-save");
+        let path = Path::new("C:/projects/f3 save#1");
         let started = project_save_started_diagnostic(path, true, 17, 17);
         let completed = project_save_completed_diagnostic(
             path,
             17,
             17,
-            Some(18),
+            Some(17),
             HistorySaveMarkOutcome::Marked,
         );
 
         assert!(started.contains("result=started"));
+        assert!(started.contains("project=C%3A%2Fprojects%2Ff3%20save%231"));
         assert!(started.contains("pre_save_dirty=true"));
         assert!(started.contains("pre_save_dirty_generation=17"));
         assert!(started.contains("save_token_generation=17"));
         assert!(completed.contains("result=completed"));
-        assert!(completed.contains("persisted_generation=18"));
+        assert!(completed.contains("project=C%3A%2Fprojects%2Ff3%20save%231"));
+        assert!(completed.contains("persisted_generation=17"));
         assert!(completed.contains("save_mark=Marked"));
 
         let failed = project_save_failed_diagnostic(path, "persist", "disk unavailable");
         assert!(failed.contains("result=failed"));
+        assert!(failed.contains("project=C%3A%2Fprojects%2Ff3%20save%231"));
         assert!(failed.contains("phase=persist"));
 
         let resolve_failure = project_save_failed_diagnostic(path, "resolve_scene", "no project");

@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use zircon_runtime_interface::ui::style::UiStyleColor;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolved_style_color(

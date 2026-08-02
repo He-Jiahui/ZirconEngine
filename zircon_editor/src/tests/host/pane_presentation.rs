@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde_json::json;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::diagnostics::{
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
     RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
@@ -8,9 +9,8 @@ use zircon_runtime::core::diagnostics::{
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
 use zircon_runtime::core::framework::render::{RenderCapabilitySummary, RenderStats};
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
@@ -29,14 +29,14 @@ use zircon_runtime_interface::ui::{
 
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
-use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME, module_descriptor};
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, document_pane, BuildExportPaneViewData,
-    BuildExportTargetViewData, ModulePluginStatusViewData, ModulePluginsPaneViewData,
-    PaneActionPresentation, PaneEmptyStatePresentation, PanePayload, PanePayloadBuildContext,
-    PanePresentation, PaneShellPresentation, PerformanceTimelineCaptureControlPayload,
+    BuildExportPaneViewData, BuildExportTargetViewData, ModulePluginStatusViewData,
+    ModulePluginsPaneViewData, PaneActionPresentation, PaneEmptyStatePresentation, PanePayload,
+    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
+    PerformanceTimelineCaptureControlPayload, build_pane_body_presentation, document_pane,
 };
 use crate::ui::workbench::layout::{
     ActivityWindowId, DocumentNode, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
@@ -44,8 +44,8 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry,
-    WelcomePaneSnapshot, WorkbenchSnapshot,
+    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntries,
+    SceneEntry, WelcomePaneSnapshot, WorkbenchSnapshot,
 };
 use crate::ui::workbench::startup::EditorSessionMode;
 use crate::ui::workbench::view::{
@@ -94,20 +94,21 @@ fn pane_descriptor(descriptor_id: &str) -> ViewDescriptor {
 
 fn editor_data_fixture() -> EditorDataSnapshot {
     EditorDataSnapshot {
-        scene_entries: vec![
-            SceneEntry {
-                id: 7,
-                name: "Root".to_string(),
-                depth: 0,
-                selected: true,
-            },
-            SceneEntry {
-                id: 8,
-                name: "Camera".to_string(),
-                depth: 1,
-                selected: false,
-            },
-        ],
+        scene_entries: SceneEntries::from_entries(
+            vec![
+                SceneEntry {
+                    id: 7,
+                    name: "Root".to_string(),
+                    depth: 0,
+                },
+                SceneEntry {
+                    id: 8,
+                    name: "Camera".to_string(),
+                    depth: 1,
+                },
+            ],
+            [7],
+        ),
         inspector: Some(InspectorSnapshot {
             id: 7,
             name: "Root".to_string(),
@@ -116,6 +117,7 @@ fn editor_data_fixture() -> EditorDataSnapshot {
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),
+        console_output: "Console ready".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
@@ -143,16 +145,18 @@ fn editor_data_with_drawer_fixture() -> EditorDataSnapshot {
                 component_id: "weather.Component.CloudLayer".to_string(),
                 display_name: "Cloud Layer".to_string(),
                 plugin_id: "weather".to_string(),
-                drawer_available: true,
-                drawer_ui_document: Some(
+                customization_available: true,
+                customization_ui_document: Some(
                     "asset://weather/editor/cloud_layer.inspector.zui".to_string(),
                 ),
-                drawer_controller: Some("weather.editor.CloudLayerInspectorController".to_string()),
-                drawer_template_id: Some("weather.cloud_layer.inspector".to_string()),
-                drawer_data_root: Some(
+                customization_controller: Some(
+                    "weather.editor.CloudLayerInspectorController".to_string(),
+                ),
+                customization_template_id: Some("weather.cloud_layer.inspector".to_string()),
+                customization_data_root: Some(
                     "inspector.plugin_components.weather.Component.CloudLayer".to_string(),
                 ),
-                drawer_bindings: vec!["weather.cloud_layer.refresh".to_string()],
+                customization_bindings: vec!["weather.cloud_layer.refresh".to_string()],
                 diagnostic: None,
                 properties: Vec::new(),
             });
@@ -172,6 +176,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         scene_entries: editor_data_fixture().scene_entries,
         inspector: editor_data_fixture().inspector,
         status_line: editor_data_fixture().status_line,
+        console_output: editor_data_fixture().console_output,
         status_task_progress: editor_data_fixture().status_task_progress,
         hovered_axis: editor_data_fixture().hovered_axis,
         viewport_size: editor_data_fixture().viewport_size,
@@ -559,18 +564,26 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     payload.animation_status,
                     "Animation: enabled (graphs on, state machines on)"
                 );
-                assert!(payload
-                    .detail_items
-                    .contains(&"Virtual Geometry Debug: available".to_string()));
-                assert!(payload
-                    .detail_items
-                    .contains(&"Hybrid GI active probes: 4".to_string()));
-                assert!(payload
-                    .detail_items
-                    .contains(&"Profiling: active (1 frames, 1 spans, 1 counters)".to_string()));
-                assert!(payload
-                    .detail_items
-                    .contains(&"Profiling over-budget frames: 1".to_string()));
+                assert!(
+                    payload
+                        .detail_items
+                        .contains(&"Virtual Geometry Debug: available".to_string())
+                );
+                assert!(
+                    payload
+                        .detail_items
+                        .contains(&"Hybrid GI active probes: 4".to_string())
+                );
+                assert!(
+                    payload
+                        .detail_items
+                        .contains(&"Profiling: active (1 frames, 1 spans, 1 counters)".to_string())
+                );
+                assert!(
+                    payload
+                        .detail_items
+                        .contains(&"Profiling over-budget frames: 1".to_string())
+                );
                 assert_eq!(
                     payload.ui_debug_reflector_summary,
                     "UI Debug Reflector: no active surface snapshot"
@@ -579,9 +592,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     payload.ui_debug_reflector_details,
                     vec!["Waiting for Runtime Diagnostics to receive a UiSurfaceDebugSnapshot"]
                 );
-                assert!(payload
-                    .ui_debug_reflector_export_status
-                    .contains("Export unavailable"));
+                assert!(
+                    payload
+                        .ui_debug_reflector_export_status
+                        .contains("Export unavailable")
+                );
                 assert!(payload.ui_debug_reflector_overlay_primitives.is_empty());
                 assert!(!payload.ui_debug_reflector_has_active_snapshot);
             }
@@ -614,11 +629,13 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                         action_id: "workbench.performance_timeline.capture.stop".to_string(),
                         enabled: true,
                     }));
-                assert!(payload
-                    .capture_controls
-                    .iter()
-                    .any(|control| control.action_id
-                        == "workbench.performance_timeline.report.export"));
+                assert!(
+                    payload
+                        .capture_controls
+                        .iter()
+                        .any(|control| control.action_id
+                            == "workbench.performance_timeline.report.export")
+                );
             }
             ("editor.module_plugins", PanePayload::ModulePluginsV1(payload)) => {
                 assert_eq!(payload.diagnostics, "plugin catalog ready");
@@ -703,47 +720,65 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
         payload.ui_debug_reflector_summary,
         "UI Debug Reflector: 2 nodes, 3 commands, schema v1"
     );
-    assert!(payload
-        .ui_debug_reflector_nodes
-        .iter()
-        .any(|node| node.contains("runtime/root/live_button") && node.contains("node=2")));
-    assert!(payload
-        .ui_debug_reflector_details
-        .iter()
-        .any(|detail| detail.contains("Selected: runtime/root/live_button")));
-    assert!(payload
-        .ui_debug_reflector_sections
-        .iter()
-        .any(|line| line == "Layout Engine:"));
-    assert!(payload
-        .ui_debug_reflector_sections
-        .iter()
-        .any(|line| line == "Canvas Layers:"));
-    assert!(payload
-        .ui_debug_reflector_sections
-        .iter()
-        .any(|line| line == "  parent=1 layer=0 z=1 children=[2]"));
-    assert!(payload
-        .ui_debug_reflector_sections
-        .iter()
-        .any(|line| line == "Pipeline:"));
-    assert!(payload
-        .ui_debug_reflector_sections
-        .iter()
-        .any(|line| line == "ECS Projection:"));
-    assert!(payload
-        .ui_debug_reflector_sections
-        .iter()
-        .any(|line| line == "  selected: taffy=1 zircon=1"));
+    assert!(
+        payload
+            .ui_debug_reflector_nodes
+            .iter()
+            .any(|node| node.contains("runtime/root/live_button") && node.contains("node=2"))
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_details
+            .iter()
+            .any(|detail| detail.contains("Selected: runtime/root/live_button"))
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_sections
+            .iter()
+            .any(|line| line == "Layout Engine:")
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_sections
+            .iter()
+            .any(|line| line == "Canvas Layers:")
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_sections
+            .iter()
+            .any(|line| line == "  parent=1 layer=0 z=1 children=[2]")
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_sections
+            .iter()
+            .any(|line| line == "Pipeline:")
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_sections
+            .iter()
+            .any(|line| line == "ECS Projection:")
+    );
+    assert!(
+        payload
+            .ui_debug_reflector_sections
+            .iter()
+            .any(|line| line == "  selected: taffy=1 zircon=1")
+    );
     assert!(payload.ui_debug_reflector_sections.iter().any(|line| {
         line.contains("node=2")
             && line.contains("family=Overlay")
             && line.contains("selected=Zircon")
             && line.contains("reason=ZirconOwnedSemantics")
     }));
-    assert!(payload
-        .ui_debug_reflector_export_status
-        .contains("JSON export ready"));
+    assert!(
+        payload
+            .ui_debug_reflector_export_status
+            .contains("JSON export ready")
+    );
     assert_eq!(payload.ui_debug_reflector_overlay_primitives.len(), 1);
     assert_eq!(
         payload.ui_debug_reflector_overlay_primitives[0].kind,
@@ -753,7 +788,7 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
 }
 
 #[test]
-fn inspector_payload_preserves_component_drawer_template_metadata() {
+fn inspector_payload_preserves_inspector_customization_template_metadata() {
     let chrome = EditorChromeSnapshot {
         inspector: editor_data_with_drawer_fixture().inspector,
         ..chrome_fixture()
@@ -771,18 +806,21 @@ fn inspector_payload_preserves_component_drawer_template_metadata() {
         .expect("drawer component projected");
 
     assert_eq!(
-        component.drawer_ui_document.as_deref(),
+        component.customization_ui_document.as_deref(),
         Some("asset://weather/editor/cloud_layer.inspector.zui")
     );
     assert_eq!(
-        component.drawer_controller.as_deref(),
+        component.customization_controller.as_deref(),
         Some("weather.editor.CloudLayerInspectorController")
     );
     assert_eq!(
-        component.drawer_template_id.as_deref(),
+        component.customization_template_id.as_deref(),
         Some("weather.cloud_layer.inspector")
     );
-    assert_eq!(component.drawer_bindings, ["weather.cloud_layer.refresh"]);
+    assert_eq!(
+        component.customization_bindings,
+        ["weather.cloud_layer.refresh"]
+    );
 }
 
 #[test]

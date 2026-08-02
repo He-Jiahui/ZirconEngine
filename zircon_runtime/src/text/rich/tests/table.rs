@@ -9,7 +9,7 @@ fn text_rich_bbcode_table_emits_row_major_cell_ranges() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "namevalue");
+    assert_eq!(parsed.text.as_ref(), "namevalue");
     assert_eq!(parsed.tables.len(), 1);
     let table = &parsed.tables[0];
     assert_eq!(table.byte_range, (0, 9));
@@ -29,7 +29,7 @@ fn text_rich_bbcode_table_is_a_block_between_surrounding_text() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "before\nAB\nafter");
+    assert_eq!(parsed.text.as_ref(), "before\nAB\nafter");
     assert_eq!(parsed.tables[0].byte_range, (7, 9));
     assert_eq!(parsed.tables[0].cells[0].byte_range, (7, 8));
     assert_eq!(parsed.tables[0].cells[1].byte_range, (8, 9));
@@ -50,7 +50,7 @@ fn text_rich_bbcode_table_clamps_hostile_column_count() {
 fn text_rich_bbcode_cell_outside_table_degrades_to_inner_text() {
     let parsed = parse_rich_text("a[cell]safe[/cell]b", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "asafeb");
+    assert_eq!(parsed.text.as_ref(), "asafeb");
     assert!(parsed.tables.is_empty());
 }
 

@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::{
@@ -51,6 +53,211 @@ fn report_owner_mutation_refreshes_a_frozen_projection() {
             "native plugin refreshable: collector I/O lane is unavailable".to_owned(),
         ]
     );
+}
+
+#[test]
+fn report_container_mutations_refresh_the_frozen_projection_generation() {
+    let mut report = projection_fixture(1, 0, 1);
+    let plugin_id = "projection_0000";
+
+    assert!(report.projection().is_loaded(plugin_id));
+    assert_eq!(report.projection().package_manifests().len(), 1);
+
+    let loaded = report.take_loaded();
+    assert_eq!(loaded.len(), 1);
+    assert!(!report.projection().is_loaded(plugin_id));
+    assert_eq!(report.projection().package_manifests().len(), 1);
+
+    let discovered = report.take_discovered();
+    assert_eq!(discovered.len(), 1);
+    assert!(report.projection().package_manifests().is_empty());
+
+    report.restore_discovered(discovered);
+    report.push_loaded(loaded.into_iter().next().expect("one loaded plugin"));
+
+    let refreshed = report.projection();
+    assert!(refreshed.is_loaded(plugin_id));
+    assert_eq!(refreshed.package_manifests().len(), 1);
+    assert!(!refreshed.diagnostics_for_plugin(plugin_id).is_empty());
+}
+
+#[test]
+fn native_report_resolves_plugin_shader_module_text_before_runtime_registration() {
+    let package_root = std::env::temp_dir().join(format!(
+        "zircon_native_shader_module_projection_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should follow the epoch")
+            .as_nanos()
+    ));
+    let shader_path = package_root.join("shaders").join("fixture.wgsl");
+    fs::create_dir_all(shader_path.parent().expect("shader parent"))
+        .expect("create package shader directory");
+    fs::write(
+        &shader_path,
+        "fn fixture_plugin_lighting() -> vec3f { return vec3f(0.1, 0.2, 0.3); }",
+    )
+    .expect("write plugin shader source");
+    let manifest = PluginPackageManifest::new("shader_fixture", "Shader Fixture")
+        .with_runtime_module(PluginModuleManifest::runtime(
+            "shader_fixture.runtime",
+            "zircon_plugin_shader_fixture_runtime",
+        ))
+        .with_shader_module("zircon_fixture::lighting", "shaders/fixture.wgsl");
+    let report = NativePluginLoadReport {
+        discovered: vec![NativePluginCandidate {
+            plugin_id: "shader_fixture".to_string(),
+            package_manifest: manifest,
+            manifest_path: package_root.join("plugin.toml"),
+            library_path: package_root.join("native").join("shader_fixture.dll"),
+        }],
+        ..Default::default()
+    };
+
+    let registrations = report.runtime_plugin_registration_reports();
+
+    assert_eq!(registrations.len(), 1);
+    assert!(registrations[0].diagnostics.is_empty());
+    let sources = registrations[0].extensions.shader_module_sources();
+    assert_eq!(sources.len(), 1);
+    assert_eq!(sources[0].owner_id, "shader_fixture");
+    assert_eq!(sources[0].import_path, "zircon_fixture::lighting");
+    assert!(sources[0].source.contains("fixture_plugin_lighting"));
+    assert_eq!(
+        sources[0].content_hash,
+        blake3::hash(sources[0].source.as_bytes())
+            .to_hex()
+            .to_string()
+    );
+    let _ = fs::remove_dir_all(package_root);
+}
+
+#[test]
+fn native_report_defers_missing_shader_module_diagnostics_until_runtime_registration() {
+    let package_root = std::env::temp_dir().join(format!(
+        "zircon_native_shader_module_missing_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should follow the epoch")
+            .as_nanos()
+    ));
+    let manifest = PluginPackageManifest::new("shader_missing", "Shader Missing")
+        .with_runtime_module(PluginModuleManifest::runtime(
+            "shader_missing.runtime",
+            "zircon_plugin_shader_missing_runtime",
+        ))
+        .with_shader_module("zircon_missing::lighting", "shaders/missing.wgsl");
+    let report = NativePluginLoadReport {
+        discovered: vec![NativePluginCandidate {
+            plugin_id: "shader_missing".to_string(),
+            package_manifest: manifest,
+            manifest_path: package_root.join("plugin.toml"),
+            library_path: package_root.join("native").join("shader_missing.dll"),
+        }],
+        ..Default::default()
+    };
+
+    assert!(report.diagnostics_for_plugin("shader_missing").is_empty());
+    let registrations = report.runtime_plugin_registration_reports();
+
+    assert_eq!(registrations.len(), 1);
+    assert!(registrations[0]
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("cannot resolve source")));
+}
+
+#[test]
+fn native_report_rejects_shader_module_catalogs_above_the_package_budget() {
+    let mut manifest = PluginPackageManifest::new("shader_budget", "Shader Budget")
+        .with_runtime_module(PluginModuleManifest::runtime(
+            "shader_budget.runtime",
+            "zircon_plugin_shader_budget_runtime",
+        ));
+    for index in 0..65 {
+        manifest = manifest.with_shader_module(
+            format!("zircon_budget::module_{index}"),
+            format!("shaders/module_{index}.wgsl"),
+        );
+    }
+    let report = NativePluginLoadReport {
+        discovered: vec![NativePluginCandidate {
+            plugin_id: "shader_budget".to_string(),
+            package_manifest: manifest,
+            manifest_path: std::env::temp_dir()
+                .join("zircon_native_shader_module_budget")
+                .join("plugin.toml"),
+            library_path: std::env::temp_dir()
+                .join("zircon_native_shader_module_budget")
+                .join("native")
+                .join("shader_budget.dll"),
+        }],
+        ..Default::default()
+    };
+
+    let registrations = report.runtime_plugin_registration_reports();
+
+    assert_eq!(registrations.len(), 1);
+    assert!(registrations[0]
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("above the 64 module limit")));
+}
+
+#[test]
+fn native_report_rejects_shader_module_sources_above_the_total_byte_budget() {
+    const MODULE_BYTES: usize = 4 * 1024 * 1024;
+
+    let package_root = std::env::temp_dir().join(format!(
+        "zircon_native_shader_module_total_budget_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should follow the epoch")
+            .as_nanos()
+    ));
+    let shader_directory = package_root.join("shaders");
+    fs::create_dir_all(&shader_directory).expect("create package shader directory");
+    let mut manifest = PluginPackageManifest::new("shader_total_budget", "Shader Total Budget")
+        .with_runtime_module(PluginModuleManifest::runtime(
+            "shader_total_budget.runtime",
+            "zircon_plugin_shader_total_budget_runtime",
+        ));
+    for index in 0..5 {
+        let relative_path = format!("shaders/module_{index}.wgsl");
+        fs::write(
+            shader_directory.join(format!("module_{index}.wgsl")),
+            vec![b'x'; MODULE_BYTES],
+        )
+        .expect("write bounded fixture shader source");
+        manifest = manifest.with_shader_module(
+            format!("zircon_total_budget::module_{index}"),
+            relative_path,
+        );
+    }
+    let report = NativePluginLoadReport {
+        discovered: vec![NativePluginCandidate {
+            plugin_id: "shader_total_budget".to_string(),
+            package_manifest: manifest,
+            manifest_path: package_root.join("plugin.toml"),
+            library_path: package_root.join("native").join("shader_total_budget.dll"),
+        }],
+        ..Default::default()
+    };
+
+    let registrations = report.runtime_plugin_registration_reports();
+
+    let rejected_for_total_budget = registrations
+        .first()
+        .into_iter()
+        .flat_map(|registration| registration.diagnostics.iter())
+        .any(|diagnostic| diagnostic.contains("package shader-module budget"));
+    let registration_count = registrations.len();
+    let _ = fs::remove_dir_all(package_root);
+    assert_eq!(registration_count, 1);
+    assert!(rejected_for_total_budget);
 }
 
 #[test]
@@ -156,6 +363,22 @@ fn native_manifest_merge_preserves_optional_feature_declarations() {
         .collect::<Vec<_>>();
     assert!(feature_ids.contains(&"split_native.runtime_tools"));
     assert!(feature_ids.contains(&"split_native.editor_tools"));
+}
+
+#[test]
+fn projection_builder_uses_a_linear_package_index_and_sorts_once_at_output() {
+    let source = include_str!("manifests.rs");
+    let builder = source
+        .split_once("struct ManifestProjectionBuilder")
+        .expect("manifest projection builder should exist")
+        .1
+        .split_once("struct ManifestAccumulator")
+        .expect("manifest accumulator should follow the builder")
+        .0;
+
+    assert!(builder.contains("manifest_indices: HashMap<String, usize>"));
+    assert!(!builder.contains("manifests: BTreeMap"));
+    assert_eq!(builder.matches("sort_by").count(), 1);
 }
 
 #[test]
@@ -275,6 +498,127 @@ fn native_load_report_projects_feature_extension_packages_as_runtime_feature_reg
             .as_deref(),
         Some("sound_timeline_animation_track")
     );
+}
+
+#[test]
+fn native_feature_extension_registers_package_shader_modules_with_its_runtime_feature() {
+    let package_root = std::env::temp_dir().join(format!(
+        "zircon_native_feature_extension_shader_module_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should follow the epoch")
+            .as_nanos()
+    ));
+    let shader_path = package_root.join("shaders").join("feature.wgsl");
+    fs::create_dir_all(shader_path.parent().expect("shader parent"))
+        .expect("create package shader directory");
+    fs::write(
+        &shader_path,
+        "fn feature_extension_lighting() -> vec3f { return vec3f(0.2, 0.4, 0.6); }",
+    )
+    .expect("write feature-extension shader source");
+    let feature = PluginFeatureBundleManifest::new(
+        "sound.timeline_animation_track",
+        "Sound Timeline Animation Track",
+        "sound",
+    )
+    .with_runtime_module(PluginModuleManifest::runtime(
+        "sound.timeline_animation_track.runtime",
+        "zircon_plugin_sound_timeline_animation_runtime",
+    ));
+    let report = NativePluginLoadReport {
+        discovered: vec![NativePluginCandidate {
+            plugin_id: "sound_timeline_animation_track".to_string(),
+            package_manifest: PluginPackageManifest::new(
+                "sound_timeline_animation_track",
+                "Sound Timeline Animation Track Provider",
+            )
+            .as_feature_extension()
+            .with_feature_extension(feature)
+            .with_shader_module("zircon_fixture::feature_extension", "shaders/feature.wgsl"),
+            manifest_path: package_root.join("plugin.toml"),
+            library_path: package_root
+                .join("native")
+                .join("sound_timeline_animation_track.dll"),
+        }],
+        ..Default::default()
+    };
+
+    let feature_reports = report.runtime_plugin_feature_registration_reports();
+
+    assert_eq!(feature_reports.len(), 1);
+    assert!(feature_reports[0].diagnostics.is_empty());
+    assert_eq!(
+        feature_reports[0].extensions.shader_module_sources().len(),
+        1,
+        "feature-extension package shader sources must reach the shared runtime owner"
+    );
+    let source = &feature_reports[0].extensions.shader_module_sources()[0];
+    assert_eq!(source.owner_id, "sound_timeline_animation_track");
+    assert_eq!(source.import_path, "zircon_fixture::feature_extension");
+    assert!(source.source.contains("feature_extension_lighting"));
+    let _ = fs::remove_dir_all(package_root);
+}
+
+#[test]
+fn native_optional_feature_registers_package_shader_modules_without_a_root_runtime_module() {
+    let package_root = std::env::temp_dir().join(format!(
+        "zircon_native_optional_feature_shader_module_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should follow the epoch")
+            .as_nanos()
+    ));
+    let shader_path = package_root.join("shaders").join("optional_feature.wgsl");
+    fs::create_dir_all(shader_path.parent().expect("shader parent"))
+        .expect("create package shader directory");
+    fs::write(
+        &shader_path,
+        "fn optional_feature_lighting() -> vec3f { return vec3f(0.1, 0.3, 0.5); }",
+    )
+    .expect("write optional-feature shader source");
+    let feature = PluginFeatureBundleManifest::new(
+        "optional_shader_fixture.runtime",
+        "Optional Shader Fixture",
+        "optional_shader_fixture",
+    )
+    .with_runtime_module(PluginModuleManifest::runtime(
+        "optional_shader_fixture.runtime.module",
+        "zircon_plugin_optional_shader_fixture_runtime",
+    ));
+    let report = NativePluginLoadReport {
+        discovered: vec![NativePluginCandidate {
+            plugin_id: "optional_shader_fixture".to_string(),
+            package_manifest: PluginPackageManifest::new(
+                "optional_shader_fixture",
+                "Optional Shader Fixture",
+            )
+            .with_optional_feature(feature)
+            .with_shader_module(
+                "zircon_fixture::optional_feature",
+                "shaders/optional_feature.wgsl",
+            ),
+            manifest_path: package_root.join("plugin.toml"),
+            library_path: package_root
+                .join("native")
+                .join("optional_shader_fixture.dll"),
+        }],
+        ..Default::default()
+    };
+
+    assert!(report.runtime_plugin_registration_reports().is_empty());
+    let feature_reports = report.runtime_plugin_feature_registration_reports();
+
+    assert_eq!(feature_reports.len(), 1);
+    assert!(feature_reports[0].diagnostics.is_empty());
+    let sources = feature_reports[0].extensions.shader_module_sources();
+    assert_eq!(sources.len(), 1);
+    assert_eq!(sources[0].owner_id, "optional_shader_fixture");
+    assert_eq!(sources[0].import_path, "zircon_fixture::optional_feature");
+    assert!(sources[0].source.contains("optional_feature_lighting"));
+    let _ = fs::remove_dir_all(package_root);
 }
 
 #[test]
@@ -419,6 +763,7 @@ fn native_load_projection_preserves_order_and_projection_statistics() {
 
             assert_eq!(stats.projection_builds, 1);
             assert_eq!(stats.manifest_sources_scanned, package_count * 4);
+            assert_eq!(stats.manifest_package_index_lookups, package_count * 4);
             assert_eq!(stats.packages_projected, package_count);
             assert_eq!(stats.features_projected, package_count * feature_count);
             assert_eq!(stats.loaded_plugins_scanned, package_count);

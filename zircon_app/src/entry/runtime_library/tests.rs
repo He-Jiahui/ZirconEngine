@@ -6,9 +6,9 @@ use super::library_path::{
     runtime_library_path_for_executable,
 };
 use super::loaded_runtime::{
-    runtime_api_field_available, runtime_api_required_layout_available,
+    LoadedRuntime, runtime_api_field_available, runtime_api_required_layout_available,
     runtime_api_supports_viewport_surface_present, runtime_library_startup_error_for_request,
-    validate_runtime_api_pointer, LoadedRuntime,
+    validate_runtime_api_pointer,
 };
 use zircon_runtime_interface::runtime_api::{
     ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeProfileControlFnV1, ZrRuntimeTickFrameFnV2,
@@ -16,11 +16,11 @@ use zircon_runtime_interface::runtime_api::{
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV3, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationHandle,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
+    ZrRuntimeOperationStatusV2, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2,
+    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
 };
 
-use super::runtime_session::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_DELAY};
+use super::runtime_session::{MAX_HOST_RUNTIME_FRAME_DELAY, RuntimeFrameDemand};
 
 #[cfg(feature = "target-editor-host")]
 #[test]
@@ -37,9 +37,12 @@ fn editor_gateway_is_owned_by_session_gateway_instead_of_runtime_session() {
 
     assert!(runtime_session_source.contains("pub(crate) fn editor_gateway("));
     assert!(runtime_session_source.contains("SessionGateway::new("));
-    assert!(!runtime_session_source
-        .contains("impl zircon_editor::core::gateway::EditorRuntimeGateway for RuntimeSession"));
-    assert!(!runtime_session_source.contains("pub(crate) fn profile_control("));
+    assert!(runtime_session_source.contains("let owner: Arc<dyn Send + Sync> = self.clone();"));
+    assert!(runtime_session_source.contains("self.runtime().editor_gateway_api_table()"));
+    assert!(
+        !runtime_session_source
+            .contains("impl zircon_editor::core::gateway::EditorRuntimeGateway for RuntimeSession")
+    );
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -66,8 +69,17 @@ fn editor_gateway_api_table_strips_session_lifecycle_authority() {
         .split("impl Drop for RuntimeSession")
         .nth(1)
         .expect("RuntimeSession should own session teardown");
-    assert!(drop_body.contains("let destroy_session = self.runtime.destroy_session();"));
+    assert!(drop_body.contains("let destroy_session = self.runtime().destroy_session();"));
     assert!(drop_body.contains("destroy_session(self.handle)"));
+    assert!(drop_body.contains("self.teardown_failure_state.record(error);"));
+    assert!(drop_body.contains("ensure_status(destroy_status, \"destroy runtime session\")"));
+    assert!(runtime_session_source.contains("runtime: Option<LoadedRuntime>"));
+    assert!(drop_body.contains("if let Some(runtime) = self.runtime.take()"));
+    assert!(drop_body.contains("std::mem::forget(runtime)"));
+    assert!(
+        !drop_body.contains("let _ = self.unbind_viewport_surface"),
+        "RuntimeSession Drop must not discard surface-unbind failures"
+    );
 }
 
 unsafe extern "C" fn fake_subscribe_plugin_event(
@@ -107,12 +119,10 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
     use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
 
     let manifest = ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Navigation,
-            true,
-            false,
-        )
-        .with_target_modes([RuntimeTargetMode::EditorHost])],
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Navigation, true, false)
+                .with_target_modes([RuntimeTargetMode::EditorHost]),
+        ],
     };
     let runtime_registrations = crate::entry::first_party_runtime_plugin_registrations_for_manifest(
         RuntimeTargetMode::EditorHost,
@@ -164,7 +174,7 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
 #[test]
 fn runtime_library_path_uses_environment_override() {
     let previous = std::env::var_os("ZIRCON_RUNTIME_LIBRARY");
-    let expected = PathBuf::from("custom-runtime-library");
+    let expected = std::env::temp_dir().join("custom-runtime-library");
     std::env::set_var("ZIRCON_RUNTIME_LIBRARY", &expected);
 
     let actual = default_runtime_library_path().unwrap();
@@ -255,7 +265,7 @@ fn runtime_api_required_layout_must_cover_operation_harvest_field() {
 
 #[test]
 fn runtime_api_pointer_rejects_null_from_entry_symbol() {
-    let error = validate_runtime_api_pointer(core::ptr::null())
+    let error = unsafe { validate_runtime_api_pointer(core::ptr::null()) }
         .expect_err("null runtime API pointer should be rejected");
 
     assert_eq!(
@@ -265,54 +275,86 @@ fn runtime_api_pointer_rejects_null_from_entry_symbol() {
 }
 
 #[test]
+fn runtime_api_pointer_rejects_misaligned_table_before_reading_header() {
+    let alignment = core::mem::align_of::<ZrRuntimeApiV3>();
+    let storage = vec![0_u8; core::mem::size_of::<ZrRuntimeApiV3>() + alignment];
+    let aligned_offset = (alignment - (storage.as_ptr() as usize % alignment)) % alignment;
+    let misaligned = unsafe { storage.as_ptr().add(aligned_offset + 1) }.cast::<ZrRuntimeApiV3>();
+
+    let error = unsafe { validate_runtime_api_pointer(misaligned) }
+        .expect_err("misaligned runtime API table pointer should be rejected before dereference");
+
+    assert_eq!(
+        error.to_string(),
+        format!("runtime API table pointer is not aligned to {alignment} bytes")
+    );
+}
+
+#[test]
 fn runtime_api_pointer_rejects_version_mismatch_before_session_creation() {
     let api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3 + 1);
 
-    let error = validate_runtime_api_pointer(&api)
+    let error = unsafe { validate_runtime_api_pointer(&api) }
         .expect_err("unsupported runtime API table version should be rejected");
 
     assert_eq!(error.to_string(), "unsupported runtime API table version 4");
 }
 
 #[test]
-fn runtime_api_pointer_rejects_missing_required_functions_before_session_creation() {
+fn runtime_api_pointer_rejects_oversized_frozen_v3_table() {
     let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3);
-    api.create_session = None;
+    api.size_bytes += 1;
 
-    let error = validate_runtime_api_pointer(&api)
-        .expect_err("missing required runtime API functions should be rejected");
+    let error = unsafe { validate_runtime_api_pointer(&api) }
+        .expect_err("the frozen V3 table must not accept same-version extensions");
 
     assert_eq!(
         error.to_string(),
-        "runtime API table is missing required functions"
+        format!(
+            "runtime API table size {} does not match frozen v3 layout of {} bytes",
+            api.size_bytes,
+            core::mem::size_of::<ZrRuntimeApiV3>()
+        )
     );
 }
 
 #[test]
-fn runtime_api_pointer_rejects_missing_required_operation_functions() {
-    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3);
-    api.harvest_operation = None;
+fn runtime_api_pointer_names_every_missing_required_function() {
+    macro_rules! assert_missing_required_function {
+        ($($field:ident),+ $(,)?) => {
+            $(
+                let mut api = valid_runtime_api_table(
+                    zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3,
+                );
+                api.$field = None;
 
-    let error = validate_runtime_api_pointer(&api)
-        .expect_err("V3 runtime API must provide the operation lifecycle");
+                let error = unsafe { validate_runtime_api_pointer(&api) }
+                    .expect_err(concat!(stringify!($field), " must be required by V3"));
 
-    assert_eq!(
-        error.to_string(),
-        "runtime API table is missing required functions"
-    );
-}
+                assert_eq!(
+                    error.to_string(),
+                    concat!(
+                        "runtime API table is missing required function `",
+                        stringify!($field),
+                        "`",
+                    ),
+                );
+            )+
+        };
+    }
 
-#[test]
-fn runtime_api_pointer_rejects_missing_v3_tick_demand_function() {
-    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_API_VERSION_V3);
-    api.tick_frame = None;
-
-    let error = validate_runtime_api_pointer(&api)
-        .expect_err("V3 runtime API must provide frame-demand ticks");
-
-    assert_eq!(
-        error.to_string(),
-        "runtime API table is missing required functions"
+    assert_missing_required_function!(
+        create_session,
+        destroy_session,
+        handle_event,
+        capture_frame,
+        subscribe_plugin_event,
+        unsubscribe_plugin_event,
+        drain_plugin_events,
+        submit_operation,
+        poll_operation,
+        harvest_operation,
+        tick_frame,
     );
 }
 
@@ -322,9 +364,9 @@ fn runtime_session_does_not_recheck_required_v3_mirror_or_operation_capabilities
     let operation_source = include_str!("runtime_session/operation.rs");
 
     for forbidden in [
-        "let Some(subscribe) = self.runtime.subscribe_plugin_event()",
-        "let Some(unsubscribe) = self.runtime.unsubscribe_plugin_event()",
-        "let Some(drain) = self.runtime.drain_plugin_events()",
+        "let Some(subscribe) = self.runtime().subscribe_plugin_event()",
+        "let Some(unsubscribe) = self.runtime().unsubscribe_plugin_event()",
+        "let Some(drain) = self.runtime().drain_plugin_events()",
         "CapabilityMissing {\n                    capability: \"runtime.operation.submit\"",
         "CapabilityMissing {\n                    capability: \"runtime.operation.poll\"",
         "CapabilityMissing {\n                    capability: \"runtime.operation.harvest\"",
@@ -335,9 +377,9 @@ fn runtime_session_does_not_recheck_required_v3_mirror_or_operation_capabilities
         );
     }
     for forbidden in [
-        "let Some(submit) = self.runtime.submit_operation()",
-        "let Some(poll) = self.runtime.poll_operation()",
-        "let Some(harvest) = self.runtime.harvest_operation()",
+        "let Some(submit) = self.runtime().submit_operation()",
+        "let Some(poll) = self.runtime().poll_operation()",
+        "let Some(harvest) = self.runtime().harvest_operation()",
     ] {
         assert!(
             !operation_source.contains(forbidden),
@@ -376,7 +418,7 @@ fn runtime_library_hard_cuts_to_v3_wake_and_frame_demand_contract() {
     assert!(session.contains("unsupported runtime frame demand kind"));
     assert!(!session.contains("ZrRuntimeSessionConfigV1"));
 
-    let event_loop = runner.find("EventLoop::new()?").unwrap();
+    let event_loop = runner.find("EventLoop::new().map_err").unwrap();
     let proxy = runner.find("create_proxy()").unwrap();
     let session_create = runner
         .find("RuntimeSession::create_with_profile_and_project")
@@ -387,7 +429,7 @@ fn runtime_library_hard_cuts_to_v3_wake_and_frame_demand_contract() {
 #[test]
 fn runtime_frame_demand_checked_conversion_rejects_unknowns_and_clamps_delay() {
     use zircon_runtime_interface::{
-        ZrRuntimeFrameDemandV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+        ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1, ZrRuntimeFrameDemandV1,
     };
 
     assert_eq!(
@@ -408,20 +450,24 @@ fn runtime_frame_demand_checked_conversion_rejects_unknowns_and_clamps_delay() {
         kind: 99,
         delay_nanoseconds: 0,
     };
-    assert!(RuntimeFrameDemand::try_from(unknown)
-        .unwrap_err()
-        .to_string()
-        .contains("unsupported runtime frame demand kind 99"));
+    assert!(
+        RuntimeFrameDemand::try_from(unknown)
+            .unwrap_err()
+            .to_string()
+            .contains("unsupported runtime frame demand kind 99")
+    );
 
     let malformed = ZrRuntimeFrameDemandV1 {
         abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
         kind: ZR_RUNTIME_FRAME_DEMAND_AFTER_V1 - 1,
         delay_nanoseconds: Duration::from_millis(1).as_nanos() as u64,
     };
-    assert!(RuntimeFrameDemand::try_from(malformed)
-        .unwrap_err()
-        .to_string()
-        .contains("requires zero delay"));
+    assert!(
+        RuntimeFrameDemand::try_from(malformed)
+            .unwrap_err()
+            .to_string()
+            .contains("requires zero delay")
+    );
 }
 
 #[test]
@@ -435,7 +481,8 @@ fn runtime_session_destroys_before_releasing_host_wake_token() {
     let unregister = drop_body.find("wake_registration.unregister()").unwrap();
 
     assert!(destroy < unregister);
-    assert!(drop_body.contains("if destroy_status.is_ok()"));
+    assert!(drop_body.contains("match ensure_status(destroy_status, \"destroy runtime session\")"));
+    assert!(drop_body.contains("self.teardown_failure_state.record(error)"));
     assert!(drop_body.contains("std::mem::forget(wake_registration)"));
 }
 
@@ -754,8 +801,18 @@ unsafe extern "C" fn fake_submit_operation(
 unsafe extern "C" fn fake_poll_operation(
     _session: ZrRuntimeSessionHandle,
     _operation: ZrRuntimeOperationHandle,
-    _out_progress: *mut ZrOwnedByteBuffer,
+    out_status: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
+    unsafe {
+        out_status.write(ZrRuntimeOperationStatusV2::new(
+            ZrRuntimeOperationHandle::new(1),
+            zircon_runtime_interface::ZrRuntimeOperationPhase::Queued,
+            0,
+            1,
+            zircon_runtime_interface::ZrRuntimeOperationDetailKindV2::None,
+            0,
+        ));
+    }
     ZrStatus::ok()
 }
 

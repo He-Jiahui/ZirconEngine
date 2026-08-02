@@ -64,6 +64,9 @@ pub(crate) fn dispatch_input_event(
             dispatch_accessibility_input(surface, accessibility)
         }
     };
+    surface
+        .input
+        .append_deferred_focus_input_lifecycle(&mut result, usize::MAX);
     annotate_authoritative_input_dispatch(&mut result);
     Ok(result)
 }

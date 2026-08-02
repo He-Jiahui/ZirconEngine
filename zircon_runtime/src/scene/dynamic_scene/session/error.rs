@@ -23,4 +23,32 @@ pub enum RuntimeSessionArchiveError {
     EmptySlotId,
     #[error("runtime session slot id `{slot_id}` is not canonical; use `{canonical}`")]
     NonCanonicalSlotId { slot_id: String, canonical: String },
+    #[error(
+        "runtime session archive revision {artifact_revision} is older than committed lineage revision {committed_revision}"
+    )]
+    StaleArtifactRevision {
+        artifact_revision: u64,
+        committed_revision: u64,
+    },
+    #[error(
+        "runtime session archive path changed after save preparation (expected commit {expected_commit}, found {committed_commit})"
+    )]
+    StalePathCommit {
+        expected_commit: u64,
+        committed_commit: u64,
+    },
+    #[error(
+        "runtime session archive path write intent {write_generation} was superseded by {current_generation}"
+    )]
+    StalePathWrite {
+        write_generation: u64,
+        current_generation: u64,
+    },
+    #[error(
+        "runtime session archive artifact exceeds the {limit_bytes}-byte limit (found at least {estimated_bytes} bytes)"
+    )]
+    ArtifactTooLarge {
+        estimated_bytes: usize,
+        limit_bytes: usize,
+    },
 }

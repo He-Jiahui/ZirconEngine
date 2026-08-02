@@ -1,7 +1,7 @@
 use crate::project::RelPath;
 use crate::resource::AssetUuid;
 
-use super::{AssetRef, AssetRefError, validation::validate_sub_path};
+use super::{validation::validate_sub_path, AssetRef, AssetRefError};
 
 impl AssetRef {
     pub fn try_new(

@@ -1,19 +1,26 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::Arc;
 
 use super::render::ScreenSpaceUiTextBatch;
 use crate::core::math::UVec2;
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasAllocation, GlyphAtlasDirtyPage,
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageReservation,
-    GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasShelfAllocator,
+    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
+    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
+    GlyphAtlasShelfAllocator, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 use crate::text::sdf::{
-    SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams, SdfGlyphGenerationError,
+    SdfAtlasGlyphGenerationFailure, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams,
+    SdfGlyphGenerationError,
 };
 
+#[path = "sdf_atlas/generation_failures.rs"]
+mod generation_failures;
+#[path = "sdf_atlas/prepared_texts.rs"]
+mod prepared_texts;
 #[path = "sdf_atlas/text_keys.rs"]
 mod text_keys;
 
+use prepared_texts::PreparedSdfAtlasTexts;
 use text_keys::collect_sdf_atlas_text_keys;
 
 const SDF_ATLAS_SLOT_SIZE_PX: u32 = 64;
@@ -84,6 +91,9 @@ pub(super) struct ScreenSpaceUiSdfAtlas {
     cached_slots: Vec<SdfAtlasCachedSlot>,
     generation: u64,
     quality: SdfAtlasQuality,
+    prepared_texts: PreparedSdfAtlasTexts,
+    recorded_generation_failures: Option<Arc<[SdfAtlasGlyphGenerationFailure]>>,
+    generation_failures_by_slot: Vec<Option<SdfGlyphGenerationError>>,
     full_page_dirty_until_upload: bool,
     last_report: SdfAtlasCacheReport,
 }
@@ -132,12 +142,20 @@ impl ScreenSpaceUiSdfAtlas {
             cached_slots: Vec::new(),
             generation: 0,
             quality: SdfAtlasQuality::default(),
+            prepared_texts: PreparedSdfAtlasTexts::default(),
+            recorded_generation_failures: None,
+            generation_failures_by_slot: Vec::new(),
             full_page_dirty_until_upload: false,
             last_report: SdfAtlasCacheReport::default(),
         }
     }
 
     pub(super) fn prepare(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
+        if self.prepared_texts.matches(texts) {
+            self.last_report = stable_cache_report(&self.plan);
+            return;
+        }
+        self.prepared_texts.replace(texts);
         let (current_keys, run_keys) = collect_sdf_atlas_text_keys(texts);
         let mut next_plan = if current_keys.is_empty() {
             self.cached_slots.clear();
@@ -167,11 +185,15 @@ impl ScreenSpaceUiSdfAtlas {
         }
         self.last_report = cache_report_for_plan_transition(&self.plan, &next_plan);
         self.plan = next_plan;
+        self.recorded_generation_failures = None;
     }
 
     pub(super) fn invalidate_font_faces(&mut self) {
         self.plan = SdfAtlasPlan::default();
         self.cached_slots.clear();
+        self.prepared_texts.clear();
+        self.recorded_generation_failures = None;
+        self.generation_failures_by_slot.clear();
         self.full_page_dirty_until_upload = true;
         self.last_report = SdfAtlasCacheReport::default();
     }
@@ -190,30 +212,6 @@ impl ScreenSpaceUiSdfAtlas {
         self.last_report.clone()
     }
 
-    pub(super) fn record_generation_failures(
-        &mut self,
-        failures: &HashMap<SdfAtlasGlyphKey, SdfGlyphGenerationError>,
-    ) {
-        let slots = &self.plan.slots;
-        for run in &mut self.plan.runs {
-            run.glyph_generation_failures = run
-                .glyph_slot_indices
-                .iter()
-                .map(|slot_index| {
-                    slot_index
-                        .and_then(|slot_index| slots.get(slot_index))
-                        .and_then(|slot| failures.get(&slot.key))
-                        .copied()
-                })
-                .collect();
-            run.generation_failure_count = run
-                .glyph_generation_failures
-                .iter()
-                .filter(|failure| failure.is_some())
-                .count();
-        }
-    }
-
     pub(super) fn discard_cached_slots_not_in_texts(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
         let (current_keys, _) = collect_sdf_atlas_text_keys(texts);
         self.cached_slots
@@ -228,6 +226,21 @@ impl ScreenSpaceUiSdfAtlas {
     #[cfg(test)]
     pub(super) fn run_count(&self) -> usize {
         self.plan.runs.len()
+    }
+}
+
+fn stable_cache_report(plan: &SdfAtlasPlan) -> SdfAtlasCacheReport {
+    SdfAtlasCacheReport {
+        previous_slot_count: plan.slots.len(),
+        current_slot_count: plan.slots.len(),
+        retained_slot_count: plan.slots.len(),
+        stable_slot_count: plan.slots.len(),
+        relocated_slot_count: 0,
+        added_slot_count: 0,
+        evicted_slot_count: 0,
+        atlas_resized: false,
+        dirty_rect: None,
+        dirty_pages: Vec::new(),
     }
 }
 

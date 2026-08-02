@@ -21,10 +21,13 @@ pub(in crate::graphics::runtime::render_framework) fn bind_viewport_surface(
         .renderer
         .create_viewport_surface(descriptor)
         .map_err(render_framework_backend_error)?;
-    let record = state
-        .viewports
-        .get_mut(&viewport)
-        .expect("viewport checked above");
+    let record =
+        state
+            .viewports
+            .get_mut(&viewport)
+            .ok_or(RenderFrameworkError::UnknownViewport {
+                viewport: viewport.raw(),
+            })?;
     record.bind_surface(surface.into_backend_surface());
     Ok(())
 }

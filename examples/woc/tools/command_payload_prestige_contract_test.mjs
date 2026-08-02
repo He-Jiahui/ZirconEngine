@@ -23,7 +23,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 assert.deepEqual(payloads.entries.find((entry) => entry.id === 94), {
   id: 94,
   name: 'prestige',
@@ -39,9 +39,9 @@ assert.match(generated, /name: "prestige"/);
 assert.match(input, /\bPrestige\b/);
 assert.match(input, /empty_client_command\("prestige"\)/);
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('prestige command payload contract is complete\n');

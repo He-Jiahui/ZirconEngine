@@ -2,29 +2,32 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmRequest,
+    ShaderPassType, ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
 };
-use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
+use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
-use super::super::mesh_pass::MeshPassPipelineKind;
 use super::super::mesh_pipeline::{
     create_depth_prepass_mesh_pipeline, create_gbuffer_mesh_pipeline, create_mesh_pipeline,
     create_shadow_mesh_pipeline, create_taa_reactive_mask_mesh_pipeline,
     create_velocity_mesh_pipeline,
 };
 use super::create_forward_shadow_receiver_layout;
+use super::prewarm_manifest::{
+    pipeline_key_from_prewarm_request, pipeline_kind_from_prewarm_request,
+};
 
 pub(crate) fn validate_mesh_prewarm_request_render_pipeline(
     device: &wgpu::Device,
     pipeline_layout: &wgpu::PipelineLayout,
     request: &ShaderVariantPrewarmRequest,
+    source: &ShaderVariantPrewarmSource,
 ) -> Result<(), String> {
-    let pipeline_key = pipeline_key_from_prewarm_request(request);
+    let pipeline_key = pipeline_key_from_prewarm_request(request).map_err(str::to_string)?;
     let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-shader-prewarm-pipeline-validation-module"),
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(request.wgsl_source.as_str())),
+        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(source.wgsl_source.as_str())),
     });
     create_validation_pipeline(device, pipeline_layout, &shader, &pipeline_key, request);
     match pollster::block_on(error_scope.pop()) {
@@ -66,18 +69,20 @@ fn create_validation_pipeline(
             shader,
             wgpu::TextureFormat::Bgra8UnormSrgb,
             pipeline_key,
+            None,
         ),
         ShaderPassType::GBuffer => {
-            create_gbuffer_mesh_pipeline(device, pipeline_layout, shader, pipeline_key)
+            create_gbuffer_mesh_pipeline(device, pipeline_layout, shader, pipeline_key, None)
         }
         ShaderPassType::DepthPrepass => {
-            create_depth_prepass_mesh_pipeline(device, pipeline_layout, shader, pipeline_key)
+            create_depth_prepass_mesh_pipeline(device, pipeline_layout, shader, pipeline_key, None)
         }
         ShaderPassType::Shadow => create_shadow_mesh_pipeline(
             device,
             pipeline_layout,
             shader,
-            shadow_validation_kind(pipeline_key),
+            pipeline_kind_from_prewarm_request(request),
+            None,
         ),
         ShaderPassType::Velocity => create_velocity_mesh_pipeline(
             device,
@@ -85,6 +90,7 @@ fn create_validation_pipeline(
             shader,
             wgpu::TextureFormat::Rg16Float,
             pipeline_key,
+            None,
         ),
         ShaderPassType::TaaReactiveMask => create_taa_reactive_mask_mesh_pipeline(
             device,
@@ -92,49 +98,8 @@ fn create_validation_pipeline(
             shader,
             wgpu::TextureFormat::R8Unorm,
             pipeline_key,
+            None,
         ),
-    }
-}
-
-fn pipeline_key_from_prewarm_request(request: &ShaderVariantPrewarmRequest) -> PipelineKey {
-    let mut pipeline_key = default_pipeline_key();
-    pipeline_key.shader_id = request.key.material_shader;
-    pipeline_key.shader_revision = request.key.material_revision;
-    pipeline_key.double_sided = request
-        .key
-        .features
-        .contains(ShaderFeatureBits::DOUBLE_SIDED);
-    pipeline_key.alpha_mask = request.key.features.contains(ShaderFeatureBits::ALPHA_TEST);
-    pipeline_key.alpha_cutoff_bits = pipeline_key.alpha_mask.then_some(0.5_f32.to_bits());
-    pipeline_key.receive_shadows = request
-        .key
-        .features
-        .contains(ShaderFeatureBits::RECEIVE_SHADOWS);
-    pipeline_key.pbr_clearcoat = request
-        .key
-        .features
-        .contains(ShaderFeatureBits::PBR_CLEARCOAT);
-    pipeline_key.pbr_anisotropy = request
-        .key
-        .features
-        .contains(ShaderFeatureBits::PBR_ANISOTROPY);
-    pipeline_key.pbr_transmission = request
-        .key
-        .features
-        .contains(ShaderFeatureBits::PBR_TRANSMISSION);
-    pipeline_key.volumetric_fog = request
-        .key
-        .features
-        .contains(ShaderFeatureBits::VOLUMETRIC_FOG);
-    pipeline_key.shading_model_id = request.key.shading_model;
-    pipeline_key
-}
-
-fn shadow_validation_kind(key: &PipelineKey) -> MeshPassPipelineKind {
-    if key.is_alpha_mask() {
-        MeshPassPipelineKind::ShadowDepthAlphaMask
-    } else {
-        MeshPassPipelineKind::ShadowDepth
     }
 }
 
@@ -222,7 +187,8 @@ fn material_sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 #[cfg(all(test, feature = "dynamic-api"))]
 mod tests {
     use crate::core::framework::render::{
-        SHADING_MODEL_ID_BLINN_PHONG, ShaderFeatureBits, ShaderQualityTier,
+        ShaderFeatureBits, ShaderQualityTier, ShaderVariantPrewarmSource,
+        SHADING_MODEL_ID_BLINN_PHONG,
     };
     use crate::dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry;
     use crate::graphics::backend::RenderBackend;
@@ -253,14 +219,16 @@ mod tests {
 
         assert_eq!(manifest.variants.len(), 6);
         for request in &manifest.variants {
-            validate_mesh_prewarm_request_render_pipeline(device, &layout, request).unwrap_or_else(
-                |error| {
+            let source = manifest
+                .source_for(request)
+                .expect("builtin prewarm source");
+            validate_mesh_prewarm_request_render_pipeline(device, &layout, request, source)
+                .unwrap_or_else(|error| {
                     panic!(
                         "prewarm {} pipeline should validate: {error}",
                         request.key.pass_type.token()
                     )
-                },
-            );
+                });
         }
     }
 
@@ -271,21 +239,30 @@ mod tests {
         };
         let device = &backend.device;
         let layout = create_mesh_prewarm_validation_pipeline_layout(device);
-        let mut request = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+        let manifest = builtin_standard_material_shader_prewarm_manifest_for_geometry(
             ShaderFeatureBits::new(0),
             SHADING_MODEL_ID_BLINN_PHONG,
             None,
             crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH,
             &[ShaderQualityTier::Medium],
-        )
-        .variants
-        .into_iter()
-        .next()
-        .expect("prewarm request");
-        request.wgsl_source = "fn zr_material_surface() {}".to_string();
+        );
+        let request = manifest.variants.first().expect("prewarm request");
+        let raw_surface_source = ShaderVariantPrewarmSource::new(
+            "test://raw-surface-only.wgsl",
+            "fn zr_material_surface() {}",
+            Vec::new(),
+            "test-template",
+            "test-naga",
+            "test-wgpu",
+        );
 
-        let error = validate_mesh_prewarm_request_render_pipeline(device, &layout, &request)
-            .expect_err("raw surface-only WGSL must not pass render-pipeline validation");
+        let error = validate_mesh_prewarm_request_render_pipeline(
+            device,
+            &layout,
+            request,
+            &raw_surface_source,
+        )
+        .expect_err("raw surface-only WGSL must not pass render-pipeline validation");
 
         assert!(
             error.contains("vs_main") || error.contains("Entry point"),

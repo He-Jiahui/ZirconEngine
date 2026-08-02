@@ -2,11 +2,14 @@ use std::collections::HashMap;
 
 use glyphon::CacheKey;
 
+use crate::text::atlas::GlyphRasterKey;
+
 use super::NativeBitmapAtlasCachedGlyphImage;
 
 #[derive(Clone, Debug)]
 pub(super) struct NativeBitmapAtlasSourceCacheEntry {
     pub(super) image: NativeBitmapAtlasCachedGlyphImage,
+    pub(super) raster_key: Option<GlyphRasterKey>,
     previous: Option<CacheKey>,
     next: Option<CacheKey>,
 }
@@ -45,6 +48,7 @@ impl NativeBitmapAtlasSourceLru {
             cache_key,
             NativeBitmapAtlasSourceCacheEntry {
                 image,
+                raster_key: None,
                 previous: None,
                 next: None,
             },

@@ -4,8 +4,6 @@ use std::error::Error;
 #[cfg(feature = "target-editor-host")]
 use std::ffi::OsString;
 #[cfg(feature = "target-editor-host")]
-use std::fmt::{self, Display, Formatter};
-#[cfg(feature = "target-editor-host")]
 use std::path::PathBuf;
 
 #[cfg(feature = "target-editor-host")]
@@ -46,6 +44,8 @@ use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 mod composition;
 #[cfg(feature = "target-editor-host")]
 mod project_automation;
+#[cfg(feature = "target-editor-host")]
+mod startup_diagnostics;
 
 #[cfg(feature = "target-editor-host")]
 pub use composition::EditorApplicationComposition;
@@ -53,6 +53,14 @@ pub use composition::EditorApplicationComposition;
 #[cfg(feature = "target-editor-host")]
 use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
 use super::EntryRunner;
+#[cfg(all(feature = "target-editor-host", test))]
+use startup_diagnostics::editor_startup_argument_summary;
+#[cfg(feature = "target-editor-host")]
+use startup_diagnostics::{
+    editor_automation_startup_error, editor_host_startup_error, editor_operation_startup_error,
+    editor_startup_argument_error, editor_startup_diagnostic_error, finish_editor_host,
+    finish_editor_operation,
+};
 
 #[cfg(feature = "target-editor-host")]
 const EDITOR_EXIT_AFTER_FIRST_FRAME_ENV: &str = "ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME";
@@ -113,12 +121,18 @@ impl EntryRunner {
                 EditorLaunchArgs::Standard(args) => args,
             };
             if let Some(automation) =
-                project_automation::parse_project_automation_args(remaining_args.clone())?
+                project_automation::parse_project_automation_args(remaining_args.clone())
+                    .map_err(|error| editor_startup_argument_error(&remaining_args, error))?
             {
+                let requested_automation = format!(
+                    "project_automation:project={}",
+                    automation.project_root.display()
+                );
                 let report = project_automation::execute_project_automation(
                     automation.project_root,
                     &automation.request,
-                )?;
+                )
+                .map_err(|error| editor_automation_startup_error(&requested_automation, error))?;
                 println!("{}", serde_json::to_string(&report)?);
                 return Ok(0);
             }
@@ -131,7 +145,9 @@ impl EntryRunner {
                 None
             };
             if let Some(request) = request {
-                let response = Self::run_editor_operation(request)?;
+                let requested_operation = request.startup_request();
+                let response = Self::run_editor_operation(request)
+                    .map_err(|error| editor_operation_startup_error(&requested_operation, error))?;
                 println!("{}", serde_json::to_string(&response)?);
                 return Ok(0);
             }
@@ -228,25 +244,30 @@ impl EntryRunner {
                     )
                 })?,
             );
-            let runtime_gateway = runtime_session
-                .editor_gateway(runtime_capabilities)
-                .map_err(|error| {
-                    editor_startup_diagnostic_error(
-                        "editor_gateway",
-                        &editor_host_request,
-                        format!("editor gateway creation failed: {error}"),
-                        "verify the runtime capabilities and editor gateway ABI compatibility",
-                    )
-                })?;
-            let host_config = editor_host_run_config_with_first_frame_exit(
-                startup_request,
-                editor_exit_after_first_frame_enabled(),
-                first_frame_capture_path,
-            )
-            .with_prepared_project(prepared_project)
-            .with_editor_plugin_registrations(editor_plugin_registrations)
-            .with_editor_plugin_registrations(native_editor_plugin_registrations);
-            let result = run_editor_with_config(core, runtime_gateway, host_config);
+            let runtime_teardown_failure = runtime_session.teardown_failure_state();
+            let host_result: Result<_, Box<dyn Error>> = (|| {
+                let runtime_gateway = runtime_session
+                    .editor_gateway(runtime_capabilities)
+                    .map_err(|error| {
+                        editor_startup_diagnostic_error(
+                            "editor_gateway",
+                            &editor_host_request,
+                            format!("editor gateway creation failed: {error}"),
+                            "verify the runtime capabilities and editor gateway ABI compatibility",
+                        )
+                    })?;
+                let host_config = editor_host_run_config_with_first_frame_exit(
+                    startup_request,
+                    editor_exit_after_first_frame_enabled(),
+                    first_frame_capture_path,
+                )
+                .with_prepared_project(prepared_project)
+                .with_editor_plugin_registrations(editor_plugin_registrations)
+                .with_editor_plugin_registrations(native_editor_plugin_registrations);
+                run_editor_with_config(core, runtime_gateway, host_config)
+                    .map_err(|error| editor_host_startup_error(&editor_host_request, error))?;
+                Ok(())
+            })();
             #[cfg(feature = "profiling")]
             if profile_capture.is_some() {
                 match zircon_runtime::core::diagnostics::profiling::stop_and_export_capture_from_env(
@@ -256,9 +277,12 @@ impl EntryRunner {
                     None => {}
                 }
             }
-            if let Err(error) = result {
-                return Err(editor_host_startup_error(&editor_host_request, error).into());
-            }
+            drop(runtime_session);
+            finish_editor_host(
+                &editor_host_request,
+                host_result,
+                runtime_teardown_failure.take(),
+            )?;
             Ok(0)
         }
     }
@@ -290,12 +314,19 @@ impl EntryRunner {
             runtime_library,
             b"editor",
         )?);
-        let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
-        runtime.attach_play_gateway(runtime_gateway)?;
-        Ok(runtime.handle_operation_control_request_from_source(
-            EditorOperationSource::Cli,
-            request.into_control_request()?,
-        ))
+        let runtime_teardown_failure = runtime_session.teardown_failure_state();
+        let operation_result: Result<_, Box<dyn Error>> = (|| {
+            let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
+            runtime.attach_play_gateway(runtime_gateway)?;
+            let response = runtime.handle_operation_control_request_from_source(
+                EditorOperationSource::Cli,
+                request.into_control_request()?,
+            );
+            Ok(response)
+        })();
+        drop(runtime);
+        drop(runtime_session);
+        finish_editor_operation(operation_result, runtime_teardown_failure.take())
     }
 }
 
@@ -334,11 +365,21 @@ fn editor_first_frame_capture_path_from_value(
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             format!(
-                "editor startup diagnostic: component=editor_host requested={EDITOR_CAPTURE_FIRST_FRAME_PNG_ENV} cause=first-frame PNG capture path is empty or blank recovery=set {EDITOR_CAPTURE_FIRST_FRAME_PNG_ENV} to a writable PNG path or unset it"
+                "editor startup diagnostic: component=editor_host requested={EDITOR_CAPTURE_FIRST_FRAME_PNG_ENV} cause=first-frame PNG capture path is empty or blank recovery=set {EDITOR_CAPTURE_FIRST_FRAME_PNG_ENV} to a writable absolute PNG path or unset it"
             ),
         ));
     }
-    Ok(Some(PathBuf::from(value)))
+    let path = PathBuf::from(value);
+    if !path.is_absolute() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!(
+                "editor startup diagnostic: component=editor_host requested={EDITOR_CAPTURE_FIRST_FRAME_PNG_ENV}={} cause=first-frame PNG capture path must be absolute recovery=set {EDITOR_CAPTURE_FIRST_FRAME_PNG_ENV} to a writable absolute PNG path or unset it",
+                path.display()
+            ),
+        ));
+    }
+    Ok(Some(path))
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -518,76 +559,6 @@ fn editor_exit_after_first_frame_enabled_value(value: Option<&str>) -> bool {
 }
 
 #[cfg(feature = "target-editor-host")]
-#[derive(Debug)]
-struct EditorStartupDiagnosticError {
-    component: &'static str,
-    requested: String,
-    cause: String,
-    recovery: &'static str,
-}
-
-#[cfg(feature = "target-editor-host")]
-impl Display for EditorStartupDiagnosticError {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "editor startup diagnostic: component={} requested={} cause={} recovery={}",
-            self.component, self.requested, self.cause, self.recovery
-        )
-    }
-}
-
-#[cfg(feature = "target-editor-host")]
-impl Error for EditorStartupDiagnosticError {}
-
-#[cfg(feature = "target-editor-host")]
-fn editor_startup_diagnostic_error(
-    component: &'static str,
-    requested: impl Into<String>,
-    cause: impl Into<String>,
-    recovery: &'static str,
-) -> EditorStartupDiagnosticError {
-    EditorStartupDiagnosticError {
-        component,
-        requested: requested.into(),
-        cause: cause.into(),
-        recovery,
-    }
-}
-
-#[cfg(feature = "target-editor-host")]
-fn editor_startup_argument_error(args: &[String], source: Box<dyn Error>) -> Box<dyn Error> {
-    let requested = editor_startup_argument_summary(args);
-    editor_startup_diagnostic_error(
-        "editor_app",
-        requested,
-        source.to_string(),
-        "provide one valid editor startup mode and run zircon_editor --help to inspect supported arguments",
-    )
-    .into()
-}
-
-#[cfg(feature = "target-editor-host")]
-fn editor_startup_argument_summary(args: &[String]) -> String {
-    if args.is_empty() {
-        return "<empty>".to_string();
-    }
-
-    let mut redact_next = false;
-    args.iter()
-        .map(|argument| {
-            if redact_next {
-                redact_next = false;
-                return "<redacted>".to_string();
-            }
-            redact_next = argument == "--args";
-            argument.clone()
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-#[cfg(feature = "target-editor-host")]
 fn editor_host_startup_request(request: Option<&EditorGuiStartupRequest>) -> String {
     match request {
         Some(EditorGuiStartupRequest::OpenBuiltinView { descriptor_id }) => {
@@ -599,19 +570,6 @@ fn editor_host_startup_request(request: Option<&EditorGuiStartupRequest>) -> Str
         Some(EditorGuiStartupRequest::CreateProject(_)) => "project:create".to_string(),
         None => "workspace:welcome".to_string(),
     }
-}
-
-#[cfg(feature = "target-editor-host")]
-fn editor_host_startup_error(
-    requested: &str,
-    source: Box<dyn Error>,
-) -> EditorStartupDiagnosticError {
-    editor_startup_diagnostic_error(
-        "editor_host",
-        requested,
-        format!("editor host execution failed: {source}"),
-        "verify the requested project or view and the staged editor assets before retrying zircon_editor",
-    )
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -770,6 +728,19 @@ struct EditorCliOperationRequest {
 
 #[cfg(feature = "target-editor-host")]
 impl EditorCliOperationRequest {
+    fn startup_request(&self) -> String {
+        if self.list_operations {
+            return "operation:list".to_string();
+        }
+        if self.query_operation_history {
+            return "operation:history".to_string();
+        }
+        match self.operation_id.as_ref() {
+            Some(operation_id) => format!("operation:{operation_id}"),
+            None => "operation:<invalid>".to_string(),
+        }
+    }
+
     fn into_control_request(self) -> Result<EditorOperationControlRequest, Box<dyn Error>> {
         if self.list_operations {
             return Ok(EditorOperationControlRequest::ListOperations);

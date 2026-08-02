@@ -1,6 +1,6 @@
 use super::{
-    is_typed_thumbnail_visual, FrameRect, TemplatePaneNodeData, WorkbenchAssetVisualMetrics,
-    TYPED_THUMBNAIL_SURFACE_INSET_RATIO, VISUAL_SURFACE_INSET_RATIO,
+    FrameRect, TYPED_THUMBNAIL_SURFACE_INSET_RATIO, TemplatePaneNodeData,
+    VISUAL_SURFACE_INSET_RATIO, WorkbenchAssetVisualMetrics, is_typed_thumbnail_visual,
 };
 
 pub(super) fn thumbnail_surface_rect(
@@ -75,7 +75,7 @@ fn thumbnail_surface_inset(
 #[cfg(test)]
 mod tests {
     use super::{
-        has_paintable_thumbnail_extent, thumbnail_surface_rect, FrameRect, TemplatePaneNodeData,
+        FrameRect, TemplatePaneNodeData, has_paintable_thumbnail_extent, thumbnail_surface_rect,
     };
     use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
@@ -96,15 +96,17 @@ mod tests {
             width: 0.0,
             ..valid.clone()
         }));
-        assert!(thumbnail_surface_rect(
-            &node,
-            &FrameRect {
-                x: f32::NAN,
-                ..valid.clone()
-            },
-            metrics,
-        )
-        .is_none());
+        assert!(
+            thumbnail_surface_rect(
+                &node,
+                &FrameRect {
+                    x: f32::NAN,
+                    ..valid.clone()
+                },
+                metrics,
+            )
+            .is_none()
+        );
         assert!(!has_paintable_thumbnail_extent(&FrameRect {
             x: f32::MAX,
             ..valid

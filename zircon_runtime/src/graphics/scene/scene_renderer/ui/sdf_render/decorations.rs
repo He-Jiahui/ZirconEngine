@@ -1,41 +1,36 @@
 use crate::core::math::UVec2;
 use crate::text::font::{TextDecorationKind, TextDecorationMetrics, text_decoration_frame};
-use crate::text::sdf::SdfRunCpuPreparation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::vertices::{ScreenSpaceUiSdfVertex, push_clipped_solid_quad, transform_sdf_vertices};
 
-pub(super) fn build_text_decoration_vertices(
+pub(super) fn build_text_decoration_vertices<I>(
+    vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
     texts: &[ScreenSpaceUiTextBatch],
-    cpu_runs: &[SdfRunCpuPreparation],
+    metrics: I,
     viewport_size: UVec2,
-) -> Vec<ScreenSpaceUiSdfVertex> {
+) where
+    I: IntoIterator<Item = TextDecorationMetrics>,
+{
     let viewport = UiFrame::new(
         0.0,
         0.0,
         viewport_size.x.max(1) as f32,
         viewport_size.y.max(1) as f32,
     );
-    let mut vertices = Vec::new();
-    for (text, cpu_run) in texts
+    for (text, metrics) in texts
         .iter()
-        .zip(cpu_runs)
+        .zip(metrics)
         .filter(|(text, _)| text.text_decorations.underline || text.text_decorations.strikethrough)
     {
         let start = vertices.len();
-        push_text_decorations_for_metrics(
-            &mut vertices,
-            text,
-            cpu_run.decoration_metrics,
-            viewport,
-        );
+        push_text_decorations_for_metrics(vertices, text, metrics, viewport);
         if let Some(transform) = text.clip_transform {
             transform_sdf_vertices(&mut vertices[start..], transform);
         }
     }
-    vertices
 }
 
 pub(super) fn push_text_decorations_for_metrics(

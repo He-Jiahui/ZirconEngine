@@ -6,22 +6,28 @@ related_code:
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/layout/mod.rs
   - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/rich.rs
   - zircon_runtime/src/text/shaping/mod.rs
   - zircon_runtime/src/text/shaping/bidi.rs
   - zircon_runtime/src/text/shaping/cosmic.rs
   - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
+  - zircon_runtime/src/text/shaping/cosmic/hard_lines.rs
+  - zircon_runtime/src/text/shaping/itemize.rs
   - zircon_runtime/src/text/shaping/horizontal/backend.rs
-  - zircon_runtime/src/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/text/shaping/horizontal/direct.rs
   - zircon_runtime/src/text/shaping/horizontal/tests.rs
   - zircon_runtime/src/text/shaping/vertical.rs
   - zircon_runtime/src/text/shaping/vertical/backend.rs
+  - zircon_runtime/src/text/shaping/vertical/direct.rs
   - zircon_runtime/src/text/shaping/vertical/orientation.rs
-  - zircon_runtime/src/text/shaping/vertical/projection.rs
   - zircon_runtime/src/text/shaping/normalize.rs
   - zircon_runtime/src/text/shaping/script_segment.rs
   - zircon_runtime/src/text/shaping/fallback_spans.rs
@@ -83,8 +89,8 @@ status: in_progress
 - `text/shaping/bidi.rs` 已用 `unicode-bidi` 落地段落基方向、isolate 与逻辑序 glyph 的 `bidi_level`，并提供断行后 L1/L2 visual index mapping。Text 03 已把旧 `layout_engine/visual_order.rs` 的脚本范围/neutral span/mirror table 硬切到共享 owner，并以完整段落+绝对行 range 保留 wrapped isolate context；hit-test/caret 仍需直接消费 visual index/source cluster，避免长期物化 visual line text。
 - grapheme/ZWJ/VS 已进入 cluster/source range 与 script-tag 数据面；V1 NFC 按计划默认关闭，`normalize.rs::ShapingTextView` 已显式承接 identity shaping view 与 shaping→原文 source byte range 投影，cosmic/fallback 都经该 owner。未来启用 NFC 时仍需把 identity 投影升级为完整 pre↔post 双向映射。
 - script segment tag 已落地，但 actual per-script shaping/fallback face reconciliation 仍由 Text 02/06 后续完成。
-- `TextShapeRequest` 已携 language 与排序去重的 OpenType features，二者进入 shaped cache key；features 已传入 cosmic backend。language 已从可序列化 `UiResolvedStyle.language` 经模板解析、layout/shaped cache、direct/parallel request、native batch 与 SDF atlas/bake fallback 贯通；独立 `cosmic/font_system_cache.rs` 规范化并选择最多四个 locale-specific `FontSystem`。cosmic-text 0.18.2 的 `Attrs` 不暴露 language，因此 folder-backed `shaping/horizontal/` leaf 现按 cosmic 实际 face/cluster 分段交给 RustyBuzz，并在 language 存在时设置 per-run language 触发默认 `locl`；真实 Windows `Calibri` 俄语/塞尔维亚语 glyph 差异 exact 已落代码但尚未执行，不计完成。
-- SH-M3 V1 已推进：`vertical.rs` 投影 cluster-head y advance/列中线，`vertical/orientation.rs` 按 Unicode Vertical_Orientation 实现 Mixed/Upright/Sideways，cosmic 请求显式启用 `vert`/`vrt2`，且 UI VerticalRl 的测量/换行 provider 已硬切到 vertical request/cache key。2026-07-10 又修复生产 SDF consumer 并用真实 `竖排布局` CJK 帧验收；随后 `font/vertical_metrics.rs` 从实际 backend face/glyph 读取 `vmtx`，upright 优先原生 advance、sideways 保持横排 advance、缺表回退 em。TTB/BTT backend direction、VORG/side-bearing 已落地；CJK 标点完整黄金图仍待后续。horizontal language leaf 显式拒绝 vertical request，竖排 language 继续由 TTB/BTT backend 直接设置。
+- `TextShapeRequest` 已携 language 与排序去重的 OpenType features，二者进入 shaped cache key；canonical slice 同时供 cache 与 backend 使用。language 已从可序列化 `UiResolvedStyle.language` 经模板解析、layout/shaped cache、direct/parallel request、native batch 与 SDF atlas/bake fallback 贯通；独立 `cosmic/font_system_cache.rs` 规范化并限制最多四个 locale-specific `FontSystem`。由于 cosmic-text 0.18.2 的 `Attrs` 不暴露 language/任意变量实例，horizontal 主链现由 `itemize.rs` 按 grapheme、BIDI level、script、fallback face/instance 分段，并由 `horizontal/direct.rs` 一次 RustyBuzz shape 直接构建逻辑序 `ShapedGlyphRun`；cosmic 只保留整请求失败回退，不再先 shape 后替换 segment。
+- SH-M3 V1 已推进为同一单后端架构：`vertical/direct.rs` 对 upright segment 一次执行 TTB/BTT RustyBuzz，对 sideways segment 使用同一 RustyBuzz horizontal backend；face instance、language/features、`vert`/`vrt2`、VORG/side-bearing、source range 与 native y advance 直接进入最终 glyph。`vertical/orientation.rs` 仍单独拥有 Mixed/Upright/Sideways policy，UI VerticalRl 继续消费 vertical request/cache key；旧 `horizontal/projection.rs`、`vertical/projection.rs` 与 overlap projection owner 已硬删除。
 
 ## 3. 参考代码
 
@@ -155,7 +161,11 @@ TextShapeRequest { text, style, base_direction, orientation, language, features 
 | 文件 | 内容 |
 |------|------|
 | `mod.rs` | `SharedTextShapingService::shape` 装配(薄) |
-| `cosmic.rs` | **`cosmic_text` 唯一隔离层** —— Buffer/ShapeLine/ShapeRun/ShapeGlyph 只在此;出口 `ShapedGlyphRun` |
+| `cosmic.rs` | backend 路由与 cosmic 整请求回退隔离；禁止消费 cosmic glyph 后再调用 RustyBuzz 替换 segment |
+| `../hard_line.rs` | Text02/Text03/UI 共用的 mandatory hard-line owner；保存 content 与 CRLF/Unicode separator range |
+| `itemize.rs` | grapheme、BIDI level、script、fallback face/instance、vertical orientation 的共享分段 owner |
+| `horizontal/{backend,direct}.rs` | 一次 RustyBuzz horizontal shape 与逻辑序 DTO 构建；承接 locl/features/variable instance |
+| `vertical/{backend,direct,orientation}.rs` | 一次 TTB/BTT 或 sideways shape、列定位与 Unicode orientation policy |
 | `script_segment.rs` | Unicode script 分段(`unicode-script`,common/inherited 归并;对照 godot `ScriptIterator`) |
 | `bidi.rs` | UAX#9 包装(cosmic-text 内置 or `unicode-bidi`):level run、视觉重排、镜像字符表 |
 | `vertical.rs` | 竖排:朝向解析、主轴 advance、字形旋转决策、标点居中 |
@@ -199,7 +209,7 @@ pub enum VerticalMode { Upright, Mixed, Sideways } // 竖排时 latin 处理
 //   规范化=按 tag 排序后 hash 进 features_hash(index §6 #4 / D6)。
 ```
 
-**ShapedGlyphRun 相应修订(D1)**:run 删 `lines` 字段——02 输出的 run 是无行结构的逻辑序 glyph 序列;行结构(`LaidOutLine`)由 03 建立。
+**ShapedGlyphRun 当前契约修订(D1,2026-08-01)**:`ShapedGlyphRun`以`Arc<str>`持有唯一source，并保留backend显式段落/硬换行投影所需的`ShapedTextLine`；line只保存range/metrics/glyphs，不再保存owned text。这里的shaped line不是wrap owner，03仍以`LaidOutLine`独占软换行、ellipsis、rich/inline materialization与最终布局语义；不得把02的backend line扩张为第二套03布局策略。
 
 **atlas 解耦规则(D3,2026-07-02 评审收口)**:atlas 槽位在 render extract/quad 生成阶段按 `GlyphRasterKey` 现查(04 提供查询入口);`GlyphAtlasRef` 只允许帧内短生命周期持有,禁止进入 `ShapedGlyph` 契约或任何跨帧缓存值。
 
@@ -263,6 +273,8 @@ V2(本计划不实现,留接口):双向竖排混排、`text-combine-upright`(纵
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 当前概述（2026-07-13）：SH-M3 已从“横排 shaping 后投影”硬切出 folder-backed rustybuzz vertical backend：LTR/RTL 分别映射 TTB/BTT，真实 `vert`/`vrt2`、language/features、backend glyph id/face id/instance id、source range、signed y advance、vertical origin offset 与 rotation 进入同一 shaped glyph 数据面。生产 SDF atlas 以实际 glyph id + face/instance id 建 key/烘焙，不再按 Unicode scalar 重查竖排替代字形；SDF quad 消费 backend vertical origin/VORG-side-bearing offset。当前源既有 `text_vertical_` 17/17、SDF vertical 5/5、atlas 23/23、font bake 10/10 与真实 WGPU 两列 CJK 产品帧已通过。新增 horizontal RustyBuzz leaf 现承接 cosmic-text `Attrs` 缺失的 per-run language 与变量轴应用；当前源 `text_horizontal_` 5/5，通过真实 `Bahnschrift` width-axis、真实 `Calibri` 俄语/塞尔维亚语 `locl`、空语言/竖排边界与 screen-space face/instance identity。来源 Editor07 original exact 尚待其非文本门禁复验，因此 Text02 仍为 `in_progress`，不把局部 focused green 扩大为来源计划完成。
+
+当前概述（2026-08-01）：PERF-MVP-233的packed script、single shared source、range-only shaped line、cache exact owner和canonical OpenType identity已完成非验收实现。PERF-MVP-234/235的Text02主链已前向收敛：shared itemization一次解析grapheme/BIDI level/script/fallback face-instance；horizontal与vertical均由RustyBuzz直接构建逻辑序glyph，cosmic只作整请求回退，旧post-shape projection文件已删除。fallback codepoint scratch跨cluster复用，连续同face/instance的family String不再重复分配。首次独立审查的6个P1均已前向修复；后修复复核为P0=0、P1=0。`Tr` 现在以同一 buffer、direction、script、language、非竖排 feature 集的 `vert`/`vrt2` enabled/disabled glyph-sequence 差分确定实际 substitution，并仅在 TransformOrRotate segment 付出第二次 shape；rich extract 保留 layout 所属的 compiled artifact，type-erased `Arc` 随 DTO 生命周期释放，不再有 registry idle retention。ordered/non-overlapping projection run 契约与回归也已加入。真实Windows WGPU产品帧harness已切到`docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260801.png`，不会覆盖旧证据；当前只声明非验收实现与静态复核，managed Cargo、1/100/1k/10k counters、跨Text01 parsed-face指标与该新产品帧的实际生成/像素审查仍待验证。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

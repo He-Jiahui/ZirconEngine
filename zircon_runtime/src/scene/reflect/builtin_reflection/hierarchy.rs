@@ -2,8 +2,8 @@ use zircon_runtime_interface::reflect::{ReflectError, ReflectFieldValue, Reflect
 
 use crate::scene::components::Hierarchy;
 use crate::scene::{
-    derived_component_registration_with_adapter, EntityId, ReflectComponent,
-    RuntimeTypeRegistration, World,
+    EntityId, ReflectComponent, RuntimeTypeRegistration, World,
+    derived_component_registration_with_adapter,
 };
 
 use super::component_support;
@@ -20,7 +20,8 @@ pub(super) fn registration() -> Result<RuntimeTypeRegistration, ReflectError> {
             write_field,
             remove,
         )
-        .with_dense_field_slots(read_field_by_slot, write_field_by_slot),
+        .with_dense_field_slots(read_field_by_slot, write_field_by_slot)
+        .with_dense_field_batch_write(write_fields_by_slot),
     )
 }
 
@@ -119,6 +120,28 @@ fn write_field_by_slot(
             TYPE_PATH,
             &format!("#{field_slot}"),
         )),
+    }
+}
+
+fn write_fields_by_slot(
+    world: &mut World,
+    entity: EntityId,
+    _type_path: &str,
+    fields: Vec<(u32, ReflectedValue)>,
+) -> Result<bool, ReflectError> {
+    let mut parent = None;
+    for (field_slot, value) in fields {
+        if field_slot != 0 {
+            return Err(component_support::unknown(
+                TYPE_PATH,
+                &format!("#{field_slot}"),
+            ));
+        }
+        parent = Some(value);
+    }
+    match parent {
+        Some(value) => write_parent(world, entity, value),
+        None => Ok(false),
     }
 }
 

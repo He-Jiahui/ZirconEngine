@@ -257,12 +257,11 @@ fn service_uses_the_runtime_io_lane_and_never_calls_the_synchronous_loader() {
 fn manifest_reads_use_one_handle_and_reject_mutated_lengths() {
     let source = include_str!("../../candidate_from_manifest.rs");
 
-    assert!(source.contains("let mut manifest = fs::File::open"));
-    assert!(source.matches("manifest.metadata()").count() >= 2);
-    assert!(source.contains("ManifestChangedDuringRead"));
-    assert!(source.contains("ensure_manifest_read_is_stable("));
-    assert!(source.contains("fn ensure_manifest_read_is_stable"));
-    assert!(source.contains("try_reserve_exact(manifest_len)"));
+    assert!(source.contains("let mut file = fs::File::open"));
+    assert!(source.matches("file.metadata()").count() >= 2);
+    assert!(source.contains("ensure_bounded_read_is_stable("));
+    assert!(source.contains("fn ensure_bounded_read_is_stable"));
+    assert!(source.contains("source.try_reserve_exact(expected_len)"));
 }
 
 fn temporary_authority_root(label: &str) -> PathBuf {

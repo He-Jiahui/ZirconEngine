@@ -1,25 +1,27 @@
-use crate::capability::{PARTICLES_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+use crate::capability::{
+    PARTICLES_DECLARATION, PARTICLES_RUNTIME_CAPABILITY, PLUGIN_ID, RUNTIME_CAPABILITIES,
+    RUNTIME_CRATE_NAME,
+};
 use crate::component::particle_component_descriptors;
 use crate::module::module_descriptor_with_manager;
 use crate::package::{
     attach_particles_manifest_contributions, particle_event_catalogs, particle_options,
 };
 use crate::render::{
-    particle_render_pass_executor_registrations_with_gpu_owner,
+    ParticleGpuRuntimeOwnerHandle, particle_render_pass_executor_registrations_with_gpu_owner,
     particle_runtime_prepare_collector_registration_with_manager_and_owner,
-    render_feature_descriptor, ParticleGpuRuntimeOwnerHandle,
+    render_feature_descriptor,
 };
 use crate::service::ParticlesManager;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest,
-    PluginFeatureBundleManifest, PluginFeatureDependency, PluginMaturity, PluginModuleManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
-pub const PLUGIN_ID: &str = "particles";
 pub const PARTICLES_FEATURE_NAME: &str = "particle";
 pub const PARTICLES_DIST_CRATE_NAME: &str = "zircon_plugin_particles_dist";
 pub const PARTICLES_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_particles_runtime_entry_v3";
@@ -62,9 +64,6 @@ impl RuntimePlugin for ParticlesRuntimePlugin {
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest =
             attach_particles_manifest_contributions(self.descriptor.package_manifest());
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest.modules.push(
             PluginModuleManifest::native("particles.dist", PARTICLES_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -120,28 +119,17 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
 }
 
 fn runtime_plugin_descriptor_with_manager(manager: ParticlesManager) -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Particles",
-        RuntimePluginId::Particles,
-        "zircon_plugin_particles_runtime",
-    )
-    .with_module_descriptor(module_descriptor_with_manager(manager))
-    .with_category("runtime")
-    .with_maturity(PluginMaturity::Experimental)
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(PARTICLES_RUNTIME_CAPABILITY)
-    .with_capability_status(
-        CapabilityStatusManifest::new(PARTICLES_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
-            .with_note("Advanced optional VFX capability; not a Bevy default parity blocker."),
-    )
-    .with_optional_feature(particle_physics_feature_manifest())
-    .with_optional_feature(particle_animation_feature_manifest())
-    .with_optional_feature(particle_gpu_feature_manifest())
-    .build()
+    PARTICLES_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor_with_manager(manager))
+        .with_capability_status(
+            CapabilityStatusManifest::new(PARTICLES_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
+                .with_note("Advanced optional VFX capability; not a Bevy default parity blocker."),
+        )
+        .with_optional_feature(particle_physics_feature_manifest())
+        .with_optional_feature(particle_animation_feature_manifest())
+        .with_optional_feature(particle_gpu_feature_manifest())
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(ParticlesRuntimePlugin);

@@ -1,10 +1,10 @@
 use super::*;
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderFeatureBits, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, ShaderFeatureBits, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::shader::{
-    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
-    standard_material_surface_source_for_features,
+    assemble_deferred_gbuffer_shader_template, standard_material_surface_source_for_features,
+    DeferredGBufferShaderTemplateRequest,
 };
 
 fn deferred_gbuffer_test_shader() -> String {
@@ -34,6 +34,10 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
         include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
         "\n",
         include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+        "\n",
+        include_str!("../../shader/wgsl/zr_environment_core.wgsl"),
+        "\n",
+        include_str!("../../shader/wgsl/zr_environment_generic_api.wgsl"),
         "\n",
         include_str!("../../shader/wgsl/zr_environment.wgsl"),
         "\n",

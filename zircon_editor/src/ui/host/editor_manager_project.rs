@@ -1,14 +1,23 @@
+use std::fmt::Display;
 use std::path::Path;
+use std::sync::Arc;
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest};
+use zircon_runtime::asset::{AssetManager, AssetUri};
 use zircon_runtime::plugin::native::NativePluginLoader;
 
+use crate::core::document::{
+    AuthoringSceneInstaller, SceneAssetCatalog, SceneDocumentRoute, SceneDocumentRouteError,
+    SceneDocumentRouteResult, ScenePickerTicket,
+};
 use crate::core::editor_message::{
     DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus,
 };
+use crate::core::project::{SceneCreateRequest, SceneOpenRequest};
 use crate::ui::workbench::project::EditorProjectDocument;
 use crate::ui::workbench::startup::EditorStartupSessionDocument;
 
+use super::editor_asset_manager::EditorAssetManager;
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
 
@@ -19,7 +28,10 @@ impl EditorManager {
     ) -> Result<EditorProjectDocument, EditorError> {
         let document = self.host.open_project(path)?;
         self.apply_project_plugin_manifest_or_close(&document.root_path, &document.manifest)?;
-        self.publish_document_messages(self.document_lifecycle.activate(&document.root_path));
+        let activation = self
+            .document_lifecycle
+            .begin_project_session(&document.root_path);
+        self.publish_document_messages(activation.messages);
         Ok(document)
     }
 
@@ -61,8 +73,56 @@ impl EditorManager {
         world: &zircon_runtime::scene::Scene,
     ) -> Result<(), EditorError> {
         let project_root = self.host.save_project(path, world)?;
-        self.publish_document_messages(self.document_lifecycle.save(&project_root));
+        self.publish_document_messages(
+            self.document_lifecycle
+                .save_active_project_session(&project_root),
+        );
         Ok(())
+    }
+
+    /// Submits a picker-selected project scene through the authority-owned document route.
+    ///
+    /// The caller supplies the host-only authoring-world installer. No scene fact is published
+    /// until the installer and lifecycle transition have both committed.
+    pub fn open_scene_document<Installer>(
+        &self,
+        ticket: ScenePickerTicket,
+        request: SceneOpenRequest,
+        installer: &mut Installer,
+    ) -> Result<SceneDocumentRouteResult, EditorError>
+    where
+        Installer: AuthoringSceneInstaller,
+        Installer::Error: Display,
+    {
+        self.route_project_scene(ticket, |route| route.open(request, installer))
+    }
+
+    /// Creates and opens a picker-confirmed project scene through the same document route.
+    pub fn create_scene_document<Installer>(
+        &self,
+        ticket: ScenePickerTicket,
+        request: SceneCreateRequest,
+        installer: &mut Installer,
+    ) -> Result<SceneDocumentRouteResult, EditorError>
+    where
+        Installer: AuthoringSceneInstaller,
+        Installer::Error: Display,
+    {
+        let catalog = RuntimeSceneAssetCatalog::new(
+            self.host.asset_manager()?,
+            self.host.editor_asset_manager()?,
+        );
+        self.route_project_scene(ticket, |route| route.create(request, installer, &catalog))
+    }
+
+    /// Issues the project-session capability that a scene picker must preserve until submit.
+    pub fn scene_picker_ticket(&self) -> Result<ScenePickerTicket, EditorError> {
+        let project = self.host.current_project_snapshot()?.ok_or_else(|| {
+            EditorError::Project("cannot begin scene picking without an active project".to_string())
+        })?;
+        self.document_lifecycle
+            .issue_scene_picker_ticket(project.paths().root())
+            .map_err(|error| EditorError::Project(error.to_string()))
     }
 
     pub fn create_runtime_level(
@@ -80,7 +140,10 @@ impl EditorManager {
             return Ok(());
         };
         self.apply_project_plugin_manifest_or_close(&document.root_path, &document.manifest)?;
-        self.publish_document_messages(self.document_lifecycle.activate(&document.root_path));
+        let activation = self
+            .document_lifecycle
+            .begin_project_session(&document.root_path);
+        self.publish_document_messages(activation.messages);
         Ok(())
     }
 
@@ -144,6 +207,123 @@ impl EditorManager {
     fn publish_document_messages(&self, messages: impl IntoIterator<Item = DocumentMessage>) {
         publish_document_messages(self.context().bus(), messages);
     }
+
+    fn route_project_scene<Installer, Route>(
+        &self,
+        ticket: ScenePickerTicket,
+        route: Route,
+    ) -> Result<SceneDocumentRouteResult, EditorError>
+    where
+        Installer: AuthoringSceneInstaller,
+        Installer::Error: Display,
+        Route:
+            FnOnce(
+                SceneDocumentRoute<'_>,
+            )
+                -> Result<SceneDocumentRouteResult, SceneDocumentRouteError<Installer::Error>>,
+    {
+        let project = self.host.current_project_snapshot()?.ok_or_else(|| {
+            EditorError::Project(
+                "cannot route a scene request without an active project".to_string(),
+            )
+        })?;
+        if project.paths().root() != ticket.project_root() {
+            return Err(EditorError::Project(
+                "scene picker result belongs to a project session that is no longer active"
+                    .to_string(),
+            ));
+        }
+        let result = route(SceneDocumentRoute::new(
+            &project,
+            &self.document_lifecycle,
+            ticket,
+        ))
+        .map_err(|error| EditorError::Project(error.to_string()))?;
+        if let SceneDocumentRouteResult::Activated(activation) = &result {
+            self.publish_document_messages(activation.activation.messages.clone());
+        }
+        Ok(result)
+    }
+}
+
+struct RuntimeSceneAssetCatalog {
+    asset_manager: Arc<dyn AssetManager>,
+    editor_asset_manager: Arc<dyn EditorAssetManager>,
+}
+
+impl RuntimeSceneAssetCatalog {
+    fn new(
+        asset_manager: Arc<dyn AssetManager>,
+        editor_asset_manager: Arc<dyn EditorAssetManager>,
+    ) -> Self {
+        Self {
+            asset_manager,
+            editor_asset_manager,
+        }
+    }
+}
+
+impl SceneAssetCatalog for RuntimeSceneAssetCatalog {
+    fn import_scene(
+        &self,
+        scene_uri: &AssetUri,
+    ) -> Result<(), crate::core::project::ProjectAuthorityError> {
+        let status = self
+            .asset_manager
+            .import_asset(&scene_uri.to_string())
+            .map_err(
+                |source| crate::core::project::ProjectAuthorityError::SceneCatalogRuntime {
+                    operation: "importing created scene",
+                    source,
+                },
+            )?;
+        if status.is_none() {
+            return Err(crate::core::project::ProjectAuthorityError::SceneTarget {
+                uri: scene_uri.to_string(),
+                reason: "runtime asset catalog has no active project for the created scene",
+            });
+        }
+        self.editor_asset_manager
+            .refresh_from_runtime_project()
+            .map_err(
+                |source| crate::core::project::ProjectAuthorityError::SceneCatalogRuntime {
+                    operation: "refreshing editor asset catalog for created scene",
+                    source,
+                },
+            )?;
+        Ok(())
+    }
+
+    fn remove_scene(
+        &self,
+        scene_uri: &AssetUri,
+    ) -> Result<(), crate::core::project::ProjectAuthorityError> {
+        self.asset_manager.reimport_all().map_err(|source| {
+            crate::core::project::ProjectAuthorityError::SceneCatalogRuntime {
+                operation: "removing rolled-back scene",
+                source,
+            }
+        })?;
+        if self
+            .asset_manager
+            .asset_status(&scene_uri.to_string())
+            .is_some()
+        {
+            return Err(crate::core::project::ProjectAuthorityError::SceneTarget {
+                uri: scene_uri.to_string(),
+                reason: "runtime asset catalog retained a rolled-back scene",
+            });
+        }
+        self.editor_asset_manager
+            .refresh_from_runtime_project()
+            .map_err(
+                |source| crate::core::project::ProjectAuthorityError::SceneCatalogRuntime {
+                    operation: "refreshing editor asset catalog after scene rollback",
+                    source,
+                },
+            )?;
+        Ok(())
+    }
 }
 
 fn publish_document_messages(
@@ -167,7 +347,12 @@ fn publish_committed_project_close(
     let Some(closed_root) = closed_root else {
         return;
     };
-    publish_document_messages(bus, lifecycle.close(closed_root));
+    let session_messages = lifecycle.end_project_session(closed_root);
+    if session_messages.is_empty() {
+        publish_document_messages(bus, lifecycle.close(closed_root));
+    } else {
+        publish_document_messages(bus, session_messages);
+    }
 }
 
 #[cfg(test)]
@@ -256,5 +441,32 @@ mod tests {
 
         publish_committed_project_close(&bus, &lifecycle, Some(root));
         assert!(bus.drain_deliveries(subscriber).is_empty());
+    }
+
+    #[test]
+    fn committed_project_close_closes_the_active_scene_document_for_a_project_session() {
+        let bus = SharedEditorMessageBus::default();
+        let topic = EditorTopic::parse(TOPIC_DOCUMENT).unwrap();
+        let subscriber = bus.register_subscriber([topic]).unwrap();
+        let lifecycle = DocumentLifecycleAuthority::default();
+        let root = Path::new("C:/projects/close-active-scene");
+        let session = lifecycle.begin_project_session(root).session;
+        let scene = lifecycle
+            .activate_scene(session, root, "res://scenes/main.scene.toml")
+            .unwrap();
+
+        publish_committed_project_close(&bus, &lifecycle, Some(root));
+
+        assert_eq!(
+            bus.drain_deliveries(subscriber)
+                .into_iter()
+                .map(|delivery| delivery.message().clone())
+                .collect::<Vec<_>>(),
+            vec![EditorMessage::new(EditorMessagePayload::Document(
+                DocumentMessage::Closed {
+                    doc: scene.document
+                }
+            ))]
+        );
     }
 }

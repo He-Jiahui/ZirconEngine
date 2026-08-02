@@ -122,7 +122,7 @@ fn recover_and_load_from_disk(
 ) -> Result<(), CoreError> {
     let json = commit_fence
         .commit(|| {
-            crate::foundation::persistence::atomic_file::recover_missing_target_from_backup(path)?;
+            crate::core::resource::io::atomic_file::recover_missing_target_from_backup(path)?;
             match fs::read_to_string(path) {
                 Ok(json) => Ok(Some(json)),
                 Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),

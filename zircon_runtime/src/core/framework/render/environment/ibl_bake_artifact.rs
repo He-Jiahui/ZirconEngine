@@ -1,12 +1,12 @@
 use super::rgba16f::{
-    append_rgb_as_rgba16f_texels, append_rgba16f_texels, decode_rgb_from_rgba16f_texels,
-    decode_rgba16f_texels, RGBA16F_TEXEL_SIZE_BYTES,
+    RGBA16F_TEXEL_SIZE_BYTES, append_rgb_as_rgba16f_texels, append_rgba16f_texels,
+    decode_rgb_from_rgba16f_texels, decode_rgba16f_texels,
 };
 use super::{
-    source_cubemap_sample_count, IblBakeKey, SourceCubemapIrradianceCube,
+    IblBakeKey, SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, SourceCubemapIrradianceCube,
     SourceCubemapIrradianceSh9, SourceCubemapMipChain, SourceCubemapPmremLayout,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    source_cubemap_sample_count,
 };
 use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};
@@ -14,7 +14,8 @@ use std::ops::{BitOr, BitOrAssign, Range};
 const IBL_BAKE_ARTIFACT_MAGIC: [u8; 8] = *b"ZRIBLBAK";
 const IBL_BAKE_ARTIFACT_FORMAT_VERSION: u32 = 2;
 
-pub const IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_07_31_0004;
+// Bump when source projection or PMREM sampling changes so derived HDRI artifacts rebuild.
+pub const IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_08_02_0005;
 pub const IBL_BAKE_ARTIFACT_HEADER_SIZE: usize = 116;
 pub const IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES: usize = RGBA16F_TEXEL_SIZE_BYTES;
 pub const IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES: usize =

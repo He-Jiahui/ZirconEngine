@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_im
 ) -> bool {
     if let Some(image) = command.image_pixels.as_ref() {
         if command.opacity >= 1.0 {
-            if let Some(atlas) = image.atlas.as_ref().filter(|atlas| atlas.rgba.is_some()) {
+            if let Some(atlas) = image.atlas.as_ref() {
                 if draw_rgba_image_clipped_with_atlas(
                     frame,
                     command.frame.clone(),

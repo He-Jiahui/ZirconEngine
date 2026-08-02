@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 
 #[test]
 fn importer_emits_gltf_multi_primitive_material_labels() {
@@ -53,18 +53,26 @@ fn importer_emits_gltf_multi_primitive_material_labels() {
     }
 
     let mesh_entry = entry_for_locator(&outcome, &label_uri(&root_uri, "Mesh0"));
-    assert!(mesh_entry
-        .dependencies
-        .contains(&label_uri(&root_uri, "Mesh0/Primitive0")));
-    assert!(mesh_entry
-        .dependencies
-        .contains(&label_uri(&root_uri, "Mesh0/Primitive1")));
-    assert!(mesh_entry
-        .dependencies
-        .contains(&label_uri(&root_uri, "Material0")));
-    assert!(mesh_entry
-        .dependencies
-        .contains(&label_uri(&root_uri, "Material1")));
+    assert!(
+        mesh_entry
+            .dependencies
+            .contains(&label_uri(&root_uri, "Mesh0/Primitive0"))
+    );
+    assert!(
+        mesh_entry
+            .dependencies
+            .contains(&label_uri(&root_uri, "Mesh0/Primitive1"))
+    );
+    assert!(
+        mesh_entry
+            .dependencies
+            .contains(&label_uri(&root_uri, "Material0"))
+    );
+    assert!(
+        mesh_entry
+            .dependencies
+            .contains(&label_uri(&root_uri, "Material1"))
+    );
     match &mesh_entry.asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 2);

@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use zircon_runtime_interface::ui::template::{UiAssetError, UiRawAssetPrototype};
+use zircon_runtime_interface::ui::template::{
+    parse_component_reference, UiAssetError, UiRawAssetPrototype,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct UiPrototypeStore {
@@ -44,13 +46,7 @@ impl UiPrototypeStore {
         &self,
         reference: &str,
     ) -> Result<(Arc<UiRawAssetPrototype>, String), UiAssetError> {
-        let (asset_id, component_name) =
-            reference
-                .split_once('#')
-                .ok_or_else(|| UiAssetError::InvalidDocument {
-                    asset_id: reference.to_string(),
-                    detail: "component references must include a #Component suffix".to_string(),
-                })?;
+        let (asset_id, component_name) = parse_component_reference(reference)?;
         let asset = self
             .get(asset_id)
             .ok_or_else(|| UiAssetError::UnknownImport {
@@ -70,6 +66,7 @@ impl UiPrototypeStore {
 pub struct UiPrototypeStoreBuilder {
     store: UiPrototypeStore,
     declared_assets: BTreeSet<String>,
+    invalid_widget_import: Option<UiAssetError>,
 }
 
 impl UiPrototypeStoreBuilder {
@@ -91,8 +88,17 @@ impl UiPrototypeStoreBuilder {
         S: Into<String>,
     {
         for reference in &prototype.imports.widgets {
-            if let Some((asset_id, _)) = reference.split_once('#') {
-                let _ = self.declared_assets.insert(asset_id.to_string());
+            if reference.contains('#') {
+                match parse_component_reference(reference) {
+                    Ok((asset_id, _)) => {
+                        let _ = self.declared_assets.insert(asset_id.to_string());
+                    }
+                    Err(error) => {
+                        let _ = self.invalid_widget_import.get_or_insert(error);
+                    }
+                }
+            } else {
+                let _ = self.declared_assets.insert(reference.clone());
             }
         }
         for reference in &prototype.imports.styles {
@@ -110,6 +116,9 @@ impl UiPrototypeStoreBuilder {
     }
 
     pub fn build(self) -> Result<UiPrototypeStore, UiAssetError> {
+        if let Some(error) = self.invalid_widget_import {
+            return Err(error);
+        }
         for asset_id in self.declared_assets {
             if self.store.get(&asset_id).is_none() {
                 return Err(UiAssetError::UnknownImport {

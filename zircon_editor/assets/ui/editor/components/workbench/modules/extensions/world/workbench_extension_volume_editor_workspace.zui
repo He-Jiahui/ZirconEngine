@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/VolumeEditorValidate", event = "Click", rou
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionVolumeEditorOverlapTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "volume_editor_bounds_table_row" }, { node = "volume_editor_player_overlap_table_row" }, { node = "volume_editor_damage_rule_table_row" }, { node = "volume_editor_on_enter_event_table_row" }]
 

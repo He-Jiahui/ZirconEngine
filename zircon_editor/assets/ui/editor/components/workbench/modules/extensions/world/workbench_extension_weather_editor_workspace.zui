@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/WeatherEditorBuild", event = "Click", route
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionWeatherEditorTimelineTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "weather_editor_cloud_build_timeline_row" }, { node = "weather_editor_rain_burst_timeline_row" }, { node = "weather_editor_wind_gust_timeline_row" }, { node = "weather_editor_lightning_timeline_row" }]
 

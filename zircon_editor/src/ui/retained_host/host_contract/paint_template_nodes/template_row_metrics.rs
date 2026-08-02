@@ -1,5 +1,5 @@
 use super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 
 const PROPERTY_LABEL_ROW_MULTIPLIER: f32 = 3.5;
@@ -61,13 +61,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub property_value_text: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_row_metrics(
-) -> WorkbenchRowMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_row_metrics()
+-> WorkbenchRowMetrics {
     row_metrics_from_host(current_host_metrics())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_row_palette(
-) -> WorkbenchRowPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_row_palette()
+-> WorkbenchRowPalette {
     row_palette_from_host(current_host_palette())
 }
 

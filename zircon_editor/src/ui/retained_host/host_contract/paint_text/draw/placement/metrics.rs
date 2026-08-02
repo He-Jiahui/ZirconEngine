@@ -41,8 +41,8 @@ fn rounded_subpixel_units(screen_x: f32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::{
-        finite_text_origin, quantized_left_offset_px, screen_pixel_x, screen_subpixel_bin,
-        subpixel_offset_for_bin, FALLBACK_TEXT_ORIGIN_PX, RETAINED_TEXT_SUBPIXEL_BINS,
+        FALLBACK_TEXT_ORIGIN_PX, RETAINED_TEXT_SUBPIXEL_BINS, finite_text_origin,
+        quantized_left_offset_px, screen_pixel_x, screen_subpixel_bin, subpixel_offset_for_bin,
     };
 
     #[test]

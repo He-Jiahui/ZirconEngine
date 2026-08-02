@@ -1,3 +1,4 @@
+use super::super::super::style_selector::WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT;
 use super::super::metrics::status_line_height;
 use super::constants::status_signal_metrics;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
@@ -32,6 +33,8 @@ fn status_signal_text_gap(node: &TemplatePaneNodeData) -> f32 {
 fn resolved_status_signal_text_gap(node: &TemplatePaneNodeData) -> f32 {
     if node.layout_content_offset_x > 0.0 {
         node.layout_content_offset_x
+    } else if node.component_variant.as_str() == WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT {
+        status_signal_metrics().gap_s
     } else {
         status_signal_metrics().signal_text_gap
     }

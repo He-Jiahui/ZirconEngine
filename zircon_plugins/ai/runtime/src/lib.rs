@@ -1,5 +1,3 @@
-pub const PLUGIN_ID: &str = "ai";
-
 pub mod behavior_tree;
 /// Dense, schema-compiled blackboard storage and slot contracts.
 pub mod blackboard;
@@ -11,8 +9,10 @@ mod plugin;
 mod tick_lod;
 
 pub use capability::{
-    AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY, AI_PERCEPTION_CAPABILITY,
-    AI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY, AI_DECLARATION,
+    AI_PERCEPTION_CAPABILITY, AI_RUNTIME_CAPABILITY, NATIVE_PLUGIN_ID,
+    NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST,
+    PLUGIN_ID, RUNTIME_CAPABILITIES,
 };
 pub use manager::DefaultAiManager;
 pub use module::{

@@ -44,13 +44,15 @@ fn remembering_same_path_refreshes_summary_and_keeps_newest_record() {
 fn recent_projection_uses_dynamic_validation_without_persisting_it() {
     let stored = StoredStartupSession {
         last_project_path: None,
-        recent_projects: vec![RecentProjectEntry {
-            summary: summary("Game"),
-            path: "E:/Projects/Game".to_string(),
-            last_opened_unix_ms: 10,
-            validation: RecentProjectValidation::Valid,
-        }
-        .into_stored()],
+        recent_projects: vec![
+            RecentProjectEntry {
+                summary: summary("Game"),
+                path: "E:/Projects/Game".to_string(),
+                last_opened_unix_ms: 10,
+                validation: RecentProjectValidation::Valid,
+            }
+            .into_stored(),
+        ],
     };
 
     let recent = ProjectAuthority::default()

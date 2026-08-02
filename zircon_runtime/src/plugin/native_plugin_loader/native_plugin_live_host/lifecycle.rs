@@ -13,7 +13,9 @@ use super::diagnostics::{
     diagnostics_from_behavior_report, load_projected_report_diagnostics,
     projected_diagnostics_for_plugin, NativePluginBehaviorDiagnosticError,
 };
-use super::hot_reload::{restore_runtime_snapshot, NativePluginHotReloadState};
+use super::hot_reload::{
+    restore_runtime_snapshot, NativePluginHotReloadState, PluginStateSnapshot,
+};
 use super::keys::{live_key, module_kind_article_label, module_kind_label};
 use super::loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};
 use super::reports::{NativePluginLiveHostCommand, NativePluginLiveHostOutcome};
@@ -210,19 +212,29 @@ impl NativePluginLiveHost {
             unload_behavior(&plugin, module_kind),
         ) {
             Ok(diagnostics) => {
-                lock_loaded_native_plugins(&self.loaded)
-                    .map_err(NativePluginLiveHostLifecycleError::LiveHostLock)?
-                    .remove(&key);
+                let mut loaded = match lock_loaded_native_plugins(&self.loaded) {
+                    Ok(loaded) => loaded,
+                    Err(error) => {
+                        plugin.cancel_lifecycle_transition();
+                        return Err(NativePluginLiveHostLifecycleError::LiveHostLock(error));
+                    }
+                };
+                loaded.remove(&key);
+                if module_kind == PluginModuleKind::Runtime {
+                    self.publish_runtime_bridge_method_bindings_under_loaded_lock_result(
+                        &loaded, plugin_id, None,
+                    )
+                    .map_err(|source| {
+                        NativePluginLiveHostLifecycleError::RuntimeBridgeMethodBindings {
+                            plugin_id: plugin_id.to_string(),
+                            source,
+                        }
+                    })?;
+                }
                 if module_kind == PluginModuleKind::Runtime {
                     self.invalidate_runtime_registration_replay_generation(plugin_id);
-                    self.replace_runtime_bridge_method_bindings_result(plugin_id, None)
-                        .map_err(|source| {
-                            NativePluginLiveHostLifecycleError::RuntimeBridgeMethodBindings {
-                                plugin_id: plugin_id.to_string(),
-                                source,
-                            }
-                        })?;
                 }
+                drop(loaded);
                 Ok(NativePluginLiveHostOutcome {
                     plugin_id: plugin_id.to_string(),
                     module_kind,
@@ -403,7 +415,8 @@ impl NativePluginLiveHost {
             match discovered_runtime_bridge_method_bindings_result(&plugin) {
                 Ok(Some(bindings)) => {
                     diagnostics.push(discovered_runtime_bridge_method_binding_diagnostics(
-                        plugin_id, &bindings,
+                        plugin_id,
+                        bindings.len(),
                     ));
                     Some(Some(bindings))
                 }
@@ -418,13 +431,26 @@ impl NativePluginLiveHost {
         } else {
             None
         };
+        let mut loaded = match lock_loaded_native_plugins(&self.loaded) {
+            Ok(loaded) => loaded,
+            Err(error) => {
+                rollback_unloaded_existing_runtime_snapshot(
+                    runtime_snapshot.as_ref(),
+                    unloaded_existing.as_ref(),
+                );
+                return Err(NativePluginLiveHostLifecycleError::LiveHostLock(error));
+            }
+        };
         if let Some(bindings) = bridge_binding_update {
-            if let Err(source) =
-                self.replace_runtime_bridge_method_bindings_result(plugin_id, bindings)
+            if let Err(source) = self
+                .publish_runtime_bridge_method_bindings_under_loaded_lock_result(
+                    &loaded, plugin_id, bindings,
+                )
             {
-                if let Some(existing) = unloaded_existing.as_ref() {
-                    existing.cancel_lifecycle_transition();
-                }
+                rollback_unloaded_existing_runtime_snapshot(
+                    runtime_snapshot.as_ref(),
+                    unloaded_existing.as_ref(),
+                );
                 return Err(
                     NativePluginLiveHostLifecycleError::RuntimeBridgeMethodBindings {
                         plugin_id: plugin_id.to_string(),
@@ -433,15 +459,14 @@ impl NativePluginLiveHost {
                 );
             }
         }
-        lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginLiveHostLifecycleError::LiveHostLock)?
-            .insert(
-                live_key(reload_state.module_kind, &reload_state.key),
-                plugin,
-            );
+        loaded.insert(
+            live_key(reload_state.module_kind, &reload_state.key),
+            plugin,
+        );
         if module_kind == PluginModuleKind::Runtime {
             self.invalidate_runtime_registration_replay_generation(plugin_id);
         }
+        drop(loaded);
         Ok(NativePluginLiveHostOutcome {
             plugin_id: plugin_id.to_string(),
             module_kind,
@@ -450,6 +475,19 @@ impl NativePluginLiveHost {
             diagnostics,
         })
     }
+}
+
+fn rollback_unloaded_existing_runtime_snapshot(
+    runtime_snapshot: Option<&PluginStateSnapshot>,
+    unloaded_existing: Option<&super::super::LoadedNativePlugin>,
+) {
+    let Some(existing) = unloaded_existing else {
+        return;
+    };
+    if let Some(snapshot) = runtime_snapshot {
+        let _ = restore_runtime_snapshot(snapshot, existing);
+    }
+    existing.cancel_lifecycle_transition();
 }
 
 pub(super) fn load_for_module_kind(

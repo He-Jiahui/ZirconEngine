@@ -16,8 +16,8 @@ use crate::core::math::{Real, Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
-use crate::graphics::WgpuRenderFramework;
 use crate::graphics::shader::standard_material_surface_source_for_features;
+use crate::graphics::WgpuRenderFramework;
 
 const GPU_DRIVEN_INSTANCE_COUNT: usize = 64;
 const GPU_DRIVEN_VIEWPORT_SIZE: UVec2 = UVec2::new(320, 240);

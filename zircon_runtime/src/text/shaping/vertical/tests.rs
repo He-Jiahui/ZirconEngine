@@ -1,8 +1,8 @@
 use crate::core::framework::text::TextDirection;
-use crate::text::{BackendShapeRequest, ShapedGlyphRotation, VerticalMode};
+use crate::text::{BackendShapeRequest, OpenTypeFeature, ShapedGlyphRotation, VerticalMode};
 use crate::text::{TextRange, TextStyle};
 
-use super::projection::vertical_backend_direction;
+use super::direct::vertical_backend_direction;
 use super::{apply_vertical_layout, apply_vertical_layout_with_native_metrics};
 use crate::text::shaping::{TextShapeRunProvider, VerticalTextShapeRunProvider};
 use std::sync::Arc;
@@ -129,6 +129,102 @@ fn text_vertical_cjk_uses_backend_face_vmtx_advance() {
 
 #[cfg(target_os = "windows")]
 #[test]
+fn text_vertical_tr_uses_backend_substitution_before_rotation_fallback() {
+    use crate::text::font::shared_font_database_snapshot;
+    use crate::text::shaping::shape_text;
+
+    let style = TextStyle {
+        font_family: Some("Microsoft YaHei UI".to_string()),
+        font_size: 20.0,
+        line_height: 24.0,
+        language: Some("zh-Hans".to_string()),
+        ..TextStyle::default()
+    };
+    let text = "（";
+    let shaped = shape_text(BackendShapeRequest::vertical(
+        text,
+        &style,
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+        VerticalMode::Mixed,
+    ));
+    let glyph = shaped.lines[0].glyphs.first().expect("shaped Tr glyph");
+    let face = glyph.font_id.expect("actual backend face");
+    let (_, database) = shared_font_database_snapshot();
+    let backend = shape_vertical_run(
+        &database,
+        face,
+        glyph.font_instance_id,
+        text,
+        VerticalBackendDirection::TopToBottom,
+        "Hani",
+        style.language.as_deref(),
+        &[],
+        true,
+        true,
+        style.font_weight,
+        style.font_size,
+    )
+    .expect("Tr substitution-aware vertical backend shape");
+    let without_vertical = shape_vertical_run(
+        &database,
+        face,
+        glyph.font_instance_id,
+        text,
+        VerticalBackendDirection::TopToBottom,
+        "Hani",
+        style.language.as_deref(),
+        &[
+            OpenTypeFeature::new(*b"vert", 0),
+            OpenTypeFeature::new(*b"vrt2", 0),
+        ],
+        true,
+        false,
+        style.font_weight,
+        style.font_size,
+    )
+    .expect("vertical backend shape with substitutions disabled");
+    let substituted = super::backend::vertical_substitution_clusters(
+        backend
+            .glyphs
+            .iter()
+            .map(|glyph| (glyph.source_offset as u32, glyph.glyph_id)),
+        without_vertical
+            .glyphs
+            .iter()
+            .map(|glyph| (glyph.source_offset as u32, glyph.glyph_id)),
+    );
+    assert_eq!(
+        backend
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.vertical_substituted)
+            .collect::<Vec<_>>(),
+        backend
+            .glyphs
+            .iter()
+            .map(|glyph| substituted.contains(&(glyph.source_offset as u32)))
+            .collect::<Vec<_>>(),
+        "vertical provenance must match the independently shaped disabled-feature output"
+    );
+    let expected_rotation = if backend
+        .glyphs
+        .iter()
+        .any(|glyph| substituted.contains(&(glyph.source_offset as u32)))
+    {
+        ShapedGlyphRotation::None
+    } else {
+        ShapedGlyphRotation::Cw90
+    };
+
+    assert_eq!(glyph.rotation, expected_rotation);
+}
+
+#[cfg(target_os = "windows")]
+#[test]
 fn text_vertical_backend_shapes_ttb_and_btt_with_signed_y_advances() {
     use crate::text::font::shared_font_database_snapshot;
     use crate::text::shaping::shape_text;
@@ -158,11 +254,14 @@ fn text_vertical_backend_shapes_ttb_and_btt_with_signed_y_advances() {
     let ttb = shape_vertical_run(
         &database,
         face,
+        None,
         text,
         VerticalBackendDirection::TopToBottom,
+        "Hani",
         style.language.as_deref(),
         &[],
         true,
+        false,
         style.font_weight,
         style.font_size,
     )
@@ -170,11 +269,14 @@ fn text_vertical_backend_shapes_ttb_and_btt_with_signed_y_advances() {
     let btt = shape_vertical_run(
         &database,
         face,
+        None,
         text,
         VerticalBackendDirection::BottomToTop,
+        "Hani",
         style.language.as_deref(),
         &[],
         true,
+        false,
         style.font_weight,
         style.font_size,
     )
@@ -218,11 +320,14 @@ fn text_vertical_shape_path_consumes_ttb_backend_glyphs() {
     let backend = shape_vertical_run(
         &database,
         face,
+        None,
         text,
         VerticalBackendDirection::TopToBottom,
+        "Hani",
         style.language.as_deref(),
         &[],
         true,
+        false,
         style.font_weight,
         style.font_size,
     )
@@ -247,7 +352,7 @@ fn text_vertical_shape_path_consumes_ttb_backend_glyphs() {
 
 #[cfg(target_os = "windows")]
 #[test]
-fn text_vertical_rtl_shape_path_consumes_btt_cluster_order() {
+fn text_vertical_rtl_shape_path_restores_logical_cluster_order_after_btt() {
     use crate::text::shaping::shape_text;
 
     let style = TextStyle {
@@ -271,7 +376,7 @@ fn text_vertical_rtl_shape_path_consumes_btt_cluster_order() {
     let glyphs = &shaped.lines[0].glyphs;
 
     assert_eq!(glyphs.len(), 2);
-    assert!(glyphs[0].source_range.start > glyphs[1].source_range.start);
+    assert!(glyphs[0].source_range.start < glyphs[1].source_range.start);
     assert!(glyphs.iter().all(|glyph| glyph.advance > 0.0));
 }
 
@@ -371,7 +476,7 @@ fn vertical_fixture(text: &str, source_range: TextRange) -> crate::text::ShapedG
         .collect::<Vec<_>>();
 
     ShapedGlyphRun {
-        source_text: text.to_string(),
+        source_text: std::sync::Arc::from(text),
         source_range,
         direction: TextDirection::LeftToRight,
         orientation: TextOrientation::Vertical,
@@ -381,7 +486,6 @@ fn vertical_fixture(text: &str, source_range: TextRange) -> crate::text::ShapedG
         measured_height: 24.0,
         lines: vec![ShapedTextLine {
             line_index: 0,
-            text: text.to_string(),
             source_range,
             visual_range: TextRange {
                 start: 0,

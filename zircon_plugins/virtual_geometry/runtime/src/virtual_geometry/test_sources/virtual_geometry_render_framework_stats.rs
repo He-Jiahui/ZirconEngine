@@ -404,6 +404,7 @@ fn build_hierarchical_instance_extract(
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: 2,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

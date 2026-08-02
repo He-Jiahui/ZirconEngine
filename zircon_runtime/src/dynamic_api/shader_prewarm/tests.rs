@@ -2,8 +2,9 @@ use std::borrow::Cow;
 use std::fs;
 
 use crate::core::framework::render::{
-    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
     GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_BLINN_PHONG,
+    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmExecutionBudget,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
 };
 use crate::graphics::shader::{
     ShaderVariantCacheDisk, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup,
@@ -12,7 +13,17 @@ use crate::graphics::shader::{
 use super::{
     builtin_fallback_shader_prewarm_manifest, builtin_standard_material_shader_prewarm_manifest,
     builtin_standard_material_shader_prewarm_manifest_for_geometry, prewarm_shader_variants,
+    prewarm_shader_variants_with_execution_budget,
 };
+
+fn source_for<'a>(
+    manifest: &'a ShaderVariantPrewarmManifest,
+    request: &ShaderVariantPrewarmRequest,
+) -> &'a ShaderVariantPrewarmSource {
+    manifest
+        .source_for(request)
+        .expect("prewarm manifest source for request")
+}
 
 #[test]
 fn builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source() {
@@ -35,9 +46,10 @@ fn builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source() {
         ]
     );
     assert!(manifest.variants.iter().all(|request| {
-        request.template_revision == "zr-material-template-v1"
-            && request.source_label == "builtin://shader/pbr.wgsl"
-            && request.include_content_hashes.len() > 1
+        let source = source_for(&manifest, request);
+        source.template_revision == "zr-material-template-v1"
+            && source.source_label == "builtin://shader/pbr.wgsl"
+            && source.include_content_hashes.len() > 1
     }));
 
     let forward_request = manifest
@@ -45,60 +57,80 @@ fn builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source() {
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::Forward)
         .expect("forward builtin fallback prewarm request");
-    assert!(forward_request
-        .wgsl_source
-        .contains("fn zr_material_surface("));
-    assert!(forward_request.wgsl_source.contains("fn vs_main("));
-    assert!(forward_request.wgsl_source.contains("fn fs_main("));
-    assert!(forward_request
-        .wgsl_source
-        .contains("// include: zr_light_grid.wgsl"));
-    assert!(forward_request
-        .wgsl_source
-        .contains("// include: zr_shadow.wgsl"));
+    let forward_source = source_for(&manifest, forward_request);
+    assert!(
+        forward_source
+            .wgsl_source
+            .contains("fn zr_material_surface(")
+    );
+    assert!(forward_source.wgsl_source.contains("fn vs_main("));
+    assert!(forward_source.wgsl_source.contains("fn fs_main("));
+    assert!(
+        forward_source
+            .wgsl_source
+            .contains("// include: zr_light_grid.wgsl")
+    );
+    assert!(
+        forward_source
+            .wgsl_source
+            .contains("// include: zr_shadow.wgsl")
+    );
 
     let depth_request = manifest
         .variants
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::DepthPrepass)
         .expect("depth-only builtin fallback prewarm request");
-    assert!(depth_request
-        .wgsl_source
-        .contains("// include: zr_template_depth.wgsl"));
-    assert!(!depth_request.wgsl_source.contains("fn fs_main("));
-    assert!(!depth_request.wgsl_source.contains("zr_material_surface"));
-    assert!(!depth_request
-        .wgsl_source
-        .contains("surface.normal_ws * 0.5"));
-    assert!(!depth_request
-        .wgsl_source
-        .contains("// include: zr_template_gbuffer.wgsl"));
+    let depth_source = source_for(&manifest, depth_request);
+    assert!(
+        depth_source
+            .wgsl_source
+            .contains("// include: zr_template_depth.wgsl")
+    );
+    assert!(!depth_source.wgsl_source.contains("fn fs_main("));
+    assert!(!depth_source.wgsl_source.contains("zr_material_surface"));
+    assert!(!depth_source.wgsl_source.contains("surface.normal_ws * 0.5"));
+    assert!(
+        !depth_source
+            .wgsl_source
+            .contains("// include: zr_template_gbuffer.wgsl")
+    );
 
     let velocity_request = manifest
         .variants
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::Velocity)
         .expect("velocity builtin fallback prewarm request");
-    assert!(velocity_request.wgsl_source.contains("fetch_prev_position"));
-    assert!(!velocity_request
-        .wgsl_source
-        .contains("fn vs_velocity_object"));
+    let velocity_source = source_for(&manifest, velocity_request);
+    assert!(velocity_source.wgsl_source.contains("fetch_prev_position"));
+    assert!(
+        !velocity_source
+            .wgsl_source
+            .contains("fn vs_velocity_object")
+    );
 
     let taa_request = manifest
         .variants
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::TaaReactiveMask)
         .expect("TAA reactive mask builtin fallback prewarm request");
-    assert!(taa_request
-        .wgsl_source
-        .contains("// include: zr_template_taa_reactive_mask.wgsl"));
-    assert!(taa_request.wgsl_source.contains("fn fs_taa_reactive_mask("));
-    assert!(taa_request
-        .wgsl_source
-        .contains("fn fs_taa_reactive_material_mask("));
-    assert!(!taa_request
-        .wgsl_source
-        .contains("// include: zr_light_grid.wgsl"));
+    let taa_source = source_for(&manifest, taa_request);
+    assert!(
+        taa_source
+            .wgsl_source
+            .contains("// include: zr_template_taa_reactive_mask.wgsl")
+    );
+    assert!(taa_source.wgsl_source.contains("fn fs_taa_reactive_mask("));
+    assert!(
+        taa_source
+            .wgsl_source
+            .contains("fn fs_taa_reactive_material_mask(")
+    );
+    assert!(
+        !taa_source
+            .wgsl_source
+            .contains("// include: zr_light_grid.wgsl")
+    );
 }
 
 #[test]
@@ -116,6 +148,7 @@ fn builtin_standard_material_shader_prewarm_manifest_projects_material_features(
 
     assert_eq!(manifest.variants.len(), 6);
     assert!(manifest.variants.iter().all(|request| {
+        let source = source_for(&manifest, request);
         request.key.quality == ShaderQualityTier::High
             && request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG
             && request.key.features.contains(ShaderFeatureBits::ALPHA_TEST)
@@ -127,8 +160,8 @@ fn builtin_standard_material_shader_prewarm_manifest_projects_material_features(
                 .key
                 .features
                 .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-            && request.template_revision == "zr-material-template-v1"
-            && request.include_content_hashes.len() > 1
+            && source.template_revision == "zr-material-template-v1"
+            && source.include_content_hashes.len() > 1
     }));
     assert_eq!(
         manifest
@@ -151,39 +184,49 @@ fn builtin_standard_material_shader_prewarm_manifest_projects_material_features(
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::Forward)
         .expect("forward standard material prewarm request");
-    assert!(forward_request
-        .wgsl_source
-        .contains("fn zr_material_surface("));
-    assert!(forward_request
-        .wgsl_source
-        .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
+    let forward_source = source_for(&manifest, forward_request);
+    assert!(
+        forward_source
+            .wgsl_source
+            .contains("fn zr_material_surface(")
+    );
+    assert!(
+        forward_source
+            .wgsl_source
+            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;")
+    );
 
     let depth_request = manifest
         .variants
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::DepthPrepass)
         .expect("alpha depth-only standard material prewarm request");
-    assert!(depth_request
-        .wgsl_source
-        .contains("// include: zr_template_depth_alpha.wgsl"));
-    assert!(depth_request
-        .wgsl_source
-        .contains("fn zr_material_surface("));
-    assert!(depth_request
-        .wgsl_source
-        .contains("zr_apply_alpha_clip(surface);"));
-    assert!(depth_request
-        .wgsl_source
-        .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
-    assert!(!depth_request
-        .wgsl_source
-        .contains("surface.normal_ws * 0.5"));
-    assert!(!depth_request
-        .wgsl_source
-        .contains("// include: zr_template_gbuffer.wgsl"));
+    let depth_source = source_for(&manifest, depth_request);
+    assert!(
+        depth_source
+            .wgsl_source
+            .contains("// include: zr_template_depth_alpha.wgsl")
+    );
+    assert!(depth_source.wgsl_source.contains("fn zr_material_surface("));
+    assert!(
+        depth_source
+            .wgsl_source
+            .contains("zr_apply_alpha_clip(surface);")
+    );
+    assert!(
+        depth_source
+            .wgsl_source
+            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;")
+    );
+    assert!(!depth_source.wgsl_source.contains("surface.normal_ws * 0.5"));
+    assert!(
+        !depth_source
+            .wgsl_source
+            .contains("// include: zr_template_gbuffer.wgsl")
+    );
     assert_ne!(
-        forward_request.include_content_hashes,
-        depth_request.include_content_hashes
+        forward_source.include_content_hashes,
+        depth_source.include_content_hashes
     );
 
     let taa_request = manifest
@@ -191,12 +234,17 @@ fn builtin_standard_material_shader_prewarm_manifest_projects_material_features(
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::TaaReactiveMask)
         .expect("alpha TAA reactive mask standard material prewarm request");
-    assert!(taa_request
-        .wgsl_source
-        .contains("// include: zr_template_taa_reactive_mask.wgsl"));
-    assert!(taa_request
-        .wgsl_source
-        .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
+    let taa_source = source_for(&manifest, taa_request);
+    assert!(
+        taa_source
+            .wgsl_source
+            .contains("// include: zr_template_taa_reactive_mask.wgsl")
+    );
+    assert!(
+        taa_source
+            .wgsl_source
+            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;")
+    );
 }
 
 #[test]
@@ -211,22 +259,23 @@ fn builtin_standard_material_shader_prewarm_manifest_projects_geometry_source() 
 
     assert_eq!(manifest.variants.len(), 6);
     assert!(manifest.variants.iter().all(|request| {
+        let source = source_for(&manifest, request);
         request.key.geometry_source == GEOMETRY_SOURCE_ID_SKINNED_MESH
             && request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG
             && request
                 .key
                 .features
                 .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-            && request
+            && source
                 .wgsl_source
                 .contains("// include: zr_geometry_skinned.wgsl")
-            && request
+            && source
                 .wgsl_source
                 .contains("const ZR_GEOMETRY_SOURCE_SKINNED_MESH: bool = true;")
-            && request
+            && source
                 .wgsl_source
                 .contains("zr_skinned_joint_matrix(v.joints.x)")
-            && request.template_revision == "zr-material-template-v1"
+            && source.template_revision == "zr-material-template-v1"
     }));
     assert_eq!(
         manifest
@@ -249,14 +298,15 @@ fn builtin_standard_material_shader_prewarm_manifest_projects_geometry_source() 
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::DepthPrepass)
         .expect("skinned depth-only standard material prewarm request");
-    assert!(depth_request
-        .wgsl_source
-        .contains("// include: zr_template_depth.wgsl"));
-    assert!(!depth_request.wgsl_source.contains("fn fs_main("));
-    assert!(!depth_request.wgsl_source.contains("zr_material_surface"));
-    assert!(!depth_request
-        .wgsl_source
-        .contains("surface.normal_ws * 0.5"));
+    let depth_source = source_for(&manifest, depth_request);
+    assert!(
+        depth_source
+            .wgsl_source
+            .contains("// include: zr_template_depth.wgsl")
+    );
+    assert!(!depth_source.wgsl_source.contains("fn fs_main("));
+    assert!(!depth_source.wgsl_source.contains("zr_material_surface"));
+    assert!(!depth_source.wgsl_source.contains("surface.normal_ws * 0.5"));
 }
 
 #[test]
@@ -284,9 +334,10 @@ fn builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules() {
     let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
 
     for request in &manifest.variants {
+        let source = source_for(&manifest, request);
         let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
             &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+            source.include_content_hashes.iter().map(String::as_str),
         );
         let entry = match restarted_cache.lookup(&disk_key) {
             ShaderVariantCacheDiskLookup::Hit(entry) => entry,
@@ -295,8 +346,8 @@ fn builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules() {
                 request.key.canonical_string()
             ),
         };
-        assert_eq!(entry.wgsl_source, request.wgsl_source);
-        assert_eq!(entry.meta.template_revision, request.template_revision);
+        assert_eq!(entry.wgsl_source, source.wgsl_source);
+        assert_eq!(entry.meta.template_revision, source.template_revision);
         let _shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-test-staged-builtin-standard-material-prewarm-shader"),
             source: wgpu::ShaderSource::Wgsl(Cow::Owned(entry.wgsl_source)),
@@ -311,26 +362,49 @@ fn builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn invalid_execution_budget_is_reported_without_inventing_variant_failure() {
+    let manifest = ShaderVariantPrewarmManifest::empty();
+    let budget = ShaderVariantPrewarmExecutionBudget {
+        max_in_flight_variants: 0,
+        ..Default::default()
+    };
+
+    let report = prewarm_shader_variants_with_execution_budget(
+        &manifest,
+        std::env::temp_dir(),
+        budget,
+        false,
+        false,
+    );
+
+    assert_eq!(report.requested_count, 0);
+    assert_eq!(report.written_count, 0);
+    assert_eq!(report.failed_count, 0);
+    assert!(report.failures.is_empty());
+    assert_eq!(
+        report.preflight_error.as_deref(),
+        Some("shader prewarm uses one serial WGPU worker; max_in_flight_variants must be 1, got 0")
+    );
+    assert_eq!(report.execution_budget.rejected_count, 1);
+}
+
 fn builtin_standard_material_cache_validation_manifest() -> ShaderVariantPrewarmManifest {
-    let mut variants = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+    let mut manifest = builtin_standard_material_shader_prewarm_manifest_for_geometry(
         ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
         SHADING_MODEL_ID_BLINN_PHONG,
         None,
         GEOMETRY_SOURCE_ID_STATIC_MESH,
         &[ShaderQualityTier::Medium],
-    )
-    .variants;
-    variants.extend(
-        builtin_standard_material_shader_prewarm_manifest_for_geometry(
-            ShaderFeatureBits::new(
-                ShaderFeatureBits::ALPHA_TEST | ShaderFeatureBits::RECEIVE_SHADOWS,
-            ),
-            SHADING_MODEL_ID_BLINN_PHONG,
-            Some(0.42),
-            GEOMETRY_SOURCE_ID_SKINNED_MESH,
-            &[ShaderQualityTier::Medium],
-        )
-        .variants,
     );
-    ShaderVariantPrewarmManifest::new(variants)
+    let extra = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+        ShaderFeatureBits::new(ShaderFeatureBits::ALPHA_TEST | ShaderFeatureBits::RECEIVE_SHADOWS),
+        SHADING_MODEL_ID_BLINN_PHONG,
+        Some(0.42),
+        GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        &[ShaderQualityTier::Medium],
+    );
+    manifest.sources.extend(extra.sources);
+    manifest.variants.extend(extra.variants);
+    manifest
 }

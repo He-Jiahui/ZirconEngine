@@ -9,10 +9,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_
     let Some(module_name) = module_name(icon_name) else {
         return Vec::new();
     };
-    vec![workspace_root
-        .join("dev/material-ui/packages/mui-icons-material/lib")
-        .join(module_name)
-        .with_extension("js")]
+    vec![
+        workspace_root
+            .join("dev/material-ui/packages/mui-icons-material/lib")
+            .join(module_name)
+            .with_extension("js"),
+    ]
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_module_path(

@@ -1,4 +1,4 @@
-use super::super::{selection_control_kind, SelectionControlKind};
+use super::super::{SelectionControlKind, selection_control_kind};
 use super::support::node_with_role;
 
 #[test]

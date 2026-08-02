@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::asset::DirtyExternalEffectId;
 use crate::ui::retained_host::primitives::CloseRequestResponse;
 
 const CLOSE_PROMPT_UI_ASSET: &str = r#"
@@ -18,24 +19,36 @@ control_id = "Root"
 props = { text = "Ready" }
 "#;
 
+fn open_dirty_ui_asset(
+    harness: &ChildWindowHostHarness,
+    suffix: &str,
+) -> (std::path::PathBuf, ViewInstanceId) {
+    let path = unique_temp_path(suffix).with_extension("ui.toml");
+    std::fs::write(&path, CLOSE_PROMPT_UI_ASSET).unwrap();
+    let instance_id = harness
+        .host
+        .borrow()
+        .editor_manager
+        .open_ui_asset_editor(&path, None)
+        .expect("ui asset editor should open");
+    harness
+        .host
+        .borrow()
+        .editor_manager
+        .mark_document_external_effect(&instance_id, DirtyExternalEffectId::ui_source_buffer())
+        .unwrap();
+    (path, instance_id)
+}
+
 #[test]
 fn dirty_floating_window_close_request_shows_cancelable_prompt() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_dirty_child_close_cancel");
+    let (ui_asset_path, instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_close_prompt_cancel");
     let window_id = MainPageId::new("window:assets");
-    let child = harness.detach_view_to_child_window("editor.assets#1", window_id.0.as_str());
-    harness
-        .host
-        .borrow()
-        .editor_manager
-        .update_view_instance_metadata(
-            &ViewInstanceId::new("editor.assets#1"),
-            None,
-            Some(true),
-            None,
-        )
-        .unwrap();
+    let child = harness.detach_view_to_child_window(instance_id.0.as_str(), window_id.0.as_str());
 
     let response = harness
         .host
@@ -53,16 +66,15 @@ fn dirty_floating_window_close_request_shows_cancelable_prompt() {
     );
 
     assert!(!child.get_host_presentation().close_prompt.visible);
-    assert!(
-        harness
-            .host
-            .borrow()
-            .runtime
-            .current_layout()
-            .floating_windows
-            .iter()
-            .any(|window| window.window_id == window_id)
-    );
+    assert!(harness
+        .host
+        .borrow()
+        .runtime
+        .current_layout()
+        .floating_windows
+        .iter()
+        .any(|window| window.window_id == window_id));
+    let _ = std::fs::remove_file(ui_asset_path);
 }
 
 #[test]
@@ -70,15 +82,8 @@ fn dirty_saveable_floating_window_save_prompt_saves_then_closes_window() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_dirty_child_close_save");
-    let ui_asset_path =
-        unique_temp_path("zircon_retained_close_prompt_ui_asset").with_extension("ui.toml");
-    std::fs::write(&ui_asset_path, CLOSE_PROMPT_UI_ASSET).unwrap();
-    let instance_id = harness
-        .host
-        .borrow()
-        .editor_manager
-        .open_ui_asset_editor(&ui_asset_path, None)
-        .expect("ui asset editor should open");
+    let (ui_asset_path, instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_close_prompt_ui_asset");
     {
         let mut host = harness.host.borrow_mut();
         host.refresh_ui();
@@ -86,13 +91,6 @@ fn dirty_saveable_floating_window_save_prompt_saves_then_closes_window() {
     }
     let window_id = MainPageId::new("window:ui-asset");
     let child = harness.detach_view_to_child_window(instance_id.0.as_str(), window_id.0.as_str());
-    harness
-        .host
-        .borrow()
-        .editor_manager
-        .update_view_instance_metadata(&instance_id, None, Some(true), None)
-        .unwrap();
-
     let response = harness
         .host
         .borrow_mut()
@@ -108,16 +106,14 @@ fn dirty_saveable_floating_window_save_prompt_saves_then_closes_window() {
         prompt.save_button_frame.y + 4.0,
     );
 
-    assert!(
-        harness
-            .host
-            .borrow()
-            .runtime
-            .current_layout()
-            .floating_windows
-            .iter()
-            .all(|window| window.window_id != window_id)
-    );
+    assert!(harness
+        .host
+        .borrow()
+        .runtime
+        .current_layout()
+        .floating_windows
+        .iter()
+        .all(|window| window.window_id != window_id));
     let _ = std::fs::remove_file(ui_asset_path);
 }
 
@@ -126,22 +122,13 @@ fn dirty_floating_window_discard_prompt_closes_all_window_tabs() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_dirty_child_close_discard");
+    let (ui_asset_path, instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_close_prompt_discard");
     let window_id = MainPageId::new("window:assets");
     let child = harness.detach_views_to_child_window(
-        &["editor.assets#1", "editor.console#1"],
+        &[instance_id.0.as_str(), "editor.console#1"],
         window_id.0.as_str(),
     );
-    harness
-        .host
-        .borrow()
-        .editor_manager
-        .update_view_instance_metadata(
-            &ViewInstanceId::new("editor.assets#1"),
-            None,
-            Some(true),
-            None,
-        )
-        .unwrap();
 
     let response = harness
         .host
@@ -157,16 +144,15 @@ fn dirty_floating_window_discard_prompt_closes_all_window_tabs() {
         prompt.discard_button_frame.y + 4.0,
     );
 
-    assert!(
-        harness
-            .host
-            .borrow()
-            .runtime
-            .current_layout()
-            .floating_windows
-            .iter()
-            .all(|window| window.window_id != window_id)
-    );
+    assert!(harness
+        .host
+        .borrow()
+        .runtime
+        .current_layout()
+        .floating_windows
+        .iter()
+        .all(|window| window.window_id != window_id));
+    let _ = std::fs::remove_file(ui_asset_path);
 }
 
 #[test]
@@ -174,17 +160,8 @@ fn dirty_main_window_discard_prompt_requests_host_exit() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_dirty_main_close_discard");
-    harness
-        .host
-        .borrow()
-        .editor_manager
-        .update_view_instance_metadata(
-            &ViewInstanceId::new("editor.assets#1"),
-            None,
-            Some(true),
-            None,
-        )
-        .unwrap();
+    let (ui_asset_path, _instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_close_prompt_main_discard");
 
     let response = harness
         .host
@@ -201,4 +178,5 @@ fn dirty_main_window_discard_prompt_requests_host_exit() {
     );
 
     assert!(harness.root_ui.exit_requested_for_test());
+    let _ = std::fs::remove_file(ui_asset_path);
 }

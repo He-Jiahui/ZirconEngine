@@ -11,6 +11,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_shadow_mesh_pipel
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     kind: MeshPassPipelineKind,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(shadow_pipeline_label(kind)),
@@ -36,7 +37,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_shadow_mesh_pipel
         multisample: wgpu::MultisampleState::default(),
         fragment: shadow_fragment_state(shader, kind),
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }
 
@@ -69,11 +70,11 @@ mod tests {
     use std::sync::Arc;
 
     use super::create_shadow_mesh_pipeline;
-    use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::core::framework::render::ShaderPassType;
+    use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::graphics::scene::gpu_scene::GpuScene;
-    use crate::graphics::scene::resources::GPU_MATERIAL_UNIFORM_MIN_SIZE;
     use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::resources::GPU_MATERIAL_UNIFORM_MIN_SIZE;
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassPipelineKind;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_shadow_template_source_for_geometry;
@@ -106,11 +107,9 @@ mod tests {
 
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(!source.wgsl_source.contains("fn fs_main("));
-        assert!(
-            !source
-                .wgsl_source
-                .contains("GpuMeshVertex::previous_position_layout()")
-        );
+        assert!(!source
+            .wgsl_source
+            .contains("GpuMeshVertex::previous_position_layout()"));
     }
 
     #[test]
@@ -147,12 +146,14 @@ mod tests {
             &pipeline_layout,
             &opaque_shader,
             MeshPassPipelineKind::ShadowDepth,
+            None,
         );
         let _alpha_pipeline = create_shadow_mesh_pipeline(
             device,
             &pipeline_layout,
             &alpha_shader,
             MeshPassPipelineKind::ShadowDepthAlphaMask,
+            None,
         );
         let error = pollster::block_on(error_scope.pop());
 

@@ -1,5 +1,6 @@
 //! Script-facing framework contracts shared by VM backends and host exports.
 
+use std::any::Any;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -718,12 +719,52 @@ impl ScriptHostModuleDescriptor {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ScriptHostCallContext {
-    pub module_name: String,
-    pub function_name: String,
-    pub arguments: Vec<ScriptHostValue>,
-    pub granted_capabilities: Vec<String>,
+pub struct ScriptHostCallFrame<'a> {
+    pub module_name: &'a str,
+    pub function_name: &'a str,
+    pub arguments: &'a [ScriptHostValue],
+    pub granted_capabilities: &'a [String],
+    /// Runtime-owned data borrowed only for this synchronous host export call.
+    runtime_context: Option<&'a dyn Any>,
+}
+
+impl<'a> ScriptHostCallFrame<'a> {
+    pub(crate) fn new(
+        module_name: &'a str,
+        function_name: &'a str,
+        arguments: &'a [ScriptHostValue],
+        granted_capabilities: &'a [String],
+        runtime_context: Option<&'a dyn Any>,
+    ) -> Self {
+        Self {
+            module_name,
+            function_name,
+            arguments,
+            granted_capabilities,
+            runtime_context,
+        }
+    }
+
+    pub(crate) fn runtime_context<T: Any>(&self) -> Option<&T> {
+        self.runtime_context
+            .and_then(|context| context.downcast_ref())
+    }
+}
+
+impl std::fmt::Debug for ScriptHostCallFrame<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ScriptHostCallFrame")
+            .field("module_name", &self.module_name)
+            .field("function_name", &self.function_name)
+            .field("arguments", &self.arguments)
+            .field("granted_capabilities", &self.granted_capabilities)
+            .field(
+                "runtime_context",
+                &self.runtime_context.as_ref().map(|_| "<borrowed>"),
+            )
+            .finish()
+    }
 }
 
 #[cfg(test)]

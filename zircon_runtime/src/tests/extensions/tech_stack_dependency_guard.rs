@@ -159,8 +159,9 @@ fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
     let manifests = all_manifest_sources();
     let zip_dependency_line =
         "zip = { version = \"9.0.0-pre2\", default-features = false, features = [\"deflate-flate2\"] }";
+    const KIRA_CANONICAL_DEPENDENCY_LINE: &str = r#"kira = "0.12.2""#;
 
-    for removed in ["cosmic-text", "kira", "rfd", "arboard"] {
+    for removed in ["cosmic-text", "rfd", "arboard"] {
         assert!(
             manifests.iter().all(|source| !source.contains(removed)),
             "{removed} should not appear in current Cargo manifests without updating the tech-stack decision"
@@ -170,6 +171,25 @@ fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
             "{removed} should be named in the corrected non-dependency decision table"
         );
     }
+
+    let kira_owners = manifests
+        .iter()
+        .filter(|source| manifest_declares_package(source, "kira"))
+        .map(|source| source.path.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        kira_owners,
+        ["zircon_plugins/sound/runtime/Cargo.toml"],
+        "Kira should have exactly one product manifest owner in the Sound runtime plugin"
+    );
+    let kira_owner = manifests
+        .iter()
+        .find(|source| source.path == "zircon_plugins/sound/runtime/Cargo.toml")
+        .expect("Sound runtime manifest should be part of the current product scan");
+    assert!(
+        manifest_has_exact_single_runtime_dependency(kira_owner, "kira", "0.12.2"),
+        "Sound runtime should have one production Kira 0.12.2 pin; the canonical form is `{KIRA_CANONICAL_DEPENDENCY_LINE}`"
+    );
 
     let zip_dependency_count = manifests
         .iter()
@@ -197,6 +217,50 @@ fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
         tech_stack.contains("`tar`"),
         "runtime tech-stack doc should record that tar is still not a current runtime dependency"
     );
+}
+
+#[test]
+fn dependency_package_identity_cannot_hide_kira_behind_alias_or_metadata() {
+    assert!(!manifest_declares_package(
+        "[package.metadata]\naudio = { package = \"kira\", version = \"0.12.2\" }\n",
+        "kira"
+    ));
+    assert!(manifest_declares_package(
+        "[target.'cfg(windows)'.dependencies]\naudio = { package = \"kira\", version = \"0.12.2\" }\n",
+        "kira"
+    ));
+    assert!(manifest_has_exact_single_runtime_dependency(
+        "[target.'cfg(windows)'.dependencies]\naudio = { package = \"kira\", version = \"0.12.2\" }\n",
+        "kira",
+        "0.12.2"
+    ));
+    assert!(manifest_has_exact_single_runtime_dependency(
+        "[dependencies]\naudio = { package = \"kira\", version = \"0.12.2\" }\n",
+        "kira",
+        "0.12.2"
+    ));
+    assert!(manifest_has_exact_single_runtime_dependency(
+        "[dependencies]\nkira = \"0.12.2\"\n",
+        "kira",
+        "0.12.2"
+    ));
+    assert!(!manifest_has_exact_single_runtime_dependency(
+        "[dependencies]\nkira = \"0.12.2\"\naudio = { package = \"kira\", version = \"0.12.2\" }\n",
+        "kira",
+        "0.12.2"
+    ));
+    for non_runtime in [
+        "[dev-dependencies]\nkira = \"0.12.2\"\n",
+        "[build-dependencies]\nkira = \"0.12.2\"\n",
+        "[workspace.dependencies]\nkira = \"0.12.2\"\n",
+        "[target.'cfg(windows)'.dev-dependencies]\nkira = \"0.12.2\"\n",
+    ] {
+        assert!(!manifest_has_exact_single_runtime_dependency(
+            non_runtime,
+            "kira",
+            "0.12.2"
+        ));
+    }
 }
 
 #[test]
@@ -402,16 +466,23 @@ fn complex_text_backends_can_only_enter_through_ui_text_shaper() {
         "runtime text backend replacements should go through the UiTextShaper boundary"
     );
     assert!(
-        shaper.contains("active_layout_backend_for_intent")
-            && shaper.contains("UiTextBackendIntent::NativeGlyphon")
-            && shaper.contains("UiTextBackendIntent::SdfAtlas")
-            && shaper.contains("UiTextBackendIntent::SharedTextService"),
-        "NativeGlyphon and SdfAtlas layout intents should remain explicit while current layout uses the shared text service"
+        shaper.contains("struct UiTextShaperStack")
+            && shaper.contains("shared: UiSharedTextShaper")
+            && shaper.contains("self.shared.shape_text(request)")
+            && shaper.contains("self.shared.measure_text(text, style)"),
+        "UiTextShaperStack must be a direct adapter over the shared text service"
     );
-    assert!(
-        shaper.contains("fallback_reason_for_backend") && shaper.contains("None"),
-        "current text-stack selection should keep fallback reasons absent while SharedTextService is the active layout backend"
-    );
+    for removed in [
+        "UiTextBackendIntent",
+        "UiTextShaperSelection",
+        "active_layout_backend_for_intent",
+        "fallback_reason_for_backend",
+    ] {
+        assert!(
+            !shaper.contains(removed),
+            "text layout must not retain the removed pseudo-backend route: {removed}"
+        );
+    }
     assert!(
         shaper_tests.contains("shared_text_shaper_matches_public_layout_entrypoint")
             && shaper_tests.contains(
@@ -468,37 +539,65 @@ fn runtime_text_doc_records_three_layer_stack_and_cross_reference() {
     );
 }
 
-fn all_manifest_sources() -> &'static [String] {
-    static MANIFEST_SOURCES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+#[derive(Debug)]
+struct ManifestSource {
+    path: String,
+    source: String,
+}
+
+impl std::ops::Deref for ManifestSource {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.source
+    }
+}
+
+fn all_manifest_sources() -> &'static [ManifestSource] {
+    static MANIFEST_SOURCES: std::sync::OnceLock<Vec<ManifestSource>> = std::sync::OnceLock::new();
     MANIFEST_SOURCES
         .get_or_init(|| collect_manifest_sources(&repo_root()))
         .as_slice()
 }
 
-fn collect_manifest_sources(root: &std::path::Path) -> Vec<String> {
+fn collect_manifest_sources(root: &std::path::Path) -> Vec<ManifestSource> {
     let mut sources = Vec::new();
     let mut pending = vec![root.to_path_buf()];
 
     while let Some(path) = pending.pop() {
-        let entries = match std::fs::read_dir(&path) {
-            Ok(entries) => entries,
-            Err(_) => continue,
-        };
+        let entries = std::fs::read_dir(&path).unwrap_or_else(|error| {
+            panic!(
+                "expected to scan current product path {}: {error}",
+                path.display()
+            )
+        });
 
-        for entry in entries.filter_map(Result::ok) {
+        for entry in entries {
+            let entry = entry.unwrap_or_else(|error| {
+                panic!(
+                    "expected to enumerate current product path {}: {error}",
+                    path.display()
+                )
+            });
             let path = entry.path();
-            let file_name = entry.file_name();
-            let file_name = file_name.to_string_lossy();
-            let file_type = match entry.file_type() {
-                Ok(file_type) => file_type,
-                Err(_) => continue,
-            };
+            let file_name = entry.file_name().into_string().unwrap_or_else(|_| {
+                panic!(
+                    "current product path should be valid UTF-8: {}",
+                    path.display()
+                )
+            });
+            let file_type = entry.file_type().unwrap_or_else(|error| {
+                panic!(
+                    "expected to inspect current product path {}: {error}",
+                    path.display()
+                )
+            });
 
             if file_type.is_dir() && !file_type.is_symlink() {
                 if matches!(
-                    file_name.as_ref(),
+                    file_name.as_str(),
                     ".git"
-                        | ".zircon/cache"
+                        | ".zircon"
                         | "target"
                         | "dev"
                         | "docs"
@@ -517,22 +616,148 @@ fn collect_manifest_sources(root: &std::path::Path) -> Vec<String> {
                 }
                 pending.push(path);
             } else if file_name == "Cargo.toml" {
-                sources.push(std::fs::read_to_string(path).unwrap_or_default());
+                let relative_path = path
+                    .strip_prefix(root)
+                    .expect("manifest scan should remain within the repository root")
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                let source = std::fs::read_to_string(&path).unwrap_or_else(|error| {
+                    panic!("expected to read current manifest {relative_path}: {error}")
+                });
+                sources.push(ManifestSource {
+                    path: relative_path,
+                    source,
+                });
             }
         }
     }
 
+    sources.sort_unstable_by(|left, right| left.path.cmp(&right.path));
     sources
 }
 
 fn manifest_declares_dependency(source: &str, crate_name: &str) -> bool {
-    source.lines().any(|line| {
-        let line = line.trim();
-        line == format!("[dependencies.{crate_name}]")
-            || line == format!("[workspace.dependencies.{crate_name}]")
-            || line.starts_with(&format!("{crate_name} ="))
-            || line.starts_with(&format!("{crate_name}.workspace"))
-    })
+    manifest_declares_package(source, crate_name)
+}
+
+fn manifest_declares_package(source: &str, crate_name: &str) -> bool {
+    manifest_package_declaration_count(source, crate_name) > 0
+}
+
+fn manifest_has_exact_single_runtime_dependency(
+    source: &str,
+    crate_name: &str,
+    version: &str,
+) -> bool {
+    let Ok(manifest) = toml::from_str::<toml::Value>(source) else {
+        return false;
+    };
+    if manifest_package_declaration_count_in_value(&manifest, crate_name) != 1 {
+        return false;
+    }
+    let runtime_versions = runtime_dependency_versions(&manifest, crate_name);
+    runtime_versions.len() == 1 && runtime_versions[0] == Some(version)
+}
+
+fn manifest_package_declaration_count(source: &str, crate_name: &str) -> usize {
+    toml::from_str::<toml::Value>(source)
+        .map(|manifest| manifest_package_declaration_count_in_value(&manifest, crate_name))
+        .unwrap_or_else(|error| panic!("current Cargo manifest should parse as TOML: {error}"))
+}
+
+fn manifest_package_declaration_count_in_value(manifest: &toml::Value, crate_name: &str) -> usize {
+    let Some(root) = manifest.as_table() else {
+        return 0;
+    };
+    let mut count = dependency_group_package_count(root, crate_name);
+    count += root
+        .get("workspace")
+        .and_then(toml::Value::as_table)
+        .map_or(0, |workspace| {
+            dependency_table_package_count(workspace.get("dependencies"), crate_name)
+        });
+    count
+        + root
+            .get("target")
+            .and_then(toml::Value::as_table)
+            .map_or(0, |targets| {
+                targets
+                    .values()
+                    .filter_map(toml::Value::as_table)
+                    .map(|target| dependency_group_package_count(target, crate_name))
+                    .sum()
+            })
+}
+
+fn dependency_group_package_count(table: &toml::value::Table, crate_name: &str) -> usize {
+    ["dependencies", "dev-dependencies", "build-dependencies"]
+        .into_iter()
+        .map(|group| dependency_table_package_count(table.get(group), crate_name))
+        .sum()
+}
+
+fn dependency_table_package_count(table: Option<&toml::Value>, crate_name: &str) -> usize {
+    table
+        .and_then(toml::Value::as_table)
+        .map_or(0, |dependencies| {
+            dependencies
+                .iter()
+                .filter(|(alias, specification)| {
+                    specification
+                        .as_table()
+                        .and_then(|table| table.get("package"))
+                        .and_then(toml::Value::as_str)
+                        .unwrap_or(alias)
+                        == crate_name
+                })
+                .count()
+        })
+}
+
+fn runtime_dependency_versions<'a>(
+    manifest: &'a toml::Value,
+    crate_name: &str,
+) -> Vec<Option<&'a str>> {
+    let Some(root) = manifest.as_table() else {
+        return Vec::new();
+    };
+    let mut versions = dependency_table_package_versions(root.get("dependencies"), crate_name);
+    if let Some(targets) = root.get("target").and_then(toml::Value::as_table) {
+        for target in targets.values().filter_map(toml::Value::as_table) {
+            versions.extend(dependency_table_package_versions(
+                target.get("dependencies"),
+                crate_name,
+            ));
+        }
+    }
+    versions
+}
+
+fn dependency_table_package_versions<'a>(
+    table: Option<&'a toml::Value>,
+    crate_name: &str,
+) -> Vec<Option<&'a str>> {
+    table
+        .and_then(toml::Value::as_table)
+        .into_iter()
+        .flat_map(|dependencies| dependencies.iter())
+        .filter(|(alias, specification)| {
+            specification
+                .as_table()
+                .and_then(|table| table.get("package"))
+                .and_then(toml::Value::as_str)
+                .unwrap_or(alias)
+                == crate_name
+        })
+        .map(|(_, specification)| {
+            specification.as_str().or_else(|| {
+                specification
+                    .as_table()
+                    .and_then(|table| table.get("version"))
+                    .and_then(toml::Value::as_str)
+            })
+        })
+        .collect()
 }
 
 fn lock_package_block<'a>(lock: &'a str, package_name: &str) -> &'a str {

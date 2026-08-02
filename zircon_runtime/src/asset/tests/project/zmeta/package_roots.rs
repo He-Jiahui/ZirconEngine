@@ -65,19 +65,23 @@ fn project_manager_scans_package_asset_roots_as_package_uris() {
         package_record.id(),
         AssetId::from_asset_uuid(package_meta.uuid)
     );
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://data/project.json").unwrap())
-        .is_some());
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://data/project.json").unwrap())
+            .is_some()
+    );
 
     let error = manager
         .source_path_for_uri(
             &AssetUri::parse("package://com.zircon.missing/nav/agent.json").unwrap(),
         )
         .expect_err("unknown package should be rejected");
-    assert!(error
-        .to_string()
-        .contains("unknown package com.zircon.missing"));
+    assert!(
+        error
+            .to_string()
+            .contains("unknown package com.zircon.missing")
+    );
 
     let _ = fs::remove_dir_all(root);
     let _ = fs::remove_dir_all(package_root);

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -7,6 +7,7 @@ use toml::Value;
 use super::{UiComponentApiVersion, UiComponentPublicContract, UiResourceRef};
 use crate::ui::accessibility::UiAccessibilityContract;
 use crate::ui::focus::UiFocusContract;
+use crate::ui::layout::UiSlotKind;
 use crate::ui::navigation::UiNavigationContract;
 use crate::ui::picking::UiPickPolicy;
 use crate::ui::template::UiBindingRef;
@@ -157,6 +158,18 @@ pub struct UiNamedSlotSchema {
     pub required: bool,
     #[serde(default)]
     pub multiple: bool,
+    /// The child-layout family expected by this named slot when the component owns placement.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<UiSlotKind>,
+    /// Accepted direct child component identities. An empty set keeps the slot unconstrained.
+    #[serde(default)]
+    pub accepts: BTreeSet<String>,
+}
+
+impl UiNamedSlotSchema {
+    pub fn accepts_component(&self, component: &str) -> bool {
+        self.accepts.is_empty() || self.accepts.contains(component)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -247,8 +260,32 @@ pub enum UiAssetError {
         component: String,
         slot_name: String,
     },
+    #[error("ui component {component} slot {slot_name} does not accept child {child_component}")]
+    SlotDoesNotAcceptComponent {
+        component: String,
+        slot_name: String,
+        child_component: String,
+    },
     #[error("ui selector is invalid: {0}")]
     InvalidSelector(String),
+}
+
+/// Parses an imported component reference in its only supported form: `asset#Component`.
+pub fn parse_component_reference(reference: &str) -> Result<(&str, &str), UiAssetError> {
+    let Some((asset_id, component)) = reference.split_once('#') else {
+        return Err(UiAssetError::InvalidDocument {
+            asset_id: reference.to_string(),
+            detail: "component references must include a #Component suffix".to_string(),
+        });
+    };
+    if asset_id.is_empty() || component.is_empty() || component.contains('#') {
+        return Err(UiAssetError::InvalidDocument {
+            asset_id: reference.to_string(),
+            detail: "component references must contain exactly one non-empty #Component suffix"
+                .to_string(),
+        });
+    }
+    Ok((asset_id, component))
 }
 
 const fn default_asset_version() -> u32 {

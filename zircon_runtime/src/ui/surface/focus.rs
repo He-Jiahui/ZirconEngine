@@ -1,4 +1,5 @@
 use zircon_runtime_interface::ui::{
+    dispatch::{UiInputMethodRequest, UiInputMethodRequestKind},
     event_ui::UiNodeId,
     focus::{
         UiFocusChangeEvent, UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason,
@@ -10,7 +11,10 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::tree::UiRuntimeTreeFocusExt;
 
-use super::input::is_valid_input_owner;
+use super::input::{
+    commit_editable_text_composition_for_focus_loss, is_valid_input_owner,
+    text_state::{editable_text_input_is_secure, is_editable_text_input},
+};
 use super::surface::UiSurface;
 
 impl UiSurface {
@@ -41,14 +45,6 @@ impl UiSurface {
         }
 
         let previous = self.focus.focused;
-        if self
-            .input
-            .input_method_owner
-            .is_some_and(|owner| owner != node_id)
-        {
-            self.input.clear_input_method();
-        }
-
         self.focus.previous = previous;
         self.focus.focused = Some(node_id);
         self.focus.pending_autofocus = None;
@@ -69,6 +65,7 @@ impl UiSurface {
             return Ok(None);
         }
 
+        self.transition_focus_input_method(previous, Some(node_id));
         let event = UiFocusChangeEvent {
             previous,
             current: Some(node_id),
@@ -88,9 +85,6 @@ impl UiSurface {
         reason: UiFocusChangeReason,
     ) -> Option<UiFocusChangeEvent> {
         let previous = self.focus.focused?;
-        if self.input.input_method_owner == Some(previous) {
-            self.input.clear_input_method();
-        }
         let visible = UiFocusVisible::hidden(clear_focus_visible_reason(reason));
         self.focus.previous = Some(previous);
         self.focus.focused = None;
@@ -100,6 +94,7 @@ impl UiSurface {
         if self.component_states.set_focused(previous, false) {
             mark_component_focus_render_dirty(self, previous);
         }
+        self.transition_focus_input_method(Some(previous), None);
         let event = UiFocusChangeEvent {
             previous: Some(previous),
             current: None,
@@ -193,7 +188,7 @@ impl UiSurface {
             .input_method_owner
             .is_some_and(|owner| node_ids.contains(&owner))
         {
-            self.input.clear_input_method();
+            self.disable_input_method_for_focus_loss();
         }
         if self
             .input
@@ -356,6 +351,54 @@ impl UiSurface {
             .unwrap_or(requested))
     }
 
+    fn transition_focus_input_method(
+        &mut self,
+        previous_focus: Option<UiNodeId>,
+        next_focus: Option<UiNodeId>,
+    ) {
+        if previous_focus == next_focus {
+            return;
+        }
+
+        let disabled_previous_owner = self.disable_input_method_for_focus_loss();
+
+        let Some(target) = next_focus else {
+            return;
+        };
+        if !is_editable_text_input(self, target) {
+            return;
+        }
+        if editable_text_input_is_secure(self, target) {
+            if disabled_previous_owner {
+                return;
+            }
+            self.input.queue_focus_input_lifecycle(
+                None,
+                input_method_request(UiInputMethodRequestKind::Disable, target),
+            );
+            return;
+        }
+
+        let request = input_method_request(UiInputMethodRequestKind::Enable, target);
+        self.input.input_method_owner = Some(target);
+        self.input.input_method_request = Some(request.clone());
+        self.input.queue_focus_input_lifecycle(None, request);
+    }
+
+    pub(in crate::ui::surface) fn disable_input_method_for_focus_loss(&mut self) -> bool {
+        let previous_input_method_owner = self.input.input_method_owner.take();
+        self.input.input_method_request = None;
+        let Some(owner) = previous_input_method_owner else {
+            return false;
+        };
+        let component_event = commit_editable_text_composition_for_focus_loss(self, owner);
+        self.input.queue_focus_input_lifecycle(
+            component_event,
+            input_method_request(UiInputMethodRequestKind::Disable, owner),
+        );
+        true
+    }
+
     fn mui_modal_focus_scope_target(
         &self,
         root: UiNodeId,
@@ -462,7 +505,7 @@ impl UiSurface {
             .input_method_owner
             .is_some_and(|owner| !is_valid_input_owner(self, owner))
         {
-            self.input.clear_input_method();
+            self.disable_input_method_for_focus_loss();
         }
         if self
             .input
@@ -487,6 +530,16 @@ impl UiSurface {
         self.input.clear_pointer_capture_for(source);
         self.input.clear_pointer_drag_for(source);
         self.input.drag_drop = None;
+    }
+}
+
+fn input_method_request(kind: UiInputMethodRequestKind, owner: UiNodeId) -> UiInputMethodRequest {
+    UiInputMethodRequest {
+        kind,
+        owner,
+        cursor_rect: None,
+        composition_rects: Vec::new(),
+        surrounding_text: None,
     }
 }
 

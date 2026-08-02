@@ -2,22 +2,21 @@ use crate::core::math::UVec2;
 use crate::text::atlas::render_batch::GlyphAtlasDrawBatchKey;
 use crate::text::atlas::render_contract::{GlyphAtlasBlendMode, GlyphAtlasRenderContract};
 use crate::text::atlas::render_gpu_plan::{
-    GlyphAtlasGpuBatch, GlyphAtlasGpuDrawPlan, GlyphAtlasGpuInstance, GlyphAtlasGpuPipelineKey,
-    GlyphAtlasGpuPrimitiveTopology, glyph_atlas_gpu_bind_group_layout,
-    glyph_atlas_gpu_draw_command, glyph_atlas_gpu_instance_buffer_layout,
-    glyph_atlas_gpu_pipeline_contract,
+    glyph_atlas_gpu_bind_group_layout, glyph_atlas_gpu_draw_command,
+    glyph_atlas_gpu_instance_buffer_layout, glyph_atlas_gpu_pipeline_contract, GlyphAtlasGpuBatch,
+    GlyphAtlasGpuDrawPlan, GlyphAtlasGpuInstance, GlyphAtlasGpuPipelineKey,
+    GlyphAtlasGpuPrimitiveTopology,
 };
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapFaceValidity,
-    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapStagedUpload, GlyphAtlasBitmapStagedUploadPlan,
-    GlyphAtlasBitmapUploadStagingPlan, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
-    GlyphAtlasSamplingSemantics, GlyphAtlasSet, GlyphAtlasStorageFormat, GlyphAtlasUploadMode,
-    glyph_atlas_upload_command,
+    glyph_atlas_upload_command, GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
+    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapStagedUpload,
+    GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapUploadStagingPlan, GlyphAtlasFormat,
+    GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasRect, GlyphAtlasSamplingSemantics,
+    GlyphAtlasSet, GlyphAtlasStorageFormat, GlyphAtlasUploadMode,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 
 use super::super::atlas_texture_upload::GlyphAtlasBitmapTextureUploadFrameReport;
-use super::GlyphAtlasBitmapRendererPrepareReport;
 use super::instance::glyph_atlas_wgpu_instance_buffer_layout;
 use super::instance_buffer::{
     glyph_atlas_bitmap_renderer_instance_buffer_capacity,
@@ -38,6 +37,7 @@ use super::resources::{
     glyph_atlas_bitmap_sampler_descriptor, glyph_atlas_wgpu_bind_group_layout_entries,
 };
 use super::state::GlyphAtlasBitmapRendererDrawPass;
+use super::GlyphAtlasBitmapRendererPrepareReport;
 
 #[test]
 fn glyph_atlas_bitmap_instance_layout_matches_gpu_plan_contract() {
@@ -315,6 +315,33 @@ fn glyph_atlas_bitmap_instance_buffer_grows_only_when_its_capacity_is_exhausted(
     assert!(!glyph_atlas_bitmap_renderer_instance_buffer_requires_reallocation(4096, 68));
     assert!(!glyph_atlas_bitmap_renderer_instance_buffer_requires_reallocation(4096, 4096));
     assert!(glyph_atlas_bitmap_renderer_instance_buffer_requires_reallocation(4096, 4097));
+}
+
+#[test]
+fn glyph_atlas_bitmap_instance_buffer_capacity_is_stable_at_scale() {
+    let mut previous_capacity = 0;
+    for glyph_count in [1_usize, 100, 1_000, 10_000] {
+        let required_byte_len = glyph_count * std::mem::size_of::<GlyphAtlasGpuInstance>();
+        let requires_growth = glyph_atlas_bitmap_renderer_instance_buffer_requires_reallocation(
+            previous_capacity,
+            required_byte_len,
+        );
+        let capacity = if requires_growth {
+            glyph_atlas_bitmap_renderer_instance_buffer_capacity(required_byte_len)
+        } else {
+            previous_capacity
+        };
+
+        assert!(capacity >= required_byte_len as u64);
+        assert!(capacity.is_power_of_two());
+        assert!(
+            !glyph_atlas_bitmap_renderer_instance_buffer_requires_reallocation(
+                capacity,
+                required_byte_len,
+            )
+        );
+        previous_capacity = capacity;
+    }
 }
 
 #[test]

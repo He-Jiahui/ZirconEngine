@@ -96,6 +96,15 @@ GRAPHICS_RICH_TEXT_RENDER_SOURCE = (
     / "render"
     / "rich_text.rs"
 )
+GRAPHICS_UI_TEXTURE_SOURCE = (
+    REPO_ROOT
+    / "zircon_runtime"
+    / "src"
+    / "graphics"
+    / "scene"
+    / "resources"
+    / "ui_texture.rs"
+)
 GRAPHICS_TYPES_ROOT = REPO_ROOT / "zircon_runtime" / "src" / "graphics" / "types"
 
 PERSISTENT_PHYSICS_TYPES = {
@@ -561,10 +570,17 @@ use zircon_runtime::core::framework::physics::{
         )
 
     def test_graphics_does_not_require_the_ui_domain(self) -> None:
-        rich_text_render = GRAPHICS_RICH_TEXT_RENDER_SOURCE.read_text(encoding="utf-8")
         graphics_types = (GRAPHICS_TYPES_ROOT / "mod.rs").read_text(encoding="utf-8")
 
-        self.assertNotIn("crate::ui", rich_text_render)
+        for source_path in (
+            GRAPHICS_RICH_TEXT_RENDER_SOURCE,
+            GRAPHICS_UI_TEXTURE_SOURCE,
+        ):
+            self.assertNotIn(
+                "crate::ui",
+                source_path.read_text(encoding="utf-8"),
+                source_path.relative_to(REPO_ROOT).as_posix(),
+            )
         self.assertNotIn(
             "viewport_render_frame_from_public_runtime",
             graphics_types,

@@ -457,3 +457,18 @@ fn dock_tab_focus_does_not_promote_selected_surface() {
     assert_eq!(style.text, selection_palette.text_muted);
     assert_eq!(style.glyph, selection_palette.text_muted);
 }
+
+#[test]
+fn compact_icon_text_button_is_selected_by_authored_component_variant_token() {
+    let compact = TemplatePaneNodeData {
+        component_variant: "code compact_icon_text".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    let regular = TemplatePaneNodeData {
+        component_variant: "code".into(),
+        ..TemplatePaneNodeData::default()
+    };
+
+    assert!(is_compact_icon_text_workbench_button(&compact));
+    assert!(!is_compact_icon_text_workbench_button(&regular));
+}

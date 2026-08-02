@@ -48,9 +48,6 @@ class PluginDocsCurrentStatusFeatureProviderManifestClosedFieldsGateTests(
             "review findings": (
                 repo_root / "docs/plans/engine-code-review-findings-2026-06.md"
             ).read_text(encoding="utf-8"),
-            "active session": (
-                repo_root / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-            ).read_text(encoding="utf-8"),
         }
         required_phrases = [
             STATUS_ID,

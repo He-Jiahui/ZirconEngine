@@ -1,4 +1,4 @@
-use super::{assert_contains_all, repo_path, runtime_src_path};
+use super::{assert_contains_all_exact, repo_path, runtime_src_path};
 
 const READ_UNWRAP_CALL: &str = concat!(".read().", "unwrap()");
 const WRITE_UNWRAP_CALL: &str = concat!(".write().", "unwrap()");
@@ -24,10 +24,10 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let script_vm_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/script_vm_recovery.rs",
     );
 
-    assert_contains_all(
+    assert_contains_all_exact(
         "VM plugin manager selected-backend poison recovery",
         &vm_plugin_manager,
         &[
@@ -40,7 +40,7 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
             "vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock",
         ],
     );
-    assert_contains_all(
+    assert_contains_all_exact(
         "script VM lock poison guard mount",
         &structure_parent,
         &[
@@ -62,7 +62,7 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
             status_rows.as_str(),
         ),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[

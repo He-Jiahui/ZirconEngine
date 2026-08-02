@@ -27,16 +27,17 @@ impl MeshPipelineCache {
                 &geometry_source,
             ) {
                 Ok(source) => source,
-                Err(_) => {
-                    self.record_shader_variant_disk_error(shader_variant_key);
+                Err(error) => {
+                    self.record_shader_variant_assembly_error(shader_variant_key, error);
                     return None;
                 }
             };
         let shader_key =
             taa_reactive_mask_mesh_shader_key(shader_variant_key, &shader_source.source_hash);
+        let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if !self.shader_modules.contains_key(&shader_key) {
             let source =
-                self.mesh_pipeline_shader_source_with_cache(shader_source, shader_variant_key);
+                self.mesh_pipeline_shader_source_with_cache(shader_source, shader_variant_key)?;
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-taa-reactive-mask-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.into()),
@@ -57,10 +58,12 @@ impl MeshPipelineCache {
                 shader,
                 wgpu::TextureFormat::R8Unorm,
                 key,
+                self.runtime_pipeline_cache.cache(),
             );
             self.taa_reactive_mask_mesh_pipelines
                 .insert(variant_id, pipeline);
         }
+        self.track_pipeline_creation_error_scope(shader_variant_key, error_scope);
         self.taa_reactive_mask_mesh_pipelines.get(&variant_id)
     }
 
@@ -123,16 +126,17 @@ impl MeshPipelineCache {
                 &geometry_source,
             ) {
                 Ok(source) => source,
-                Err(_) => {
-                    self.record_shader_variant_disk_error(shader_variant_key);
+                Err(error) => {
+                    self.record_shader_variant_assembly_error(shader_variant_key, error);
                     return None;
                 }
             };
         let shader_key =
             taa_reactive_mask_mesh_shader_key(shader_variant_key, &shader_source.source_hash);
+        let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if !self.shader_modules.contains_key(&shader_key) {
             let source =
-                self.mesh_pipeline_shader_source_with_cache(shader_source, shader_variant_key);
+                self.mesh_pipeline_shader_source_with_cache(shader_source, shader_variant_key)?;
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-taa-reactive-mask-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.into()),
@@ -153,10 +157,12 @@ impl MeshPipelineCache {
                 shader,
                 wgpu::TextureFormat::R8Unorm,
                 key,
+                self.runtime_pipeline_cache.cache(),
             );
             self.taa_reactive_material_mask_mesh_pipelines
                 .insert(variant_id, pipeline);
         }
+        self.track_pipeline_creation_error_scope(shader_variant_key, error_scope);
         self.taa_reactive_material_mask_mesh_pipelines
             .get(&variant_id)
     }

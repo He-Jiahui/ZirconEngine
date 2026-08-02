@@ -6,7 +6,9 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_text::{
     HostTextFontFace, font_request_for_face,
 };
-use zircon_runtime::rhi::{UiSurfaceCommandKind, UiSurfaceImageUvRect, UiSurfaceTextStyle};
+use zircon_runtime::rhi::{
+    UiSurfaceCommandKind, UiSurfaceImageUvRect, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
+};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRunPaintStyle};
 
 #[test]
@@ -73,6 +75,7 @@ fn runtime_draw_list_forwards_atlas_uv_to_runtime_surface_payload() {
         None,
         ChromeImagePayload {
             resource_key: "atlas://editor/icons".to_string(),
+            resource_generation: 0,
             width: 64,
             height: 64,
             upload_bytes: 0,
@@ -199,7 +202,7 @@ fn runtime_draw_list_projects_editor_text_family_and_weight_to_runtime_surface()
 }
 
 #[test]
-fn owned_runtime_draw_list_moves_text_and_image_allocations() {
+fn owned_runtime_draw_list_moves_image_pixels_into_the_draw_list_resource_table() {
     let mut stream = ChromeCommandStream::full_rebuild((64, 64));
     stream.push_command_for_test(ChromeCommand {
         layer: ChromeCommandLayer::Text,
@@ -220,6 +223,7 @@ fn owned_runtime_draw_list_moves_text_and_image_allocations() {
         None,
         ChromeImagePayload {
             resource_key: "image://move-me".to_string(),
+            resource_generation: 0,
             width: 2,
             height: 2,
             upload_bytes: 16,
@@ -240,7 +244,9 @@ fn owned_runtime_draw_list_moves_text_and_image_allocations() {
 
     let draw_list = ui_surface_draw_list_from_owned_stream(stream);
 
-    let UiSurfaceCommandKind::Text { text, .. } = &draw_list.commands[0].kind else {
+    let Some(UiSurfaceResolvedCommandKind::Text { text, .. }) =
+        draw_list.resolved_kind(&draw_list.commands[0])
+    else {
         panic!("expected runtime text command");
     };
     assert_eq!(text.as_ptr(), text_ptr);
@@ -248,8 +254,13 @@ fn owned_runtime_draw_list_moves_text_and_image_allocations() {
         panic!("expected runtime image command");
     };
     assert_eq!(payload.resource_key.as_ptr(), resource_key_ptr);
+    assert!(payload.rgba.is_none());
     assert_eq!(
-        payload.rgba.as_ref().expect("image bytes").as_ptr(),
+        draw_list
+            .image_resource("image://move-me")
+            .expect("draw list owns the image pixels")
+            .rgba
+            .as_ptr(),
         rgba_ptr
     );
 }
@@ -262,4 +273,34 @@ fn versioned_owned_runtime_draw_list_preserves_producer_generation() {
     );
 
     assert_eq!(draw_list.generation(), Some(17));
+}
+
+#[test]
+fn versioned_owned_runtime_draw_list_interns_repeated_chrome_styles() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    for x in [0.0, 12.0, 24.0] {
+        stream.push_quad(
+            ChromeCommandLayer::Static,
+            0,
+            FrameRect {
+                x,
+                y: 0.0,
+                width: 8.0,
+                height: 8.0,
+            },
+            None,
+            [32, 48, 64, 255],
+            0.0,
+        );
+    }
+
+    let draw_list = ui_surface_draw_list_from_owned_stream_with_generation(stream, 18);
+
+    assert_eq!(draw_list.style_count(), 1);
+    assert!(
+        draw_list
+            .commands
+            .iter()
+            .all(|command| matches!(command.kind, UiSurfaceCommandKind::Styled { .. }))
+    );
 }

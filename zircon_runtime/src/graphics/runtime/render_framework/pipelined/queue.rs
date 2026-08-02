@@ -319,7 +319,7 @@ mod tests {
     use super::PipelinedSubmissionQueue;
 
     #[test]
-    fn queue_reports_each_result_on_the_next_submission() {
+    fn render_perf_pipelined_feedback_is_one_submission_late() {
         let started = Arc::new(Mutex::new(Vec::new()));
         let worker_started = Arc::clone(&started);
         let mut queue = PipelinedSubmissionQueue::new(move |frame, ready: &Sender<()>| {

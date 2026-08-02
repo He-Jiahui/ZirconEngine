@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::asset::{AssetId, AssetUri, AssetUuid};
+use crate::core::resource::ResourceRegistry;
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError};
 
@@ -25,7 +26,49 @@ impl AssetRegistryIndex {
         for entry in entries {
             index.insert_checked(entry)?;
         }
+        let dependency_paths = index
+            .entries_by_uuid
+            .values()
+            .map(|entry| {
+                let paths = entry
+                    .dependencies()
+                    .iter()
+                    .filter_map(|uuid| index.entries_by_uuid.get(uuid))
+                    .map(|dependency| dependency.path().clone())
+                    .collect::<Vec<_>>();
+                (entry.uuid(), paths)
+            })
+            .collect::<Vec<_>>();
+        for (uuid, paths) in dependency_paths {
+            index.replace_dependency_paths(uuid, paths);
+        }
         Ok(index)
+    }
+
+    pub(crate) fn reconcile_resource_dependencies(
+        &mut self,
+        registry: &ResourceRegistry,
+        dependency_paths_by_id: &HashMap<AssetId, Vec<AssetUri>>,
+    ) {
+        let dependencies = registry
+            .values()
+            .filter_map(|record| {
+                let owner = self.uuid_by_asset_id.get(&record.id()).copied()?;
+                let dependency_paths = dependency_paths_by_id
+                    .get(&record.id())
+                    .cloned()
+                    .unwrap_or_default();
+                Some((owner, dependency_paths))
+            })
+            .collect::<Vec<_>>();
+        let owners = dependencies
+            .iter()
+            .map(|(owner, _)| *owner)
+            .collect::<HashSet<_>>();
+        for (owner, dependency_paths) in dependencies {
+            self.replace_dependency_paths(owner, dependency_paths);
+        }
+        self.refresh_dependency_owners(&owners);
     }
 
     pub fn len(&self) -> usize {
@@ -185,4 +228,67 @@ impl AssetRegistryIndex {
 pub(super) fn source_locator(locator: &AssetUri) -> AssetUri {
     AssetUri::new(locator.scheme(), locator.path().to_string(), None)
         .expect("a parsed asset URI remains valid when its label is removed")
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use crate::asset::{AssetKind, AssetUri, AssetUuid};
+
+    use super::{AssetRegistryEntry, AssetRegistryIndex};
+
+    #[test]
+    fn persisted_entries_restore_dependency_path_and_referencer_indexes() {
+        let dependency_uuid = AssetUuid::new();
+        let owner_uuid = AssetUuid::new();
+        let dependency_path = AssetUri::parse("res://data/dependency.json").unwrap();
+        let owner_path = AssetUri::parse("res://data/owner.json").unwrap();
+        let index = AssetRegistryIndex::from_entries([
+            AssetRegistryEntry::new(
+                dependency_uuid,
+                dependency_path.clone(),
+                AssetKind::Data,
+                "dependency",
+            ),
+            AssetRegistryEntry::new(owner_uuid, owner_path, AssetKind::Data, "owner")
+                .with_dependencies(vec![dependency_uuid]),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            index.get_referencers_by_path(&dependency_path),
+            vec![owner_uuid]
+        );
+    }
+
+    #[test]
+    fn overlapping_dependency_path_sources_resolve_to_one_uuid_edge() {
+        let dependency_uuid = AssetUuid::new();
+        let owner_uuid = AssetUuid::new();
+        let dependency_path = AssetUri::parse("res://data/dependency.json").unwrap();
+        let mut index = AssetRegistryIndex::from_entries([
+            AssetRegistryEntry::new(
+                dependency_uuid,
+                dependency_path.clone(),
+                AssetKind::Data,
+                "dependency",
+            ),
+            AssetRegistryEntry::new(
+                owner_uuid,
+                AssetUri::parse("res://data/owner.json").unwrap(),
+                AssetKind::Data,
+                "owner",
+            ),
+        ])
+        .unwrap();
+        index.replace_dependency_paths(owner_uuid, vec![dependency_path.clone(), dependency_path]);
+
+        index.refresh_dependency_owners(&HashSet::from([owner_uuid]));
+
+        assert_eq!(
+            index.entry_by_uuid(owner_uuid).unwrap().dependencies(),
+            &[dependency_uuid]
+        );
+    }
 }

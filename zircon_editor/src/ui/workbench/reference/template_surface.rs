@@ -155,11 +155,8 @@ impl EditorWorkbenchTemplateSurface {
         Ok(())
     }
 
-    fn control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
-        self.control_nodes
-            .get(control_id)
-            .copied()
-            .or_else(|| find_control_node_id(&self.surface, control_id))
+    pub(crate) fn control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
+        self.control_nodes.get(control_id).copied()
     }
 }
 
@@ -171,6 +168,14 @@ pub enum EditorWorkbenchTemplateSurfaceError {
     Tree(#[from] UiTreeError),
     #[error("componentized workbench template is missing required control {control_id}")]
     MissingControl { control_id: &'static str },
+    #[error(
+        "componentized workbench template control {control_id} is duplicated at {first:?} and {duplicate:?}"
+    )]
+    DuplicateControl {
+        control_id: String,
+        first: UiNodeId,
+        duplicate: UiNodeId,
+    },
 }
 
 pub fn build_editor_workbench_template_surface(
@@ -182,7 +187,7 @@ pub fn build_editor_workbench_template_surface(
     runtime.register_projection_routes(&mut route_service, &mut source_projection)?;
     let mut surface = runtime.build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)?;
     surface.compute_layout(metrics.target_size())?;
-    let control_nodes = build_control_node_index(&surface);
+    let control_nodes = build_control_node_index(&surface)?;
     let frames = EditorWorkbenchTemplateFrames::from_surface(&surface, &control_nodes)?;
     let host_projection =
         runtime.build_retained_host_projection_with_surface(&source_projection, &surface)?;
@@ -209,7 +214,9 @@ fn required_control_frame(
         .ok_or(EditorWorkbenchTemplateSurfaceError::MissingControl { control_id })
 }
 
-fn build_control_node_index(surface: &UiSurface) -> HashMap<String, UiNodeId> {
+fn build_control_node_index(
+    surface: &UiSurface,
+) -> Result<HashMap<String, UiNodeId>, EditorWorkbenchTemplateSurfaceError> {
     let mut control_nodes = HashMap::new();
     for (node_id, node) in &surface.tree.nodes {
         let Some(control_id) = node
@@ -219,22 +226,15 @@ fn build_control_node_index(surface: &UiSurface) -> HashMap<String, UiNodeId> {
         else {
             continue;
         };
-        control_nodes
-            .entry(control_id.to_string())
-            .or_insert(*node_id);
+        if let Some(first) = control_nodes.insert(control_id.to_string(), *node_id) {
+            return Err(EditorWorkbenchTemplateSurfaceError::DuplicateControl {
+                control_id: control_id.to_string(),
+                first,
+                duplicate: *node_id,
+            });
+        }
     }
-    control_nodes
-}
-
-fn find_control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
-    surface.tree.nodes.iter().find_map(|(node_id, node)| {
-        (node
-            .template_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.control_id.as_deref())
-            == Some(control_id))
-        .then_some(*node_id)
-    })
+    Ok(control_nodes)
 }
 
 fn visible_arranged_control_frame(surface: &UiSurface, node_id: UiNodeId) -> Option<UiFrame> {

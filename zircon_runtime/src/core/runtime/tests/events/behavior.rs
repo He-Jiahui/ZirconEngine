@@ -1,6 +1,6 @@
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Barrier, mpsc};
+use std::sync::{mpsc, Arc, Barrier};
 use std::time::{Duration, Instant};
 
 use serde_json::Value;

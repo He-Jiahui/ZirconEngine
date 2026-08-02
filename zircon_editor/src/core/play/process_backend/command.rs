@@ -2,6 +2,10 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::core::process::{
+    configure_process_tree_cancellation, configure_process_tree_suspended_spawn,
+};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PlayProcessCommand {
     executable: PathBuf,
@@ -37,6 +41,8 @@ impl PlayProcessCommand {
             .arg("--play-report-pipe")
             .arg(&self.report_pipe)
             .current_dir(&self.project_root);
+        configure_process_tree_cancellation(&mut command);
+        configure_process_tree_suspended_spawn(&mut command);
         command
     }
 

@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, ViewportCameraSnapshot,
+    render_mesh_stable_instance_key, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryInstance, ViewportCameraSnapshot,
 };
 
 use super::super::super::declarations::{
@@ -15,7 +16,7 @@ use super::visibility::cluster_visible;
 
 pub(crate) fn build_virtual_geometry_plan(
     extract: Option<&RenderVirtualGeometryExtract>,
-    visible_entities: &BTreeSet<u64>,
+    visible_stable_instance_keys: &BTreeSet<u64>,
     camera: &ViewportCameraSnapshot,
     previous: Option<&VisibilityHistorySnapshot>,
 ) -> (
@@ -37,6 +38,7 @@ pub(crate) fn build_virtual_geometry_plan(
         );
     };
 
+    let cluster_stable_instance_keys = virtual_geometry_cluster_stable_instance_keys(extract);
     let resident_pages = extract
         .pages
         .iter()
@@ -59,13 +61,18 @@ pub(crate) fn build_virtual_geometry_plan(
         .copied()
         .collect::<BTreeSet<_>>();
 
-    let eligible_clusters = eligible_virtual_geometry_clusters(extract, visible_entities);
+    let eligible_clusters = eligible_virtual_geometry_clusters(
+        extract,
+        visible_stable_instance_keys,
+        &cluster_stable_instance_keys,
+    );
     let eligible_cluster_map = eligible_clusters
         .iter()
         .copied()
         .map(|cluster| (cluster.cluster_id, cluster))
         .collect::<BTreeMap<_, _>>();
-    let eligible_page_ids = eligible_virtual_geometry_page_ids(extract, visible_entities);
+    let eligible_page_ids =
+        eligible_virtual_geometry_page_ids(extract, visible_stable_instance_keys);
     let candidate_visible_clusters = eligible_clusters
         .iter()
         .filter(|cluster| cluster_visible(cluster, camera))
@@ -101,18 +108,31 @@ pub(crate) fn build_virtual_geometry_plan(
 
     let virtual_geometry_visible_clusters = visible_clusters
         .iter()
-        .map(|cluster| VisibilityVirtualGeometryCluster {
-            entity: cluster.entity,
-            cluster_id: cluster.cluster_id,
-            page_id: cluster.page_id,
-            lod_level: cluster.lod_level,
-            cluster_ordinal: virtual_geometry_cluster_ordinal(extract, cluster),
-            cluster_count: virtual_geometry_cluster_count(extract, cluster.entity),
-            resident: resident_page_set.contains(&cluster.page_id),
+        .map(|cluster| {
+            let stable_instance_key =
+                stable_instance_key_for_cluster(&cluster_stable_instance_keys, cluster);
+            VisibilityVirtualGeometryCluster {
+                entity: cluster.entity,
+                stable_instance_key,
+                cluster_id: cluster.cluster_id,
+                page_id: cluster.page_id,
+                lod_level: cluster.lod_level,
+                cluster_ordinal: virtual_geometry_cluster_ordinal(
+                    extract,
+                    cluster,
+                    stable_instance_key,
+                ),
+                cluster_count: virtual_geometry_cluster_count(extract, stable_instance_key),
+                resident: resident_page_set.contains(&cluster.page_id),
+            }
         })
         .collect::<Vec<_>>();
-    let virtual_geometry_draw_segments =
-        build_visibility_owned_draw_segments(extract, &visible_clusters, &eligible_cluster_map);
+    let virtual_geometry_draw_segments = build_visibility_owned_draw_segments(
+        extract,
+        &visible_clusters,
+        &eligible_cluster_map,
+        &cluster_stable_instance_keys,
+    );
     let visible_page_set = virtual_geometry_visible_clusters
         .iter()
         .map(|cluster| cluster.page_id)
@@ -369,7 +389,8 @@ pub(crate) fn build_virtual_geometry_plan(
 
 fn eligible_virtual_geometry_clusters(
     extract: &RenderVirtualGeometryExtract,
-    visible_entities: &BTreeSet<u64>,
+    visible_stable_instance_keys: &BTreeSet<u64>,
+    cluster_stable_instance_keys: &BTreeMap<u32, u64>,
 ) -> Vec<RenderVirtualGeometryCluster> {
     let mut clusters_by_id = BTreeMap::<u32, RenderVirtualGeometryCluster>::new();
 
@@ -377,17 +398,20 @@ fn eligible_virtual_geometry_clusters(
         for cluster in extract
             .clusters
             .iter()
-            .filter(|cluster| visible_entities.contains(&cluster.entity))
+            .filter(|cluster| {
+                visible_stable_instance_keys.contains(&stable_instance_key_for_cluster(
+                    cluster_stable_instance_keys,
+                    cluster,
+                ))
+            })
             .filter(|cluster| forced_mip_allows_cluster(extract, cluster))
         {
             clusters_by_id.insert(cluster.cluster_id, *cluster);
         }
     } else {
-        for instance in extract
-            .instances
-            .iter()
-            .filter(|instance| visible_entities.contains(&instance.entity))
-        {
+        for instance in extract.instances.iter().filter(|instance| {
+            visible_stable_instance_keys.contains(&stable_instance_key_for_instance(instance))
+        }) {
             let start = instance.cluster_offset as usize;
             let end = start.saturating_add(instance.cluster_count as usize);
             for cluster in extract
@@ -407,7 +431,7 @@ fn eligible_virtual_geometry_clusters(
 
 fn eligible_virtual_geometry_page_ids(
     extract: &RenderVirtualGeometryExtract,
-    visible_entities: &BTreeSet<u64>,
+    visible_stable_instance_keys: &BTreeSet<u64>,
 ) -> BTreeSet<u32> {
     if extract.instances.is_empty() {
         return extract.pages.iter().map(|page| page.page_id).collect();
@@ -416,7 +440,9 @@ fn eligible_virtual_geometry_page_ids(
     extract
         .instances
         .iter()
-        .filter(|instance| visible_entities.contains(&instance.entity))
+        .filter(|instance| {
+            visible_stable_instance_keys.contains(&stable_instance_key_for_instance(instance))
+        })
         .flat_map(|instance| {
             let start = instance.page_offset as usize;
             let end = start.saturating_add(instance.page_count as usize);
@@ -428,6 +454,46 @@ fn eligible_virtual_geometry_page_ids(
                 .map(|page| page.page_id)
         })
         .collect()
+}
+
+fn virtual_geometry_cluster_stable_instance_keys(
+    extract: &RenderVirtualGeometryExtract,
+) -> BTreeMap<u32, u64> {
+    let mut stable_instance_keys = extract
+        .clusters
+        .iter()
+        .map(|cluster| {
+            (
+                cluster.cluster_id,
+                render_mesh_stable_instance_key(cluster.entity, 0),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    for instance in &extract.instances {
+        let stable_instance_key = stable_instance_key_for_instance(instance);
+        let start = instance.cluster_offset as usize;
+        let end = start.saturating_add(instance.cluster_count as usize);
+        for cluster in extract.clusters.get(start..end).into_iter().flatten() {
+            stable_instance_keys.insert(cluster.cluster_id, stable_instance_key);
+        }
+    }
+
+    stable_instance_keys
+}
+
+fn stable_instance_key_for_instance(instance: &RenderVirtualGeometryInstance) -> u64 {
+    instance.stable_instance_key_or_legacy()
+}
+
+fn stable_instance_key_for_cluster(
+    cluster_stable_instance_keys: &BTreeMap<u32, u64>,
+    cluster: &RenderVirtualGeometryCluster,
+) -> u64 {
+    cluster_stable_instance_keys
+        .get(&cluster.cluster_id)
+        .copied()
+        .unwrap_or_else(|| render_mesh_stable_instance_key(cluster.entity, 0))
 }
 
 fn forced_mip_allows_cluster(
@@ -444,19 +510,24 @@ fn build_visibility_owned_draw_segments(
     extract: &RenderVirtualGeometryExtract,
     visible_clusters: &[RenderVirtualGeometryCluster],
     clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+    cluster_stable_instance_keys: &BTreeMap<u32, u64>,
 ) -> Vec<VisibilityVirtualGeometryDrawSegment> {
     let mut draw_segments: Vec<VisibilityVirtualGeometryDrawSegment> = Vec::new();
     let mut last_parent_cluster_id = None::<Option<u32>>;
 
     for cluster in visible_clusters {
-        let cluster_ordinal = virtual_geometry_cluster_ordinal(extract, cluster);
-        let cluster_count = virtual_geometry_cluster_count(extract, cluster.entity);
+        let stable_instance_key =
+            stable_instance_key_for_cluster(cluster_stable_instance_keys, cluster);
+        let cluster_ordinal =
+            virtual_geometry_cluster_ordinal(extract, cluster, stable_instance_key);
+        let cluster_count = virtual_geometry_cluster_count(extract, stable_instance_key);
         let lineage_depth = cluster_lineage_depth(*cluster, clusters_by_id);
         if let Some(previous) = draw_segments.last_mut() {
             let previous_end = previous
                 .cluster_ordinal
                 .saturating_add(previous.cluster_span_count);
             let same_visibility_segment = previous.entity == cluster.entity
+                && previous.stable_instance_key == stable_instance_key
                 && previous.page_id == cluster.page_id
                 && previous.cluster_count == cluster_count
                 && previous.lineage_depth == lineage_depth
@@ -471,6 +542,7 @@ fn build_visibility_owned_draw_segments(
 
         draw_segments.push(VisibilityVirtualGeometryDrawSegment {
             entity: cluster.entity,
+            stable_instance_key,
             cluster_id: cluster.cluster_id,
             page_id: cluster.page_id,
             cluster_ordinal,

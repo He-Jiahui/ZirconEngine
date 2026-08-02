@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 use zircon_runtime::core::CoreError;
 
@@ -31,7 +31,7 @@ impl DefaultEditorAssetManager {
                 .state
                 .write()
                 .expect("editor asset state lock poisoned");
-            if state.project.is_none() && state.catalog_generation.assets.is_empty() {
+            if runtime_project_projection_is_empty(&state) {
                 return Ok(false);
             }
 
@@ -61,14 +61,30 @@ impl DefaultEditorAssetManager {
     }
 }
 
+fn runtime_project_projection_is_empty(state: &super::EditorAssetState) -> bool {
+    state.project_root.is_none()
+        && state.assets_root.is_none()
+        && state.cache_root.is_none()
+        && state.project_name.is_empty()
+        && state.default_scene_uri.is_none()
+        && state.project.is_none()
+        && state.catalog_generation.project_root.is_empty()
+        && state.catalog_generation.assets.is_empty()
+        && state.catalog_generation.folders.is_empty()
+        && state.catalog_by_uuid.is_empty()
+        && state.uuid_by_locator.is_empty()
+        && state.preview_cache.is_none()
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::sync::atomic::Ordering;
+    use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use zircon_runtime::asset::AssetUri;
     use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+    use zircon_runtime::asset::{AssetUri, AssetUuid};
 
     use crate::ui::host::editor_asset_manager::{EditorAssetChangeKind, EditorAssetManager};
 
@@ -96,6 +112,19 @@ mod tests {
             .unwrap();
         while changes.try_recv().is_some() {}
         let before = manager.catalog_snapshot_record();
+        let stale_preview_uuid = AssetUuid::new();
+        let (previous_source_generation, stale_preview_token) = {
+            let mut state = manager
+                .state
+                .write()
+                .expect("editor asset state lock poisoned");
+            state.preview_scheduler.mark_dirty(stale_preview_uuid);
+            let stale_preview_token = state
+                .preview_scheduler
+                .request_refresh(stale_preview_uuid, true)
+                .expect("old preview generation admission");
+            (Arc::clone(&state.source_generation), stale_preview_token)
+        };
 
         assert!(EditorAssetManager::deactivate_runtime_project(&manager).unwrap());
 
@@ -109,6 +138,28 @@ mod tests {
         assert_eq!(change.change.kind, EditorAssetChangeKind::CatalogChanged);
         assert_eq!(change.change.catalog_revision, after.catalog_revision);
 
+        let state = manager
+            .state
+            .read()
+            .expect("editor asset state lock poisoned");
+        assert!(state.project_root.is_none());
+        assert!(state.assets_root.is_none());
+        assert!(state.cache_root.is_none());
+        assert!(state.project_name.is_empty());
+        assert!(state.default_scene_uri.is_none());
+        assert!(state.project.is_none());
+        assert!(state.catalog_by_uuid.is_empty());
+        assert!(state.uuid_by_locator.is_empty());
+        assert!(state.preview_cache.is_none());
+        assert!(!Arc::ptr_eq(
+            &state.source_generation,
+            &previous_source_generation
+        ));
+        assert!(!state
+            .preview_scheduler
+            .complete_refresh(stale_preview_uuid, stale_preview_token));
+        drop(state);
+
         let deactivated_epoch = manager.source_sync_epoch.load(Ordering::Acquire);
         assert!(!EditorAssetManager::deactivate_runtime_project(&manager).unwrap());
         assert_eq!(
@@ -119,6 +170,41 @@ mod tests {
         assert!(changes.try_recv().is_none());
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn runtime_project_deactivation_clears_residual_projection_without_catalog_assets() {
+        let manager = DefaultEditorAssetManager::new();
+        let changes = EditorAssetManager::subscribe_editor_asset_changes(&manager);
+        {
+            let mut state = manager
+                .state
+                .write()
+                .expect("editor asset state lock poisoned");
+            state.project_root = Some(std::path::PathBuf::from("C:/projects/retired"));
+            state.project_name = "Retired Project".to_string();
+        }
+        let before = manager.catalog_snapshot_record();
+
+        assert!(EditorAssetManager::deactivate_runtime_project(&manager).unwrap());
+
+        let after = manager.catalog_snapshot_record();
+        assert_eq!(after.catalog_revision, before.catalog_revision + 1);
+        let state = manager
+            .state
+            .read()
+            .expect("editor asset state lock poisoned");
+        assert!(state.project_root.is_none());
+        assert!(state.project_name.is_empty());
+        drop(state);
+        assert_eq!(
+            changes
+                .try_recv()
+                .expect("empty catalog change")
+                .change
+                .kind,
+            EditorAssetChangeKind::CatalogChanged
+        );
     }
 
     fn unique_temp_project_root(label: &str) -> std::path::PathBuf {

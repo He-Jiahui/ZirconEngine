@@ -1,10 +1,10 @@
 //! Shared builder APIs for Zircon plugin packages.
 //!
-//! The SDK crate is a plugin-workspace helper. It wraps the runtime-owned
-//! manifest and descriptor contracts without moving ownership out of
-//! `zircon_runtime`.
+//! Package declarations are runtime-independent SDK data. Runtime and native
+//! features project that declaration into their respective descriptor and ABI
+//! contracts without introducing another metadata authority.
 
-#[cfg(feature = "runtime")]
+#[cfg(feature = "declaration")]
 mod declaration;
 #[cfg(feature = "native")]
 pub mod dist;
@@ -27,18 +27,21 @@ mod runtime_exports;
 #[cfg(feature = "runtime")]
 pub mod test;
 
-#[cfg(feature = "runtime")]
-pub use declaration::PluginDeclaration;
+#[cfg(feature = "declaration")]
+pub use declaration::{
+    NativePluginEntryDeclaration, PluginCapabilityRole, PluginDeclaration, PluginMaturityLevel,
+    PluginPackaging, PluginPlatform, PluginTarget,
+};
 #[cfg(feature = "editor")]
 pub use editor::EditorPluginDeclaration;
 #[cfg(feature = "editor_contribution")]
 pub use editor_contribution::EditorContributionBuilder;
 #[cfg(feature = "runtime")]
 pub use manifest::{
+    ImporterRuntimeManifestBuilder, NATIVE_ABI_VERSION_V3, NATIVE_DESCRIPTOR_SYMBOL_V3,
+    PluginFeatureBundleBuilder, PluginManifestBuilder, PluginModuleBuilder, SDK_API_VERSION,
     default_export_packaging, default_supported_platforms, importer_runtime_supported_platforms,
-    importer_runtime_supported_targets, ImporterRuntimeManifestBuilder, PluginFeatureBundleBuilder,
-    PluginManifestBuilder, PluginModuleBuilder, NATIVE_ABI_VERSION_V3, NATIVE_DESCRIPTOR_SYMBOL_V3,
-    SDK_API_VERSION,
+    importer_runtime_supported_targets,
 };
 #[cfg(feature = "runtime")]
 pub use registration::{

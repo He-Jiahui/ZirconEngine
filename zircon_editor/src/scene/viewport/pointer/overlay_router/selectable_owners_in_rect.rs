@@ -16,7 +16,7 @@ impl ViewportOverlayPointerRouter {
         let projection = ViewportProjectionContext::new(&self.layout.camera, self.layout.viewport);
         let mut owners = IndexSet::new();
 
-        for candidate in self.layout.renderables.iter() {
+        for candidate in self.renderable_candidates.iter() {
             let Some(projected) = projection.projected_point(candidate.position) else {
                 continue;
             };

@@ -1,16 +1,16 @@
 use crate::core::framework::render::{
-    GeometrySourceDescriptor, RenderShaderDefinitionValue, ShaderFeatureBits,
-    strip_wgsl_include_directives,
+    strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
+    ShaderFeatureBits,
 };
 
 use super::assemble::{
-    MaterialShaderTemplateAssembly, ShaderAssemblyBuilder, ShaderAssemblySegmentKind,
-    ShaderTemplateAssemblyError, format_defines_header, generated_material_include,
-    push_include_chunk, push_source_module_includes, rename_material_surface_entry,
+    format_defines_header, generated_material_include, push_include_chunk,
+    push_source_module_includes, rename_material_surface_entry, MaterialShaderTemplateAssembly,
+    ShaderAssemblyBuilder, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
 };
 use super::module_registry::{
-    ShaderTemplateInclude, ShaderTemplateIncludeRegistry, geometry_source_include_for,
-    gpu_scene_include, scene_runtime_include, surface_types_include,
+    geometry_source_include_for, gpu_scene_include, scene_runtime_include, surface_types_include,
+    ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
 };
 use super::pass_specialization::MATERIAL_SHADER_TEMPLATE_REVISION;
 

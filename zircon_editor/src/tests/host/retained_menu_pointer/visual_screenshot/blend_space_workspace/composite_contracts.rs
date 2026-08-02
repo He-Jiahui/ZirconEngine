@@ -1,6 +1,177 @@
 use super::*;
 
 #[test]
+fn workbench_validation_log_uses_semantic_compact_filter_controls() {
+    let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(
+        "assets/ui/editor/components/workbench/composites/feedback/\
+             workbench_validation_log.zui",
+    ))
+    .expect("Workbench Validation Log composite should be readable");
+
+    for required in [
+        "workbench_button.zui#WorkbenchButton",
+        "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.xsmall\" }",
+        "editor_pages/console_profiler/logs/filter-logs.svg",
+        "editor_pages/console_profiler/logs/log-error.svg",
+        "editor_pages/console_profiler/logs/log-warning.svg",
+        "editor_pages/console_profiler/logs/log-info.svg",
+        "width = { min = 48.0, preferred = 54.0, max = 58.0, stretch = \"Fixed\" }",
+        "width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = \"Fixed\" }",
+        "width = { min = 50.0, preferred = 58.0, max = 66.0, stretch = \"Fixed\" }",
+    ] {
+        assert!(
+            source.contains(required),
+            "missing shared Validation Log control contract: {required}"
+        );
+    }
+    assert_eq!(
+        source
+            .matches("component_variant = \"code compact_icon_text\"")
+            .count(),
+        4
+    );
+    for removed_text_placeholder in ["text = \"E 0\"", "text = \"W 1\"", "text = \"I 2\""] {
+        assert!(
+            !source.contains(removed_text_placeholder),
+            "Validation Log must use semantic images instead of letter placeholders: {removed_text_placeholder}"
+        );
+    }
+    assert!(
+        !source.contains("container = { kind = \"HorizontalBox\", gap = 4.0 }"),
+        "Validation Log must use the shared density gap token instead of a literal footer gap"
+    );
+    assert!(
+        !source.contains("container = { kind = \"VerticalBox\", gap = 2.0 }"),
+        "Validation Log must use the shared xsmall density token instead of a literal row gap"
+    );
+}
+
+#[test]
+fn workbench_validation_log_composes_structured_diagnostic_rows() {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let diagnostic_row = std::fs::read_to_string(manifest.join(
+        "assets/ui/editor/components/workbench/composites/feedback/\
+             workbench_diagnostic_row.zui",
+    ))
+    .expect("Workbench diagnostic row composite should be readable");
+    let validation_log = std::fs::read_to_string(manifest.join(
+        "assets/ui/editor/components/workbench/composites/feedback/\
+             workbench_validation_log.zui",
+    ))
+    .expect("shared validation log composite should be readable");
+
+    for required in [
+        "[components.WorkbenchDiagnosticRow]",
+        "slots = { severity = { required = true, multiple = false, kind = \"linear\", accepts = [\"WorkbenchStatusItem\"] }, message = { required = true, multiple = false, kind = \"linear\", accepts = [\"WorkbenchStatusItem\"] } }",
+        "component = \"HorizontalGroup\"",
+        "gap = \"$editor.density.gap.small\"",
+        "props = { name = \"severity\" }",
+        "props = { name = \"message\" }",
+        "width = { min = 80.0, preferred = 84.0, max = 92.0, stretch = \"Fixed\" }",
+        "height = { min = \"$editor.density.row_height\", preferred = \"$editor.density.row_height\", max = \"$editor.density.row_height\", stretch = \"Fixed\" }",
+    ] {
+        assert!(
+            diagnostic_row.contains(required),
+            "missing shared diagnostic-row contract: {required}"
+        );
+    }
+    for required in [
+        "workbench_diagnostic_row.zui#WorkbenchDiagnosticRow",
+        "component_variant = \"diagnostic_signal\"",
+        "foreground_color = \"$editor.text.primary\"",
+        "text = \"[Info]\"",
+        "text = \"[Warning]\"",
+        "text = \"Blend space axes are valid.\"",
+        "text = \"1 sample missing.\"",
+        "slot = { name = \"severity\" }",
+        "slot = { name = \"message\" }",
+    ] {
+        assert!(
+            validation_log.contains(required),
+            "Validation Log must compose structured diagnostic rows: {required}"
+        );
+    }
+    assert_eq!(
+        validation_log
+            .matches("component = \"WorkbenchDiagnosticRow\"")
+            .count(),
+        4
+    );
+    assert_eq!(
+        validation_log
+            .matches("component_variant = \"diagnostic_signal\"")
+            .count(),
+        4
+    );
+    assert_eq!(
+        validation_log
+            .matches("foreground_color = \"$editor.text.primary\"")
+            .count(),
+        4,
+        "diagnostic message Runtime Text must use the shared primary color token"
+    );
+    for removed_concatenated_label in [
+        "[Info] Blend space axes are valid.",
+        "[Warning] 1 sample missing.",
+        "[Info] Samples are within axis range.",
+        "[Info] No duplicate samples found.",
+    ] {
+        assert!(
+            !validation_log.contains(removed_concatenated_label),
+            "severity and message must remain independent Runtime Text nodes: {removed_concatenated_label}"
+        );
+    }
+}
+
+#[test]
+fn blend_space_validation_rows_keep_runtime_text_columns_inside_the_panel() {
+    let bridge = open_blend_space_bridge(1260, 780);
+    let projection = bridge.host_projection();
+
+    for (row_id, severity_id, message_id) in [
+        (
+            "WorkbenchValidationLogInfoAxesRow",
+            "WorkbenchValidationLogInfoAxesSeverity",
+            "WorkbenchValidationLogInfoAxesMessage",
+        ),
+        (
+            "WorkbenchValidationLogWarningRow",
+            "WorkbenchValidationLogWarningSeverity",
+            "WorkbenchValidationLogWarningMessage",
+        ),
+        (
+            "WorkbenchValidationLogInfoRangeRow",
+            "WorkbenchValidationLogInfoRangeSeverity",
+            "WorkbenchValidationLogInfoRangeMessage",
+        ),
+        (
+            "WorkbenchValidationLogInfoDuplicatesRow",
+            "WorkbenchValidationLogInfoDuplicatesSeverity",
+            "WorkbenchValidationLogInfoDuplicatesMessage",
+        ),
+    ] {
+        let row = projection
+            .node_by_control_id(row_id)
+            .unwrap_or_else(|| panic!("diagnostic row `{row_id}` should be projected"));
+        let severity = projection
+            .node_by_control_id(severity_id)
+            .unwrap_or_else(|| panic!("diagnostic severity `{severity_id}` should be projected"));
+        let message = projection
+            .node_by_control_id(message_id)
+            .unwrap_or_else(|| panic!("diagnostic message `{message_id}` should be projected"));
+
+        assert_eq!(severity.parent_id.as_deref(), Some(row.node_id.as_str()));
+        assert_eq!(message.parent_id.as_deref(), Some(row.node_id.as_str()));
+        assert!(severity.frame.x >= row.frame.x - 0.5);
+        assert!(message.frame.x >= severity.frame.right() - 0.5);
+        assert!(message.frame.right() <= row.frame.right() + 0.5);
+        assert!(message.frame.width >= 32.0);
+        assert_eq!(message.text_tone.as_str(), "subtle");
+        assert!(message.value_color.a > 0);
+    }
+}
+
+#[test]
 fn blend_space_bottom_diagnostics_compose_shared_relative_components() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let workspace = std::fs::read_to_string(manifest.join(
@@ -34,10 +205,11 @@ fn blend_space_bottom_diagnostics_compose_shared_relative_components() {
     }
     for required in [
         "[components.WorkbenchValidationLog]",
-        "component = \"WorkbenchStatusItem\"",
+        "component = \"WorkbenchDiagnosticRow\"",
         "control_id = \"WorkbenchValidationLogWarningRow\"",
         "validation_level = \"warning\"",
-        "text = \"[Warning] 1 sample missing.\"",
+        "text = \"[Warning]\"",
+        "text = \"1 sample missing.\"",
         "text = \"Clear\"",
     ] {
         assert!(
@@ -235,8 +407,8 @@ fn blend_space_bottom_panels_compose_shared_panel_headers() {
 
     for required in [
         "[components.WorkbenchPanelHeader]",
-        "slots = { title = { multiple = false }, actions = { multiple = true } }",
-        "classes = [\"workbench-panel-toolbar\"]",
+        "slots = { title = { required = true, multiple = false, kind = \"linear\", accepts = [\"WorkbenchCaption\", \"WorkbenchSectionTitle\"] }, actions = { multiple = true, kind = \"linear\", accepts = [\"WorkbenchButton\", \"WorkbenchCaption\", \"WorkbenchChip\", \"WorkbenchDropdown\", \"WorkbenchIconButton\", \"WorkbenchToggle\"] } }",
+        "classes = [\"workbench-panel-header\", \"workbench-panel-toolbar\"]",
     ] {
         assert!(
             panel_header.contains(required),

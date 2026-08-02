@@ -1,7 +1,7 @@
+use crate::scene::EntityId;
 use crate::scene::ecs::{
     Component, ComponentId, ComponentLifecycleEvent, LifecycleEventKind, ObserverId,
 };
-use crate::scene::EntityId;
 
 use super::World;
 
@@ -48,23 +48,21 @@ impl World {
     where
         E: 'static + Send + Sync,
     {
-        let callbacks = self.observers.event_callbacks::<E>();
-        for callback in callbacks {
-            callback(self, &event);
-        }
+        let Some(callbacks) = self.observers.event_callbacks::<E>() else {
+            return;
+        };
+        callbacks.dispatch(self, &event);
     }
 
     pub fn trigger_entity_event<E>(&mut self, entity: EntityId, event: E)
     where
         E: 'static + Send + Sync,
     {
-        let global_callbacks = self.observers.event_callbacks::<E>();
-        let entity_callbacks = self.observers.entity_event_callbacks::<E>(entity);
-        for callback in global_callbacks {
-            callback(self, &event);
+        if let Some(callbacks) = self.observers.event_callbacks::<E>() {
+            callbacks.dispatch(self, &event);
         }
-        for callback in entity_callbacks {
-            callback(self, entity, &event);
+        if let Some(callbacks) = self.observers.entity_event_callbacks::<E>(entity) {
+            callbacks.dispatch(self, entity, &event);
         }
     }
 
@@ -78,10 +76,24 @@ impl World {
             return;
         };
         let event =
-            ComponentLifecycleEvent::new(kind, entity, component_id, descriptor.type_name.clone());
-        let callbacks = self.observers.lifecycle_callbacks(kind, component_id);
-        for callback in callbacks {
-            callback(self, event.clone());
+            ComponentLifecycleEvent::new(kind, entity, component_id, descriptor.type_name.as_str());
+        if self.record_staged_lifecycle_events {
+            self.staged_lifecycle_events.push(event);
+            return;
         }
+        self.dispatch_component_lifecycle(event);
+    }
+
+    pub(in crate::scene) fn dispatch_component_lifecycle(
+        &mut self,
+        event: ComponentLifecycleEvent,
+    ) {
+        let Some(callbacks) = self
+            .observers
+            .lifecycle_callbacks(event.kind(), event.component_id())
+        else {
+            return;
+        };
+        callbacks.dispatch(self, event);
     }
 }

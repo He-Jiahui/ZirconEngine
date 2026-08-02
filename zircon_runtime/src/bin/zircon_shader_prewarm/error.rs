@@ -17,6 +17,30 @@ pub enum ShaderPrewarmArgsError {
 
 #[derive(Debug, Error)]
 pub enum ShaderPrewarmAssetScanError {
+    #[error("shader prewarm include dependency graph invariant violated: {detail}")]
+    IncludeDependencyGraphInvariant { detail: &'static str },
+    #[error("shader prewarm asset inventory lost required {entry_kind} entry {path:?}")]
+    MissingAssetInventoryEntry {
+        path: std::path::PathBuf,
+        entry_kind: &'static str,
+    },
+    #[error("shader prewarm asset inventory requires {requested_bytes} text bytes; budget is {max_bytes}")]
+    AssetInventoryTextBudgetExceeded {
+        requested_bytes: usize,
+        max_bytes: usize,
+    },
+    #[error("failed to encode shader prewarm warm inventory snapshot {path:?}: {source}")]
+    EncodeWarmInventorySnapshot {
+        path: std::path::PathBuf,
+        #[source]
+        source: serde_json::Error,
+    },
+    #[error("failed to write shader prewarm warm inventory snapshot {path:?}: {source}")]
+    WriteWarmInventorySnapshot {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
     #[error("failed to inspect shader prewarm asset registry below {path:?}: {source}")]
     InspectAssetRegistry {
         path: std::path::PathBuf,
@@ -34,6 +58,23 @@ pub enum ShaderPrewarmAssetScanError {
         path: std::path::PathBuf,
         #[source]
         source: std::io::Error,
+    },
+    #[error(
+        "shader prewarm asset inventory rejected link or reparse point {path:?} below {root:?}"
+    )]
+    UnsafeAssetInventoryLink {
+        root: std::path::PathBuf,
+        path: std::path::PathBuf,
+    },
+    #[error("shader prewarm asset inventory path {path:?} escapes canonical root {root:?}")]
+    AssetInventoryPathEscapesRoot {
+        root: std::path::PathBuf,
+        path: std::path::PathBuf,
+    },
+    #[error("shader prewarm asset inventory directory cycle at {path:?} below {root:?}")]
+    AssetInventoryDirectoryCycle {
+        root: std::path::PathBuf,
+        path: std::path::PathBuf,
     },
     #[error("failed to load shader asset metadata {path:?}: {source}")]
     LoadShaderMetadata {
@@ -110,6 +151,11 @@ pub enum ShaderPrewarmManifestError {
     },
     #[error("shader prewarm manifest schema {actual} is not supported; expected {expected}")]
     UnsupportedSchema { actual: u32, expected: u32 },
+    #[error("shader prewarm manifest source table is invalid: {source}")]
+    InvalidSourceTable {
+        #[source]
+        source: zircon_runtime::core::framework::render::ShaderVariantPrewarmManifestIntegrityError,
+    },
 }
 
 #[derive(Debug, Error)]

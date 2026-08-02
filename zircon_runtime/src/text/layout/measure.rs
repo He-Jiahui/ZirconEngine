@@ -33,19 +33,17 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     let metrics = line_metrics_with_provider(style, provider);
-    let (width, line_count) = text
-        .lines()
-        .fold((0.0_f32, 0_usize), |(width, line_count), line| {
+    let (width, line_count) = crate::text::hard_lines(text).into_iter().fold(
+        (0.0_f32, 0_usize),
+        |(width, line_count), line| {
+            let line = text.get(line.content).unwrap_or_default();
             (
                 width.max(measure_line_width_with_provider(line, style, provider)),
                 line_count.saturating_add(1),
             )
-        });
-    // Layout preserves the empty line after a trailing newline, so measurement must account for
-    // it even though `str::lines()` deliberately omits that final empty slice.
-    let line_count = line_count
-        .saturating_add(usize::from(text.ends_with('\n')))
-        .max(1) as f32;
+        },
+    );
+    let line_count = line_count.max(1) as f32;
     TextSize::new(width, metrics.line_height * line_count)
 }
 
@@ -515,7 +513,7 @@ mod tests {
     #[test]
     fn measured_grapheme_widths_projects_visual_glyphs_into_source_order() {
         let shaped = ShapedGlyphRun {
-            source_text: "abc".to_string(),
+            source_text: std::sync::Arc::from("abc"),
             source_range: TextRange { start: 0, end: 3 },
             direction: TextDirection::LeftToRight,
             orientation: crate::text::TextOrientation::Horizontal,
@@ -525,7 +523,6 @@ mod tests {
             measured_height: 12.0,
             lines: vec![crate::text::ShapedTextLine {
                 line_index: 0,
-                text: "abc".to_string(),
                 source_range: TextRange { start: 0, end: 3 },
                 visual_range: TextRange { start: 0, end: 3 },
                 measured_width: 50.0,
@@ -544,7 +541,7 @@ mod tests {
     #[test]
     fn measured_grapheme_widths_distributes_a_multi_grapheme_cluster_once_per_glyph() {
         let shaped = ShapedGlyphRun {
-            source_text: "abcd".to_string(),
+            source_text: std::sync::Arc::from("abcd"),
             source_range: TextRange { start: 0, end: 4 },
             direction: TextDirection::LeftToRight,
             orientation: crate::text::TextOrientation::Horizontal,
@@ -554,7 +551,6 @@ mod tests {
             measured_height: 12.0,
             lines: vec![crate::text::ShapedTextLine {
                 line_index: 0,
-                text: "abcd".to_string(),
                 source_range: TextRange { start: 0, end: 4 },
                 visual_range: TextRange { start: 0, end: 4 },
                 measured_width: 40.0,
@@ -573,7 +569,7 @@ mod tests {
     #[test]
     fn measured_grapheme_widths_shapes_the_complete_text_once() {
         let shaped = Arc::new(ShapedGlyphRun {
-            source_text: "abcd".to_string(),
+            source_text: std::sync::Arc::from("abcd"),
             source_range: TextRange { start: 0, end: 4 },
             direction: TextDirection::LeftToRight,
             orientation: crate::text::TextOrientation::Horizontal,
@@ -583,7 +579,6 @@ mod tests {
             measured_height: 12.0,
             lines: vec![crate::text::ShapedTextLine {
                 line_index: 0,
-                text: "abcd".to_string(),
                 source_range: TextRange { start: 0, end: 4 },
                 visual_range: TextRange { start: 0, end: 4 },
                 measured_width: 40.0,
@@ -620,6 +615,16 @@ mod tests {
         let measured = measure_text_size("line\n\n", &style);
 
         assert!((measured.height - line_metrics.line_height * 3.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn measure_text_size_uses_all_mandatory_unicode_separators() {
+        let style = test_style();
+        let line_metrics = line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider);
+        let measured = measure_text_size("line\r\n\u{2028}", &style);
+
+        assert!((measured.height - line_metrics.line_height * 3.0).abs() < 0.1);
+        assert!((measured.width - measure_line_width("line", &style)).abs() < 0.1);
     }
 
     #[test]

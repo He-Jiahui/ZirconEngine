@@ -41,6 +41,18 @@ impl RetainedEditorHost {
                 self.viewport_size,
             ) {
                 Ok(true) => {
+                    let visible_spatial_snapshot = match self.viewport.visible_spatial_snapshot() {
+                        Ok(snapshot) => snapshot,
+                        Err(error) => {
+                            write_diagnostic_log(
+                                "editor_viewport_visible_spatial_query",
+                                format!("renderer-visible spatial query unavailable: {error}"),
+                            );
+                            None
+                        }
+                    };
+                    self.runtime
+                        .sync_renderer_visible_spatial_snapshot(visible_spatial_snapshot);
                     // RenderStats are updated by submission after pane payloads were collected.
                     // Refresh presentation data once so diagnostics observe the committed frame.
                     self.mark_presentation_dirty();
@@ -80,6 +92,8 @@ mod tests {
             .expect("render submission success arm should remain explicit");
 
         assert!(success_arm.contains("self.mark_presentation_dirty();"));
+        assert!(success_arm.contains("visible_spatial_snapshot"));
+        assert!(success_arm.contains("sync_renderer_visible_spatial_snapshot"));
         assert!(!success_arm.contains("mark_render_and_presentation_dirty"));
     }
 

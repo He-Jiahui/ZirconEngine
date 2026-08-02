@@ -139,6 +139,38 @@ fn text_shape_projects_resolved_bidi_level_per_glyph() {
 }
 
 #[test]
+fn text_shape_keeps_mixed_bidi_clusters_in_logical_source_order() {
+    let style = test_style();
+    let text = "abc אבג";
+    let shaped = shape_horizontal_line(
+        text,
+        &style,
+        TextDirection::Auto,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+    );
+    let cluster_starts = shaped.lines[0]
+        .glyphs
+        .iter()
+        .filter(|glyph| glyph.cluster_flags.cluster_start)
+        .map(|glyph| glyph.source_range.start)
+        .collect::<Vec<_>>();
+
+    assert!(
+        cluster_starts
+            .windows(2)
+            .all(|starts| starts[0] <= starts[1]),
+        "Text02 must retain logical cluster order for Text03 line-level L1/L2: {cluster_starts:?}"
+    );
+    assert!(shaped.lines[0]
+        .glyphs
+        .iter()
+        .any(|glyph| glyph.bidi_level % 2 == 1));
+}
+
+#[test]
 fn text_shape_clusters_map_source_ranges_monotonic() {
     let style = test_style();
     let source = "xxa\u{0304}\u{0301}b";
@@ -247,6 +279,60 @@ fn text_shape_ligature_source_range_covers_cluster() {
     assert!((advance_sum - line.measured_width).abs() < 0.1);
     assert_eq!(line.glyphs.first().expect("glyph").source_range.start, 10);
     assert_eq!(line.glyphs.last().expect("glyph").source_range.end, 12);
+}
+
+#[test]
+fn text_shape_hard_lines_preserve_separator_coverage_as_virtual_glyphs() {
+    let style = test_style();
+    let text = "a\r\nb\u{2028}c";
+    let shaped = shape_horizontal_line(
+        text,
+        &style,
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 20,
+            end: 20 + text.len(),
+        },
+    );
+
+    assert_eq!(
+        shaped
+            .lines
+            .iter()
+            .map(|line| line.source_range)
+            .collect::<Vec<_>>(),
+        vec![
+            TextRange { start: 20, end: 23 },
+            TextRange { start: 23, end: 27 },
+            TextRange { start: 27, end: 28 },
+        ]
+    );
+    assert_eq!(
+        shaped
+            .lines
+            .iter()
+            .map(|line| shaped.line_text(line))
+            .collect::<Vec<_>>(),
+        vec![Some("a\r\n"), Some("b\u{2028}"), Some("c")]
+    );
+    let virtual_breaks = shaped
+        .lines
+        .iter()
+        .flat_map(|line| &line.glyphs)
+        .filter(|glyph| glyph.cluster_flags.virtual_glyph)
+        .collect::<Vec<_>>();
+    assert_eq!(virtual_breaks.len(), 2);
+    assert_eq!(
+        virtual_breaks[0].source_range,
+        TextRange { start: 21, end: 23 }
+    );
+    assert_eq!(
+        virtual_breaks[1].source_range,
+        TextRange { start: 24, end: 27 }
+    );
+    assert!(virtual_breaks
+        .iter()
+        .all(|glyph| glyph.cluster_flags.mandatory_break && glyph.advance == 0.0));
 }
 
 #[test]

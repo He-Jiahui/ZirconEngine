@@ -16,7 +16,7 @@ use crate::core::resource::{
 };
 use crate::graphics::backend::RenderBackend;
 
-use super::resources::{GPU_MATERIAL_UNIFORM_MIN_SIZE, ResourceStreamer};
+use super::resources::{ResourceStreamer, GPU_MATERIAL_UNIFORM_MIN_SIZE};
 
 mod uniform_debug_counts;
 

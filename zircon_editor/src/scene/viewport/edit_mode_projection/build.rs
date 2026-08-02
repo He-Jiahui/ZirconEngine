@@ -1,14 +1,12 @@
-use zircon_runtime::scene::{
-    EntityId, Scene, WorldInspectionField, WorldInspectionHierarchyRow, WorldInspectionSummary,
-};
+use zircon_runtime::scene::{EntityId, Scene, WorldInspectionField, WorldInspectionSummary};
 use zircon_runtime_interface::reflect::ReflectedValue;
 
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::SceneViewportSettings;
 
 use super::{
-    SceneEditModeProjection, SceneHierarchyRow, SceneInspectorField, SceneInspectorFieldValue,
-    SceneViewportStats, SceneViewportToolbarState,
+    SceneEditModeProjection, SceneInspectorField, SceneInspectorFieldValue, SceneViewportStats,
+    SceneViewportToolbarState,
 };
 
 const NAME_TYPE_PATH: &str = "zircon_runtime::scene::components::Name";
@@ -40,11 +38,7 @@ pub(crate) fn build_scene_edit_mode_projection(
 
     SceneEditModeProjection {
         selected_entity,
-        hierarchy_rows: inspection
-            .hierarchy_rows()
-            .iter()
-            .map(|row| scene_hierarchy_row_from_runtime(row, selected_entity))
-            .collect(),
+        hierarchy_rows: inspection.hierarchy_rows_arc(),
         inspector_fields: selected_entity
             .and_then(|entity| scene.inspection_fields_artifact(entity))
             .map(|artifact| {
@@ -57,23 +51,6 @@ pub(crate) fn build_scene_edit_mode_projection(
             .unwrap_or_default(),
         toolbar: build_toolbar_state(settings, mode, selected_entity, handle_drag_active),
         stats: build_stats(inspection.summary(), selected_entity),
-    }
-}
-
-fn scene_hierarchy_row_from_runtime(
-    row: &WorldInspectionHierarchyRow,
-    selected: Option<EntityId>,
-) -> SceneHierarchyRow {
-    SceneHierarchyRow {
-        entity: row.entity,
-        parent: row.parent,
-        depth: row.depth,
-        display_name: row.display_name.clone(),
-        kind: row.kind.clone(),
-        subtree_hash: row.subtree_hash,
-        selected: selected == Some(row.entity),
-        active_in_hierarchy: row.active_in_hierarchy,
-        has_children: row.has_children,
     }
 }
 

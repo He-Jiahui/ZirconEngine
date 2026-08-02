@@ -1,10 +1,11 @@
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE, RenderImageColorSpace,
-    RenderImageDimension, RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+    RenderImageColorSpace, RenderImageDimension, RenderSamplerAddressMode, RenderSamplerDescriptor,
+    RenderSamplerFilter, TextureMetadata, MAX_COLOR_LOOKUP_TEXTURE_SIZE,
+    MIN_COLOR_LOOKUP_TEXTURE_SIZE,
 };
 
-use super::{RGBA8_UNORM_FORMAT, TextureAsset, TextureAssetDescriptor};
+use super::{TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT};
 
 pub fn texture_asset_from_cube_lut(
     uri: AssetUri,
@@ -17,6 +18,10 @@ pub fn texture_asset_from_cube_lut(
     let descriptor = TextureAssetDescriptor {
         format: RGBA8_UNORM_FORMAT.to_string(),
         color_space: RenderImageColorSpace::Linear,
+        metadata: TextureMetadata {
+            color_space: RenderImageColorSpace::Linear,
+            ..TextureMetadata::default()
+        },
         dimension: RenderImageDimension::D3,
         depth_or_array_layers: size,
         sampler: RenderSamplerDescriptor {

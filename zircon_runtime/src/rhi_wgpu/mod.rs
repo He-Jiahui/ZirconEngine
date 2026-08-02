@@ -1,7 +1,8 @@
 //! `wgpu` capability mapping and native UI presentation support.
 //!
-//! The product device/queue/resource owner lives in `graphics::backend` and uses real `wgpu`
-//! objects. The deterministic host-mirror device below exists only for RHI contract tests.
+//! Scene/offscreen device ownership lives in `graphics::backend`; the native retained-UI surface
+//! owns its surface-compatible device here. Both use the shared timer implementation below with
+//! real `wgpu` objects. The deterministic host-mirror device exists only for RHI contract tests.
 
 #[cfg(test)]
 mod bind_group_validation;
@@ -10,6 +11,8 @@ mod capabilities;
 mod command_validation;
 #[cfg(test)]
 mod device;
+mod gpu_pass_timer;
+mod gpu_readback_queue;
 #[cfg(test)]
 mod pipeline_validation;
 #[cfg(test)]
@@ -21,6 +24,13 @@ mod texture_copy;
 mod ui_surface;
 
 pub use capabilities::wgpu_backend_caps;
+pub(crate) use gpu_pass_timer::{
+    GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
+    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_TIMESTAMP_REQUIRED_FEATURES,
+};
+pub(crate) use gpu_readback_queue::{
+    GpuReadbackQueue, ReadbackCallback, ReadbackError, ReadbackPollStats, ReadbackTicket,
+};
 pub use ui_surface::WgpuUiSurfacePresenter;
 
 #[cfg(test)]

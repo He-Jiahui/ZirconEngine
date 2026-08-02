@@ -1,15 +1,15 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use crate::core::CoreRuntime;
 use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::math::Real;
-use crate::core::CoreRuntime;
 use crate::plugin::RuntimeExtensionRegistry;
-use crate::scene::{create_default_level, module_descriptor, SystemStage};
 use crate::scene::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,
 };
+use crate::scene::{SystemStage, create_default_level, module_descriptor};
 
 #[test]
 fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {

@@ -1,7 +1,8 @@
 use super::character_roster::{normalize_character_name, CharacterNameError};
 use super::{offline_class_presentation, offline_class_preview, OfflineClassPreview};
 use woc_protocol::{
-    OfflineSessionBootstrap, OFFLINE_SESSION_BOOTSTRAP_VERSION, STANDARD_OFFLINE_WORLD_SEED,
+    OfflineSessionBootstrap, OfflineWeaponSkinAccount, OFFLINE_SESSION_BOOTSTRAP_VERSION,
+    STANDARD_OFFLINE_WORLD_SEED,
 };
 
 pub const OFFLINE_SESSION_LAUNCH_VERSION: u16 = OFFLINE_SESSION_BOOTSTRAP_VERSION;
@@ -88,9 +89,17 @@ pub struct OfflineSessionLaunch {
     pub player_name: String,
     pub skin_variant: u16,
     pub world_seed: u32,
+    pub weapon_skin_account: OfflineWeaponSkinAccount,
 }
 
 impl OfflineSessionLaunch {
+    /// Hosts load this account-owned cosmetic state before the first authoritative
+    /// tick; the simulation owns all later admission and loadout mutations.
+    pub fn with_weapon_skin_account(mut self, account: OfflineWeaponSkinAccount) -> Self {
+        self.weapon_skin_account = account;
+        self
+    }
+
     pub fn preference_scope(&self) -> String {
         format!(
             "offline:{}:{}",
@@ -106,6 +115,7 @@ impl OfflineSessionLaunch {
             player_class: self.player_class.bootstrap_index(),
             player_name: self.player_name.clone(),
             skin_variant: self.skin_variant,
+            weapon_skin_account: self.weapon_skin_account.clone(),
         }
     }
 }
@@ -115,6 +125,7 @@ pub struct OfflineSessionDraft {
     player_class: Option<OfflinePlayerClass>,
     raw_name: String,
     skin_variant: u16,
+    weapon_skin_account: OfflineWeaponSkinAccount,
 }
 
 impl Default for OfflineSessionDraft {
@@ -123,6 +134,7 @@ impl Default for OfflineSessionDraft {
             player_class: None,
             raw_name: String::new(),
             skin_variant: 0,
+            weapon_skin_account: OfflineWeaponSkinAccount::default(),
         }
     }
 }
@@ -139,6 +151,10 @@ impl OfflineSessionDraft {
 
     pub fn set_skin_variant(&mut self, skin_variant: u16) {
         self.skin_variant = skin_variant;
+    }
+
+    pub fn set_weapon_skin_account(&mut self, account: OfflineWeaponSkinAccount) {
+        self.weapon_skin_account = account;
     }
 
     pub fn player_class(&self) -> Option<OfflinePlayerClass> {
@@ -176,6 +192,7 @@ impl OfflineSessionDraft {
             player_name,
             skin_variant: self.skin_variant,
             world_seed: OFFLINE_WORLD_SEED,
+            weapon_skin_account: self.weapon_skin_account.clone(),
         })
     }
 

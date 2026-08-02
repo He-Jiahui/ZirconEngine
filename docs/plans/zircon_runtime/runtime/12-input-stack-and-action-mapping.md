@@ -33,7 +33,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
 status: in_progress
-last_refined: 2026-07-12
+last_refined: 2026-07-23
 ---
 
 # 12 输入栈与动作映射对齐

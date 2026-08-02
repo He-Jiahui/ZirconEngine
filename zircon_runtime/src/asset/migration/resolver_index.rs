@@ -35,16 +35,31 @@ impl MigrationSourceProjection {
     }
 }
 
-/// A compound locator already validated against its parsed `.zmeta` document by preflight.
+/// A compound locator already validated against its parsed sidecar document by preflight.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MigrationCompoundBinding {
     locator: AssetUri,
     physical_path: PathBuf,
+    source_relative: String,
+    target_relative: String,
 }
 
 impl MigrationCompoundBinding {
     pub(crate) fn new(locator: AssetUri, physical_path: PathBuf) -> Self {
+        let target_relative = compound_sidecar_relative_path(&locator, ".zmeta");
         Self {
+            locator,
+            physical_path,
+            source_relative: target_relative.clone(),
+            target_relative,
+        }
+    }
+
+    /// Inventory still names the v6 file, while migrated authoring references name its v7 target.
+    pub(crate) fn from_retired_meta_toml(locator: AssetUri, physical_path: PathBuf) -> Self {
+        Self {
+            source_relative: compound_sidecar_relative_path(&locator, ".meta.toml"),
+            target_relative: compound_sidecar_relative_path(&locator, ".zmeta"),
             locator,
             physical_path,
         }
@@ -101,7 +116,7 @@ impl MigrationResolverIndex {
             .map_err(|error| ReferenceResolutionError::Registry {
                 message: error.to_string(),
             })?;
-            index.insert(locator, projection, false)?;
+            index.insert(locator, projection, false, None)?;
         }
 
         for binding in compound_bindings {
@@ -109,13 +124,17 @@ impl MigrationResolverIndex {
             {
                 continue;
             }
-            let expected_relative = format!("{}.zmeta", binding.locator.path());
             let Some(candidates) = projections_by_physical_path.get(&binding.physical_path) else {
                 continue;
             };
             for projection in candidates {
-                if projection.root_relative.as_str() == expected_relative {
-                    index.insert(binding.locator.clone(), projection, true)?;
+                if projection.root_relative.as_str() == binding.source_relative {
+                    index.insert(
+                        binding.locator.clone(),
+                        projection,
+                        true,
+                        Some(binding.target_relative.as_str()),
+                    )?;
                 }
             }
         }
@@ -158,12 +177,14 @@ impl MigrationResolverIndex {
         locator: AssetUri,
         projection: &MigrationSourceProjection,
         compound_hint: bool,
+        target_relative: Option<&str>,
     ) -> Result<(), ReferenceResolutionError> {
         let locator = base_project_locator(&locator)?;
+        let target_relative = target_relative.unwrap_or(projection.root_relative.as_str());
         let project_hint = RelPath::parse(format!(
             "{}/{}",
             projection.logical_root.as_str(),
-            projection.root_relative.as_str()
+            target_relative
         ))
         .map_err(|source| ReferenceResolutionError::Path {
             path: locator.to_string(),
@@ -269,4 +290,8 @@ fn base_project_locator(locator: &AssetUri) -> Result<AssetUri, ReferenceResolut
             message: error.to_string(),
         }
     })
+}
+
+fn compound_sidecar_relative_path(locator: &AssetUri, suffix: &str) -> String {
+    format!("{}{suffix}", locator.path())
 }

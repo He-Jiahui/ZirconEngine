@@ -3,7 +3,10 @@ use thiserror::Error;
 
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension,
-    RenderImageFallbackKind, RenderImageUsage, RenderSamplerDescriptor,
+    RenderImageFallbackKind, RenderImageUsage, RenderSamplerDescriptor, TextureCompressionTarget,
+    TextureMetadata, TextureMetadataDiagnostic, TextureMetadataDiagnosticSeverity,
+    TextureMipPolicy, TextureNormalConvention, TextureUsageHint,
+    default_color_space_for_texture_usage, validate_texture_metadata,
 };
 
 use super::TexturePayload;
@@ -12,7 +15,8 @@ mod settings;
 
 use self::settings::{
     ExtentSettingKeys, bool_setting, parse_array_layout, parse_asset_usage_list, parse_color_space,
-    parse_dimension, parse_sampler, parse_usage_list, string_setting, u32_setting,
+    parse_compression, parse_dimension, parse_mip_policy, parse_normal_convention, parse_sampler,
+    parse_usage_hint, parse_usage_list, string_setting, u32_setting,
 };
 
 pub const RGBA8_UNORM_SRGB_FORMAT: &str = "rgba8unorm_srgb";
@@ -130,6 +134,8 @@ pub struct TextureAssetDescriptor {
     pub format: String,
     pub color_space: RenderImageColorSpace,
     #[serde(default)]
+    pub metadata: TextureMetadata,
+    #[serde(default)]
     pub dimension: RenderImageDimension,
     /// Bevy-style extent depth, or array-layer count for 1D/2D array textures.
     #[serde(default = "default_depth_or_array_layers")]
@@ -148,6 +154,7 @@ impl TextureAssetDescriptor {
         Self {
             format: RGBA8_UNORM_SRGB_FORMAT.to_string(),
             color_space: RenderImageColorSpace::Srgb,
+            metadata: TextureMetadata::default(),
             dimension: RenderImageDimension::D2,
             depth_or_array_layers: 1,
             sampler: RenderSamplerDescriptor::default(),
@@ -196,6 +203,7 @@ impl TextureAssetDescriptor {
         self.depth_or_array_layers = self.depth_or_array_layers.max(1);
         self.normalize_extent_fields();
         self.normalize_rgba8_color_space_format();
+        self.metadata.color_space = self.color_space;
         self
     }
 
@@ -204,6 +212,8 @@ impl TextureAssetDescriptor {
         settings: &toml::Table,
     ) -> TextureDescriptorResult<Self> {
         let mut extent_keys = ExtentSettingKeys::default();
+        let has_explicit_color_space =
+            settings.contains_key("color_space") || settings.contains_key("is_srgb");
         if let Some(value) = settings.get("format") {
             self.format = string_setting("format", value)?.to_string();
         } else if let Some(value) = settings.get("texture_format") {
@@ -211,12 +221,31 @@ impl TextureAssetDescriptor {
         }
         if let Some(value) = settings.get("color_space") {
             self.color_space = parse_color_space(string_setting("color_space", value)?)?;
+            self.metadata.color_space = self.color_space;
         } else if let Some(value) = settings.get("is_srgb") {
             self.color_space = if bool_setting("is_srgb", value)? {
                 RenderImageColorSpace::Srgb
             } else {
                 RenderImageColorSpace::Linear
             };
+            self.metadata.color_space = self.color_space;
+        }
+        if let Some(value) = settings.get("usage_hint") {
+            self.metadata.usage_hint = parse_usage_hint(string_setting("usage_hint", value)?)?;
+        }
+        if !has_explicit_color_space {
+            self.color_space = default_color_space_for_texture_usage(self.metadata.usage_hint);
+            self.metadata.color_space = self.color_space;
+        }
+        if let Some(value) = settings.get("mip_policy") {
+            self.metadata.mip_policy = parse_mip_policy(string_setting("mip_policy", value)?)?;
+        }
+        if let Some(value) = settings.get("normal_convention") {
+            self.metadata.normal_convention =
+                parse_normal_convention(string_setting("normal_convention", value)?)?;
+        }
+        if let Some(value) = settings.get("compression") {
+            self.metadata.compression = parse_compression(string_setting("compression", value)?)?;
         }
         if let Some(value) = settings.get("dimension") {
             self.dimension = parse_dimension(string_setting("dimension", value)?)?;
@@ -263,11 +292,16 @@ impl TextureAssetDescriptor {
         self.depth_or_array_layers = self.depth_or_array_layers.max(1);
         self.normalize_import_extent_fields(extent_keys)?;
         self.normalize_rgba8_color_space_format();
+        self.metadata.color_space = self.color_space;
         Ok(self)
     }
 
     pub fn to_render_image_descriptor(&self, width: u32, height: u32) -> RenderImageDescriptor {
         self.clone().into_render_image_descriptor(width, height)
+    }
+
+    pub fn validate_metadata(&self, uri: &str) -> Vec<TextureMetadataDiagnostic> {
+        validate_texture_metadata(uri, &self.format, &self.metadata, &self.sampler)
     }
 
     pub fn into_render_image_descriptor(self, width: u32, height: u32) -> RenderImageDescriptor {
@@ -278,7 +312,8 @@ impl TextureAssetDescriptor {
             depth_or_array_layers: descriptor.depth_or_array_layers,
             dimension: descriptor.dimension,
             format: descriptor.format,
-            color_space: descriptor.color_space,
+            color_space: descriptor.metadata.color_space,
+            metadata: descriptor.metadata,
             sampler: descriptor.sampler,
             usage: descriptor.usage,
             asset_usage: descriptor.asset_usage,
@@ -657,6 +692,127 @@ array_layers = 5
         assert_eq!(
             descriptor.to_render_image_descriptor(2, 2).format,
             RGBA8_UNORM_FORMAT
+        );
+    }
+
+    #[test]
+    fn unknown_color_space_is_rejected_by_the_import_contract() {
+        let settings = r#"color_space = "unknown""#.parse::<toml::Table>().expect("valid toml");
+
+        let error = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect_err("unknown color spaces are not valid texture metadata");
+
+        assert!(matches!(
+            error,
+            TextureDescriptorError::UnsupportedToken {
+                ref kind,
+                ref value,
+            } if kind == "color_space" && value == "unknown"
+        ));
+    }
+
+    #[test]
+    fn import_color_space_is_written_to_texture_metadata() {
+        let settings = r#"color_space = "linear""#.parse::<toml::Table>().expect("valid toml");
+
+        let descriptor = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect("valid linear color space");
+
+        assert_eq!(
+            descriptor.metadata.color_space,
+            RenderImageColorSpace::Linear
+        );
+        assert_eq!(
+            descriptor.to_render_image_descriptor(2, 2).color_space,
+            RenderImageColorSpace::Linear
+        );
+    }
+
+    #[test]
+    fn render_image_descriptor_preserves_texture_metadata() {
+        let settings = r#"
+usage_hint = "normal"
+mip_policy = "generate_offline"
+normal_convention = "dx"
+compression = "bc5"
+"#
+        .parse::<toml::Table>()
+        .expect("valid texture metadata settings");
+        let descriptor = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect("valid descriptor metadata");
+
+        let render_descriptor = descriptor.to_render_image_descriptor(4, 4);
+
+        assert_eq!(render_descriptor.metadata, descriptor.metadata);
+    }
+
+    #[test]
+    fn import_settings_parse_texture_metadata_tokens() {
+        let settings = r#"
+usage_hint = "normal"
+mip_policy = "generate_offline"
+normal_convention = "dx"
+compression = "bc5"
+"#
+        .parse::<toml::Table>()
+        .expect("valid toml");
+
+        let descriptor = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect("valid texture metadata");
+
+        assert_eq!(descriptor.metadata.usage_hint, TextureUsageHint::Normal);
+        assert_eq!(
+            descriptor.metadata.mip_policy,
+            TextureMipPolicy::GenerateOffline
+        );
+        assert_eq!(
+            descriptor.metadata.normal_convention,
+            TextureNormalConvention::TangentSpaceDx
+        );
+        assert_eq!(
+            descriptor.metadata.compression,
+            TextureCompressionTarget::Bc5
+        );
+        assert_eq!(
+            descriptor.metadata.color_space,
+            RenderImageColorSpace::Linear
+        );
+    }
+
+    #[test]
+    fn usage_hint_selects_color_space_when_not_explicitly_overridden() {
+        let normal_settings =
+            r#"usage_hint = "normal""#.parse::<toml::Table>().expect("valid normal settings");
+        let ui_settings = r#"usage_hint = "ui""#.parse::<toml::Table>().expect("valid ui settings");
+
+        let normal = TextureAssetDescriptor::default()
+            .apply_import_settings(&normal_settings)
+            .expect("normal defaults should be valid");
+        let ui = TextureAssetDescriptor::default()
+            .apply_import_settings(&ui_settings)
+            .expect("ui defaults should be valid");
+
+        assert_eq!(normal.color_space, RenderImageColorSpace::Linear);
+        assert_eq!(normal.metadata.color_space, RenderImageColorSpace::Linear);
+        assert_eq!(normal.format, RGBA8_UNORM_FORMAT);
+        assert_eq!(ui.color_space, RenderImageColorSpace::Srgb);
+        assert_eq!(ui.metadata.color_space, RenderImageColorSpace::Srgb);
+    }
+
+    #[test]
+    fn descriptor_metadata_validation_uses_the_canonical_metadata_field() {
+        let mut descriptor = TextureAssetDescriptor::default();
+        descriptor.metadata.usage_hint = TextureUsageHint::Normal;
+
+        assert!(
+            descriptor
+                .validate_metadata("textures/normal.png")
+                .iter()
+                .any(|diagnostic| diagnostic.severity == TextureMetadataDiagnosticSeverity::Error)
         );
     }
 }

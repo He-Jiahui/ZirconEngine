@@ -9,7 +9,7 @@ use crate::ui::retained_host::welcome_recent_pointer::{
     WelcomeRecentPointerRoute,
 };
 
-use super::super::{dispatch_builtin_welcome_surface_control, BuiltinWelcomeSurfaceTemplateBridge};
+use super::super::{BuiltinWelcomeSurfaceTemplateBridge, dispatch_builtin_welcome_surface_control};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedWelcomeRecentPointerClickDispatch {

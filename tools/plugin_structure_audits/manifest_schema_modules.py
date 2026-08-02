@@ -461,6 +461,36 @@ def collect_module_system_contract_violations(
             namespace_id,
             violations,
         )
+    collect_required_main_system_set_violation(
+        display_path,
+        field_label,
+        module,
+        module_kind,
+        namespace_id,
+        violations,
+    )
+
+
+def collect_required_main_system_set_violation(
+    display_path: str,
+    field_label: str,
+    module: dict[str, Any],
+    module_kind: str | None,
+    namespace_id: str | None,
+    violations: list[str],
+) -> None:
+    if module_kind != "runtime" or namespace_id is None:
+        return
+    anchors = module_string_array(module, "system_anchors")
+    if not anchors:
+        return
+    required_set = f"{namespace_id}.main"
+    system_sets = module_string_array(module, "system_sets") or []
+    if required_set not in system_sets:
+        violations.append(
+            f"{display_path}: {field_label}.system_sets must include "
+            f"{required_set} when system_anchors are declared"
+        )
 
 
 def collect_module_system_field_violations(

@@ -2,11 +2,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::core::framework::project::{
     ExportPackagingStrategy, ExportProfile, ExportTargetPlatform, ProjectPluginManifest,
     ProjectPluginSelection, RuntimeProfileId,
 };
+use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
@@ -14,9 +14,8 @@ use zircon_runtime::plugin::{
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use super::super::{
-    EntryProfile, ExportRuntimeBootstrapConfig,
     bootstrap_export_runtime_with_native_plugins_from_export_root,
-    bootstrap_export_runtime_with_report,
+    bootstrap_export_runtime_with_report, EntryProfile, ExportRuntimeBootstrapConfig,
 };
 
 #[test]
@@ -27,12 +26,10 @@ fn export_runtime_bootstrap_uses_linked_registration_reports() {
     ))
     .expect("export bootstrap facade should use linked runtime registrations");
 
-    assert!(
-        bootstrap
-            .module_selection_report()
-            .module_keys()
-            .contains(&"LinkedSoundPlugin")
-    );
+    assert!(bootstrap
+        .module_selection_report()
+        .module_keys()
+        .contains(&"LinkedSoundPlugin"));
 }
 
 #[test]
@@ -51,24 +48,20 @@ fn native_export_runtime_bootstrap_merges_linked_and_native_reports() {
     let module_keys = bootstrap.module_selection_report().module_keys();
     assert!(module_keys.contains(&"LinkedSoundPlugin"));
     assert!(module_keys.contains(&"virtual_geometry.runtime"));
-    assert!(
-        bootstrap
-            .module_selection_report()
-            .runtime_plugin_availability
-            .contains(
-                RuntimePluginAvailabilityCategory::Linked,
-                RuntimePluginId::Sound
-            )
-    );
-    assert!(
-        bootstrap
-            .module_selection_report()
-            .runtime_plugin_availability
-            .contains(
-                RuntimePluginAvailabilityCategory::NativeDynamic,
-                RuntimePluginId::VirtualGeometry
-            )
-    );
+    assert!(bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .contains(
+            RuntimePluginAvailabilityCategory::Linked,
+            RuntimePluginId::Sound
+        ));
+    assert!(bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .contains(
+            RuntimePluginAvailabilityCategory::NativeDynamic,
+            RuntimePluginId::VirtualGeometry
+        ));
     assert!(bootstrap.diagnostics().iter().any(|diagnostic| {
         diagnostic.contains("native plugin virtual_geometry skipped because library is missing")
     }));

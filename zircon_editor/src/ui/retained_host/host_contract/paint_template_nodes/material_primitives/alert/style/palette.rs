@@ -1,7 +1,7 @@
 use super::variants::alert_color_token;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_filled_text_color(

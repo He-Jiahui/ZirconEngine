@@ -7,8 +7,8 @@ use crate::core::{
 };
 
 use super::{
-    EngineModule, EngineService, dependency_on, driver_contract, factory, module_context,
-    plugin_context, plugin_factory, qualified_name,
+    dependency_on, driver_contract, factory, module_context, plugin_context, plugin_factory,
+    qualified_name, EngineModule, EngineService,
 };
 
 fn stub_driver_descriptor(

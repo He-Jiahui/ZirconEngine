@@ -1,10 +1,10 @@
 use crate::text::shaping::TextShapeRunProvider;
-use crate::text::{LaidOutText, RichParseResult, TextStyle};
+use crate::text::{LaidOutText, TextStyle};
 
 use super::rich_advance_index::RichAdvanceIndex;
 use super::{
     line_break_chunks_with_provider, line_metrics_with_provider, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    word_smart_line_break_chunks_with_provider, RichTextLayoutSource,
 };
 
 mod materialize;
@@ -15,45 +15,48 @@ use materialize::{layout_rich_ranges_with_index, HorizontalRichLayoutIndex};
 use metrics::inline_box_metrics;
 pub(crate) use metrics::resolve_rich_run_style;
 
-pub(crate) fn layout_rich_text_with_provider<P>(
-    parsed: &RichParseResult,
+pub(crate) fn layout_rich_text_with_provider<S, P>(
+    source: &S,
     style: &TextStyle,
     provider: &mut P,
 ) -> LaidOutText
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
-    let index = HorizontalRichLayoutIndex::new(parsed, style, provider);
-    layout_rich_ranges_with_index(parsed, rich_forced_line_ranges(&parsed.text), &index)
+    let index = HorizontalRichLayoutIndex::new(source, style, provider);
+    layout_rich_ranges_with_index(source, rich_forced_line_ranges(source.text()), &index)
 }
 
-pub(crate) fn layout_rich_text_glyph_wrapped_with_provider<P>(
-    parsed: &RichParseResult,
+pub(crate) fn layout_rich_text_glyph_wrapped_with_provider<S, P>(
+    source: &S,
     style: &TextStyle,
     max_width: f32,
     provider: &mut P,
 ) -> LaidOutText
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
-    let index = HorizontalRichLayoutIndex::new(parsed, style, provider);
-    let ranges = rich_glyph_line_ranges(parsed, max_width, &index.advances, provider);
-    layout_rich_ranges_with_index(parsed, ranges, &index)
+    let index = HorizontalRichLayoutIndex::new(source, style, provider);
+    let ranges = rich_glyph_line_ranges(source, max_width, &index.advances, provider);
+    layout_rich_ranges_with_index(source, ranges, &index)
 }
 
-pub(crate) fn layout_rich_text_word_wrapped_with_provider<P>(
-    parsed: &RichParseResult,
+pub(crate) fn layout_rich_text_word_wrapped_with_provider<S, P>(
+    source: &S,
     style: &TextStyle,
     max_width: f32,
     mode: RichWordWrapMode,
     provider: &mut P,
 ) -> (LaidOutText, Vec<(u32, u32)>)
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
-    let index = HorizontalRichLayoutIndex::new(parsed, style, provider);
-    let ranges = rich_word_line_ranges(parsed, style, max_width, mode, &index.advances, provider);
-    let layout = layout_rich_ranges_with_index(parsed, ranges.clone(), &index);
+    let index = HorizontalRichLayoutIndex::new(source, style, provider);
+    let ranges = rich_word_line_ranges(source, style, max_width, mode, &index.advances, provider);
+    let layout = layout_rich_ranges_with_index(source, ranges.clone(), &index);
     (layout, ranges)
 }
 
@@ -63,49 +66,51 @@ pub(crate) enum RichWordWrapMode {
     WordSmart,
 }
 
-pub(crate) fn rich_glyph_line_ranges_with_provider<P>(
-    parsed: &RichParseResult,
+pub(crate) fn rich_glyph_line_ranges_with_provider<S, P>(
+    source: &S,
     style: &TextStyle,
     max_width: f32,
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
     let max_width = finite_non_negative(max_width);
     let text_metrics = line_metrics_with_provider(style, provider);
     let text_ascent = text_metrics.baseline.max(0.0);
     let text_descent = (text_metrics.line_height - text_ascent).max(0.0);
-    let advance_index = RichAdvanceIndex::new(parsed, style, provider, |inline, _| {
+    let advance_index = RichAdvanceIndex::new(source, style, provider, |inline, _| {
         let metrics = inline_box_metrics(inline, text_ascent, text_descent);
         (metrics.advance, metrics.size.y)
     });
-    rich_glyph_line_ranges(parsed, max_width, &advance_index, provider)
+    rich_glyph_line_ranges(source, max_width, &advance_index, provider)
 }
 
-fn rich_glyph_line_ranges<P>(
-    parsed: &RichParseResult,
+fn rich_glyph_line_ranges<S, P>(
+    source: &S,
     max_width: f32,
     advance_index: &RichAdvanceIndex,
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
     let max_width = finite_non_negative(max_width);
     let mut ranges = Vec::new();
 
-    for forced_range in rich_forced_line_ranges(&parsed.text) {
+    for forced_range in rich_forced_line_ranges(source.text()) {
         let start = usize::try_from(forced_range.0).unwrap_or(usize::MAX);
         let end = usize::try_from(forced_range.1).unwrap_or(usize::MAX);
-        let Some(text) = parsed.text.get(start..end) else {
+        let Some(text) = source.text().get(start..end) else {
             continue;
         };
         if text.is_empty() {
             ranges.push(forced_range);
         } else {
             ranges.extend(advance_index.corrected_glyph_ranges_with_provider(
-                &parsed.text,
+                source.text(),
                 start,
                 end,
                 max_width,
@@ -117,29 +122,30 @@ where
     ranges
 }
 
-pub(crate) fn rich_word_line_ranges_with_provider<P>(
-    parsed: &RichParseResult,
+pub(crate) fn rich_word_line_ranges_with_provider<S, P>(
+    source: &S,
     style: &TextStyle,
     max_width: f32,
     mode: RichWordWrapMode,
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
     let max_width = finite_non_negative(max_width);
     let text_metrics = line_metrics_with_provider(style, provider);
     let text_ascent = text_metrics.baseline.max(0.0);
     let text_descent = (text_metrics.line_height - text_ascent).max(0.0);
-    let advance_index = RichAdvanceIndex::new(parsed, style, provider, |inline, _| {
+    let advance_index = RichAdvanceIndex::new(source, style, provider, |inline, _| {
         let metrics = inline_box_metrics(inline, text_ascent, text_descent);
         (metrics.advance, metrics.size.y)
     });
-    rich_word_line_ranges(parsed, style, max_width, mode, &advance_index, provider)
+    rich_word_line_ranges(source, style, max_width, mode, &advance_index, provider)
 }
 
-fn rich_word_line_ranges<P>(
-    parsed: &RichParseResult,
+fn rich_word_line_ranges<S, P>(
+    source: &S,
     style: &TextStyle,
     max_width: f32,
     mode: RichWordWrapMode,
@@ -147,15 +153,16 @@ fn rich_word_line_ranges<P>(
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
     let max_width = finite_non_negative(max_width);
     let mut ranges = Vec::new();
 
-    for forced_range in rich_forced_line_ranges(&parsed.text) {
+    for forced_range in rich_forced_line_ranges(source.text()) {
         let start = usize::try_from(forced_range.0).unwrap_or(usize::MAX);
         let end = usize::try_from(forced_range.1).unwrap_or(usize::MAX);
-        let Some(text) = parsed.text.get(start..end) else {
+        let Some(text) = source.text().get(start..end) else {
             continue;
         };
         let chunks = match mode {
@@ -175,7 +182,7 @@ where
             let mut chunk_start = start + chunk.source_range.start;
             let chunk_end = start + chunk.source_range.end;
             if line_end == line_start {
-                chunk_start = trim_rich_leading_spaces(&parsed.text, chunk_start, chunk_end);
+                chunk_start = trim_rich_leading_spaces(source.text(), chunk_start, chunk_end);
                 line_start = chunk_start;
                 line_end = chunk_start;
             }
@@ -184,7 +191,7 @@ where
             }
             let break_suffix = chunk.break_suffix.map(|suffix| suffix.text);
             let mut candidate_width = advance_index.corrected_advance_with_provider(
-                &parsed.text,
+                source.text(),
                 line_start,
                 chunk_end,
                 break_suffix,
@@ -195,11 +202,11 @@ where
                     u32::try_from(line_start).unwrap_or(u32::MAX),
                     u32::try_from(line_end).unwrap_or(u32::MAX),
                 ));
-                chunk_start = trim_rich_leading_spaces(&parsed.text, chunk_start, chunk_end);
+                chunk_start = trim_rich_leading_spaces(source.text(), chunk_start, chunk_end);
                 line_start = chunk_start;
                 line_end = chunk_start;
                 candidate_width = advance_index.corrected_advance_with_provider(
-                    &parsed.text,
+                    source.text(),
                     line_start,
                     chunk_end,
                     break_suffix,
@@ -212,7 +219,7 @@ where
 
             if line_end == line_start && candidate_width > max_width && chunk.allow_glyph_fallback {
                 let fallback_ranges = advance_index.corrected_glyph_ranges_with_provider(
-                    &parsed.text,
+                    source.text(),
                     chunk_start,
                     chunk_end,
                     max_width,
@@ -249,22 +256,15 @@ fn trim_rich_leading_spaces(text: &str, start: usize, end: usize) -> usize {
 }
 
 pub(crate) fn rich_forced_line_ranges(text: &str) -> Vec<(u32, u32)> {
-    let mut ranges = Vec::new();
-    let mut start = 0;
-    for (index, ch) in text.char_indices() {
-        if ch == '\n' {
-            ranges.push((
-                u32::try_from(start).unwrap_or(u32::MAX),
-                u32::try_from(index).unwrap_or(u32::MAX),
-            ));
-            start = index + ch.len_utf8();
-        }
-    }
-    ranges.push((
-        u32::try_from(start).unwrap_or(u32::MAX),
-        u32::try_from(text.len()).unwrap_or(u32::MAX),
-    ));
-    ranges
+    crate::text::hard_lines(text)
+        .into_iter()
+        .map(|line| {
+            (
+                u32::try_from(line.content.start).unwrap_or(u32::MAX),
+                u32::try_from(line.content.end).unwrap_or(u32::MAX),
+            )
+        })
+        .collect()
 }
 
 fn finite_non_negative(value: f32) -> f32 {

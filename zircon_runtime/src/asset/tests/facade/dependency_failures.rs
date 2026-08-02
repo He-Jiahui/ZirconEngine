@@ -56,9 +56,11 @@ fn readiness_report_marks_missing_dependency_records_as_failed_rows() {
     assert_eq!(row.depth, 1);
     assert!(row.direct);
     assert_eq!(row.load_state, AssetLoadState::Failed);
-    assert!(diagnostic_messages(&row.diagnostics)
-        .iter()
-        .any(|message| message.contains("missing asset dependency record")));
+    assert!(
+        diagnostic_messages(&row.diagnostics)
+            .iter()
+            .any(|message| message.contains("missing asset dependency record"))
+    );
 }
 
 #[test]

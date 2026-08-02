@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{DiagnosticStore, record_bool, record_count};
+use super::{record_bool, record_count, DiagnosticStore};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -64,6 +64,29 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         "render.hzb.occlusion.readback_available",
         frame_index,
         stats.last_hzb_occlusion_readback_available,
+        &["render", "hzb", "occlusion", "readback"],
+    );
+    record_count(
+        store,
+        "render.hzb.occlusion.readback_pending_count",
+        frame_index,
+        stats.last_hzb_occlusion_readback_pending_count,
+        &["render", "hzb", "occlusion", "readback"],
+    );
+    record_count(
+        store,
+        "render.hzb.occlusion.readback_dropped_count",
+        frame_index,
+        stats.last_hzb_occlusion_readback_dropped_count,
+        &["render", "hzb", "occlusion", "readback"],
+    );
+    record_count(
+        store,
+        "render.hzb.occlusion.readback_oldest_pending_age_frames",
+        frame_index,
+        stats
+            .last_hzb_occlusion_readback_oldest_pending_age_frames
+            .unwrap_or_default() as usize,
         &["render", "hzb", "occlusion", "readback"],
     );
     record_count(

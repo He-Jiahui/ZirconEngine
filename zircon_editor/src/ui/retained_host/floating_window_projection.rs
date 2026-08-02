@@ -619,7 +619,7 @@ mod tests {
     ) -> WorkbenchViewModel {
         WorkbenchViewModel {
             is_playing: false,
-            asset_creation_templates: Vec::new(),
+            asset_creation_menu: Default::default(),
             menu_bar: MenuBarModel { menus: Vec::new() },
             host_strip: MainHostStripViewModel {
                 mode: MainHostStripModel::Workbench,

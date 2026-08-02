@@ -60,7 +60,7 @@ watcher channel是原始 path transport，没有 bounded latest-set/debounce/gen
 - 不得在单 tick继续排空全部积压。
 - 不得让 UI asset editor私有 watcher成为第二个 runtime asset inventory authority。
 
-## 产出记录与时间
+## 修复结果与回传
 
 Open state: `bounded ingress/reconcile、reverse dependency generation、shared physical parse generation、EditorJobSystem worker、generation-checked commit 与 per-asset bounded retry 已完成源码硬切；受管 Cargo、1k/10k 产品 storm/p95、最终独立复审、fixed return 与 managed commit 仍待完成。`
 

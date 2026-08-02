@@ -26,6 +26,8 @@ related_code:
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/asset/module/lifecycle.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/readiness.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/script/vm/module/module_descriptor.rs
@@ -97,6 +99,8 @@ implementation_files:
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/asset/module/lifecycle.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/readiness.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/script/vm/module/module_descriptor.rs
@@ -242,9 +246,11 @@ Focused tests cover sorted Kernel/Services/Scene batch ordering with no finish b
 
 `frameworks_02_m2_builtin_profile_descriptor_sorting_rustfmt_app_server_check_passed`
 
-Frameworks 02 M2 switches builtin module and app plugin assembly from handwritten order to descriptor-owned order. Runtime profiles and app plugin groups now decide only which modules are present. `ModuleDescriptor::init_level` plus `ModuleDependencySpec` decide the activation sequence through `sort_module_activation_order(...)`, so missing dependencies or layer violations become typed runtime load diagnostics instead of silent list drift.
+Frameworks 02 M2 switches builtin module and app plugin assembly from handwritten order to descriptor-owned order. Runtime profiles own typed `BuiltinRuntimeModuleId` membership and app plugin groups declare only a profile plus explicit app features. Target assembly builds one builtin candidate registry, profile selection completes the dependency closure, and the target owner calls `sort_module_activation_order(...)` once after plugin modules join the set. `ModuleDescriptor::init_level` plus `ModuleDependencySpec` decide the activation sequence, so missing dependencies or layer violations become typed runtime load diagnostics instead of silent list drift.
 
-The builtin runtime module set now includes the kernel foundations directly in `runtime_core_modules_for_target_with_render_features(...)`: Foundation, log, tasks, time, frame count, diagnostics core, platform, input, asset, scene, optional graphics, and script. Minimal profile assembly uses the same sorter over its smaller module set. Target/profile load reports convert sorting failures into fatal diagnostics, and `zircon_app` checks those diagnostics before bootstrapping instead of continuing with a partially ordered list.
+The builtin candidate set now includes the kernel foundations directly in `runtime_core_module_candidates_for_target_with_render_features(...)`: Foundation, log, tasks, time, frame count, diagnostics core, platform, input, asset, scene, optional graphics, and script. Minimal's exact five-module membership appears only in its profile descriptor; there is no Minimal-specific constructor or app-side filter. Target/profile load reports convert candidate, closure, and sorting failures into fatal diagnostics, and `zircon_app` checks those diagnostics before bootstrapping instead of continuing with a partially ordered list.
+
+`AssetModule` is the first production built-in to adopt the readiness hook. Its immediate `ProjectAssetManager` already owns the project-catalog generation gate used while a generation is published. `AssetModuleLifecycle::ready(...)` resolves that manager through the runtime registry and probes the gate with `try_read()`: a concurrent generation publication reports not ready, while an idle or poison-recovered gate reports ready. The hook performs no blocking I/O, busy loop, sleep, or parallel readiness state. The focused integration test holds the real generation write guard to prove false, releases it, then proves true through the lifecycle stored in the production descriptor.
 
 App plugin groups gained `try_finish(...)`, which sorts enabled entries by descriptor order and returns a structured `PluginGroupError::ModuleOrder` when group membership violates the kernel contract. `finish(...)` remains as the assertion-style convenience path for built-in groups. `EngineEntry` and `BuiltinEngineEntry` now register all selected descriptors first and activate through `CoreRuntime::activate_registered_modules(...)`, so M2 consumes the M1 batch finish barrier rather than reintroducing per-module Running publication.
 

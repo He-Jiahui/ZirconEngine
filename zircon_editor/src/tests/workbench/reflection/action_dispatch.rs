@@ -4,6 +4,7 @@ use std::path::Path;
 use crate::core::asset::AssetToolkitOpenRoute;
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent, EditorEventSource};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::view::ViewDescriptorId;
@@ -125,6 +126,52 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
             if result.error.is_none() && result.value.is_some()
     ));
     assert_eq!(runtime.runtime.current_layout().floating_windows.len(), 1);
+}
+
+#[test]
+fn workbench_reflection_operation_binding_preserves_native_binding_provenance_and_transaction() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_operation_provenance");
+    let scene_entries_before = runtime.runtime.editor_snapshot().scene_entries.len();
+    let binding = EditorUiBinding::new(
+        "SceneMenu",
+        "CreateCube",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::editor_operation("scene.node.create_cube"),
+    );
+    let binding_path = binding.path().native_prefix();
+
+    let response = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::InvokeBinding {
+            binding: binding.as_ui_binding(),
+        });
+    assert!(matches!(
+        response,
+        UiControlResponse::Invocation(result) if result.error.is_none() && result.value.is_some()
+    ));
+
+    let record = runtime
+        .runtime
+        .journal()
+        .records()
+        .last()
+        .expect("operation binding must append an event record");
+    assert_eq!(record.source, EditorEventSource::RetainedHost);
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("scene.node.create_cube")
+    );
+    assert_eq!(record.binding_path.as_deref(), Some(binding_path.as_str()));
+    assert!(
+        record.transaction_id.is_some(),
+        "a mutating operation binding must retain its transaction provenance"
+    );
+    assert_eq!(record.save_generation, None);
+    assert_eq!(
+        runtime.runtime.editor_snapshot().scene_entries.len(),
+        scene_entries_before + 1
+    );
 }
 
 #[test]

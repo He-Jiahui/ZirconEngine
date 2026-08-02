@@ -3,6 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::template_row_metrics::{workbench_row_metrics, workbench_row_palette};
 use super::layers::selection_indicator_order;
 use super::style::{list_row_background, list_row_border, list_row_border_width};
+use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_list_row_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -25,7 +26,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
         background,
         border,
         list_row_border_width(node),
-        metrics.surface_radius,
+        corner_radius_for_frame(rect, metrics.surface_radius),
         opacity,
     ));
     if is_selected_row(node) {

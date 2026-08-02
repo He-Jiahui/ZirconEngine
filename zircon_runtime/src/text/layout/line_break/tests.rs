@@ -11,6 +11,34 @@ fn line_break_chunks_keep_cjk_open_punctuation_with_following_text() {
 }
 
 #[test]
+fn line_break_chunks_use_absolute_offsets_and_preserve_mandatory_breaks() {
+    let text = "a\u{2028}b";
+    let chunks = line_break_chunks(text, &TextStyle::default());
+
+    assert_eq!(
+        chunks.iter().map(|chunk| chunk.text).collect::<Vec<_>>(),
+        vec!["a\u{2028}", "b"]
+    );
+    assert_eq!(chunks[0].source_range.start, 0);
+    assert_eq!(chunks[0].source_range.end, "a\u{2028}".len());
+    assert!(chunks[0].mandatory_break);
+    assert_eq!(chunks[1].source_range.start, "a\u{2028}".len());
+}
+
+#[test]
+fn mandatory_breaks_stop_kinsoku_merges_across_hard_lines() {
+    let text = "a\u{2028}）b";
+    let chunks = line_break_chunks(text, &TextStyle::default());
+    let mandatory = chunks
+        .iter()
+        .find(|chunk| chunk.mandatory_break)
+        .expect("mandatory hard-line chunk");
+
+    assert_eq!(mandatory.text, "a\u{2028}");
+    assert_eq!(mandatory.source_range.end, "a\u{2028}".len());
+}
+
+#[test]
 fn line_break_chunks_keep_zwj_emoji_sequences_unbreakable() {
     let text = "a👩\u{200d}💻b";
     let chunks = line_break_chunks(text, &TextStyle::default());

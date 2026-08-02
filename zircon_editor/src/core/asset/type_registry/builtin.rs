@@ -2,12 +2,16 @@ use zircon_runtime_interface::resource::ResourceKind;
 
 use super::asset_type_id::canonical_resource_kind_id;
 use super::{
-    AssetTypeContribution, AssetTypeId, AssetTypePresentation, AssetTypeRegistry,
-    AssetTypeRegistryError, ThumbnailPlaceholderPalette, ThumbnailProviderDescriptor,
+    AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypePresentation,
+    AssetTypeRegistry, AssetTypeRegistryError, ThumbnailPlaceholderPalette,
+    ThumbnailProviderDescriptor,
 };
+use crate::core::editor_operation::EditorOperationPath;
 use std::sync::OnceLock;
 
 const BUILTIN_OWNER: &str = "zircon.editor.builtin_asset_types";
+const UI_ASSET_EDITOR_VIEW_ID: &str = "editor.ui_asset";
+const UI_ASSET_EDITOR_OPEN_OPERATION: &str = "view.editor.ui_asset.open";
 
 const BUILTIN_RESOURCE_KINDS: [ResourceKind; 26] = [
     ResourceKind::Data,
@@ -53,22 +57,37 @@ pub(super) fn builtin_registry() -> Result<AssetTypeRegistry, AssetTypeRegistryE
     for kind in BUILTIN_RESOURCE_KINDS {
         let id = AssetTypeId::from_resource_kind(kind);
         let metadata = builtin_metadata(kind);
-        registry.apply_contribution(
-            BUILTIN_OWNER,
-            AssetTypeContribution::define(
-                id.clone(),
-                AssetTypePresentation::new(
-                    metadata.display_name,
-                    metadata.badge,
-                    metadata.icon_name,
-                    metadata.color_token,
-                ),
-                builtin_thumbnail_provider(kind, &id, metadata.icon_name),
-            )
-            .with_runtime_kind(kind),
-        )?;
+        let mut contribution = AssetTypeContribution::define(
+            id.clone(),
+            AssetTypePresentation::new(
+                metadata.display_name,
+                metadata.badge,
+                metadata.icon_name,
+                metadata.color_token,
+            ),
+            builtin_thumbnail_provider(kind, &id, metadata.icon_name),
+        )
+        .with_runtime_kind(kind);
+        if let Some(toolkit) = builtin_toolkit(kind) {
+            contribution = contribution.with_toolkit(toolkit);
+        }
+        registry.apply_contribution(BUILTIN_OWNER, contribution)?;
     }
     Ok(registry)
+}
+
+fn builtin_toolkit(kind: ResourceKind) -> Option<AssetToolkitDescriptor> {
+    matches!(
+        kind,
+        ResourceKind::UiLayout | ResourceKind::UiWidget | ResourceKind::UiStyle
+    )
+    .then(|| {
+        AssetToolkitDescriptor::new(
+            UI_ASSET_EDITOR_VIEW_ID,
+            EditorOperationPath::parse(UI_ASSET_EDITOR_OPEN_OPERATION)
+                .expect("built-in UI asset editor operation path is valid"),
+        )
+    })
 }
 
 fn builtin_thumbnail_provider(
@@ -177,6 +196,30 @@ fn builtin_metadata(kind: ResourceKind) -> BuiltinMetadata {
 
 #[cfg(test)]
 mod tests {
+    use zircon_runtime_interface::resource::ResourceKind;
+
+    use super::builtin_asset_type_definition;
+
+    #[test]
+    fn builtin_ui_assets_share_the_document_toolkit_route() {
+        for kind in [
+            ResourceKind::UiLayout,
+            ResourceKind::UiWidget,
+            ResourceKind::UiStyle,
+        ] {
+            let toolkit = builtin_asset_type_definition(kind)
+                .expect("built-in UI asset type should be registered")
+                .toolkit()
+                .expect("built-in UI asset type should declare a document toolkit");
+
+            assert_eq!(toolkit.view_id(), "editor.ui_asset");
+            assert_eq!(
+                toolkit.open_operation().as_str(),
+                "view.editor.ui_asset.open"
+            );
+        }
+    }
+
     #[test]
     fn builtin_lookup_does_not_construct_an_owned_asset_type_id() {
         let source = include_str!("builtin.rs");

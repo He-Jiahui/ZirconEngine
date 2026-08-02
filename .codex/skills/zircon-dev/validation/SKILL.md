@@ -25,6 +25,7 @@ Useful switches:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter export_visual_evidence -IgnoredTests
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipTest
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunExportPlatformContract
@@ -61,6 +62,7 @@ Read `../references/cargo-target-disk-policy.md` when shared-target setup, clean
 - At a child-plan milestone boundary, use `tools/zircon-session.ps1 milestone validate` instead of manually composing a Cargo command. The resulting validation copy lives under a managed drive-root `cargo-targets` verification directory and is terminally cleaned by the coordinator.
 - Use `-RunExportPlatformContract` to mirror the CI export-platform policy matrix locally. The matrix covers `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, `wasm`, and `headless` by setting `ZR_EXPORT_CONTRACT_PLATFORM` for the focused `zircon_runtime` export policy test.
 - Add `-ExportContractPlatform <platform>` only with `-RunExportPlatformContract` when active shared compile lanes make a single low-interference export-platform check safer than the full eight-platform matrix. Passing `-ExportContractPlatform` without `-RunExportPlatformContract` is rejected so the selector cannot be silently ignored.
+- Use `-IgnoredTests` only for one explicitly named ignored test through a non-empty `-TestFilter` plus `-LibTests` or `-TestTarget`. The validator rejects unfiltered ignored-test runs and rejects `-IgnoredTests` with `-SkipTest`.
 - Use `-RunProfileFeatureContract` to mirror `.github/workflows/profile-feature-contract.yml` locally. The matrix checks the M5 no-default-features profile contracts for `zircon_app` server/client-platform and `zircon_runtime` client/editor-host/server.
 - Add `-ProfileFeatureContractLabel "<label>"` only with `-RunProfileFeatureContract` when active shared compile lanes make a single low-interference profile check safer than the full five-case matrix. Passing `-ProfileFeatureContractLabel` without `-RunProfileFeatureContract` is rejected so the selector cannot be silently ignored.
 - Treat Linux CI as the canonical Linux cross-platform baseline. Compare Linux-specific failures against `.github/workflows/ci.yml` without making WSL the default local validation environment.

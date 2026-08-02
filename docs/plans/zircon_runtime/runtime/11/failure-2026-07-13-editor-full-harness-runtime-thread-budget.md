@@ -33,8 +33,8 @@ tests:
 - 交接原因：Editor14 已把 Editor 自建 scheduler 收敛为共享 `JobScheduler`，但最新 full harness 仍以 Runtime 三池和 asset worker 的系统级默认预算为单位累积线程；最低线程来源、预算与生命周期 owner 属于 Runtime11，不应在 Editor 测试中用串行化、缩小线程数或跳过用例掩盖。
 - 更低层依赖：后续静态所有权审计已证实 registry-owned `EditorManager` 通过 `EditorUiHost.core`
   反向持有强 `CoreHandle`，形成 Runtime 自拥有环；该问题已下沉至
-  [`Runtime02 service-corehandle-retention-cycle`](../02/failure-2026-07-13-service-corehandle-retention-cycle.md)。
-  本交接继续拥有 Runtime11 的 task-pool/asset-worker 双预算问题，但须等待 Runtime02 先修并重测基线。
+  [`Runtime02 service-corehandle-retention-cycle` fixed return](../../../zircon_editor/editor/14/fixed-2026-07-14-service-corehandle-retention-cycle.md)。
+  本交接继续拥有 Runtime11 的 task-pool/asset-worker 双预算问题；Runtime02 回传后的重测结果与剩余门禁记录在下方里程碑表中。
 
 ## 失败现象与复现证据
 

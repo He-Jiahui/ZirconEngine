@@ -145,6 +145,7 @@ fn zcube_source_cubemap_descriptor(mip_count: u32) -> TextureAssetDescriptor {
         SOURCE_CUBEMAP_FACE_COUNT as u32,
     );
     descriptor.color_space = RenderImageColorSpace::Linear;
+    descriptor.metadata.color_space = RenderImageColorSpace::Linear;
     descriptor.dimension = RenderImageDimension::Cube;
     descriptor.depth_or_array_layers = SOURCE_CUBEMAP_FACE_COUNT as u32;
     descriptor.array_layer_count = SOURCE_CUBEMAP_FACE_COUNT as u32;

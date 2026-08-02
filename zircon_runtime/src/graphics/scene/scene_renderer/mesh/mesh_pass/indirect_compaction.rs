@@ -51,10 +51,52 @@ impl IndirectCompactionPlan {
             return Some(Self::default());
         }
         let arg_count = u32::try_from(args.len()).ok()?;
-        Self::try_from_args_and_batch_ranges(
+        Self::try_from_ordered_batch_ranges(
             args,
             [IndirectCompactionBatchRange::new(0, arg_count, 0)],
         )
+    }
+
+    pub(crate) fn try_from_ordered_batch_ranges(
+        args: &[IndexedIndirectArgs],
+        batch_ranges: impl IntoIterator<Item = IndirectCompactionBatchRange>,
+    ) -> Option<Self> {
+        let mut metadata = Vec::with_capacity(args.len());
+        let mut visible_instance_capacity = 0u32;
+        let mut draw_count_count = 0u32;
+        let mut expected_first_arg = 0usize;
+
+        for batch in batch_ranges {
+            let first_arg = batch.first_arg as usize;
+            let arg_count = batch.arg_count as usize;
+            let end_arg = first_arg.checked_add(arg_count)?;
+            if first_arg != expected_first_arg || end_arg > args.len() {
+                return None;
+            }
+            draw_count_count = draw_count_count.max(batch.draw_count_index.checked_add(1)?);
+
+            for source_arg_index in first_arg..end_arg {
+                let args = &args[source_arg_index];
+                let source_arg_index = u32::try_from(source_arg_index).ok()?;
+                metadata.push(IndirectCompactionBatchMetadata {
+                    source_arg_index,
+                    visible_instance_base: visible_instance_capacity,
+                    source_first_instance: args.first_instance,
+                    source_instance_count: args.instance_count,
+                    output_arg_base: batch.first_arg,
+                    draw_count_index: batch.draw_count_index,
+                });
+                visible_instance_capacity =
+                    visible_instance_capacity.checked_add(args.instance_count)?;
+            }
+            expected_first_arg = end_arg;
+        }
+
+        (expected_first_arg == args.len()).then_some(Self {
+            metadata,
+            visible_instance_capacity,
+            draw_count_count,
+        })
     }
 
     pub(crate) fn try_from_args_and_batch_ranges(
@@ -307,6 +349,27 @@ mod tests {
         assert_eq!(simulation.compacted_args[1].instance_count, 0);
         assert_eq!(simulation.compacted_args[2].first_instance, 2);
         assert_eq!(simulation.compacted_args[2].instance_count, 1);
+    }
+
+    #[test]
+    fn indirect_compaction_ordered_ranges_match_the_general_plan() {
+        let args = [
+            indirect_args(36, 2, 10),
+            indirect_args(18, 1, 20),
+            indirect_args(12, 3, 30),
+        ];
+        let batches = [
+            IndirectCompactionBatchRange::new(0, 2, 0),
+            IndirectCompactionBatchRange::new(2, 1, 1),
+        ];
+
+        let ordered =
+            IndirectCompactionPlan::try_from_ordered_batch_ranges(&args, batches.iter().copied())
+                .expect("ordered compaction plan");
+        let general = IndirectCompactionPlan::try_from_args_and_batches_for_test(&args, &batches)
+            .expect("general compaction plan");
+
+        assert_eq!(ordered, general);
     }
 
     #[test]

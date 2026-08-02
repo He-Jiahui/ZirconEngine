@@ -250,8 +250,8 @@ impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
 #[cfg(test)]
 mod performance_tests {
     use std::sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     };
 
     use super::*;

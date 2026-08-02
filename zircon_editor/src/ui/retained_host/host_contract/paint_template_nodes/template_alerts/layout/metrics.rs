@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchAlertMetrics {
@@ -12,8 +12,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_right_inset: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_metrics(
-) -> WorkbenchAlertMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_metrics()
+-> WorkbenchAlertMetrics {
     alert_metrics_from_host(current_host_metrics())
 }
 
@@ -49,8 +49,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub action_minimum_width: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_metrics(
-) -> WorkbenchToastMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_metrics()
+-> WorkbenchToastMetrics {
     toast_metrics_from_host(current_host_metrics())
 }
 

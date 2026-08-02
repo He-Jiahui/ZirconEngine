@@ -15,7 +15,7 @@ use super::stage::StagedDocument;
 use super::{transaction_error, transaction_sibling};
 use crate::asset::migration::document::PendingDocument;
 use crate::asset::migration::{AssetMigrationError, AssetMigrationTransactionPhase};
-use crate::foundation::persistence::atomic_file::atomic_write;
+use crate::core::resource::io::atomic_file::atomic_write;
 
 pub(super) fn create_intent_journal(
     project_root: &Path,

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use super::super::super::{
-    path_query, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveStatistics,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveStatistics, path_query,
 };
 
 impl RuntimeSessionArchive {

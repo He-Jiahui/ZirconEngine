@@ -3,8 +3,10 @@ use crate::core::runtime::tasks::TaskPool;
 
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{ArtifactStore, AssetImporter};
+use scan_and_import::ShaderImportDependencyIndex;
+use std::sync::Arc;
 
-use super::{PackageAssetRegistry, ProjectManifest, ProjectPaths};
+use super::{PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths};
 
 mod artifact_access;
 mod asset_kind;
@@ -33,7 +35,9 @@ pub struct ProjectManager {
     registry: ResourceRegistry,
     asset_registry: AssetRegistryIndex,
     package_assets: PackageAssetRegistry,
+    catalog_input_generation: Arc<ProjectCatalogInputGeneration>,
     importer: AssetImporter,
     artifact_store: ArtifactStore,
+    shader_import_dependencies: ShaderImportDependencyIndex,
     environment_ibl_parallel_executor: Option<TaskPool>,
 }

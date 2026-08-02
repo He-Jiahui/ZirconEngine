@@ -13,7 +13,7 @@ pub(super) fn asset_uri_for_path(
         Err(_) => {
             return Err(ResourceLocatorError::EscapeAttempt(
                 path.display().to_string(),
-            ))
+            ));
         }
     };
     let normalized = relative

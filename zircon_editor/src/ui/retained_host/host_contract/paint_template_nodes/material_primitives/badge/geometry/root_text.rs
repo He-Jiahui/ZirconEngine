@@ -13,8 +13,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_r
     rect: &FrameRect,
     label: &str,
 ) -> BadgeTextFrame {
-    let font_size = badge_root_font_size(node);
-    let line_height = badge_text_line_height(font_size);
+    let font_size = badge_root_font_size(node, rect);
+    let line_height = badge_text_line_height(font_size, rect);
     let available_width = badge_root_available_text_width(rect);
     let text_width = badge_text_width(
         measure_runtime_text_width(label, font_size),
@@ -80,5 +80,22 @@ mod tests {
         let available_width = badge_root_available_text_width(&rect);
 
         assert!((text_frame.rect.width - available_width).abs() <= 0.01);
+    }
+
+    #[test]
+    fn badge_root_text_frame_stays_inside_tight_root_bounds() {
+        let node = node(0.0);
+        let rect = FrameRect {
+            x: 2.0,
+            y: 4.0,
+            width: 4.0,
+            height: 6.0,
+        };
+        let text_frame = badge_root_text_frame(&node, &rect, "Badge");
+
+        assert!(text_frame.rect.x >= rect.x);
+        assert!(text_frame.rect.y >= rect.y);
+        assert!(text_frame.rect.right() <= rect.right());
+        assert!(text_frame.rect.bottom() <= rect.bottom());
     }
 }

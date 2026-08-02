@@ -5,7 +5,7 @@ use arc_swap::{ArcSwap, Guard};
 use zircon_runtime::scene::World;
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeOperationHandle,
-    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1,
 };
@@ -169,7 +169,7 @@ impl EditorRuntimeGatewayHandle {
     pub fn poll_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         self.generation_snapshot().gateway.poll_operation(handle)
     }
 
@@ -253,7 +253,7 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
     fn poll_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         EditorRuntimeGatewayHandle::poll_operation(self, handle)
     }
 

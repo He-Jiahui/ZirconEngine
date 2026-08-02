@@ -66,9 +66,11 @@ fn narrow_table_row_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| frame_is_within(&rect, &command.frame)));
+    assert!(
+        commands
+            .iter()
+            .all(|command| frame_is_within(&rect, &command.frame))
+    );
 }
 
 #[test]
@@ -90,9 +92,11 @@ fn short_table_row_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| frame_is_within(&rect, &command.frame)));
+    assert!(
+        commands
+            .iter()
+            .all(|command| frame_is_within(&rect, &command.frame))
+    );
 }
 
 fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {

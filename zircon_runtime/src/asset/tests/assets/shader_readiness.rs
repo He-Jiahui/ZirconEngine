@@ -58,12 +58,14 @@ fn shader_readiness_reports_runtime_source_kinds() {
     assert!(emitted_report.is_ready());
     assert!(fallback_report.is_ready());
     assert!(!unavailable_report.is_ready());
-    assert!(unavailable_report
-        .runtime_source
-        .diagnostic
-        .as_deref()
-        .unwrap()
-        .contains("does not provide emitted WGSL"));
+    assert!(
+        unavailable_report
+            .runtime_source
+            .diagnostic
+            .as_deref()
+            .unwrap()
+            .contains("does not provide emitted WGSL")
+    );
 }
 
 #[test]
@@ -345,11 +347,13 @@ fn shader_readiness_reports_entry_stage_diagnostics() {
     );
     assert!(report.entry_points[0].diagnostic.is_none());
     assert!(report.entry_points[1].canonical_stage.is_none());
-    assert!(report.entry_points[1]
-        .diagnostic
-        .as_deref()
-        .unwrap()
-        .contains("unsupported stage `pixel`"));
+    assert!(
+        report.entry_points[1]
+            .diagnostic
+            .as_deref()
+            .unwrap()
+            .contains("unsupported stage `pixel`")
+    );
 }
 
 #[test]
@@ -369,21 +373,25 @@ fn shader_readiness_reports_shader_def_diagnostics() {
     assert_eq!(report.shader_defs[0].value.value_as_string(), "true");
     assert!(report.shader_defs[0].diagnostic.is_none());
     assert_eq!(report.shader_defs[1].normalized_name, "");
-    assert!(report.shader_defs[1]
-        .diagnostic
-        .as_deref()
-        .unwrap()
-        .contains("empty after trimming"));
+    assert!(
+        report.shader_defs[1]
+            .diagnostic
+            .as_deref()
+            .unwrap()
+            .contains("empty after trimming")
+    );
     assert_eq!(report.shader_defs[2].normalized_name, "ALPHA_CLIP");
     assert_eq!(report.shader_defs[2].value.value_as_string(), "1");
     assert!(report.shader_defs[2].diagnostic.is_none());
     assert_eq!(report.shader_defs[3].normalized_name, "USE_UNLIT");
     assert_eq!(report.shader_defs[3].value.value_as_string(), "false");
-    assert!(report.shader_defs[3]
-        .diagnostic
-        .as_deref()
-        .unwrap()
-        .contains("duplicated"));
+    assert!(
+        report.shader_defs[3]
+            .diagnostic
+            .as_deref()
+            .unwrap()
+            .contains("duplicated")
+    );
 }
 
 #[test]

@@ -52,3 +52,24 @@ watcher没有有界generation log、max batch latency、overflow reconciliation�
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+### 2026-08-01 current-source implementation
+
+- Watch ingress is bounded by entry and byte limits. The callback performs only
+  bounded enqueue, overflow publishes a dirty reconciliation token, and the
+  batcher combines a 120 ms quiet window with a 500 ms maximum latency so a
+  continuous storm still flushes.
+- Project activation uses one Runtime I/O job, O(1) URI coalescing with explicit
+  remove/rename barriers, bounded pending/error storage and single-flight
+  generation preparation. Scans occur outside the generation lock; a short CAS
+  commit preserves last-good state, and overflow performs a full authoritative
+  reconciliation.
+- Aggregate diagnostics expose raw/effective/coalesced events, queue depth and
+  bytes, age, overflow, reconciliation, supersede, scan and commit outcomes.
+  Storm, deterministic overflow and 4,097-entry activation fixtures were added.
+- Snapshot `1414` sealed the exact 14-file source manifest
+  `381e8e3b40504d6e4504470c28ad7ae448b7ff55da7fec22906c49a71be71bc9`.
+  Managed ticket `ddd174b739274dcfb2dc1927027d637c` accepted the declared focused
+  watcher command; queued status is not a pass.
+
+Open state: `实现完成，受管验证待回执`; accepted closeout remains deferred.

@@ -17,6 +17,7 @@ impl ViewportFrameHistory {
         bindings: Vec<FrameHistoryBinding>,
         visibility: VisibilityHistorySnapshot,
         static_index: VisibilityStaticIndex,
+        dynamic_index: VisibilityStaticIndex,
         validation_key: Arc<FrameHistoryValidationKey>,
     ) -> Self {
         Self {
@@ -28,6 +29,7 @@ impl ViewportFrameHistory {
             bindings,
             visibility,
             static_index,
+            dynamic_index,
             validation_key,
         }
     }

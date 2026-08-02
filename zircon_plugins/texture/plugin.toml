@@ -1,4 +1,4 @@
-# @generated from Rust descriptor package_manifest(); do not edit by hand.
+# @generated from Rust PluginDeclaration; do not edit by hand.
 id = "texture"
 version = "0.1.0"
 display_name = "Texture"

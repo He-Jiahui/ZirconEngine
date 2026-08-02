@@ -1,4 +1,4 @@
-use crate::asset::load::texture::{decode_image_file, generate_checker_texture, TextureLoadError};
+use crate::asset::load::texture::{TextureLoadError, decode_image_file, generate_checker_texture};
 use crate::asset::tests::project::unique_temp_project_root;
 
 #[test]

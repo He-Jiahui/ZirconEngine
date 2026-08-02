@@ -17,7 +17,7 @@ pub(super) struct StartupInteractionState {
     pub(super) hierarchy_pointer_bridge: HierarchyPointerBridge,
     pub(super) hierarchy_pointer_state: HierarchyPointerState,
     pub(super) hierarchy_pointer_size: UiSize,
-    pub(super) hierarchy_scene_entries: Arc<[SceneEntry]>,
+    pub(super) hierarchy_scene_entries: Arc<[WorldInspectionHierarchyRow]>,
     pub(super) console_scroll_surface: ScrollSurfaceHostState,
     pub(super) inspector_scroll_surface: ScrollSurfaceHostState,
     pub(super) browser_asset_details_scroll_surface: ScrollSurfaceHostState,
@@ -46,7 +46,7 @@ impl StartupInteractionState {
             hierarchy_pointer_bridge: HierarchyPointerBridge::new(),
             hierarchy_pointer_state: HierarchyPointerState::default(),
             hierarchy_pointer_size: UiSize::new(0.0, 0.0),
-            hierarchy_scene_entries: Arc::from(Vec::<SceneEntry>::new()),
+            hierarchy_scene_entries: Arc::from(Vec::<WorldInspectionHierarchyRow>::new()),
             console_scroll_surface: ScrollSurfaceHostState::new(
                 "zircon.editor.console.pointer",
                 "editor.console",

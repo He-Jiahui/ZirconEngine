@@ -27,16 +27,19 @@ class RuntimeScheduleFrameLoopAuditTests(unittest.TestCase):
         self.assertEqual(audit["missing_cargo_gate_anchors"], [])
         self.assertEqual(audit["risks"], [])
 
-    def test_time_cargo_gate_uses_the_precise_test_module_filter(self) -> None:
+    def test_time_gate_uses_the_managed_validator_and_precise_module_filter(self) -> None:
         from runtime_structure_audits.schedule_frame_loop_anchor_inventory import (
             CARGO_GATE_ANCHORS,
         )
 
-        precise = "cargo test -p zircon_runtime --lib tests::time:: --locked"
-        broad = "cargo test -p zircon_runtime --lib time --locked"
+        precise = (
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 "
+            "-Package zircon_runtime -SkipBuild -LibTests -TestFilter tests::time::"
+        )
+        broad = "-TestFilter time"
 
         self.assertIn(precise, CARGO_GATE_ANCHORS)
-        self.assertNotIn(broad, CARGO_GATE_ANCHORS)
+        self.assertFalse(any(broad in command for command in CARGO_GATE_ANCHORS))
 
     def test_runtime_03_plan_status_anchors_follow_the_current_inventory(self) -> None:
         from runtime_structure_audits.runtime_plan_status_boundary import (

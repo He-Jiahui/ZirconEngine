@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
-use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::sync::{Arc, Mutex};
+
+use crate::graphics::backend::GpuReadbackQueue;
 
 const TIMESTAMP_QUERY_COUNT: u32 = 2;
 const TIMESTAMP_BYTES: u64 = TIMESTAMP_QUERY_COUNT as u64 * size_of::<u64>() as u64;
@@ -17,7 +19,7 @@ pub struct RealtimeIblGpuTimingReport {
 
 #[derive(Clone, Debug)]
 pub(in crate::graphics) struct RealtimeIblGpuTimestampReadback {
-    buffer: wgpu::Buffer,
+    source: wgpu::Buffer,
 }
 
 pub(in crate::graphics) struct RealtimeIblGpuTimestampRecorder {
@@ -48,7 +50,6 @@ impl RealtimeIblGpuTimestampRecorder {
 
     pub(in crate::graphics) fn write_end_and_resolve(
         &self,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
     ) -> RealtimeIblGpuTimestampReadback {
         encoder.write_timestamp(&self.query_set, 1);
@@ -58,29 +59,22 @@ impl RealtimeIblGpuTimestampRecorder {
             &self.resolve_buffer,
             0,
         );
-        let readback = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-realtime-ibl-timestamp-readback"),
-            size: TIMESTAMP_BYTES,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-        encoder.copy_buffer_to_buffer(&self.resolve_buffer, 0, &readback, 0, TIMESTAMP_BYTES);
-        RealtimeIblGpuTimestampReadback { buffer: readback }
+        RealtimeIblGpuTimestampReadback {
+            source: self.resolve_buffer.clone(),
+        }
     }
 }
 
 pub(in crate::graphics) struct RealtimeIblGpuTimestampCollector {
     supported: bool,
-    pending: VecDeque<PendingTimestampReadback>,
-    completed: VecDeque<RealtimeIblGpuTimingReport>,
+    completed: Arc<Mutex<VecDeque<RealtimeIblGpuTimingReport>>>,
 }
 
 impl RealtimeIblGpuTimestampCollector {
     pub(in crate::graphics) fn new(device: &wgpu::Device) -> Self {
         Self {
             supported: timestamp_queries_supported(device),
-            pending: VecDeque::new(),
-            completed: VecDeque::new(),
+            completed: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
@@ -88,54 +82,42 @@ impl RealtimeIblGpuTimestampCollector {
         self.supported
     }
 
-    pub(in crate::graphics) fn begin_readback(
+    pub(in crate::graphics) fn request_readback(
         &mut self,
-        readback: RealtimeIblGpuTimestampReadback,
+        readback: &RealtimeIblGpuTimestampReadback,
         metadata: RealtimeIblGpuTimingMetadata,
         timestamp_period_nanoseconds: f32,
-    ) {
-        let (sender, receiver) = mpsc::channel();
-        readback
-            .buffer
-            .map_async(wgpu::MapMode::Read, .., move |result| {
-                let _ = sender.send(result);
-            });
-        self.pending.push_back(PendingTimestampReadback {
-            readback,
-            receiver,
-            metadata,
-            timestamp_period_nanoseconds,
-        });
-    }
-
-    pub(in crate::graphics) fn poll(&mut self, device: &wgpu::Device, wait: bool) {
-        let poll_type = if wait {
-            wgpu::PollType::wait_indefinitely()
-        } else {
-            wgpu::PollType::Poll
-        };
-        let _ = device.poll(poll_type);
-        self.collect_ready();
+        readback_queue: &mut GpuReadbackQueue,
+    ) -> bool {
+        let completed = Arc::clone(&self.completed);
+        readback_queue
+            .request_readback_external(
+                "zircon-realtime-ibl-timestamps",
+                &readback.source,
+                0..TIMESTAMP_BYTES,
+                Box::new(move |result| {
+                    let Ok(bytes) = result else {
+                        return;
+                    };
+                    let Some(timestamps) = decode_timestamp_pair(bytes) else {
+                        return;
+                    };
+                    let report = metadata.into_report(timestamps, timestamp_period_nanoseconds);
+                    completed
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .push_back(report);
+                }),
+            )
+            .is_ok()
     }
 
     pub(in crate::graphics) fn take_completed(&mut self) -> Vec<RealtimeIblGpuTimingReport> {
-        self.completed.drain(..).collect()
-    }
-
-    fn collect_ready(&mut self) {
-        let mut still_pending = VecDeque::with_capacity(self.pending.len());
-        while let Some(pending) = self.pending.pop_front() {
-            match pending.receiver.try_recv() {
-                Ok(Ok(())) => {
-                    if let Some(report) = pending.finish() {
-                        self.completed.push_back(report);
-                    }
-                }
-                Ok(Err(_)) | Err(TryRecvError::Disconnected) => {}
-                Err(TryRecvError::Empty) => still_pending.push_back(pending),
-            }
-        }
-        self.pending = still_pending;
+        self.completed
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .drain(..)
+            .collect()
     }
 }
 
@@ -147,27 +129,6 @@ pub(in crate::graphics) struct RealtimeIblGpuTimingMetadata {
     pub operation_label: String,
     pub pass_count: usize,
     pub dispatch_count: usize,
-}
-
-struct PendingTimestampReadback {
-    readback: RealtimeIblGpuTimestampReadback,
-    receiver: Receiver<Result<(), wgpu::BufferAsyncError>>,
-    metadata: RealtimeIblGpuTimingMetadata,
-    timestamp_period_nanoseconds: f32,
-}
-
-impl PendingTimestampReadback {
-    fn finish(self) -> Option<RealtimeIblGpuTimingReport> {
-        let mapped = self.readback.buffer.get_mapped_range(..);
-        let timestamps = decode_timestamp_pair(&mapped);
-        drop(mapped);
-        self.readback.buffer.unmap();
-        let timestamps = timestamps?;
-        Some(
-            self.metadata
-                .into_report(timestamps, self.timestamp_period_nanoseconds),
-        )
-    }
 }
 
 impl RealtimeIblGpuTimingMetadata {

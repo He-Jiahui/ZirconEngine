@@ -14,6 +14,7 @@ use super::super::{
 #[derive(Clone, Copy)]
 pub(super) struct PendingMeshCommandCacheExtractItem {
     pub(super) entity: EntityId,
+    pub(super) stable_instance_key: u64,
     pub(super) draw_ordinal: u32,
     pub(super) source_draw_index: usize,
     pub(super) queue_profile: MeshDrawQueueProfile,
@@ -30,6 +31,7 @@ pub(super) fn pending_mesh_command_cache_extract_item(
 ) -> PendingMeshCommandCacheExtractItem {
     PendingMeshCommandCacheExtractItem {
         entity: pending_draw.source_entity,
+        stable_instance_key: pending_draw.stable_instance_key,
         draw_ordinal: pending_draw.source_draw_ordinal,
         source_draw_index,
         queue_profile: pending_mesh_draw_queue_profile(pending_draw),

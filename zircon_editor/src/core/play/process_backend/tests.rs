@@ -28,3 +28,11 @@ fn process_command_uses_runtime_profile_scene_and_report_pipe_contract() {
     assert_eq!(arguments, expected);
     assert_eq!(command.executable(), Path::new("zircon_runtime"));
 }
+
+#[test]
+fn process_command_configures_the_shared_process_tree_cancellation_domain() {
+    let source = include_str!("command.rs");
+
+    assert!(source.contains("configure_process_tree_cancellation(&mut command)"));
+    assert!(source.contains("configure_process_tree_suspended_spawn(&mut command)"));
+}

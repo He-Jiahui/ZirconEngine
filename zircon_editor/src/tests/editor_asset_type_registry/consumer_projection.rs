@@ -124,7 +124,7 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap();
     runtime
         .runtime
@@ -195,10 +195,9 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         )
         .unwrap();
 
-    assert_eq!(
-        runtime.runtime.asset_creation_templates(&asset_type).len(),
-        1
-    );
+    let creation_templates = runtime.runtime.asset_creation_templates(&asset_type);
+    assert_eq!(creation_templates.len(), 1);
+    assert_eq!(creation_templates[0].operation().as_str(), create.as_str());
     assert_eq!(runtime.runtime.asset_context_commands(&asset_type).len(), 1);
     let snapshot = runtime.runtime.editor_snapshot().asset_browser;
     let item = snapshot
@@ -219,9 +218,9 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
             .write_access(),
         AssetWriteAccess::Writable
     );
-    assert!(snapshot.creation_templates.iter().any(
-        |template| template.id == "ui_asset.layout" && template.operation_id == create.as_str()
-    ));
+    assert!(snapshot.creation_menu.entries().iter().any(|entry| {
+        entry.asset_type() == &asset_type && entry.template_id() == "ui_asset.layout"
+    }));
     assert!(snapshot
         .selection
         .context_commands

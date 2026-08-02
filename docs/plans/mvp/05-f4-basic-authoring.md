@@ -25,7 +25,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
   - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
-  - docs/plans/zircon_editor/editor/05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md
+  - docs/plans/zircon_editor/editor/08/fixed-2026-07-26-command-eval-scene-mode-selection-projection.md
   - docs/plans/zircon_editor/editor/05/failure-2026-07-22-world-inspection-generation-projection.md
 status: blocked_by_f3
 gate: F4
@@ -48,7 +48,7 @@ last_refined: 2026-07-24
 
 - [ ] F3 完成，canonical project 能在新进程中精确保留 fixed transform delta 和 asset refs。
 - [ ] F4 Session 已按 owner 拆分 lease；Runtime inspection 与 Editor UI/command 不由同一未协调 Session 同时改共享 contract。
-- [ ] 两个 canonical open failure 已进入 fixing priority：command eval projection、world inspection generation projection。
+- [ ] command eval projection 的 canonical fixed return 已核对；world inspection generation projection 继续按 open failure 进入 fixing priority。
 - [ ] F4 validation manifest 列出 Edit/Play 双域、selection generation、inspection generation、command enablement、transaction/save/reopen 风险。
 
 ## 2. 固定生产交互链
@@ -77,14 +77,14 @@ Project open
 
 - 不要求 viewport gizmo drag；Inspector 单轴 transform 编辑足以关闭 MVP。
 - 不要求 plugin overlay provider、框选、复杂多选 UI、undo history panel 或 domain editor。
-- 不要求所有 100k 性能目标；但解除当前 `cfg(test)` 所需的 shared generation、稳定帧零全量重建和声明的规模正确性必须完成。
+- 不要求所有 100k 性能目标；但既有 production projection 的 shared generation、稳定帧零全量重建和声明的规模正确性必须验证。
 - 不把 OS 鼠标坐标自动化作为唯一证据；产品 integration harness 可以注入正常 UI binding，但不得跳过 binding/command/transaction。
 
 ## 4. M5.1 World inspection production generation
 
 ### 目标
 
-Runtime 发布可供生产 Editor 消费的 immutable world inspection generation；Hierarchy/Inspector 对稳定 generation 不重建全量 DTO，当前 `cfg(test)` 限制在规模、Cargo 和 F4 trace 通过后解除。
+Runtime 已向 production Editor 发布 immutable world inspection generation；本切片验证 Hierarchy/Inspector 对稳定 generation 不重建全量 DTO，并关闭规模、Cargo 和 F4 trace 缺口。
 
 ### 实现切片
 
@@ -93,7 +93,7 @@ Runtime 发布可供生产 Editor 消费的 immutable world inspection generatio
 - [ ] hierarchy 构建避免 focus 第二遍、重复 parent map、重复全表 sort 和 field-name clone；focused Inspector 只投影 primary selection 所需 fields。
 - [ ] Editor 直接借用/共享 runtime artifact，删除第二套完整 DTO copy；Editor 可以保留 UI view model，但其 identity 必须引用 runtime entity/property path。
 - [ ] Editor 02 event/message 只发送 generation/delta 通知，不在高频消息中深拷贝整份 inspection。
-- [ ] 把 `zircon_editor/src/scene/viewport/mod.rs` 和 controller 中的 edit-mode projection 从 `cfg(test)` 迁入 production owner，仅在 contract/scale tests 与 F4 trace 均就绪后执行 hard cut。
+- [ ] 核对 `zircon_editor/src/scene/viewport/edit_mode_projection` 与 `ui/host/scene_inspection_publication.rs` 的既有 production owner，验证其 generation/delta/规模 contract；不得重复迁移或建立 test-only duplicate。
 - [ ] 添加 1、1,000、100,000 entity 的结构/计数测试：stable generation full build/scan/clone = 0；单实体 transform 变化只失效对应 row/fields；删除 entity 清理 selection/inspection。
 
 ### 测试阶段：F4 Inspection Generation Gate
@@ -106,7 +106,7 @@ Runtime 发布可供生产 Editor 消费的 immutable world inspection generatio
 
 ### 退出证据
 
-- [ ] production editor 能消费 WorldInspection，不再依赖 `cfg(test)`。
+- [ ] production editor 的既有 WorldInspection 消费路径通过 current-source package boundary 与规模验证。
 - [ ] stable generation 不发生 full inspection rebuild/clone。
 - [ ] focused selection 变化产生有界 delta，entity 删除不会留下 stale row/field。
 
@@ -118,8 +118,8 @@ Runtime 发布可供生产 Editor 消费的 immutable world inspection generatio
 
 ### 实现切片
 
-- [ ] 修改 `command_eval_projection.rs` 的输入，不再仅接收 `EditorChromeSnapshot`/inspector presence；传入 scene mode 与 selection snapshot/generation。
-- [ ] `scene_mode` 来自 `SceneModeStack` active id；`selection_count` 来自 `SelectionModel` 当前 active domain 的集合长度。
+- [ ] 核对既有 `SceneModeStack::project_command_eval_ctx` 权威投影，确认 `command_eval_projection.rs` 不从 chrome/inspector presence 重建 selection truth。
+- [ ] 验证 `scene_mode` 来自 `SceneModeStack` active id、`selection_count` 来自 `SelectionModel` 当前 active domain 集合长度，并覆盖 generation 一致性。
 - [ ] Edit/Play 切换原子替换 command eval snapshot；Play domain selection 不污染 Edit domain，退出 Play 恢复 Edit selection。
 - [ ] Hierarchy、viewport、Inspector 共享 SelectionModel；删除任何 inspector presence→0/1 的最终 selection authority。
 - [ ] mode push/pop、selection add/remove/clear、primary selection change 都使 command eval generation 精确失效一次。
@@ -135,7 +135,7 @@ Runtime 发布可供生产 Editor 消费的 immutable world inspection generatio
 
 ### 退出证据
 
-- [ ] SceneMode/Selection open failure 完成修复和 upward validation。
+- [ ] command eval projection fixed return 的 upward validation 已复验；world inspection open failure 仍独立保持 open。
 - [ ] 所有命令消费面共享同一 generation snapshot。
 - [ ] 多选和双域状态正确，inspector presence 不再是 selection truth。
 
@@ -177,7 +177,7 @@ Runtime 发布可供生产 Editor 消费的 immutable world inspection generatio
 
 ### 实现切片
 
-- [ ] 新建 `zircon_app/tests/editor_mvp_authoring.rs`，通过 App editor composition 创建完整 retained host/runtime gateway，不直接构造简化 EditorState。
+- [ ] 复验既有 `zircon_app/tests/editor_mvp_authoring.rs`，确认它通过 App editor composition 创建完整 retained host/runtime gateway，且不直接构造简化 EditorState。
 - [ ] harness 从 F3 canonical project 打开 editor，读取 production WorldInspection，按 Hierarchy control/binding 选择 cube。
 - [ ] harness 向 `TransformPositionXCommit` 注入与用户提交等价的正常 UI event，等待 operation/transaction/save completion。
 - [ ] Drop 完整 app/host/gateway/session，创建第二份 App composition 并重新打开同一 project。
@@ -217,14 +217,9 @@ Runtime 发布可供生产 Editor 消费的 immutable world inspection generatio
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-### 与代码现状不符，需修订
-
-- M5.1 前提「world inspection consumer 仍为 `cfg(test)`」（也见 index §6 风险表 F4 行）已过时。当前 Editor 侧 WorldInspection 消费者是生产模块，非 test-only：`zircon_editor/src/scene/viewport/mod.rs:4` 无条件 `mod edit_mode_projection`，其 `edit_mode_projection/build.rs:1-234` 直接消费 `WorldInspectionField/HierarchyRow/Summary`；`zircon_editor/src/ui/host/mod.rs:47` 无条件 `mod scene_inspection_publication`，`scene_inspection_publication.rs:20` 持有 `Arc<WorldInspectionArtifact>`。建议把「从 `cfg(test)` 迁入 production owner」的切片改为「验证既有生产投影是否满足 generation/delta/规模不重建 contract」。
-- M5.2 前提「command eval 仍以 inspector presence 模拟 selection」（index §6 风险表 F4 行同）已不成立。`zircon_editor/src/ui/host/command_eval_projection.rs:11-35` 的 `command_eval_ctx_from_chrome` 已不再从 inspector presence 推导 selection；真实 selection/scene_mode 投影在 `zircon_editor/src/scene/modes/scene_mode_stack.rs:34-42`：`project_command_eval_ctx` 用 `self.active_mode_id()` 和 `selection.active_items().len()` 填充 `with_scene_mode` / `with_selection_count`，经 `scene_viewport_controller_accessors.rs:52-56` → `editor_state_viewport.rs:47-49` 串到 host。`when.rs:62-65` 的 `SceneModeActive`/`SelectionNonEmpty` 已消费这些字段。建议 M5.2 改为「核对 Edit/Play 双域切换、多选和 stale removal 的既有覆盖」，而非「修改 `command_eval_projection.rs` 的输入不再仅接收 inspector presence」。
-- M5.4「新建 `zircon_app/tests/editor_mvp_authoring.rs`」——该文件已存在（`zircon_app/tests/editor_mvp_authoring.rs`，335 行），且 `f4_project_authoring_survives_full_application_restart`（`:20`）已通过 `EditorApplicationComposition`、`ProjectAuthority`、`EditorUiBinding`/`SelectionCommand`、`EditorProjectDocument` 实现「App composition 打开→选择→binding 提交→save→重启比较」链路。建议改为「验证既有 integration test 是否覆盖 M5.4 全部断言（截图、transaction/save trace、双 composition 比较）」。
-
-### 验证缺口
-
-- 既然 M5.1/M5.2/M5.4 的核心投影与 integration harness 已在源码存在，应补一条明确任务：以 `milestone-validation-policy.md` 批量门跑 `zircon_editor` 命令/editing/host focused suites 与 `zircon_app` `editor_mvp_authoring` integration test，用当前源码通过证据替换这些过时的「待实现」描述，避免执行者重复搭建已存在的能力。
+- 已把 M5.1 从“迁出 `cfg(test)`”改为验证既有 production WorldInspection projection 的 generation/delta/规模 contract。
+- 已把 M5.2 从重新接线改为复验既有 `SceneModeStack::project_command_eval_ctx` 权威投影及 Edit/Play、多选、stale removal 覆盖；command eval failure 链接已更新为 canonical fixed return。
+- 已把 M5.4 从新建 integration harness 改为复验既有 `editor_mvp_authoring.rs` 及其尚缺的截图、transaction/save trace 和双 composition 证据。
+- 当前仍未运行 F4 批量门，因此 `status: blocked_by_f3` 和所有验收复选框保持不变；world inspection generation failure 继续 open。

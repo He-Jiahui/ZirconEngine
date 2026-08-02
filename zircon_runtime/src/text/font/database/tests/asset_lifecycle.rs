@@ -75,9 +75,11 @@ fn text_font_database_same_path_revision_replaces_face_and_removes_stale_indexes
     assert!(removed.asset_mapping_changed);
     assert_eq!(removed.retired_faces, vec![second_face]);
     assert_eq!(database.face_count(), 0);
-    assert!(database
-        .match_face(&FontQuery::single_family("Reloadable Sans"))
-        .is_none());
+    assert!(
+        database
+            .match_face(&FontQuery::single_family("Reloadable Sans"))
+            .is_none()
+    );
 
     let repeated = database.remove_font_asset(asset_ref);
     assert!(!repeated.database_changed);
@@ -168,10 +170,12 @@ fn text_font_database_removing_asset_fallback_invalidates_shared_face_render_inp
 
     assert!(registered.database_changed);
     assert_eq!(database.face_count(), 1);
-    assert!(database
-        .fallback_families()
-        .iter()
-        .any(|family| family.as_str() == "Asset Fallback"));
+    assert!(
+        database
+            .fallback_families()
+            .iter()
+            .any(|family| family.as_str() == "Asset Fallback")
+    );
 
     let removed = database.remove_font_asset(fallback_owner);
 
@@ -179,10 +183,12 @@ fn text_font_database_removing_asset_fallback_invalidates_shared_face_render_inp
     assert!(removed.asset_mapping_changed);
     assert!(removed.retired_faces.is_empty());
     assert_eq!(database.face_count(), 1);
-    assert!(!database
-        .fallback_families()
-        .iter()
-        .any(|family| family.as_str() == "Asset Fallback"));
+    assert!(
+        !database
+            .fallback_families()
+            .iter()
+            .any(|family| family.as_str() == "Asset Fallback")
+    );
 }
 
 #[test]

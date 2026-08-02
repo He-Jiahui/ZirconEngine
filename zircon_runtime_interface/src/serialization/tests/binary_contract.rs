@@ -1,15 +1,15 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::super::{
-    Format, MigrationChain, PayloadHeader, SchemaId, VersionedSchema,
     binary::{
-        BinaryNode, BinaryValue, decode_binary_current, decode_binary_header,
-        encode_binary_payload, encode_binary_value,
+        decode_binary_current, decode_binary_header, encode_binary_payload, encode_binary_value,
+        BinaryNode, BinaryValue,
     },
-    load_versioned, write_versioned, write_versioned_text,
+    load_versioned, write_versioned, write_versioned_text, Format, MigrationChain, PayloadHeader,
+    SchemaId, VersionedSchema,
 };
 use super::FixtureDocument;
 

@@ -191,6 +191,18 @@ fn authored_workbench_tabs_use_slate_padding_and_theme_surface() {
         !tab_strip.props.contains_key("background_color"),
         "WorkbenchTabStrip should inherit its central theme surface"
     );
+    let tab_strip_source = std::fs::read_to_string(
+        editor_asset_root()
+            .join(INPUT_ROOT)
+            .join("workbench_tab_strip.zui"),
+    )
+    .expect("WorkbenchTabStrip asset should remain readable");
+    assert!(
+        tab_strip_source.contains(
+            "slots = { default = { multiple = true, kind = \"linear\", accepts = [\"WorkbenchTab\"] } }"
+        ),
+        "WorkbenchTabStrip must accept only shared WorkbenchTab children through its default slot"
+    );
 
     let segmented = root_node(
         "workbench_segmented_control.zui",

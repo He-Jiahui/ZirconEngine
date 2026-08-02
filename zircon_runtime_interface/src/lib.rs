@@ -25,7 +25,10 @@ pub use editor_contribution::{
     SERIALIZED_EDITOR_CONTRIBUTION_BATCH_SCHEMA_V1, SerializedContributionBatch,
     SerializedContributionBatchError, SerializedEditorContribution,
 };
-pub use handles::{ZrRuntimePluginHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};
+pub use handles::{
+    ZrRuntimePluginHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1,
+};
 pub use manifest::{ZrPluginModuleDescriptorV1, ZrPluginModuleKind, ZrRuntimeTargetMode};
 pub use plugin_api::{
     ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1, ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_RESOURCE_V1,
@@ -120,17 +123,18 @@ pub use runtime_api::{
     ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
     ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV3,
     ZrRuntimeHarvestOperationFnV1, ZrRuntimeHostFetchFnV1, ZrRuntimeHostFetchRequestV1,
-    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeCursorAreaV1,
-    ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1, ZrRuntimeImeSurroundingTextV1,
-    ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeOperationHandle, ZrRuntimeOperationOutcomeV1,
-    ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
-    ZrRuntimeOperationSubmitRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
-    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscribeRequestV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimePollOperationFnV1,
-    ZrRuntimePresentViewportFnV1, ZrRuntimeSessionConfigV2, ZrRuntimeSubmitOperationFnV1,
-    ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeTickFrameFnV2, ZrRuntimeTranslatedEventV1,
-    ZrRuntimeUnbindViewportSurfaceFnV1, ZrRuntimeUnsubscribePluginEventFnV1,
-    ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1,
+    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeCoordinateSpaceV1,
+    ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
+    ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeOperationDetailKindV2,
+    ZrRuntimeOperationHandle, ZrRuntimeOperationOutcomeV1, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
+    ZrRuntimePollOperationFnV2, ZrRuntimePresentViewportFnV1, ZrRuntimeSessionConfigV2,
+    ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeTickFrameFnV2,
+    ZrRuntimeTranslatedEventV1, ZrRuntimeUnbindViewportSurfaceFnV1,
+    ZrRuntimeUnsubscribePluginEventFnV1, ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1,
+    ZrRuntimeWakeSinkV1,
 };
 pub use status::{ZrStatus, ZrStatusCode};
 pub use version::{

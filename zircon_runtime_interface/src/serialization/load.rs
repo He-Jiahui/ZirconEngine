@@ -4,9 +4,9 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::binary::{
-    DirectBinaryDecodeError, decode_binary_current, decode_binary_header, decode_binary_payload,
+    decode_binary_current, decode_binary_header, decode_binary_payload, DirectBinaryDecodeError,
 };
-use super::text::read::{TextInput, TextReadError, inspect_text};
+use super::text::read::{inspect_text, TextInput, TextReadError};
 use super::text::wire::MAX_TEXT_DOCUMENT_BYTES;
 use super::{Format, LoadError, Loaded, VersionedSchema};
 
@@ -32,7 +32,7 @@ where
         });
     }
     match inspect_text(bytes).map_err(text_read_error)? {
-        TextInput::Legacy => load_legacy_text_versioned(bytes),
+        TextInput::Unversioned => load_schema_zero_text(bytes),
         TextInput::Envelope(envelope) => {
             validate_schema::<T>(&envelope.header.schema_id)?;
             validate_source_version::<T>(envelope.header.schema_version)?;
@@ -59,7 +59,7 @@ where
     }
 }
 
-fn load_legacy_text_versioned<T>(bytes: &[u8]) -> Result<Loaded<T>, LoadError>
+fn load_schema_zero_text<T>(bytes: &[u8]) -> Result<Loaded<T>, LoadError>
 where
     T: VersionedSchema + DeserializeOwned + 'static,
 {

@@ -2,9 +2,7 @@ mod asset;
 mod document;
 
 pub use asset::{
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UiActionHostPolicy, UiActionPolicyDiagnostic,
+    parse_component_reference, UiActionHostPolicy, UiActionPolicyDiagnostic,
     UiActionPolicyDiagnosticSeverity, UiActionPolicyReport, UiActionRef, UiActionSideEffectClass,
     UiAssetChange, UiAssetDocument, UiAssetError, UiAssetFingerprint, UiAssetHeader,
     UiAssetImports, UiAssetKind, UiAssetMigrationOutcome, UiAssetMigrationReport,
@@ -30,7 +28,10 @@ pub use asset::{
     UiResourceDiagnosticSeverity, UiResourceFallbackMode, UiResourceFallbackPolicy, UiResourceKind,
     UiResourceRef, UiRootClassPolicy, UiSelector, UiSelectorCombinator, UiSelectorSegment,
     UiSelectorSpecificity, UiSelectorToken, UiStyleDeclarationBlock, UiStylePrototype, UiStyleRule,
-    UiStyleScope, UiStyleSheet, UiTextDirection,
+    UiStyleScope, UiStyleSheet, UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+    UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
 };
 pub use document::{
     UiBindingRef, UiComponentTemplate, UiSlotTemplate, UiTemplateDocument, UiTemplateError,

@@ -2,13 +2,13 @@ use crate::core::framework::navigation::{
     NavMeshAgentDescriptor, NavPathQuery, NavPathStatus, DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK,
     NAV_MESH_AGENT_COMPONENT_TYPE,
 };
-use crate::core::framework::script::{ScriptHostCallContext, ScriptHostError, ScriptHostValue};
+use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
 use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
 use crate::core::math::Vec3;
 use crate::scene::{
     SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
 };
-use crate::script::current_script_runtime_call_context;
+use crate::script::runtime_context_for_frame;
 
 use super::error::{GameplayHostError, GameplayHostResult};
 use super::values::{
@@ -16,11 +16,11 @@ use super::values::{
 };
 
 pub(super) fn nav_next_point_json(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let start = expect_vec3_json(context, 0)?;
     let end = expect_vec3_json(context, 1)?;
-    let runtime = current_script_runtime_call_context()?;
+    let runtime = runtime_context_for_frame(context)?;
     let core = runtime.core_handle()?;
     let navigation = navigation_manager_handle(&core)
         .and_then(|handle| resolve_manager_service(&core, handle))
@@ -46,37 +46,36 @@ pub(super) fn nav_next_point_json(
 }
 
 pub(super) fn nav_move_towards_entity(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
     let target_entity = expect_entity(context, 1)?;
     let speed = expect_float(context, 2)?;
     let dt = expect_float(context, 3)?;
-    move_entity_with_navigation(entity, target_entity, speed, dt)
+    move_entity_with_navigation(context, entity, target_entity, speed, dt)
 }
 
 pub(super) fn move_entity_with_navigation(
+    context: &ScriptHostCallFrame<'_>,
     entity: u64,
     target_entity: u64,
     speed: f32,
     dt: f32,
 ) -> Result<ScriptHostValue, ScriptHostError> {
-    let runtime = current_script_runtime_call_context()?;
+    let runtime = runtime_context_for_frame(context)?;
     let core = runtime.core_handle()?;
     let navigation = core
         .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
         .map_err(script_core_error)?;
-    let target = runtime.level.with_world(|world| {
-        world
-            .world_transform(target_entity)
-            .map(|transform| transform.translation)
-    });
-    let Some(target) = target else {
-        return Err(GameplayHostError::missing_entity("navigation target", target_entity).into());
-    };
     let result = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<_> {
+            let target = world
+                .world_transform(target_entity)
+                .map(|transform| transform.translation)
+                .ok_or_else(|| {
+                    GameplayHostError::missing_entity("navigation target", target_entity)
+                })?;
             if world.world_transform(entity).is_none() {
                 return Err(GameplayHostError::missing_entity(
                     "navigation source",

@@ -302,7 +302,7 @@ impl std::fmt::Display for NativeSystemAccessContractError {
                 domain.label()
             ),
             Self::WorldAccessMustBeExclusive => {
-                formatter.write_str("legacy `write:world` access must be the only declaration")
+                formatter.write_str("wildcard `write:world` access must be the only declaration")
             }
             Self::WorkerSafeRequiresExplicitAccess => formatter.write_str(
                 "worker-safe systems require explicit component/resource access declarations",

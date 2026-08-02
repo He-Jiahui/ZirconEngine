@@ -261,11 +261,13 @@ fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
         1,
         "world HUD bar should emit one filled billboard from its health ratio"
     );
-    assert!(extract
-        .particles
-        .sprites
-        .iter()
-        .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5));
+    assert!(
+        extract
+            .particles
+            .sprites
+            .iter()
+            .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5)
+    );
     assert!(extract.visibility.dynamic_entities.contains(&visible));
     assert!(!extract.visibility.dynamic_entities.contains(&hidden));
 }

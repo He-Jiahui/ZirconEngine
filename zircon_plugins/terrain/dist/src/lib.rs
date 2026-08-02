@@ -1,30 +1,29 @@
 use zircon_plugin_sdk::native::{self, ZIRCON_NATIVE_PLUGIN_ABI_VERSION};
+use zircon_plugin_terrain_runtime::{
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST,
+};
 
 const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 
-const PLUGIN_ID: &[u8] = b"terrain\0";
-const RUNTIME_ENTRY: &[u8] = b"zircon_plugin_terrain_runtime_entry_v3\0";
-const REQUESTED_CAPABILITIES: &[u8] = b"runtime.plugin.terrain\0";
-const NEGOTIATED_CAPABILITIES: &[u8] = b"runtime.plugin.terrain\0";
 const RUNTIME_DIAGNOSTICS: &[u8] =
     b"terrain dist entry ready; terrain component and importer services remain hosted by the runtime module\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] =
     b"terrain dist entry requires runtime.plugin.terrain host capability\0";
 const EMPTY_MANIFEST: &[u8] = b"\0";
-const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.terrain\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[extensions]]\npoint = \"runtime.component_type\"\ncontribution = \"plugin.terrain.component\"\nschema = \"zircon.runtime.component-type/1\"\n[[extensions]]\npoint = \"runtime.asset_importer\"\ncontribution = \"terrain.heightfield\"\nschema = \"zircon.runtime.asset-importer/1\"\n\0";
 
 zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
-    plugin_id: PLUGIN_ID,
+    plugin_id: NATIVE_PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
     descriptor_abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     runtime_entry: zircon_plugin_terrain_runtime_entry_v3,
-    runtime_entry_name: RUNTIME_ENTRY,
-    requested_capabilities: REQUESTED_CAPABILITIES,
+    runtime_entry_name: NATIVE_RUNTIME_ENTRY.cstr(),
+    requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,
     missing_host_diagnostics: MISSING_HOST_DIAGNOSTICS,
     runtime: {
         required_capabilities: ["runtime.plugin.terrain"],
         denied_capabilities: [],
-        negotiated_capabilities: NEGOTIATED_CAPABILITIES,
+        negotiated_capabilities: NATIVE_REQUESTED_CAPABILITIES,
         diagnostics: RUNTIME_DIAGNOSTICS,
         is_stateless: true,
         state_schema_version: 0,
@@ -33,7 +32,7 @@ zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
         registration_manifest_schema: Some(native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
         command_manifest: Some(EMPTY_MANIFEST),
         event_manifest: Some(EMPTY_MANIFEST),
-        registration_manifest: Some(RUNTIME_REGISTRATION_MANIFEST),
+        registration_manifest: Some(NATIVE_RUNTIME_REGISTRATION_MANIFEST),
         invoke_command: None,
         save_state: None,
         restore_state: None,
@@ -62,11 +61,12 @@ mod tests {
         assert_eq!(descriptor.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION);
         assert_eq!(
             unsafe { CStr::from_ptr(descriptor.plugin_id) },
-            CStr::from_bytes_with_nul(PLUGIN_ID).expect("plugin id is nul terminated")
+            CStr::from_bytes_with_nul(NATIVE_PLUGIN_ID).expect("plugin id is nul terminated")
         );
         assert_eq!(
             unsafe { CStr::from_ptr(descriptor.runtime_entry_name) },
-            CStr::from_bytes_with_nul(RUNTIME_ENTRY).expect("runtime entry is nul terminated")
+            CStr::from_bytes_with_nul(NATIVE_RUNTIME_ENTRY.cstr())
+                .expect("runtime entry is nul terminated")
         );
     }
 

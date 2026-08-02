@@ -35,7 +35,7 @@ related_code:
   - zircon_runtime/src/scene/components/scene/reflection/mesh_renderer.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
@@ -85,7 +85,7 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene/reflection/mesh_renderer.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
@@ -126,7 +126,7 @@ tests:
   - zircon_runtime/src/scene/tests/world_basics.rs::mesh_renderer_sort_fields_feed_geometry_phase_queue
   - zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties
   - zircon_runtime/src/scene/tests/inspection.rs::world_inspection_builds_hierarchy_and_reflected_fields
-  - zircon_plugins/animation/runtime/src/sequence.rs::tests::sequence_applies_mesh_renderer_morph_weight_track
+  - zircon_runtime/src/animation/sequence/tests.rs::sequence_applies_mesh_renderer_morph_weight_track
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_primitive_material_labels
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_scene_labels
@@ -226,7 +226,7 @@ During resource streaming, `ResourceStreamer::ensure_scene_resources(...)` prepa
 
 `zircon_runtime/src/scene/tests/asset_scene.rs` covers the runtime bridge from scene asset to world component, render extract, and saved scene asset. The direct-mesh test fixture binds `res://meshes/triangle.zmesh` as the optional direct mesh and asserts the world and render snapshot preserve that mesh handle beside the model and material handles. The primitive-binding test constructs a scene with `SceneMeshPrimitiveBindingAsset`, `SceneMeshLodLevelAsset`, authored render queue, material queue, order-in-layer, depth bias, and morph weights, verifies they become `MeshRenderer.primitives`, `MeshRenderer.lods`, `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, `MeshRenderer.depth_bias`, and `MeshRenderer.morph_weights`, verifies render extraction emits a direct mesh/material snapshot carrying those weights, and verifies `World::to_scene_asset(...)` preserves the binding, LOD level, sort overrides, and weight vector. `scene_assets_keep_transform_only_hierarchy_nodes` constructs a pure transform parent plus mesh child and verifies `World::from_scene_asset(...)` keeps the empty parent, preserves the child parent link, and saves the hierarchy-only node back out. `zircon_runtime/src/scene/tests/render_post_process_extract.rs::scene_asset_post_process_settings_feed_render_extract` covers the scene-asset-to-world-to-render-extract path for camera post-process settings and a blended global volume. `zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_selects_mesh_lod_by_camera_distance` covers near-camera base source selection with empty `mesh_lod` and far-camera LOD source selection with populated `level_index`/`min_distance` metadata. `zircon_runtime/src/scene/tests/world_basics.rs::mesh_renderer_sort_fields_feed_geometry_phase_queue` covers the same-phase phase queue ordering path.
 
-`zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties` covers the component-property paths for `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, `MeshRenderer.depth_bias`, and `MeshRenderer.morph_weights.N`, including no-op order/depth writes, sparse morph growth, and readback. `zircon_runtime/src/scene/tests/inspection.rs::world_inspection_builds_hierarchy_and_reflected_fields` covers the editable reflected sort fields. `zircon_plugins/animation/runtime/src/sequence.rs::tests::sequence_applies_mesh_renderer_morph_weight_track` covers the animation sequence path by applying a scalar track to `MeshRenderer.morph_weights.1`.
+`zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties` covers the component-property paths for `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, `MeshRenderer.depth_bias`, and `MeshRenderer.morph_weights.N`, including no-op order/depth writes, sparse morph growth, and readback. `zircon_runtime/src/scene/tests/inspection.rs::world_inspection_builds_hierarchy_and_reflected_fields` covers the editable reflected sort fields. `zircon_runtime/src/animation/sequence/tests.rs::sequence_applies_mesh_renderer_morph_weight_track` covers the animation sequence path by applying a scalar track to `MeshRenderer.morph_weights.1`.
 
 `zircon_runtime/src/asset/tests/assets/gltf_importer.rs` and `zircon_plugins/gltf_importer/runtime/src/tests.rs` cover imported glTF scene bindings. Triangle, multi-scene, and two-primitive/two-material fixtures now assert that scene entities carry `Mesh{n}/Primitive{p}` plus `Material{m}` primitive bindings and that scene dependencies include every primitive mesh and material label.
 

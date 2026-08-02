@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 #[cfg(feature = "animation")]
 use crate::animation::{
-    sample_clip_events_budgeted, AnimationClipEvent, AnimationClipEventSamplingLimits,
+    AnimationClipEvent, AnimationClipEventSamplingLimits, sample_clip_events_budgeted,
 };
 #[cfg(feature = "animation")]
 use crate::asset::{AssetId, ProjectAssetManager};
@@ -15,8 +15,12 @@ use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
-use crate::scene::world::World;
-use crate::scene::{ecs::RuntimeSceneSystemContext, EntityId, WorldDriver, WORLD_DRIVER_NAME};
+use crate::scene::{
+    EntityId, EntityRemap, WORLD_DRIVER_NAME, WorldDriver,
+    dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
+    ecs::RuntimeSceneSystemContext,
+    world::World,
+};
 
 mod frame_state;
 #[cfg(feature = "physics-contracts")]
@@ -159,8 +163,84 @@ impl LevelSystem {
         self.lock_world().clone()
     }
 
+    pub(crate) fn dynamic_scene_staging_snapshot(
+        &self,
+        scene: &DynamicScene,
+        limit_bytes: usize,
+    ) -> Result<(WorldHandle, u64, World, usize), DynamicSceneError> {
+        let mut current = self.lock_world();
+        let expected_generation = current.world_generation();
+        let (mut snapshot, base_estimated_bytes) =
+            current.clone_for_dynamic_scene_staging(limit_bytes)?;
+        let estimated_bytes = scene.stage_existing_resources_bounded(
+            &current,
+            &mut snapshot,
+            base_estimated_bytes,
+            limit_bytes,
+        )?;
+        Ok((
+            self.world_handle(),
+            expected_generation,
+            snapshot,
+            estimated_bytes,
+        ))
+    }
+
+    pub(crate) fn dynamic_scene_preflight_snapshot(
+        &self,
+        scene: &DynamicScene,
+        limit_bytes: usize,
+    ) -> Result<(WorldHandle, u64, World, CompiledSceneSpawn, usize), DynamicSceneError> {
+        let current = self.lock_world();
+        let expected_generation = current.world_generation();
+        let plan = scene.compile_spawn_into(&current)?;
+        let (preflight_world, estimated_bytes) =
+            scene.capture_compiled_spawn_preflight(&current, &plan, limit_bytes)?;
+        Ok((
+            self.world_handle(),
+            expected_generation,
+            preflight_world,
+            plan,
+            estimated_bytes,
+        ))
+    }
+
+    pub(crate) fn apply_preflighted_dynamic_scene_if_generation(
+        &self,
+        expected_generation: u64,
+        scene: &DynamicScene,
+        plan: CompiledSceneSpawn,
+    ) -> Result<EntityRemap, DynamicSceneError> {
+        let mut current = self.lock_world();
+        let actual_generation = current.world_generation();
+        if actual_generation != expected_generation {
+            return Err(DynamicSceneError::TargetWorldChanged {
+                expected_generation,
+                actual_generation,
+            });
+        }
+        scene.apply_preflighted_compiled_spawn_into(&mut current, plan)
+    }
+
     pub fn replace(&self, world: World) {
         self.replace_world_and_reset_runtime_state(world);
+    }
+
+    pub(crate) fn replace_world_if_generation(
+        &self,
+        expected_generation: u64,
+        world: World,
+    ) -> Result<(), u64> {
+        let retired = {
+            let mut current = self.lock_world();
+            let actual_generation = current.world_generation();
+            if actual_generation != expected_generation {
+                return Err(actual_generation);
+            }
+            current.commit_staged_scene_state(world)
+        };
+        drop(retired);
+        Ok(())
     }
 
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
@@ -168,6 +248,8 @@ impl LevelSystem {
         // producer from the retired world cannot publish after this reset completes.
         let mut current = self.lock_world();
         let mut world = world;
+        world.advance_dynamic_component_generations_after(&current);
+        world.advance_scene_binding_generations_after(&current);
         world.advance_world_generation_after(current.world_generation());
         *current = world;
         let world_generation = current.world_generation();
@@ -189,7 +271,9 @@ impl LevelSystem {
 
         self.lock_physics_state().reset_after_world_replacement();
         #[cfg(feature = "animation")]
-        self.lock_animation_state().reset_after_world_replacement();
+        {
+            self.lock_animation_state().reset_after_world_replacement();
+        }
         self.lock_script_state().reset_after_world_replacement();
     }
 
@@ -505,8 +589,9 @@ impl std::fmt::Debug for LevelSystem {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
+    use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
     #[cfg(feature = "animation")]
     use crate::core::resource::ResourceId;
 
@@ -594,6 +679,43 @@ mod tests {
             level.with_world(World::world_generation),
             current_generation.max(replacement_generation) + 1
         );
+    }
+
+    #[test]
+    fn world_replacement_stales_compiled_binding_when_entity_ids_are_reused() {
+        let mut current = World::empty();
+        let root = current.spawn_node(crate::scene::NodeKind::Empty);
+        let hero = current.spawn_node(crate::scene::NodeKind::Mesh);
+        current.rename_node(root, "Root").unwrap();
+        current.rename_node(hero, "Hero").unwrap();
+        current.set_parent_checked(hero, Some(root)).unwrap();
+        let writer = current
+            .compile_scene_property_writer(
+                &EntityPath::parse("Root/Hero").unwrap(),
+                &ComponentPropertyPath::parse("Transform.translation").unwrap(),
+            )
+            .unwrap()
+            .unwrap();
+        let level = LevelSystem::new(
+            WorldHandle::new(8),
+            Arc::new(Mutex::new(current)),
+            LevelMetadata::default(),
+        );
+
+        let mut replacement = World::empty();
+        let replacement_root = replacement.spawn_node(crate::scene::NodeKind::Empty);
+        let replacement_hero = replacement.spawn_node(crate::scene::NodeKind::Mesh);
+        assert_eq!(root, replacement_root);
+        assert_eq!(hero, replacement_hero);
+        replacement.rename_node(replacement_root, "Root").unwrap();
+        replacement.rename_node(replacement_hero, "Hero").unwrap();
+        replacement
+            .set_parent_checked(replacement_hero, Some(replacement_root))
+            .unwrap();
+
+        level.replace(replacement);
+
+        assert!(level.with_world(|world| !writer.is_current_for(world)));
     }
 
     #[cfg(feature = "animation")]

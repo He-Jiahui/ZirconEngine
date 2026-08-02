@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/apply_binding.rs
 ---
 
 # Render01：disabled forward volumetric cache 字段锚点漂移
@@ -38,13 +39,13 @@ live PIDs 为空；完整批次为 `776 passed / 7 failed / 2 ignored / 8083 fil
 
 ## 最低共享层根因
 
-Render01 的 disabled binding cache ownership 与测试锚点发生漂移，当前证据无法判定 buffer 已迁移到等价 owner，还是生产路径重新引入 per-pass allocation。
+生产 owner 没有发生回退：`MeshPipelineCache` 仍持有 disabled buffer，构造器创建一次，disabled binding 继续借用该字段。失败来自 structure guard 把 `forward_volumetric_disabled_params_buffer: wgpu::Buffer` 当作必须位于同一行的源码锚点；rustfmt 将字段名和类型折行后，行为未变但 guard 产生 false RED。当前 guard 修复改为检查相邻字段/类型、构造期创建与 disabled binding 引用，不再依赖单行排版。
 
 ## 架构修复验收
 
-- Render01 判定 cache-owned disabled buffer 合同仍应保留，还是守卫应迁到新的等价 owner/字段。
+- 保留 cache-owned disabled buffer 合同，并让 structure guard 不依赖 rustfmt 单行排版。
 - 保持 disabled binding 不在 per-pass 路径创建 GPU buffer。
-- 以 Render01 精确 current-source test、向上门禁、独立 review 和 managed commit 回传；Text01 不修改上述 Render 路径。
+- 以 Render01 精确 current-source test、原 Text01 向上门禁、独立 review 和 managed commit 回传；Text01 不修改上述 Render 路径。
 
 ## 禁止临时方案
 
@@ -52,4 +53,13 @@ Render01 的 disabled binding cache ownership 与测试锚点发生漂移，当�
 
 ## 修复结果与回传
 
-Open state: `待 Render01 确认 current cache owner、修正生产或守卫，并取得精确 current-source 与向上门禁证据`。
+Open state: `生产合同原已存在，structure guard 的 false RED 修复已落地；待 Render01 精确 current-source 与原 Text01 向上门禁取得 managed GREEN`。
+
+- `MeshPipelineCache` 唯一持有 `forward_volumetric_disabled_params_buffer`；构造期通过
+  `create_disabled_params_buffer` 创建一次，实际 allocator owner 位于 `advanced_lighting/froxel/apply_binding.rs`。
+- disabled forward-volumetric binding 复用该 cache-owned buffer；仅启用体积雾的 shading
+  binding 保留其动态参数路径，未在 disabled per-pass 路径分配 GPU buffer。
+- `disabled_forward_volumetric_params_buffer_is_cache_owned` 已同时约束字段、构造期创建和
+  disabled binding 引用，防止上述漂移回归。
+- 本记录仍保持 `open`，因为精确 Render01 test 与原 Text01 向上门禁尚未取得受管终态；不得将
+  源码审阅替代为 managed GREEN。

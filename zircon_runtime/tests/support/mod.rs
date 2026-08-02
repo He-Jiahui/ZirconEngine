@@ -188,6 +188,7 @@ impl VirtualGeometryRuntimeProvider for TestVirtualGeometryRuntimeProvider {
                 }],
                 instances: vec![RenderVirtualGeometryInstance {
                     entity: mesh.node_id,
+                    stable_instance_key: 0,
                     source_model: Some(mesh.model.id()),
                     transform: mesh.transform,
                     cluster_offset: 0,

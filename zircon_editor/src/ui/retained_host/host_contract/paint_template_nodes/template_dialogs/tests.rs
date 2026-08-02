@@ -1,6 +1,6 @@
 use super::super::render_commands::HostPaintCommandKind;
 use super::commands::push_dialog_commands;
-use super::identity::{dialog_paint_state, DialogKind, DialogPaintState};
+use super::identity::{DialogKind, DialogPaintState, dialog_paint_state};
 use super::layout::{body_rect, dialog_has_visible_area, pixel_aligned_rect};
 use super::metrics::dialog_metrics_from_host;
 use super::style::{dialog_border_color, dialog_palette_from_host};
@@ -264,7 +264,9 @@ fn narrow_dialog_keeps_chrome_but_omits_text_that_cannot_fit_inside_the_surface(
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| !matches!(command.kind, HostPaintCommandKind::Text)));
+    assert!(
+        commands
+            .iter()
+            .all(|command| !matches!(command.kind, HostPaintCommandKind::Text))
+    );
 }

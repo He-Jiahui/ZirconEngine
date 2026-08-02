@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::engines::{active_source_engine, validate_source_engine, SourceEngineValidation};
 use crate::error::HubError;
 use crate::process::{
     launch_editor, preferred_editor_executable, preferred_editor_executable_exists,
@@ -15,7 +16,10 @@ use crate::state::{
     ProjectMessageId, TaskOperationKind, TaskStatus,
 };
 
-use super::{action_tasks::BackgroundTask, recent_project_display_name, HubRuntimeSession};
+use super::{
+    action_tasks::BackgroundTask, recent_project_display_name, source_engine_validation_detail,
+    source_engine_validation_recovery, HubRuntimeSession,
+};
 
 #[derive(Debug)]
 pub(in crate::tauri_app) struct EditorLaunchReport {
@@ -158,6 +162,7 @@ impl HubRuntimeSession {
             return Err(HubError::status(detail, Some(recovery)));
         }
         self.activate_project_engine_for_path(&project_path);
+        self.validate_active_source_engine_for_editor_launch(&display_name)?;
         if let Err(error) = self.ensure_editor_available() {
             let (detail, _) = error.into_status_messages();
             let recovery = HubMessage::new(HubMessageId::Process(
@@ -186,6 +191,32 @@ impl HubRuntimeSession {
                 ProcessMessageId::VerifyEditorAndProjectPath,
             )),
         })
+    }
+
+    fn validate_active_source_engine_for_editor_launch(
+        &mut self,
+        target: &str,
+    ) -> Result<(), HubError> {
+        let Some(validation) = active_source_engine(
+            &self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        )
+        .map(|engine| validate_source_engine(&engine.source_dir)) else {
+            return Ok(());
+        };
+        if validation == SourceEngineValidation::Valid {
+            return Ok(());
+        }
+
+        let detail = source_engine_validation_detail(validation);
+        let recovery = source_engine_validation_recovery(validation);
+        self.record_editor_launch_failure(
+            target.to_string(),
+            detail.clone(),
+            Vec::new(),
+            recovery.clone(),
+        )?;
+        Err(HubError::status(detail, Some(recovery)))
     }
 
     fn prepare_empty_editor_launch(&mut self) -> Result<PendingEditorLaunch, HubError> {
@@ -410,7 +441,8 @@ fn selected_project_path_changed(before: Option<&Path>, after: Option<&Path>) ->
 mod tests {
     use std::{fs, path::PathBuf};
 
-    use crate::projects::RecentProject;
+    use crate::engines::SourceEngineInstall;
+    use crate::projects::{project_metadata_key, ProjectMetadata, RecentProject};
     use crate::settings::{HubConfig, HubLanguage};
     use crate::state::{
         HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
@@ -463,6 +495,48 @@ mod tests {
         assert_eq!(
             model.task_summary.recovery.as_deref(),
             Some("打开项目前先构建编辑器/运行时载荷，或修复源码引擎设置")
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn editor_launch_rejects_missing_bound_source_engine_before_spawn() {
+        let temp = temp_test_dir("zircon-hub-editor-missing-bound-source");
+        let project = create_project_root(&temp, "Game");
+        let missing_source = temp.join("missing-source");
+        let mut session = session_with_project(&temp, "Game", &project);
+        session.config.engines.push(SourceEngineInstall {
+            id: "missing-engine".to_string(),
+            display_name: "Missing Engine".to_string(),
+            source_dir: missing_source,
+            output_dir: temp.join("out"),
+            last_build_unix_ms: None,
+            build_history: Vec::new(),
+        });
+        session.config.active_engine_id = Some("missing-engine".to_string());
+        session.config.project_metadata.insert(
+            project_metadata_key(&project),
+            ProjectMetadata {
+                engine_id: Some("missing-engine".to_string()),
+                ..ProjectMetadata::default()
+            },
+        );
+
+        let pending = session
+            .prepare_background_editor_launch()
+            .expect("invalid bound source engine should be a recoverable visible failure");
+
+        assert!(pending.is_none());
+        assert_eq!(session.task_status.label, "Open Editor failed");
+        assert_eq!(
+            session.task_status.detail,
+            "Source checkout directory is missing"
+        );
+        assert_eq!(session.config.action_history.len(), 1);
+        assert_eq!(
+            session.config.action_history[0].status,
+            HubActionStatus::Failed
         );
 
         fs::remove_dir_all(temp).unwrap();

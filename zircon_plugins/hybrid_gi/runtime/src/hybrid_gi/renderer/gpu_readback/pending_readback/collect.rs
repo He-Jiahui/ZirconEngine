@@ -1,50 +1,93 @@
-use super::super::decode::read_buffer_u32s::read_buffer_u32s;
-use zircon_runtime::graphics::GraphicsError;
+use zircon_runtime::graphics::{GraphicsError, RuntimeGpuReadback};
 
 use super::super::decode::{
     cache_entries, completed_probe_ids, completed_trace_region_ids, probe_irradiance_rgb,
-    probe_trace_lighting_rgb,
+    probe_trace_lighting_rgb, read_buffer_u32s::read_buffer_u32s,
 };
 use super::super::readback::HybridGiGpuReadback;
-use super::HybridGiGpuPendingReadback;
+use super::hybrid_gi_gpu_readback_future::HybridGiGpuReadbackFuture;
 
-fn texture_sample_rgba(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
-) -> Result<[u8; 4], GraphicsError> {
-    let sample = read_buffer_u32s(device, buffer, 1)?
+impl HybridGiGpuReadbackFuture {
+    pub(in crate::hybrid_gi::renderer) fn try_collect(
+        self,
+    ) -> Option<Result<HybridGiGpuReadback, GraphicsError>> {
+        if !self.is_ready() {
+            return None;
+        }
+        Some(self.collect_ready())
+    }
+
+    fn collect_ready(self) -> Result<HybridGiGpuReadback, GraphicsError> {
+        let mut scene_prepare_resources = self.scene_prepare_resources;
+        if let Some(snapshot) = scene_prepare_resources.as_mut() {
+            snapshot.store_texture_slot_rgba_samples(
+                take_slot_samples(self.atlas_slot_samples)?,
+                take_slot_samples(self.capture_slot_samples)?,
+            );
+            if !self.surface_cache_depth_slot_samples.is_empty() {
+                snapshot.store_surface_cache_depth_samples(take_slot_samples(
+                    self.surface_cache_depth_slot_samples,
+                )?);
+            }
+            if let Some(trace_tiles) = self.probe_trace_tiles {
+                let trace_tile_word_count = trace_tiles.word_count;
+                let words = read_buffer_u32s(&trace_tiles.take()?, trace_tile_word_count)?;
+                let tiles = words
+                    .chunks_exact(4)
+                    .take(self.probe_trace_tile_record_count)
+                    .map(|record| (record[0], record[1], record[2], record[3]))
+                    .collect::<Vec<_>>();
+                let indirect_args = self
+                    .probe_trace_indirect_args
+                    .map(|readback| {
+                        let word_count = readback.word_count;
+                        read_buffer_u32s(&readback.take()?, word_count)
+                    })
+                    .transpose()?
+                    .unwrap_or_default();
+                snapshot.store_probe_trace_tiles(
+                    tiles.clone(),
+                    probe_trace_dispatch(&indirect_args, tiles.len()),
+                );
+            }
+        }
+
+        let cache_word_count = self.cache.word_count;
+        let completed_probe_word_count = self.completed_probes.word_count;
+        let completed_trace_word_count = self.completed_traces.word_count;
+        let irradiance_word_count = self.irradiance.word_count;
+        let trace_lighting_word_count = self.trace_lighting.word_count;
+        Ok(HybridGiGpuReadback::new(
+            cache_entries(&self.cache.take()?, cache_word_count)?,
+            completed_probe_ids(&self.completed_probes.take()?, completed_probe_word_count)?,
+            completed_trace_region_ids(&self.completed_traces.take()?, completed_trace_word_count)?,
+            probe_irradiance_rgb(&self.irradiance.take()?, irradiance_word_count)?,
+            probe_trace_lighting_rgb(&self.trace_lighting.take()?, trace_lighting_word_count)?,
+            scene_prepare_resources,
+        ))
+    }
+}
+
+fn take_slot_samples(
+    readbacks: Vec<(u32, RuntimeGpuReadback)>,
+) -> Result<Vec<(u32, [u8; 4])>, GraphicsError> {
+    readbacks
         .into_iter()
-        .next()
-        .unwrap_or_default();
-    Ok(sample.to_le_bytes())
+        .map(|(slot_id, readback)| {
+            let bytes = readback
+                .try_take()
+                .expect("ready hybrid GI slot sample remains available")?;
+            let rgba = bytes.get(..4).ok_or_else(|| {
+                GraphicsError::BufferMap(format!(
+                    "hybrid GI slot {slot_id} returned fewer than four bytes"
+                ))
+            })?;
+            Ok((slot_id, [rgba[0], rgba[1], rgba[2], rgba[3]]))
+        })
+        .collect()
 }
 
-fn probe_trace_tiles_from_readback(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
-    word_count: usize,
-    record_count: usize,
-) -> Result<Vec<(u32, u32, u32, u32)>, GraphicsError> {
-    let words = read_buffer_u32s(device, buffer, word_count)?;
-    Ok(words
-        .chunks_exact(4)
-        .take(record_count)
-        .map(|record| (record[0], record[1], record[2], record[3]))
-        .collect())
-}
-
-fn probe_trace_indirect_args_from_readback(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
-    word_count: usize,
-) -> Result<Vec<u32>, GraphicsError> {
-    read_buffer_u32s(device, buffer, word_count)
-}
-
-fn probe_trace_dispatch_from_indirect_args(
-    indirect_args: &[u32],
-    fallback_tile_count: usize,
-) -> [u32; 3] {
+fn probe_trace_dispatch(indirect_args: &[u32], fallback_tile_count: usize) -> [u32; 3] {
     let tile_count = indirect_args
         .first()
         .copied()
@@ -57,99 +100,5 @@ fn probe_trace_dispatch_from_indirect_args(
             indirect_args.get(3).copied().unwrap_or(1).max(1),
             tile_count,
         ]
-    }
-}
-
-impl HybridGiGpuPendingReadback {
-    pub(in crate::hybrid_gi::renderer) fn collect(
-        self,
-        device: &wgpu::Device,
-    ) -> Result<HybridGiGpuReadback, GraphicsError> {
-        let scene_prepare_resources = self
-            .scene_prepare_resources
-            .map(|mut snapshot| -> Result<_, GraphicsError> {
-                let atlas_slot_rgba_samples = self
-                    .scene_prepare_atlas_slot_sample_buffers
-                    .iter()
-                    .map(|(slot_id, buffer)| {
-                        texture_sample_rgba(device, buffer).map(|rgba| (*slot_id, rgba))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                let capture_slot_rgba_samples = self
-                    .scene_prepare_capture_slot_sample_buffers
-                    .iter()
-                    .map(|(slot_id, buffer)| {
-                        texture_sample_rgba(device, buffer).map(|rgba| (*slot_id, rgba))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                snapshot.store_texture_slot_rgba_samples(
-                    atlas_slot_rgba_samples,
-                    capture_slot_rgba_samples,
-                );
-                if !self
-                    .scene_prepare_surface_cache_depth_slot_sample_buffers
-                    .is_empty()
-                {
-                    let surface_cache_depth_rgba_samples = self
-                        .scene_prepare_surface_cache_depth_slot_sample_buffers
-                        .iter()
-                        .map(|(slot_id, buffer)| {
-                            texture_sample_rgba(device, buffer).map(|rgba| (*slot_id, rgba))
-                        })
-                        .collect::<Result<Vec<_>, _>>()?;
-                    snapshot.store_surface_cache_depth_samples(surface_cache_depth_rgba_samples);
-                }
-                if let Some(buffer) = self.scene_prepare_probe_trace_tile_readback.as_ref() {
-                    let probe_trace_tiles = probe_trace_tiles_from_readback(
-                        device,
-                        buffer,
-                        self.scene_prepare_probe_trace_tile_word_count,
-                        self.scene_prepare_probe_trace_tile_record_count,
-                    )?;
-                    let probe_trace_dispatch = match self
-                        .scene_prepare_probe_trace_indirect_args_readback
-                        .as_ref()
-                    {
-                        Some(indirect_args_buffer) => {
-                            let indirect_args = probe_trace_indirect_args_from_readback(
-                                device,
-                                indirect_args_buffer,
-                                self.scene_prepare_probe_trace_indirect_arg_word_count,
-                            )?;
-                            probe_trace_dispatch_from_indirect_args(
-                                &indirect_args,
-                                probe_trace_tiles.len(),
-                            )
-                        }
-                        None => {
-                            probe_trace_dispatch_from_indirect_args(&[], probe_trace_tiles.len())
-                        }
-                    };
-                    snapshot.store_probe_trace_tiles(probe_trace_tiles, probe_trace_dispatch);
-                }
-                Ok::<_, GraphicsError>(snapshot)
-            })
-            .transpose()?;
-
-        Ok(HybridGiGpuReadback::new(
-            cache_entries(device, &self.cache_buffer, self.cache_word_count)?,
-            completed_probe_ids(
-                device,
-                &self.completed_probe_buffer,
-                self.completed_probe_word_count,
-            )?,
-            completed_trace_region_ids(
-                device,
-                &self.completed_trace_buffer,
-                self.completed_trace_word_count,
-            )?,
-            probe_irradiance_rgb(device, &self.irradiance_buffer, self.irradiance_word_count)?,
-            probe_trace_lighting_rgb(
-                device,
-                &self.trace_lighting_buffer,
-                self.trace_lighting_word_count,
-            )?,
-            scene_prepare_resources,
-        ))
     }
 }

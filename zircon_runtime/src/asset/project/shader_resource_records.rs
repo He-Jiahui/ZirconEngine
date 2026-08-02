@@ -57,6 +57,39 @@ pub fn shader_resource_records_from_asset_root(
     deduplicate_shader_resource_records(records)
 }
 
+/// Builds shader resource records from an already-owned deterministic asset inventory.
+pub fn shader_resource_records_from_meta_paths(
+    meta_paths: &[PathBuf],
+) -> ShaderResourceRecordExportResult<Vec<ResourceRecord>> {
+    let mut records = Vec::new();
+    for meta_path in meta_paths {
+        append_shader_records_from_meta(meta_path, &mut records)?;
+    }
+    deduplicate_shader_resource_records(records)
+}
+
+/// Builds shader resource records from already parsed asset metadata.
+///
+/// This shares one bounded metadata inventory with callers that also need a
+/// registry index or shader manifest, so record export never reopens `.zmeta`.
+pub fn shader_resource_records_from_loaded_meta_documents(
+    documents_by_path: &BTreeMap<PathBuf, AssetMetaDocument>,
+) -> ShaderResourceRecordExportResult<Vec<ResourceRecord>> {
+    shader_resource_records_from_loaded_meta_document_refs(documents_by_path.values())
+}
+
+/// Builds shader resource records from borrowed metadata documents without
+/// rebuilding a second owner map for an already-loaded asset inventory.
+pub fn shader_resource_records_from_loaded_meta_document_refs<'a>(
+    documents: impl IntoIterator<Item = &'a AssetMetaDocument>,
+) -> ShaderResourceRecordExportResult<Vec<ResourceRecord>> {
+    let mut records = Vec::new();
+    for meta in documents {
+        append_shader_records_from_document(meta, &mut records);
+    }
+    deduplicate_shader_resource_records(records)
+}
+
 pub fn shader_resource_records_from_asset_roots(
     asset_roots: &[PathBuf],
 ) -> ShaderResourceRecordExportResult<Vec<ResourceRecord>> {
@@ -143,13 +176,21 @@ fn append_shader_records_from_meta(
             source,
         }
     })?;
+    append_shader_records_from_document(&meta, records);
+    Ok(())
+}
+
+fn append_shader_records_from_document(
+    meta: &AssetMetaDocument,
+    records: &mut Vec<ResourceRecord>,
+) {
     let revision = asset_scan_revision_from_source_digest(&meta.source_digest);
 
     if meta.entries.is_empty() {
         if meta.asset_kind == ResourceKind::Shader {
             records.push(shader_record_for_meta_root(&meta, revision));
         }
-        return Ok(());
+        return;
     }
 
     for entry in &meta.entries {
@@ -172,7 +213,6 @@ fn append_shader_records_from_meta(
         }
         records.push(record);
     }
-    Ok(())
 }
 
 fn shader_record_for_meta_root(meta: &AssetMetaDocument, revision: u64) -> ResourceRecord {

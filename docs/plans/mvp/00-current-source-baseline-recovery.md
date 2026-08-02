@@ -14,9 +14,9 @@ plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - docs/plans/zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md
-status: planned
+status: in_progress
 gate: baseline
-last_refined: 2026-07-24
+last_refined: 2026-08-01
 ---
 
 # 当前源码与验证基线恢复 Implementation Plan
@@ -33,9 +33,9 @@ last_refined: 2026-07-24
 
 ## 1. 当前证据
 
-- 2026-07-24 的 Windows 受管构建首先失败于 `zircon_runtime/src/asset/migration/resolver.rs` 的 `super::resolver_index` unresolved import。
-- `zircon_runtime/src/asset/migration/resolver_index.rs` 和对应测试已经存在，但 `migration/mod.rs` 未声明模块，且 open failure 明确要求 inventory run/scan/sidecar 与 pure lookup core 的后继接线。
-- `validate-matrix.ps1` 把 `zircon-session.ps1` 输出整体交给 `ConvertFrom-Json`；后者当前先输出 `ready`，导致 validator 在 Cargo 启动前失败。
+- 2026-07-24 的 `super::resolver_index` unresolved import 已过时：`migration/mod.rs` 当前声明并 re-export `resolver_index`，`MigrationResolver` 只持有 `AssetRegistryIndex` 与 `MigrationResolverIndex`，resolver 内无 root walk、`PathBuf`/`fs` probe 或 `persisted_source_path_for_locator` fallback。
+- coordinator JSON stdout 污染已修复：`tools/zircon-session.ps1` 的两处 `Coordinator ready.` 都受 `if (-not $Json)` 门控；smoke test 覆盖 cold register、daemon reuse、JSON `ConvertFrom-Json` 与 human readiness。validator 已能提交并释放 managed jobs。
+- 当前最低编译基线已变化：2026-08-01 managed `zircon_runtime --no-default-features --lib` focused job `c630da233fc440559b1788eafebddf9a` 在 lib-test harness 有 16 个 owner-bound 编译错误；default-feature job `367cc00c08394ae4b4705d2fe3c6f44f` 有 53 个。M0.3 因此仍未完成，但不再由 JSON 协议或 resolver module registration 阻断。
 - 当前 checkout 包含大量用户和其他 Session 变化。本计划不清理、不还原、不重排这些变化，只通过 coordinator scope、source fingerprint 和逐层验证建立可复现基线。
 
 ## 2. 入口条件
@@ -65,15 +65,15 @@ last_refined: 2026-07-24
 
 ### 目标
 
-`zircon-session.ps1 ... -Json` 的 stdout 只包含一个合法 JSON document；人类可读 readiness 信息不得污染 stdout。`validate-matrix.ps1 -DryRun` 能获取 coordinator compatibility、分配审计 lane 并在 `finally` 释放。
+保持 `zircon-session.ps1 ... -Json` stdout 为单一 JSON document，并用 current-source tooling tests/managed dry-run 防止 readiness 文本回流；该实现已落地，剩余是本基线的最新受管验收记录。
 
 ### 实现切片
 
-- [ ] 在 `tools/tests/session-coordinator-smoke.Tests.ps1` 或同目录新建单一职责 Pester 测试，覆盖 daemon 已运行和需要启动两种情况，断言 `ConvertFrom-Json` 可直接解析完整 stdout。
-- [ ] 覆盖非 JSON 模式仍能显示可读 readiness，确保修复不静默吞掉普通 CLI 反馈。
-- [ ] 调整 `tools/zircon-session.ps1`：JSON 模式把 readiness 放到 verbose/stderr 或完全抑制，最终只输出 coordinator response JSON。
-- [ ] 保持 `validate-matrix.ps1` 严格解析一个 document；若响应为空、多 document 或 schema 缺字段，返回包含子命令和响应摘要的 actionable error。
-- [ ] 添加 validator dry-run 回归，确认异常路径也释放 lane，不遗留 starting/active job。
+- [x] `tools/tests/session-coordinator-smoke.Tests.ps1` 覆盖 cold register、daemon reuse，并直接 `ConvertFrom-Json` 解析 stdout。
+- [x] 非 JSON 模式继续断言 `Coordinator ready.`，普通 CLI 反馈未被吞掉。
+- [x] `tools/zircon-session.ps1` 仅在 `-not $Json` 时输出 readiness；JSON starting/response 各保持单一 document 语义。
+- [x] `validate-matrix.ps1` 继续严格 `ConvertFrom-Json`；不得恢复宽松截断或忽略前导文本。
+- [ ] 重跑 validator dry-run 回归，确认异常路径也释放 lane，不遗留 starting/active job，并把 exact count 记入本阶段 outcome。
 
 ### 测试阶段：M0.1 Tooling Contract Gate
 
@@ -97,10 +97,10 @@ last_refined: 2026-07-24
 ### 实现切片
 
 - [ ] 以 [`../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md`](../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md) 为唯一 failure owner，重新盘点 `run.rs`、`scan.rs`、`sidecar.rs`、`resolver.rs` 和 `resolver_index.rs` 当前调用图。
-- [ ] 在 `migration/mod.rs` 注册 `resolver_index`，但仅与完整 caller/constructor/test 接线作为同一 hard cut 提交。
+- [x] `migration/mod.rs` 已注册并在 crate 内 re-export `resolver_index`；不存在孤立 `mod` 声明。
 - [ ] 让 scan owner 从已经 canonicalized、拒绝 symlink/reparse 的 regular-file inventory 构建 `MigrationSourceProjection`；禁止 index 自己再次访问文件系统。
 - [ ] 让 sidecar 解析发布经过验证的 compound binding；重复 registry identity、重复 locator、ambiguous root 和 missing source 返回现有 typed error/issue kind。
-- [ ] 让 `MigrationResolver::new` 只接收 `AssetRegistryIndex` 与同 generation 的 `MigrationResolverIndex`；删除 per-reference roots 遍历、`PathBuf` 探测和 `persisted_source_path_for_locator` fallback。
+- [x] `MigrationResolver::new` 当前只接收 `AssetRegistryIndex` 与 `MigrationResolverIndex`；per-reference roots/FS fallback 已删除。
 - [ ] 扩充 `resolver_index.rs` 测试：唯一 source、compound zmeta hint、duplicate registry 优先级、ambiguous source、missing source、跨 root 相同相对路径、link/reparse 拒绝和 index generation 一致性。
 - [ ] 添加源码 guard，阻止 migration resolver 恢复 filesystem fallback 或第二次 root scan。
 
@@ -168,14 +168,8 @@ M0.2 continues from the lowest passing test target while these owners complete t
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 
-## Code Review 建议 (2026-07-30)
+## Code Review 同步结论 (2026-07-30，2026-08-01 落实)
 
-### 与代码现状不符，需修订
-
-- §1「`migration/mod.rs` 未声明模块」已过时：`zircon_runtime/src/asset/migration/mod.rs:15` 已有 `mod resolver_index;`，且 `:27` 已 `pub(crate) use resolver_index::{...}`。M0.2 的首要编译阻断（`resolver.rs` 的 `super::resolver_index` unresolved import）在当前源码不复存在。
-- M0.2「让 `MigrationResolver::new` 只接收 `AssetRegistryIndex` 与同 generation 的 `MigrationResolverIndex`；删除 per-reference roots 遍历、`PathBuf` 探测和 `persisted_source_path_for_locator` fallback」在当前源码已是事实：`zircon_runtime/src/asset/migration/resolver.rs:19-24` 的 resolver 只持有 `index: &AssetRegistryIndex` 与 `sources: &MigrationResolverIndex`，全文件已无 `PathBuf`、`fs::`、roots 遍历或 `persisted_source_path_for_locator` 命中。该切片应改为「验证 index generation 一致性与 typed error 分支的 focused tests 覆盖」，避免重复实施。
-- §1 / M0.1「`zircon-session.ps1` 在 JSON 前输出 `ready`」也已修复：`tools/zircon-session.ps1:223`、`:246-253` 中 `Write-Output 'Coordinator ready.'` 均已被 `if (-not $Json)` 门控，JSON 模式 stdout 只输出 coordinator response（`:235-236` 的 starting JSON 亦为单一 document）。M0.1 的剩余工作是确认 Pester 回归（daemon 已运行/冷启动双态）已存在并通过，而非再次改脚本。
-
-### 验证缺口
-
-- 本计划的三个已知阻断在源码层面均已消除，但计划状态仍为 `planned` 且状态表为空。按 §8 要求，收尾动作应是：跑一次 M0.1 tooling focused suite、M0.2 resolver focused batch 和 M0.3 三包 `validate-matrix.ps1 -SkipTest` 编译门，然后写入一条 accepted outcome；否则下游 F0-F5 将继续因过期的 `blocked_by_00` 状态被错误阻塞（mvp/index.md §10 状态总览同样需要同步）。
+- JSON readiness 污染、resolver module registration 与 resolver FS fallback 三条旧 blocker 已同步到正文和 checklist，不再作为待实施工作。
+- 计划状态由 `planned` 改为 `in_progress`：M0.1/M0.2 implementation 已有 current-source 形态，M0.3 的 Runtime→Editor→App current-source compile gate 尚未 GREEN。
+- 下游不得继续引用 2026-07-24 的旧 blocker，但也不得仅凭静态修正解除 `blocked_by_00`；解除条件仍是 M0.1 focused、M0.2 resolver batch 与 M0.3 三包受管编译在同一 source fingerprint 下通过并写入 accepted outcome。

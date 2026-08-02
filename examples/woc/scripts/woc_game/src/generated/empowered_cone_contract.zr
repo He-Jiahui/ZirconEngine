@@ -105,9 +105,24 @@ pub stageIncapacitateDuration(ability: uint, level: int): float {
     }
     return 0.0;
 }
+pub learnLevel(ability: uint): float {
+    if (ability == <uint>129) return 17.0;
+    if (ability == <uint>86) return 14.0;
+    return 0.0;
+}
+pub resourceCost(ability: uint): float {
+    if (ability == <uint>129) return 80.0;
+    if (ability == <uint>86) return 90.0;
+    return 0.0;
+}
 pub castTime(ability: uint): float {
     if (ability == <uint>129) return 2.4;
     if (ability == <uint>86) return 2.4;
+    return 0.0;
+}
+pub cooldown(ability: uint): float {
+    if (ability == <uint>129) return 12.0;
+    if (ability == <uint>86) return 20.0;
     return 0.0;
 }
 pub slowMultiplier(ability: uint): float {

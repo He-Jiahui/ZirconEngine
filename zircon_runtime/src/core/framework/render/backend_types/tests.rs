@@ -269,7 +269,9 @@ fn hzb_occlusion_culling_requires_storage_buffers_gpu_driven_and_binding_capacit
             ..RenderCapabilitySummary::default()
         },
     ] {
-        assert!(!capabilities
-            .hzb_occlusion_culling_supported(REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE));
+        assert!(
+            !capabilities
+                .hzb_occlusion_culling_supported(REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE)
+        );
     }
 }

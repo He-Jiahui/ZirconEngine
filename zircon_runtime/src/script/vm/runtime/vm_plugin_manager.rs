@@ -13,8 +13,8 @@ use super::super::host::{
 };
 use super::super::host_interface::{
     VmBehaviorNodeRegistration, VmCallbackHandle, VmEditorOperationRegistration,
-    VmHostInterfaceError, VmHostInterfaceRegistry, VmRpcHandlerRegistration, VmSystemRegistration,
-    VmSystemStage,
+    VmHostInterfaceError, VmHostInterfaceRegistry, VmInterfaceCaller, VmRpcHandlerRegistration,
+    VmSystemRegistration, VmSystemStage,
 };
 use super::super::plugin::{
     discover_vm_plugin_packages, DiscoveredVmPluginPackage, VmPluginPackage, VmPluginPackageSource,
@@ -271,6 +271,24 @@ impl VmPluginManager {
         self.call_slot_export(slot, module_name, export_name, arguments)
     }
 
+    /// Resolves a package export once into a stable, generation-refreshing callback handle.
+    pub fn resolve_package_callback(
+        &self,
+        package_name: &str,
+        module_name: &str,
+        export_name: &str,
+    ) -> Result<VmCallbackHandle, VmHostInterfaceError> {
+        let slot = self
+            .slot_for_package_name(package_name)
+            .map_err(VmHostInterfaceError::CallbackFailed)?;
+        let record = self
+            .slot(slot)
+            .map_err(VmHostInterfaceError::CallbackFailed)?;
+        let caller = VmInterfaceCaller::new(slot, record.generation, record.manifest.capabilities);
+        self.host_interfaces
+            .intern_callback(&caller, module_name, export_name)
+    }
+
     pub fn gc_step(&self, budget: VmGcBudget) -> Result<VmGcStepReport, VmError> {
         self.coordinator.gc_step(budget)
     }
@@ -380,19 +398,18 @@ impl VmPluginManager {
         plugin.source_root = source_root;
         plugin.data_root = data_root;
 
-        VmPluginHostContext {
+        VmPluginHostContext::new(
             plugin,
-            capabilities: package.manifest.capabilities.clone(),
-            backend_selector: backend_selector.to_string(),
-            package_source: source,
-            host_registry: self.host_registry.clone(),
-            host_exports: self.host_exports.clone(),
-            host_interfaces: self.host_interfaces.clone(),
-            reflection_catalog: self.reflection_catalog.clone(),
-            reflection_schema_installer: Default::default(),
-            slot_lifecycle: Arc::new(ManagerSlotLifecycle::new(self.self_ref.clone())),
-            vm_owner: None,
-        }
+            package.manifest.capabilities.clone(),
+            backend_selector.to_string(),
+            source,
+            self.host_registry.clone(),
+            self.host_exports.clone(),
+            self.host_interfaces.clone(),
+            self.reflection_catalog.clone(),
+            Default::default(),
+            Arc::new(ManagerSlotLifecycle::new(self.self_ref.clone())),
+        )
     }
 
     fn selected_backend_read(&self) -> RwLockReadGuard<'_, String> {

@@ -129,10 +129,8 @@ fn renderer_asset_projection_rejects_descriptor_overrides() {
     let renderer = RendererAsset {
         name: "override-feature".to_string(),
         stages: vec![RenderPassStage::Opaque3d],
-        features: vec![
-            RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
-                .with_descriptor_override(descriptor),
-        ],
+        features: vec![RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+            .with_descriptor_override(descriptor)],
     };
 
     let error = RendererDataDocument::from_renderer_asset(&renderer).unwrap_err();
@@ -150,10 +148,8 @@ fn renderer_asset_projection_rejects_runtime_only_capability_requirements() {
     let renderer = RendererAsset {
         name: "capability-feature".to_string(),
         stages: vec![RenderPassStage::PostProcess],
-        features: vec![
-            RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
-                .with_capability_requirement(RenderFeatureCapabilityRequirement::SparseTexture),
-        ],
+        features: vec![RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+            .with_capability_requirement(RenderFeatureCapabilityRequirement::SparseTexture)],
     };
 
     let error = RendererDataDocument::from_renderer_asset(&renderer).unwrap_err();

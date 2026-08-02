@@ -2,8 +2,8 @@ use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{component::UiValue, event_ui::UiNodeId};
 
 use super::super::popup_primitives::{
-    menu_item_without_transient_flags, string_array_value, template_popup_menu_item_state,
-    toml_value_string_list,
+    menu_item_with_checked_state, menu_item_without_transient_flags, string_array_value,
+    template_popup_menu_item_state, toml_value_string_list,
 };
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::context_menu::WORKBENCH_CONTEXT_MENU_CONTROL_ID;
@@ -77,10 +77,23 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(Some(false));
         }
 
+        let is_choice_menu =
+            control_string(&self.template_surface.surface, control_id, "selection_mode")
+                .is_some_and(|mode| mode.eq_ignore_ascii_case("single"));
         let normalized_items = UiValue::Array(
             menu_items
                 .iter()
-                .map(|raw| UiValue::String(menu_item_without_transient_flags(raw)))
+                .map(|raw| {
+                    let normalized = menu_item_without_transient_flags(raw);
+                    let normalized = if is_choice_menu {
+                        let checked = template_popup_menu_item_state(raw)
+                            .is_some_and(|item| item.action_id == selected_item.action_id);
+                        menu_item_with_checked_state(&normalized, checked)
+                    } else {
+                        normalized
+                    };
+                    UiValue::String(normalized)
+                })
                 .collect(),
         );
         self.mutate_control_property(
@@ -177,7 +190,7 @@ fn control_has_open_popup(surface: &UiSurface, control_id: &str) -> bool {
     })
 }
 
-fn control_string_array(
+pub(super) fn control_string_array(
     surface: &UiSurface,
     control_id: &str,
     property: &str,
@@ -188,6 +201,17 @@ fn control_string_array(
             .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
             .and_then(|metadata| metadata.attributes.get(property))
             .map(toml_value_string_list)
+    })
+}
+
+fn control_string(surface: &UiSurface, control_id: &str, property: &str) -> Option<String> {
+    surface.tree.nodes.values().find_map(|node| {
+        node.template_metadata
+            .as_ref()
+            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
+            .and_then(|metadata| metadata.attributes.get(property))
+            .and_then(toml::Value::as_str)
+            .map(str::to_string)
     })
 }
 

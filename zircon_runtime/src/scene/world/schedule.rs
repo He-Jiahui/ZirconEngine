@@ -140,5 +140,6 @@ impl World {
                 }
             }
         }
+        self.apply_deferred();
     }
 }

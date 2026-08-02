@@ -160,15 +160,22 @@ class PluginExtensionRegistryFinalizeCoverageTests(unittest.TestCase):
         apply_body = _function_body(
             world_driver_source, "pub fn apply_world_runtime_extensions"
         )
-        self.assertLess(
-            install_body.index("let candidate = plan.try_merge(contribution)"),
-            install_body.index("*plan = candidate;"),
+        snapshot_body = _function_body(
+            world_driver_source, "fn runtime_extension_plan_snapshot"
         )
         self.assertLess(
-            apply_body.index("lock_poison_recovered(&self.runtime_extensions)"),
-            apply_body.index(".apply_to_world(world)"),
+            install_body.index("let candidate = plan.as_ref().try_merge(contribution)"),
+            install_body.index("*plan = Arc::new(candidate);"),
         )
-        self.assertNotIn("clone()", apply_body)
+        self.assertLess(
+            apply_body.index("let plan = self.runtime_extension_plan_snapshot();"),
+            apply_body.index("plan.apply_to_world(world)"),
+        )
+        self.assertIn(
+            "Arc::clone(&lock_poison_recovered(&self.runtime_extensions))",
+            snapshot_body,
+        )
+        self.assertNotIn("lock_poison_recovered", apply_body)
 
 
 if __name__ == "__main__":

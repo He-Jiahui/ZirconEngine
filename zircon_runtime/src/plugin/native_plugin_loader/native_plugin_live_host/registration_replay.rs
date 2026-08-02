@@ -18,6 +18,7 @@ use super::super::registration_manifest::{
     NativePluginRegistrationSystem, NativeSystemAccessAuthority, NativeSystemAccessAuthorityError,
     NativeSystemAccessPlan,
 };
+use super::super::LoadedNativePlugin;
 use super::bridge_methods::{NativePluginBridgeMethodError, NativePluginBridgeMethodResult};
 use super::keys::live_key;
 use super::loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};
@@ -34,14 +35,27 @@ pub(super) type NativePluginRegistrationReplayResult<T> =
 /// registering systems; every registered callback retains the shared call scope instead of a
 /// private manifest/binding/method-map rebuild.
 pub(super) struct NativePluginRegistrationReplayBridgeContext {
+    pub(super) revision: u64,
+    pub(super) bridge_table: FrozenBridgeTable,
     // System registration resolves names once into these slot tables. The registered callback
     // keeps only u32 slots, so no string lookup reaches the runtime bridge call path.
-    pub(super) method_slots: HashMap<String, HashMap<String, u32>>,
+    pub(super) method_slots: Arc<HashMap<String, HashMap<String, u32>>>,
     pub(super) bridge_call_scope: Arc<NativeHostBridgeCallScope>,
 }
 
+impl std::fmt::Debug for NativePluginRegistrationReplayBridgeContext {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("NativePluginRegistrationReplayBridgeContext")
+            .field("revision", &self.revision)
+            .field("interfaces", &self.method_slots.len())
+            .field("methods", &self.bridge_call_scope.method_count())
+            .finish()
+    }
+}
+
 impl NativePluginRegistrationReplayBridgeContext {
-    fn method_slot_result(
+    pub(super) fn method_slot_result(
         &self,
         plugin_id: &str,
         interface_id: &str,
@@ -62,6 +76,13 @@ impl NativePluginRegistrationReplayBridgeContext {
 
     fn bridge_call_scope(&self) -> Arc<NativeHostBridgeCallScope> {
         self.bridge_call_scope.clone()
+    }
+
+    fn matches(&self, revision: u64, lifecycle: &RuntimePluginBridgeLifecycleState) -> bool {
+        self.revision == revision
+            && self
+                .bridge_table
+                .shares_storage_with(lifecycle.bridge_table())
     }
 }
 
@@ -279,6 +300,20 @@ impl std::error::Error for NativePluginRegistrationReplayError {
 }
 
 impl NativePluginLiveHost {
+    #[cfg(test)]
+    pub(super) fn install_registration_replay_source_test_gate(
+        &self,
+    ) -> super::NativePluginLiveHostTestGate {
+        self.registration_replay_source_test_hook.install()
+    }
+
+    #[cfg(test)]
+    pub(super) fn install_registration_replay_before_cache_test_gate(
+        &self,
+    ) -> super::NativePluginLiveHostTestGate {
+        self.registration_replay_before_cache_test_hook.install()
+    }
+
     pub fn replay_runtime_registration_manifests_via_bridge(
         &self,
         registry: &mut RuntimeExtensionRegistry,
@@ -390,11 +425,83 @@ impl NativePluginLiveHost {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let revision = revisions.get(&key).copied().unwrap_or_default();
         revisions.insert(key, revision.saturating_add(1));
+        self.runtime_bridge_generations
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(&key);
         let mut generations = self
             .runtime_registration_replay_generations
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         generations.remove(&key);
+    }
+
+    pub(super) fn runtime_bridge_generation_result(
+        &self,
+        plugin_id: &str,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> NativePluginBridgeMethodResult<Arc<NativePluginRegistrationReplayBridgeContext>> {
+        loop {
+            if let Some(generation) = self.cached_runtime_bridge_generation(plugin_id, lifecycle) {
+                return Ok(generation);
+            }
+            let _build_guard = self.lock_runtime_bridge_generation_build();
+            if let Some(generation) = self.cached_runtime_bridge_generation(plugin_id, lifecycle) {
+                return Ok(generation);
+            }
+            let revision = self.runtime_registration_replay_generation_revision(plugin_id);
+            let generation = Arc::new(
+                self.build_runtime_bridge_generation_result(plugin_id, lifecycle, revision)?,
+            );
+            if self.cache_runtime_bridge_generation(generation.clone(), plugin_id) {
+                return Ok(generation);
+            }
+        }
+    }
+
+    fn lock_runtime_bridge_generation_build(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.runtime_bridge_generation_build_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn cached_runtime_bridge_generation(
+        &self,
+        plugin_id: &str,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> Option<Arc<NativePluginRegistrationReplayBridgeContext>> {
+        let key = live_key(PluginModuleKind::Runtime, plugin_id);
+        let revisions = self
+            .runtime_registration_replay_generation_revisions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let revision = revisions.get(&key).copied().unwrap_or_default();
+        self.runtime_bridge_generations
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(&key)
+            .filter(|generation| generation.matches(revision, lifecycle))
+            .cloned()
+    }
+
+    fn cache_runtime_bridge_generation(
+        &self,
+        generation: Arc<NativePluginRegistrationReplayBridgeContext>,
+        plugin_id: &str,
+    ) -> bool {
+        let key = live_key(PluginModuleKind::Runtime, plugin_id);
+        let revisions = self
+            .runtime_registration_replay_generation_revisions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if revisions.get(&key).copied().unwrap_or_default() != generation.revision {
+            return false;
+        }
+        self.runtime_bridge_generations
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(key, generation);
+        true
     }
 
     fn runtime_registration_replay_generation_result(
@@ -408,14 +515,29 @@ impl NativePluginLiveHost {
             {
                 return Ok(generation);
             }
+            let _build_guard = self.lock_runtime_registration_replay_generation_build();
+            if let Some(generation) =
+                self.cached_runtime_registration_replay_generation(plugin_id, lifecycle)
+            {
+                return Ok(generation);
+            }
             let revision = self.runtime_registration_replay_generation_revision(plugin_id);
             let generation = Arc::new(
                 self.build_runtime_registration_replay_generation(plugin_id, lifecycle, revision)?,
             );
+            #[cfg(test)]
+            self.registration_replay_before_cache_test_hook
+                .pause_if_installed();
             if self.cache_runtime_registration_replay_generation(generation.clone(), plugin_id) {
                 return Ok(generation);
             }
         }
+    }
+
+    fn lock_runtime_registration_replay_generation_build(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.runtime_registration_replay_generation_build_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     fn cached_runtime_registration_replay_generation(
@@ -481,7 +603,19 @@ impl NativePluginLiveHost {
         lifecycle: &RuntimePluginBridgeLifecycleState,
         revision: u64,
     ) -> NativePluginRegistrationReplayResult<NativePluginRegistrationReplayGeneration> {
-        let source = self.runtime_registration_manifest_source(plugin_id)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRegistrationReplayError::LiveHostLock)?;
+        let plugin = loaded
+            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
+            .ok_or_else(
+                || NativePluginRegistrationReplayError::RuntimePluginNotLoaded {
+                    plugin_id: plugin_id.to_string(),
+                },
+            )?;
+        let source = Self::runtime_registration_manifest_source(plugin_id, plugin)?;
+        #[cfg(test)]
+        self.registration_replay_source_test_hook
+            .pause_if_installed();
         let manifest =
             NativePluginRegistrationManifest::from_toml(&source.text).map_err(|source| {
                 NativePluginRegistrationReplayError::InvalidRegistrationManifest {
@@ -496,15 +630,15 @@ impl NativePluginLiveHost {
         let replay_context = if manifest.systems.is_empty() {
             None
         } else {
-            Some(Arc::new(
-                self.runtime_registration_replay_bridge_context_result(plugin_id, lifecycle)
+            Some(
+                self.runtime_bridge_generation_result(plugin_id, lifecycle)
                     .map_err(
                         |source| NativePluginRegistrationReplayError::BridgeCallScope {
                             plugin_id: plugin_id.to_string(),
                             source: source.to_string(),
                         },
                     )?,
-            ))
+            )
         };
         let prepared_systems = if let Some(replay_context) = replay_context.as_deref() {
             manifest
@@ -527,6 +661,7 @@ impl NativePluginLiveHost {
         self.registration_replay_context_build_counters
             .registration_system_preparations
             .fetch_add(prepared_systems.len(), std::sync::atomic::Ordering::Relaxed);
+        drop(loaded);
         Ok(NativePluginRegistrationReplayGeneration {
             revision,
             bridge_table: lifecycle.bridge_table().clone(),
@@ -539,18 +674,9 @@ impl NativePluginLiveHost {
     }
 
     fn runtime_registration_manifest_source(
-        &self,
         plugin_id: &str,
+        plugin: &LoadedNativePlugin,
     ) -> NativePluginRegistrationReplayResult<RuntimeRegistrationManifestSource> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginRegistrationReplayError::LiveHostLock)?;
-        let plugin = loaded
-            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(
-                || NativePluginRegistrationReplayError::RuntimePluginNotLoaded {
-                    plugin_id: plugin_id.to_string(),
-                },
-            )?;
         let schema = plugin.runtime_registration_manifest_schema();
         if let Some(schema) = schema.map(str::trim).filter(|schema| !schema.is_empty()) {
             if schema != ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3 {

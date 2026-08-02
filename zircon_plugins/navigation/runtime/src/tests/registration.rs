@@ -15,7 +15,7 @@ use zircon_runtime::scene::{
 use crate::{
     module_descriptor, package_manifest, plugin_registration, DefaultNavigationManager,
     NAVIGATION_DIST_CRATE_NAME, NAVIGATION_DIST_RUNTIME_ENTRY, NAVIGATION_EVENT_NAMESPACE,
-    NAVIGATION_MODULE_NAME, RUNTIME_CAPABILITIES,
+    NAVIGATION_MAIN_SYSTEM_SET, NAVIGATION_MODULE_NAME, RUNTIME_CAPABILITIES,
 };
 
 #[test]
@@ -222,6 +222,45 @@ fn agent_tick_registered_after_ai_behavior_tick() {
             .type_name()
             .ends_with("navigation::agent::NavigationDebugCapture")
     }));
+}
+
+#[test]
+fn navigation_runtime_systems_join_main_system_set() {
+    assert_eq!(NAVIGATION_MAIN_SYSTEM_SET, "navigation.main");
+
+    let mut report = plugin_registration();
+    let runtime_module = report
+        .package_manifest
+        .modules
+        .iter()
+        .find(|module| module.name == NAVIGATION_MODULE_NAME)
+        .expect("navigation.runtime module");
+    assert_eq!(
+        runtime_module.system_sets,
+        vec![NAVIGATION_MAIN_SYSTEM_SET.to_string()]
+    );
+
+    let main_set = report
+        .extensions
+        .intern_system_set(NAVIGATION_MAIN_SYSTEM_SET)
+        .expect("navigation.main should be a valid system set");
+    let runtime_systems = report
+        .extensions
+        .plugin_runtime_systems()
+        .filter(|(owner, _)| {
+            report.extensions.plugin_module_name(*owner) == Some(NAVIGATION_MODULE_NAME)
+        })
+        .map(|(_, system)| system)
+        .collect::<Vec<_>>();
+    assert!(!runtime_systems.is_empty());
+    for system in runtime_systems {
+        assert_eq!(
+            system.sets,
+            vec![main_set],
+            "{} must join navigation.main",
+            system.id
+        );
+    }
 }
 
 #[test]

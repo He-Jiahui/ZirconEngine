@@ -17,7 +17,7 @@ fn blend_space_details_composes_shared_property_editor_rows() {
     for required in [
         "[components.WorkbenchPropertyEditorRow]",
         "component = \"PropertyRow\"",
-        "slots = { value = { multiple = false } }",
+        "slots = { value = { required = true, multiple = false, kind = \"linear\", accepts = [\"WorkbenchCheckbox\", \"WorkbenchDropdown\", \"WorkbenchField\", \"WorkbenchNumberField\", \"WorkbenchRangeSlider\", \"WorkbenchSlider\", \"WorkbenchToggle\"] } }",
         "props = { name = \"value\" }",
     ] {
         assert!(

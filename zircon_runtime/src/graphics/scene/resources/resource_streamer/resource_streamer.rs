@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManagerAccess;
@@ -7,6 +7,7 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::material::ShadingModelRegistry;
+use crate::plugin::ShaderModuleSourceBinding;
 
 use super::super::prepared::{
     PreparedMaterial, PreparedMesh, PreparedModel, PreparedOutputTargetTexture,
@@ -19,6 +20,7 @@ use super::super::{
 pub(crate) struct ResourceStreamer {
     pub(super) asset_manager_access: ProjectAssetManagerAccess,
     pub(super) shading_model_registry: ShadingModelRegistry,
+    pub(super) shader_module_sources: BTreeMap<String, ShaderModuleSourceBinding>,
     pub(super) models: HashMap<ResourceId, PreparedModel>,
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) materials: HashMap<ResourceId, PreparedMaterial>,

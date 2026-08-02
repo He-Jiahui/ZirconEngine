@@ -21,7 +21,7 @@ fn host_function_registry_matches_documented_ledger() {
 
     assert_eq!(
         count_occurrences(builtin_source, "HostExportFunction::new("),
-        11,
+        20,
         "builtin host callback count changed; update function_ledger.md and Runtime 13 status"
     );
     assert_eq!(
@@ -78,7 +78,7 @@ fn host_function_registry_matches_documented_ledger() {
     }
 
     for required_ledger_anchor in [
-        "6 host modules, 52 fixed host functions, and 2 fixed script type descriptors",
+        "6 host modules, 61 fixed host functions, and 2 fixed script type descriptors",
         "`zr.zircon.bridge`",
         "dynamic module shape contract",
         "Value descriptors",

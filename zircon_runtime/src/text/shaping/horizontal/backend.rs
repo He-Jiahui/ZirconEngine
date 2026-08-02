@@ -9,21 +9,21 @@ use crate::text::font::FontDatabase;
 use crate::text::{FontFaceId, InstancedFaceId, OpenTypeFeature};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct HorizontalBackendGlyph {
-    pub(super) glyph_id: u32,
-    pub(super) source_offset: usize,
-    pub(super) advance: f32,
-    pub(super) x_offset: f32,
-    pub(super) y_offset: f32,
+pub(in crate::text::shaping) struct HorizontalBackendGlyph {
+    pub(in crate::text::shaping) glyph_id: u32,
+    pub(in crate::text::shaping) source_offset: usize,
+    pub(in crate::text::shaping) advance: f32,
+    pub(in crate::text::shaping) x_offset: f32,
+    pub(in crate::text::shaping) y_offset: f32,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct HorizontalBackendRun {
-    pub(super) glyphs: Vec<HorizontalBackendGlyph>,
+pub(in crate::text::shaping) struct HorizontalBackendRun {
+    pub(in crate::text::shaping) glyphs: Vec<HorizontalBackendGlyph>,
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn shape_horizontal_run(
+pub(in crate::text::shaping) fn shape_horizontal_run(
     database: &FontDatabase,
     face_id: FontFaceId,
     instance_id: Option<InstancedFaceId>,
@@ -44,9 +44,6 @@ pub(super) fn shape_horizontal_run(
         .effective_instance_variations_shared(face_id, instance_id, font_weight)
         .ok()?;
     let language = language.and_then(|value| Language::from_str(value).ok());
-    if variations.0.is_empty() && language.is_none() {
-        return None;
-    }
     let bytes = database.face_bytes(face_id).ok()?;
     let face_index = database.face_index(face_id).ok()?;
     let mut face = rustybuzz::Face::from_slice(bytes.as_ref(), face_index)?;

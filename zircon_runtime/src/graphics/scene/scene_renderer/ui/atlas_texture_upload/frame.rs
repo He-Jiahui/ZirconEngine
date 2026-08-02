@@ -1,14 +1,14 @@
 use crate::text::atlas::{
-    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasSet,
     glyph_atlas_bitmap_texture_upload_request_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasSet,
 };
 
 use super::binding::{
-    GlyphAtlasBitmapTextureUploadBindingPlan, glyph_atlas_bitmap_texture_upload_binding_plan,
-    write_glyph_atlas_bitmap_texture_upload_bindings,
+    glyph_atlas_bitmap_texture_upload_binding_plan,
+    write_glyph_atlas_bitmap_texture_upload_bindings, GlyphAtlasBitmapTextureUploadBindingPlan,
 };
 use super::resource::GlyphAtlasTextureArrayResources;
 

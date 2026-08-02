@@ -43,18 +43,24 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
         "vampire scene should include a real terrain asset reference, not only terrain-like props"
     );
     assert!(overview.light_count >= 11);
-    assert!(overview
-        .entities
-        .iter()
-        .any(|entity| entity.has_post_process_settings));
-    assert!(overview
-        .entities
-        .iter()
-        .any(|entity| entity.has_post_process_volume));
-    assert!(scene.entities.iter().any(|entity| entity
-        .script_bindings
-        .iter()
-        .any(|binding| { binding.package == "vampire_game" && binding.module == "main" })));
+    assert!(
+        overview
+            .entities
+            .iter()
+            .any(|entity| entity.has_post_process_settings)
+    );
+    assert!(
+        overview
+            .entities
+            .iter()
+            .any(|entity| entity.has_post_process_volume)
+    );
+    assert!(scene.entities.iter().any(|entity| {
+        entity
+            .script_bindings
+            .iter()
+            .any(|binding| binding.package == "vampire_game" && binding.module == "main")
+    }));
     assert!(
         scene.entities.iter().all(|entity| {
             !entity.name.contains("Health Bar")
@@ -370,14 +376,18 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
     )
     .unwrap();
     assert_eq!(locomotion_state_machine.entry_state, "Idle");
-    assert!(locomotion_state_machine
-        .states
-        .iter()
-        .any(|state| state.name == "Move"));
-    assert!(locomotion_state_machine
-        .states
-        .iter()
-        .any(|state| state.name == "Attack"));
+    assert!(
+        locomotion_state_machine
+            .states
+            .iter()
+            .any(|state| state.name == "Move")
+    );
+    assert!(
+        locomotion_state_machine
+            .states
+            .iter()
+            .any(|state| state.name == "Attack")
+    );
     let shader_source =
         std::fs::read_to_string(root.join("assets/shaders/default_pbr/default_pbr.wgsl")).unwrap();
     assert!(
@@ -548,7 +558,9 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
     assert!(
         !runtime_source_root.join("vampire_gameplay.rs").exists()
             && !runtime_source_root.join("vampire_gameplay").exists()
-            && !runtime_source_root.join("gameplay_host/vampire.rs").exists(),
+            && !runtime_source_root
+                .join("gameplay_host/vampire.rs")
+                .exists(),
         "vampire gameplay must live in ZR script plus generic host APIs, not Rust vampire delegate modules"
     );
     assert!(
@@ -599,9 +611,11 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
         .register_first_wave_plugin_fixture_importers_for_test()
         .unwrap();
     let records = project.scan_and_import().unwrap();
-    assert!(records
-        .iter()
-        .any(|record| record.primary_locator() == &manifest.default_scene));
+    assert!(
+        records
+            .iter()
+            .any(|record| record.primary_locator() == &manifest.default_scene)
+    );
     assert!(records.iter().any(|record| record.kind == AssetKind::Shader
         && record.primary_locator() == &AssetUri::parse("res://shaders/default_pbr").unwrap()));
     for shader_uri in [
@@ -631,11 +645,13 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
             && default_pbr.contains("base_color.a > 0.99"),
         "vampire ground shader should keep a readable terrain light floor and avoid classifying jungle ground as black arena stone"
     );
-    assert!(records
-        .iter()
-        .any(|record| record.kind == AssetKind::Texture
-            && record.primary_locator()
-                == &AssetUri::parse("res://textures/jungle_ground_albedo.png").unwrap()));
+    assert!(
+        records
+            .iter()
+            .any(|record| record.kind == AssetKind::Texture
+                && record.primary_locator()
+                    == &AssetUri::parse("res://textures/jungle_ground_albedo.png").unwrap())
+    );
     for (uri, kind) in [
         (
             "res://animation/vampire_idle.graph.zranim",

@@ -41,6 +41,7 @@ pub(super) struct FrameSubmissionContext {
     viewport_generation: u64,
     quality_profile: Option<String>,
     shader_quality: ShaderQualityTier,
+    global_material_mip_bias: f32,
     compiled_pipeline: Arc<CompiledRenderPipeline>,
     capabilities: RenderCapabilitySummary,
     visibility_context: VisibilityContext,
@@ -171,6 +172,7 @@ impl FrameSubmissionContext {
             viewport_generation,
             quality_profile,
             shader_quality,
+            global_material_mip_bias: 0.0,
             compiled_pipeline,
             capabilities,
             visibility_context,
@@ -232,6 +234,15 @@ impl FrameSubmissionContext {
         self.shader_quality
     }
 
+    pub(super) fn with_global_material_mip_bias(mut self, mip_bias: f32) -> Self {
+        self.global_material_mip_bias = mip_bias;
+        self
+    }
+
+    pub(super) fn global_material_mip_bias(&self) -> f32 {
+        self.global_material_mip_bias
+    }
+
     pub(super) fn compiled_pipeline(&self) -> &CompiledRenderPipeline {
         &self.compiled_pipeline
     }
@@ -250,6 +261,10 @@ impl FrameSubmissionContext {
 
     pub(super) fn source_extract(&self) -> Arc<RenderFrameExtract> {
         Arc::clone(&self.source_extract)
+    }
+
+    pub(super) fn source_world(&self) -> crate::core::framework::render::RenderWorldSnapshotHandle {
+        self.source_extract.world
     }
 
     pub(super) fn view_visibility(

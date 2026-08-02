@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::asset::{MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset};
 use zircon_runtime::core::framework::render::{
-    RenderMeshSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
-    RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryCluster,
-    RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
+    render_mesh_stable_instance_key, RenderMeshSnapshot,
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryCpuReferenceLeafCluster,
     RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
@@ -28,6 +28,7 @@ use super::page_payload::render_page_payloads_for_asset;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VirtualGeometryAutomaticExtractInstance {
     entity: EntityId,
+    stable_instance_key: u64,
     source_model: Option<ResourceId>,
     transform: Transform,
     asset: VirtualGeometryAsset,
@@ -44,6 +45,7 @@ impl VirtualGeometryAutomaticExtractInstance {
     ) -> Self {
         Self {
             entity,
+            stable_instance_key: render_mesh_stable_instance_key(entity, 0),
             source_model,
             transform,
             asset,
@@ -54,6 +56,7 @@ impl VirtualGeometryAutomaticExtractInstance {
 
     pub(crate) fn from_model_primitive(
         entity: EntityId,
+        stable_instance_key: u64,
         source_model: Option<ResourceId>,
         transform: Transform,
         primitive: ModelPrimitiveAsset,
@@ -61,6 +64,7 @@ impl VirtualGeometryAutomaticExtractInstance {
     ) -> Self {
         Self {
             entity,
+            stable_instance_key,
             source_model,
             transform,
             vertices: primitive.vertices,
@@ -175,13 +179,17 @@ where
         let Some(model) = load_model(mesh.model.id()) else {
             continue;
         };
-        for primitive in model.primitives {
+        for (primitive_ordinal, primitive) in model.primitives.into_iter().enumerate() {
             let Some(asset) = primitive.virtual_geometry.clone() else {
                 continue;
             };
+            let primitive_ordinal = u32::try_from(primitive_ordinal).expect(
+                "model virtual-geometry primitive index exceeds stable instance key packing range",
+            );
             automatic_instances.push(
                 VirtualGeometryAutomaticExtractInstance::from_model_primitive(
                     mesh.node_id,
+                    render_mesh_stable_instance_key(mesh.node_id, primitive_ordinal),
                     Some(mesh.model.id()),
                     mesh.transform,
                     primitive,
@@ -340,6 +348,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
             .saturating_sub(instance_cluster_offset);
         instances.push(RenderVirtualGeometryInstance {
             entity: instance.entity,
+            stable_instance_key: instance.stable_instance_key,
             source_model: instance.source_model,
             transform: instance.transform,
             cluster_offset: instance_cluster_offset,

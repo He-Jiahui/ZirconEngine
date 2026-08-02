@@ -4,7 +4,8 @@ use crate::{
     module_descriptor, package_manifest, plugin_registration, register_zr_vm_backend,
     ZrVmLanguageBackendRegistration, ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM, ZR_VM_GC_STEP_SYSTEM,
     ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME, ZR_VM_LANGUAGE_DIST_CRATE_NAME,
-    ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY, ZR_VM_LANGUAGE_MODULE_NAME, ZR_VM_PROJECT_BACKEND_SELECTOR,
+    ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY, ZR_VM_LANGUAGE_MAIN_SYSTEM_SET, ZR_VM_LANGUAGE_MODULE_NAME,
+    ZR_VM_PROJECT_BACKEND_SELECTOR,
 };
 
 #[derive(Debug)]
@@ -346,6 +347,45 @@ fn vm_registered_system_enters_schedule_conservatively() {
             .build()
             .access()
             .has_conservative_world_access());
+    }
+}
+
+#[test]
+fn zr_vm_runtime_systems_join_main_system_set() {
+    assert_eq!(ZR_VM_LANGUAGE_MAIN_SYSTEM_SET, "zr_vm_language.main");
+
+    let mut report = plugin_registration();
+    let runtime_module = report
+        .package_manifest
+        .modules
+        .iter()
+        .find(|module| module.name == ZR_VM_LANGUAGE_MODULE_NAME)
+        .expect("zr_vm_language.runtime module");
+    assert_eq!(
+        runtime_module.system_sets,
+        vec![ZR_VM_LANGUAGE_MAIN_SYSTEM_SET.to_string()]
+    );
+
+    let main_set = report
+        .extensions
+        .intern_system_set(ZR_VM_LANGUAGE_MAIN_SYSTEM_SET)
+        .expect("zr_vm_language.main should be a valid system set");
+    let runtime_systems = report
+        .extensions
+        .plugin_runtime_systems()
+        .filter(|(owner, _)| {
+            report.extensions.plugin_module_name(*owner) == Some(ZR_VM_LANGUAGE_MODULE_NAME)
+        })
+        .map(|(_, system)| system)
+        .collect::<Vec<_>>();
+    assert_eq!(runtime_systems.len(), 5);
+    for system in runtime_systems {
+        assert_eq!(
+            system.sets,
+            vec![main_set],
+            "{} must join zr_vm_language.main",
+            system.id
+        );
     }
 }
 

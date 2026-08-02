@@ -45,7 +45,6 @@ pub enum UiAssetSchemaSourceKind {
     CurrentTree,
     OlderTree,
     FlatNodeTable,
-    SourceTemplateFixture,
     FutureVersion,
 }
 
@@ -54,7 +53,6 @@ pub enum UiAssetMigrationStep {
     CurrentTreeValidated,
     SourceVersionBumped { from: u32, to: u32 },
     FlatNodeTableMaterialized,
-    SourceTemplateFixtureConverted,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct MaterialFeedbackPalette {

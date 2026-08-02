@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
+  - zircon_runtime/src/rhi_wgpu/gpu_readback_queue/queue.rs
 tests:
   - default pipeline steady frame has no blocking HZB readback
   - delayed HZB stats ring freshness and drop test
@@ -54,4 +55,8 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `待 Render04/16 异步化 HZB stats 并移除默认逐 indirect args inspection`。
+Render04 now reserves bounded HZB stats/explicit debug args queues, consumes only ready FIFO
+results, and reports pending/drop/age diagnostics. The shared WGPU readback queue now rejects a
+busy frame slot after a non-blocking poll instead of waiting for GPU completion; the normal render
+path already treats that rejection as a skipped diagnostic frame. Default indirect-args inspection
+remains opt-in. Focused source tests and managed WGPU performance/capture validation remain pending.

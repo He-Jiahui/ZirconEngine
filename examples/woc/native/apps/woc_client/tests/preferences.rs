@@ -1,3 +1,6 @@
+#[path = "preference_storage_support.rs"]
+mod preference_storage_support;
+
 #[path = "preferences/settings/application.rs"]
 mod settings_application;
 #[path = "preferences/settings/graphics_budget.rs"]

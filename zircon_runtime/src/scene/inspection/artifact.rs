@@ -73,6 +73,11 @@ impl WorldInspectionArtifact {
         &self.hierarchy_rows
     }
 
+    /// Clones the shared immutable hierarchy allocation for derived editor views.
+    pub fn hierarchy_rows_arc(&self) -> Arc<[WorldInspectionHierarchyRow]> {
+        self.hierarchy_rows.clone()
+    }
+
     /// Returns one hierarchy row from this immutable generation by stable entity identity.
     pub fn hierarchy_row(&self, entity: EntityId) -> Option<&WorldInspectionHierarchyRow> {
         self.row_indices
@@ -417,7 +422,11 @@ impl WorldInspectionArtifactDiagnostics {
 #[derive(Debug)]
 pub(in crate::scene) struct WorldInspectionArtifactCache {
     artifact: RwLock<Option<Arc<WorldInspectionArtifact>>>,
-    fields: RwLock<BTreeMap<EntityId, Arc<WorldInspectionFieldsArtifact>>>,
+    // The editor publishes one primary selection at a time and retains the
+    // prior Arc itself while it computes a delta. Keeping only the current
+    // focused artifact prevents generation publication from scaling with every
+    // entity selected over the lifetime of a large scene.
+    fields: RwLock<Option<Arc<WorldInspectionFieldsArtifact>>>,
     dirty_field_entities: RwLock<BTreeSet<EntityId>>,
     diagnostics: RwLock<WorldInspectionArtifactDiagnostics>,
     hierarchy_rows_dirty: RwLock<bool>,
@@ -427,7 +436,7 @@ impl Default for WorldInspectionArtifactCache {
     fn default() -> Self {
         Self {
             artifact: RwLock::new(None),
-            fields: RwLock::new(BTreeMap::new()),
+            fields: RwLock::new(None),
             dirty_field_entities: RwLock::new(BTreeSet::new()),
             diagnostics: RwLock::new(WorldInspectionArtifactDiagnostics::default()),
             hierarchy_rows_dirty: RwLock::new(true),
@@ -487,13 +496,19 @@ impl WorldInspectionArtifactCache {
             .fields
             .write()
             .expect("world inspection field artifact cache lock poisoned");
-        fields.retain(|entity, _| {
-            artifact.hierarchy_row(*entity).is_some() && !dirty_field_entities.contains(entity)
+        let can_reuse_cached_fields = fields.as_ref().is_some_and(|cached| {
+            artifact.hierarchy_row(cached.entity()).is_some()
+                && !dirty_field_entities.contains(&cached.entity())
         });
-        for cached in fields.values_mut() {
+        if can_reuse_cached_fields {
+            let cached = fields
+                .as_mut()
+                .expect("cached inspection fields must remain present");
             *cached = Arc::new(WorldInspectionFieldsArtifact::from_previous_generation(
                 cached, generation,
             ));
+        } else {
+            *fields = None;
         }
     }
 
@@ -533,12 +548,12 @@ impl WorldInspectionArtifactCache {
         self.fields
             .read()
             .expect("world inspection field artifact cache lock poisoned")
-            .get(&entity)
-            .filter(|artifact| artifact.generation == generation)
+            .as_ref()
+            .filter(|artifact| artifact.generation == generation && artifact.entity == entity)
             .cloned()
     }
 
-    fn current_fields(&self) -> BTreeMap<EntityId, Arc<WorldInspectionFieldsArtifact>> {
+    fn current_fields(&self) -> Option<Arc<WorldInspectionFieldsArtifact>> {
         self.fields
             .read()
             .expect("world inspection field artifact cache lock poisoned")
@@ -553,10 +568,10 @@ impl WorldInspectionArtifactCache {
     }
 
     fn store_fields(&self, artifact: Arc<WorldInspectionFieldsArtifact>) {
-        self.fields
+        *self
+            .fields
             .write()
-            .expect("world inspection field artifact cache lock poisoned")
-            .insert(artifact.entity, artifact);
+            .expect("world inspection field artifact cache lock poisoned") = Some(artifact);
     }
 
     fn record_hierarchy_build(&self, row_count: usize) {
@@ -624,8 +639,9 @@ impl World {
         self.inspection_artifact_cache.diagnostics()
     }
 
-    /// Returns reflected Inspector fields for one entity at the current runtime generation.
-    /// Repeated reads for the same entity reuse the immutable artifact until the world changes.
+    /// Returns reflected Inspector fields for the current primary selection.
+    /// Repeated reads for that selection reuse the immutable artifact until the world changes
+    /// or another entity becomes primary; consumers retain prior artifacts for delta comparison.
     pub fn inspection_fields_artifact(
         &self,
         entity: EntityId,

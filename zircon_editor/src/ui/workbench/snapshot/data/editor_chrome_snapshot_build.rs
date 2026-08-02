@@ -6,8 +6,8 @@ use crate::ui::workbench::view::{
 };
 
 use super::super::workbench::{
-    resolve_document_workspace, resolve_view_tab, ActivityDrawerSnapshot, FloatingWindowSnapshot,
-    MainPageSnapshot, WorkbenchSnapshot,
+    ActivityDrawerSnapshot, FloatingWindowSnapshot, MainPageSnapshot, WorkbenchSnapshot,
+    resolve_document_workspace, resolve_view_tab,
 };
 use super::{EditorChromeSnapshot, EditorDataSnapshot};
 
@@ -48,6 +48,7 @@ impl EditorChromeSnapshot {
             scene_entries: data.scene_entries,
             inspector: data.inspector,
             status_line: data.status_line,
+            console_output: data.console_output,
             status_task_progress: data.status_task_progress,
             hovered_axis: data.hovered_axis,
             viewport_size: data.viewport_size,

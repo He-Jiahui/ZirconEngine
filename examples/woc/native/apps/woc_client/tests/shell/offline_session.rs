@@ -2,6 +2,7 @@ use woc_client::{
     CharacterNameError, OfflinePlayerClass, OfflineSessionDraft, OfflineSessionError,
     OFFLINE_SESSION_LAUNCH_VERSION,
 };
+use woc_protocol::OfflineWeaponSkinAccount;
 
 const LAUNCH_SEED: u32 = 20_061;
 
@@ -89,6 +90,21 @@ fn launch_is_session_only_and_scopes_persisted_preferences_by_class_and_name() {
 
     assert_eq!(draft.raw_name(), "  Storm  Caller  ");
     assert_eq!(draft.skin_variant(), 2);
+}
+
+#[test]
+fn host_weapon_skin_account_reaches_the_first_tick_bootstrap() {
+    let mut draft = OfflineSessionDraft::default();
+    draft.set_player_class(OfflinePlayerClass::Warrior);
+    draft.set_raw_name("Vale");
+    let mut account = OfflineWeaponSkinAccount::default();
+    account.owned[0] = true;
+    account.loadout_codes[0] = 1;
+    draft.set_weapon_skin_account(account.clone());
+
+    let launch = draft.launch().expect("valid offline launch");
+    assert_eq!(launch.weapon_skin_account, account);
+    assert_eq!(launch.bootstrap().weapon_skin_account, account);
 }
 
 #[test]

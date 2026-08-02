@@ -76,10 +76,8 @@ fn runtime_15_scene_ecs_observer_callback_registry_uses_owner_name() {
         &observer_store,
         &[
             "use super::callback_registry::{",
-            "entity_event_callback_count",
-            "event_callback_count",
-            "lifecycle_callback_count",
-            "remove_observer_by_id",
+            "append_observer_to_bucket",
+            "remove_observer_from_bucket",
         ],
     );
     assert!(
@@ -90,10 +88,8 @@ fn runtime_15_scene_ecs_observer_callback_registry_uses_owner_name() {
         "scene ECS observer callback registry",
         &callback_registry,
         &[
-            "pub(super) fn lifecycle_callback_count",
-            "pub(super) fn event_callback_count",
-            "pub(super) fn entity_event_callback_count",
-            "pub(super) fn remove_observer_by_id",
+            "pub(super) fn append_observer_to_bucket",
+            "pub(super) fn remove_observer_from_bucket",
         ],
     );
 

@@ -556,11 +556,9 @@ fn ui_render_debug_snapshot_exports_batch_replay_data() {
         snapshot.batches[0].node_ids,
         vec![UiNodeId::new(1), UiNodeId::new(2)]
     );
-    assert!(
-        serde_json::to_string(&snapshot)
-            .unwrap()
-            .contains("draw_call_count")
-    );
+    assert!(serde_json::to_string(&snapshot)
+        .unwrap()
+        .contains("draw_call_count"));
 }
 
 #[test]
@@ -629,11 +627,9 @@ fn ui_renderer_parity_snapshot_exports_canonical_paint_and_batch_rows() {
     assert_eq!(parity.stats.resource_bound_paint_count, 1);
     assert_eq!(parity.stats.text_paint_count, 1);
     assert_eq!(parity.stats.clipped_paint_count, 2);
-    assert!(
-        serde_json::to_string(&parity)
-            .unwrap()
-            .contains("batch_key")
-    );
+    assert!(serde_json::to_string(&parity)
+        .unwrap()
+        .contains("batch_key"));
 }
 
 #[test]
@@ -753,32 +749,24 @@ fn ui_render_visualizer_snapshot_exports_paint_batch_overlay_and_overdraw_data()
     assert_eq!(snapshot.visualizer.batch_groups.len(), 1);
     assert_eq!(snapshot.visualizer.stats.paint_element_count, 2);
     assert_eq!(snapshot.visualizer.stats.overdraw_region_count, 1);
-    assert!(
-        snapshot
-            .visualizer
-            .overlays
-            .iter()
-            .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::Wireframe)
-    );
-    assert!(
-        snapshot
-            .visualizer
-            .overlays
-            .iter()
-            .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::ClipScissor)
-    );
-    assert!(
-        snapshot
-            .visualizer
-            .overlays
-            .iter()
-            .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::OverdrawHeat)
-    );
-    assert!(
-        serde_json::to_string(&snapshot.visualizer)
-            .unwrap()
-            .contains("paint_elements")
-    );
+    assert!(snapshot
+        .visualizer
+        .overlays
+        .iter()
+        .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::Wireframe));
+    assert!(snapshot
+        .visualizer
+        .overlays
+        .iter()
+        .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::ClipScissor));
+    assert!(snapshot
+        .visualizer
+        .overlays
+        .iter()
+        .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::OverdrawHeat));
+    assert!(serde_json::to_string(&snapshot.visualizer)
+        .unwrap()
+        .contains("paint_elements"));
 }
 
 #[test]
@@ -831,15 +819,13 @@ fn ui_render_visualizer_snapshot_tracks_material_resource_and_sdf_text_stats() {
         "res://fonts/debug.font.toml",
     ));
     shaped.atlas_resource = Some(atlas.clone());
-    shaped.lines[0].glyphs = vec![
-        UiShapedGlyph::new(
-            65,
-            UiTextRange { start: 0, end: 1 },
-            UiFrame::new(4.0, 6.0, 10.0, 16.0),
-            12.0,
-        )
-        .with_atlas(atlas, UiResourceUvRect::new(0.0, 0.0, 0.125, 0.125)),
-    ];
+    shaped.lines[0].glyphs = vec![UiShapedGlyph::new(
+        65,
+        UiTextRange { start: 0, end: 1 },
+        UiFrame::new(4.0, 6.0, 10.0, 16.0),
+        12.0,
+    )
+    .with_atlas(atlas, UiResourceUvRect::new(0.0, 0.0, 0.125, 0.125))];
     let mut text_element = solid_command(72, 52.0, 0.0).to_paint_element(1);
     text_element.payload = UiPaintPayload::Text {
         text: UiTextPaint::from_shaped_text(shaped, Some("#ffffff".to_string())),
@@ -863,18 +849,14 @@ fn ui_render_visualizer_snapshot_tracks_material_resource_and_sdf_text_stats() {
     assert_eq!(visualizer.text.sdf_text_count, 1);
     assert_eq!(visualizer.text.glyph_count, 1);
     assert!(visualizer.resource_bindings.len() >= 3);
-    assert!(
-        visualizer
-            .overlays
-            .iter()
-            .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::TextGlyphBounds)
-    );
-    assert!(
-        visualizer
-            .overlays
-            .iter()
-            .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::ResourceAtlas)
-    );
+    assert!(visualizer
+        .overlays
+        .iter()
+        .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::TextGlyphBounds));
+    assert!(visualizer
+        .overlays
+        .iter()
+        .any(|overlay| overlay.kind == UiRenderVisualizerOverlayKind::ResourceAtlas));
 }
 
 #[test]
@@ -909,12 +891,10 @@ fn ui_render_visualizer_overdraw_respects_clip_and_counts_stacked_elements() {
         &cache_plan,
     );
 
-    assert!(
-        visualizer
-            .overdraw_regions
-            .iter()
-            .all(|region| !region.node_ids.contains(&UiNodeId::new(84)))
-    );
+    assert!(visualizer
+        .overdraw_regions
+        .iter()
+        .all(|region| !region.node_ids.contains(&UiNodeId::new(84))));
     assert!(visualizer.overdraw_regions.iter().any(|region| {
         region.paint_count == 3
             && region.node_ids == vec![UiNodeId::new(81), UiNodeId::new(82), UiNodeId::new(83)]
@@ -1799,11 +1779,9 @@ fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
         Some(UiTextRange { start: 3, end: 4 })
     );
     assert_eq!(paint.decorations.len(), 2);
-    assert!(
-        serde_json::to_string(&paint)
-            .unwrap()
-            .contains("composition_underline")
-    );
+    assert!(serde_json::to_string(&paint)
+        .unwrap()
+        .contains("composition_underline"));
 }
 
 #[test]

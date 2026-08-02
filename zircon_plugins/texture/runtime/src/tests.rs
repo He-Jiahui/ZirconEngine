@@ -38,13 +38,11 @@ fn texture_registration_contributes_runtime_module() {
     let report = plugin_registration();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert!(
-        report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == TEXTURE_MODULE_NAME)
-    );
+    assert!(report
+        .extensions
+        .modules()
+        .iter()
+        .any(|module| module.name == TEXTURE_MODULE_NAME));
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![

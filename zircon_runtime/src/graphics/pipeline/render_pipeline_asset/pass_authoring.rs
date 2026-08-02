@@ -9,8 +9,8 @@ use crate::graphics::pipeline::declarations::{
     CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineCompileOptions,
 };
 use crate::graphics::scene::{
-    IBL_BAKE_IRRADIANCE_CUBE_PASS, IBL_BAKE_IRRADIANCE_SH9_PASS,
-    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
+    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name, IBL_BAKE_IRRADIANCE_CUBE_PASS,
+    IBL_BAKE_IRRADIANCE_SH9_PASS,
 };
 use crate::render_graph::{
     CompiledRenderGraph, ExternalResource, RenderGraphAttachmentOps, RenderGraphBuilder,
@@ -18,7 +18,7 @@ use crate::render_graph::{
 };
 
 use super::super::validation::stage_pass_descriptors;
-use super::graph_resources::{PipelineGraphResourcePlan, pipeline_graph_resources};
+use super::graph_resources::{pipeline_graph_resources, PipelineGraphResourcePlan};
 use super::resource_descriptors::{buffer_desc_for, texture_desc_for};
 
 pub(super) struct AuthoredRenderGraph {

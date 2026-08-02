@@ -1,8 +1,10 @@
-use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::asset::project::{AssetMetaEntry, PreviewState};
+use crate::asset::project::{
+    AssetMetaEntry, PreviewState, ProjectCatalogInputGeneration, ProjectCatalogInputSource,
+};
 use crate::asset::registry::AssetRegistryDiagnostic;
 use crate::asset::{
     AssetId, AssetImportContext, AssetImportError, AssetKind, AssetUri, ImportedAsset,
@@ -20,6 +22,41 @@ use super::ProjectManager;
 use crate::asset::project::manager::targeted_transaction::{
     commit_prepared_files, PreparedFileWrite, TargetedTransactionFault,
 };
+
+pub(crate) struct PreparedTargetedGeneration {
+    meta_path: PathBuf,
+    writes: Vec<PreparedFileWrite>,
+    imported: Vec<ResourceRecord>,
+    affected: Vec<ResourceRecord>,
+    ready_payloads: Vec<(ResourceRecord, ImportedAsset)>,
+}
+
+impl PreparedTargetedGeneration {
+    pub(crate) fn imported(&self) -> &[ResourceRecord] {
+        &self.imported
+    }
+
+    pub(crate) fn affected(&self) -> &[ResourceRecord] {
+        &self.affected
+    }
+
+    pub(crate) fn take_ready_payloads(&mut self) -> Vec<(ResourceRecord, ImportedAsset)> {
+        std::mem::take(&mut self.ready_payloads)
+    }
+
+    pub(crate) fn commit(self) -> Result<(), AssetImportError> {
+        let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path);
+        commit_prepared_files(self.writes, TargetedTransactionFault::None)?;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    fn commit_with_fault(self, fault: TargetedTransactionFault) -> Result<(), AssetImportError> {
+        let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path);
+        commit_prepared_files(self.writes, fault)?;
+        Ok(())
+    }
+}
 
 impl ProjectManager {
     pub(crate) fn import_targeted_source(
@@ -43,7 +80,14 @@ impl ProjectManager {
         ),
         AssetImportError,
     > {
-        self.import_targeted_source_with_fault(uri, indexed_path, TargetedTransactionFault::None)
+        let mut candidate = self.clone();
+        let mut prepared = candidate.prepare_targeted_generation(uri, indexed_path)?;
+        let imported = prepared.imported.clone();
+        let affected = prepared.affected.clone();
+        let ready_payloads = prepared.take_ready_payloads();
+        prepared.commit()?;
+        *self = candidate;
+        Ok((imported, affected, ready_payloads))
     }
 
     #[cfg(test)]
@@ -53,12 +97,12 @@ impl ProjectManager {
         indexed_path: &Path,
         file_index: usize,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
-        self.import_targeted_source_with_fault(
-            uri,
-            indexed_path,
-            TargetedTransactionFault::BeforeCommit(file_index),
-        )
-        .map(|(imported, _, _)| imported)
+        let mut candidate = self.clone();
+        let prepared = candidate.prepare_targeted_generation(uri, indexed_path)?;
+        let imported = prepared.imported.clone();
+        prepared.commit_with_fault(TargetedTransactionFault::BeforeCommit(file_index))?;
+        *self = candidate;
+        Ok(imported)
     }
 
     #[cfg(test)]
@@ -71,20 +115,18 @@ impl ProjectManager {
             .map(|_| ())
     }
 
-    fn import_targeted_source_with_fault(
+    pub(crate) fn prepare_targeted_generation(
         &mut self,
         uri: &AssetUri,
         indexed_path: &Path,
-        transaction_fault: TargetedTransactionFault,
-    ) -> Result<
-        (
-            Vec<ResourceRecord>,
-            Vec<ResourceRecord>,
-            Vec<(ResourceRecord, ImportedAsset)>,
-        ),
-        AssetImportError,
-    > {
+    ) -> Result<PreparedTargetedGeneration, AssetImportError> {
         let source = self.prepare_targeted_import_source(uri, indexed_path)?;
+        let replaced_ids = self
+            .asset_registry
+            .source_entries(&source.uri)
+            .into_iter()
+            .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
+            .collect::<HashSet<_>>();
         let source_bytes = source_bytes_for_import(&source)?;
         let source_digest = super::super::hash_bytes::hash_bytes(&source_bytes);
         let source_mtime_unix_ms = source_mtime_unix_ms_for_import(&source)?;
@@ -99,6 +141,7 @@ impl ProjectManager {
             fallback_kind,
         )?;
         let previous_meta = meta.clone();
+        let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
         meta.unit = source.unit;
         meta.included_files = source.included_files.clone();
         let import_settings =
@@ -130,7 +173,13 @@ impl ProjectManager {
         crate::asset::registry::dependency_extractors::append_handwritten_dependencies(
             &mut outcome,
         );
-        super::append_shader_import_path_conflict_diagnostics(&mut outcome, &mut HashMap::new());
+        let mut shader_import_paths = self
+            .shader_import_dependencies
+            .import_path_owners_excluding(&replaced_ids);
+        super::append_shader_import_path_conflict_diagnostics(
+            &mut outcome,
+            &mut shader_import_paths,
+        );
 
         prepare_meta_entries(
             &mut meta,
@@ -142,7 +191,7 @@ impl ProjectManager {
             descriptor.as_ref(),
             &outcome.entries,
         )?;
-        let (asset_registry, affected_uuids) = self
+        let (mut asset_registry, mut affected_uuids) = self
             .asset_registry
             .prepare_source_replacement_generation(&mut meta)?;
 
@@ -176,6 +225,18 @@ impl ProjectManager {
             imported.push(record);
         }
 
+        let (shader_import_dependencies, shader_affected_ids) = self
+            .shader_import_dependencies
+            .prepare_source_replacement(&replaced_ids, &ready_payloads);
+        let dependency_changes = shader_affected_ids.into_iter().map(|id| {
+            (
+                id,
+                self.shader_import_dependencies.dependency_locators(id),
+                shader_import_dependencies.dependency_locators(id),
+            )
+        });
+        affected_uuids.extend(asset_registry.retarget_runtime_dependency_paths(dependency_changes));
+
         let mut registry = self.registry.clone();
         for previous in self.asset_registry.source_entries(&source.uri) {
             registry.remove_by_locator(previous.path());
@@ -194,9 +255,21 @@ impl ProjectManager {
                 *record = resolved;
             }
         }
+        let root_direct_references = ready_payloads
+            .iter()
+            .find(|(record, _)| record.primary_locator().label().is_none())
+            .map(|(_, asset)| asset.direct_references())
+            .unwrap_or_default();
+        let catalog_input = ProjectCatalogInputSource::new(
+            source.path.clone(),
+            source.meta_path.clone(),
+            meta.clone(),
+            source_mtime_unix_ms,
+            root_direct_references,
+        );
 
         writes.push(PreparedFileWrite {
-            path: source.meta_path,
+            path: source.meta_path.clone(),
             bytes: meta.to_pretty_bytes()?,
         });
         let persisted = asset_registry.prepare_persistence(self.paths.registry_root())?;
@@ -204,15 +277,31 @@ impl ProjectManager {
             path: persisted.path,
             bytes: persisted.bytes,
         });
-        commit_prepared_files(writes, transaction_fault)?;
-
         self.registry = registry;
         self.asset_registry = asset_registry;
-        let affected = affected_uuids
+        self.shader_import_dependencies = shader_import_dependencies;
+        let mut catalog_inputs = self.catalog_input_generation.input_sources();
+        catalog_inputs.insert(root_asset_id, catalog_input);
+        self.catalog_input_generation = ProjectCatalogInputGeneration::publish(
+            &self.catalog_input_generation,
+            self.paths.root(),
+            &self.manifest,
+            &self.package_assets,
+            self.registry.values().cloned(),
+            catalog_inputs,
+        );
+        let mut affected = affected_uuids
             .into_iter()
             .filter_map(|uuid| self.registry.get(AssetId::from_asset_uuid(uuid)).cloned())
-            .collect();
-        Ok((imported, affected, ready_payloads))
+            .collect::<Vec<_>>();
+        affected.sort_by(|left, right| left.primary_locator.cmp(&right.primary_locator));
+        Ok(PreparedTargetedGeneration {
+            meta_path: source.meta_path,
+            writes,
+            imported,
+            affected,
+            ready_payloads,
+        })
     }
 }
 
@@ -282,7 +371,7 @@ fn prepare_meta_entries(
     Ok(())
 }
 
-fn refresh_runtime_dependency_closure(
+pub(super) fn refresh_runtime_dependency_closure(
     registry: &mut ResourceRegistry,
     asset_registry: &crate::asset::registry::AssetRegistryIndex,
     affected_uuids: &HashSet<crate::asset::AssetUuid>,

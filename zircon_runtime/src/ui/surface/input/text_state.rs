@@ -64,6 +64,28 @@ pub(super) fn editable_text_state_for_node(
     })
 }
 
+pub(super) fn editable_text_input_is_secure(surface: &UiSurface, target: UiNodeId) -> bool {
+    let Some(metadata) = surface
+        .tree
+        .nodes
+        .get(&target)
+        .and_then(|node| node.template_metadata.as_ref())
+    else {
+        return false;
+    };
+    is_editable_text_component(metadata)
+        && bool_attribute_any(metadata, &["secure", "secure_input", "secureInput"]).unwrap_or(false)
+}
+
+pub(super) fn is_editable_text_input(surface: &UiSurface, target: UiNodeId) -> bool {
+    surface
+        .tree
+        .nodes
+        .get(&target)
+        .and_then(|node| node.template_metadata.as_ref())
+        .is_some_and(is_editable_text_component)
+}
+
 pub(super) fn editable_value_property(surface: &UiSurface, target: UiNodeId) -> Option<String> {
     let metadata = surface
         .tree

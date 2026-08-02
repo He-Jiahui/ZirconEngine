@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId, ShaderPassType, ShaderQualityTier,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId, SHADING_MODEL_ID_STANDARD_PBR,
+    ShaderFeatureBits, ShaderPassType, ShaderPipelineDiagnosticStage, ShaderQualityTier,
     ShaderVariantKey, ShaderVariantMissReport,
 };
 use crate::graphics::scene::resources::PipelineKey;
@@ -25,12 +26,20 @@ impl MeshPipelineVariantKey {
         pipeline_key: &PipelineKey,
         geometry_source: GeometrySourceId,
         shader_quality: ShaderQualityTier,
+        environment_only_pbr_base_profile: bool,
     ) -> Self {
         let mut shader_variant_key = pipeline_key.shader_variant_key_for_geometry(
             shader_pass_type_for_mesh_pipeline_kind(kind),
             geometry_source,
             DEFAULT_MESH_SHADER_VARIANT_PLATFORM_TOKEN,
         );
+        if environment_only_pbr_base_profile
+            && supports_environment_only_pbr_base_profile(kind, pipeline_key)
+        {
+            shader_variant_key.features = shader_variant_key.features.union(
+                ShaderFeatureBits::new(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR),
+            );
+        }
         shader_variant_key.quality = shader_quality;
         Self {
             kind,
@@ -57,6 +66,7 @@ pub(crate) struct MeshPipelineVariantRegistry {
     variant_ids: HashMap<MeshPipelineVariantKey, MeshPipelineVariantId>,
     variant_keys: Vec<MeshPipelineVariantKey>,
     miss_report: ShaderVariantMissReport,
+    environment_only_pbr_base_profile: bool,
 }
 
 pub(crate) trait MeshPipelineVariantResolver {
@@ -91,7 +101,13 @@ impl MeshPipelineVariantRegistry {
         geometry_source: GeometrySourceId,
         shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
-        let key = MeshPipelineVariantKey::new(kind, pipeline_key, geometry_source, shader_quality);
+        let key = MeshPipelineVariantKey::new(
+            kind,
+            pipeline_key,
+            geometry_source,
+            shader_quality,
+            self.environment_only_pbr_base_profile,
+        );
         if let Some(id) = self.variant_ids.get(&key) {
             self.miss_report.record_memory_hit(key.shader_variant_key());
             return *id;
@@ -124,6 +140,14 @@ impl MeshPipelineVariantRegistry {
         self.miss_report = ShaderVariantMissReport::default();
     }
 
+    pub(crate) fn enable_environment_only_pbr_base_profile(&mut self) {
+        self.environment_only_pbr_base_profile = true;
+    }
+
+    pub(crate) fn disable_environment_only_pbr_base_profile(&mut self) {
+        self.environment_only_pbr_base_profile = false;
+    }
+
     pub(crate) fn record_disk_hit(&mut self, key: &ShaderVariantKey) {
         self.miss_report.record_disk_hit(key);
     }
@@ -136,6 +160,16 @@ impl MeshPipelineVariantRegistry {
         self.miss_report.record_disk_error(key);
     }
 
+    pub(crate) fn record_pipeline_diagnostic(
+        &mut self,
+        key: &ShaderVariantKey,
+        stage: ShaderPipelineDiagnosticStage,
+        message: impl Into<String>,
+    ) {
+        self.miss_report
+            .record_pipeline_diagnostic(key, stage, message);
+    }
+
     pub(crate) fn record_compile_miss(&mut self, key: &ShaderVariantKey) {
         self.miss_report.record_compile_miss(key);
     }
@@ -144,6 +178,23 @@ impl MeshPipelineVariantRegistry {
     pub(crate) fn len(&self) -> usize {
         self.variant_keys.len()
     }
+}
+
+fn supports_environment_only_pbr_base_profile(
+    kind: MeshPassPipelineKind,
+    pipeline_key: &PipelineKey,
+) -> bool {
+    kind == MeshPassPipelineKind::Base
+        && pipeline_key.uses_fallback_shader()
+        && pipeline_key.shading_model_id == SHADING_MODEL_ID_STANDARD_PBR
+        && !pipeline_key.is_transparent()
+        && !pipeline_key.is_alpha_mask()
+        && !pipeline_key.unlit
+        && !pipeline_key.receive_shadows
+        && !pipeline_key.pbr_clearcoat
+        && !pipeline_key.pbr_anisotropy
+        && !pipeline_key.pbr_transmission
+        && !pipeline_key.volumetric_fog
 }
 
 fn shader_pass_type_for_mesh_pipeline_kind(kind: MeshPassPipelineKind) -> ShaderPassType {
@@ -207,6 +258,97 @@ mod tests {
         assert_eq!(
             registry.key_for_variant(first).map(|key| key.kind()),
             Some(MeshPassPipelineKind::Base)
+        );
+    }
+
+    #[test]
+    fn environment_only_profile_specializes_only_compatible_base_variants() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        let generic =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        assert!(
+            !registry
+                .key_for_variant(generic)
+                .expect("generic Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+
+        registry.enable_environment_only_pbr_base_profile();
+        let specialized =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        assert_ne!(specialized, generic);
+        assert!(
+            registry
+                .key_for_variant(specialized)
+                .expect("environment-only Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+
+        let gbuffer = registry.resolve_variant(
+            MeshPassPipelineKind::GBuffer,
+            &key,
+            ShaderQualityTier::Medium,
+        );
+        assert!(
+            !registry
+                .key_for_variant(gbuffer)
+                .expect("environment-only GBuffer variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+
+        let mut shadow_receiver = key;
+        shadow_receiver.receive_shadows = true;
+        let shadow_receiver = registry.resolve_variant(
+            MeshPassPipelineKind::Base,
+            &shadow_receiver,
+            ShaderQualityTier::Medium,
+        );
+        assert!(
+            !registry
+                .key_for_variant(shadow_receiver)
+                .expect("shadow-receiving Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+    }
+
+    #[test]
+    fn environment_only_profile_falls_back_to_generic_after_local_provider_upgrade() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        registry.enable_environment_only_pbr_base_profile();
+        let specialized =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        registry.disable_environment_only_pbr_base_profile();
+        let generic =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+
+        assert_ne!(generic, specialized);
+        assert!(
+            registry
+                .key_for_variant(specialized)
+                .expect("specialized Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+        assert!(
+            !registry
+                .key_for_variant(generic)
+                .expect("generic Base variant key after provider upgrade")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
         );
     }
 

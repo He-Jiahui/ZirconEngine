@@ -1,11 +1,11 @@
 use crate::core::framework::text::TextDirection;
 use crate::text::shaping::{resolve_bidi_base_direction, TextShapeRunProvider};
-use crate::text::{InlineObjectRef, RichParseResult, TextStyle};
+use crate::text::{InlineObjectRef, TextStyle};
 use unicode_segmentation::UnicodeSegmentation;
 
 use super::advance_index::{GraphemeAdvanceIndex, GraphemeAdvanceMetric};
 use super::line_break::{corrected_index_advance_with_provider, corrected_metric_ranges};
-use super::{measured_grapheme_widths_with_provider, resolve_rich_run_style};
+use super::{measured_grapheme_widths_with_provider, resolve_rich_run_style, RichTextLayoutSource};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RichAdvanceIndex {
@@ -14,24 +14,25 @@ pub(crate) struct RichAdvanceIndex {
 }
 
 impl RichAdvanceIndex {
-    pub(crate) fn new<P, F>(
-        parsed: &RichParseResult,
+    pub(crate) fn new<S, P, F>(
+        source: &S,
         base_style: &TextStyle,
         provider: &mut P,
         mut inline_metrics: F,
     ) -> Self
     where
+        S: RichTextLayoutSource + ?Sized,
         P: TextShapeRunProvider + ?Sized,
         F: FnMut(&InlineObjectRef, &TextStyle) -> (f32, f32),
     {
-        let spans = source_spans(parsed, base_style);
+        let spans = source_spans(source, base_style);
         let mut metrics = Vec::new();
         let mut text_spans = Vec::new();
         for span in spans {
             if let Some(inline) = span.inline {
                 append_inline_metrics(
                     &mut metrics,
-                    &parsed.text,
+                    source.text(),
                     span.start,
                     span.end,
                     inline_metrics(inline, &span.style),
@@ -39,7 +40,7 @@ impl RichAdvanceIndex {
             } else {
                 append_text_metrics(
                     &mut metrics,
-                    &parsed.text,
+                    source.text(),
                     span.start,
                     span.end,
                     &span.style,
@@ -221,11 +222,17 @@ struct SourceSpan<'a> {
     inline: Option<&'a InlineObjectRef>,
 }
 
-fn source_spans<'a>(parsed: &'a RichParseResult, base_style: &TextStyle) -> Vec<SourceSpan<'a>> {
-    let mut spans = Vec::with_capacity(parsed.runs.len().saturating_add(1));
+fn source_spans<'a, S>(source: &'a S, base_style: &TextStyle) -> Vec<SourceSpan<'a>>
+where
+    S: RichTextLayoutSource + ?Sized,
+{
+    let mut spans = Vec::with_capacity(source.run_count().saturating_add(1));
     let mut cursor = 0;
-    for run in &parsed.runs {
-        let Some((run_start, run_end)) = valid_source_range(run.byte_range, parsed.text.len())
+    for index in 0..source.run_count() {
+        let Some(run) = source.run(index) else {
+            continue;
+        };
+        let Some((run_start, run_end)) = valid_source_range(run.byte_range, source.text().len())
         else {
             continue;
         };
@@ -236,8 +243,8 @@ fn source_spans<'a>(parsed: &'a RichParseResult, base_style: &TextStyle) -> Vec<
             push_text_span(&mut spans, cursor, run_start, base_style.clone());
         }
         let start = run_start.max(cursor);
-        let style = resolve_rich_run_style(base_style, &run.style);
-        if let Some(inline) = run.inline.as_ref() {
+        let style = resolve_rich_run_style(base_style, run.style);
+        if let Some(inline) = run.inline {
             spans.push(SourceSpan {
                 start,
                 end: run_end,
@@ -249,8 +256,8 @@ fn source_spans<'a>(parsed: &'a RichParseResult, base_style: &TextStyle) -> Vec<
         }
         cursor = run_end;
     }
-    if cursor < parsed.text.len() {
-        push_text_span(&mut spans, cursor, parsed.text.len(), base_style.clone());
+    if cursor < source.text().len() {
+        push_text_span(&mut spans, cursor, source.text().len(), base_style.clone());
     }
     spans
 }

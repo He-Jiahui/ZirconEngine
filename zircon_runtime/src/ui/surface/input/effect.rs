@@ -2,6 +2,7 @@ mod component_event;
 mod drag_drop;
 mod focus_pointer;
 mod host_request;
+mod ime_lifecycle;
 mod link;
 mod navigation;
 mod node;
@@ -14,6 +15,7 @@ use component_event::{apply_component_event_effect, component_event_report_for_e
 use drag_drop::apply_drag_drop_effect;
 use focus_pointer::apply_focus_pointer_effect;
 use host_request::host_request_for_effect;
+use ime_lifecycle::append_focus_input_method_lifecycle;
 use link::apply_link_activation_effect;
 use navigation::apply_navigation_effect;
 use popup_tooltip::apply_popup_tooltip_effect;
@@ -116,6 +118,7 @@ fn apply_dispatch_effect_at_index(
             if let Some(report) = component_event_report_for_effect(&effect) {
                 result.component_events.push(report);
             }
+            append_focus_input_method_lifecycle(surface, result, effect_index);
         }
         Err(error) => {
             result.rejected_effects.push(UiDispatchRejectedEffect {

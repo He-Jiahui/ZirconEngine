@@ -1,5 +1,6 @@
 use super::super::support::*;
 use super::support::*;
+use crate::core::extension::FieldEditorInstance;
 use crate::ui::retained_host::HostInvalidationMask;
 use crate::ui::workbench::snapshot::{
     InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
@@ -12,7 +13,10 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
     bridge
-        .sync_scene_and_inspector(&[], Some(&inspector_with_component_properties()))
+        .sync_scene_and_inspector(
+            &crate::ui::workbench::snapshot::SceneEntries::default(),
+            Some(&inspector_with_component_properties()),
+        )
         .unwrap();
 
     let effects = dispatch_componentized_workbench_surface_control_edited(
@@ -24,9 +28,11 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     .expect("inspector property edit route should be handled")
     .unwrap();
 
-    assert!(effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!effects.render_dirty);
     assert!(!effects.presentation_dirty);
     assert_eq!(
@@ -56,9 +62,11 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     .expect("inspector property commit route should be handled")
     .unwrap();
 
-    assert!(commit_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        commit_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert_eq!(
         control_string(&bridge, "WorkbenchMeshRow", "value").as_deref(),
         Some("false")
@@ -77,9 +85,11 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     .expect("virtual inspector property edit route should be handled")
     .unwrap();
 
-    assert!(virtual_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        virtual_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert_eq!(
         control_string(&bridge, "WorkbenchComponentPropertyVirtualRow05", "value").as_deref(),
         Some("2")
@@ -96,13 +106,57 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
 }
 
 #[test]
+fn componentized_workbench_inspector_property_edit_rejects_disabled_customizations() {
+    let _guard = env_lock().lock().unwrap();
+
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    let mut inspector = inspector_with_component_properties();
+    inspector.plugin_components[0].customization_available = false;
+    bridge
+        .sync_scene_and_inspector(
+            &crate::ui::workbench::snapshot::SceneEntries::default(),
+            Some(&inspector),
+        )
+        .unwrap();
+
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchMeshRow",
+        "inspector_property_editable"
+    ));
+
+    let effects = dispatch_componentized_workbench_surface_control_edited(
+        &mut bridge,
+        "WorkbenchMeshRow",
+        "Inspector/ComponentProperty01Edit",
+        "Visible false",
+    )
+    .expect("disabled customization edit route should be handled")
+    .unwrap();
+
+    assert!(
+        !effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchMeshRow", "value").as_deref(),
+        Some("true")
+    );
+}
+
+#[test]
 fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
     let _guard = env_lock().lock().unwrap();
 
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
     bridge
-        .sync_scene_and_inspector(&[], Some(&inspector_with_component_properties()))
+        .sync_scene_and_inspector(
+            &crate::ui::workbench::snapshot::SceneEntries::default(),
+            Some(&inspector_with_component_properties()),
+        )
         .unwrap();
 
     let position_x = bridge
@@ -127,9 +181,11 @@ fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
     .expect("position axis edit route should be handled")
     .unwrap();
 
-    assert!(position_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        position_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!position_effects.render_dirty);
     assert!(!position_effects.presentation_dirty);
     assert_eq!(
@@ -158,9 +214,11 @@ fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
     )
     .expect("rotation axis commit route should be handled")
     .unwrap();
-    assert!(rotation_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        rotation_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert_eq!(
         control_string(&bridge, "WorkbenchTransformRotationY", "value").as_deref(),
         Some("45 deg")
@@ -225,9 +283,11 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
     .expect("ability module field edit route should be handled")
     .unwrap();
 
-    assert!(ability_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        ability_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert!(!ability_effects.render_dirty);
     assert!(!ability_effects.presentation_dirty);
     assert_eq!(
@@ -260,9 +320,11 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
     )
     .expect("render module field commit route should be handled")
     .unwrap();
-    assert!(render_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        render_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert_eq!(
         control_string(&bridge, "WorkbenchRenderPipelineField", "value").as_deref(),
         Some("ForwardPlus.rp")
@@ -280,9 +342,11 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
     )
     .expect("known module edit binding should be swallowed on the wrong control")
     .unwrap();
-    assert!(!ignored_effects
-        .dirty_domains()
-        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(
+        !ignored_effects
+            .dirty_domains()
+            .contains(HostInvalidationMask::PAINT_ONLY)
+    );
     assert_eq!(
         control_string(&bridge, "WorkbenchAbilityNameField", "value").as_deref(),
         Some("GA_Dash_Preview")
@@ -299,12 +363,12 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),
             plugin_id: "zircon.core".to_string(),
-            drawer_available: false,
-            drawer_ui_document: None,
-            drawer_controller: None,
-            drawer_template_id: None,
-            drawer_data_root: None,
-            drawer_bindings: Vec::new(),
+            customization_available: true,
+            customization_ui_document: None,
+            customization_controller: None,
+            customization_template_id: None,
+            customization_data_root: None,
+            customization_bindings: Vec::new(),
             diagnostic: None,
             properties: vec![
                 InspectorPluginComponentPropertySnapshot {
@@ -314,6 +378,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
                     value: "true".to_string(),
                     value_kind: "bool".to_string(),
                     editable: true,
+                    field_editor: FieldEditorInstance::automatic(),
                 },
                 InspectorPluginComponentPropertySnapshot {
                     field_id: "cast_shadows".to_string(),
@@ -322,6 +387,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
                     value: "false".to_string(),
                     value_kind: "bool".to_string(),
                     editable: true,
+                    field_editor: FieldEditorInstance::automatic(),
                 },
                 InspectorPluginComponentPropertySnapshot {
                     field_id: "receive_shadows".to_string(),
@@ -330,6 +396,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
                     value: "true".to_string(),
                     value_kind: "bool".to_string(),
                     editable: true,
+                    field_editor: FieldEditorInstance::automatic(),
                 },
                 InspectorPluginComponentPropertySnapshot {
                     field_id: "material_slot".to_string(),
@@ -338,6 +405,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
                     value: "0".to_string(),
                     value_kind: "u32".to_string(),
                     editable: true,
+                    field_editor: FieldEditorInstance::automatic(),
                 },
                 InspectorPluginComponentPropertySnapshot {
                     field_id: "lightmap_index".to_string(),
@@ -346,6 +414,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
                     value: "1".to_string(),
                     value_kind: "u32".to_string(),
                     editable: true,
+                    field_editor: FieldEditorInstance::automatic(),
                 },
             ],
         }],

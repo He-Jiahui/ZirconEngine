@@ -73,28 +73,34 @@ fn render_extract_prepare_flushes_parent_reorder_and_active_changes() {
         .unwrap();
     world.set_active_self(second_parent, false).unwrap();
 
-    assert!(world
-        .nodes()
-        .iter()
-        .find(|node| node.id == child)
-        .is_some_and(|node| node.parent == Some(first_parent)));
-    assert!(world
-        .node_records()
-        .iter()
-        .find(|node| node.id == child)
-        .is_some_and(|node| node.parent == Some(second_parent)));
+    assert!(
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.id == child)
+            .is_some_and(|node| node.parent == Some(first_parent))
+    );
+    assert!(
+        world
+            .node_records()
+            .iter()
+            .find(|node| node.id == child)
+            .is_some_and(|node| node.parent == Some(second_parent))
+    );
     assert_eq!(world.active_in_hierarchy(child), Some(false));
     assert_eq!(
         world.world_transform(child).unwrap().translation,
         Vec3::new(12.0, 0.0, 0.0)
     );
     assert!(world.has_pending_scene_systems());
-    assert!(world
-        .to_render_extract()
-        .scene
-        .meshes
-        .iter()
-        .all(|mesh| mesh.node_id != child));
+    assert!(
+        world
+            .to_render_extract()
+            .scene
+            .meshes
+            .iter()
+            .all(|mesh| mesh.node_id != child)
+    );
     assert!(world.has_pending_scene_systems());
 
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
@@ -147,11 +153,13 @@ fn canonical_render_frame_extract_populates_scene_sections_directly() {
     }));
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
     assert!(extract.geometry.virtual_geometry.is_some());
-    assert!(extract
-        .lighting
-        .hybrid_global_illumination
-        .as_ref()
-        .is_some_and(|hybrid_gi| !hybrid_gi.enabled));
+    assert!(
+        extract
+            .lighting
+            .hybrid_global_illumination
+            .as_ref()
+            .is_some_and(|hybrid_gi| !hybrid_gi.enabled)
+    );
     assert_eq!(extract.post_process.display_mode, DisplayMode::WireOnly);
     assert!(!extract.post_process.preview.lighting_enabled);
     assert!(!extract.post_process.preview.skybox_enabled);
@@ -159,11 +167,13 @@ fn canonical_render_frame_extract_populates_scene_sections_directly() {
         extract.visibility.renderables.len(),
         extract.geometry.meshes.len()
     );
-    assert!(extract
-        .visibility
-        .static_entities
-        .iter()
-        .any(|entity| *entity == mesh));
+    assert!(
+        extract
+            .visibility
+            .static_entities
+            .iter()
+            .any(|entity| *entity == mesh)
+    );
     assert!(!world.has_pending_scene_systems());
 }
 
@@ -216,16 +226,20 @@ fn prepared_render_frame_extract_queues_meshes_from_mesh_renderer_alpha_hints() 
             && input.material_alpha_mode == RenderMaterialAlphaMode::Blend
             && input.depth == 9.0
     }));
-    assert!(extract
-        .geometry
-        .phase_queue
-        .items_for_phase(RenderPhase::AlphaMask3d)
-        .any(|item| item.entity == alpha_mask_mesh));
-    assert!(extract
-        .geometry
-        .phase_queue
-        .items_for_phase(RenderPhase::Transparent3d)
-        .any(|item| item.entity == transparent_mesh));
+    assert!(
+        extract
+            .geometry
+            .phase_queue
+            .items_for_phase(RenderPhase::AlphaMask3d)
+            .any(|item| item.entity == alpha_mask_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .phase_queue
+            .items_for_phase(RenderPhase::Transparent3d)
+            .any(|item| item.entity == transparent_mesh)
+    );
 }
 
 #[test]
@@ -243,26 +257,34 @@ fn render_extract_filters_meshes_by_active_camera_layers() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == visible_mesh));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .all(|mesh| mesh.node_id != hidden_mesh));
-    assert!(extract.geometry.meshes.iter().all(|mesh| mesh
-        .common
-        .layer_mask
-        .to_scene_schema_v1_mask_lossy()
-        & 0b0010
-        != 0));
-    assert!(extract
-        .view
-        .selected_camera_layers()
-        .intersects_scene_schema_v1_mask(0b0010));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == visible_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .all(|mesh| mesh.node_id != hidden_mesh)
+    );
+    assert!(
+        extract.geometry.meshes.iter().all(|mesh| mesh
+            .common
+            .layer_mask
+            .to_scene_schema_v1_mask_lossy()
+            & 0b0010
+            != 0)
+    );
+    assert!(
+        extract
+            .view
+            .selected_camera_layers()
+            .intersects_scene_schema_v1_mask(0b0010)
+    );
 }
 
 #[test]
@@ -283,20 +305,26 @@ fn explicit_render_camera_snapshot_layers_override_scene_camera_layers() {
         },
     ));
 
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == visible_mesh));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .all(|mesh| mesh.node_id != hidden_mesh));
-    assert!(extract
-        .view
-        .selected_camera_layers()
-        .intersects_scene_schema_v1_mask(0b0100));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == visible_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .all(|mesh| mesh.node_id != hidden_mesh)
+    );
+    assert!(
+        extract
+            .view
+            .selected_camera_layers()
+            .intersects_scene_schema_v1_mask(0b0100)
+    );
 }
 
 #[test]

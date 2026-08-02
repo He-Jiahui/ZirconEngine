@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "text")]
+use crate::asset::assets::CompositeFontDescriptor;
 use crate::asset::{
     FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceMetrics,
     FontAssetFaceStyle, FontAssetFamilyMember, FontAssetLineMetrics, FontAssetMetadata,
     FontAssetParsedFace, FontAssetRenderStrategy, FontAssetSourceFormat, FontAssetVariableInstance,
     FontAssetVariationAxis, FontAssetVariationCoord,
 };
-#[cfg(feature = "text")]
-use crate::text::CompositeFontDescriptor;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 /// Bincode-safe font cache payload. Authoring serde attributes must not decide

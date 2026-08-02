@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::preferred_host_to_view_host::preferred_host_to_view_host;
+use super::workbench_slot_to_view_host::workbench_slot_to_view_host;
 use super::{ViewDescriptorId, ViewInstance, ViewInstanceId, ViewRegistry};
 
 impl ViewRegistry {
@@ -36,7 +36,7 @@ impl ViewRegistry {
             title: descriptor.default_title.clone(),
             serializable_payload: Value::Null,
             dirty: false,
-            host: preferred_host_to_view_host(descriptor.preferred_host),
+            host: workbench_slot_to_view_host(descriptor.workbench_slot),
         };
 
         if !descriptor.multi_instance {

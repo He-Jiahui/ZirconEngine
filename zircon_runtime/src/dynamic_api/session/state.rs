@@ -34,12 +34,13 @@ use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::RuntimeFrameDemand;
 use super::scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
-use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
+use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult, DEFAULT_VIEWPORT};
 
 const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
 
 #[derive(Default)]
 pub(super) struct RuntimeInputDiagnostics {
+    viewport_resize_count: u64,
     pointer_move_count: u64,
     mouse_button_press_count: u64,
     mouse_button_release_count: u64,
@@ -48,6 +49,10 @@ pub(super) struct RuntimeInputDiagnostics {
 }
 
 impl RuntimeInputDiagnostics {
+    fn record_viewport_resize(&mut self) {
+        self.viewport_resize_count = self.viewport_resize_count.saturating_add(1);
+    }
+
     fn record_pointer_move(&mut self) {
         self.pointer_move_count = self.pointer_move_count.saturating_add(1);
     }
@@ -70,6 +75,7 @@ impl RuntimeInputDiagnostics {
 
     pub(super) fn snapshot(&self) -> RuntimeInputDiagnosticsSnapshot {
         RuntimeInputDiagnosticsSnapshot {
+            viewport_resize_count: self.viewport_resize_count,
             pointer_move_count: self.pointer_move_count,
             mouse_button_press_count: self.mouse_button_press_count,
             mouse_button_release_count: self.mouse_button_release_count,
@@ -217,7 +223,7 @@ impl RuntimeDynamicSession {
         let requests = input_manager
             .drain_ime_host_requests()
             .into_iter()
-            .map(runtime_ime_host_request)
+            .map(|request| runtime_ime_host_request(request, DEFAULT_VIEWPORT))
             .map(ZrRuntimeHostRequestV1::ime)
             .chain(
                 input_manager
@@ -260,6 +266,10 @@ impl RuntimeDynamicSession {
 
     pub(super) fn record_submitted_pointer_move(&mut self) {
         self.input_diagnostics.record_pointer_move();
+    }
+
+    pub(super) fn record_viewport_resize(&mut self) {
+        self.input_diagnostics.record_viewport_resize();
     }
 
     pub(super) fn record_submitted_mouse_button_press(&mut self) {
@@ -375,6 +385,7 @@ mod tests {
     fn input_diagnostics_accumulate_successfully_submitted_product_events() {
         let mut diagnostics = RuntimeInputDiagnostics::default();
 
+        diagnostics.record_viewport_resize();
         diagnostics.record_pointer_move();
         diagnostics.record_mouse_button_press();
         diagnostics.record_mouse_button_release();
@@ -384,6 +395,7 @@ mod tests {
         assert_eq!(
             diagnostics.snapshot(),
             zircon_runtime_interface::RuntimeInputDiagnosticsSnapshot {
+                viewport_resize_count: 1,
                 pointer_move_count: 1,
                 mouse_button_press_count: 1,
                 mouse_button_release_count: 1,

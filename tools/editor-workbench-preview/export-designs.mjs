@@ -1,8 +1,16 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
 import { DESIGNS, HEIGHT, OUTPUT_DIR, WIDTH } from "./design-manifest.mjs";
+import {
+  SCREENSHOT_CHANNEL,
+  SCREENSHOT_SELECTOR,
+  SCREENSHOT_TIMEOUT_MS,
+  SCREENSHOT_WAIT_MS,
+  writeExportEvidence,
+} from "./export-evidence.mjs";
 import {
   npmConfigDesignArgs,
   parseDesignSelection,
@@ -36,51 +44,53 @@ if (!shouldCaptureSheet && selectedDesigns.length === 0) {
 
   try {
     await waitForServer(baseUrl);
-    if (shouldCaptureSheet) {
-      const previewSheet = resolve(outputDir, "preview-sheet.png");
-      runScreenshot(`${baseUrl}/design.html?design=sheet`, previewSheet);
-    }
-
-    for (const design of selectedDesigns) {
-      const target = resolve(outputDir, design.output);
-      runScreenshot(`${baseUrl}/design.html?design=${encodeURIComponent(design.id)}`, target);
-    }
+    await captureSelectedDesigns(baseUrl, outputDir, shouldCaptureSheet, selectedDesigns);
 
     await writeStyleNote(outputDir);
+    if (shouldCaptureSheet && selectedDesigns.length === DESIGNS.length) {
+      await writeExportEvidence({
+        rootDir,
+        outputDir,
+        outputNames: [...DESIGNS.map((design) => design.output), "preview-sheet.png"],
+        width: WIDTH,
+        height: HEIGHT,
+      });
+    } else {
+      console.log("Skipped EXPORT-EVIDENCE.json update; a complete design export is required.");
+    }
   } finally {
     await stopServer(server);
   }
 }
 
-function runScreenshot(url, target) {
-  const args = [
-    "playwright",
-    "screenshot",
-    "--channel",
-    "msedge",
-    "--viewport-size",
-    `${WIDTH},${HEIGHT}`,
-    "--wait-for-selector",
-    "#design-root > *",
-    "--wait-for-timeout",
-    "250",
-    "--timeout",
-    "120000",
-    url,
-    target,
-  ];
-
-  const command = process.platform === "win32" ? process.execPath : "npx";
-  const commandArgs =
-    process.platform === "win32" ? [resolve(dirname(process.execPath), "node_modules/npm/bin/npx-cli.js"), ...args] : args;
-  const result = spawnSync(command, commandArgs, {
-    cwd: rootDir,
-    stdio: "inherit",
-  });
-  if (result.status !== 0) {
-    const reason = result.error ? `: ${result.error.message}` : "";
-    throw new Error(`screenshot failed for ${url}${reason}`);
+async function captureSelectedDesigns(baseUrl, dir, captureSheet, designs) {
+  if (!captureSheet && designs.length === 0) {
+    return;
   }
+
+  const browser = await chromium.launch({ channel: SCREENSHOT_CHANNEL });
+  try {
+    const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
+    if (captureSheet) {
+      await runScreenshot(page, `${baseUrl}/design.html?design=sheet`, resolve(dir, "preview-sheet.png"));
+    }
+    for (const design of designs) {
+      await runScreenshot(
+        page,
+        `${baseUrl}/design.html?design=${encodeURIComponent(design.id)}`,
+        resolve(dir, design.output),
+      );
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+async function runScreenshot(page, url, target) {
+  await page.goto(url, { waitUntil: "load", timeout: SCREENSHOT_TIMEOUT_MS });
+  await page.locator(SCREENSHOT_SELECTOR).waitFor({ state: "visible", timeout: SCREENSHOT_TIMEOUT_MS });
+  await page.waitForTimeout(SCREENSHOT_WAIT_MS);
+  await page.screenshot({ path: target });
 }
 
 async function waitForServer(url) {

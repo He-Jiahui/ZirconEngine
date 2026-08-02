@@ -1,5 +1,6 @@
 pub(super) const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
 
+#[cfg(test)]
 pub(super) fn script_binding_property_matches(
     bindings: &serde_json::Value,
     property: &str,
@@ -35,22 +36,6 @@ pub(super) fn apply_heal_to_script_health(
     update_script_health(bindings, |current| (current + amount).min(max_health))
 }
 
-pub(super) fn script_binding_number(bindings: &serde_json::Value, property: &str) -> Option<f64> {
-    bindings.as_array()?.iter().find_map(|binding| {
-        if !binding
-            .get("enabled")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(true)
-        {
-            return None;
-        }
-        binding
-            .get("properties")
-            .and_then(|properties| properties.get(property))
-            .and_then(serde_json::Value::as_f64)
-    })
-}
-
 fn update_script_health(
     bindings: &mut serde_json::Value,
     update: impl FnOnce(f64) -> f64,
@@ -80,6 +65,7 @@ fn update_script_health(
     None
 }
 
+#[cfg(test)]
 fn json_value_matches(value: &serde_json::Value, expected_value: &str) -> bool {
     match value {
         serde_json::Value::String(value) => value == expected_value,

@@ -171,11 +171,9 @@ fn materialization_aliases_compatible_transient_texture_slots() {
     let first_alias = texture_alias_for(&alias_report, "first-color");
     let second_alias = texture_alias_for(&alias_report, "second-color");
     assert_eq!(first_alias.backing_name, second_alias.backing_name);
-    assert!(
-        first_alias
-            .backing_name
-            .starts_with("rg-transient-texture-bucket-")
-    );
+    assert!(first_alias
+        .backing_name
+        .starts_with("rg-transient-texture-bucket-"));
     assert!(first_alias.backing_name.ends_with("-slot-0"));
 }
 
@@ -236,16 +234,12 @@ fn materialization_receives_incompatible_texture_resources_in_separate_graph_slo
         large_alias.backing_name, small_alias.backing_name,
         "different descriptor buckets can both use slot zero but must materialize distinct WGPU backings"
     );
-    assert!(
-        large_alias
-            .backing_name
-            .starts_with("rg-transient-texture-bucket-")
-    );
-    assert!(
-        small_alias
-            .backing_name
-            .starts_with("rg-transient-texture-bucket-")
-    );
+    assert!(large_alias
+        .backing_name
+        .starts_with("rg-transient-texture-bucket-"));
+    assert!(small_alias
+        .backing_name
+        .starts_with("rg-transient-texture-bucket-"));
 }
 
 #[test]
@@ -337,11 +331,9 @@ fn materialization_preserves_imported_persistent_texture_without_pool_backing() 
     materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
 
     assert!(resources.has_texture_view("history.current.scene-color"));
-    assert!(
-        resources
-            .owned_texture("history.current.scene-color")
-            .is_none()
-    );
+    assert!(resources
+        .owned_texture("history.current.scene-color")
+        .is_none());
     let report = resources.resource_report();
     assert_eq!(report.owned_texture_count, 0);
     assert_eq!(report.external_texture_view_count, 1);
@@ -393,11 +385,9 @@ fn materialization_aliases_transient_buffer_slots() {
     let first_alias = buffer_alias_for(&alias_report, "first-indirect");
     let second_alias = buffer_alias_for(&alias_report, "second-indirect");
     assert_eq!(first_alias.backing_name, second_alias.backing_name);
-    assert!(
-        first_alias
-            .backing_name
-            .starts_with("rg-transient-buffer-bucket-")
-    );
+    assert!(first_alias
+        .backing_name
+        .starts_with("rg-transient-buffer-bucket-"));
     assert!(first_alias.backing_name.ends_with("-slot-0"));
 }
 
@@ -432,11 +422,9 @@ fn materialization_exposes_owned_texture_mip_views() {
     materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
 
     assert!(resources.has_texture_view("mipped-pyramid"));
-    assert!(
-        resources
-            .owned_texture_mip_view("mipped-pyramid", 1)
-            .is_ok()
-    );
+    assert!(resources
+        .owned_texture_mip_view("mipped-pyramid", 1)
+        .is_ok());
     assert_eq!(
         resources
             .owned_texture_mip_view("mipped-pyramid", 3)
@@ -574,20 +562,14 @@ fn materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view() {
     assert!(resources.has_texture_view(
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
     ));
-    assert!(
-        resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-            )
-            .is_some()
-    );
-    assert!(
-        resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-            )
-            .is_none()
-    );
+    assert!(resources
+        .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
+        .is_some());
+    assert!(resources
+        .owned_texture(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
+        )
+        .is_none());
     let report = resources.resource_report();
     assert_eq!(report.external_texture_view_count, 0);
     assert_eq!(report.owned_texture_count, 1);
@@ -634,20 +616,14 @@ fn materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_c
 
     materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
 
-    assert!(
-        resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-            )
-            .is_some()
-    );
-    assert!(
-        resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-            )
-            .is_some()
-    );
+    assert!(resources
+        .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
+        .is_some());
+    assert!(resources
+        .owned_texture(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
+        )
+        .is_some());
 }
 
 fn texture_alias_for<'a>(

@@ -60,4 +60,9 @@ neutral `UiRenderCommand`只携markup、paint/layout DTO与byte ranges，没有�
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-238局部setup/allocation/alignment止损已落并通过静态门禁；等待Text07联动Text09回传single compiled artifact、stable-frame zero parse、bounded cache/ownership counter、current-source Cargo与workbench/RenderDoc产品证据`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / post_fix_review_complete / managed_validation_pending`。
+
+- `CompiledRichText` 是唯一 generation-owned source/run/paragraph/table/link/inline/resource index；`UiParsedText` 使用 range/index projection，cell 复用 parent `Arc<CompiledRichText>`，不保留 stripped-text、run substring、style/link/inline metadata 或二次 compiled artifact clone。
+- `UiResolvedTextLayout.rich_text_artifact` 直接持有 type-erased `Arc`。extract 仅在 layout 没有可解析 artifact 时编译；renderer、texture preparation 与 link hit 全部从该 layout handle 解析，不再按 markup lookup/reparse。registry 已硬删除，因此空闲 frame 不会保留离开布局生命周期的强引用。
+- cache-eviction regression 先布局 A1、驱逐 parser cache、再执行 extract preparation，并锁定 A1 指针 identity 与 link hit；rich projection regression 同时锁定 local run range 有序、不重叠以及 stable parent run index。
+- post-fix review reports P0=0/P1=0. failure 保持 `open`，因为 Text09 的 run-scale cache/parse counters、managed Cargo、真实 WGPU/RenderDoc 和新的产品 PNG 仍未形成验收证据；本轮未生成策略文字截图。

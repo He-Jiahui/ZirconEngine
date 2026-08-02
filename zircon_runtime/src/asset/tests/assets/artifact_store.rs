@@ -14,18 +14,20 @@ use crate::asset::tests::support::{
 };
 use crate::asset::{
     AlphaMode, ArtifactStore, AssetId, AssetImportError, AssetKind, AssetReference, AssetUri,
-    DataAsset, DataAssetFormat, ImportedAsset, MaterialAsset, MeshAsset, MeshAttributeValues,
-    MeshIndices, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset,
-    SceneColliderShapeAsset, SceneEntityAsset, SceneJointAsset, SceneJointKindAsset,
-    SceneMobilityAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset,
-    ShaderAsset, ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset, TextureAsset, TransformAsset, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    DataAsset, DataAssetFormat, ImportedAsset, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, SceneAsset,
+    SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset, SceneColliderShapeAsset,
+    SceneEntityAsset, SceneJointAsset, SceneJointKindAsset, SceneMobilityAsset,
+    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset, ShaderAsset,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
+    ShaderTextureSlotAsset, TextureAsset, TransformAsset,
 };
 use crate::core::framework::render::RenderMeshTopology;
 
 mod artifact_cache_assets;
 mod binary_payloads;
+mod bounded_read;
+mod lazy_residency;
 mod material_data;
 mod scene_components;
 mod scene_script;
@@ -50,9 +52,13 @@ struct ArtifactChunkFixture {
 #[test]
 fn artifact_store_streams_compressed_bytes_into_final_payload() {
     let source = include_str!("../../artifact/store.rs");
+    let residency_source = include_str!("../../artifact/chunk_residency.rs");
 
     assert!(source.contains("struct ArtifactManifest"));
-    assert!(source.contains("struct ChunkReader"));
+    assert!(residency_source.contains("struct ChunkReader"));
+    assert!(residency_source.contains("struct ArtifactChunkResidency"));
+    assert!(source.contains("pub fn open_chunk_inventory"));
+    assert!(source.contains("pub fn read_compressed_chunk"));
     assert!(source.contains("atomic_write(&artifact_path"));
     assert!(source.contains("file.metadata()?.len() != expected_bytes"));
     assert!(source.contains("revision: metadata.revision"));
@@ -70,8 +76,10 @@ fn artifact_store_streams_compressed_bytes_into_final_payload() {
     assert!(source.contains(
         "validate_artifact_compressed_payload_bytes(manifest.raw_bytes, compressed_bytes)?;"
     ));
-    assert!(source
-        .contains("validate_artifact_compressed_payload_bytes(raw_bytes, compressed_bytes)?;"));
+    assert!(
+        source
+            .contains("validate_artifact_compressed_payload_bytes(raw_bytes, compressed_bytes)?;")
+    );
     assert!(!source.contains("bincode::serialized_size(cache_asset)"));
     assert!(!source.contains("zstd::stream::encode_all(&bytes"));
     assert!(!source.contains("fs::read(&path)"));
@@ -577,9 +585,11 @@ fn artifact_store_rejects_manifest_chunk_ids_that_escape_the_chunk_root() {
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
     fs::write(manifest_path, payload).unwrap();
 
-    assert!(ArtifactStore::default()
-        .read(&paths, &artifact_uri)
-        .is_err());
+    assert!(
+        ArtifactStore::default()
+            .read(&paths, &artifact_uri)
+            .is_err()
+    );
 
     let _ = fs::remove_dir_all(root);
 }

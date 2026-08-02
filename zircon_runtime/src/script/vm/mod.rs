@@ -57,10 +57,11 @@ pub use reflection::{
     VM_REFLECTION_WORLD_EXTENSION_NAME,
 };
 pub use runtime::{HotReloadCoordinator, VmPluginManager, VmPluginSlotRecord, VmPluginSlotState};
-pub use runtime_context::{
-    current_script_runtime_call_context, script_float, with_script_runtime_call_context,
-    ScriptRuntimeCallContext,
-};
+pub(crate) use runtime_context::runtime_context_for_frame;
+pub use runtime_context::{script_float, VmReflectionWorldAccess, VmReflectionWorldOperation};
+pub(crate) use runtime_context::{with_script_runtime_call_context, ScriptRuntimeCallContext};
+#[cfg(feature = "test-support")]
+pub use runtime_context::{with_script_runtime_test_context, ScriptRuntimeTestContext};
 pub use scene_hook::{
     script_scene_fixed_update_hook_registration, script_scene_update_hook_registration,
     ScriptSceneLifecyclePhase, ScriptSceneRuntimeHook,

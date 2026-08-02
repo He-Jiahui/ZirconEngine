@@ -99,12 +99,8 @@ fn saved_top_is_queried_live_without_registry_dirty_mutations() {
 
     commit(&transactions, document, "edit");
     assert!(registry.snapshot(document).unwrap().transaction_dirty());
-    let token = transactions
-        .capture_save_token(HistoryContextId::Document(document))
-        .unwrap();
-    transactions
-        .mark_saved_if_unchanged(HistoryContextId::Document(document), token)
-        .unwrap();
+    let token = registry.capture_save_token(document).unwrap();
+    registry.mark_saved_if_unchanged(document, token).unwrap();
     assert!(!registry.snapshot(document).unwrap().is_dirty());
 
     transactions
@@ -115,6 +111,26 @@ fn saved_top_is_queried_live_without_registry_dirty_mutations() {
         .redo(HistoryContextId::Document(document))
         .unwrap();
     assert!(!registry.snapshot(document).unwrap().is_dirty());
+}
+
+#[test]
+fn save_token_bridge_rejects_a_transaction_committed_during_save() {
+    let (transactions, registry) = registry();
+    let document = document(8);
+    registry.register_document(document).unwrap();
+    commit(&transactions, document, "before save");
+    let token = registry.capture_save_token(document).unwrap();
+
+    commit(&transactions, document, "during save");
+    let error = registry
+        .mark_saved_if_unchanged(document, token)
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        DirtyRegistryError::Transaction(EditCommandError::HistoryChangedDuringSave { .. })
+    ));
+    assert!(registry.snapshot(document).unwrap().transaction_dirty());
 }
 
 #[test]
@@ -404,6 +420,24 @@ impl DirtyTransactionStateSource for BlockingDirtySource {
     ) -> Result<HistoryDirtyBatch, EditCommandError> {
         self.block_once();
         self.transactions.dirty_states_since(cursor)
+    }
+
+    fn capture_save_token(
+        &self,
+        document: DocumentId,
+    ) -> Result<crate::core::editing::engine::HistorySaveToken, EditCommandError> {
+        self.transactions
+            .capture_save_token(HistoryContextId::Document(document))
+    }
+
+    fn mark_saved_if_unchanged(
+        &self,
+        document: DocumentId,
+        token: crate::core::editing::engine::HistorySaveToken,
+    ) -> Result<(), EditCommandError> {
+        self.transactions
+            .mark_saved_if_unchanged(HistoryContextId::Document(document), token)
+            .map(drop)
     }
 }
 

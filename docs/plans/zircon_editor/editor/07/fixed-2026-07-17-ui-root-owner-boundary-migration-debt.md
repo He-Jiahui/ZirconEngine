@@ -8,10 +8,10 @@ fixing_plan: docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-con
 origin_child_dir: docs/plans/zircon_editor/editor/07
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/10
 related_code:
-  - zircon_editor/src/ui/component_registry.rs
-  - zircon_editor/src/ui/preferences.rs
-  - zircon_editor/src/ui/component_registry
-  - zircon_editor/src/ui/preferences
+  - zircon_editor/src/ui/component_registry/mod.rs
+  - zircon_editor/src/core/settings/mod.rs
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/editor_structure_audits/module_convention_boundary.py
 tests:
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json

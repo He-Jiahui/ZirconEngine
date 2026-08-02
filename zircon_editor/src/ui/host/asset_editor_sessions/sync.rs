@@ -1,5 +1,6 @@
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
+use crate::core::asset::DirtyExternalEffectId;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl EditorUiHost {
@@ -7,18 +8,23 @@ impl EditorUiHost {
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
-        let (title, dirty, payload) = {
+        let (title, dirty) = {
             let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
             let reflection = entry.session.reflection_model();
-            (
-                reflection.display_name,
-                reflection.source_dirty,
-                serde_json::to_value(entry.session.route())
-                    .map_err(|error| EditorError::UiAsset(error.to_string()))?,
-            )
+            (reflection.display_name, reflection.source_dirty)
+        };
+        let dirty = if dirty {
+            self.ensure_document_external_effect(
+                instance_id,
+                DirtyExternalEffectId::ui_source_buffer(),
+            )?;
+            self.document_dirty(instance_id)?
+        } else {
+            self.document_dirty_if_registered(instance_id)?
+                .unwrap_or(false)
         };
         let mut session = self.lock_session();
         let instance = session
@@ -29,7 +35,6 @@ impl EditorUiHost {
             })?;
         instance.title = title;
         instance.dirty = dirty;
-        instance.serializable_payload = payload;
         Ok(())
     }
 }

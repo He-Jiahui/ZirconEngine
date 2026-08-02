@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/tests/hit_grid.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
-  - zircon_runtime/src/ui/surface/arranged_tree.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
 tests:
   - exact-query zero-intermediate-candidate-Vec guard
   - dense-radius near-linear dedupe counter

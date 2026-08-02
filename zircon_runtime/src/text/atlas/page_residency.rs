@@ -49,6 +49,10 @@ impl GlyphAtlasResidentPage {
     pub(crate) fn clear_frame_reference(&mut self) {
         self.referenced_in_frame = false;
     }
+
+    pub(crate) fn invalidate_contents(&mut self) {
+        self.spec.generation = self.spec.generation.saturating_add(1);
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,25 +77,14 @@ pub(crate) fn page_residency_decision(
         return GlyphAtlasPageResidencyDecision::Blocked;
     }
 
-    let pages_for_format = pages
-        .iter()
-        .filter(|page| page.key().format == format)
-        .collect::<Vec<_>>();
-    if pages_for_format.len() < max_pages_per_format {
+    if page_count_for_format(pages, format) < max_pages_per_format {
         return GlyphAtlasPageResidencyDecision::Allocate(GlyphAtlasPageKey::new(
             format,
-            next_free_page_index(&pages_for_format, format),
+            next_free_page_index(pages, format),
         ));
     }
 
-    pages_for_format
-        .iter()
-        .filter(|page| !page.referenced_in_frame)
-        .min_by(|left, right| {
-            left.last_used_frame
-                .cmp(&right.last_used_frame)
-                .then_with(|| left.key().cmp(&right.key()))
-        })
+    least_recent_evictable_page(pages, format)
         .map(|page| GlyphAtlasPageResidencyDecision::Evict(page.key()))
         .unwrap_or(GlyphAtlasPageResidencyDecision::Blocked)
 }
@@ -105,26 +98,14 @@ pub(crate) fn page_rebuild_residency_decision(
         return GlyphAtlasPageResidencyDecision::Blocked;
     }
 
-    let pages_for_format = pages
-        .iter()
-        .filter(|page| page.key().format == format)
-        .collect::<Vec<_>>();
-    if let Some(page) = pages_for_format
-        .iter()
-        .filter(|page| !page.referenced_in_frame)
-        .min_by(|left, right| {
-            left.last_used_frame
-                .cmp(&right.last_used_frame)
-                .then_with(|| left.key().cmp(&right.key()))
-        })
-    {
+    if let Some(page) = least_recent_evictable_page(pages, format) {
         return GlyphAtlasPageResidencyDecision::Evict(page.key());
     }
 
-    if pages_for_format.len() < max_pages_per_format {
+    if page_count_for_format(pages, format) < max_pages_per_format {
         return GlyphAtlasPageResidencyDecision::Allocate(GlyphAtlasPageKey::new(
             format,
-            next_free_page_index(&pages_for_format, format),
+            next_free_page_index(pages, format),
         ));
     }
 
@@ -189,7 +170,28 @@ fn page_generation_for_reservation(
     }
 }
 
-fn next_free_page_index(pages: &[&GlyphAtlasResidentPage], format: GlyphAtlasFormat) -> u32 {
+fn page_count_for_format(pages: &[GlyphAtlasResidentPage], format: GlyphAtlasFormat) -> usize {
+    pages
+        .iter()
+        .filter(|page| page.key().format == format)
+        .count()
+}
+
+fn least_recent_evictable_page(
+    pages: &[GlyphAtlasResidentPage],
+    format: GlyphAtlasFormat,
+) -> Option<&GlyphAtlasResidentPage> {
+    pages
+        .iter()
+        .filter(|page| page.key().format == format && !page.referenced_in_frame)
+        .min_by(|left, right| {
+            left.last_used_frame
+                .cmp(&right.last_used_frame)
+                .then_with(|| left.key().cmp(&right.key()))
+        })
+}
+
+fn next_free_page_index(pages: &[GlyphAtlasResidentPage], format: GlyphAtlasFormat) -> u32 {
     let mut page_index = 0;
     while pages
         .iter()

@@ -11,10 +11,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_i
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_text_rect(
     rect: &FrameRect,
-    icon: &FrameRect,
+    icon: Option<&FrameRect>,
     metrics: WorkbenchAlertMetrics,
 ) -> Option<FrameRect> {
-    let text_left = icon.x + icon.width + metrics.text_gap;
+    let text_left = icon
+        .map(|icon| icon.x + icon.width + metrics.text_gap)
+        .unwrap_or(rect.x + metrics.icon_left);
     let text_right = rect.x + rect.width - metrics.text_right_inset;
     (text_right > text_left).then(|| FrameRect {
         x: text_left,
@@ -52,11 +54,21 @@ mod tests {
         assert_eq!(icon.width, 21.0);
 
         assert_eq!(
-            alert_text_rect(&rect, &icon, metrics),
+            alert_text_rect(&rect, Some(&icon), metrics),
             Some(FrameRect {
                 x: 45.0,
                 y: 13.25,
                 width: 150.0,
+                height: 17.5,
+            })
+        );
+
+        assert_eq!(
+            alert_text_rect(&rect, None, metrics),
+            Some(FrameRect {
+                x: 15.0,
+                y: 13.25,
+                width: 180.0,
                 height: 17.5,
             })
         );

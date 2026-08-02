@@ -68,7 +68,7 @@ SCHEDULE_ORDER_ANCHORS = (
     "builtin_scene_systems()",
 )
 SCHEDULE_RUNNER_ANCHORS = (
-    "runtime_frame_schedule_stage.{stage:?}",
+    "const fn schedule_stage_profile_name(stage: SystemStage) -> &'static str",
     "ScheduledSceneStepRef::Internal",
     "ScheduledSceneStepRef::ApplyDeferred",
     "ScheduledSceneStepRef::Hook",
@@ -89,7 +89,7 @@ RUNTIME_03_TEST_ANCHORS = (
     "world_driver_consumes_runtime_time_advance_without_advancing_clocks_again",
     "level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps",
     "level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained",
-    "level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance",
+    "fixed_loop_clamps_to_max_steps_per_frame",
     "fixed_step_plan_reports_overstep_fraction_in_unit_range",
     "schedule_parallel_executor_can_run_parallel_batches_serially_with_report",
     "schedule_parallel_execution_report_records_diagnostic_counts",
@@ -105,7 +105,7 @@ RUNTIME_03_BEHAVIOR_TEST_ANCHORS = (
     "world_driver_consumes_runtime_time_advance_without_advancing_clocks_again",
     "level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps",
     "level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained",
-    "level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance",
+    "fixed_loop_clamps_to_max_steps_per_frame",
     "fixed_step_plan_reports_overstep_fraction_in_unit_range",
     "schedule_parallel_executor_can_run_parallel_batches_serially_with_report",
     "schedule_parallel_execution_report_records_diagnostic_counts",
@@ -132,10 +132,10 @@ FRAME_SCHEDULE_DOC_ANCHORS = (
     "runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts",
 )
 CARGO_GATE_ANCHORS = (
-    "cargo test -p zircon_runtime --lib ecs_schedule --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib session --locked",
-    "cargo test -p zircon_app --locked",
-    "cargo test -p zircon_runtime --lib fixed_update --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib tests::time:: --locked",
-    "cargo test -p zircon_runtime --lib schedule_parallel --locked -- --nocapture",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter ecs_schedule",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter session",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter fixed_update",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter tests::time::",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter schedule_parallel",
 )

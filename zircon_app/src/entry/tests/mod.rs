@@ -1,4 +1,5 @@
 mod builtin_engine_entry;
+mod entry_config_storage;
 mod export_bootstrap;
 mod profile_bootstrap;
 mod runtime_entry_device_guards;

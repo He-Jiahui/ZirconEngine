@@ -193,8 +193,8 @@ fn world_despawn_uses_known_archetype_location_without_full_rebuild() {
 #[test]
 fn explicit_empty_spawn_updates_only_the_empty_archetype() {
     let mut world = World::empty();
-    assert!(world.spawn_empty_at(40));
-    assert!(world.spawn_empty_at(80));
+    assert!(world.spawn_empty_at(40).unwrap());
+    assert!(world.spawn_empty_at(80).unwrap());
 
     let first = world.internal_entity_location(40).unwrap().location;
     let second = world.internal_entity_location(80).unwrap().location;
@@ -315,7 +315,8 @@ fn entity_registry_location_for_stable_uses_direct_internal_lookup() {
         .expect("read EntityRegistry::location_for_stable body");
 
     assert!(
-        location_for_stable.contains("let Some(internal) = self.internal_for_stable(stable_id) else")
+        location_for_stable
+            .contains("let Some(internal) = self.internal_for_stable(stable_id) else")
             && location_for_stable.contains("return None;")
             && location_for_stable.contains("self.location_for_internal(internal).ok()")
             && !location_for_stable.contains(".and_then(|internal|"),
@@ -346,13 +347,19 @@ fn entity_registry_error_paths_use_direct_lookup_branches() {
         despawn.contains("let Some(internal) = self.stable_to_internal.remove(&stable_id) else")
     );
     assert!(despawn.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
+    assert!(
+        despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
+    );
     assert!(set_location.contains("let Some(internal) = self.internal_for_stable(stable_id) else"));
     assert!(set_location.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(set_location
-        .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
-    assert!(location_for_internal
-        .contains("let Some(slot) = self.slots.get(internal.index() as usize) else"));
+    assert!(
+        set_location
+            .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
+    );
+    assert!(
+        location_for_internal
+            .contains("let Some(slot) = self.slots.get(internal.index() as usize) else")
+    );
     assert!(location_for_internal.contains("let Some(stable_id) = slot.stable_id else"));
     assert!(location_for_internal.contains("let Some(location) = slot.location else"));
     assert!(!source.contains(".ok_or("));
@@ -551,21 +558,25 @@ fn component_storage_rejects_storage_and_type_mismatches_without_mutating_value(
         )
         .unwrap();
 
-    assert!(storage
-        .insert(
-            component,
-            StorageType::SparseSet,
-            entity,
-            TestComponent("moved")
-        )
-        .unwrap_err()
-        .to_string()
-        .contains("already registered as Table"));
-    assert!(storage
-        .insert(component, StorageType::Table, entity, "wrong-type")
-        .unwrap_err()
-        .to_string()
-        .contains("different Rust type"));
+    assert!(
+        storage
+            .insert(
+                component,
+                StorageType::SparseSet,
+                entity,
+                TestComponent("moved")
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("already registered as Table")
+    );
+    assert!(
+        storage
+            .insert(component, StorageType::Table, entity, "wrong-type")
+            .unwrap_err()
+            .to_string()
+            .contains("different Rust type")
+    );
     assert_eq!(
         storage.get::<TestComponent>(component, entity),
         Some(&TestComponent("typed"))

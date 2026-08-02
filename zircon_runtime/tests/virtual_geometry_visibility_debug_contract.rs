@@ -38,6 +38,7 @@ fn visibility_context_uses_instance_ranges_and_forced_mip_for_virtual_geometry_s
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: Some(ResourceId::from_stable_label(
                 "res://models/virtual_geometry.model.toml",
             )),
@@ -104,6 +105,7 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -141,6 +143,7 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

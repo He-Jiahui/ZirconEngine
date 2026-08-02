@@ -11,7 +11,14 @@ impl RetainedEditorHost {
     pub(super) fn native_main_window_close_requested(&mut self) -> CloseRequestResponse {
         self.recompute_if_dirty();
         let instances = self.runtime.current_view_instances();
-        let dirty = close_prompt::all_dirty_close_views(&instances);
+        let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
+            Ok(documents) => documents,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return CloseRequestResponse::KeepWindowShown;
+            }
+        };
+        let dirty = close_prompt::all_dirty_close_views(&dirty_documents);
         if !dirty.is_empty() {
             let close_instances = instances
                 .into_iter()
@@ -32,10 +39,14 @@ impl RetainedEditorHost {
             return CloseRequestResponse::KeepWindowShown;
         };
 
-        let dirty = close_prompt::dirty_close_views(
-            &self.runtime.current_view_instances(),
-            instance_ids.clone(),
-        );
+        let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
+            Ok(documents) => documents,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return CloseRequestResponse::KeepWindowShown;
+            }
+        };
+        let dirty = close_prompt::dirty_close_views(&dirty_documents, instance_ids.clone());
         if !dirty.is_empty() {
             self.begin_close_prompt(
                 ClosePromptTarget::FloatingWindow(window_id.clone()),
@@ -57,7 +68,7 @@ mod performance_tests {
         let production = source.split("#[cfg(test)]").next().expect("implementation");
         let snapshot_call = ["current_view_", "instances()"].concat();
 
-        assert_eq!(production.matches(&snapshot_call).count(), 2);
-        assert!(production.contains("all_dirty_close_views(&instances)"));
+        assert_eq!(production.matches(&snapshot_call).count(), 1);
+        assert!(production.contains("all_dirty_close_views(&dirty_documents)"));
     }
 }

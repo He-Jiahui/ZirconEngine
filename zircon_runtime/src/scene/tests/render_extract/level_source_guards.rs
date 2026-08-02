@@ -1,6 +1,7 @@
 use super::*;
 
 #[test]
+#[cfg(feature = "animation")]
 fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses() {
     let manager = DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), Default::default());
@@ -43,11 +44,13 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
     );
 
     assert_eq!(extract.world.raw(), 705);
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == mesh_with_skeleton));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == mesh_with_skeleton)
+    );
     assert_eq!(extract.animation_poses.len(), 1);
     assert_eq!(extract.animation_poses[0].entity, mesh_with_skeleton);
     assert_eq!(extract.animation_poses[0].skeleton, skeleton_handle.id());
@@ -56,6 +59,7 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
 }
 
 #[test]
+#[cfg(feature = "animation")]
 fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_the_old_handle() {
     let level = DefaultLevelManager::default().create_default_level();
     let entity = level.with_world_mut(|world| world.spawn_node(NodeKind::Mesh));
@@ -106,6 +110,7 @@ fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_th
 }
 
 #[test]
+#[cfg(feature = "animation")]
 fn level_system_render_extract_consumes_the_sealed_animation_frame_handle_without_resorting() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

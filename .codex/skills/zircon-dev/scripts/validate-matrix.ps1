@@ -12,6 +12,7 @@ param(
     [switch]$LibTests,
     [string]$TestTarget,
     [string]$TestFilter,
+    [switch]$IgnoredTests,
     [switch]$RunExportPlatformContract,
     [string]$ExportContractPlatform,
     [switch]$RunProfileFeatureContract,
@@ -110,6 +111,14 @@ function Resolve-OwnerId {
     $machine = [Environment]::MachineName
     $repoId = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/').ToLowerInvariant()
     return "manual:{0}@{1}:{2}" -f $user, $machine, $repoId
+}
+
+function Resolve-ValidationSessionId {
+    param([string]$RepoRoot)
+
+    # Cargo lane ownership is operational state, not ownership of the caller's source scope.
+    # Keep it stable per primary Session while allowing the primary to retain its immutable paths.
+    return "validate-matrix:{0}" -f (Resolve-OwnerId -RepoRoot $RepoRoot)
 }
 
 function Resolve-AbsoluteTargetDir {
@@ -318,7 +327,7 @@ function Resolve-CoordinatorCargoTarget {
         [switch]$DryRunMode
     )
 
-    $ownerId = Resolve-OwnerId -RepoRoot $RepoRoot
+    $ownerId = Resolve-ValidationSessionId -RepoRoot $RepoRoot
     $compatibilityJson = New-CargoCompatibilityJson `
         -ResolvedRepoRoot $RepoRoot `
         -WorkspaceManifest $WorkspaceManifest `
@@ -592,6 +601,11 @@ function Get-CargoArgs {
     $args.Add("--target-dir") | Out-Null
     $args.Add($ResolvedTargetDir) | Out-Null
 
+    if ($Subcommand -eq "test" -and $IgnoredTests) {
+        $args.Add("--") | Out-Null
+        $args.Add("--ignored") | Out-Null
+    }
+
     return $args.ToArray()
 }
 
@@ -770,6 +784,12 @@ function Invoke-ValidateMatrixMain {
     }
     if (-not $LibTests -and [string]::IsNullOrWhiteSpace($TestTarget) -and -not [string]::IsNullOrWhiteSpace($TestFilter)) {
         throw "-TestFilter requires -LibTests or -TestTarget."
+    }
+    if ($IgnoredTests -and [string]::IsNullOrWhiteSpace($TestFilter)) {
+        throw "-IgnoredTests requires -TestFilter to avoid running every ignored test."
+    }
+    if ($IgnoredTests -and $SkipTest) {
+        throw "-IgnoredTests cannot be combined with -SkipTest."
     }
 
     $resolvedRepoRoot = if ($RepoRoot) {

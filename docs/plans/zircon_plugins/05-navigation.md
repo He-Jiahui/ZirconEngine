@@ -223,6 +223,7 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 - M6-T1 surface 选择态与 operation 参数投影：`待修复（open）`；[failure 交接](05/failure-2026-07-15-navigation-bake-selection-operation-arguments.md)。
 - fixed 已修复：[control-prop-ref-validation-runtime-gate](../zircon_runtime/render/18/fixed-2026-07-15-control-prop-ref-validation-runtime-gate.md)
 - M6-T2 viewport provider host：`待修复（open）`；[Editor 05 failure](../zircon_editor/editor/05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。
+- M6-T2 canonical Navigation overlay frame：`待修复（open）`；[navigation overlay frame publication](05/failure-2026-07-30-navigation-overlay-frame-publication.md)。
 - fixed 已修复：[navigation-runtime-driver-manager-layering](../zircon_runtime/render/18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
 - fixed 已修复：[plugin-editor-runtime-mirror-consumer-wiring](05/fixed-2026-07-15-plugin-editor-runtime-mirror-consumer-wiring.md)
 - fallback typed projection generation contract：`待修复（open）`；[Runtime08 failure](../zircon_runtime/runtime/08/failure-2026-07-27-dynamic-component-property-world-generation.md)。

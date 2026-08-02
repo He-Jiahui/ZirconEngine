@@ -1,5 +1,4 @@
 use crate::core::framework::render::{RenderPhase, ShaderQualityTier};
-use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshBatchRef, MeshDrawCommand,
     MeshDrawCommandCacheStats, MeshDrawCommandList, MeshPassBuildContext, MeshPassCommandBuffers,
@@ -28,8 +27,8 @@ mod tests;
 mod visibility_tests;
 
 use extract_item::{
-    PendingMeshCommandCacheExtractItem, cacheable_phases_for_extract_item,
-    can_skip_pending_mesh_draw_for_cached_commands, pending_mesh_command_cache_extract_item,
+    cacheable_phases_for_extract_item, can_skip_pending_mesh_draw_for_cached_commands,
+    pending_mesh_command_cache_extract_item, PendingMeshCommandCacheExtractItem,
 };
 pub(super) use remainder::PendingMeshDrawRemainder;
 
@@ -80,8 +79,8 @@ impl<'a> PendingMeshCommandCacheExtractionContext<'a> {
 
 pub(super) fn extract_pending_static_mesh_command_cache_hits(
     pending_draws: Vec<PendingMeshDraw>,
-    visibility_for_entity: impl Fn(EntityId) -> Option<PendingMeshCommandCacheVisibility>,
-    gpu_scene_instance_span_for_draw: impl Fn(EntityId, u32) -> Option<(u32, u32)>,
+    visibility_for_instance: impl Fn(u64) -> Option<PendingMeshCommandCacheVisibility>,
+    gpu_scene_instance_span_for_instance: impl Fn(u64) -> Option<(u32, u32)>,
     context: PendingMeshCommandCacheExtractionContext<'_>,
 ) -> PendingMeshCommandCacheExtraction {
     let mut commands = MeshDrawCommandList::new();
@@ -96,7 +95,7 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
 
     for (source_draw_index, draw) in pending_draws.into_iter().enumerate() {
         let item = pending_mesh_command_cache_extract_item(&draw, source_draw_index);
-        let visibility = visibility_for_entity(item.entity);
+        let visibility = visibility_for_instance(item.stable_instance_key);
         let Some(extracted_commands) = commands_for_extract_item_with_stats_and_context(
             item,
             visibility,
@@ -106,7 +105,7 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
                     item,
                     visibility,
                     phase,
-                    &gpu_scene_instance_span_for_draw,
+                    &gpu_scene_instance_span_for_instance,
                 )
             },
             &mut *command_cache,
@@ -216,7 +215,7 @@ where
     let mut cache_stats = MeshDrawCommandCacheStats::default();
     for phase in phases {
         let key = CachedMeshDrawKey {
-            entity: item.entity,
+            stable_instance_key: item.stable_instance_key,
             draw_ordinal: item.draw_ordinal,
             phase,
             disabled_passes: item.disabled_passes,

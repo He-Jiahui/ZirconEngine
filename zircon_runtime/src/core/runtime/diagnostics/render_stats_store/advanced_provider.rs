@@ -3,7 +3,7 @@ use crate::core::framework::render::{
     AdvancedRenderFeature, RenderStats,
 };
 
-use super::{DiagnosticStore, record_bool, record_count};
+use super::{record_bool, record_count, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_availability(store, stats);
@@ -20,8 +20,10 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             degraded: "render.advanced_provider.virtual_geometry.degraded",
             enabled: "render.advanced_provider.virtual_geometry.enabled",
             degradation_count: "render.advanced_provider.virtual_geometry.degradation_count",
-            missing_capability_degradation_count: "render.advanced_provider.virtual_geometry.missing_capability_degradation_count",
-            missing_provider_degradation_count: "render.advanced_provider.virtual_geometry.missing_provider_degradation_count",
+            missing_capability_degradation_count:
+                "render.advanced_provider.virtual_geometry.missing_capability_degradation_count",
+            missing_provider_degradation_count:
+                "render.advanced_provider.virtual_geometry.missing_provider_degradation_count",
         },
     );
     record_feature(
@@ -36,8 +38,10 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             degraded: "render.advanced_provider.hybrid_gi.degraded",
             enabled: "render.advanced_provider.hybrid_gi.enabled",
             degradation_count: "render.advanced_provider.hybrid_gi.degradation_count",
-            missing_capability_degradation_count: "render.advanced_provider.hybrid_gi.missing_capability_degradation_count",
-            missing_provider_degradation_count: "render.advanced_provider.hybrid_gi.missing_provider_degradation_count",
+            missing_capability_degradation_count:
+                "render.advanced_provider.hybrid_gi.missing_capability_degradation_count",
+            missing_provider_degradation_count:
+                "render.advanced_provider.hybrid_gi.missing_provider_degradation_count",
         },
     );
 }

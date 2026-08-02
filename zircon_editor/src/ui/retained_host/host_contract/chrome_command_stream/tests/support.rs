@@ -241,7 +241,11 @@ pub(in crate::ui::retained_host::host_contract) fn root_overlay_image_command<'a
                 if payload.width == ROOT_OVERLAY_IMAGE_WIDTH
                     && payload.height == ROOT_OVERLAY_IMAGE_HEIGHT
                     && payload.upload_bytes == ROOT_OVERLAY_UPLOAD_BYTES
-                    && payload.rgba.as_deref() == Some(overlay_rgba) =>
+                    && payload.rgba.as_deref().or_else(|| {
+                        stream
+                            .image_resource(payload.resource_key.as_str())
+                            .map(|resource| resource.rgba.as_slice())
+                    }) == Some(overlay_rgba) =>
             {
                 Some(payload)
             }

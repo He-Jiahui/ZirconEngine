@@ -77,12 +77,16 @@ fn animation_binding_without_active_sequence_editor_reports_ignored_status_line(
             track_path: AnimationTrackPath::parse("Root/Hero:AnimationPlayer.weight").unwrap(),
         })
     );
-    assert!(record
-        .effects
-        .contains(&EditorEventEffect::PresentationChanged));
-    assert!(record
-        .effects
-        .contains(&EditorEventEffect::ReflectionChanged));
+    assert!(
+        record
+            .effects
+            .contains(&EditorEventEffect::PresentationChanged)
+    );
+    assert!(
+        record
+            .effects
+            .contains(&EditorEventEffect::ReflectionChanged)
+    );
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
         "Ignored animation command because focused view is not an animation sequence editor"
@@ -120,12 +124,16 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
             duration_frames: 8,
         })
     );
-    assert!(record
-        .effects
-        .contains(&EditorEventEffect::PresentationChanged));
-    assert!(record
-        .effects
-        .contains(&EditorEventEffect::ReflectionChanged));
+    assert!(
+        record
+            .effects
+            .contains(&EditorEventEffect::PresentationChanged)
+    );
+    assert!(
+        record
+            .effects
+            .contains(&EditorEventEffect::ReflectionChanged)
+    );
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
         "Ignored animation command because focused view is not an animation graph editor"
@@ -174,11 +182,13 @@ props = { text = "Menu" }
         })
     );
     assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
-    assert!(runtime
-        .runtime
-        .current_view_instances()
-        .into_iter()
-        .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
+    assert!(
+        runtime
+            .runtime
+            .current_view_instances()
+            .into_iter()
+            .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset"))
+    );
 
     let _ = fs::remove_file(ui_asset_path);
 }
@@ -206,9 +216,11 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
             }),
         )
         .expect("open animation sequence asset");
-    assert!(sequence_record
-        .effects
-        .contains(&EditorEventEffect::LayoutChanged));
+    assert!(
+        sequence_record
+            .effects
+            .contains(&EditorEventEffect::LayoutChanged)
+    );
 
     let instances = runtime.runtime.current_view_instances();
     let sequence_view = instances
@@ -303,8 +315,10 @@ fn asset_kind_filter_event_accepts_physics_and_animation_asset_kinds() {
             runtime.runtime.editor_snapshot().asset_browser.kind_filter,
             Some(expected)
         );
-        assert!(record
-            .effects
-            .contains(&EditorEventEffect::PresentationChanged));
+        assert!(
+            record
+                .effects
+                .contains(&EditorEventEffect::PresentationChanged)
+        );
     }
 }

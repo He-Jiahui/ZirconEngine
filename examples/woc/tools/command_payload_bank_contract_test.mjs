@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 const expected = [
   [137, 'bank_deposit', 'bankDeposit', 'bankDeposit', 'BANK_DEPOSIT_COMMAND_ID'],
   [138, 'bank_withdraw', 'bankWithdraw', 'bankWithdraw', 'BANK_WITHDRAW_COMMAND_ID'],
@@ -67,9 +67,9 @@ for (const intent of ['DepositBank', 'WithdrawBank', 'BuyBankSlots']) {
   assert.match(input, new RegExp(`\\b${intent}\\b`));
 }
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('bank command payload contracts are complete\n');

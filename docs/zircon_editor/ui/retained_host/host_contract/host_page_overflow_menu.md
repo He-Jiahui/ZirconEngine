@@ -33,6 +33,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu/tests
   - cargo build -p zircon_editor --locked --jobs 1 --message-format short --color never
   - cargo fmt -p zircon_editor --check
   - cargo test -p zircon_editor overflow --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture
@@ -45,7 +46,7 @@ tests:
   - docs/tests/editor/editor-window-m3-host-page-overflow-420x260.png
   - docs/tests/editor/editor-window-m3-host-page-overflow-keyboard-640x420.png
 doc_type: module-detail
-status: implemented-focused-passed
+status: implemented-awaiting-managed-validation
 ---
 
 # Host Page Overflow Menu
@@ -58,7 +59,7 @@ This is a component-first slice: the visible behavior is a small popup/select-li
 
 ## Related Files
 
-`host_page_overflow_menu.rs` owns popup geometry. It right-aligns the popup under the projected overflow button, calculates row frames from shared menu popup metrics, and exposes hit helpers used by native pointer dispatch.
+`host_page_overflow_menu.rs` owns popup placement, content viewport, scrolling geometry, visible-row ranges, and hit helpers used by native pointer dispatch. Folder-backed `host_page_overflow_menu/tests` separates popup-placement contracts from scrolling and hit-test contracts; the production owner does not carry the behavioral test bodies inline.
 
 `data/host_interaction/page_overflow.rs` owns the open/hover state stored in the host contract. The state is copied into `HostWindowPresentationData` during presentation snapshotting and preserved through retained-host presentation apply.
 
@@ -75,6 +76,8 @@ Clicking the host page overflow button toggles `HostPageOverflowMenuStateData.op
 When the popup is open, primary pointer dispatch checks it before regular menu, body, and chrome dispatch. A row hit closes the popup and invokes the real host-page click callback for the row's page index. A click inside popup padding is consumed. A click outside the popup closes it. Clicking the overflow button itself is left to the chrome route so the same control can close or reopen the menu.
 
 Keyboard discovery gives the procedural host-page popup priority while it is open. Arrow Down/Up wrap through hidden rows, Home/End jump to the boundary, typed text selects the next matching page label, Enter activates through `host_page_pointer_clicked`, and Escape dismisses without activation. When no row is highlighted, the first Down selects the first row and the first Up selects the last row instead of skipping an item.
+
+Long hidden-page lists use an anchor-relative, shell-bounded viewport. Pointer wheel input, keyboard reveal, visible-row paint clipping, hover retargeting, row activation, and the scrollbar gutter consume the same scroll offset and row geometry; clipped or gutter-only pixels cannot activate a page.
 
 ## Design And Rationale
 
@@ -109,6 +112,8 @@ This keeps root modules as wiring only and avoids a parallel "overflow selected 
 
 `fallback_page_chrome_narrow_tier_caps_visible_tabs_before_project_path` and `narrow_tier_caps_visible_tabs_before_overflow` cover the tier-forced overflow policy now consumed by both fallback chrome projection and retained host pointer geometry.
 
+The folder-backed `popup_geometry` suite owns popup width, shell bounds, vertical placement, and collapsed-viewport regressions. The `scrolling` suite owns clipped hit testing, scrollbar-gutter rejection, exact visible ranges, and finite scroll recovery.
+
 ## Open Issues Or Follow-up
 
-The popup/select-list path now includes pointer and keyboard activation. Remaining `15a/15e` work is broader breakpoint polish and long-list viewport scrolling; keyboard navigation must continue to reuse this target rather than introduce a page-tab-specific key handler.
+The popup/select-list path now includes pointer and keyboard activation plus long-list viewport scrolling. Remaining `15a/15e` work is broader breakpoint and whole-window visual polish; current-source managed validation and refreshed long-list/640/900/1260 evidence remain pending. Keyboard navigation must continue to reuse this target rather than introduce a page-tab-specific key handler.

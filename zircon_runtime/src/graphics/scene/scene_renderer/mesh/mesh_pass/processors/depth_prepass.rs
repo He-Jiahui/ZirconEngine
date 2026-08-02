@@ -1,8 +1,7 @@
-use crate::core::framework::render::RenderPhase;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassPipelineKind,
+    depth_prepass_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext,
     MeshPassProcessor,
 };
 
@@ -17,15 +16,10 @@ impl MeshPassProcessor for DepthPrepassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
-        if batch.disabled_passes.disables_depth_prepass() {
+        let Some(spec) = depth_prepass_command_spec(batch) else {
             return;
-        }
-        if batch.queue_profile.early_z_eligible()
-            && batch.relevant_to_main_phase(RenderPhase::Prepass)
-        {
-            let pipeline_kind = MeshPassPipelineKind::DepthPrepass;
-            let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
-            out.push(batch.command(RenderPhase::Prepass, pipeline_kind, pipeline_variant_id));
-        }
+        };
+        let pipeline_variant_id = context.pipeline_variant_id(spec.pipeline_kind, batch);
+        out.push(batch.command(spec.phase, spec.pipeline_kind, pipeline_variant_id));
     }
 }

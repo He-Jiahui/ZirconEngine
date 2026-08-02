@@ -287,11 +287,16 @@ fn prepare_roots(roots: &[(RelPath, PathBuf)]) -> Result<Vec<MigrationRoot>, std
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
             Err(error) => return Err(error),
         };
-        let physical_path = if is_link_or_reparse(&metadata) {
-            walk_path.clone()
-        } else {
-            fs::canonicalize(&walk_path)?
-        };
+        if is_link_or_reparse(&metadata) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!(
+                    "migration asset root '{}' is a symbolic link or reparse point",
+                    walk_path.display()
+                ),
+            ));
+        }
+        let physical_path = fs::canonicalize(&walk_path)?;
         prepared.push(MigrationRoot {
             logical_root,
             walk_path,

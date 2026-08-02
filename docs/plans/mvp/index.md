@@ -7,7 +7,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
-status: planned
+status: in_progress
 last_refined: 2026-07-24
 ---
 
@@ -115,15 +115,15 @@ flowchart LR
 
 ## 6. 当前基线与风险
 
-| 风险 | 2026-07-24 已知事实 | 处理位置 |
+| 风险 | 2026-08-01 当前事实 | 处理位置 |
 |---|---|---|
-| 首个编译阻断 | `zircon_runtime/src/asset/migration/resolver.rs` 引用未在 `migration/mod.rs` 注册的 `resolver_index` | `00` M0.2 |
-| resolver 未完整接线 | index 文件和测试已出现，但 run/scan/sidecar 生命周期尚未形成已验证单一 generation | `00` M0.2 |
-| validator 协议漂移 | `zircon-session.ps1` 在 JSON 前输出 `ready`，`validate-matrix.ps1` 直接 `ConvertFrom-Json` | `00` M0.1 |
+| 当前源码编译基线未闭合 | resolver module registration 与 coordinator JSON 污染均已修复；`00` 最新受管证据仍在 Runtime lib-test harness 暴露 owner-bound 编译错误，需按最低 owner 继续收敛 | `00` M0.3 |
+| resolver 单一 generation 尚待上层验收 | `MigrationResolver` 已只消费 registry/resolver index；剩余风险是 run/scan/sidecar 的 current-source 上层验证，不是缺少 `mod resolver_index` | `00` M0.2 / Runtime04 |
+| validator 当前可提交作业 | `zircon-session.ps1 -Json` 的 readiness 输出已受门控，validator 能创建/释放 managed job；后续失败应按具体 owner 或 CPU reservation 归因 | `00` M0.1（已修，保留回归） |
 | 大量并行输入 | `git status --porcelain=v1 -uall` 曾报告 4,399 个路径级变化 | 每个 Session 重新盘点并严格 lease；不得据此删除用户文件 |
-| F2 夹具分裂 | runtime F2 测试有真实 primitive，产品模板场景只有 Camera 和 Sun | `03` M2.1 |
-| F4 生产投影缺失 | command eval 仍以 inspector presence 模拟 selection；world inspection consumer 仍为 `cfg(test)` | `05` M4.1/M4.2 |
-| Windows 产品 CI 缺失 | 现有 profile/工作区 CI 主要运行于 `ubuntu-latest` | `06` M5.3 |
+| F2 产品证据仍待晋级 | `RenderableEmpty` 模板已含 Camera/Cube/Sun 和持久 mesh/material refs，runtime test 也消费同一模板；仍须等待 F0/F1 后执行产品门 | `03` M2.1 |
+| F4 产品交互证据仍待晋级 | scene-mode/selection 与 inspection publication 已是生产模块；仍须用正常 UI/command 路径完成 F4 端到端证据 | `05` M4.1/M4.2 |
+| Windows workflow 已有但 F5 证据未闭合 | `.github/workflows/mvp-editor-windows.yml` 已存在，本轮修正为精确测试 ID 并逐项断言 `1 passed`；clean validation copy 与真实上传 artifact 仍未验收 | `06` M5.3 |
 
 ## 7. 晋级与回退规则
 
@@ -160,7 +160,7 @@ flowchart LR
 
 | 阶段 | 当前状态 | 权威记录 |
 |---|---|---|
-| 00 | `planned` | [`00-current-source-baseline-recovery.md`](00-current-source-baseline-recovery.md) |
+| 00 | `in_progress` | [`00-current-source-baseline-recovery.md`](00-current-source-baseline-recovery.md) |
 | F0 | `blocked_by_00` | [`01-f0-reproducible-bootstrap.md`](01-f0-reproducible-bootstrap.md) |
 | F1 | `blocked_by_f0` | [`02-f1-project-and-assets.md`](02-f1-project-and-assets.md) |
 | F2 | `blocked_by_f1` | [`03-f2-scene-runtime.md`](03-f2-scene-runtime.md) |
@@ -168,18 +168,14 @@ flowchart LR
 | F4 | `blocked_by_f3` | [`05-f4-basic-authoring.md`](05-f4-basic-authoring.md) |
 | F5 | `blocked_by_f4` | [`06-f5-acceptance-wave.md`](06-f5-acceptance-wave.md) |
 
-## Code Review 建议 (2026-07-30)
+## Code Review 处理结果 (2026-08-01)
 
-### 与代码现状不符，需修订
+### 已处理
 
-- §6「当前基线与风险」表多条 2026-07-24 事实已在当前源码失效，建议重核后刷新：
-  - 「首个编译阻断：`resolver.rs` 引用未注册的 `resolver_index`」——`zircon_runtime/src/asset/migration/mod.rs:15` 已声明 `mod resolver_index`，`resolver.rs:19-24` 已按目标签名只消费 `AssetRegistryIndex` + `MigrationResolverIndex`。
-  - 「validator 协议漂移：`zircon-session.ps1` 在 JSON 前输出 `ready`」——`tools/zircon-session.ps1:223`、`:246-253` 已用 `if (-not $Json)` 门控 readiness 输出。
-  - 「F2 夹具分裂：产品模板场景只有 Camera 和 Sun」——`templates/projects/renderable-empty/assets/scenes/main.scene.toml:21-42` 已含 Cube 实体和 mesh/material persisted refs；`zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs:394` 已用 `render_project_template(ProjectTemplateId::RenderableEmpty, ...)` 消费同一模板。
-  - 「F4 生产投影缺失：command eval 以 inspector presence 模拟 selection；world inspection consumer 仍为 `cfg(test)`」——`zircon_editor/src/scene/modes/scene_mode_stack.rs:34-42` 已从真实 `SceneModeStack`/`SelectionModel` 投影 `with_scene_mode`/`with_selection_count`；`zircon_editor/src/scene/viewport/mod.rs:4` 的 `edit_mode_projection` 与 `zircon_editor/src/ui/host/mod.rs:47` 的 `scene_inspection_publication` 均为无条件生产模块。
-  - 「Windows 产品 CI 缺失」——`.github/workflows/mvp-editor-windows.yml` 已存在（97 行），F5 front-matter 仍标注其为 `planned_code`。
-- §10 状态总览的 `planned`/`blocked_by_*` 链与上述源码现状明显滞后。建议安排一次「re-baseline 审计 Session」：按 `milestone-validation-policy.md` 的里程碑批量门实测 00/F0-F4 的既有实现与测试，再把状态表更新为实际值，避免多个 Session 重复实现已存在能力。
+- §6 已按 2026-08-01 当前源码刷新：resolver registration、validator JSON、RenderableEmpty primitive、生产 selection/inspection 投影和 Windows workflow 均不再列为“缺失实现”，而是分别保留其 current-source 或产品验收缺口。
+- 总计划与 `00` 已更新为 `in_progress`。F0-F5 的 `blocked_by_*` 继续保留，因为它表达严格产品晋级顺序；它不否认上层源码切片已经存在，也不授权重复实现已有 owner。
 
 ### 验证缺口
 
-- §5.3 的工作量估算（18-37 工程日、4-6 周）基于 2026-07-24 快照；鉴于上述多数「关键不确定性」已在源码消除，估算应在 re-baseline 后重做一次，否则会持续误导排程与并行 Session 数量决策。
+- `00` 当前仍有 owner-bound Runtime lib-test 编译错误，F0-F5 也尚未按依赖顺序取得产品 gate；状态不得仅凭源码存在上调。
+- §5.3 的 18-37 工程日 / 4-6 周只保留为 2026-07-24 历史估算。下一次 clean re-baseline 后必须重估，不用于当前 Session 数量或交付日期承诺。

@@ -1,6 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
-use super::geometry::pixel_aligned_rect;
+use super::geometry::bounded_paper_rect;
 use super::identity::is_paper_root_node;
 use super::shadow::push_paper_shadow;
 use super::style::{
@@ -20,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pa
         return false;
     }
 
-    let paper_rect = pixel_aligned_rect(rect);
+    let paper_rect = bounded_paper_rect(rect);
     if paper_rect.width <= 0.0 || paper_rect.height <= 0.0 {
         return true;
     }

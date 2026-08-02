@@ -11,7 +11,6 @@ use crate::hybrid_gi::types::{
 use super::super::super::super::HybridGiGpuPendingReadback;
 use super::super::super::HybridGiGpuResources;
 use super::collect_inputs::collect_inputs;
-use super::copy_readbacks::copy_readbacks;
 use super::create_bind_group::create_bind_group;
 use super::create_buffers::create_buffers;
 use super::dispatch::dispatch;
@@ -65,22 +64,17 @@ impl HybridGiGpuResources {
         let bind_group = create_bind_group(self, device, &buffers);
         dispatch(self, encoder, &bind_group, &inputs);
         dispatch_probe_trace_tiles(device, encoder, &buffers, &inputs, prepare, probe_budget);
-        copy_readbacks(encoder, &buffers, &inputs);
         let HybridGiPrepareExecutionBuffers {
-            cache_readback,
+            cache_buffer,
             resident_probe_buffer: _resident_probe_buffer,
             pending_probe_buffer: _pending_probe_buffer,
             trace_region_buffer: _trace_region_buffer,
             scene_prepare_descriptor_buffer: _scene_prepare_descriptor_buffer,
             scene_prepare_descriptor_count: _scene_prepare_descriptor_count,
-            completed_probe_buffer: _completed_probe_buffer,
-            completed_trace_buffer: _completed_trace_buffer,
-            completed_probe_readback,
-            completed_trace_readback,
-            irradiance_buffer: _irradiance_buffer,
-            irradiance_readback,
-            trace_lighting_buffer: _trace_lighting_buffer,
-            trace_lighting_readback,
+            completed_probe_buffer,
+            completed_trace_buffer,
+            irradiance_buffer,
+            trace_lighting_buffer,
             scene_prepare_resources,
         } = buffers;
         let (
@@ -99,9 +93,7 @@ impl HybridGiGpuResources {
             scene_prepare_probe_trace_tile_seed_buffer,
             scene_prepare_probe_trace_tile_params_buffer,
             scene_prepare_probe_trace_tile_buffer,
-            scene_prepare_probe_trace_tile_readback,
             scene_prepare_probe_trace_indirect_args_buffer,
-            scene_prepare_probe_trace_indirect_args_readback,
             scene_prepare_probe_trace_tile_word_count,
             scene_prepare_probe_trace_tile_record_count,
             scene_prepare_probe_trace_indirect_arg_word_count,
@@ -122,9 +114,7 @@ impl HybridGiGpuResources {
                 resources.probe_trace_tile_seed_buffer,
                 resources.probe_trace_tile_params_buffer,
                 resources.probe_trace_tile_buffer,
-                resources.probe_trace_tile_readback,
                 resources.probe_trace_indirect_args_buffer,
-                resources.probe_trace_indirect_args_readback,
                 resources.probe_trace_tile_word_count,
                 resources.probe_trace_tile_record_count,
                 resources.probe_trace_indirect_arg_word_count,
@@ -146,8 +136,6 @@ impl HybridGiGpuResources {
                 None,
                 None,
                 None,
-                None,
-                None,
                 0,
                 0,
                 0,
@@ -156,15 +144,15 @@ impl HybridGiGpuResources {
 
         Ok(Some(HybridGiGpuPendingReadback::new(
             inputs.cache_word_count,
-            cache_readback,
+            cache_buffer,
             inputs.completed_probe_word_count.max(1),
-            completed_probe_readback,
+            completed_probe_buffer,
             inputs.completed_trace_word_count.max(1),
-            completed_trace_readback,
+            completed_trace_buffer,
             inputs.irradiance_word_count.max(1),
-            irradiance_readback,
+            irradiance_buffer,
             inputs.trace_lighting_word_count.max(1),
-            trace_lighting_readback,
+            trace_lighting_buffer,
             scene_prepare_resources,
             scene_prepare_atlas_texture,
             scene_prepare_atlas_view,
@@ -180,9 +168,7 @@ impl HybridGiGpuResources {
             scene_prepare_probe_trace_tile_seed_buffer,
             scene_prepare_probe_trace_tile_params_buffer,
             scene_prepare_probe_trace_tile_buffer,
-            scene_prepare_probe_trace_tile_readback,
             scene_prepare_probe_trace_indirect_args_buffer,
-            scene_prepare_probe_trace_indirect_args_readback,
             scene_prepare_probe_trace_tile_word_count,
             scene_prepare_probe_trace_tile_record_count,
             scene_prepare_probe_trace_indirect_arg_word_count,

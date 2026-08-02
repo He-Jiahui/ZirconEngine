@@ -7,7 +7,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/completion.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/saving.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/app/native_windows.rs
@@ -18,7 +17,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/completion.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/saving.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -41,7 +39,7 @@ The native-window close boundary translates platform close requests into Workben
 The app boundary is now split by responsibility:
 
 - `native_window_close.rs` owns only the public close-request entry points and the dirty-document decision that determines whether a prompt is needed.
-- `native_window_close/prompt_actions.rs` declares the close prompt action child modules. `prompt_actions/actions.rs` owns close prompt button action parsing and dispatch, `prompt_actions/presentation.rs` owns prompt begin/show/clear and target UI lookup, `prompt_actions/completion.rs` owns prompted close completion, and `prompt_actions/saving.rs` owns automatic save policy for supported editor documents.
+- `native_window_close/prompt_actions.rs` declares the close prompt action child modules. `prompt_actions/actions.rs` owns close prompt button action parsing and dispatch, `prompt_actions/presentation.rs` owns prompt begin/show/clear and target UI lookup, and `prompt_actions/completion.rs` owns prompted close completion. The former prompt-local automatic-save owner is retired.
 - `native_window_close/floating_window.rs` owns floating-window document collection and the no-prompt close path that dispatches `LayoutCommand::CloseView` for each hosted view.
 - `close_prompt.rs` remains the prompt data/projection helper: dirty-view DTOs, host prompt geometry, text, and save capability checks.
 
@@ -62,13 +60,13 @@ Close prompt actions are stable string ids from `close_prompt::close_action_id(.
 
 - `cancel` clears the prompt and leaves the window visible.
 - `discard` clears the prompt and finishes the close without saving.
-- `save` attempts automatic saves for supported dirty document types, clears the prompt on success, and re-shows the prompt with a status-line error on unsupported or failed saves.
+- `save` currently preserves the prompt and reports that documents cannot be saved; callers must choose Discard or Cancel until document-authority save routing is available.
 
 ## Design and Rationale
 
 Close-request handling, prompt-button handling, and floating-window layout mutation are related but change for different reasons. Keeping them in separate files avoids turning native close behavior into an umbrella owner for platform callbacks, prompt rendering, document save policy, and Workbench layout mutation.
 
-The root close module keeps the native close callbacks easy to audit. The prompt child owns save semantics because save support is a close-prompt action policy. The floating-window child owns recursive `DocumentNode` traversal because that behavior is specific to deciding which view instances a native floating window contains.
+The root close module keeps the native close callbacks easy to audit. The prompt child owns action parsing, presentation, and close completion, but does not own document persistence. The floating-window child owns recursive `DocumentNode` traversal because that behavior is specific to deciding which view instances a native floating window contains.
 
 The public callback method `close_prompt_action_clicked(...)` is visible only inside the retained-host app boundary. Helper methods shared by the root request flow and prompt action flow are visible only within `native_window_close`, so close prompt UI targeting, save policy, and close completion do not leak beyond the native close family.
 
@@ -93,14 +91,14 @@ Prompt action:
 
 1. `close_prompt_action_clicked(...)` parses the stable action id.
 2. The current pending prompt is cloned so the action can clear or re-show UI safely.
-3. Save attempts route through `EditorManager` document-specific save APIs.
-4. Prompted close completion either requests app exit or closes the floating-window instances.
+3. Save reports the unsupported operation and keeps the prompt visible.
+4. Discard completes the prompt by requesting app exit or closing the floating-window instances.
 
 ## Edge Cases and Constraints
 
 - A floating-window close request with no discoverable view instances keeps the window shown rather than hiding a window whose runtime ownership is unclear.
 - If a close-view layout command fails for one floating-window view, the status line receives the error and the native window remains visible.
-- Automatic save is intentionally limited to UI Asset and Animation editor document descriptors. Unsupported dirty documents must be discarded or canceled by the user.
+- Dirty documents must be discarded or canceled; native close does not bypass document authority with a prompt-local save implementation.
 - Prompt rendering targets the native floating window when that presenter exists; otherwise it falls back to the main UI host window.
 - The split does not change close prompt action ids or platform close callback names.
 
@@ -108,7 +106,7 @@ Prompt action:
 
 Implementation-slice validation currently covers formatting, ownership scanning, scoped diff checking, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`. Existing retained-host close prompt and native-window tests remain the intended regression surface; full Cargo tests are deferred to the milestone testing stage per the user's instruction.
 
-The 2026-06-19 prompt-actions subowner split reduced `native_window_close/prompt_actions.rs` from 101 lines to a 4-line structural entry. `prompt_actions/actions.rs` is 34 lines and owns save/discard/cancel action dispatch, `prompt_actions/presentation.rs` is 40 lines and owns prompt UI targeting plus show/clear behavior, `prompt_actions/completion.rs` is 18 lines and owns final close execution, and `prompt_actions/saving.rs` is 29 lines and owns dirty document auto-save policy.
+The 2026-06-19 prompt-actions subowner split established separate action, presentation, completion, and automatic-save leaves. The automatic-save leaf has since been deleted; current `actions.rs` reports Save as unsupported, `presentation.rs` owns prompt UI targeting plus show/clear behavior, and `completion.rs` owns final close execution.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app native-window close prompt-actions subowner ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo tests remain deferred to the milestone testing stage per the user's instruction.
 
@@ -119,4 +117,4 @@ This module is part of `docs/plans/zircon_editor/editor_ui/08-workbench-shell-on
 ## Open Issues or Follow-up
 
 - The milestone testing stage must still run the declared `zircon_editor` test commands before the 08 plan can be called complete.
-- Additional document types need explicit save support before the close prompt can safely enable Save for them.
+- Document-authority save routing must be implemented before the close prompt can safely complete Save.

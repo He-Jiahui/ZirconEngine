@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::path::Path;
 
 use glyphon::{FontSystem, SwashCache, TextArea, TextAtlas, TextRenderer, Viewport};
@@ -11,19 +10,19 @@ use super::atlas::{
     GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapRetryFrameState, GlyphAtlasSet,
 };
 use super::font::{
-    FontDatabase, MissingGlyphDiagnosticsReport, mutate_shared_font_database,
-    shared_font_database_generation, shared_font_database_snapshot,
+    mutate_shared_font_database, shared_font_database_generation, shared_font_database_snapshot,
+    FontDatabase, MissingGlyphDiagnosticsReport, TextDecorationMetrics,
 };
 use super::native_bitmap_atlas::{
-    NativeBitmapAtlasFrame, NativeBitmapAtlasPrepareReport, NativeBitmapAtlasSourceCache,
-    NativeBitmapAtlasTextArea, native_bitmap_atlas_frame, native_bitmap_atlas_idle_prepare_report,
+    native_bitmap_atlas_frame, native_bitmap_atlas_idle_prepare_report, NativeBitmapAtlasFrame,
+    NativeBitmapAtlasPrepareReport, NativeBitmapAtlasSourceCache, NativeBitmapAtlasTextArea,
 };
 use super::parallel::raster_pool::{
     TextRasterThreadBudgetSource, TextRasterWorkerPool, TextRasterWorkerPoolOptions,
 };
 use super::sdf::{
-    SdfAtlasBake, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache, SdfGlyphGenerationError,
-    SdfRunCpuPreparation, SdfTextRun,
+    SdfAtlasBake, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache, SdfGenerationScheduler,
+    SdfGenerationSchedulerOptions, SdfRunCpuPreparation, SdfTextRun,
 };
 use super::system_text_locale;
 
@@ -38,26 +37,40 @@ pub(crate) struct TextRenderState {
     bitmap_raster_worker_pool: Option<TextRasterWorkerPool>,
     bitmap_atlas_frame_index: u64,
     sdf_font_bake: SdfFontBakeCache,
+    sdf_generation_scheduler: Option<SdfGenerationScheduler>,
 }
 
 impl TextRenderState {
     pub(crate) fn new(raster_worker_count: usize) -> Self {
-        Self::new_with_raster_worker_options(TextRasterWorkerPoolOptions::new(raster_worker_count))
+        Self::new_with_raster_worker_options(
+            TextRasterWorkerPoolOptions::new(raster_worker_count),
+            None,
+        )
     }
 
     pub(crate) fn new_with_process_raster_worker_budget() -> Self {
-        Self::new_with_raster_worker_options(Self::process_raster_worker_options())
+        let task_pools = TaskPools::process_default();
+        let sdf_parallelism = task_pools.compute().parallelism();
+        let sdf_generation_scheduler = SdfGenerationScheduler::new(
+            task_pools.compute().clone(),
+            SdfGenerationSchedulerOptions::new(sdf_parallelism.saturating_mul(2)),
+        );
+        Self::new_with_raster_worker_options(
+            Self::process_raster_worker_options(&task_pools),
+            Some(sdf_generation_scheduler),
+        )
     }
 
-    fn process_raster_worker_options() -> TextRasterWorkerPoolOptions {
-        let worker_count = TaskPools::process_default()
-            .thread_counts()
-            .async_compute_threads;
+    fn process_raster_worker_options(task_pools: &TaskPools) -> TextRasterWorkerPoolOptions {
+        let worker_count = task_pools.thread_counts().async_compute_threads;
         TextRasterWorkerPoolOptions::new(worker_count)
             .with_thread_budget_source(TextRasterThreadBudgetSource::TaskPoolAsyncCompute)
     }
 
-    fn new_with_raster_worker_options(raster_worker_options: TextRasterWorkerPoolOptions) -> Self {
+    fn new_with_raster_worker_options(
+        raster_worker_options: TextRasterWorkerPoolOptions,
+        sdf_generation_scheduler: Option<SdfGenerationScheduler>,
+    ) -> Self {
         let (font_generation, font_database) = shared_font_database_snapshot();
         let font_system = FontSystem::new_with_locale_and_db(
             system_text_locale(),
@@ -74,6 +87,7 @@ impl TextRenderState {
             bitmap_raster_worker_pool: TextRasterWorkerPool::new(raster_worker_options).ok(),
             bitmap_atlas_frame_index: 0,
             sdf_font_bake: SdfFontBakeCache::new(),
+            sdf_generation_scheduler,
         }
     }
 
@@ -169,6 +183,9 @@ impl TextRenderState {
         self.font_generation = generation;
         self.font_database = database;
         if render_inputs_changed {
+            if let Some(scheduler) = self.sdf_generation_scheduler.as_ref() {
+                self.sdf_font_bake.cancel_scheduled_generation(scheduler);
+            }
             self.font_database.sync_font_system(&mut self.font_system);
         }
     }
@@ -180,6 +197,9 @@ impl TextRenderState {
             );
         self.bitmap_retry_state.discard_all_for_face_invalidation();
         self.bitmap_atlas = GlyphAtlasSet::default();
+        if let Some(scheduler) = self.sdf_generation_scheduler.as_ref() {
+            self.sdf_font_bake.cancel_scheduled_generation(scheduler);
+        }
         self.sdf_font_bake.invalidate_faces();
     }
 
@@ -235,7 +255,10 @@ impl TextRenderState {
                 .map(|copy| copy.page_key)
                 .collect::<Vec<_>>();
             let mut atlas = frame.submission.run.atlas;
-            atlas.invalidate_bitmap_page_upload_state(invalidated_page_keys);
+            let invalidated_raster_keys =
+                atlas.invalidate_bitmap_page_upload_state(invalidated_page_keys);
+            self.bitmap_source_cache
+                .invalidate_raster_keys_for_next_frame(invalidated_raster_keys);
             self.bitmap_atlas = atlas;
             return;
         }
@@ -275,30 +298,29 @@ impl TextRenderState {
         operation(&mut self.font_system, &self.font_database)
     }
 
-    pub(crate) fn sdf_generation_failures(
-        &mut self,
-        slots: &[SdfAtlasSlot],
-        asset_manager: &ProjectAssetManager,
-    ) -> HashMap<SdfAtlasGlyphKey, SdfGlyphGenerationError> {
-        self.sdf_font_bake.generation_failures_for_slots(
-            slots,
-            &mut self.font_database,
-            asset_manager,
-        )
-    }
-
     pub(crate) fn build_sdf_atlas(
         &mut self,
         atlas_size: UVec2,
         slots: &[SdfAtlasSlot],
         asset_manager: &ProjectAssetManager,
     ) -> SdfAtlasBake {
-        self.sdf_font_bake.build_atlas_from_slots(
-            atlas_size,
-            slots,
-            &mut self.font_database,
-            asset_manager,
-        )
+        if let Some(scheduler) = self.sdf_generation_scheduler.as_ref() {
+            self.sdf_font_bake.build_atlas_from_slots_scheduled(
+                atlas_size,
+                slots,
+                &mut self.font_database,
+                asset_manager,
+                scheduler,
+                self.bitmap_atlas_frame_index,
+            )
+        } else {
+            self.sdf_font_bake.build_atlas_from_slots(
+                atlas_size,
+                slots,
+                &mut self.font_database,
+                asset_manager,
+            )
+        }
     }
 
     pub(crate) fn prepare_sdf_runs_cpu<T: SdfTextRun>(
@@ -306,13 +328,35 @@ impl TextRenderState {
         texts: &[T],
         asset_manager: &ProjectAssetManager,
     ) -> Vec<SdfRunCpuPreparation> {
-        texts
-            .iter()
-            .map(|text| {
-                self.sdf_font_bake
-                    .prepare_run_cpu(text, &mut self.font_database, asset_manager)
-            })
-            .collect()
+        let mut runs = Vec::new();
+        self.prepare_sdf_runs_cpu_into(texts, asset_manager, &mut runs);
+        runs
+    }
+
+    pub(crate) fn prepare_sdf_runs_cpu_into<T: SdfTextRun>(
+        &mut self,
+        texts: &[T],
+        asset_manager: &ProjectAssetManager,
+        runs: &mut Vec<SdfRunCpuPreparation>,
+    ) {
+        runs.clear();
+        runs.extend(texts.iter().map(|text| {
+            self.sdf_font_bake
+                .prepare_run_cpu(text, &mut self.font_database, asset_manager)
+        }));
+    }
+
+    pub(crate) fn prepare_sdf_decoration_metrics_into<T: SdfTextRun>(
+        &mut self,
+        texts: &[T],
+        asset_manager: &ProjectAssetManager,
+        metrics: &mut Vec<TextDecorationMetrics>,
+    ) {
+        metrics.clear();
+        metrics.extend(texts.iter().map(|text| {
+            self.sdf_font_bake
+                .text_decoration_metrics(text, &mut self.font_database, asset_manager)
+        }))
     }
 }
 
@@ -342,16 +386,22 @@ mod tests {
 
     #[test]
     fn process_raster_workers_follow_the_async_compute_budget() {
-        let options = TextRenderState::process_raster_worker_options();
-        let expected_workers = TaskPools::process_default()
-            .thread_counts()
-            .async_compute_threads;
+        let task_pools = TaskPools::process_default();
+        let options = TextRenderState::process_raster_worker_options(&task_pools);
+        let expected_workers = task_pools.thread_counts().async_compute_threads;
 
         assert_eq!(options.worker_count, expected_workers);
         assert_eq!(
             options.thread_budget_source,
             TextRasterThreadBudgetSource::TaskPoolAsyncCompute
         );
+    }
+
+    #[test]
+    fn process_text_state_owns_global_task_pool_sdf_scheduler() {
+        let state = TextRenderState::new_with_process_raster_worker_budget();
+
+        assert!(state.sdf_generation_scheduler.is_some());
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::data::TemplatePaneNodeData;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -10,8 +10,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Dra
     pub preview_text: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn drag_overlay_palette(
-) -> DragOverlayPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn drag_overlay_palette()
+-> DragOverlayPalette {
     drag_overlay_palette_from_host(current_host_palette())
 }
 

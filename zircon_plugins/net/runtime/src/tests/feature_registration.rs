@@ -2,8 +2,8 @@ use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{plugin::RuntimePluginRegistrationReport, scene::SystemStage};
 
 use crate::{
-    runtime_plugin, NET_EVENT_ID, NET_FLUSH_EGRESS_SYSTEM, NET_MODULE_NAME,
-    NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET, PLUGIN_RUNTIME_MODULE_NAME,
+    runtime_plugin, NET_EVENT_ID, NET_FLUSH_EGRESS_SYSTEM, NET_MAIN_SYSTEM_SET, NET_MODULE_NAME,
+    NET_POLL_INGRESS_SYSTEM, NET_TRANSPORT_SYSTEM_SET, PLUGIN_RUNTIME_MODULE_NAME,
 };
 
 #[test]
@@ -26,7 +26,7 @@ fn net_plugin_registration_contributes_runtime_module() {
     );
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
-        vec![NET_SYSTEM_SET.to_string()]
+        [NET_MAIN_SYSTEM_SET, NET_TRANSPORT_SYSTEM_SET].map(str::to_string)
     );
     assert_eq!(
         report.package_manifest.modules[0].system_anchors,
@@ -34,6 +34,46 @@ fn net_plugin_registration_contributes_runtime_module() {
             NET_POLL_INGRESS_SYSTEM.to_string(),
             NET_FLUSH_EGRESS_SYSTEM.to_string()
         ]
+    );
+}
+
+#[test]
+fn net_runtime_systems_join_main_and_transport_sets() {
+    assert_eq!(NET_MAIN_SYSTEM_SET, "net.main");
+    assert_eq!(NET_TRANSPORT_SYSTEM_SET, "net.transport");
+
+    let mut report = RuntimePluginRegistrationReport::from_plugin(&runtime_plugin());
+    assert!(report.is_success(), "{:?}", report.diagnostics);
+
+    let main_set = report
+        .extensions
+        .intern_system_set(NET_MAIN_SYSTEM_SET)
+        .expect("net.main should be a valid system set");
+    let transport_set = report
+        .extensions
+        .intern_system_set(NET_TRANSPORT_SYSTEM_SET)
+        .expect("net.transport should be a valid system set");
+    let runtime_systems = report
+        .extensions
+        .plugin_runtime_systems()
+        .filter_map(|(owner, system)| {
+            (report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME))
+                .then_some(system)
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(runtime_systems.len(), 2);
+    for system in runtime_systems {
+        assert_eq!(
+            system.sets,
+            vec![main_set, transport_set],
+            "{} must join net.main and net.transport",
+            system.id
+        );
+    }
+    assert_eq!(
+        report.package_manifest.modules[0].system_sets,
+        [NET_MAIN_SYSTEM_SET, NET_TRANSPORT_SYSTEM_SET].map(str::to_string)
     );
 }
 

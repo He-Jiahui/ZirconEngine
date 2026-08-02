@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 #[cfg(test)]
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, MutexGuard};
@@ -11,10 +12,8 @@ use crate::plugin::{
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleState,
 };
 
-use super::super::loaded_native_plugin::{
-    NativePluginCallbackLease, NativePluginCallbackLeaseError,
-};
-
+use super::super::loaded_native_plugin::NativePluginLibraryGenerationOwner;
+use super::super::LoadedNativePlugin;
 use super::keys::{live_key, NativePluginLiveRegistry};
 use super::loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};
 use super::registration_replay::NativePluginRegistrationReplayBridgeContext;
@@ -26,6 +25,88 @@ use super::NativePluginLiveHost;
 
 pub(super) type NativePluginBridgeMethodResult<T> =
     std::result::Result<T, NativePluginBridgeMethodError>;
+
+pub(super) struct ValidatedRuntimeBridgeMethodBindings {
+    descriptors: Vec<crate::plugin::native::NativeBridgeMethodDescriptor>,
+    method_slots: Arc<HashMap<String, HashMap<String, u32>>>,
+    library_owner: NativePluginLibraryGenerationOwner,
+}
+
+impl ValidatedRuntimeBridgeMethodBindings {
+    fn from_loaded_plugin(
+        plugin: &LoadedNativePlugin,
+        bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
+    ) -> NativePluginBridgeMethodResult<Self> {
+        let manifest = runtime_package_manifest(plugin).ok_or_else(|| {
+            NativePluginBridgeMethodError::MissingPackageManifest {
+                plugin_id: plugin.plugin_id.clone(),
+            }
+        })?;
+        Self::from_manifest(manifest, plugin.library_generation_owner(), bindings)
+    }
+
+    fn from_rust_plugin(
+        plugin: &LoadedNativePlugin,
+        bindings: Vec<NativeBridgeMethodBinding>,
+    ) -> NativePluginBridgeMethodResult<Self> {
+        if let Some(binding) = bindings
+            .iter()
+            .find(|binding| binding.requires_loaded_generation_owner())
+        {
+            return Err(
+                NativePluginBridgeMethodError::AbiBindingRequiresLoadedGenerationOwner {
+                    plugin_id: plugin.plugin_id.clone(),
+                    interface_id: binding.interface_id().to_string(),
+                    method_name: binding.method_name().to_string(),
+                },
+            );
+        }
+        Self::from_loaded_plugin(plugin, bindings)
+    }
+
+    fn from_manifest(
+        manifest: &PluginPackageManifest,
+        library_owner: NativePluginLibraryGenerationOwner,
+        bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
+    ) -> NativePluginBridgeMethodResult<Self> {
+        let descriptors = native_bridge_method_descriptors_from_manifest(manifest, bindings)
+            .map_err(NativePluginBridgeMethodError::InvalidBridgeMethodManifest)?;
+        let method_slots = Arc::new(
+            manifest
+                .provides_interfaces
+                .iter()
+                .map(|interface| {
+                    (
+                        interface.id.clone(),
+                        interface
+                            .methods
+                            .iter()
+                            .map(|method| (method.name.clone(), method.method_slot))
+                            .collect(),
+                    )
+                })
+                .collect(),
+        );
+        Ok(Self {
+            descriptors,
+            method_slots,
+            library_owner,
+        })
+    }
+
+    pub(super) fn len(&self) -> usize {
+        self.descriptors.len()
+    }
+}
+
+impl std::fmt::Debug for ValidatedRuntimeBridgeMethodBindings {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ValidatedRuntimeBridgeMethodBindings")
+            .field("methods", &self.descriptors.len())
+            .finish()
+    }
+}
 
 #[derive(Debug)]
 pub(super) enum NativePluginBridgeMethodError {
@@ -42,12 +123,13 @@ pub(super) enum NativePluginBridgeMethodError {
     MissingInstalledBridgeMethodBindings {
         plugin_id: String,
     },
+    AbiBindingRequiresLoadedGenerationOwner {
+        plugin_id: String,
+        interface_id: String,
+        method_name: String,
+    },
     InvalidBridgeMethodManifest(NativeBridgeMethodManifestError),
     BridgeCallScope(RuntimeExtensionRegistryError),
-    CallbackOwner {
-        plugin_id: String,
-        source: NativePluginCallbackLeaseError,
-    },
     BridgeLifecycleRejected {
         diagnostic: String,
     },
@@ -80,12 +162,16 @@ impl std::fmt::Display for NativePluginBridgeMethodError {
                 formatter,
                 "runtime plugin {plugin_id} has no installed native bridge method bindings"
             ),
+            Self::AbiBindingRequiresLoadedGenerationOwner {
+                plugin_id,
+                interface_id,
+                method_name,
+            } => write!(
+                formatter,
+                "runtime plugin {plugin_id} cannot safely install ownerless ABI bridge method `{interface_id}.{method_name}`; install callbacks from its loaded native generation"
+            ),
             Self::InvalidBridgeMethodManifest(error) => write!(formatter, "{error}"),
             Self::BridgeCallScope(error) => write!(formatter, "{error}"),
-            Self::CallbackOwner { plugin_id, source } => write!(
-                formatter,
-                "runtime plugin {plugin_id} stable callback owner rejected: {source}"
-            ),
             Self::BridgeLifecycleRejected { diagnostic } => write!(formatter, "{diagnostic}"),
             Self::MissingDeclaredBridgeMethod {
                 plugin_id,
@@ -105,11 +191,11 @@ impl std::error::Error for NativePluginBridgeMethodError {
             Self::LiveHostLock(error) => Some(error),
             Self::InvalidBridgeMethodManifest(error) => Some(error),
             Self::BridgeCallScope(error) => Some(error),
-            Self::CallbackOwner { source, .. } => Some(source),
             Self::RuntimePluginNotLoaded { .. }
             | Self::MissingDiscoveredBridgeMethodTable { .. }
             | Self::MissingPackageManifest { .. }
             | Self::MissingInstalledBridgeMethodBindings { .. }
+            | Self::AbiBindingRequiresLoadedGenerationOwner { .. }
             | Self::BridgeLifecycleRejected { .. }
             | Self::MissingDeclaredBridgeMethod { .. } => None,
         }
@@ -130,30 +216,27 @@ impl NativePluginLiveHost {
         plugin_id: impl AsRef<str>,
     ) -> NativePluginBridgeMethodResult<usize> {
         let plugin_id = plugin_id.as_ref();
-        let (bindings, _callback_owner) = {
-            let loaded = lock_loaded_native_plugins(&self.loaded)
-                .map_err(NativePluginBridgeMethodError::LiveHostLock)?;
-            let plugin = loaded
-                .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-                .ok_or_else(|| NativePluginBridgeMethodError::RuntimePluginNotLoaded {
-                    plugin_id: plugin_id.to_string(),
-                })?;
-            let callback_owner = plugin.callback_owner_lease().map_err(|source| {
-                NativePluginBridgeMethodError::CallbackOwner {
-                    plugin_id: plugin_id.to_string(),
-                    source,
-                }
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginBridgeMethodError::LiveHostLock)?;
+        let plugin = loaded
+            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
+            .ok_or_else(|| NativePluginBridgeMethodError::RuntimePluginNotLoaded {
+                plugin_id: plugin_id.to_string(),
             })?;
-            let bindings =
-                discovered_runtime_bridge_method_bindings_result(plugin)?.ok_or_else(|| {
-                    NativePluginBridgeMethodError::MissingDiscoveredBridgeMethodTable {
-                        plugin_id: plugin_id.to_string(),
-                    }
-                })?;
-            (bindings, callback_owner)
-        };
-        let binding_count = bindings.len();
-        self.replace_runtime_bridge_method_bindings_result(plugin_id, Some(bindings))?;
+        let validated_bindings = discovered_runtime_bridge_method_bindings_result(plugin)?
+            .ok_or_else(
+                || NativePluginBridgeMethodError::MissingDiscoveredBridgeMethodTable {
+                    plugin_id: plugin_id.to_string(),
+                },
+            )?;
+        let binding_count = validated_bindings.len();
+        self.publish_runtime_bridge_method_bindings_under_loaded_lock_result(
+            &loaded,
+            plugin_id,
+            Some(validated_bindings),
+        )?;
+        self.invalidate_runtime_registration_replay_generation(plugin_id);
+        drop(loaded);
         Ok(binding_count)
     }
 
@@ -172,13 +255,25 @@ impl NativePluginLiveHost {
         bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
     ) -> NativePluginBridgeMethodResult<()> {
         let plugin_id = plugin_id.as_ref();
+        // Caller-provided iterators may execute arbitrary code. Materialize them before taking
+        // the non-reentrant live-host mutex, then validate and publish against one loaded entry.
         let bindings = bindings.into_iter().collect::<Vec<_>>();
-        let (manifest, _callback_owner) =
-            self.loaded_runtime_package_manifest_and_callback_owner_result(plugin_id)?;
-        native_bridge_method_descriptors_from_manifest(&manifest, bindings.clone())
-            .map_err(NativePluginBridgeMethodError::InvalidBridgeMethodManifest)?;
-
-        self.replace_runtime_bridge_method_bindings_result(plugin_id, Some(bindings))?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginBridgeMethodError::LiveHostLock)?;
+        let plugin = loaded
+            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
+            .ok_or_else(|| NativePluginBridgeMethodError::RuntimePluginNotLoaded {
+                plugin_id: plugin_id.to_string(),
+            })?;
+        let validated_bindings =
+            ValidatedRuntimeBridgeMethodBindings::from_rust_plugin(plugin, bindings)?;
+        self.publish_runtime_bridge_method_bindings_under_loaded_lock_result(
+            &loaded,
+            plugin_id,
+            Some(validated_bindings),
+        )?;
+        self.invalidate_runtime_registration_replay_generation(plugin_id);
+        drop(loaded);
         Ok(())
     }
 
@@ -188,56 +283,15 @@ impl NativePluginLiveHost {
     ) -> Result<bool, String> {
         let plugin_id = plugin_id.as_ref();
         let key = live_key(PluginModuleKind::Runtime, plugin_id);
+        let loaded = lock_loaded_native_plugins(&self.loaded).map_err(|error| error.to_string())?;
         let mut bindings = self.lock_runtime_bridge_method_bindings();
         let removed = bindings.remove(&key).is_some();
         drop(bindings);
         if removed {
             self.invalidate_runtime_registration_replay_generation(plugin_id);
         }
+        drop(loaded);
         Ok(removed)
-    }
-
-    pub fn runtime_bridge_call_scope_from_loaded_manifest(
-        &self,
-        plugin_id: impl AsRef<str>,
-        lifecycle: &RuntimePluginBridgeLifecycleState,
-        bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
-    ) -> Result<NativeHostBridgeCallScope, String> {
-        self.runtime_bridge_call_scope_from_loaded_manifest_result(plugin_id, lifecycle, bindings)
-            .map_err(|error| error.to_string())
-    }
-
-    pub(super) fn runtime_bridge_call_scope_from_loaded_manifest_result(
-        &self,
-        plugin_id: impl AsRef<str>,
-        lifecycle: &RuntimePluginBridgeLifecycleState,
-        bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
-    ) -> NativePluginBridgeMethodResult<NativeHostBridgeCallScope> {
-        let plugin_id = plugin_id.as_ref();
-        let (manifest, callback_owner) =
-            self.loaded_runtime_package_manifest_and_callback_owner_result(plugin_id)?;
-        Self::runtime_bridge_call_scope_from_manifest_and_owner_result(
-            lifecycle,
-            bindings,
-            manifest,
-            callback_owner,
-        )
-    }
-
-    fn runtime_bridge_call_scope_from_manifest_and_owner_result(
-        lifecycle: &RuntimePluginBridgeLifecycleState,
-        bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
-        manifest: PluginPackageManifest,
-        callback_owner: NativePluginCallbackLease,
-    ) -> NativePluginBridgeMethodResult<NativeHostBridgeCallScope> {
-        let descriptors = native_bridge_method_descriptors_from_manifest(&manifest, bindings)
-            .map_err(NativePluginBridgeMethodError::InvalidBridgeMethodManifest)?;
-        NativeHostBridgeCallScope::from_method_descriptors_with_owner(
-            lifecycle.bridge_table().clone(),
-            descriptors,
-            Some(callback_owner),
-        )
-        .map_err(NativePluginBridgeMethodError::BridgeCallScope)
     }
 
     pub fn runtime_bridge_call_scope_from_installed_bindings(
@@ -255,99 +309,44 @@ impl NativePluginLiveHost {
         lifecycle: &RuntimePluginBridgeLifecycleState,
     ) -> NativePluginBridgeMethodResult<NativeHostBridgeCallScope> {
         let plugin_id = plugin_id.as_ref();
-        // Acquire the library owner before copying installed function pointers.
-        // Hot reload/unload must observe this active owner and reject the
-        // transition until the resulting bridge scope is fully constructed.
-        let (manifest, callback_owner) =
-            self.loaded_runtime_package_manifest_and_callback_owner_result(plugin_id)?;
-        let bindings = self.installed_runtime_bridge_method_bindings_result(plugin_id)?;
-        Self::runtime_bridge_call_scope_from_manifest_and_owner_result(
-            lifecycle,
-            bindings,
-            manifest,
-            callback_owner,
-        )
+        let generation = self.runtime_bridge_generation_result(plugin_id, lifecycle)?;
+        Ok(generation.bridge_call_scope.as_ref().clone())
     }
 
-    pub(super) fn runtime_registration_replay_bridge_context_result(
+    pub(super) fn build_runtime_bridge_generation_result(
         &self,
         plugin_id: &str,
         lifecycle: &RuntimePluginBridgeLifecycleState,
+        revision: u64,
     ) -> NativePluginBridgeMethodResult<NativePluginRegistrationReplayBridgeContext> {
-        // Keep the package manifest borrowed from its loaded generation while the callback lease
-        // is acquired. The resulting descriptors and slots are the only owned data retained by
-        // the replay generation, avoiding a full package-manifest or binding-vector clone.
-        let (descriptors, method_slots, callback_owner) = {
-            let loaded = lock_loaded_native_plugins(&self.loaded)
-                .map_err(NativePluginBridgeMethodError::LiveHostLock)?;
-            let plugin = loaded
-                .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-                .ok_or_else(|| NativePluginBridgeMethodError::RuntimePluginNotLoaded {
-                    plugin_id: plugin_id.to_string(),
-                })?;
-            let manifest = runtime_package_manifest(plugin).ok_or_else(|| {
-                NativePluginBridgeMethodError::MissingPackageManifest {
-                    plugin_id: plugin_id.to_string(),
-                }
-            })?;
-            let callback_owner = plugin.callback_owner_lease().map_err(|source| {
-                NativePluginBridgeMethodError::CallbackOwner {
-                    plugin_id: plugin_id.to_string(),
-                    source,
-                }
-            })?;
-            #[cfg(test)]
-            self.registration_replay_context_build_counters
-                .package_manifest_snapshots
-                .fetch_add(1, Ordering::Relaxed);
+        // Installation validates and projects the manifest exactly once. A cold lifecycle-table
+        // generation only borrows those descriptors and shares the prebuilt name-to-slot map.
+        let (bridge_call_scope, method_slots) = {
             let installed_bindings = self.lock_runtime_bridge_method_bindings();
-            let bindings = installed_bindings
+            let validated_bindings = installed_bindings
                 .get(&live_key(PluginModuleKind::Runtime, plugin_id))
                 .ok_or_else(|| {
                     NativePluginBridgeMethodError::MissingInstalledBridgeMethodBindings {
                         plugin_id: plugin_id.to_string(),
                     }
                 })?;
-            #[cfg(test)]
-            self.registration_replay_context_build_counters
-                .binding_snapshots
-                .fetch_add(1, Ordering::Relaxed);
-            let descriptors =
-                native_bridge_method_descriptors_from_manifest(manifest, bindings.iter().cloned())
-                    .map_err(NativePluginBridgeMethodError::InvalidBridgeMethodManifest)?;
-            let method_slots = manifest
-                .provides_interfaces
-                .iter()
-                .map(|interface| {
-                    (
-                        interface.id.clone(),
-                        interface
-                            .methods
-                            .iter()
-                            .map(|method| (method.name.clone(), method.method_slot))
-                            .collect(),
-                    )
-                })
-                .collect();
-            #[cfg(test)]
-            self.registration_replay_context_build_counters
-                .method_lookup_builds
-                .fetch_add(1, Ordering::Relaxed);
-            (descriptors, method_slots, callback_owner)
+            let bridge_call_scope = Arc::new(
+                NativeHostBridgeCallScope::from_method_descriptor_refs_with_owner(
+                    lifecycle.bridge_table().clone(),
+                    validated_bindings.descriptors.iter(),
+                    Some(validated_bindings.library_owner.clone()),
+                )
+                .map_err(NativePluginBridgeMethodError::BridgeCallScope)?,
+            );
+            (bridge_call_scope, validated_bindings.method_slots.clone())
         };
-        let bridge_call_scope = Arc::new(
-            NativeHostBridgeCallScope::from_method_descriptors_with_owner(
-                lifecycle.bridge_table().clone(),
-                descriptors,
-                Some(callback_owner),
-            )
-            .map_err(NativePluginBridgeMethodError::BridgeCallScope)?,
-        );
         #[cfg(test)]
         self.registration_replay_context_build_counters
             .bridge_call_scope_builds
             .fetch_add(1, Ordering::Relaxed);
         Ok(NativePluginRegistrationReplayBridgeContext {
+            revision,
+            bridge_table: lifecycle.bridge_table().clone(),
             method_slots,
             bridge_call_scope,
         })
@@ -403,56 +402,23 @@ impl NativePluginLiveHost {
         Ok(report)
     }
 
-    fn loaded_runtime_package_manifest_required_result(
+    #[cfg(test)]
+    pub(super) fn installed_runtime_bridge_method_binding_count(
         &self,
         plugin_id: &str,
-    ) -> NativePluginBridgeMethodResult<PluginPackageManifest> {
-        self.loaded_runtime_package_manifest_result(plugin_id)?
-            .ok_or_else(|| NativePluginBridgeMethodError::MissingPackageManifest {
-                plugin_id: plugin_id.to_string(),
-            })
-    }
-
-    fn loaded_runtime_package_manifest_and_callback_owner_result(
-        &self,
-        plugin_id: &str,
-    ) -> NativePluginBridgeMethodResult<(PluginPackageManifest, NativePluginCallbackLease)> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginBridgeMethodError::LiveHostLock)?;
-        let plugin = loaded
-            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(|| NativePluginBridgeMethodError::RuntimePluginNotLoaded {
-                plugin_id: plugin_id.to_string(),
-            })?;
-        let manifest = runtime_package_manifest(plugin).cloned().ok_or_else(|| {
-            NativePluginBridgeMethodError::MissingPackageManifest {
-                plugin_id: plugin_id.to_string(),
-            }
-        })?;
-        let callback_owner = plugin.callback_owner_lease().map_err(|source| {
-            NativePluginBridgeMethodError::CallbackOwner {
-                plugin_id: plugin_id.to_string(),
-                source,
-            }
-        })?;
-        Ok((manifest, callback_owner))
-    }
-
-    fn installed_runtime_bridge_method_bindings(
-        &self,
-        plugin_id: &str,
-    ) -> Result<Vec<NativeBridgeMethodBinding>, String> {
-        self.installed_runtime_bridge_method_bindings_result(plugin_id)
+    ) -> Result<usize, String> {
+        self.installed_runtime_bridge_method_binding_count_result(plugin_id)
             .map_err(|error| error.to_string())
     }
 
-    fn installed_runtime_bridge_method_bindings_result(
+    #[cfg(test)]
+    pub(super) fn installed_runtime_bridge_method_binding_count_result(
         &self,
         plugin_id: &str,
-    ) -> NativePluginBridgeMethodResult<Vec<NativeBridgeMethodBinding>> {
+    ) -> NativePluginBridgeMethodResult<usize> {
         self.lock_runtime_bridge_method_bindings()
             .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .cloned()
+            .map(ValidatedRuntimeBridgeMethodBindings::len)
             .ok_or_else(
                 || NativePluginBridgeMethodError::MissingInstalledBridgeMethodBindings {
                     plugin_id: plugin_id.to_string(),
@@ -460,23 +426,19 @@ impl NativePluginLiveHost {
             )
     }
 
-    pub(super) fn replace_runtime_bridge_method_bindings(
+    pub(super) fn publish_runtime_bridge_method_bindings_under_loaded_lock_result(
         &self,
+        _loaded: &MutexGuard<'_, NativePluginLiveRegistry<LoadedNativePlugin>>,
         plugin_id: &str,
-        bindings: Option<Vec<NativeBridgeMethodBinding>>,
-    ) -> Result<(), String> {
-        self.replace_runtime_bridge_method_bindings_result(plugin_id, bindings)
-            .map_err(|error| error.to_string())
-    }
-
-    pub(super) fn replace_runtime_bridge_method_bindings_result(
-        &self,
-        plugin_id: &str,
-        bindings: Option<Vec<NativeBridgeMethodBinding>>,
+        bindings: Option<ValidatedRuntimeBridgeMethodBindings>,
     ) -> NativePluginBridgeMethodResult<()> {
         let mut installed_bindings = self.lock_runtime_bridge_method_bindings();
         match bindings {
-            Some(bindings) if !bindings.is_empty() => {
+            Some(bindings) if bindings.len() != 0 => {
+                #[cfg(test)]
+                self.registration_replay_context_build_counters
+                    .method_lookup_builds
+                    .fetch_add(1, Ordering::Relaxed);
                 installed_bindings.insert(live_key(PluginModuleKind::Runtime, plugin_id), bindings);
             }
             Some(_) | None => {
@@ -484,101 +446,52 @@ impl NativePluginLiveHost {
             }
         }
         drop(installed_bindings);
-        // Registered callbacks keep their old `Arc` generation alive; only future replay must
-        // observe the replacement binding table.
-        self.invalidate_runtime_registration_replay_generation(plugin_id);
         Ok(())
     }
 
     fn lock_runtime_bridge_method_bindings(
         &self,
-    ) -> MutexGuard<'_, NativePluginLiveRegistry<Vec<NativeBridgeMethodBinding>>> {
+    ) -> MutexGuard<'_, NativePluginLiveRegistry<ValidatedRuntimeBridgeMethodBindings>> {
         self.runtime_bridge_method_bindings
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    pub(super) fn runtime_bridge_method_slot(
-        &self,
-        plugin_id: &str,
-        interface_id: &str,
-        method_name: &str,
-    ) -> Result<u32, String> {
-        self.runtime_bridge_method_slot_result(plugin_id, interface_id, method_name)
-            .map_err(|error| error.to_string())
-    }
-
     pub(super) fn runtime_bridge_method_slot_result(
         &self,
         plugin_id: &str,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
         interface_id: &str,
         method_name: &str,
     ) -> NativePluginBridgeMethodResult<u32> {
-        let manifest = self.loaded_runtime_package_manifest_required_result(plugin_id)?;
-        for interface in &manifest.provides_interfaces {
-            if interface.id != interface_id {
-                continue;
-            }
-            for method in &interface.methods {
-                if method.name == method_name {
-                    return Ok(method.method_slot);
-                }
-            }
-        }
-        Err(NativePluginBridgeMethodError::MissingDeclaredBridgeMethod {
-            plugin_id: plugin_id.to_string(),
-            interface_id: interface_id.to_string(),
-            method_name: method_name.to_string(),
-        })
+        self.runtime_bridge_generation_result(plugin_id, lifecycle)?
+            .method_slot_result(plugin_id, interface_id, method_name)
     }
-
-    fn loaded_runtime_package_manifest_result(
-        &self,
-        plugin_id: &str,
-    ) -> NativePluginBridgeMethodResult<Option<PluginPackageManifest>> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)
-            .map_err(NativePluginBridgeMethodError::LiveHostLock)?;
-        let plugin = loaded
-            .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(|| NativePluginBridgeMethodError::RuntimePluginNotLoaded {
-                plugin_id: plugin_id.to_string(),
-            })?;
-        Ok(runtime_package_manifest(plugin).cloned())
-    }
-}
-
-pub(super) fn discovered_runtime_bridge_method_bindings(
-    plugin: &super::super::LoadedNativePlugin,
-) -> Result<Option<Vec<NativeBridgeMethodBinding>>, String> {
-    discovered_runtime_bridge_method_bindings_result(plugin).map_err(|error| error.to_string())
 }
 
 pub(super) fn discovered_runtime_bridge_method_bindings_result(
-    plugin: &super::super::LoadedNativePlugin,
-) -> NativePluginBridgeMethodResult<Option<Vec<NativeBridgeMethodBinding>>> {
+    plugin: &LoadedNativePlugin,
+) -> NativePluginBridgeMethodResult<Option<ValidatedRuntimeBridgeMethodBindings>> {
     let Some(report) = plugin.runtime_entry_report.as_ref() else {
         return Ok(None);
     };
     if report.bridge_method_bindings.is_empty() {
         return Ok(None);
     }
-    let manifest = runtime_package_manifest(plugin).ok_or_else(|| {
-        NativePluginBridgeMethodError::MissingPackageManifest {
-            plugin_id: plugin.plugin_id.clone(),
-        }
-    })?;
-    native_bridge_method_descriptors_from_manifest(manifest, report.bridge_method_bindings.clone())
-        .map_err(NativePluginBridgeMethodError::InvalidBridgeMethodManifest)?;
-    Ok(Some(report.bridge_method_bindings.clone()))
+    ValidatedRuntimeBridgeMethodBindings::from_loaded_plugin(
+        plugin,
+        report.bridge_method_bindings.iter().cloned(),
+    )
+    .map(Some)
 }
 
 pub(super) fn discovered_runtime_bridge_method_binding_diagnostics(
     plugin_id: &str,
-    bindings: &[NativeBridgeMethodBinding],
+    binding_count: usize,
 ) -> String {
     format!(
         "native.live_host.bridge_bindings_discovered: Runtime plugin `{plugin_id}` installed {} bridge method(s)",
-        bindings.len()
+        binding_count
     )
 }
 
@@ -609,57 +522,22 @@ fn runtime_package_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plugin::native::{NativeBridgeCall, NativeBridgeMethodFn};
-    use zircon_runtime_interface::{ZrByteSlice, ZrStatus, ZrStatusCode};
 
     #[test]
     fn native_live_host_bridge_method_bindings_recover_poisoned_lock() {
         let host = NativePluginLiveHost::default();
         let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let mut bindings = host.runtime_bridge_method_bindings.lock().unwrap();
-            bindings.insert(
-                live_key(PluginModuleKind::Runtime, "physics"),
-                vec![bridge_binding("sample_count")],
-            );
+            let _bindings = host.runtime_bridge_method_bindings.lock().unwrap();
             panic!("poison native live-host bridge method bindings");
         }));
         assert!(poison.is_err());
 
-        let installed = host
-            .installed_runtime_bridge_method_bindings("physics")
-            .expect("poisoned binding lock should recover for reads");
-        assert_eq!(installed.len(), 1);
-
-        assert!(host
+        assert!(!host
             .clear_runtime_bridge_method_bindings("physics")
             .expect("poisoned binding lock should recover for clear"));
         assert!(matches!(
-            host.installed_runtime_bridge_method_bindings("physics"),
+            host.installed_runtime_bridge_method_binding_count("physics"),
             Err(message) if message == "runtime plugin physics has no installed native bridge method bindings"
         ));
-
-        host.replace_runtime_bridge_method_bindings(
-            "physics",
-            Some(vec![bridge_binding("resample_count")]),
-        )
-        .expect("poisoned binding lock should recover for replace");
-        assert_eq!(
-            host.installed_runtime_bridge_method_bindings("physics")
-                .expect("replaced binding should be readable after poison")
-                .len(),
-            1
-        );
-    }
-
-    fn bridge_binding(method_name: &str) -> NativeBridgeMethodBinding {
-        NativeBridgeMethodBinding::new(
-            "test.native.live_host.bridge.v1",
-            method_name,
-            NativeBridgeMethodFn::from_rust(poisoned_bridge_method),
-        )
-    }
-
-    fn poisoned_bridge_method(_call: NativeBridgeCall) -> ZrStatus {
-        ZrStatus::new(ZrStatusCode::Ok, ZrByteSlice::empty())
     }
 }

@@ -33,10 +33,9 @@ pub(crate) fn fallback_text_spans(
         .map(str::trim)
         .filter(|family| !family.is_empty());
     let mut face_resolver = database.begin_shaping_face_resolution(&query, request.language);
-    let text_codepoints = text.chars().collect::<Vec<_>>();
     if let Some(face) = face_resolver
         .as_ref()
-        .filter(|resolver| resolver.primary_covers_all(&text_codepoints))
+        .filter(|resolver| resolver.primary_covers_text(text))
         .map(|resolver| resolver.primary_face())
     {
         let family = database
@@ -57,16 +56,14 @@ pub(crate) fn fallback_text_spans(
         }];
     }
     let mut spans = Vec::<FallbackTextSpan>::new();
+    let mut cluster_codepoints = Vec::new();
     for (start, cluster) in text.grapheme_indices(true) {
         let end = start + cluster.len();
-        let codepoints = cluster.chars().collect::<Vec<_>>();
-        let face = face_resolver
-            .as_mut()
-            .map(|resolver| resolver.resolve(font_script_for_cluster(cluster), &codepoints));
-        let family = face
-            .and_then(|face| database.face_family_name(face))
-            .map(|family| family.0)
-            .or_else(|| default_family.map(str::to_string));
+        cluster_codepoints.clear();
+        cluster_codepoints.extend(cluster.chars());
+        let face = face_resolver.as_mut().map(|resolver| {
+            resolver.resolve(font_script_for_cluster(cluster), &cluster_codepoints)
+        });
         let instance = face.and_then(|face| {
             database
                 .effective_instance_id(
@@ -76,15 +73,16 @@ pub(crate) fn fallback_text_spans(
                 .ok()
         });
         if let Some(previous) = spans.last_mut() {
-            if previous.family == family
-                && previous.face == face
-                && previous.instance == instance
-                && previous.range.end == start
+            if previous.face == face && previous.instance == instance && previous.range.end == start
             {
                 previous.range.end = end;
                 continue;
             }
         }
+        let family = face
+            .and_then(|face| database.face_family_name(face))
+            .map(|family| family.0)
+            .or_else(|| default_family.map(str::to_string));
         spans.push(FallbackTextSpan {
             range: start..end,
             family,
@@ -149,5 +147,17 @@ mod tests {
         assert_eq!(spans.len(), 1);
         assert_eq!(spans[0].range, 0..text.len());
         assert_eq!(spans[0].face, Some(primary));
+    }
+
+    #[test]
+    fn fallback_itemization_reuses_cluster_codepoint_storage() {
+        let source = include_str!("fallback_spans.rs");
+        let compact = source
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect::<String>();
+
+        assert!(!compact.contains("text.chars().collect::<Vec<_>>()"));
+        assert!(compact.contains("cluster_codepoints.clear()"));
     }
 }

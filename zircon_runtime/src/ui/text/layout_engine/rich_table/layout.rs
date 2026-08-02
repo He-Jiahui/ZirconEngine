@@ -6,21 +6,32 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::rich_text::UiParsedText;
-use super::super::layout_parsed_text_without_tables_with_provider;
+use super::super::{
+    layout_parsed_text_with_provider, layout_parsed_text_without_tables_with_provider,
+};
 use super::{
     axes::TableAxes,
     cell_layout::{
-        preferred_column_extent, resolved_cell_boxes, resolved_cell_padding, row_extent_constraint,
-        track_origins, track_span_extent, translate_layout_and_clip, PreparedTableCellLayout,
+        PreparedTableCellLayout, preferred_column_extent, resolved_cell_boxes,
+        resolved_cell_padding, row_extent_constraint, track_origins, track_span_extent,
+        translate_layout_and_clip,
     },
     grid::TableGrid,
-    sizing::{resolve_column_extents, resolve_row_extents, PreferredColumnExtent},
-    source_slice::{layout_cell_range_with_provider, layout_range_with_provider, slice_parsed},
+    sizing::{PreferredColumnExtent, resolve_column_extents, resolve_row_extents},
+    source_slice::{
+        layout_range_with_provider, shift_layout_source_ranges, slice_parsed,
+        slice_parsed_with_table_depth,
+    },
 };
 
 const TABLE_COLUMN_GAP_EM: f32 = 0.2;
 const MIN_TABLE_COLUMN_EM: f32 = 1.0;
 const MAX_PROVISIONAL_CELL_BLOCK_EXTENT: f32 = f32::MAX / 4.0;
+
+struct PreparedTableCellSource {
+    source_start: usize,
+    parsed: UiParsedText,
+}
 
 pub(in super::super) fn layout_rich_tables_with_provider(
     parsed: &UiParsedText,
@@ -31,10 +42,8 @@ pub(in super::super) fn layout_rich_tables_with_provider(
 ) -> Option<UiResolvedTextLayout> {
     let axes = TableAxes::from_style(style);
     let top_level_tables: Vec<&RichTable> = parsed
-        .rich
-        .tables
-        .iter()
-        .filter(|table| table.depth == 0 && !table.cells.is_empty())
+        .tables()
+        .filter(|table| table.depth == parsed.table_root_depth() && !table.cells.is_empty())
         .collect();
     if top_level_tables.is_empty() {
         return None;
@@ -51,12 +60,14 @@ pub(in super::super) fn layout_rich_tables_with_provider(
     for table in top_level_tables {
         let table_start = usize::try_from(table.byte_range.0)
             .ok()?
-            .min(parsed.text.len());
+            .saturating_sub(parsed.source_offset())
+            .min(parsed.text().len());
         let table_end = usize::try_from(table.byte_range.1)
             .ok()?
-            .min(parsed.text.len());
+            .saturating_sub(parsed.source_offset())
+            .min(parsed.text().len());
         if cursor < table_start {
-            let segment_range = trim_block_delimiters(&parsed.text, cursor, table_start);
+            let segment_range = trim_block_delimiters(parsed.text(), cursor, table_start);
             if segment_range.start < segment_range.end {
                 let block = layout_range_with_provider(
                     parsed,
@@ -91,7 +102,7 @@ pub(in super::super) fn layout_rich_tables_with_provider(
         cursor = cursor.max(table_end);
     }
 
-    let tail = trim_block_delimiters(&parsed.text, cursor, parsed.text.len());
+    let tail = trim_block_delimiters(parsed.text(), cursor, parsed.text().len());
     if tail.start < tail.end {
         let block = layout_range_with_provider(
             parsed,
@@ -128,12 +139,13 @@ pub(in super::super) fn layout_rich_tables_with_provider(
         measured_height,
         source_range: UiTextRange {
             start: 0,
-            end: parsed.text.len(),
+            end: parsed.text().len(),
         },
         lines,
         boxes,
         overflow_clipped: overflow_clipped || consumed_block > axes.block_extent(frame),
         editable: None,
+        rich_text_artifact: None,
     })
 }
 
@@ -151,7 +163,8 @@ fn layout_table_with_provider(
     let column_gap = style.font_size.max(1.0) * TABLE_COLUMN_GAP_EM;
     let available_track_extent =
         (axes.inline_extent(frame) - column_gap * column_count.saturating_sub(1) as f32).max(0.0);
-    let preferred_cells = preferred_cell_extents(parsed, &grid, table.depth, style, axes, provider);
+    let cell_sources = prepare_cell_sources(parsed, &grid, table.depth);
+    let preferred_cells = preferred_cell_extents(&cell_sources, &grid, style, axes, provider);
     let minimum_column_extent = (style.font_size.max(1.0) * MIN_TABLE_COLUMN_EM)
         .min(available_track_extent / column_count.max(1) as f32);
     let column_extents = resolve_column_extents(
@@ -166,7 +179,7 @@ fn layout_table_with_provider(
     let mut prepared_cells = Vec::with_capacity(grid.cells.len());
     let mut row_constraints = Vec::with_capacity(grid.cells.len());
     let mut overflow_clipped = false;
-    for placed in &grid.cells {
+    for (cell_index, placed) in grid.cells.iter().enumerate() {
         let padding = resolved_cell_padding(placed.cell, style.font_size);
         let range = usize::try_from(placed.cell.byte_range.0).unwrap_or(0)
             ..usize::try_from(placed.cell.byte_range.1).unwrap_or(0);
@@ -184,15 +197,14 @@ fn layout_table_with_provider(
             padding,
             provisional_block_extent(range.len(), style),
         );
-        let layout = layout_cell_range_with_provider(
-            parsed,
-            range,
-            table.depth,
+        let mut layout = layout_parsed_text_with_provider(
+            &cell_sources[cell_index].parsed,
             style,
             provisional_content_frame,
-            provisional_content_frame,
+            Some(provisional_content_frame),
             provider,
         );
+        shift_layout_source_ranges(&mut layout, cell_sources[cell_index].source_start);
         overflow_clipped |= layout.overflow_clipped;
         row_constraints.push(row_extent_constraint(
             axes,
@@ -219,6 +231,7 @@ fn layout_table_with_provider(
         axes,
         frame,
         &grid,
+        parsed.source_offset(),
         &column_origins,
         &column_extents,
         &row_origins,
@@ -281,8 +294,8 @@ fn layout_table_with_provider(
         measured_width,
         measured_height,
         source_range: UiTextRange {
-            start: table.byte_range.0 as usize,
-            end: table.byte_range.1 as usize,
+            start: (table.byte_range.0 as usize).saturating_sub(parsed.source_offset()),
+            end: (table.byte_range.1 as usize).saturating_sub(parsed.source_offset()),
         },
         lines,
         boxes,
@@ -290,36 +303,60 @@ fn layout_table_with_provider(
             || total_inline_extent > axes.inline_extent(frame)
             || total_block_extent > axes.block_extent(frame),
         editable: None,
+        rich_text_artifact: None,
     }
 }
 
 fn preferred_cell_extents(
-    parsed: &UiParsedText,
+    cell_sources: &[PreparedTableCellSource],
     grid: &TableGrid<'_>,
-    table_depth: u16,
     style: &UiResolvedStyle,
     axes: TableAxes,
     provider: &mut SharedTextLayoutSession,
 ) -> Vec<PreferredColumnExtent> {
     grid.cells
         .iter()
-        .map(|placed| {
+        .enumerate()
+        .map(|(cell_index, placed)| {
             let padding = resolved_cell_padding(placed.cell, style.font_size);
             let range = placed.cell.byte_range.0 as usize..placed.cell.byte_range.1 as usize;
             let measure_frame = preferred_measure_frame(axes, range.len(), style);
-            let layout = layout_cell_range_with_provider(
-                parsed,
-                range,
-                table_depth,
+            let layout = layout_parsed_text_with_provider(
+                &cell_sources[cell_index].parsed,
                 &UiResolvedStyle {
                     wrap: zircon_runtime_interface::ui::surface::UiTextWrap::None,
                     ..style.clone()
                 },
                 measure_frame,
-                measure_frame,
+                Some(measure_frame),
                 provider,
             );
             preferred_column_extent(axes, placed.column, placed.column_span, &layout, padding)
+        })
+        .collect()
+}
+
+fn prepare_cell_sources(
+    parsed: &UiParsedText,
+    grid: &TableGrid<'_>,
+    table_depth: u16,
+) -> Vec<PreparedTableCellSource> {
+    grid.cells
+        .iter()
+        .map(|placed| {
+            let start = usize::try_from(placed.cell.byte_range.0)
+                .unwrap_or_default()
+                .saturating_sub(parsed.source_offset())
+                .min(parsed.text().len());
+            let end = usize::try_from(placed.cell.byte_range.1)
+                .unwrap_or_default()
+                .saturating_sub(parsed.source_offset())
+                .min(parsed.text().len())
+                .max(start);
+            PreparedTableCellSource {
+                source_start: start,
+                parsed: slice_parsed_with_table_depth(parsed, start..end, Some(table_depth)),
+            }
         })
         .collect()
 }

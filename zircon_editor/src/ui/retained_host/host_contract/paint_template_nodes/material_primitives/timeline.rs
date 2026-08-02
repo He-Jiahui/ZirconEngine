@@ -8,7 +8,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use connector::push_timeline_connector;
 use dot::push_timeline_dot;
-use identity::{timeline_primitive_kind, TimelinePrimitiveKind};
+use identity::{TimelinePrimitiveKind, timeline_primitive_kind};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_timeline_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,

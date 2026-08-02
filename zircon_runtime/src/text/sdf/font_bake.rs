@@ -1,167 +1,110 @@
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
-use crate::core::framework::text::TextFontFaceHandle;
-use crate::core::math::UVec2;
-use crate::text::atlas::GlyphAtlasPageKey;
 use crate::text::font::{
-    load_text_font_source, shared_font_database_generation, FontDatabase, LoadedTextFontSource,
-    TextDecorationMetrics, TextDecorationMetricsCache,
+    load_text_font_source, resolve_font_handle_batch, shared_font_database_generation,
+    FontDatabase, LoadedTextFontSource, TextDecorationMetrics, TextDecorationMetricsCache,
 };
-use crate::text::sdf::{SdfBakeParams, SdfGlyphGenerationError};
+use crate::text::sdf::{SdfBakeParams, SdfGenerationScheduler, SdfGlyphGenerationError};
 use crate::text::{FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight};
 
+mod async_batch;
+mod atlas_build;
+mod atlas_pages;
 mod distance_field;
+mod dynamic_batch;
+mod font_asset_cache;
+mod glyph_cache;
 mod glyph_metrics;
+mod model;
 mod offline_source;
+mod prepared_atlas;
+mod source_context;
 
-use distance_field::bake_distance_field_glyph;
+use atlas_pages::SdfPersistentAtlasCache;
+use dynamic_batch::SdfDynamicGenerationTotals;
+use font_asset_cache::SdfFontAssetFaceCache;
 use glyph_metrics::{fallback_metrics, glyph_metrics};
-use offline_source::SdfOfflineSourceCache;
+use offline_source::{SdfOfflineSourceCache, SdfOfflineSourceCacheReport};
+use prepared_atlas::SdfPreparedAtlasCache;
+use source_context::{SdfGenerationSourceCache, SdfGenerationSourceCacheReport};
 
 pub(crate) use glyph_metrics::scale_sdf_metrics_for_display;
+pub(crate) use model::{
+    SdfAtlasBake, SdfAtlasBakeDirtyPage, SdfAtlasBakePage, SdfAtlasBakeReport,
+    SdfAtlasGlyphGenerationFailure, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakedGlyph,
+    SdfGlyphMetrics, SdfRunCpuPreparation, SdfShapedGlyphIdentity, SdfTextRun,
+};
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 const FALLBACK_ADVANCE_RATIO: f32 = 0.6;
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct SdfAtlasRect {
-    pub(crate) x: u32,
-    pub(crate) y: u32,
-    pub(crate) width: u32,
-    pub(crate) height: u32,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct SdfAtlasGlyphKey {
-    pub(crate) glyph: char,
-    pub(crate) glyph_id: Option<u32>,
-    pub(crate) font_id: Option<TextFontFaceHandle>,
-    pub(crate) font_instance_id: Option<TextFontFaceHandle>,
-    pub(crate) font: Option<String>,
-    pub(crate) font_family: Option<String>,
-    pub(crate) language: Option<String>,
-    pub(crate) font_weight: u16,
-    pub(crate) bake_params: SdfBakeParams,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct SdfAtlasSlot {
-    pub(crate) key: SdfAtlasGlyphKey,
-    pub(crate) page_key: GlyphAtlasPageKey,
-    pub(crate) rect: SdfAtlasRect,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct SdfShapedGlyphIdentity {
-    pub(crate) glyph_id: u32,
-    pub(crate) font_id: Option<TextFontFaceHandle>,
-    pub(crate) font_instance_id: Option<TextFontFaceHandle>,
-}
-
-pub(crate) trait SdfTextRun {
-    fn font(&self) -> Option<&str>;
-    fn font_family(&self) -> Option<&str>;
-    fn language(&self) -> Option<&str>;
-    fn font_weight(&self) -> u16;
-    fn font_size(&self) -> f32;
-    fn render_scalars(&self) -> Vec<char>;
-    fn resolved_glyph_advances(&self) -> Option<Vec<f32>>;
-    fn shaped_glyph(&self, glyph_index: usize) -> Option<SdfShapedGlyphIdentity>;
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct SdfRunCpuPreparation {
-    pub(crate) glyph_metrics: Vec<SdfGlyphMetrics>,
-    pub(crate) glyph_advances: Vec<f32>,
-    pub(crate) decoration_metrics: TextDecorationMetrics,
-}
 
 pub(crate) struct SdfFontBakeCache {
     observed_font_generation: u64,
     fonts: HashMap<FontFaceId, fontsdf::Font>,
     glyphs: HashMap<SdfAtlasGlyphKey, RawBakedGlyph>,
+    // One LRU key domain bounds bitmap glyphs and all CPU-side glyph sidecars together.
+    baked_glyph_recency: HashMap<SdfAtlasGlyphKey, u64>,
+    baked_glyph_recency_order: BTreeSet<(u64, SdfAtlasGlyphKey)>,
+    baked_glyph_access_epoch: u64,
+    resident_baked_glyph_byte_count: usize,
+    baked_glyph_eviction_count: usize,
+    reported_baked_glyph_eviction_count: usize,
     measured_glyphs: HashMap<SdfAtlasGlyphKey, SdfGlyphMetrics>,
     face_resolutions: HashMap<SdfAtlasGlyphKey, Vec<FontFaceId>>,
-    font_asset_faces: HashMap<(u64, String), Option<FontFaceId>>,
+    shaped_face_resolutions: HashMap<SdfAtlasGlyphKey, Option<FontFaceId>>,
+    font_asset_faces: SdfFontAssetFaceCache,
     decoration_metrics: TextDecorationMetricsCache,
     offline_source: SdfOfflineSourceCache,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct SdfAtlasBake {
-    pub(crate) pixels: Vec<u8>,
-    pub(crate) pages: Vec<SdfAtlasBakePage>,
-    pub(crate) glyphs: Vec<SdfBakedGlyph>,
-    pub(crate) generation_failures: Vec<SdfAtlasGlyphGenerationFailure>,
-    pub(crate) report: SdfAtlasBakeReport,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct SdfAtlasBakePage {
-    pub(crate) page_key: crate::text::atlas::GlyphAtlasPageKey,
-    pub(crate) source_offset: usize,
-    pub(crate) byte_len: usize,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct SdfAtlasGlyphGenerationFailure {
-    pub(crate) slot_index: usize,
-    pub(crate) key: SdfAtlasGlyphKey,
-    pub(crate) error: SdfGlyphGenerationError,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct SdfAtlasBakeReport {
-    pub(crate) slot_count: usize,
-    pub(crate) visible_glyph_count: usize,
-    pub(crate) empty_glyph_count: usize,
-    pub(crate) atlas_byte_len: usize,
-    pub(crate) nonzero_pixel_count: usize,
-    /// Materialized faces retained by the cache after this atlas build.
-    pub(crate) resident_font_count: usize,
-    /// Faces materialized by this atlas build rather than reused from the cache.
-    pub(crate) loaded_font_count: usize,
-    pub(crate) generation_failure_count: usize,
-    pub(crate) r8_byte_len: usize,
-    pub(crate) rgba_byte_len: usize,
-    pub(crate) offline_glyph_count: usize,
-    pub(crate) dynamic_glyph_count: usize,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct SdfBakedGlyph {
-    pub(crate) metrics: SdfGlyphMetrics,
-    pub(crate) visible: bool,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(crate) struct SdfGlyphMetrics {
-    pub(crate) bitmap_width: u32,
-    pub(crate) bitmap_height: u32,
-    pub(crate) bitmap_left: f32,
-    pub(crate) bitmap_bottom: f32,
-    pub(crate) advance: f32,
-    pub(crate) ascent: f32,
+    source_contexts: SdfGenerationSourceCache,
+    dynamic_generation_totals: SdfDynamicGenerationTotals,
+    reported_source_contexts: SdfGenerationSourceCacheReport,
+    reported_dynamic_generation: SdfDynamicGenerationTotals,
+    reported_offline_source: SdfOfflineSourceCacheReport,
+    atlas_pages: SdfPersistentAtlasCache,
+    prepared_atlas: SdfPreparedAtlasCache,
+    async_generation: SdfAsyncGenerationState,
 }
 
 impl SdfFontBakeCache {
     pub(crate) fn new() -> Self {
+        let observed_font_generation = shared_font_database_generation();
         Self {
-            observed_font_generation: shared_font_database_generation(),
+            observed_font_generation,
             fonts: HashMap::new(),
             glyphs: HashMap::new(),
+            baked_glyph_recency: HashMap::new(),
+            baked_glyph_recency_order: BTreeSet::new(),
+            baked_glyph_access_epoch: 0,
+            resident_baked_glyph_byte_count: 0,
+            baked_glyph_eviction_count: 0,
+            reported_baked_glyph_eviction_count: 0,
             measured_glyphs: HashMap::new(),
             face_resolutions: HashMap::new(),
-            font_asset_faces: HashMap::new(),
+            shaped_face_resolutions: HashMap::new(),
+            font_asset_faces: SdfFontAssetFaceCache::default(),
             decoration_metrics: TextDecorationMetricsCache::default(),
             offline_source: SdfOfflineSourceCache::default(),
+            source_contexts: SdfGenerationSourceCache::new(observed_font_generation),
+            dynamic_generation_totals: SdfDynamicGenerationTotals::default(),
+            reported_source_contexts: SdfGenerationSourceCacheReport::default(),
+            reported_dynamic_generation: SdfDynamicGenerationTotals::default(),
+            reported_offline_source: SdfOfflineSourceCacheReport::default(),
+            atlas_pages: SdfPersistentAtlasCache::default(),
+            prepared_atlas: SdfPreparedAtlasCache::default(),
+            async_generation: SdfAsyncGenerationState::default(),
         }
     }
 
     pub(crate) fn invalidate_faces(&mut self) {
-        self.clear_face_derived_caches();
-        self.observed_font_generation = shared_font_database_generation();
+        let generation = shared_font_database_generation();
+        self.clear_face_derived_caches(generation);
+        self.observed_font_generation = generation;
+    }
+
+    pub(crate) fn cancel_scheduled_generation(&mut self, scheduler: &SdfGenerationScheduler) {
+        self.cancel_async_generation(scheduler);
     }
 
     pub(crate) fn text_decoration_metrics<T: SdfTextRun + ?Sized>(
@@ -185,22 +128,33 @@ impl SdfFontBakeCache {
                     .resolve(font_database, face, text.font_size())
             })
             .unwrap_or_else(|| TextDecorationMetrics::fallback(text.font_size()));
+        let font = text.font().map(Arc::<str>::from);
+        let font_family = text.font_family().map(Arc::<str>::from);
+        let language = text.language().map(Arc::<str>::from);
+        let keys = text
+            .render_scalars()
+            .into_iter()
+            .enumerate()
+            .map(|(glyph_index, glyph)| {
+                let shaped = text.shaped_glyph(glyph_index);
+                SdfAtlasGlyphKey {
+                    glyph,
+                    glyph_id: shaped.map(|glyph| glyph.glyph_id),
+                    font_id: shaped.and_then(|glyph| glyph.font_id),
+                    font_instance_id: shaped.and_then(|glyph| glyph.font_instance_id),
+                    font: font.clone(),
+                    font_family: font_family.clone(),
+                    language: language.clone(),
+                    font_weight: text.font_weight(),
+                    bake_params: SdfBakeParams::default(),
+                }
+            })
+            .collect::<Vec<_>>();
+        self.prime_shaped_face_resolutions(&keys, font_database);
         let mut resolved_faces = Vec::new();
-        for (glyph_index, glyph) in text.render_scalars().into_iter().enumerate() {
-            let shaped = text.shaped_glyph(glyph_index);
-            let key = SdfAtlasGlyphKey {
-                glyph,
-                glyph_id: shaped.map(|glyph| glyph.glyph_id),
-                font_id: shaped.and_then(|glyph| glyph.font_id),
-                font_instance_id: shaped.and_then(|glyph| glyph.font_instance_id),
-                font: text.font().map(str::to_owned),
-                font_family: text.font_family().map(str::to_owned),
-                language: text.language().map(str::to_owned),
-                font_weight: text.font_weight(),
-                bake_params: SdfBakeParams::default(),
-            };
+        for key in &keys {
             if let Some(face) = self
-                .resolve_faces_for_key_cached(&key, font_database, asset_manager)
+                .resolve_faces_for_key_cached(key, font_database, asset_manager)
                 .into_iter()
                 .next()
                 .filter(|face| !resolved_faces.contains(face))
@@ -222,26 +176,35 @@ impl SdfFontBakeCache {
     ) -> SdfRunCpuPreparation {
         self.ensure_current_font_generation();
         let decoration_metrics = self.text_decoration_metrics(text, font_database, asset_manager);
-        let glyph_metrics = text
+        let font = text.font().map(Arc::<str>::from);
+        let font_family = text.font_family().map(Arc::<str>::from);
+        let language = text.language().map(Arc::<str>::from);
+        let keys = text
             .render_scalars()
             .into_iter()
             .enumerate()
             .map(|(glyph_index, glyph)| {
-                if sdf_scalar_is_invisible_format(glyph) {
+                let shaped = text.shaped_glyph(glyph_index);
+                SdfAtlasGlyphKey {
+                    glyph,
+                    glyph_id: shaped.map(|glyph| glyph.glyph_id),
+                    font_id: shaped.and_then(|glyph| glyph.font_id),
+                    font_instance_id: shaped.and_then(|glyph| glyph.font_instance_id),
+                    font: font.clone(),
+                    font_family: font_family.clone(),
+                    language: language.clone(),
+                    font_weight: text.font_weight(),
+                    bake_params: SdfBakeParams::default(),
+                }
+            })
+            .collect::<Vec<_>>();
+        self.prime_shaped_face_resolutions(&keys, font_database);
+        let glyph_metrics = keys
+            .iter()
+            .map(|key| {
+                if sdf_scalar_is_invisible_format(key.glyph) {
                     SdfGlyphMetrics::default()
                 } else {
-                    let shaped = text.shaped_glyph(glyph_index);
-                    let key = SdfAtlasGlyphKey {
-                        glyph,
-                        glyph_id: shaped.map(|glyph| glyph.glyph_id),
-                        font_id: shaped.and_then(|glyph| glyph.font_id),
-                        font_instance_id: shaped.and_then(|glyph| glyph.font_instance_id),
-                        font: text.font().map(str::to_owned),
-                        font_family: text.font_family().map(str::to_owned),
-                        language: text.language().map(str::to_owned),
-                        font_weight: text.font_weight(),
-                        bake_params: SdfBakeParams::default(),
-                    };
                     let metrics = self.measure_key_cached(&key, font_database, asset_manager);
                     scale_sdf_metrics_for_display(metrics, text.font_size(), key.bake_params)
                 }
@@ -258,133 +221,6 @@ impl SdfFontBakeCache {
             glyph_advances,
             decoration_metrics,
         }
-    }
-
-    pub(crate) fn build_atlas_from_slots(
-        &mut self,
-        atlas_size: UVec2,
-        slots: &[SdfAtlasSlot],
-        font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
-    ) -> SdfAtlasBake {
-        self.ensure_current_font_generation();
-        let resident_font_count_before = self.fonts.len();
-        let width = atlas_size.x.max(1);
-        let height = atlas_size.y.max(1);
-        let page_keys = slots
-            .iter()
-            .map(|slot| slot.page_key)
-            .collect::<BTreeSet<_>>();
-        let mut pages = Vec::with_capacity(page_keys.len().max(1));
-        let mut pixels = Vec::new();
-        for page_key in page_keys {
-            let storage_format = page_key.format.storage_format();
-            let byte_len =
-                width as usize * height as usize * storage_format.bytes_per_pixel() as usize;
-            let source_offset = pixels.len();
-            pixels.resize(source_offset.saturating_add(byte_len), 0);
-            pages.push(SdfAtlasBakePage {
-                page_key,
-                source_offset,
-                byte_len,
-            });
-        }
-        if pages.is_empty() {
-            pixels.push(0);
-        }
-        let mut glyphs = Vec::with_capacity(slots.len());
-        let mut generation_failures = Vec::new();
-        let mut offline_glyph_count = 0_usize;
-        let mut dynamic_glyph_count = 0_usize;
-
-        for (slot_index, slot) in slots.iter().enumerate() {
-            let baked = self.bake_glyph_cached(&slot.key, font_database, asset_manager);
-            if let Some(error) = baked.generation_error {
-                generation_failures.push(SdfAtlasGlyphGenerationFailure {
-                    slot_index,
-                    key: slot.key.clone(),
-                    error,
-                });
-            }
-            match baked.source {
-                RawBakedGlyphSource::Offline => {
-                    offline_glyph_count = offline_glyph_count.saturating_add(1)
-                }
-                RawBakedGlyphSource::Dynamic => {
-                    dynamic_glyph_count = dynamic_glyph_count.saturating_add(1)
-                }
-                RawBakedGlyphSource::Failed => {}
-            }
-            if let Some(page) = pages.iter().find(|page| page.page_key == slot.page_key) {
-                let page_end = page.source_offset.saturating_add(page.byte_len);
-                let bytes_per_pixel = slot.page_key.format.storage_format().bytes_per_pixel();
-                let page_pixels = &mut pixels[page.source_offset..page_end];
-                write_glyph_bitmap(
-                    page_pixels,
-                    width,
-                    height,
-                    bytes_per_pixel,
-                    slot.rect,
-                    baked.metrics.bitmap_width,
-                    baked.metrics.bitmap_height,
-                    &baked.bitmap,
-                );
-            }
-            glyphs.push(SdfBakedGlyph {
-                metrics: baked.metrics,
-                visible: baked.visible,
-            });
-        }
-
-        let visible_glyph_count = glyphs.iter().filter(|glyph| glyph.visible).count();
-        let resident_font_count = self.fonts.len();
-        let report = SdfAtlasBakeReport {
-            slot_count: glyphs.len(),
-            visible_glyph_count,
-            empty_glyph_count: glyphs.len().saturating_sub(visible_glyph_count),
-            atlas_byte_len: pixels.len(),
-            nonzero_pixel_count: pixels.iter().filter(|pixel| **pixel != 0).count(),
-            resident_font_count,
-            loaded_font_count: resident_font_count.saturating_sub(resident_font_count_before),
-            generation_failure_count: generation_failures.len(),
-            r8_byte_len: pages
-                .iter()
-                .filter(|page| page.page_key.format.storage_format().bytes_per_pixel() == 1)
-                .map(|page| page.byte_len)
-                .sum(),
-            rgba_byte_len: pages
-                .iter()
-                .filter(|page| page.page_key.format.storage_format().bytes_per_pixel() == 4)
-                .map(|page| page.byte_len)
-                .sum(),
-            offline_glyph_count,
-            dynamic_glyph_count,
-        };
-
-        SdfAtlasBake {
-            pixels,
-            pages,
-            glyphs,
-            generation_failures,
-            report,
-        }
-    }
-
-    pub(crate) fn generation_failures_for_slots(
-        &mut self,
-        slots: &[SdfAtlasSlot],
-        font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
-    ) -> HashMap<SdfAtlasGlyphKey, SdfGlyphGenerationError> {
-        self.ensure_current_font_generation();
-        slots
-            .iter()
-            .filter_map(|slot| {
-                self.bake_glyph_cached(&slot.key, font_database, asset_manager)
-                    .generation_error
-                    .map(|error| (slot.key.clone(), error))
-            })
-            .collect()
     }
 
     pub(crate) fn measure_glyph(
@@ -404,12 +240,12 @@ impl SdfFontBakeCache {
             glyph_id: None,
             font_id: None,
             font_instance_id: None,
-            font: font.map(str::to_string),
-            font_family: font_family.map(str::to_string),
+            font: font.map(Arc::<str>::from),
+            font_family: font_family.map(Arc::<str>::from),
             language: language
                 .map(str::trim)
                 .filter(|language| !language.is_empty())
-                .map(str::to_string),
+                .map(Arc::<str>::from),
             font_weight: FontWeight::clamped(font_weight).0,
             bake_params: SdfBakeParams::default(),
         };
@@ -423,14 +259,18 @@ impl SdfFontBakeCache {
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> SdfGlyphMetrics {
-        if let Some(glyph) = self.glyphs.get(key) {
+        if let Some(glyph) = self.cached_baked_glyph(key) {
             return glyph.metrics;
         }
         if let Some(metrics) = self.measured_glyphs.get(key) {
-            return *metrics;
+            let metrics = *metrics;
+            self.touch_cached_glyph_key(key.clone());
+            return metrics;
         }
         let metrics = self.measure_key(key, font_database, asset_manager);
         self.measured_glyphs.insert(key.clone(), metrics);
+        self.touch_cached_glyph_key(key.clone());
+        self.enforce_baked_glyph_budget(&[]);
         metrics
     }
 
@@ -448,56 +288,31 @@ impl SdfFontBakeCache {
             let Some(font) = self.fonts.get(&face) else {
                 continue;
             };
-            let index = glyph_index(font, key, face, font_database);
+            let resolved_shaped_face = self.shaped_face_resolutions.get(key).copied().flatten();
+            let index = glyph_index(font, key, face, resolved_shaped_face);
             let metrics = font.metrics_indexed_sdf(index, px);
             return glyph_metrics(font, px, metrics);
         }
         fallback_metrics(px)
     }
 
-    fn bake_glyph_cached(
-        &mut self,
-        key: &SdfAtlasGlyphKey,
-        font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
-    ) -> RawBakedGlyph {
-        if let Some(glyph) = self.glyphs.get(key) {
-            return glyph.clone();
+    fn bake_glyph_cached(&mut self, key: &SdfAtlasGlyphKey) -> RawBakedGlyph {
+        if let Some(glyph) = self.cached_baked_glyph(key) {
+            return glyph;
         }
-        let glyph = self.bake_glyph(key, font_database, asset_manager);
-        self.measured_glyphs.insert(key.clone(), glyph.metrics);
-        self.glyphs.insert(key.clone(), glyph.clone());
-        glyph
-    }
-
-    fn bake_glyph(
-        &mut self,
-        key: &SdfAtlasGlyphKey,
-        font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
-    ) -> RawBakedGlyph {
-        let px = key.bake_params.bake_em_px_f32();
-        let mut generation_error = None;
-        for face in self.resolve_faces_for_key_cached(key, font_database, asset_manager) {
-            let _ = self.ensure_sdf_font(face, font_database);
-            if let Some(glyph) =
-                self.offline_source
-                    .load_glyph(key, face, font_database, asset_manager)
-            {
-                return glyph;
-            }
-            match bake_distance_field_glyph(key, face, font_database) {
-                Ok(glyph) => return glyph,
-                Err(error) => generation_error = Some(error),
-            }
+        if let Some(error) = self.async_generation.transient_failure(key) {
+            return RawBakedGlyph::failed(
+                fallback_metrics(key.bake_params.bake_em_px_f32()),
+                error,
+            );
         }
         RawBakedGlyph::failed(
-            fallback_metrics(px),
-            generation_error.unwrap_or(SdfGlyphGenerationError::MissingGlyphOutline(
+            fallback_metrics(key.bake_params.bake_em_px_f32()),
+            SdfGlyphGenerationError::MissingGlyphOutline(
                 key.glyph_id
                     .and_then(|glyph_id| u16::try_from(glyph_id).ok())
                     .unwrap_or(0),
-            )),
+            ),
         )
     }
 
@@ -507,11 +322,14 @@ impl SdfFontBakeCache {
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> Vec<FontFaceId> {
-        if let Some(faces) = self.face_resolutions.get(key) {
-            return faces.clone();
+        if let Some(faces) = self.face_resolutions.get(key).cloned() {
+            self.touch_cached_glyph_key(key.clone());
+            return faces;
         }
         let faces = self.resolve_faces_for_key(key, font_database, asset_manager);
         self.face_resolutions.insert(key.clone(), faces.clone());
+        self.touch_cached_glyph_key(key.clone());
+        self.enforce_baked_glyph_budget(&[]);
         faces
     }
 
@@ -521,16 +339,8 @@ impl SdfFontBakeCache {
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> Option<FontFaceId> {
-        let asset = font_asset
-            .filter(|asset| !asset.trim().is_empty())
-            .unwrap_or(DEFAULT_FONT_ASSET);
-        let key = (shared_font_database_generation(), asset.to_owned());
-        if let Some(face) = self.font_asset_faces.get(&key) {
-            return *face;
-        }
-        let face = resolve_font_face(Some(asset), font_database, asset_manager);
-        self.font_asset_faces.insert(key, face);
-        face
+        self.font_asset_faces
+            .resolve(font_asset, font_database, asset_manager)
     }
 
     fn resolve_faces_for_key(
@@ -539,7 +349,8 @@ impl SdfFontBakeCache {
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> Vec<FontFaceId> {
-        if let Some(face) = shaped_face_for_key(key, font_database) {
+        self.prime_shaped_face_resolutions(std::slice::from_ref(key), font_database);
+        if let Some(face) = self.shaped_face_resolutions.get(key).copied().flatten() {
             return font_database
                 .standalone_face_bytes(face)
                 .is_ok()
@@ -575,26 +386,89 @@ impl SdfFontBakeCache {
         faces
     }
 
+    fn prime_shaped_face_resolutions(
+        &mut self,
+        keys: &[SdfAtlasGlyphKey],
+        font_database: &FontDatabase,
+    ) {
+        let unshaped = keys
+            .iter()
+            .filter(|key| {
+                key.font_id.is_none()
+                    && key.font_instance_id.is_none()
+                    && !self.shaped_face_resolutions.contains_key(*key)
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        for key in unshaped {
+            self.shaped_face_resolutions.insert(key.clone(), None);
+            self.touch_cached_glyph_key(key);
+        }
+        let pending = keys
+            .iter()
+            .filter(|key| {
+                (key.font_id.is_some() || key.font_instance_id.is_some())
+                    && !self.shaped_face_resolutions.contains_key(*key)
+            })
+            .collect::<Vec<_>>();
+        if !pending.is_empty() {
+            let pairs = pending
+                .iter()
+                .map(|key| (key.font_id, key.font_instance_id))
+                .collect::<Vec<_>>();
+            for (key, (face, instance_id)) in
+                pending.into_iter().zip(resolve_font_handle_batch(&pairs))
+            {
+                let instance_face = instance_id
+                    .and_then(|instance| font_database.font_instance(instance))
+                    .map(|instance| instance.face);
+                let resolved = match (face, instance_face) {
+                    (Some(face), Some(instance_face)) if face != instance_face => None,
+                    (Some(face), _) => Some(face),
+                    (None, Some(instance_face)) => Some(instance_face),
+                    (None, None) => None,
+                };
+                self.shaped_face_resolutions.insert(key.clone(), resolved);
+                self.touch_cached_glyph_key(key.clone());
+            }
+        }
+        self.enforce_baked_glyph_budget(&[]);
+    }
+
     fn ensure_current_font_generation(&mut self) {
         self.sync_font_generation(shared_font_database_generation());
+    }
+
+    fn ensure_current_font_generation_scheduled(&mut self, scheduler: &SdfGenerationScheduler) {
+        let generation = shared_font_database_generation();
+        if self.observed_font_generation != generation {
+            self.cancel_async_generation(scheduler);
+        }
+        self.sync_font_generation(generation);
     }
 
     fn sync_font_generation(&mut self, generation: u64) {
         if self.observed_font_generation == generation {
             return;
         }
-        self.clear_face_derived_caches();
+        self.clear_face_derived_caches(generation);
         self.observed_font_generation = generation;
     }
 
-    fn clear_face_derived_caches(&mut self) {
+    fn clear_face_derived_caches(&mut self, generation: u64) {
         self.fonts.clear();
-        self.glyphs.clear();
-        self.measured_glyphs.clear();
-        self.face_resolutions.clear();
+        self.clear_cached_glyph_entries();
         self.font_asset_faces.clear();
         self.decoration_metrics = TextDecorationMetricsCache::default();
         self.offline_source = SdfOfflineSourceCache::default();
+        self.source_contexts = SdfGenerationSourceCache::new(generation);
+        self.dynamic_generation_totals = SdfDynamicGenerationTotals::default();
+        self.reported_source_contexts = SdfGenerationSourceCacheReport::default();
+        self.reported_dynamic_generation = SdfDynamicGenerationTotals::default();
+        self.reported_offline_source = SdfOfflineSourceCacheReport::default();
+        self.atlas_pages = SdfPersistentAtlasCache::default();
+        self.prepared_atlas = SdfPreparedAtlasCache::default();
+        self.async_generation = SdfAsyncGenerationState::default();
     }
 
     fn ensure_sdf_font(&mut self, face: FontFaceId, font_database: &FontDatabase) -> bool {
@@ -645,7 +519,7 @@ fn font_query_for_key(key: &SdfAtlasGlyphKey) -> FontQuery {
 #[derive(Clone, Debug)]
 struct RawBakedGlyph {
     metrics: SdfGlyphMetrics,
-    bitmap: Vec<u8>,
+    bitmap: Arc<[u8]>,
     visible: bool,
     generation_error: Option<SdfGlyphGenerationError>,
     source: RawBakedGlyphSource,
@@ -662,7 +536,7 @@ impl RawBakedGlyph {
     fn failed(metrics: SdfGlyphMetrics, error: SdfGlyphGenerationError) -> Self {
         Self {
             metrics,
-            bitmap: Vec::new(),
+            bitmap: Arc::from([]),
             visible: false,
             generation_error: Some(error),
             source: RawBakedGlyphSource::Failed,
@@ -711,26 +585,12 @@ fn register_loaded_font_manifest(
         .and_then(|report| report.faces.first().copied())
 }
 
-fn shaped_face_for_key(key: &SdfAtlasGlyphKey, font_database: &FontDatabase) -> Option<FontFaceId> {
-    let (face, instance_id) =
-        crate::text::font::resolve_font_handles(key.font_id, key.font_instance_id);
-    let instance_face = instance_id
-        .and_then(|instance| font_database.font_instance(instance))
-        .map(|instance| instance.face);
-    match (face, instance_face) {
-        (Some(face), Some(instance_face)) if face != instance_face => None,
-        (Some(face), _) => Some(face),
-        (None, Some(instance_face)) => Some(instance_face),
-        (None, None) => None,
-    }
-}
-
 fn shaped_glyph_id_for_face(
     key: &SdfAtlasGlyphKey,
     face: FontFaceId,
-    font_database: &FontDatabase,
+    resolved_shaped_face: Option<FontFaceId>,
 ) -> Option<u16> {
-    (shaped_face_for_key(key, font_database) == Some(face))
+    (resolved_shaped_face == Some(face))
         .then_some(())
         .and_then(|()| key.glyph_id)
         .and_then(|glyph_id| u16::try_from(glyph_id).ok())
@@ -740,9 +600,9 @@ fn glyph_index(
     font: &fontsdf::Font,
     key: &SdfAtlasGlyphKey,
     face: FontFaceId,
-    font_database: &FontDatabase,
+    resolved_shaped_face: Option<FontFaceId>,
 ) -> u16 {
-    if let Some(glyph_id) = shaped_glyph_id_for_face(key, face, font_database) {
+    if let Some(glyph_id) = shaped_glyph_id_for_face(key, face, resolved_shaped_face) {
         return glyph_id;
     }
     if font.chars().contains_key(&key.glyph) {
@@ -752,38 +612,6 @@ fn glyph_index(
     }
 }
 
-fn write_glyph_bitmap(
-    pixels: &mut [u8],
-    atlas_width: u32,
-    atlas_height: u32,
-    bytes_per_pixel: u32,
-    rect: SdfAtlasRect,
-    glyph_width: u32,
-    glyph_height: u32,
-    glyph_bitmap: &[u8],
-) {
-    let copy_width = glyph_width.min(rect.width);
-    let copy_height = glyph_height.min(rect.height);
-    let right = rect.x.saturating_add(copy_width).min(atlas_width);
-    let bottom = rect.y.saturating_add(copy_height).min(atlas_height);
-
-    for y in rect.y..bottom {
-        for x in rect.x..right {
-            let local_x = x - rect.x;
-            let local_y = y - rect.y;
-            let src = (local_y as usize * glyph_width as usize + local_x as usize)
-                * bytes_per_pixel as usize;
-            let dst = (y as usize * atlas_width as usize + x as usize) * bytes_per_pixel as usize;
-            let src_end = src.saturating_add(bytes_per_pixel as usize);
-            let dst_end = dst.saturating_add(bytes_per_pixel as usize);
-            if let (Some(source), Some(destination)) =
-                (glyph_bitmap.get(src..src_end), pixels.get_mut(dst..dst_end))
-            {
-                destination.copy_from_slice(source);
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests;
+use async_batch::SdfAsyncGenerationState;

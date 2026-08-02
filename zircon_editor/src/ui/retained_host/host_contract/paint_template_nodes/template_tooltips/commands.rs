@@ -35,7 +35,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         return true;
     }
     let arrow_size = tooltip_arrow_size(node);
-    let icon_size = tooltip_icon_size(node);
 
     push_tooltip_surface(
         commands,
@@ -69,16 +68,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         style.border,
         opacity,
     );
-    push_tooltip_info_icon(
-        commands,
-        node,
-        &rect,
-        clip,
-        icon_order(order),
-        icon_size,
-        style.icon,
-        opacity,
-    );
+    if !node.icon_name.is_empty() {
+        push_tooltip_info_icon(
+            commands,
+            node,
+            &rect,
+            clip,
+            icon_order(order),
+            tooltip_icon_size(node),
+            style.icon,
+            opacity,
+        );
+    }
 
     true
 }

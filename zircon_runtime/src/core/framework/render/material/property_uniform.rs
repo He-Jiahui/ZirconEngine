@@ -280,7 +280,9 @@ pub struct RenderMaterialPropertyUniformField {
     pub name: String,
     pub kind: String,
     pub offset: u32,
+    /// Encoded byte span inside a packed vec4 slot, not a WGSL member stride.
     pub size: u32,
+    /// Start granularity inside the slot; slot placement remains layout-owned.
     pub alignment: u32,
 }
 

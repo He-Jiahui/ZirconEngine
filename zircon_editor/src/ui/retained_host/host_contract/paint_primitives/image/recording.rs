@@ -15,11 +15,7 @@ impl ImageRecordingMetadata<'_> {
         match self {
             Self::ResourceKey(_) => true,
             Self::Atlas(atlas) => {
-                atlas.width > 0
-                    && atlas.height > 0
-                    && atlas.rgba.as_ref().is_some_and(|rgba| {
-                        rgba.len() == atlas.width as usize * atlas.height as usize * 4
-                    })
+                !atlas.resource_key.is_empty() && atlas.width > 0 && atlas.height > 0
             }
         }
     }

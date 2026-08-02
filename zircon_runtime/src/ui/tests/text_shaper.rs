@@ -1,9 +1,6 @@
 use crate::ui::text::{
     layout_text, measure_text_size,
-    shaper::{
-        UiSharedTextShaper, UiTextBackendIntent, UiTextShapeRequest, UiTextShaper,
-        UiTextShaperSelection, UiTextShaperStack,
-    },
+    shaper::{UiSharedTextShaper, UiTextShapeRequest, UiTextShaper, UiTextShaperStack},
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
@@ -39,54 +36,6 @@ fn shared_text_shaper_matches_public_measurement_entrypoint() {
 }
 
 #[test]
-fn text_shaper_stack_records_render_mode_backend_intent() {
-    let auto_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    let native_style = UiResolvedStyle {
-        text_render_mode: UiTextRenderMode::Native,
-        ..auto_style.clone()
-    };
-    let sdf_style = UiResolvedStyle {
-        text_render_mode: UiTextRenderMode::Sdf,
-        ..auto_style
-    };
-    let stack = UiTextShaperStack::default();
-
-    assert_eq!(
-        stack.selection_for_style(&native_style),
-        UiTextShaperSelection {
-            requested_mode: UiTextRenderMode::Native,
-            effective_mode: UiTextRenderMode::Native,
-            intended_backend: UiTextBackendIntent::NativeGlyphon,
-            active_backend: UiTextBackendIntent::SharedTextService,
-            fallback_reason: None,
-        }
-    );
-    assert_eq!(
-        stack.selection_for_style(&sdf_style),
-        UiTextShaperSelection {
-            requested_mode: UiTextRenderMode::Sdf,
-            effective_mode: UiTextRenderMode::Sdf,
-            intended_backend: UiTextBackendIntent::SdfAtlas,
-            active_backend: UiTextBackendIntent::SharedTextService,
-            fallback_reason: None,
-        }
-    );
-    assert_eq!(
-        stack.selection_for_style(&UiResolvedStyle {
-            text_render_mode: UiTextRenderMode::Auto,
-            ..native_style
-        }),
-        UiTextShaperSelection {
-            requested_mode: UiTextRenderMode::Auto,
-            effective_mode: UiTextRenderMode::Native,
-            intended_backend: UiTextBackendIntent::NativeGlyphon,
-            active_backend: UiTextBackendIntent::SharedTextService,
-            fallback_reason: None,
-        }
-    );
-}
-
-#[test]
 fn text_render_mode_resolver_matches_runtime_font_asset_policy() {
     assert_eq!(
         resolve_ui_text_render_mode(UiTextRenderMode::Auto, None),
@@ -103,25 +52,6 @@ fn text_render_mode_resolver_matches_runtime_font_asset_policy() {
     assert_eq!(
         resolve_ui_text_render_mode(UiTextRenderMode::Native, Some(UiTextRenderMode::Sdf)),
         UiTextRenderMode::Native
-    );
-}
-
-#[test]
-fn text_shaper_stack_records_auto_font_default_backend_intent() {
-    let selection = UiTextShaperSelection::for_render_mode_with_font_default(
-        UiTextRenderMode::Auto,
-        Some(UiTextRenderMode::Sdf),
-    );
-
-    assert_eq!(
-        selection,
-        UiTextShaperSelection {
-            requested_mode: UiTextRenderMode::Auto,
-            effective_mode: UiTextRenderMode::Sdf,
-            intended_backend: UiTextBackendIntent::SdfAtlas,
-            active_backend: UiTextBackendIntent::SharedTextService,
-            fallback_reason: None,
-        }
     );
 }
 

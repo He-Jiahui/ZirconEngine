@@ -42,6 +42,7 @@ fn category_label(category: JobCategory) -> &'static str {
         JobCategory::Compile => "Compile",
         JobCategory::Thumbnail => "Thumbnail",
         JobCategory::Export => "Export",
+        JobCategory::InteractiveSave => "Interactive save",
         JobCategory::Index => "Index",
         JobCategory::Play => "Play",
         JobCategory::Misc => "Miscellaneous",
@@ -86,6 +87,20 @@ mod tests {
         let projected = status_task_progress_from_jobs(&[indeterminate]).unwrap();
         assert_eq!(projected.percent, None);
         assert_eq!(projected.detail, "Compile");
+
+        let interactive_save = EditorJobProgressSnapshot::new(
+            JobId::new(3),
+            "save",
+            JobCategory::InteractiveSave,
+            Some(EditorJobProgress::new(0, 0, "")),
+            true,
+        );
+        assert_eq!(
+            status_task_progress_from_jobs(&[interactive_save])
+                .unwrap()
+                .detail,
+            "Interactive save"
+        );
 
         let overflowing = EditorJobProgressSnapshot::new(
             JobId::new(1),

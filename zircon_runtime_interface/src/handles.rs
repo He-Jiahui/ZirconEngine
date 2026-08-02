@@ -3,8 +3,14 @@
 pub struct ZrRuntimeSessionHandle(pub u64);
 
 #[repr(transparent)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub struct ZrRuntimeViewportHandle(pub u64);
+
+/// The single viewport exposed by the V1 runtime host ABI.
+pub const ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1: ZrRuntimeViewportHandle =
+    ZrRuntimeViewportHandle::new(1);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

@@ -6,6 +6,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_velocity_mesh_pip
     shader: &wgpu::ShaderModule,
     target_format: wgpu::TextureFormat,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-velocity-mesh-pipeline"),
@@ -42,7 +43,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_velocity_mesh_pip
             })],
         }),
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }
 
@@ -53,8 +54,8 @@ mod tests {
     use super::super::test_support::create_standard_mesh_pipeline_layout;
     use super::create_velocity_mesh_pipeline;
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
-    use crate::graphics::scene::resources::GpuMeshVertex;
     use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::resources::GpuMeshVertex;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_velocity_template_source_for_geometry;
 
     #[test]
@@ -80,11 +81,9 @@ mod tests {
         .expect("velocity template source should assemble");
 
         assert!(source.wgsl_source.contains("struct ZrVelocityVertexInput"));
-        assert!(
-            source
-                .wgsl_source
-                .contains("@location(8) previous_position")
-        );
+        assert!(source
+            .wgsl_source
+            .contains("@location(8) previous_position"));
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_main("));
     }
@@ -114,6 +113,7 @@ mod tests {
             &shader,
             wgpu::TextureFormat::Rg16Float,
             &key,
+            None,
         );
         let error = pollster::block_on(error_scope.pop());
 

@@ -36,9 +36,7 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
         "QueryAccess::insert_id must not push then re-sort each access insertion"
     );
     assert!(
-        cache_text.contains(
-            "component_storage_locations_for_internal("
-        ),
+        cache_text.contains("component_storage_locations_for_internal("),
         "QueryState cache rebuilds must reuse access.reads() for cached component storage locations"
     );
     assert!(

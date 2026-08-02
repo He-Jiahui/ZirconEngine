@@ -1,5 +1,5 @@
 use super::resources::resolve_startup_managers;
-use super::state::{construct_startup_host, StartupHostConstruction};
+use super::state::{StartupHostConstruction, construct_startup_host};
 use super::template_bridges::create_startup_template_bridges;
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;

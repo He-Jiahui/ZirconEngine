@@ -1,70 +1,13 @@
 use super::*;
 
 #[test]
-fn ui_source_template_fixture_conversion_converts_template_documents_into_asset_documents() {
-    let asset_document = UiAssetSchemaMigrator::migrate_source_template_fixture_str(
-        "source.workbench",
-        "Source Workbench",
-        LEGACY_TEMPLATE_TOML,
-    )
-    .unwrap()
-    .document;
+fn ui_asset_loader_rejects_source_template_documents_without_asset_header() {
+    let error = UiAssetLoader::load_toml_str(SOURCE_TEMPLATE_WITHOUT_ASSET_HEADER_TOML)
+        .expect_err("source-template documents must not enter the production asset loader");
 
-    assert_eq!(asset_document.asset.kind, UiAssetKind::Layout);
-    assert_eq!(asset_document.asset.id, "source.workbench");
-    assert_eq!(asset_document.asset.display_name, "Source Workbench");
-    assert_eq!(asset_document.root.as_ref().unwrap().node_id, "root");
-    assert_eq!(asset_document.root.as_ref().unwrap().children.len(), 1);
     assert_eq!(
-        asset_document.root.as_ref().unwrap().children[0]
-            .node
-            .node_id,
-        "root_0"
-    );
-
-    let compiler = UiDocumentCompiler::default();
-    let compiled = compiler.compile(&asset_document).unwrap();
-    let instance = compiled.into_template_instance();
-
-    assert_eq!(instance.root.component.as_deref(), Some("VerticalBox"));
-    assert_eq!(instance.root.control_id.as_deref(), Some("LegacyRoot"));
-    assert_eq!(instance.root.children.len(), 1);
-    assert_eq!(
-        instance.root.children[0].component.as_deref(),
-        Some("Button")
-    );
-    assert_eq!(
-        instance.root.children[0].control_id.as_deref(),
-        Some("LegacyButton")
-    );
-    assert_eq!(
-        instance.root.children[0].attributes.get("text"),
-        Some(&Value::String("Open".to_string()))
-    );
-    assert_eq!(instance.root.children[0].bindings[0].id, "Legacy/Button");
-}
-
-#[test]
-fn ui_source_template_fixture_conversion_emits_canonical_asset_source_that_roundtrips() {
-    let source = toml::to_string_pretty(
-        &UiAssetSchemaMigrator::migrate_source_template_fixture_str(
-            "source.workbench",
-            "Source Workbench",
-            LEGACY_TEMPLATE_TOML,
-        )
-        .unwrap()
-        .document,
-    )
-    .unwrap();
-    let document = UiAssetLoader::load_toml_str(&source).unwrap();
-    let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
-    let instance = compiled.into_template_instance();
-
-    assert_eq!(document.asset.id, "source.workbench");
-    assert_eq!(instance.root.component.as_deref(), Some("VerticalBox"));
-    assert_eq!(
-        instance.root.children[0].control_id.as_deref(),
-        Some("LegacyButton")
+        error,
+        UiAssetError::ParseToml("ui asset source is missing [asset]".to_string())
     );
 }
 

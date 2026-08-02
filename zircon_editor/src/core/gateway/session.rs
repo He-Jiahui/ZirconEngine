@@ -1,19 +1,20 @@
-use std::slice;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use std::{mem::MaybeUninit, slice};
 
 use serde::de::DeserializeOwned;
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV3,
-    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
-    ZrRuntimeOperationSubmitRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
-    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ProfileControlRequest, ProfileControlResponse, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
+    ZrRuntimeApiV3, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeFrameV1, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatus,
 };
 
 use super::{
@@ -487,16 +488,16 @@ impl EditorRuntimeGateway for SessionGateway {
     fn poll_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         let poll = Self::required(self.api.poll_operation, "runtime.operation.poll")?;
-        let mut output = ZrOwnedByteBuffer::empty();
-        let status = unsafe { poll(self.session, handle, &mut output) };
-        let output = Self::validate_output_status(status, output, "poll runtime operation")?;
-        let progress: ZrRuntimeOperationProgressV1 =
-            Self::decode_owned_output(output, "poll runtime operation")?;
-        ensure_output_abi(progress.abi_version, "runtime operation progress")?;
-        ensure_operation_handle(progress.handle, handle, "runtime operation progress")?;
-        Ok(progress)
+        let mut status = MaybeUninit::<ZrRuntimeOperationStatusV2>::uninit();
+        ensure_status(
+            unsafe { poll(self.session, handle, status.as_mut_ptr()) },
+            "poll runtime operation",
+        )?;
+        let status = unsafe { status.assume_init() };
+        ensure_operation_status(&status, handle)?;
+        Ok(status)
     }
 
     fn harvest_operation(
@@ -607,6 +608,46 @@ fn ensure_output_abi(abi_version: u32, output_kind: &'static str) -> Result<(), 
     Err(GatewayError::Protocol {
         message: format!("{output_kind} used unsupported ABI version {abi_version}"),
     })
+}
+
+fn ensure_operation_status(
+    status: &ZrRuntimeOperationStatusV2,
+    requested: ZrRuntimeOperationHandle,
+) -> Result<(), GatewayError> {
+    if status.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V2 {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime operation status used unsupported ABI version {}",
+                status.abi_version
+            ),
+        });
+    }
+    if status.reserved != 0 {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime operation status reserved field must be zero, got {}",
+                status.reserved
+            ),
+        });
+    }
+    ensure_operation_handle(status.handle, requested, "runtime operation status")?;
+    if status.phase().is_none() {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime operation status used unknown phase {}",
+                status.phase
+            ),
+        });
+    }
+    if status.detail_kind().is_none() {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime operation status used unknown detail kind {}",
+                status.detail_kind
+            ),
+        });
+    }
+    Ok(())
 }
 
 fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), GatewayError> {

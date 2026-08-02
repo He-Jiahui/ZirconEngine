@@ -2,6 +2,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layout::frame_is_within;
 use super::super::metrics::tooltip_metrics;
+use super::super::text::tooltip_title;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(super) fn push_tooltip_title(
@@ -40,13 +41,4 @@ pub(super) fn push_tooltip_title(
         UiTextRunPaintStyle::default(),
         opacity,
     ));
-}
-
-fn tooltip_title(node: &TemplatePaneNodeData) -> String {
-    let text = node.text.as_str().trim();
-    if text.is_empty() {
-        "Tooltip".to_string()
-    } else {
-        text.to_string()
-    }
 }

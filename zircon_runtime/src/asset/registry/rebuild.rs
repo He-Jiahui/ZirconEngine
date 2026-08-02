@@ -19,19 +19,23 @@ impl AssetRegistryIndex {
         registry_root: impl AsRef<Path>,
     ) -> Result<Self, AssetRegistryError> {
         let registry_root = registry_root.as_ref();
+        let index = Self::build_from_project(asset_roots)?;
+        index.persist(registry_root)?;
+        Ok(index)
+    }
+
+    fn build_from_project(asset_roots: &[PathBuf]) -> Result<Self, AssetRegistryError> {
         let mut metas = scan_project_metas(asset_roots)?;
         let mut diagnostics = Vec::new();
         normalize_duplicate_guids(&mut metas, &mut diagnostics, &HashMap::new())?;
         let mut index = build_index(&metas, diagnostics)?;
         refresh_dependency_edges(&mut index, &metas);
-        index.persist(registry_root)?;
         Ok(index)
     }
 
     pub(crate) fn rebuild_after_import(
         &mut self,
         asset_roots: &[PathBuf],
-        registry_root: &Path,
     ) -> Result<(), AssetRegistryError> {
         let retained = self
             .diagnostics
@@ -45,7 +49,7 @@ impl AssetRegistryIndex {
             })
             .cloned()
             .collect::<Vec<_>>();
-        let mut rebuilt = Self::rebuild_from_project(asset_roots, registry_root)?;
+        let mut rebuilt = Self::build_from_project(asset_roots)?;
         rebuilt.diagnostics.splice(0..0, retained);
         *self = rebuilt;
         Ok(())
@@ -69,19 +73,27 @@ impl AssetRegistryIndex {
 pub(super) fn scan_project_metas(
     asset_roots: &[PathBuf],
 ) -> Result<Vec<ScannedMeta>, AssetRegistryError> {
-    let mut metas = Vec::new();
+    let mut meta_paths = Vec::new();
     for root in asset_roots {
-        let mut paths = Vec::new();
-        collect_meta_paths_for_root(root, &mut paths)?;
-        paths.sort();
-        for path in paths {
-            if !source_path_for_meta(&path).is_some_and(|source| source.exists()) {
-                continue;
-            }
-            let document = AssetMetaDocument::load(&path)
-                .map_err(|source| AssetRegistryError::io(&path, source))?;
-            metas.push(ScannedMeta { path, document });
+        collect_meta_paths_for_root(root, &mut meta_paths)?;
+    }
+    scan_meta_paths(&meta_paths)
+}
+
+pub(super) fn scan_meta_paths(
+    meta_paths: &[PathBuf],
+) -> Result<Vec<ScannedMeta>, AssetRegistryError> {
+    let mut metas = Vec::new();
+    for path in meta_paths {
+        if !source_path_for_meta(path).is_some_and(|source| source.exists()) {
+            continue;
         }
+        let document =
+            AssetMetaDocument::load(path).map_err(|source| AssetRegistryError::io(path, source))?;
+        metas.push(ScannedMeta {
+            path: path.clone(),
+            document,
+        });
     }
     Ok(metas)
 }
@@ -231,10 +243,19 @@ pub(super) fn build_index(
     metas: &[ScannedMeta],
     diagnostics: Vec<AssetRegistryDiagnostic>,
 ) -> Result<AssetRegistryIndex, AssetRegistryError> {
+    build_index_from_documents(metas.iter().map(|scanned| &scanned.document), diagnostics)
+}
+
+/// Builds registry entries from already-owned metadata without creating a
+/// second metadata owner. Asset inventories use this during one-pass scans.
+pub(super) fn build_index_from_documents<'a>(
+    documents: impl IntoIterator<Item = &'a AssetMetaDocument>,
+    diagnostics: Vec<AssetRegistryDiagnostic>,
+) -> Result<AssetRegistryIndex, AssetRegistryError> {
     let mut index = AssetRegistryIndex::default();
     index.diagnostics = diagnostics;
-    for scanned in metas {
-        for entry in registry_entries(&scanned.document) {
+    for document in documents {
+        for entry in registry_entries(document) {
             index.insert_checked(entry)?;
         }
     }
@@ -242,9 +263,17 @@ pub(super) fn build_index(
 }
 
 pub(super) fn refresh_dependency_edges(index: &mut AssetRegistryIndex, metas: &[ScannedMeta]) {
+    refresh_dependency_edges_from_documents(index, metas.iter().map(|scanned| &scanned.document));
+}
+
+/// Resolves dependency edges from borrowed metadata. The resulting index owns
+/// only its compact query records and dependency paths.
+pub(super) fn refresh_dependency_edges_from_documents<'a>(
+    index: &mut AssetRegistryIndex,
+    documents: impl IntoIterator<Item = &'a AssetMetaDocument>,
+) {
     let mut dependency_paths: HashMap<AssetUuid, &[AssetUri]> = HashMap::new();
-    for scanned in metas {
-        let meta = &scanned.document;
+    for meta in documents {
         if !meta.entries.iter().any(|entry| entry.url.label().is_none()) {
             dependency_paths.insert(meta.uuid, &meta.dependencies);
         }

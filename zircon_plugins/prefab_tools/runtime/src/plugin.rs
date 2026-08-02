@@ -1,14 +1,16 @@
-use crate::capability::{PREFAB_TOOLS_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+use crate::capability::{
+    PLUGIN_ID, PREFAB_TOOLS_DECLARATION, PREFAB_TOOLS_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    RUNTIME_CRATE_NAME,
+};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
-pub const PLUGIN_ID: &str = "prefab_tools";
 pub const PREFAB_TOOLS_DIST_CRATE_NAME: &str = "zircon_plugin_prefab_tools_dist";
 pub const PREFAB_TOOLS_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_prefab_tools_runtime_entry_v3";
 pub const PREFAB_INSTANCE_COMPONENT_TYPE: &str = "prefab_tools.Component.PrefabInstance";
@@ -64,25 +66,14 @@ impl RuntimePlugin for PrefabToolsRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Prefab Tools",
-        RuntimePluginId::PrefabTools,
-        "zircon_plugin_prefab_tools_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("authoring")
-    .with_maturity(PluginMaturity::Beta)
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(PREFAB_TOOLS_RUNTIME_CAPABILITY)
-    .with_capability_status(CapabilityStatusManifest::new(
-        PREFAB_TOOLS_RUNTIME_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .build()
+    PREFAB_TOOLS_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .with_capability_status(CapabilityStatusManifest::new(
+            PREFAB_TOOLS_RUNTIME_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .into_descriptor()
 }
 
 pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
@@ -99,14 +90,16 @@ pub fn prefab_instance_component_descriptor() -> ComponentTypeDescriptor {
 }
 
 pub fn prefab_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporterDescriptor> {
-    vec![zircon_runtime::asset::AssetImporterDescriptor::new(
-        PREFAB_IMPORTER_ID,
-        PLUGIN_ID,
-        zircon_runtime::asset::AssetKind::Prefab,
-        1,
-    )
-    .with_full_suffixes([".prefab.toml"])
-    .with_required_capabilities([PREFAB_TOOLS_RUNTIME_CAPABILITY])]
+    vec![
+        zircon_runtime::asset::AssetImporterDescriptor::new(
+            PREFAB_IMPORTER_ID,
+            PLUGIN_ID,
+            zircon_runtime::asset::AssetKind::Prefab,
+            1,
+        )
+        .with_full_suffixes([".prefab.toml"])
+        .with_required_capabilities([PREFAB_TOOLS_RUNTIME_CAPABILITY]),
+    ]
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(PrefabToolsRuntimePlugin);
@@ -119,9 +112,6 @@ pub fn runtime_package_manifest() -> PluginPackageManifest {
     let mut manifest = runtime_plugin_descriptor()
         .package_manifest()
         .with_component(prefab_instance_component_descriptor());
-    manifest
-        .default_packaging
-        .push(ExportPackagingStrategy::NativeDynamic);
     manifest = manifest.with_native_module(
         PluginModuleManifest::native("prefab_tools.dist", PREFAB_TOOLS_DIST_CRATE_NAME)
             .with_target_modes([

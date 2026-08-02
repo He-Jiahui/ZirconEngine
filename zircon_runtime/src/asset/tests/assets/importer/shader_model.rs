@@ -72,7 +72,7 @@ f 1/1/1 2/2/1 3/3/1
                 model.primitives[0].mesh.as_ref().unwrap().locator,
                 AssetUri::parse("res://models/triangle.obj#Mesh0/Primitive0").unwrap()
             );
-            assert_cooked_virtual_geometry(&model.primitives[0], "res://models/triangle.obj");
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -101,7 +101,7 @@ f 1 2 3
         .import_with_settings(
             &obj_path,
             &AssetUri::parse("res://models/triangle.obj").unwrap(),
-            Default::default(),
+            virtual_geometry_import_settings(),
         )
         .unwrap();
     let mesh_uri = AssetUri::parse("res://models/triangle.obj#Mesh0/Primitive0").unwrap();
@@ -113,11 +113,13 @@ f 1 2 3
         }
         other => panic!("unexpected root model asset: {other:?}"),
     }
-    assert!(outcome
-        .root_entry()
-        .unwrap()
-        .dependencies
-        .contains(&mesh_uri));
+    assert!(
+        outcome
+            .root_entry()
+            .unwrap()
+            .dependencies
+            .contains(&mesh_uri)
+    );
     let mesh_entry = outcome
         .entries
         .iter()
@@ -161,7 +163,7 @@ fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh
         model_path.clone(),
         model_uri,
         fs::read(&model_path).unwrap(),
-        toml::Table::new(),
+        virtual_geometry_import_settings(),
     )
     .with_project_resolver(
         std::sync::Arc::new(crate::asset::registry::AssetRegistryIndex::default()),
@@ -194,6 +196,68 @@ fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh
             );
         }
         other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_keeps_model_toml_virtual_geometry_disabled_by_default() {
+    let root = unique_temp_project_root("model_toml_virtual_geometry_disabled");
+    fs::create_dir_all(&root).unwrap();
+    let model_path = root.join("triangle.model.toml");
+    let base_vertices = vec![
+        MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO),
+        MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X),
+        MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y),
+    ];
+    let base_indices = vec![0, 1, 2];
+    let source_model = ModelAsset {
+        uri: AssetUri::parse("res://models/triangle.model.toml").unwrap(),
+        primitives: vec![ModelPrimitiveAsset {
+            vertices: base_vertices.clone(),
+            indices: base_indices.clone(),
+            mesh: None,
+            virtual_geometry: None,
+        }],
+    };
+    fs::write(&model_path, source_model.to_toml_string().unwrap()).unwrap();
+
+    let model_uri = AssetUri::parse("res://models/triangle.model.toml").unwrap();
+    let context = AssetImportContext::new(
+        model_path.clone(),
+        model_uri,
+        fs::read(&model_path).unwrap(),
+        toml::Table::new(),
+    )
+    .with_project_resolver(
+        std::sync::Arc::new(crate::asset::registry::AssetRegistryIndex::default()),
+        std::sync::Arc::new(Vec::new()),
+    );
+    let imported = AssetImporter::default().import_context(&context).unwrap();
+
+    match &imported.root_entry().unwrap().asset {
+        ImportedAsset::Model(model) => {
+            assert_eq!(model.primitives[0].vertices, base_vertices);
+            assert_eq!(model.primitives[0].indices, base_indices);
+            assert!(model.primitives[0].virtual_geometry.is_none());
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+    let mesh_uri = AssetUri::parse("res://models/triangle.model.toml#Mesh0/Primitive0").unwrap();
+    let mesh_entry = imported
+        .entries
+        .iter()
+        .find(|entry| entry.locator == mesh_uri)
+        .expect("model import should emit mesh subasset");
+    match &mesh_entry.asset {
+        ImportedAsset::Mesh(mesh) => {
+            let primitive = mesh.to_model_primitive().unwrap();
+            assert_eq!(primitive.vertices, base_vertices);
+            assert_eq!(primitive.indices, base_indices);
+            assert!(primitive.virtual_geometry.is_none());
+        }
+        other => panic!("unexpected mesh subasset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);

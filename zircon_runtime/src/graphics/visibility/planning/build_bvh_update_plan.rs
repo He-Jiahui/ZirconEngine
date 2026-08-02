@@ -12,55 +12,61 @@ pub(crate) fn build_bvh_update_plan(
     let Some(previous) = previous else {
         return VisibilityBvhUpdatePlan {
             strategy: VisibilityBvhUpdateStrategy::FullRebuild,
-            inserted_entities: current_instances.iter().map(|entry| entry.entity).collect(),
-            updated_entities: Vec::new(),
-            removed_entities: Vec::new(),
+            inserted_stable_instance_keys: current_instances
+                .iter()
+                .map(|entry| entry.stable_instance_key)
+                .collect(),
+            updated_stable_instance_keys: Vec::new(),
+            removed_stable_instance_keys: Vec::new(),
         };
     };
 
     if previous.instances.is_empty() {
         return VisibilityBvhUpdatePlan {
             strategy: VisibilityBvhUpdateStrategy::FullRebuild,
-            inserted_entities: current_instances.iter().map(|entry| entry.entity).collect(),
-            updated_entities: Vec::new(),
-            removed_entities: Vec::new(),
+            inserted_stable_instance_keys: current_instances
+                .iter()
+                .map(|entry| entry.stable_instance_key)
+                .collect(),
+            updated_stable_instance_keys: Vec::new(),
+            removed_stable_instance_keys: Vec::new(),
         };
     }
 
-    let previous_by_entity = previous
+    let previous_by_stable_instance_key = previous
         .instances
         .iter()
-        .map(|entry| (entry.entity, entry))
+        .map(|entry| (entry.stable_instance_key, entry))
         .collect::<BTreeMap<_, _>>();
-    let current_by_entity = current_instances
+    let current_by_stable_instance_key = current_instances
         .iter()
-        .map(|entry| (entry.entity, entry))
+        .map(|entry| (entry.stable_instance_key, entry))
         .collect::<BTreeMap<_, _>>();
-    let inserted_entities = current_instances
+    let inserted_stable_instance_keys = current_instances
         .iter()
-        .filter(|entry| !previous_by_entity.contains_key(&entry.entity))
-        .map(|entry| entry.entity)
+        .filter(|entry| !previous_by_stable_instance_key.contains_key(&entry.stable_instance_key))
+        .map(|entry| entry.stable_instance_key)
         .collect::<Vec<_>>();
-    let updated_entities = current_instances
+    let updated_stable_instance_keys = current_instances
         .iter()
         .filter(|entry| {
-            previous_by_entity
-                .get(&entry.entity)
+            previous_by_stable_instance_key
+                .get(&entry.stable_instance_key)
                 .is_some_and(|old| **old != **entry)
         })
-        .map(|entry| entry.entity)
+        .map(|entry| entry.stable_instance_key)
         .collect::<Vec<_>>();
-    let removed_entities = previous
+    let removed_stable_instance_keys = previous
         .instances
         .iter()
-        .filter(|entry| !current_by_entity.contains_key(&entry.entity))
-        .map(|entry| entry.entity)
+        .filter(|entry| !current_by_stable_instance_key.contains_key(&entry.stable_instance_key))
+        .map(|entry| entry.stable_instance_key)
         .collect::<Vec<_>>();
 
     VisibilityBvhUpdatePlan {
         strategy: VisibilityBvhUpdateStrategy::Incremental,
-        inserted_entities,
-        updated_entities,
-        removed_entities,
+        inserted_stable_instance_keys,
+        updated_stable_instance_keys,
+        removed_stable_instance_keys,
     }
 }

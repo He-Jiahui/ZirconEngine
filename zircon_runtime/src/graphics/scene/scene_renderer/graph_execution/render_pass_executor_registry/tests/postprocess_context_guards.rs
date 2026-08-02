@@ -205,8 +205,8 @@ fn screen_space_reflection_resolve_executor_requires_post_process_context_instea
 }
 
 #[test]
-fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping()
- {
+fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping(
+) {
     let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-reflection-pyramid",
         "post.screen-space-reflection-reflection-pyramid",
@@ -220,8 +220,8 @@ fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_con
 }
 
 #[test]
-fn screen_space_reflection_reflection_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping()
- {
+fn screen_space_reflection_reflection_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
+) {
     let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-reflection-pyramid-coarse",
         "post.screen-space-reflection-reflection-pyramid-coarse",

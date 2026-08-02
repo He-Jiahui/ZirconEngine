@@ -5,23 +5,23 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::asset::AssetUri;
 use crate::asset::assets::{ImportedAsset, ShaderAsset};
 use crate::asset::project::ProjectManager;
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, RenderShaderDefinitionValue, SHADER_IDE_ENV_CACHE_DIR,
-    SHADER_IDE_MODULE_MAP_FILE, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
-    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
     shader_ide_generated_material_stub_relative_path, shader_ide_module_stub_relative_path,
     shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
     shader_ide_relative_path_string, strip_wgsl_include_directives, wgsl_include_paths,
+    RenderShaderDefinitionValue, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
+    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_MODULE_MAP_FILE,
 };
 use crate::core::resource::{ResourceKind, ResourceRecord, ResourceState};
 
 use super::ide_preview::{assemble_shader_ide_surface_preview_with_index, shader_include_index};
 use super::{
-    ShaderIdeSurfacePreview, builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
-    validate_shader_ide_wgsl_module,
+    builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
+    validate_shader_ide_wgsl_module, ShaderIdeSurfacePreview,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

@@ -278,6 +278,8 @@
     "check:loot-ffa-contract": "node loot_ffa_contract_codegen.mjs --check",
     "generate:town-focus-contract": "node town_focus_contract_codegen.mjs",
     "check:town-focus-contract": "node town_focus_contract_codegen.mjs --check",
+    "generate:weapon-skin-contract": "node weapon_skin_contract_codegen.mjs",
+    "check:weapon-skin-contract": "node weapon_skin_contract_codegen.mjs --check",
     "generate:item-score-contract": "node item_score_contract_codegen.mjs",
     "check:item-score-contract": "node item_score_contract_codegen.mjs --check",
     "generate:item-level-catalog-contract": "node item_level_catalog_contract_codegen.mjs",
@@ -304,7 +306,8 @@
     "check:m8": "node m8_asset_codegen.mjs --check && node m8_scene_codegen.mjs --check && node m8_ui_asset_check.mjs && node m8_hud_asset_check.mjs && node m8_window_asset_check.mjs",
     "check:m8-ui": "node m8_ui_asset_check.mjs && node m8_hud_asset_check.mjs && node m8_window_asset_check.mjs",
     "check:m8-hud": "node m8_hud_asset_check.mjs",
-    "check:m8-windows": "node m8_window_asset_check.mjs"
+    "check:m8-windows": "node m8_window_asset_check.mjs",
+    "check:wos163-weapon-skin-runtime": "node wos163_weapon_skin_runtime_static_guard.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"

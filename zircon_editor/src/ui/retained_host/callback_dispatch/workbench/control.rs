@@ -1,13 +1,13 @@
 use crate::core::editor_operation::EditorOperationSource;
 use crate::ui::host::EditorHostEventController;
-use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
+use crate::ui::retained_host::event_bridge::{UiHostEventEffects, apply_record_effects};
 use crate::ui::retained_host::workbench_notifications::workbench_notification_for_pending_play_decision;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use super::super::{
-    common::{dispatch_editor_binding, merge_effects},
     BuiltinHostWindowTemplateBridge, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    common::{dispatch_editor_binding, merge_effects},
 };
 
 pub(crate) fn dispatch_builtin_host_control(
@@ -34,6 +34,13 @@ pub(crate) fn dispatch_componentized_workbench_control(
     control_id: &str,
     event_kind: UiEventKind,
 ) -> Option<Result<UiHostEventEffects, String>> {
+    if event_kind == UiEventKind::Click && bridge.owns_run_mode_menu_trigger(control_id) {
+        if let Err(error) = bridge
+            .sync_run_mode_menu_for_trigger(control_id, runtime.play_sessions().preferred_kind())
+        {
+            return Some(Err(error.to_string()));
+        }
+    }
     let binding = match bridge.dispatch_control_state(control_id, event_kind) {
         Ok(Some(binding)) => binding,
         Ok(None) => return None,
@@ -168,6 +175,21 @@ pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
             }
         }
         if let Some(binding) = bridge.main_menu_item_binding(control_id, action_id) {
+            match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            }
+        }
+        if let Some(binding) = bridge.run_mode_menu_item_binding(control_id, action_id) {
+            match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            }
+        }
+        if let Some(binding) = bridge.layout_menu_item_binding(control_id, action_id) {
+            if let Err(error) = bridge.restore_layout_menu_indicator(control_id, action_id) {
+                return Some(Err(error.to_string()));
+            }
             match dispatch_editor_binding(runtime, binding) {
                 Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
                 Err(error) => return Some(Err(error)),

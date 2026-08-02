@@ -784,7 +784,27 @@ fn plugin_event_mirror_contract_preserves_session_schema_sequence_and_payload() 
     assert_eq!(decoded.deliveries[0].sequence, 3);
     assert_eq!(decoded.deliveries[0].event_id, request.event_id);
     assert_eq!(decoded.deliveries[0].payload_schema, request.payload_schema);
-    assert_eq!(decoded.deliveries[0].payload["updated_agents"], 2);
+    assert_eq!(
+        decoded.deliveries[0].payload.get(),
+        r#"{"updated_agents":2}"#
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(decoded.deliveries[0].payload.get()).unwrap()
+            ["updated_agents"],
+        2
+    );
+
+    let equivalent_wire = br#"{
+        "playSessionId": 41,
+        "subscription": 7,
+        "eventId": "navigation.events.agent_tick_completed",
+        "payloadSchema": "zircon.navigation.agent_tick.v1",
+        "sequence": 3,
+        "payload": { "updated_agents": 2 }
+    }"#;
+    let equivalent: crate::ZrRuntimePluginEventDeliveryV1 =
+        serde_json::from_slice(equivalent_wire).unwrap();
+    assert_eq!(decoded.deliveries[0], equivalent);
 
     let legacy_wire = br#"{
         "abiVersion": 1,
@@ -1708,6 +1728,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
             boxes: Vec::new(),
             overflow_clipped: false,
             editable: Some(editable),
+            rich_text_artifact: None,
         }),
         text: Some("hello".to_string()),
         image: None,

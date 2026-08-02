@@ -4,7 +4,7 @@ use crate::core::framework::render::ComputePipelineCacheKey;
 
 use super::ibl_bake_shader_plan::IBL_BAKE_COMPUTE_ENTRY_POINT;
 use super::ibl_bake_wgpu_binding::{
-    IblBakeWgpuBindGroupLayouts, create_ibl_bake_wgpu_source_sampler,
+    create_ibl_bake_wgpu_source_sampler, IblBakeWgpuBindGroupLayouts,
 };
 use super::ibl_bake_wgpu_command_plan::{IblBakeWgpuCommandPlan, IblBakeWgpuOutputBindingKind};
 
@@ -151,7 +151,7 @@ mod tests {
 
     use super::super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
     use super::super::ibl_bake_wgpu_command_plan::{
-        IblBakeWgpuCommandPlan, ibl_bake_wgpu_command_plan_for_request,
+        ibl_bake_wgpu_command_plan_for_request, IblBakeWgpuCommandPlan,
     };
     use super::*;
 

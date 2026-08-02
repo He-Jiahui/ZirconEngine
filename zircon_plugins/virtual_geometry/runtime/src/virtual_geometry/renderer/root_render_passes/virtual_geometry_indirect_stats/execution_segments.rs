@@ -22,6 +22,7 @@ pub(super) fn collect_execution_segments(
 struct ExecutionSegmentKey {
     instance_index: u32,
     entity: u64,
+    stable_instance_key: u64,
     page_id: u32,
     cluster_start_ordinal: u32,
     cluster_span_count: u32,
@@ -125,6 +126,7 @@ impl From<&RenderVirtualGeometryExecutionSegment> for ExecutionSegmentKey {
         Self {
             instance_index: segment.instance_index.unwrap_or(u32::MAX),
             entity: segment.entity,
+            stable_instance_key: segment.stable_instance_key_or_legacy(),
             page_id: segment.page_id,
             cluster_start_ordinal: segment.cluster_start_ordinal,
             cluster_span_count: segment.cluster_span_count,
@@ -178,6 +180,7 @@ mod tests {
             original_index,
             instance_index: Some(1),
             entity: 42,
+            stable_instance_key: 0,
             page_id,
             draw_ref_index: original_index,
             submission_index: Some(page_id),

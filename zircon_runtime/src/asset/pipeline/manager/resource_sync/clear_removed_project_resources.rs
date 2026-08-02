@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use crate::core::resource::ResourceManager;
 
 use super::project_locators;
-use crate::asset::project::ProjectManager;
 use crate::asset::AssetUri;
+use crate::asset::project::ProjectManager;
 
 pub(in crate::asset::pipeline::manager) fn clear_removed_project_resources(
     resource_manager: &ResourceManager,

@@ -116,10 +116,12 @@ impl EditorUiHost {
         &self,
         workspace: Option<ProjectEditorWorkspace>,
     ) -> Result<Vec<ViewInstance>, EditorError> {
-        if workspace.is_none() {
+        let Some(workspace) = workspace else {
             self.bootstrap_default_layout()?;
             return Ok(Vec::new());
-        }
+        };
+
+        self.clear_document_toolkits()?;
 
         let mut session = self.lock_session();
         let mut registry = self.lock_view_registry();
@@ -128,7 +130,6 @@ impl EditorUiHost {
         self.lock_ui_asset_sessions().clear();
         self.lock_ui_asset_dependency_generation().clear();
 
-        let workspace = workspace.expect("checked above");
         session.layout = workspace.workbench;
         session.open_view_instances.clear();
         for instance in workspace.open_view_instances {
@@ -186,6 +187,7 @@ impl EditorUiHost {
     }
 
     pub(super) fn bootstrap_default_layout(&self) -> Result<(), EditorError> {
+        self.clear_document_toolkits()?;
         let mut registry = self.lock_view_registry();
         registry.clear_instances();
         self.lock_animation_editor_sessions().clear();

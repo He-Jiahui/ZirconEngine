@@ -1,4 +1,5 @@
 mod bootstrap_and_startup;
+mod document_toolkit_lifecycle;
 mod minimal_host_contract;
 mod project_generation_projection;
 mod runtime_lifecycle;

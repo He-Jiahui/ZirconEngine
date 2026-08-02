@@ -146,6 +146,8 @@ impl EditorState {
         status_line: String,
         context: Arc<EditorContext>,
     ) -> Self {
+        let console_history =
+            crate::ui::workbench::state::console_history::EditorConsoleHistory::new(&status_line);
         let mut state = Self {
             context,
             world,
@@ -161,8 +163,10 @@ impl EditorState {
             welcome,
             project_open,
             status_line,
+            console_history,
             status_task_progress: None,
             bridge_diagnostics: Default::default(),
+            scene_entry_projection_cache: Default::default(),
             gizmo_transaction: None,
             play_session: None,
         };

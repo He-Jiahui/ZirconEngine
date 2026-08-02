@@ -11,7 +11,6 @@ class Frameworks05PreferenceStorageBoundaryTests(unittest.TestCase):
     def test_neutral_contract_and_runtime_owners_are_folder_backed(self) -> None:
         required = (
             "zircon_runtime/src/core/framework/platform/preferences/mod.rs",
-            "zircon_runtime/src/core/framework/platform/preferences/backend.rs",
             "zircon_runtime/src/core/framework/platform/preferences/error.rs",
             "zircon_runtime/src/core/framework/platform/preferences/key.rs",
             "zircon_runtime/src/core/framework/platform/preferences/storage.rs",
@@ -52,7 +51,7 @@ class Frameworks05PreferenceStorageBoundaryTests(unittest.TestCase):
         self.assertIn("PLATFORM_MANAGER_NAME", service_names)
         self.assertNotIn("Arc<PlatformManager>", resolver)
 
-    def test_production_host_installs_desktop_backend_after_platform_activation(self) -> None:
+    def test_production_host_wires_desktop_backend_before_platform_activation(self) -> None:
         host = (
             REPO_ROOT / "zircon_app/src/entry/platform_preferences.rs"
         ).read_text(encoding="utf-8")
@@ -66,14 +65,19 @@ class Frameworks05PreferenceStorageBoundaryTests(unittest.TestCase):
         self.assertIn("XDG_DATA_HOME", host)
         self.assertIn("Application Support", host)
         self.assertIn("AtomicFilePreferenceStorageBackend", host)
-        self.assertIn("install_preference_storage_backend", host)
-        self.assertIn("install_default_preference_storage", entry)
+        self.assertIn("preference_storage_backend_for_bootstrap", host)
+        self.assertIn("descriptor_with_preference_storage_backend", entry)
         self.assertIn("with_preference_storage_backend", entry)
         self.assertIn("mod platform_preferences;", entry_root)
-        self.assertGreater(
-            entry.rfind("install_default_preference_storage("),
-            entry.rfind("runtime.activate_registered_modules()?"),
+        wire_factory = entry.find(
+            "runtime.register_module(descriptor_with_preference_storage_backend("
         )
+        activate_modules = entry.find(
+            "runtime.activate_registered_modules()?", wire_factory
+        )
+        self.assertGreaterEqual(wire_factory, 0)
+        self.assertGreaterEqual(activate_modules, 0)
+        self.assertLess(wire_factory, activate_modules)
         production_host = host.split("#[cfg(test)]", maxsplit=1)[0]
         self.assertNotIn("activate_module(PLATFORM_MODULE_NAME)", production_host)
         self.assertLess(
@@ -117,9 +121,11 @@ class Frameworks05PreferenceStorageBoundaryTests(unittest.TestCase):
 
     def test_no_silent_memory_fallback_or_platform_cfg_branch(self) -> None:
         source = "\n".join(
-            path.read_text(encoding="utf-8")
-            for path in sorted(
-                (REPO_ROOT / "zircon_runtime/src/platform/preferences").rglob("*.rs")
+            (REPO_ROOT / relative).read_text(encoding="utf-8")
+            for relative in (
+                "zircon_runtime/src/platform/preferences/unavailable.rs",
+                "zircon_runtime/src/platform/service_types/driver.rs",
+                "zircon_runtime/src/platform/service_types/manager.rs",
             )
         )
         self.assertIn("UnavailablePreferenceStorageBackend", source)

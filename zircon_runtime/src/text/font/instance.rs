@@ -47,14 +47,21 @@ pub(crate) struct EffectiveInstanceCacheReport {
 #[derive(Clone, Debug)]
 struct EffectiveInstanceCacheEntry {
     value: EffectiveInstanceCacheValue,
-    last_used: u64,
     approximate_bytes: usize,
+    lru_links: EffectiveInstanceCacheLruLinks,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct EffectiveInstanceCacheLruLinks {
+    previous: Option<EffectiveInstanceCacheKey>,
+    next: Option<EffectiveInstanceCacheKey>,
 }
 
 #[derive(Debug, Default)]
 struct EffectiveInstanceCacheState {
     entries: HashMap<EffectiveInstanceCacheKey, EffectiveInstanceCacheEntry>,
-    tick: u64,
+    lru_head: Option<EffectiveInstanceCacheKey>,
+    lru_tail: Option<EffectiveInstanceCacheKey>,
     eviction_count: u64,
     approximate_bytes: usize,
 }
@@ -98,12 +105,7 @@ impl EffectiveInstanceCache {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        state.tick = state.tick.wrapping_add(1);
-        let tick = state.tick;
-        let value = state.entries.get_mut(&key).map(|entry| {
-            entry.last_used = tick;
-            entry.value.clone()
-        });
+        let value = state.get(key);
         drop(state);
         if value.is_some() {
             self.stats.hits.fetch_add(1, Ordering::Relaxed);
@@ -123,8 +125,7 @@ impl EffectiveInstanceCache {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        state.tick = state.tick.wrapping_add(1);
-        if let Some(existing) = state.entries.remove(&key) {
+        if let Some(existing) = state.remove(key) {
             state.approximate_bytes = state
                 .approximate_bytes
                 .saturating_sub(existing.approximate_bytes);
@@ -137,31 +138,27 @@ impl EffectiveInstanceCache {
                 || state.approximate_bytes.saturating_add(approximate_bytes)
                     > EFFECTIVE_INSTANCE_CACHE_MAX_BYTES)
         {
-            let Some(oldest) = state
-                .entries
-                .iter()
-                .min_by_key(|(_, entry)| entry.last_used)
-                .map(|(key, _)| *key)
-            else {
+            let Some(oldest) = state.lru_head else {
                 break;
             };
-            if let Some(evicted) = state.entries.remove(&oldest) {
-                state.approximate_bytes = state
-                    .approximate_bytes
-                    .saturating_sub(evicted.approximate_bytes);
-                state.eviction_count = state.eviction_count.saturating_add(1);
-            }
+            let Some(evicted) = state.remove(oldest) else {
+                break;
+            };
+            state.approximate_bytes = state
+                .approximate_bytes
+                .saturating_sub(evicted.approximate_bytes);
+            state.eviction_count = state.eviction_count.saturating_add(1);
         }
         state.approximate_bytes = state.approximate_bytes.saturating_add(approximate_bytes);
-        let last_used = state.tick;
         state.entries.insert(
             key,
             EffectiveInstanceCacheEntry {
                 value,
-                last_used,
                 approximate_bytes,
+                lru_links: EffectiveInstanceCacheLruLinks::default(),
             },
         );
+        state.attach_most_recent(key);
     }
 
     pub(super) fn report(&self) -> EffectiveInstanceCacheReport {
@@ -175,6 +172,74 @@ impl EffectiveInstanceCache {
             eviction_count: state.eviction_count,
             entry_count: state.entries.len(),
             approximate_bytes: state.approximate_bytes,
+        }
+    }
+}
+
+impl EffectiveInstanceCacheState {
+    fn get(&mut self, key: EffectiveInstanceCacheKey) -> Option<EffectiveInstanceCacheValue> {
+        self.entries.get(&key)?;
+        self.touch(key);
+        self.entries.get(&key).map(|entry| entry.value.clone())
+    }
+
+    fn remove(&mut self, key: EffectiveInstanceCacheKey) -> Option<EffectiveInstanceCacheEntry> {
+        let links = self.entries.get(&key)?.lru_links;
+        self.detach(key, links);
+        self.entries.remove(&key)
+    }
+
+    fn touch(&mut self, key: EffectiveInstanceCacheKey) {
+        let Some(links) = self.entries.get(&key).map(|entry| entry.lru_links) else {
+            return;
+        };
+        self.detach(key, links);
+        self.attach_most_recent(key);
+    }
+
+    fn attach_most_recent(&mut self, key: EffectiveInstanceCacheKey) {
+        let previous = self
+            .lru_tail
+            .filter(|candidate| self.entries.contains_key(candidate));
+        if let Some(previous) = previous {
+            if let Some(entry) = self.entries.get_mut(&previous) {
+                entry.lru_links.next = Some(key);
+            }
+        } else {
+            self.lru_head = Some(key);
+        }
+        if let Some(entry) = self.entries.get_mut(&key) {
+            entry.lru_links = EffectiveInstanceCacheLruLinks {
+                previous,
+                next: None,
+            };
+        }
+        self.lru_tail = Some(key);
+    }
+
+    fn detach(&mut self, key: EffectiveInstanceCacheKey, links: EffectiveInstanceCacheLruLinks) {
+        let previous = links
+            .previous
+            .filter(|candidate| self.entries.contains_key(candidate));
+        let next = links
+            .next
+            .filter(|candidate| self.entries.contains_key(candidate));
+        if let Some(previous) = previous {
+            if let Some(entry) = self.entries.get_mut(&previous) {
+                entry.lru_links.next = next;
+            }
+        } else {
+            self.lru_head = next;
+        }
+        if let Some(next) = next {
+            if let Some(entry) = self.entries.get_mut(&next) {
+                entry.lru_links.previous = previous;
+            }
+        } else {
+            self.lru_tail = previous;
+        }
+        if let Some(entry) = self.entries.get_mut(&key) {
+            entry.lru_links = EffectiveInstanceCacheLruLinks::default();
         }
     }
 }

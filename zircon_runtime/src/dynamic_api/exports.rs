@@ -1,12 +1,12 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrHostApiV1, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeApiV3, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationHandle,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V3, ZrByteSlice, ZrHostApiV1,
+    ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV3,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationHandle,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_API_VERSION_V3,
+    ZrRuntimeViewportHandle, ZrStatus, ZrStatusCode,
 };
 
 use super::session::{
@@ -188,9 +188,9 @@ unsafe extern "C" fn submit_operation_ffi(
 unsafe extern "C" fn poll_operation_ffi(
     handle: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    out_progress: *mut ZrOwnedByteBuffer,
+    out_status: *mut zircon_runtime_interface::ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    catch_ffi_panic(|| unsafe { poll_operation(handle, operation, out_progress) })
+    catch_ffi_panic(|| unsafe { poll_operation(handle, operation, out_status) })
 }
 
 unsafe extern "C" fn harvest_operation_ffi(

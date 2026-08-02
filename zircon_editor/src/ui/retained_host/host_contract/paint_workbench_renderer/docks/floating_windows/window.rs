@@ -9,7 +9,7 @@ use super::super::super::super::paint_primitives::{
 };
 use super::super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 use super::super::pane;
 

@@ -128,7 +128,8 @@ fn runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free() {
         );
     }
     assert!(
-        event_source.contains("receiver: ChannelReceiver<ResourceEvent>"),
-        "typed asset event receiver must filter the shared resource subscription lazily"
+        event_source.contains("receiver: ResourceEventReceiver"),
+        "typed asset event receiver must filter the shared bounded resource log lazily"
     );
+    assert!(!event_source.contains("ChannelReceiver<ResourceEvent>"));
 }

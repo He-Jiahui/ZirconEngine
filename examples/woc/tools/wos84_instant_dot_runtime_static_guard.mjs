@@ -85,7 +85,7 @@ requireText(numeric, /abilities\.text\(abilityIndex, "scalesWith"\) == "ranged"/
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(world, /OFFLINE_SOURCE_MIN_GLOBAL_COOLDOWN_SECONDS: float = 0\.75;/, "pure-DoT global cooldown floor is missing");
 requireText(world, /offlineDotRanks[\s\S]*?offlineDotSnapshotPowers/, "WOS63 DoT snapshot columns are missing");
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?offlineDotSnapshotPowers/, "WOS63 DoT snapshot tail is missing");
+requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?offlineDotSnapshotPowers/, "WOS63 DoT snapshot tail is missing");
 requireText(world, /schemaVersion != <uint>64[\s\S]*?schemaVersion >= <uint>63/, "WOS63 DoT decoder migration is missing");
 requireText(world, /serpentStingAbilityCode\([\s\S]*?shadowWordPainAbilityCode\([\s\S]*?startOfflineSerpentStingCast[\s\S]*?startOfflineShadowWordPainCast/, "instant DoT cast reducers are missing");
 requireText(world, /appendOfflineAbilityProjectile\([\s\S]*?OFFLINE_PROJECTILE_SCHOOL_NATURE[\s\S]*?OFFLINE_PROJECTILE_SCHOOL_SHADOW/, "instant DoT projectile admission is missing");
@@ -95,13 +95,13 @@ requireText(world, /stepOfflineEastbrookProjectiles[\s\S]*?serpentStingAbilityCo
 requireText(world, /pub instantDotCommandStateTest\(\): int[\s\S]*?serpent_sting[\s\S]*?shadow_word_pain/, "instant DoT state regression coverage is missing");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if (!/\\"world_state\\":\\"WOS71\\"/.test(main)) {
+if (!/\\"world_state\\":\\"WOS78\\"/.test(main)) {
   throw new Error("package state identity must retain WOS64");
 }
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
-if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS71"') ||
-    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 71")) {
-  throw new Error("native state identity must retain WOS71");
+if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS78"') ||
+    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 78")) {
+  throw new Error("native state identity must retain WOS74");
 }
 
 process.stdout.write(`WOS84 instant DoT static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

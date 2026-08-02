@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
 
-use super::{UiBatchKey, UiBatchRange, UiBatchSplitReason, UiBatchStats, clip::UiBatchClipStates};
+use super::{clip::UiBatchClipStates, UiBatchKey, UiBatchRange, UiBatchSplitReason, UiBatchStats};
 use crate::ui::surface::UiPaintElement;
 
 /// Ordered draw-call plan derived from paint elements.

@@ -1,19 +1,20 @@
 use zircon_plugin_sdk::ImporterRuntimeManifestBuilder;
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind, FunctionAssetImporter};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportTargetPlatform;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
-    import_gltf, GLTF_IMPORTER_DECLARATION, IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CRATE_NAME,
+    import_gltf, GLTF_IMPORTER_DECLARATION, IMPORTER_CAPABILITY, NATIVE_RUNTIME_ENTRY, PLUGIN_ID,
+    RUNTIME_CRATE_NAME,
 };
 
 pub const GLTF_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_gltf_importer_dist";
-pub const GLTF_IMPORTER_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_gltf_importer_runtime_entry_v3";
+pub const GLTF_IMPORTER_DIST_RUNTIME_ENTRY: &str = NATIVE_RUNTIME_ENTRY.name();
 
 #[derive(Clone, Debug)]
 pub struct GltfImporterRuntimePlugin {
@@ -56,7 +57,7 @@ impl RuntimePlugin for GltfImporterRuntimePlugin {
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     GLTF_IMPORTER_DECLARATION
-        .runtime_declaration(RuntimePluginId::GltfImporter, RUNTIME_CRATE_NAME)
+        .runtime_declaration(RUNTIME_CRATE_NAME)
         .with_module_descriptor(module_descriptor())
         .into_descriptor()
 }

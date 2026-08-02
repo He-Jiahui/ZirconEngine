@@ -14,12 +14,10 @@ fn ui_theme_document_defaults_cover_editor_dark_theme_tokens() {
     );
     assert_eq!(theme.shape, UiThemeShape::default());
     assert_eq!(theme.control_sizes, UiThemeControlSizes::default());
-    assert!(
-        theme
-            .typography
-            .iter()
-            .any(|variant| variant.variant == "body" && variant.family == "Inter")
-    );
+    assert!(theme
+        .typography
+        .iter()
+        .any(|variant| variant.variant == "body" && variant.family == "Inter"));
 }
 
 #[test]

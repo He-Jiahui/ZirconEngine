@@ -1,8 +1,8 @@
 use zircon_runtime::rhi::UiSurfacePresenter;
 
 use super::super::super::diagnostics::HostRefreshDiagnostics;
-use super::geometry::clamp_size;
 use super::GpuChromePresenter;
+use super::geometry::clamp_size;
 use crate::ui::retained_host::host_contract::presenter::error::HostPresenterResult;
 
 impl<P: UiSurfacePresenter> GpuChromePresenter<P> {

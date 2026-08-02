@@ -1,5 +1,5 @@
 use crate::ui::layouts::views::hierarchy_pane_nodes;
-use crate::ui::workbench::snapshot::SceneEntry;
+use crate::ui::workbench::snapshot::{SceneEntries, SceneEntry};
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::ui::layout::UiSize;
 
@@ -32,15 +32,15 @@ fn hierarchy_bootstrap_layout_self_hosts_shell_sections() {
 
 #[test]
 fn hierarchy_projection_maps_bootstrap_asset_into_mount_nodes() {
-    let pane = hierarchy_pane_nodes(
-        &[SceneEntry {
+    let scene_entries = SceneEntries::from_entries(
+        vec![SceneEntry {
             id: zircon_runtime::scene::NodeId::default(),
             name: "Root".to_string(),
             depth: 0,
-            selected: true,
         }],
-        UiSize::new(320.0, 640.0),
+        [zircon_runtime::scene::NodeId::default()],
     );
+    let pane = hierarchy_pane_nodes(&scene_entries, UiSize::new(320.0, 640.0));
     let nodes = (0..pane.row_count())
         .filter_map(|row| pane.row_data(row))
         .collect::<Vec<_>>();
@@ -77,7 +77,8 @@ fn hierarchy_projection_maps_bootstrap_asset_into_mount_nodes() {
 
 #[test]
 fn hierarchy_projection_centers_a_muted_empty_state_inside_the_list_surface() {
-    let pane = hierarchy_pane_nodes(&[], UiSize::new(220.0, 320.0));
+    let scene_entries = SceneEntries::default();
+    let pane = hierarchy_pane_nodes(&scene_entries, UiSize::new(220.0, 320.0));
     let nodes = (0..pane.row_count())
         .filter_map(|row| pane.row_data(row))
         .collect::<Vec<_>>();

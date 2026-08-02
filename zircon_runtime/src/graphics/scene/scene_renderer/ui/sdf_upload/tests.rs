@@ -1,6 +1,34 @@
 use super::*;
 use crate::core::math::UVec2;
-use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams, SdfMode};
+use crate::text::sdf::{
+    SdfAtlasBakeDirtyPage, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams, SdfMode,
+};
+
+#[test]
+fn sdf_upload_merges_bake_content_changes_with_plan_dirty_pages() {
+    let mut cache = SdfAtlasCacheReport {
+        dirty_pages: vec![dirty_cache_page(0, sdf_rect(0, 0, 64, 64))],
+        ..Default::default()
+    };
+
+    merge_sdf_bake_dirty_pages(
+        &mut cache,
+        &[
+            SdfAtlasBakeDirtyPage {
+                page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0),
+                dirty_rect: sdf_rect(64, 0, 64, 64),
+            },
+            SdfAtlasBakeDirtyPage {
+                page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 1),
+                dirty_rect: sdf_rect(0, 64, 64, 64),
+            },
+        ],
+    );
+
+    assert_eq!(cache.dirty_pages.len(), 2);
+    assert_eq!(cache.dirty_pages[0].dirty_rect, sdf_rect(0, 0, 128, 64));
+    assert_eq!(cache.dirty_pages[1].dirty_rect, sdf_rect(0, 64, 64, 64));
+}
 
 #[test]
 fn sdf_upload_report_uses_full_texture_when_atlas_resizes() {
@@ -453,6 +481,8 @@ fn sdf_upload_commands_build_page_offsets_once_and_borrow_report() {
     assert!(upload_source.contains("binary_search_by_key("));
     assert!(!upload_source.contains("fn offset_upload_command_for_source_page("));
     assert!(!resources_source.contains("upload.clone()"));
+    assert!(resources_source.contains("checked_sub(page_source_offset)"));
+    assert!(resources_source.contains("page.pixels.as_ref()"));
 }
 
 fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
@@ -463,8 +493,8 @@ fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
                 glyph_id: None,
                 font_id: None,
                 font_instance_id: None,
-                font: Some("res://fonts/default.font.toml".to_string()),
-                font_family: Some("Zircon Sans".to_string()),
+                font: Some("res://fonts/default.font.toml".into()),
+                font_family: Some("Zircon Sans".into()),
                 language: None,
                 font_weight: 400,
                 bake_params: SdfBakeParams::default(),
@@ -517,8 +547,8 @@ fn slot_on_page(glyph: char, page_index: u32, rect: SdfAtlasRect) -> SdfAtlasSlo
             glyph_id: None,
             font_id: None,
             font_instance_id: None,
-            font: Some("res://fonts/default.font.toml".to_string()),
-            font_family: Some("Zircon Sans".to_string()),
+            font: Some("res://fonts/default.font.toml".into()),
+            font_family: Some("Zircon Sans".into()),
             language: None,
             font_weight: 400,
             bake_params: SdfBakeParams::default(),
@@ -542,8 +572,8 @@ fn slot_on_format(
             glyph_id: None,
             font_id: None,
             font_instance_id: None,
-            font: Some("res://fonts/default.font.toml".to_string()),
-            font_family: Some("Zircon Sans".to_string()),
+            font: Some("res://fonts/default.font.toml".into()),
+            font_family: Some("Zircon Sans".into()),
             language: None,
             font_weight: 400,
             bake_params,

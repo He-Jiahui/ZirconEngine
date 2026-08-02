@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 const expected = [
   [143, 'vcup_queue', 'vale_cup_queue', 4, 'u8_bracket+u8_nation+u8_role+u8_guild', 'vcupQueueJoin', ['bracket', 'nation', 'role', 'guild'], 'valeCupQueue', 'VALE_CUP_QUEUE_COMMAND_ID'],
   [144, 'vcup_leave', 'empty', 0, 'empty', 'vcupQueueLeave', [], 'valeCupLeave', 'VALE_CUP_LEAVE_COMMAND_ID'],
@@ -85,9 +85,9 @@ for (const intent of [
   assert.match(input, new RegExp(`\\b${intent}\\b`));
 }
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('Vale Cup command payload contracts are complete\n');

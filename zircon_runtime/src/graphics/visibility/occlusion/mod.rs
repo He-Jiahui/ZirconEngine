@@ -80,7 +80,12 @@ pub struct HzbOcclusionCullReport {
     pub dispatched_phase_count: u32,
     pub history_available: bool,
     pub readback_stats: Option<HzbOcclusionCullReadbackStats>,
+    pub readback_stats_source_frame_index: Option<u64>,
+    pub readback_pending_count: u32,
+    pub readback_dropped_count: u32,
+    pub readback_oldest_pending_age_frames: Option<u64>,
     pub indirect_args_readback: Option<HzbOcclusionIndirectArgsReadbackSummary>,
+    pub indirect_args_readback_source_frame_index: Option<u64>,
 }
 
 impl HzbOcclusionCullReport {
@@ -93,7 +98,12 @@ impl HzbOcclusionCullReport {
             dispatched_phase_count: 0,
             history_available: false,
             readback_stats: None,
+            readback_stats_source_frame_index: None,
+            readback_pending_count: 0,
+            readback_dropped_count: 0,
+            readback_oldest_pending_age_frames: None,
             indirect_args_readback: None,
+            indirect_args_readback_source_frame_index: None,
         }
     }
 
@@ -112,7 +122,12 @@ impl HzbOcclusionCullReport {
             dispatched_phase_count,
             history_available,
             readback_stats: None,
+            readback_stats_source_frame_index: None,
+            readback_pending_count: 0,
+            readback_dropped_count: 0,
+            readback_oldest_pending_age_frames: None,
             indirect_args_readback: None,
+            indirect_args_readback_source_frame_index: None,
         }
     }
 
@@ -124,11 +139,36 @@ impl HzbOcclusionCullReport {
         self
     }
 
+    pub const fn with_readback_stats_source_frame_index(mut self, source_frame_index: u64) -> Self {
+        self.readback_stats_source_frame_index = Some(source_frame_index);
+        self
+    }
+
+    pub const fn with_readback_queue_diagnostics(
+        mut self,
+        pending_count: u32,
+        dropped_count: u32,
+        oldest_pending_age_frames: Option<u64>,
+    ) -> Self {
+        self.readback_pending_count = pending_count;
+        self.readback_dropped_count = dropped_count;
+        self.readback_oldest_pending_age_frames = oldest_pending_age_frames;
+        self
+    }
+
     pub const fn with_indirect_args_readback(
         mut self,
         indirect_args_readback: HzbOcclusionIndirectArgsReadbackSummary,
     ) -> Self {
         self.indirect_args_readback = Some(indirect_args_readback);
+        self
+    }
+
+    pub const fn with_indirect_args_readback_source_frame_index(
+        mut self,
+        source_frame_index: u64,
+    ) -> Self {
+        self.indirect_args_readback_source_frame_index = Some(source_frame_index);
         self
     }
 }
@@ -153,9 +193,30 @@ mod tests {
     fn hzb_occlusion_report_preserves_indirect_args_readback_summary() {
         let summary = HzbOcclusionIndirectArgsReadbackSummary::new(6, 4, 2, 24);
         let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 1, 1, true)
-            .with_indirect_args_readback(summary);
+            .with_indirect_args_readback(summary)
+            .with_indirect_args_readback_source_frame_index(17);
 
         assert_eq!(report.indirect_args_readback, Some(summary));
+        assert_eq!(report.indirect_args_readback_source_frame_index, Some(17));
+    }
+
+    #[test]
+    fn hzb_occlusion_report_records_delayed_stats_source_frame() {
+        let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 1, 1, true)
+            .with_readback_stats(HzbOcclusionCullReadbackStats::new(6, 42, 2, 18))
+            .with_readback_stats_source_frame_index(11);
+
+        assert_eq!(report.readback_stats_source_frame_index, Some(11));
+    }
+
+    #[test]
+    fn hzb_occlusion_report_preserves_async_readback_queue_diagnostics() {
+        let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 1, 1, true)
+            .with_readback_queue_diagnostics(3, 2, Some(4));
+
+        assert_eq!(report.readback_pending_count, 3);
+        assert_eq!(report.readback_dropped_count, 2);
+        assert_eq!(report.readback_oldest_pending_age_frames, Some(4));
     }
 
     #[test]

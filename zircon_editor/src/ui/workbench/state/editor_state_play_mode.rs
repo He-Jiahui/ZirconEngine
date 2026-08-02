@@ -33,14 +33,14 @@ impl EditorState {
 
     pub fn enter_play_mode(&mut self) -> Result<bool, String> {
         if self.play_session.is_some() {
-            self.status_line = "Already in play mode".to_string();
+            self.set_status_line("Already in play mode");
             return Ok(false);
         }
 
         self.with_exclusive_scene_transition("enter editor play mode", |state, _transition| {
             let Some(scene) = state.world.try_snapshot() else {
                 let message = no_project_open();
-                state.status_line = message.clone();
+                state.set_status_line(message.clone());
                 return Err(message);
             };
 
@@ -61,7 +61,7 @@ impl EditorState {
             selection.set_active_domain(WorldDomain::Play);
             state.viewport_controller.settings_mut().gizmos_enabled = false;
             state.session_mode = EditorSessionMode::Playing;
-            state.status_line = "Entered play mode".to_string();
+            state.set_status_line("Entered play mode");
             Ok(true)
         })
     }
@@ -69,12 +69,12 @@ impl EditorState {
     pub fn exit_play_mode(&mut self) -> Result<bool, String> {
         if !self.world.is_loaded() {
             let message = no_project_open();
-            self.status_line = message.clone();
+            self.set_status_line(message.clone());
             return Err(message);
         }
 
         if self.play_session.is_none() {
-            self.status_line = "Not in play mode".to_string();
+            self.set_status_line("Not in play mode");
             return Ok(false);
         }
 
@@ -91,7 +91,7 @@ impl EditorState {
             state.viewport_controller.settings_mut().gizmos_enabled = session.gizmos_enabled;
             state.session_mode = session.session_mode_before_play;
             state.sync_selection_state();
-            state.status_line = "Exited play mode and restored edit state".to_string();
+            state.set_status_line("Exited play mode and restored edit state");
             Ok(true)
         })
     }

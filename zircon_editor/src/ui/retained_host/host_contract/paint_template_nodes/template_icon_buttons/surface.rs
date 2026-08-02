@@ -1,6 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchIconButtonStyle;
+use super::geometry::icon_button_surface_radius;
 
 mod style;
 
@@ -24,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
         command_style.background,
         command_style.border,
         command_style.border_width,
-        command_style.radius,
+        icon_button_surface_radius(rect, command_style.radius),
         opacity,
     ));
 }

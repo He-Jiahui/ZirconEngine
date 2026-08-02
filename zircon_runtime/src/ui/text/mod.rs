@@ -1,5 +1,3 @@
-mod adapter;
-pub(crate) use adapter::text_style;
 mod edit_state;
 mod font_registry;
 mod geometry;
@@ -23,14 +21,16 @@ pub(crate) use grapheme::{
     next_word_boundary, previous_grapheme_boundary, previous_line_same_column_boundary,
     previous_word_boundary, word_range_at,
 };
-pub(crate) use hit_test::{hit_test_text_layout, UiTextHitTest};
+pub(crate) use hit_test::{UiTextHitTest, hit_test_text_layout};
 pub(crate) use layout_engine::resolve_text_direction;
 #[cfg(test)]
 pub(crate) use measure_cache::UiWidthBucket;
 pub(crate) use measure_cache::{UiTextMeasureCache, UiTextShapePrewarmRequest};
 pub(crate) use resolved_layout::{
-    resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest, UiTextLayoutResolution,
+    UiPreeditSpan, UiTextLayoutRequest, UiTextLayoutResolution, resolve_text_layout,
 };
-pub(crate) use rich_text::link_at_layout_point;
+pub(crate) use rich_text::{
+    link_at_layout_point, parse_source_text, prepare_render_command_text_artifacts,
+};
 pub use shaper::layout_text;
 pub(crate) use shaper::{measure_text_size, measure_text_source_range_width};

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use crate::graphics::RuntimePrepareExternalBufferBinding;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
+use crate::graphics::RuntimePrepareExternalBufferBinding;
 use crate::render_graph::{
     CompiledRenderGraph, RenderGraphExternalResourceType, RenderGraphResourceDesc,
 };

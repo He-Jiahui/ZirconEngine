@@ -3,11 +3,11 @@
 use crate::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
 use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_extension::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, EditorExtensionRegistry,
-    EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
-    ViewDescriptor,
+    AssetImporterDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
 };
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::extension::InspectorCustomizationDescriptor;
 use crate::core::plugin::{EditorPlugin, EditorPluginDescriptor};
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -118,7 +118,7 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
             "sdk.example.asset_inspector",
             "asset://sdk_examples/editor/model_inspector.zui",
         ))?;
-        registry.register_component_drawer(ComponentDrawerDescriptor::new(
+        registry.register_inspector_customization(InspectorCustomizationDescriptor::new(
             "sdk.example.ModelImportSettings",
             "asset://sdk_examples/editor/model_import_settings.zui",
             "sdk.example.ModelImportSettingsController",

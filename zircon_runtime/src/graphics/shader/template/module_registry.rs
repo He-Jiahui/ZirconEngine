@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
+    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
+    GeometrySourceDescriptor, ShaderFeatureBits, ShadingModelDescriptor,
     GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
     GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
-    GeometrySourceDescriptor, ShadingModelDescriptor, is_generated_shader_module_token,
-    strip_wgsl_include_directives, wgsl_include_paths,
 };
+use crate::plugin::ShaderModuleSourceBinding;
 
 const SURFACE_TYPES_INCLUDE_TOKEN: &str = "zr_surface_types.wgsl";
 const SCENE_RUNTIME_INCLUDE_TOKEN: &str = "zr_scene_runtime.wgsl";
@@ -23,6 +24,27 @@ const STANDARD_PBR_SHADING_INCLUDE_TOKEN: &str = "zr_shading_standard_pbr.wgsl";
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE_TOKEN: &str = "zr_gbuffer_encode_standard_pbr.wgsl";
 const SUBSURFACE_GBUFFER_ENCODE_INCLUDE_TOKEN: &str = "zr_gbuffer_encode_subsurface.wgsl";
 const VIRTUAL_GEOMETRY_INCLUDE_TOKEN: &str = "zr_geometry_virtual_geometry.wgsl";
+const BUILTIN_MODULE_INCLUDE_TOKENS: [&str; 19] = [
+    SURFACE_TYPES_INCLUDE_TOKEN,
+    SCENE_RUNTIME_INCLUDE_TOKEN,
+    GPU_SCENE_INCLUDE_TOKEN,
+    LIGHT_COOKIE_INCLUDE_TOKEN,
+    IRRADIANCE_VOLUME_INCLUDE_TOKEN,
+    LIGHTMAP_INCLUDE_TOKEN,
+    ENVIRONMENT_INCLUDE_TOKEN,
+    VOLUMETRIC_INCLUDE_TOKEN,
+    OIT_INCLUDE_TOKEN,
+    PBR_EXTRAS_INCLUDE_TOKEN,
+    LIGHT_GRID_INCLUDE_TOKEN,
+    SHADOW_INCLUDE_TOKEN,
+    STANDARD_PBR_SHADING_INCLUDE_TOKEN,
+    STANDARD_PBR_GBUFFER_ENCODE_INCLUDE_TOKEN,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
+    VIRTUAL_GEOMETRY_INCLUDE_TOKEN,
+];
 
 const STATIC_MESH_GEOMETRY_INCLUDE: &str = include_str!("../wgsl/zr_geometry_static.wgsl");
 const SKINNED_MESH_GEOMETRY_INCLUDE: &str = include_str!("../wgsl/zr_geometry_skinned.wgsl");
@@ -40,8 +62,34 @@ const LIGHT_GRID_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl");
 const SHADOW_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl");
+const SHADOW_DISABLED_INCLUDE: &str = r#"
+fn zr_gpu_light_shadow_visibility(
+    _light: ZrGpuLightData,
+    _light_type: u32,
+    _world_position: vec3<f32>,
+    _view_z: f32,
+) -> f32 {
+    return 1.0;
+}
+"#;
 const SURFACE_TYPES_INCLUDE: &str = include_str!("../wgsl/zr_surface_types.wgsl");
-const ENVIRONMENT_INCLUDE: &str = include_str!("../wgsl/zr_environment.wgsl");
+const ENVIRONMENT_INCLUDE: &str = concat!(
+    include_str!("../wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../wgsl/zr_environment_generic_api.wgsl"),
+    "\n",
+    include_str!("../wgsl/zr_environment.wgsl"),
+);
+const ENVIRONMENT_ONLY_PBR_INCLUDE: &str = concat!(
+    include_str!("../wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../wgsl/zr_environment_only_pbr.wgsl"),
+);
+const ENVIRONMENT_STANDARD_PBR_INCLUDE: &str = concat!(
+    include_str!("../wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../wgsl/zr_environment.wgsl"),
+);
 const VOLUMETRIC_INCLUDE: &str = include_str!("../wgsl/zr_volumetric.wgsl");
 const VOLUMETRIC_DISABLED_INCLUDE: &str = r#"
 fn zr_volumetric_transmittance(_fragment_position: vec2<f32>, _device_depth: f32) -> f32 {
@@ -57,8 +105,17 @@ fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_
 }
 "#;
 const OIT_INCLUDE: &str = include_str!("../includes/zr_oit.wgsl");
-const PBR_EXTRAS_INCLUDE: &str = include_str!("../includes/zr_pbr_extras.wgsl");
+const PBR_EXTRAS_CORE_INCLUDE: &str = include_str!("../includes/zr_pbr_extras_core.wgsl");
+const PBR_EXTRAS_INCLUDE: &str = concat!(
+    include_str!("../includes/zr_pbr_extras_core.wgsl"),
+    "\n",
+    include_str!("../includes/zr_pbr_extras.wgsl"),
+);
 const STANDARD_PBR_SHADING_INCLUDE: &str = include_str!("../wgsl/zr_shading_standard_pbr.wgsl");
+const STANDARD_PBR_SHADING_BASIC_INCLUDE: &str =
+    include_str!("../wgsl/zr_shading_standard_pbr_basic.wgsl");
+const ENVIRONMENT_ONLY_PBR_SHADING_INCLUDE: &str =
+    include_str!("../wgsl/zr_shading_environment_only_pbr.wgsl");
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE: &str =
     include_str!("../wgsl/zr_gbuffer_encode_standard_pbr.wgsl");
 const SUBSURFACE_GBUFFER_ENCODE_INCLUDE: &str =
@@ -67,6 +124,9 @@ const SUBSURFACE_GBUFFER_ENCODE_INCLUDE: &str =
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderTemplateInclude {
     pub(crate) token: String,
+    pub(crate) owner_id: String,
+    pub(crate) diagnostic_origin: String,
+    pub(crate) source_hash: String,
     pub(crate) source: String,
     pub(crate) content_hash: String,
     pub(crate) dependencies: Vec<String>,
@@ -76,14 +136,26 @@ impl ShaderTemplateInclude {
     pub(crate) fn new(token: impl Into<String>, source: impl Into<String>) -> Self {
         let token = token.into();
         let source = source.into();
+        let source_hash = blake3::hash(source.as_bytes()).to_hex().to_string();
         let dependencies = wgsl_include_paths(&source);
         let source = strip_wgsl_include_directives(&source);
         Self {
+            owner_id: format!("builtin:{token}"),
+            diagnostic_origin: format!("builtin shader module `{token}`"),
             token,
+            source_hash,
             content_hash: shader_module_content_hash(&source, &dependencies),
             source,
             dependencies,
         }
+    }
+
+    pub(crate) fn from_source_binding(binding: ShaderModuleSourceBinding) -> Self {
+        let mut include = Self::new(binding.import_path, binding.source.as_ref());
+        include.owner_id = binding.owner_id;
+        include.diagnostic_origin = binding.diagnostic_origin;
+        include.source_hash = binding.content_hash;
+        include
     }
 
     pub(crate) fn with_dependencies(
@@ -168,6 +240,34 @@ impl ShaderModuleRegistry {
         self.modules.insert(include.token.clone(), include);
     }
 
+    pub(crate) fn with_builtin_modules_for_roots(
+        roots: impl IntoIterator<Item = String>,
+        source_includes: impl IntoIterator<Item = ShaderTemplateInclude>,
+    ) -> Self {
+        let mut source_modules = source_includes
+            .into_iter()
+            .map(|include| (include.token.clone(), include))
+            .collect::<HashMap<_, _>>();
+        let mut pending = roots.into_iter().collect::<Vec<_>>();
+        let mut visited = HashSet::new();
+        let mut registry = Self::default();
+
+        while let Some(token) = pending.pop() {
+            if !visited.insert(token.clone()) {
+                continue;
+            }
+            let include = source_modules
+                .remove(&token)
+                .or_else(|| builtin_module_include_for_token(&token));
+            let Some(include) = include else {
+                continue;
+            };
+            pending.extend(include.dependencies.iter().cloned());
+            registry.register(include);
+        }
+        registry
+    }
+
     pub(crate) fn resolve_for_source(
         &self,
         source: &str,
@@ -238,39 +338,53 @@ fn module_set_hash(modules: &[ShaderTemplateInclude]) -> String {
 }
 
 fn builtin_module_includes() -> Vec<ShaderTemplateInclude> {
-    vec![
-        surface_types_include(),
-        scene_runtime_include(),
-        gpu_scene_include(),
-        light_cookie_include(),
-        irradiance_volume_include(),
-        lightmap_include(),
-        environment_include(),
-        volumetric_include(),
-        oit_include(),
-        pbr_extras_include(),
-        light_grid_include(),
-        shadow_include(),
-        standard_pbr_shading_include(),
-        standard_pbr_gbuffer_encode_include(),
-        ShaderTemplateInclude::new(
+    BUILTIN_MODULE_INCLUDE_TOKENS
+        .into_iter()
+        .map(|token| {
+            builtin_module_include_for_token(token)
+                .expect("every builtin shader module token must have a source factory")
+        })
+        .collect()
+}
+
+fn builtin_module_include_for_token(token: &str) -> Option<ShaderTemplateInclude> {
+    match token {
+        SURFACE_TYPES_INCLUDE_TOKEN => Some(surface_types_include()),
+        SCENE_RUNTIME_INCLUDE_TOKEN => Some(scene_runtime_include()),
+        GPU_SCENE_INCLUDE_TOKEN => Some(gpu_scene_include()),
+        LIGHT_COOKIE_INCLUDE_TOKEN => Some(light_cookie_include()),
+        IRRADIANCE_VOLUME_INCLUDE_TOKEN => Some(irradiance_volume_include()),
+        LIGHTMAP_INCLUDE_TOKEN => Some(lightmap_include()),
+        ENVIRONMENT_INCLUDE_TOKEN => Some(environment_include()),
+        VOLUMETRIC_INCLUDE_TOKEN => Some(volumetric_include()),
+        OIT_INCLUDE_TOKEN => Some(oit_include()),
+        PBR_EXTRAS_INCLUDE_TOKEN => Some(pbr_extras_include()),
+        LIGHT_GRID_INCLUDE_TOKEN => Some(light_grid_include()),
+        SHADOW_INCLUDE_TOKEN => Some(shadow_include()),
+        STANDARD_PBR_SHADING_INCLUDE_TOKEN => Some(standard_pbr_shading_include()),
+        STANDARD_PBR_GBUFFER_ENCODE_INCLUDE_TOKEN => Some(standard_pbr_gbuffer_encode_include()),
+        GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH => Some(ShaderTemplateInclude::new(
             GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
             STATIC_MESH_GEOMETRY_INCLUDE,
-        ),
-        ShaderTemplateInclude::new(
+        )),
+        GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH => Some(ShaderTemplateInclude::new(
             GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
             SKINNED_MESH_GEOMETRY_INCLUDE,
-        ),
-        ShaderTemplateInclude::new(
+        )),
+        GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH => Some(ShaderTemplateInclude::new(
             GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
             MORPHED_MESH_GEOMETRY_INCLUDE,
-        ),
-        ShaderTemplateInclude::new(
+        )),
+        GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH => Some(ShaderTemplateInclude::new(
             GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
             SKINNED_MORPHED_MESH_GEOMETRY_INCLUDE,
-        ),
-        ShaderTemplateInclude::new(VIRTUAL_GEOMETRY_INCLUDE_TOKEN, VIRTUAL_GEOMETRY_INCLUDE),
-    ]
+        )),
+        VIRTUAL_GEOMETRY_INCLUDE_TOKEN => Some(ShaderTemplateInclude::new(
+            VIRTUAL_GEOMETRY_INCLUDE_TOKEN,
+            VIRTUAL_GEOMETRY_INCLUDE,
+        )),
+        _ => None,
+    }
 }
 
 pub(crate) fn builtin_shader_ide_module_includes() -> Vec<ShaderTemplateInclude> {
@@ -320,6 +434,14 @@ pub(crate) fn environment_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_INCLUDE)
 }
 
+pub(crate) fn environment_only_pbr_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_ONLY_PBR_INCLUDE)
+}
+
+pub(crate) fn environment_standard_pbr_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_STANDARD_PBR_INCLUDE)
+}
+
 pub(crate) fn volumetric_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(VOLUMETRIC_INCLUDE_TOKEN, VOLUMETRIC_INCLUDE)
 }
@@ -336,6 +458,17 @@ pub(crate) fn pbr_extras_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(PBR_EXTRAS_INCLUDE_TOKEN, PBR_EXTRAS_INCLUDE)
 }
 
+pub(crate) fn pbr_extras_include_for_features(
+    features: ShaderFeatureBits,
+) -> ShaderTemplateInclude {
+    let source = if uses_advanced_standard_pbr(features) {
+        PBR_EXTRAS_INCLUDE
+    } else {
+        PBR_EXTRAS_CORE_INCLUDE
+    };
+    ShaderTemplateInclude::new(PBR_EXTRAS_INCLUDE_TOKEN, source)
+}
+
 pub(crate) fn light_grid_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(LIGHT_GRID_INCLUDE_TOKEN, LIGHT_GRID_INCLUDE)
 }
@@ -344,12 +477,23 @@ pub(crate) fn shadow_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(SHADOW_INCLUDE_TOKEN, SHADOW_INCLUDE)
 }
 
+pub(crate) fn shadow_disabled_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(SHADOW_INCLUDE_TOKEN, SHADOW_DISABLED_INCLUDE)
+}
+
 pub(crate) fn standard_pbr_shading_include() -> ShaderTemplateInclude {
-    ShaderTemplateInclude::new(
-        STANDARD_PBR_SHADING_INCLUDE_TOKEN,
-        STANDARD_PBR_SHADING_INCLUDE,
-    )
-    .with_dependencies([PBR_EXTRAS_INCLUDE_TOKEN, LIGHT_COOKIE_INCLUDE_TOKEN])
+    standard_pbr_shading_include_from_source(STANDARD_PBR_SHADING_INCLUDE)
+}
+
+pub(crate) fn standard_pbr_shading_include_for_features(
+    features: ShaderFeatureBits,
+) -> ShaderTemplateInclude {
+    let source = if uses_advanced_standard_pbr(features) {
+        STANDARD_PBR_SHADING_INCLUDE
+    } else {
+        STANDARD_PBR_SHADING_BASIC_INCLUDE
+    };
+    standard_pbr_shading_include_from_source(source)
 }
 
 pub(crate) fn standard_pbr_gbuffer_encode_include() -> ShaderTemplateInclude {
@@ -370,7 +514,22 @@ pub(crate) fn shading_model_forward_include_token<'a>(
 pub(crate) fn shading_model_forward_include_for(
     descriptor: Option<&ShadingModelDescriptor>,
     source_includes: &[ShaderTemplateInclude],
+    features: ShaderFeatureBits,
+    uses_builtin_standard_pbr: bool,
 ) -> Option<ShaderTemplateInclude> {
+    if descriptor.is_none() {
+        if uses_builtin_standard_pbr && features.contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR) {
+            return Some(ShaderTemplateInclude::new(
+                STANDARD_PBR_SHADING_INCLUDE_TOKEN,
+                ENVIRONMENT_ONLY_PBR_SHADING_INCLUDE,
+            ));
+        }
+        return Some(if uses_builtin_standard_pbr {
+            standard_pbr_shading_include_for_features(features)
+        } else {
+            standard_pbr_shading_include()
+        });
+    }
     let token = shading_model_forward_include_token(descriptor);
     forward_shading_include_for_token(token).or_else(|| {
         source_includes
@@ -378,6 +537,17 @@ pub(crate) fn shading_model_forward_include_for(
             .find(|include| include.token.as_str() == token)
             .cloned()
     })
+}
+
+fn uses_advanced_standard_pbr(features: ShaderFeatureBits) -> bool {
+    features.contains(ShaderFeatureBits::PBR_CLEARCOAT)
+        || features.contains(ShaderFeatureBits::PBR_ANISOTROPY)
+        || features.contains(ShaderFeatureBits::PBR_TRANSMISSION)
+}
+
+fn standard_pbr_shading_include_from_source(source: &str) -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(STANDARD_PBR_SHADING_INCLUDE_TOKEN, source)
+        .with_dependencies([PBR_EXTRAS_INCLUDE_TOKEN, LIGHT_COOKIE_INCLUDE_TOKEN])
 }
 
 pub(crate) fn shading_model_gbuffer_include_token<'a>(
@@ -497,6 +667,64 @@ mod tests {
                 .map(|module| module.token.as_str())
                 .collect::<Vec<_>>(),
             vec![PBR_EXTRAS_INCLUDE_TOKEN]
+        );
+    }
+
+    #[test]
+    fn root_scoped_registry_constructs_only_the_requested_dependency_closure() {
+        let project_include = ShaderTemplateInclude::new(
+            "project::surface",
+            "#include <zr_pbr_extras.wgsl>\nfn project_surface() {}",
+        );
+        let registry = ShaderModuleRegistry::with_builtin_modules_for_roots(
+            ["project::surface".to_string()],
+            [project_include],
+        );
+
+        assert!(registry.modules.contains_key("project::surface"));
+        assert!(registry.modules.contains_key(PBR_EXTRAS_INCLUDE_TOKEN));
+        assert!(!registry.modules.contains_key(SHADOW_INCLUDE_TOKEN));
+        assert!(!registry.modules.contains_key(VOLUMETRIC_INCLUDE_TOKEN));
+    }
+
+    #[test]
+    fn root_scoped_registry_prefers_supplied_source_over_builtin() {
+        let disabled_volumetric = ShaderTemplateInclude::new(
+            VOLUMETRIC_INCLUDE_TOKEN,
+            "fn zr_apply_volumetric_fog(color: vec3<f32>) -> vec3<f32> { return color; }",
+        );
+        let registry = ShaderModuleRegistry::with_builtin_modules_for_roots(
+            [VOLUMETRIC_INCLUDE_TOKEN.to_string()],
+            [disabled_volumetric.clone()],
+        );
+
+        let resolved = registry
+            .resolve_roots([VOLUMETRIC_INCLUDE_TOKEN.to_string()])
+            .expect("supplied source should replace the builtin module for the same token");
+
+        assert_eq!(resolved.ordered_sources, vec![disabled_volumetric]);
+    }
+
+    #[test]
+    fn root_scoped_registry_preserves_unknown_dependency_errors() {
+        let project_include = ShaderTemplateInclude::new(
+            "project::surface",
+            "#include <project::missing>\nfn project_surface() {}",
+        );
+        let registry = ShaderModuleRegistry::with_builtin_modules_for_roots(
+            ["project::surface".to_string()],
+            [project_include],
+        );
+
+        let error = registry
+            .resolve_roots(["project::surface".to_string()])
+            .expect_err("an unknown transitive dependency must remain an assembly error");
+
+        assert_eq!(
+            error,
+            ShaderModuleResolutionError::UnknownModule {
+                token: "project::missing".to_string(),
+            }
         );
     }
 

@@ -1,11 +1,11 @@
+use zircon_plugin_material_editor_editor::{
+    NATIVE_EDITOR_ENTRY, NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID,
+    NATIVE_REQUESTED_CAPABILITIES,
+};
 use zircon_plugin_sdk::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 
 const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 
-const PLUGIN_ID: &[u8] = b"material_editor\0";
-const EDITOR_ENTRY: &[u8] = b"zircon_plugin_material_editor_editor_entry_v3\0";
-const REQUESTED_CAPABILITIES: &[u8] = b"editor.extension.material_editor_authoring\0";
-const NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.material_editor_authoring\0";
 const EDITOR_DIAGNOSTICS: &[u8] =
     b"material_editor editor dist entry ready; material graph authoring remains hosted by the editor plugin module\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] =
@@ -13,26 +13,26 @@ const MISSING_HOST_DIAGNOSTICS: &[u8] =
 const EMPTY_MANIFEST: &[u8] = b"\0";
 
 zircon_plugin_sdk::native_dist_editor_plugin_v3! {
-    plugin_id: PLUGIN_ID,
+    plugin_id: NATIVE_PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
     descriptor_abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     editor_entry: zircon_plugin_material_editor_editor_entry_v3,
-    editor_entry_name: EDITOR_ENTRY,
-    requested_capabilities: REQUESTED_CAPABILITIES,
+    editor_entry_name: NATIVE_EDITOR_ENTRY.cstr(),
+    requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,
     missing_host_diagnostics: MISSING_HOST_DIAGNOSTICS,
     editor: {
         required_capabilities: ["editor.extension.material_editor_authoring"],
         denied_capabilities: [],
-        negotiated_capabilities: NEGOTIATED_CAPABILITIES,
+        negotiated_capabilities: NATIVE_REQUESTED_CAPABILITIES,
         diagnostics: EDITOR_DIAGNOSTICS,
         is_stateless: true,
         state_schema_version: 0,
         command_manifest_schema: None,
         event_manifest_schema: None,
-        registration_manifest_schema: None,
+        registration_manifest_schema: Some(zircon_plugin_sdk::native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
         command_manifest: Some(EMPTY_MANIFEST),
         event_manifest: Some(EMPTY_MANIFEST),
-        registration_manifest: None,
+        registration_manifest: Some(NATIVE_EDITOR_REGISTRATION_MANIFEST),
         invoke_command: None,
         save_state: None,
         restore_state: None,
@@ -61,12 +61,13 @@ mod tests {
         assert_eq!(descriptor.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION);
         assert_eq!(
             unsafe { CStr::from_ptr(descriptor.plugin_id) },
-            CStr::from_bytes_with_nul(PLUGIN_ID).expect("plugin id is nul terminated")
+            CStr::from_bytes_with_nul(NATIVE_PLUGIN_ID).expect("plugin id is nul terminated")
         );
         assert!(descriptor.runtime_entry_name.is_null());
         assert_eq!(
             unsafe { CStr::from_ptr(descriptor.editor_entry_name) },
-            CStr::from_bytes_with_nul(EDITOR_ENTRY).expect("editor entry is nul terminated")
+            CStr::from_bytes_with_nul(NATIVE_EDITOR_ENTRY.cstr())
+                .expect("editor entry is nul terminated")
         );
     }
 
@@ -92,7 +93,7 @@ mod tests {
         let bridge_methods = unsafe { &*report.bridge_methods };
         assert_eq!(bridge_methods.method_count, 0);
         let behavior = unsafe { &*report.behavior };
-        assert!(behavior.registration_manifest.is_null());
+        assert!(!behavior.registration_manifest.is_null());
     }
 
     unsafe extern "C" fn host_abi_version() -> u32 {

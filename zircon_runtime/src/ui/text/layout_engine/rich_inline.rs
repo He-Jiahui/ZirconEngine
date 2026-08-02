@@ -1,21 +1,21 @@
-use crate::text::layout::{
-    layout_rich_text_glyph_wrapped_with_provider, layout_rich_text_with_provider,
-    layout_rich_text_word_wrapped_with_provider, measured_grapheme_widths_with_provider,
-    resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
-    soft_hyphen_break_suffix_at, RichWordWrapMode, ELLIPSIS,
-};
-use crate::text::shaping::TextShapeRunProvider;
 use crate::text::LayoutItem;
 use crate::text::SharedTextLayoutSession;
+use crate::text::layout::{
+    ELLIPSIS, RichWordWrapMode, layout_rich_text_glyph_wrapped_with_provider,
+    layout_rich_text_with_provider, layout_rich_text_word_wrapped_with_provider,
+    measured_grapheme_widths_with_provider, resolve_rich_run_style, rich_forced_line_ranges,
+    rich_glyph_line_ranges_with_provider, soft_hyphen_break_suffix_at,
+};
+use crate::text::shaping::TextShapeRunProvider;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextDirection,
     UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
-use super::super::adapter::text_style;
+use crate::text::text_style;
 use super::super::rich_text::UiParsedText;
-use super::candidate_line::{append_segment, CandidateLine};
+use super::candidate_line::{CandidateLine, append_segment};
 use super::ellipsis::{ellipsize_line_with_advances, is_ellipsis_overflow};
 use super::line_box::aligned_x;
 use super::visual_order::apply_visual_order_with_advances;
@@ -29,7 +29,7 @@ pub(super) fn layout_inline_rich_text_with_provider(
     direction: UiTextDirection,
     provider: &mut SharedTextLayoutSession,
 ) -> Option<UiResolvedTextLayout> {
-    if !parsed.runs.iter().any(|run| run.inline.is_some())
+    if !parsed.runs.iter().any(|run| run.inline().is_some())
         || !matches!(style.text_writing_mode, UiTextWritingMode::HorizontalTb)
     {
         return None;
@@ -49,15 +49,11 @@ pub(super) fn layout_inline_rich_text_with_provider(
     let (rich_layout, source_ranges) = match style.wrap {
         UiTextWrap::Glyph => {
             let max_width = wrap_width;
-            let ranges = rich_glyph_line_ranges_with_provider(
-                &parsed.rich,
-                &neutral_style,
-                max_width,
-                provider,
-            );
+            let ranges =
+                rich_glyph_line_ranges_with_provider(parsed, &neutral_style, max_width, provider);
             (
                 layout_rich_text_glyph_wrapped_with_provider(
-                    &parsed.rich,
+                    parsed,
                     &neutral_style,
                     max_width,
                     provider,
@@ -66,11 +62,11 @@ pub(super) fn layout_inline_rich_text_with_provider(
             )
         }
         UiTextWrap::None => (
-            layout_rich_text_with_provider(&parsed.rich, &neutral_style, provider),
-            rich_forced_line_ranges(&parsed.text),
+            layout_rich_text_with_provider(parsed, &neutral_style, provider),
+            rich_forced_line_ranges(parsed.text()),
         ),
         UiTextWrap::Word | UiTextWrap::WordSmart => layout_rich_text_word_wrapped_with_provider(
-            &parsed.rich,
+            parsed,
             &neutral_style,
             wrap_width,
             if matches!(style.wrap, UiTextWrap::WordSmart) {
@@ -94,7 +90,7 @@ pub(super) fn layout_inline_rich_text_with_provider(
         };
         let line_height = rich_line.ascent + rich_line.descent;
         let paragraph_start =
-            super::paragraph_layout::physical_paragraph_start(&parsed.text, source_range.start);
+            super::paragraph_layout::physical_paragraph_start(parsed.text(), source_range.start);
         let first_physical_line = previous_paragraph_start != Some(paragraph_start);
         previous_paragraph_start = Some(paragraph_start);
         let constraints = super::paragraph_layout::line_constraints_with_provider(
@@ -135,7 +131,7 @@ pub(super) fn layout_inline_rich_text_with_provider(
         );
         apply_visual_order_with_advances(
             &mut visual_line,
-            &parsed.text,
+            parsed.text(),
             direction,
             &mut glyph_advances,
         );
@@ -211,12 +207,13 @@ pub(super) fn layout_inline_rich_text_with_provider(
         measured_height,
         source_range: UiTextRange {
             start: 0,
-            end: parsed.text.len(),
+            end: parsed.text().len(),
         },
         lines: resolved_lines,
         boxes: Vec::new(),
         overflow_clipped,
         editable: None,
+        rich_text_artifact: None,
     })
 }
 
@@ -230,7 +227,7 @@ pub(super) fn append_soft_hyphen_break_suffix<P>(
 ) where
     P: TextShapeRunProvider + ?Sized,
 {
-    let Some(suffix) = soft_hyphen_break_suffix_at(&parsed.text, break_end) else {
+    let Some(suffix) = soft_hyphen_break_suffix_at(parsed.text(), break_end) else {
         return;
     };
     let source_range = UiTextRange {
@@ -246,7 +243,7 @@ pub(super) fn append_soft_hyphen_break_suffix<P>(
     );
     let suffix_style = run.map_or_else(
         || text_style(base_style),
-        |run| resolve_rich_run_style(&text_style(base_style), &run.style),
+        |run| resolve_rich_run_style(&text_style(base_style), run.style()),
     );
     let suffix_advance =
         measured_grapheme_widths_with_provider(suffix.text, &suffix_style, provider)
@@ -268,7 +265,7 @@ pub(super) fn resolved_runs_for_line(
         .filter_map(|run| {
             let start = run.source_range.start.max(line_range.start);
             let end = run.source_range.end.min(line_range.end);
-            let text = parsed.text.get(start..end)?.to_string();
+            let text = parsed.text().get(start..end)?.to_string();
             (start < end).then_some(UiResolvedTextRun {
                 kind: run.kind,
                 text,
@@ -296,7 +293,7 @@ fn item_advances(
             source_range,
             ..
         } => {
-            let Some(run) = parsed.rich.runs.get(*run_index as usize) else {
+            let Some(run) = parsed.rich.parsed().runs.get(*run_index as usize) else {
                 return Vec::new();
             };
             let Ok(start) = usize::try_from(source_range.0) else {
@@ -305,7 +302,7 @@ fn item_advances(
             let Ok(end) = usize::try_from(source_range.1) else {
                 return Vec::new();
             };
-            let Some(text) = parsed.text.get(start..end) else {
+            let Some(text) = parsed.text().get(start..end) else {
                 return Vec::new();
             };
             let style = resolve_rich_run_style(&text_style(base_style), &run.style);

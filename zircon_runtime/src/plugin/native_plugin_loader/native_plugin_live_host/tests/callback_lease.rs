@@ -53,6 +53,75 @@ fn native_callback_owner_uses_atomic_transition_and_reports_zero_state_mutex_acq
 }
 
 #[test]
+fn native_callback_snapshot_defers_lease_until_foreign_call() {
+    let plugin = native_live_host_test_plugin_with_behavior(
+        "physics",
+        callback_test_behavior(successful_runtime_command),
+    );
+    let snapshot = plugin
+        .runtime_behavior_snapshot()
+        .expect("snapshot should retain the native library generation");
+
+    assert_eq!(plugin.callback_diagnostics().active_callbacks, 0);
+    plugin
+        .begin_lifecycle_transition()
+        .expect("a passive snapshot must not block a lifecycle transition");
+
+    let report = snapshot.invoke_command("probe", b"");
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("lifecycle transition is active")));
+
+    plugin.cancel_lifecycle_transition();
+}
+
+#[test]
+fn native_callback_snapshot_keeps_generation_alive_after_loaded_plugin_releases() {
+    let plugin = native_live_host_test_plugin_with_behavior(
+        "physics",
+        callback_test_behavior(successful_runtime_command),
+    );
+    let generation = Arc::clone(&plugin.library);
+    let snapshot = plugin
+        .runtime_behavior_snapshot()
+        .expect("snapshot should retain the native library generation");
+
+    assert_eq!(Arc::strong_count(&generation), 3);
+    drop(plugin);
+    assert_eq!(Arc::strong_count(&generation), 2);
+
+    let report = snapshot.invoke_command("probe", b"");
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+
+    drop(snapshot);
+    assert_eq!(Arc::strong_count(&generation), 1);
+}
+
+#[test]
+fn native_callback_snapshot_without_behavior_reports_missing_before_transition_admission() {
+    let plugin = native_live_host_test_plugin("physics", PluginModuleKind::Runtime);
+    let snapshot = plugin
+        .runtime_behavior_snapshot()
+        .expect("snapshot should retain the native library generation");
+
+    plugin
+        .begin_lifecycle_transition()
+        .expect("a missing behavior snapshot must not block a lifecycle transition");
+
+    let report = snapshot.invoke_command("probe", b"");
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    assert_eq!(
+        report.diagnostics,
+        vec!["native plugin runtime behavior is missing".to_owned()]
+    );
+    assert_eq!(plugin.callback_diagnostics().active_callbacks, 0);
+
+    plugin.cancel_lifecycle_transition();
+}
+
+#[test]
 fn native_callback_diagnostics_off_skips_callback_measurement_updates() {
     let plugin = native_live_host_test_plugin_with_behavior(
         "physics",

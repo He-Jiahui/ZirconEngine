@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::super::text::wire::MAX_TEXT_DOCUMENT_BYTES;
 use super::super::{
-    Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
-    load_versioned,
+    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
+    VersionedSchema,
 };
 use super::FixtureDocument;
 
@@ -175,8 +175,8 @@ fn current_text_envelope_uses_the_direct_typed_decode_path() {
         "current envelopes must decode the borrowed payload directly into T"
     );
     assert!(
-        text_load.contains("load_legacy_text_versioned"),
-        "only the legacy path may materialize a Value for migration"
+        text_load.contains("load_schema_zero_text"),
+        "only the unversioned schema-zero path may materialize a Value for migration"
     );
 }
 

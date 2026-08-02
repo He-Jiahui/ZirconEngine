@@ -16,6 +16,7 @@ struct SceneUniform {
     sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_rotation_sin_cos: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
 @group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;
@@ -44,12 +45,11 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
 }
 
 fn skybox_rotated_direction_normalized(direction: vec3<f32>) -> vec3<f32> {
-    let rotation = scene.environment_params.z;
-    if (rotation == 0.0) {
+    if (scene.environment_rotation_sin_cos.z < 0.5) {
         return direction;
     }
-    let s = sin(rotation);
-    let c = cos(rotation);
+    let s = scene.environment_rotation_sin_cos.x;
+    let c = scene.environment_rotation_sin_cos.y;
     return vec3<f32>(
         direction.x * c - direction.z * s,
         direction.y,

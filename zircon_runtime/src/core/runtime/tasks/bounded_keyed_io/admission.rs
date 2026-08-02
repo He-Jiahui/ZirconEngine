@@ -1,8 +1,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use super::lane::{LaneInner, WorkEntry};
-use super::{BoundedKeyedIoFailure, BoundedKeyedIoTicket, GlobalAdmissionEpoch};
+use super::lane::LaneInner;
+use super::{
+    BoundedKeyedIoFailure, BoundedKeyedIoTerminal, BoundedKeyedIoTicket, GlobalAdmissionEpoch,
+};
 
 pub type BoundedKeyedIoWork =
     Box<dyn FnOnce() -> Result<(), BoundedKeyedIoFailure> + Send + 'static>;
@@ -26,6 +28,10 @@ impl BoundedKeyedIoWorkDeadline {
     pub(crate) fn expired(self, now: Instant) -> bool {
         self.deadline.is_some_and(|deadline| now >= deadline)
     }
+
+    pub(crate) const fn instant(self) -> Option<Instant> {
+        self.deadline
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,6 +40,7 @@ pub enum BoundedKeyedIoAdmissionError {
     EntryCapacityExceeded,
     RetainedBytesCapacityExceeded,
     RetainedBytesOverflow,
+    DeadlineTimerUnavailable,
 }
 
 #[derive(Clone, Debug)]
@@ -57,7 +64,9 @@ impl BoundedKeyedIoCancelAuthority {
 
 pub struct BoundedKeyedIoAdmission {
     pub(crate) lane: Arc<LaneInner>,
-    pub(crate) entry: Option<WorkEntry>,
+    pub(crate) ticket_id: u64,
+    pub(crate) epoch: GlobalAdmissionEpoch,
+    pub(crate) armed: bool,
     pub(crate) ticket: BoundedKeyedIoTicket,
     pub(crate) cancel_authority: BoundedKeyedIoCancelAuthority,
 }
@@ -72,14 +81,20 @@ impl BoundedKeyedIoAdmission {
     }
 
     pub fn epoch(&self) -> GlobalAdmissionEpoch {
-        self.entry
-            .as_ref()
-            .map_or(GlobalAdmissionEpoch::initial(), |entry| entry.epoch)
+        self.epoch
+    }
+
+    pub fn observe_terminal(
+        &self,
+        observer: impl Fn(BoundedKeyedIoTerminal) + Send + Sync + 'static,
+    ) {
+        LaneInner::observe_terminal(&self.lane, self.ticket_id, &self.ticket, Arc::new(observer));
     }
 
     pub fn activate(mut self) -> BoundedKeyedIoTicket {
-        if let Some(entry) = self.entry.take() {
-            LaneInner::activate(&self.lane, entry);
+        if self.armed {
+            self.armed = false;
+            LaneInner::activate(&self.lane, self.ticket_id);
         }
         self.ticket.clone()
     }
@@ -87,8 +102,9 @@ impl BoundedKeyedIoAdmission {
 
 impl Drop for BoundedKeyedIoAdmission {
     fn drop(&mut self) {
-        if let Some(entry) = self.entry.take() {
-            LaneInner::release_unactivated(&self.lane, entry);
+        if self.armed {
+            self.armed = false;
+            LaneInner::release_unactivated(&self.lane, self.ticket_id);
         }
     }
 }

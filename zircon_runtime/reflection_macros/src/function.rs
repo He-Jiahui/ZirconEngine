@@ -116,7 +116,6 @@ pub(crate) fn host_function_impl(
     };
 
     Ok(quote! {
-        #[allow(dead_code)]
         #item
 
         fn #descriptor_ident() -> ::zircon_runtime::core::framework::script::ScriptHostFunctionDescriptor {

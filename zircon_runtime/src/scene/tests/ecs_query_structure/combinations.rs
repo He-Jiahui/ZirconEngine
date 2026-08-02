@@ -69,7 +69,8 @@ fn cached_combinations_trust_query_state_data_membership() {
         "read-only cached combinations must borrow QueryState cache slices and store only matched cache slots"
     );
     assert!(
-        cached_read_constructor.contains("let mut cache_indices = Vec::with_capacity(entities.len());")
+        cached_read_constructor
+            .contains("let mut cache_indices = Vec::with_capacity(entities.len());")
             && cached_read_constructor.contains("cache_indices.push(index)")
             && !cached_read_constructor.contains("matched_entities")
             && !cached_read_constructor.contains("matched_stable_locations")
@@ -99,7 +100,8 @@ fn cached_combinations_trust_query_state_data_membership() {
     );
     assert!(
         read_combo_text.contains("fn empty(world: &'world World, ticks: ChangeTickWindow) -> Self")
-            && read_combo_text.contains("candidates: QueryCombinationCandidates::Owned(Vec::new())")
+            && read_combo_text
+                .contains("candidates: QueryCombinationCandidates::Owned(Vec::new())")
             && read_combo_text.contains("remaining: 0"),
         "read-only combinations must share an explicit empty iterator constructor for impossible group sizes"
     );
@@ -135,10 +137,10 @@ fn cached_combinations_trust_query_state_data_membership() {
         "mutable combinations must not keep the old uncached full-world constructor after QueryState cache refresh became the authoritative entry path"
     );
     assert!(
-        cached_mut_constructor
-            .contains("if K > entities.len()")
+        cached_mut_constructor.contains("if K > entities.len()")
             && cached_mut_constructor.contains("return Self::empty(world, ticks);")
-            && cached_mut_constructor.contains("let mut cache_indices = Vec::with_capacity(entities.len());")
+            && cached_mut_constructor
+                .contains("let mut cache_indices = Vec::with_capacity(entities.len());")
             && cached_mut_constructor.contains("cache_indices.push(index)")
             && cached_mut_constructor.contains("if cache_indices.len() < K")
             && !cached_mut_constructor.contains("then_some(entity)")

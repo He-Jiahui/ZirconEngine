@@ -37,7 +37,7 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
             "MeshPipelineShaderSource",
             "cache_content_hashes",
             "template_revision",
-            "ShaderVariantPrewarmManifest::new(Vec::new())",
+            "ShaderVariantPrewarmManifest::empty()",
             "builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source",
             "zr-material-template-v1",
         ],

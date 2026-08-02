@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/assets/model/model_asset.rs
   - zircon_runtime/src/asset/assets/model/primitive.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/components/render2d/mesh2d.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs

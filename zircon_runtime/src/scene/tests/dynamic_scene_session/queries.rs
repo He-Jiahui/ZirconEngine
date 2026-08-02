@@ -105,11 +105,10 @@ fn runtime_session_archive_diffs_slot_from_path_without_mutating_target() {
     source
         .rename_node(saved_entity, "Saved Mesh")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![
-            RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture")
-        ])
-        .expect("archive should validate");
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_path_diff");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive

@@ -13,4 +13,5 @@ default = ["dist"]
 dist = []
 
 [dependencies]
+zircon_plugin_timeline_sequence_editor = { path = "../editor" }
 zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

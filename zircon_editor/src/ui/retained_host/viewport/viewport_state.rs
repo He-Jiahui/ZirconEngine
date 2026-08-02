@@ -6,8 +6,8 @@ use crate::core::jobs::{
 use crate::scene::viewport::{RenderFramework, RenderFrameworkError};
 use crate::ui::retained_host::host_contract::WorldSpaceUiSurfaceSubmission;
 use crate::ui::retained_host::primitives::Image;
-use zircon_runtime::core::manager::{resolve_manager_service, ManagerServiceHandle};
 use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::manager::{ManagerServiceHandle, resolve_manager_service};
 
 use super::active_viewport::ActiveViewport;
 use super::render_framework_resolve_job::RenderFrameworkResolveJob;

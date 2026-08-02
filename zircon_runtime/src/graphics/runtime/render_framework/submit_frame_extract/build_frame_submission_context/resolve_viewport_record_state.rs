@@ -29,6 +29,7 @@ pub(super) fn resolve_viewport_record_state(
         quality_profile_taa_quality,
         previous_visibility,
         previous_static_index,
+        previous_dynamic_index,
         previous_motion_vector_camera,
         previous_particle_sprites,
         compile_options,
@@ -88,6 +89,9 @@ pub(super) fn resolve_viewport_record_state(
             record
                 .history(&camera_history_key)
                 .map(|history| history.static_index().clone()),
+            record
+                .history(&camera_history_key)
+                .map(|history| history.dynamic_index().clone()),
             record.motion_vector_camera(&camera_history_key).cloned(),
             record
                 .particle_previous_sprites(&camera_history_key)
@@ -119,6 +123,7 @@ pub(super) fn resolve_viewport_record_state(
         quality_profile_taa_quality,
         previous_visibility,
         previous_static_index,
+        previous_dynamic_index,
         previous_motion_vector_camera,
         previous_particle_sprites,
         pipeline_asset,

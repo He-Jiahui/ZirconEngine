@@ -69,4 +69,8 @@ Registration 同时被当作“一份可变 callback 实例”和“可重复 bu
 
 ## 修复结果与回传
 
-Open state: `待 Runtime08 引入 per-instance system factory/stateless callable 契约并完成多 World 并行验收`。
+Open state: `前向复核中`; no pass is claimed.
+
+- 当前 lowest-owner 源码复核：`SystemRegistrationBuilder`、`ExternalSystemRegistrationBuilder` 和 `RuntimeSceneSystemRegistrationBuilder` 都保存可 clone 的 build template；每次 `build` 创建独立 `CallbackSceneSystem` / `ExternalCallbackSceneSystem` / `FunctionRuntimeSceneSystem`，实例持有自己的 `FnMut` 与 `SystemState`，运行路径不再保存或获取 callback `Mutex`。native replay 当前通过 `register_external_native_system` 进入同一 factory path。
+- 已存在的 source tests 覆盖 typed/external/runtime callback 的 per-instance state；external worker-safe callback 还覆盖两个 World 实例的 overlap。该结论目前仅来自 source review 与未执行的测试源码，native hot-reload/unload generation lifetime、panic 语义以及受管多 World 并行验证仍未获得运行证据。
+- 因此本 artifact 保持 `open`，直到 declared tests 和 native generation lifecycle evidence 在后续受管 validation gate 中返回真实结果。

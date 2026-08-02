@@ -1,36 +1,159 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use super::ShaderVariantKey;
 
+mod budget;
+mod source;
+
+pub use budget::{
+    ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmExecutionBudgetError,
+    ShaderVariantPrewarmExecutionBudgetSummary,
+};
+pub use source::{
+    ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId, ShaderVariantPrewarmSourceTable,
+};
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShaderVariantPrewarmManifest {
     pub schema_version: u32,
+    pub sources: Vec<ShaderVariantPrewarmSource>,
     pub variants: Vec<ShaderVariantPrewarmRequest>,
 }
 
-impl ShaderVariantPrewarmManifest {
-    pub const SCHEMA_VERSION: u32 = 1;
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum ShaderVariantPrewarmManifestIntegrityError {
+    #[error("shader prewarm source {source_id} does not match its content-addressed id")]
+    NonCanonicalSourceId { source_id: String },
+    #[error("shader prewarm source id {source_id} occurs more than once")]
+    DuplicateSourceId { source_id: String },
+    #[error("shader prewarm variant {canonical_key} references missing source {source_id}")]
+    MissingVariantSource {
+        canonical_key: String,
+        source_id: String,
+    },
+}
 
-    pub fn new(variants: Vec<ShaderVariantPrewarmRequest>) -> Self {
+impl ShaderVariantPrewarmManifest {
+    pub const SCHEMA_VERSION: u32 = 2;
+
+    pub fn new(
+        sources: Vec<ShaderVariantPrewarmSource>,
+        variants: Vec<ShaderVariantPrewarmRequest>,
+    ) -> Self {
         Self {
             schema_version: Self::SCHEMA_VERSION,
+            sources,
             variants,
         }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(Vec::new(), Vec::new())
+    }
+
+    pub fn source_for(
+        &self,
+        request: &ShaderVariantPrewarmRequest,
+    ) -> Option<&ShaderVariantPrewarmSource> {
+        self.sources
+            .iter()
+            .find(|source| source.id == request.source_id)
+    }
+
+    /// Builds one borrowed lookup table for repeated request-to-source resolution.
+    pub fn source_table(&self) -> ShaderVariantPrewarmSourceTable<'_> {
+        ShaderVariantPrewarmSourceTable::new(&self.sources)
+    }
+
+    /// Returns the exact heap footprint of the persisted source table.
+    pub fn source_table_resident_bytes(&self) -> Option<usize> {
+        self.sources.iter().try_fold(0usize, |total, source| {
+            total.checked_add(source.resident_bytes())
+        })
+    }
+
+    pub fn validate_integrity(&self) -> Result<(), ShaderVariantPrewarmManifestIntegrityError> {
+        let mut source_ids = HashSet::with_capacity(self.sources.len());
+        for source in &self.sources {
+            if !source.has_canonical_id() {
+                return Err(
+                    ShaderVariantPrewarmManifestIntegrityError::NonCanonicalSourceId {
+                        source_id: source.id.as_str().to_string(),
+                    },
+                );
+            }
+            if !source_ids.insert(source.id.clone()) {
+                return Err(
+                    ShaderVariantPrewarmManifestIntegrityError::DuplicateSourceId {
+                        source_id: source.id.as_str().to_string(),
+                    },
+                );
+            }
+        }
+        for request in &self.variants {
+            if !source_ids.contains(&request.source_id) {
+                return Err(
+                    ShaderVariantPrewarmManifestIntegrityError::MissingVariantSource {
+                        canonical_key: request.key.canonical_string(),
+                        source_id: request.source_id.as_str().to_string(),
+                    },
+                );
+            }
+        }
+        Ok(())
+    }
+
+    pub fn replace_variant_source(
+        &mut self,
+        variant_index: usize,
+        source: ShaderVariantPrewarmSource,
+    ) -> bool {
+        if variant_index >= self.variants.len() {
+            return false;
+        }
+        let source_id = source.id.clone();
+        if !self.sources.iter().any(|existing| existing.id == source.id) {
+            self.sources.push(source);
+        }
+        self.variants[variant_index].source_id = source_id;
+        let referenced_source_ids = self
+            .variants
+            .iter()
+            .map(|request| request.source_id.clone())
+            .collect::<HashSet<_>>();
+        self.sources
+            .retain(|existing| referenced_source_ids.contains(&existing.id));
+        true
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShaderVariantPrewarmRequest {
     pub key: ShaderVariantKey,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub source_label: String,
-    pub wgsl_source: String,
-    pub include_content_hashes: Vec<String>,
-    pub template_revision: String,
-    pub naga_version: String,
-    pub wgpu_version: String,
+    /// Exact render-pipeline state not represented by [`ShaderVariantKey`].
+    ///
+    /// Offline shader-cache consumers may omit this field. Runtime PSO prewarm
+    /// requires it so a compiled pipeline is inserted under the same complete
+    /// key that draw submission will resolve.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pipeline_state: Option<ShaderPipelinePrewarmState>,
+    pub source_id: ShaderVariantPrewarmSourceId,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ShaderPipelinePrewarmState {
+    pub alpha_blend: bool,
+    pub alpha_cutoff_bits: Option<u32>,
+    pub unlit: bool,
+    pub has_base_color_texture: bool,
+    pub has_metallic_roughness_texture: bool,
+    pub has_occlusion_texture: bool,
+    pub has_emissive_texture: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,6 +161,12 @@ pub struct ShaderVariantPrewarmReport {
     pub requested_count: usize,
     pub written_count: usize,
     pub failed_count: usize,
+    /// A failure that prevented prewarm work from starting for the whole manifest.
+    ///
+    /// Unlike [`Self::failures`], this is not attributed to a synthetic variant
+    /// index and does not affect the per-variant counters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preflight_error: Option<String>,
     #[serde(default)]
     pub written_variants: Vec<ShaderVariantPrewarmWrittenVariant>,
     #[serde(default)]
@@ -48,10 +177,16 @@ pub struct ShaderVariantPrewarmReport {
     pub dimension_summary: ShaderVariantPrewarmDimensionSummary,
     #[serde(default)]
     pub source_provenance: ShaderVariantPrewarmSourceProvenanceSummary,
+    #[serde(default)]
+    pub execution_budget: ShaderVariantPrewarmExecutionBudgetSummary,
     pub failures: Vec<ShaderVariantPrewarmFailure>,
 }
 
 impl ShaderVariantPrewarmReport {
+    pub fn record_preflight_error(&mut self, error: impl Into<String>) {
+        self.preflight_error = Some(error.into());
+    }
+
     pub fn record_written(&mut self) {
         self.requested_count += 1;
         self.written_count += 1;
@@ -63,27 +198,33 @@ impl ShaderVariantPrewarmReport {
             .record(key, ShaderVariantPrewarmOutcome::Written);
     }
 
-    pub fn record_written_request(&mut self, request: &ShaderVariantPrewarmRequest) {
+    pub fn record_written_request(
+        &mut self,
+        request: &ShaderVariantPrewarmRequest,
+        source: &ShaderVariantPrewarmSource,
+    ) {
         self.record_written_variant(&request.key);
         self.source_provenance
-            .record(request, ShaderVariantPrewarmOutcome::Written);
+            .record(source, ShaderVariantPrewarmOutcome::Written);
     }
 
     pub fn record_written_cache_entry(
         &mut self,
         request: &ShaderVariantPrewarmRequest,
+        source: &ShaderVariantPrewarmSource,
         cache_hash: impl Into<String>,
         canonical_string: impl Into<String>,
     ) {
-        self.record_written_request(request);
+        self.record_written_request(request, source);
         self.written_variants
             .push(ShaderVariantPrewarmWrittenVariant {
                 cache_hash: cache_hash.into(),
                 canonical_string: canonical_string.into(),
-                source_label: request.provenance_source_label(),
-                template_revision: request.template_revision.clone(),
-                naga_version: request.naga_version.clone(),
-                wgpu_version: request.wgpu_version.clone(),
+                source_id: source.id.clone(),
+                source_label: source.provenance_source_label(),
+                template_revision: source.template_revision.clone(),
+                naga_version: source.naga_version.clone(),
+                wgpu_version: source.wgpu_version.clone(),
             });
     }
 
@@ -111,11 +252,12 @@ impl ShaderVariantPrewarmReport {
         &mut self,
         variant_index: usize,
         request: &ShaderVariantPrewarmRequest,
+        source: &ShaderVariantPrewarmSource,
         error: impl Into<String>,
     ) {
         self.record_failure_variant(variant_index, &request.key, error);
         self.source_provenance
-            .record(request, ShaderVariantPrewarmOutcome::Failed);
+            .record(source, ShaderVariantPrewarmOutcome::Failed);
     }
 
     pub fn enable_wgpu_module_validation(&mut self, requested_count: usize) {
@@ -231,6 +373,7 @@ pub struct ShaderVariantPrewarmFailure {
 pub struct ShaderVariantPrewarmWrittenVariant {
     pub cache_hash: String,
     pub canonical_string: String,
+    pub source_id: ShaderVariantPrewarmSourceId,
     pub source_label: String,
     pub template_revision: String,
     pub naga_version: String,
@@ -247,33 +390,34 @@ pub struct ShaderVariantPrewarmSourceProvenanceSummary {
 impl ShaderVariantPrewarmSourceProvenanceSummary {
     fn record(
         &mut self,
-        request: &ShaderVariantPrewarmRequest,
+        source: &ShaderVariantPrewarmSource,
         outcome: ShaderVariantPrewarmOutcome,
     ) {
         self.variant_count += 1;
-        let source_label = request.provenance_source_label();
-        let source_hash = shader_prewarm_source_hash(&request.wgsl_source);
-        let key =
-            shader_prewarm_provenance_key(&source_label, &source_hash, &request.template_revision);
-        let entry =
-            self.sources
-                .entry(key)
-                .or_insert_with(|| ShaderVariantPrewarmSourceProvenanceEntry {
-                    source_label,
-                    source_hash,
-                    include_content_hashes: request.include_content_hashes.clone(),
-                    template_revision: request.template_revision.clone(),
-                    naga_version: request.naga_version.clone(),
-                    wgpu_version: request.wgpu_version.clone(),
-                    ..Default::default()
-                });
+        if let Some(entry) = self.sources.get_mut(source.id.as_str()) {
+            entry.record(outcome);
+            return;
+        }
+
+        let mut entry = ShaderVariantPrewarmSourceProvenanceEntry {
+            source_id: source.id.clone(),
+            source_label: source.provenance_source_label(),
+            source_hash: source.source_hash(),
+            include_content_hashes: source.include_content_hashes.clone(),
+            template_revision: source.template_revision.clone(),
+            naga_version: source.naga_version.clone(),
+            wgpu_version: source.wgpu_version.clone(),
+            ..Default::default()
+        };
         entry.record(outcome);
+        self.sources.insert(source.id.as_str().to_string(), entry);
         self.source_count = self.sources.len();
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderVariantPrewarmSourceProvenanceEntry {
+    pub source_id: ShaderVariantPrewarmSourceId,
     pub source_label: String,
     pub source_hash: String,
     pub include_content_hashes: Vec<String>,
@@ -295,11 +439,11 @@ impl ShaderVariantPrewarmSourceProvenanceEntry {
     }
 }
 
-impl ShaderVariantPrewarmRequest {
+impl ShaderVariantPrewarmSource {
     fn provenance_source_label(&self) -> String {
         let source_label = self.source_label.trim();
         if source_label.is_empty() {
-            self.key.material_shader.to_string()
+            "<unlabeled>".to_string()
         } else {
             source_label.to_string()
         }
@@ -320,14 +464,58 @@ fn record_dimension(
     counts.entry(key).or_default().record(outcome);
 }
 
-fn shader_prewarm_source_hash(source: &str) -> String {
-    blake3::hash(source.as_bytes()).to_hex().to_string()
-}
+#[cfg(test)]
+mod tests {
+    use super::{
+        ShaderVariantPrewarmManifest, ShaderVariantPrewarmManifestIntegrityError,
+        ShaderVariantPrewarmOutcome, ShaderVariantPrewarmSource,
+        ShaderVariantPrewarmSourceProvenanceSummary,
+    };
 
-fn shader_prewarm_provenance_key(
-    source_label: &str,
-    source_hash: &str,
-    template_revision: &str,
-) -> String {
-    format!("{source_label}#{source_hash}#{template_revision}")
+    #[test]
+    fn source_provenance_aggregates_repeated_source_outcomes() {
+        let source = ShaderVariantPrewarmSource::new(
+            "res://shared.wgsl",
+            "fn main() {}",
+            vec!["include-a".to_string()],
+            "template-r1",
+            "naga-r1",
+            "wgpu-r1",
+        );
+        let mut summary = ShaderVariantPrewarmSourceProvenanceSummary::default();
+
+        summary.record(&source, ShaderVariantPrewarmOutcome::Written);
+        summary.record(&source, ShaderVariantPrewarmOutcome::Failed);
+
+        assert_eq!(summary.source_count, 1);
+        assert_eq!(summary.variant_count, 2);
+        let entry = summary
+            .sources
+            .get(source.id.as_str())
+            .expect("shared source should have one provenance entry");
+        assert_eq!(entry.source_hash, source.source_hash());
+        assert_eq!(entry.requested_count, 2);
+        assert_eq!(entry.written_count, 1);
+        assert_eq!(entry.failed_count, 1);
+    }
+
+    #[test]
+    fn manifest_integrity_reports_duplicate_source_id_as_typed_error() {
+        let source = ShaderVariantPrewarmSource::new(
+            "res://shared.wgsl",
+            "fn main() {}",
+            Vec::new(),
+            "template-r1",
+            "naga-r1",
+            "wgpu-r1",
+        );
+
+        let error = ShaderVariantPrewarmManifest::new(vec![source.clone(), source], Vec::new())
+            .validate_integrity()
+            .expect_err("duplicate source ids must fail manifest integrity validation");
+        assert!(matches!(
+            error,
+            ShaderVariantPrewarmManifestIntegrityError::DuplicateSourceId { .. }
+        ));
+    }
 }

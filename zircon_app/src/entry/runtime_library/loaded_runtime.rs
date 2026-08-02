@@ -5,18 +5,18 @@ use zircon_runtime_interface::runtime_api::ZrRuntimeProfileControlFnV1;
 use zircon_runtime_interface::runtime_api::{
     ZrRuntimeCaptureFrameFnV1, ZrRuntimeCreateSessionFnV2, ZrRuntimeDestroySessionFnV1,
     ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeDrainPluginEventsFnV1, ZrRuntimeHandleEventFnV1,
-    ZrRuntimeHarvestOperationFnV1, ZrRuntimePollOperationFnV1, ZrRuntimeSubmitOperationFnV1,
+    ZrRuntimeHarvestOperationFnV1, ZrRuntimePollOperationFnV2, ZrRuntimeSubmitOperationFnV1,
     ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeTickFrameFnV2, ZrRuntimeUnsubscribePluginEventFnV1,
 };
 use zircon_runtime_interface::{
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_GET_API_SYMBOL_V3,
     ZrHostApiV1, ZrRuntimeApiV3, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeGetApiFnV3,
     ZrRuntimePresentViewportFnV1, ZrRuntimeUnbindViewportSurfaceFnV1,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_GET_API_SYMBOL_V3,
 };
 
 use super::{
-    default_runtime_library_path, runtime_library_environment_override_request,
     RuntimeLibraryError, RuntimeLibraryPathError, RuntimeLibraryPathSelection,
+    default_runtime_library_path, runtime_library_environment_override_request,
 };
 
 pub(crate) struct LoadedRuntime {
@@ -36,7 +36,7 @@ struct RequiredRuntimeApiV3 {
     unsubscribe_plugin_event: ZrRuntimeUnsubscribePluginEventFnV1,
     drain_plugin_events: ZrRuntimeDrainPluginEventsFnV1,
     submit_operation: ZrRuntimeSubmitOperationFnV1,
-    poll_operation: ZrRuntimePollOperationFnV1,
+    poll_operation: ZrRuntimePollOperationFnV2,
     harvest_operation: ZrRuntimeHarvestOperationFnV1,
     tick_frame: ZrRuntimeTickFrameFnV2,
 }
@@ -57,7 +57,8 @@ impl LoadedRuntime {
         let api = unsafe { zircon_runtime::dynamic_api::zircon_runtime_get_api_v3(&host) };
         let api = NonNull::new(api as *mut ZrRuntimeApiV3)
             .ok_or_else(|| RuntimeLibraryError::new("linked runtime rejected host ABI version"))?;
-        let validated = validate_v3_api(api)?;
+        // The linked export returns a process-lifetime static V3 table.
+        let validated = unsafe { validate_v3_api(api) }?;
         Ok(Self {
             _library: None,
             api,
@@ -110,7 +111,8 @@ impl LoadedRuntime {
                 )
             })?
         };
-        let validated = validate_v3_api(api)
+        // `library` remains owned by LoadedRuntime for every table access.
+        let validated = unsafe { validate_v3_api(api) }
             .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
         Ok(Self {
             _library: Some(library),
@@ -175,7 +177,7 @@ impl LoadedRuntime {
         self.required.submit_operation
     }
 
-    pub(crate) fn poll_operation(&self) -> ZrRuntimePollOperationFnV1 {
+    pub(crate) fn poll_operation(&self) -> ZrRuntimePollOperationFnV2 {
         self.required.poll_operation
     }
 
@@ -213,7 +215,8 @@ impl LoadedRuntime {
     }
 
     fn api_function_field<T: Copy>(&self, field_offset: usize) -> Option<T> {
-        read_api_function_field(self.api, self.size_bytes, field_offset)
+        // Construction validates the table, and `_library` keeps dynamic storage alive.
+        unsafe { read_api_function_field(self.api, self.size_bytes, field_offset) }
     }
 }
 
@@ -227,89 +230,148 @@ pub(super) fn runtime_library_startup_error_for_request(
     ))
 }
 
-pub(super) fn validate_runtime_api_pointer(
+/// Validates a runtime-owned API table pointer.
+///
+/// # Safety
+///
+/// A non-null, aligned `api` must remain readable as a `ZrRuntimeApiV3` for
+/// the duration of this call.
+pub(super) unsafe fn validate_runtime_api_pointer(
     api: *const ZrRuntimeApiV3,
 ) -> Result<usize, RuntimeLibraryError> {
     let api = NonNull::new(api as *mut ZrRuntimeApiV3)
         .ok_or_else(|| RuntimeLibraryError::new("runtime library rejected host ABI version"))?;
-    Ok(validate_v3_api(api)?.size_bytes)
+    Ok(unsafe { validate_v3_api(api) }?.size_bytes)
 }
 
-fn validate_v3_api(
+/// # Safety
+///
+/// An aligned `api` must point to a readable `ZrRuntimeApiV3` that remains
+/// alive for the duration of this call. Misaligned pointers are rejected
+/// before they are read.
+unsafe fn validate_v3_api(
     api: NonNull<ZrRuntimeApiV3>,
 ) -> Result<ValidatedRuntimeApiV3, RuntimeLibraryError> {
-    let abi_version =
-        read_api_field_unchecked::<u32>(api, core::mem::offset_of!(ZrRuntimeApiV3, abi_version));
+    let required_alignment = core::mem::align_of::<ZrRuntimeApiV3>();
+    if api.as_ptr() as usize % required_alignment != 0 {
+        return Err(RuntimeLibraryError::new(format!(
+            "runtime API table pointer is not aligned to {required_alignment} bytes"
+        )));
+    }
+
+    let abi_version = unsafe {
+        read_api_field_unchecked::<u32>(api, core::mem::offset_of!(ZrRuntimeApiV3, abi_version))
+    };
     if abi_version != ZIRCON_RUNTIME_API_VERSION_V3 {
         return Err(RuntimeLibraryError::new(format!(
             "unsupported runtime API table version {abi_version}"
         )));
     }
 
-    let size_bytes =
-        read_api_field_unchecked::<usize>(api, core::mem::offset_of!(ZrRuntimeApiV3, size_bytes));
+    let size_bytes = unsafe {
+        read_api_field_unchecked::<usize>(api, core::mem::offset_of!(ZrRuntimeApiV3, size_bytes))
+    };
     if !runtime_api_required_layout_available(size_bytes) {
         return Err(RuntimeLibraryError::new(format!(
             "runtime API table is shorter than required v3 layout: {size_bytes} bytes"
         )));
     }
+    let expected_size = core::mem::size_of::<ZrRuntimeApiV3>();
+    if size_bytes != expected_size {
+        return Err(RuntimeLibraryError::new(format!(
+            "runtime API table size {size_bytes} does not match frozen v3 layout of {expected_size} bytes"
+        )));
+    }
 
     let required = RequiredRuntimeApiV3 {
-        create_session: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, create_session),
-        )?,
-        destroy_session: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, destroy_session),
-        )?,
-        handle_event: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, handle_event),
-        )?,
-        capture_frame: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, capture_frame),
-        )?,
-        subscribe_plugin_event: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, subscribe_plugin_event),
-        )?,
-        unsubscribe_plugin_event: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, unsubscribe_plugin_event),
-        )?,
-        drain_plugin_events: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, drain_plugin_events),
-        )?,
-        submit_operation: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, submit_operation),
-        )?,
-        poll_operation: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, poll_operation),
-        )?,
-        harvest_operation: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, harvest_operation),
-        )?,
-        tick_frame: required_api_function_field(
-            api,
-            size_bytes,
-            core::mem::offset_of!(ZrRuntimeApiV3, tick_frame),
-        )?,
+        create_session: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, create_session),
+                "create_session",
+            )
+        }?,
+        destroy_session: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, destroy_session),
+                "destroy_session",
+            )
+        }?,
+        handle_event: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, handle_event),
+                "handle_event",
+            )
+        }?,
+        capture_frame: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, capture_frame),
+                "capture_frame",
+            )
+        }?,
+        subscribe_plugin_event: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, subscribe_plugin_event),
+                "subscribe_plugin_event",
+            )
+        }?,
+        unsubscribe_plugin_event: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, unsubscribe_plugin_event),
+                "unsubscribe_plugin_event",
+            )
+        }?,
+        drain_plugin_events: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, drain_plugin_events),
+                "drain_plugin_events",
+            )
+        }?,
+        submit_operation: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, submit_operation),
+                "submit_operation",
+            )
+        }?,
+        poll_operation: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, poll_operation),
+                "poll_operation",
+            )
+        }?,
+        harvest_operation: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, harvest_operation),
+                "harvest_operation",
+            )
+        }?,
+        tick_frame: unsafe {
+            required_api_function_field(
+                api,
+                size_bytes,
+                core::mem::offset_of!(ZrRuntimeApiV3, tick_frame),
+                "tick_frame",
+            )
+        }?,
     };
     Ok(ValidatedRuntimeApiV3 {
         size_bytes,
@@ -317,43 +379,49 @@ fn validate_v3_api(
     })
 }
 
-fn required_api_function_field<T: Copy>(
+unsafe fn required_api_function_field<T: Copy>(
     api: NonNull<impl Sized>,
     size_bytes: usize,
     field_offset: usize,
+    field_name: &'static str,
 ) -> Result<T, RuntimeLibraryError> {
-    read_api_function_field(api, size_bytes, field_offset)
-        .ok_or_else(|| RuntimeLibraryError::new("runtime API table is missing required functions"))
+    unsafe { read_api_function_field(api, size_bytes, field_offset) }.ok_or_else(|| {
+        RuntimeLibraryError::new(format!(
+            "runtime API table is missing required function `{field_name}`"
+        ))
+    })
 }
 
-fn read_api_function_field<T: Copy>(
+unsafe fn read_api_function_field<T: Copy>(
     api: NonNull<impl Sized>,
     size_bytes: usize,
     field_offset: usize,
 ) -> Option<T> {
-    read_api_field_sized::<Option<T>>(
-        api,
-        size_bytes,
-        field_offset,
-        core::mem::size_of::<Option<T>>(),
-    )
+    unsafe {
+        read_api_field_sized::<Option<T>>(
+            api,
+            size_bytes,
+            field_offset,
+            core::mem::size_of::<Option<T>>(),
+        )
+    }
     .flatten()
 }
 
-fn read_api_field_sized<T: Copy>(
+unsafe fn read_api_field_sized<T: Copy>(
     api: NonNull<impl Sized>,
     size_bytes: usize,
     field_offset: usize,
     field_size: usize,
 ) -> Option<T> {
     if runtime_api_field_available(size_bytes, field_offset, field_size) {
-        Some(read_api_field_unchecked(api, field_offset))
+        Some(unsafe { read_api_field_unchecked(api, field_offset) })
     } else {
         None
     }
 }
 
-fn read_api_field_unchecked<T: Copy>(api: NonNull<impl Sized>, field_offset: usize) -> T {
+unsafe fn read_api_field_unchecked<T: Copy>(api: NonNull<impl Sized>, field_offset: usize) -> T {
     // Callers either read the fixed ABI header or prove the advertised table covers this field.
     unsafe {
         api.as_ptr()

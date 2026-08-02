@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
 implementation_files:
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs

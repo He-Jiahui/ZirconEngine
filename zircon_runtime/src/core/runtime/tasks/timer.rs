@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, Weak};
 use std::thread::{self, JoinHandle};
@@ -329,9 +329,9 @@ fn lock_timer_worker(worker: &TaskTimerWorker) -> MutexGuard<'_, Option<JoinHand
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::mpsc;
+    use std::sync::Arc;
     use std::time::{Duration, Instant};
 
     use super::TaskTimer;

@@ -123,7 +123,7 @@ events = [{ id = "WorkbenchModule/AssetsImport", event = "Click", route = "workb
 component = "VerticalGroup"
 control_id = "WorkbenchAssetsTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "assets_table_row_01" }, { node = "assets_table_row_02" }, { node = "assets_table_row_03" }]
 
@@ -210,7 +210,7 @@ events = [
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsTerrainEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Terrain Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Terrain Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/TerrainEditorOpen", event = "Click", route = "workbench.extension.terrain_editor.open" }]
 
@@ -218,7 +218,7 @@ events = [{ id = "WorkbenchExtension/TerrainEditorOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsFoliageEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Foliage Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Foliage Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/FoliageEditorOpen", event = "Click", route = "workbench.extension.foliage_editor.open" }]
 
@@ -226,7 +226,7 @@ events = [{ id = "WorkbenchExtension/FoliageEditorOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsLevelStreamingButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Level Streaming", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Level Streaming", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LevelStreamingOpen", event = "Click", route = "workbench.extension.level_streaming.open" }]
 
@@ -234,7 +234,7 @@ events = [{ id = "WorkbenchExtension/LevelStreamingOpen", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsLevelVariantButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Level Variant", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Level Variant", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LevelVariantOpen", event = "Click", route = "workbench.extension.level_variant.open" }]
 
@@ -242,7 +242,7 @@ events = [{ id = "WorkbenchExtension/LevelVariantOpen", event = "Click", route =
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsPrefabEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Prefab Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Prefab Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorOpen", event = "Click", route = "workbench.extension.prefab_editor.open" }]
 
@@ -250,7 +250,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorOpen", event = "Click", route =
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsScatterEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Scatter Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Scatter Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ScatterEditorOpen", event = "Click", route = "workbench.extension.scatter_editor.open" }]
 
@@ -258,7 +258,7 @@ events = [{ id = "WorkbenchExtension/ScatterEditorOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsVolumeEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Volume Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Volume Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/VolumeEditorOpen", event = "Click", route = "workbench.extension.volume_editor.open" }]
 
@@ -266,7 +266,7 @@ events = [{ id = "WorkbenchExtension/VolumeEditorOpen", event = "Click", route =
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsWeatherEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Weather Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Weather Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/WeatherEditorOpen", event = "Click", route = "workbench.extension.weather_editor.open" }]
 
@@ -274,7 +274,7 @@ events = [{ id = "WorkbenchExtension/WeatherEditorOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsSpawnRulesButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Spawn Rules", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Spawn Rules", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SpawnRulesOpen", event = "Click", route = "workbench.extension.spawn_rules.open" }]
 
@@ -282,7 +282,7 @@ events = [{ id = "WorkbenchExtension/SpawnRulesOpen", event = "Click", route = "
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsWorldStateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "World State", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "World State", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/WorldStateOpen", event = "Click", route = "workbench.extension.world_state.open" }]
 
@@ -290,7 +290,7 @@ events = [{ id = "WorkbenchExtension/WorldStateOpen", event = "Click", route = "
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsCollisionProxyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Collision Proxy", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Collision Proxy", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/CollisionProxyOpen", event = "Click", route = "workbench.extension.collision_proxy.open" }]
 
@@ -298,7 +298,7 @@ events = [{ id = "WorkbenchExtension/CollisionProxyOpen", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsPhysicsCollisionButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Physics Collision", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Physics Collision", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PhysicsCollisionOpen", event = "Click", route = "workbench.extension.physics_collision.open" }]
 
@@ -306,7 +306,7 @@ events = [{ id = "WorkbenchExtension/PhysicsCollisionOpen", event = "Click", rou
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsNavmeshAiButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Navmesh AI", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Navmesh AI", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/NavmeshAiOpen", event = "Click", route = "workbench.extension.navmesh_ai.open" }]
 
@@ -314,7 +314,7 @@ events = [{ id = "WorkbenchExtension/NavmeshAiOpen", event = "Click", route = "w
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsLobbyEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Lobby Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Lobby Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LobbyEditorOpen", event = "Click", route = "workbench.extension.lobby_editor.open" }]
 
@@ -322,7 +322,7 @@ events = [{ id = "WorkbenchExtension/LobbyEditorOpen", event = "Click", route = 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsMatchmakingEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Matchmaking Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Matchmaking Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/MatchmakingEditorOpen", event = "Click", route = "workbench.extension.matchmaking_editor.open" }]
 
@@ -330,7 +330,7 @@ events = [{ id = "WorkbenchExtension/MatchmakingEditorOpen", event = "Click", ro
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsDataTableButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Data Table", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Data Table", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/DataTableOpen", event = "Click", route = "workbench.extension.data_table.open" }]
 
@@ -338,7 +338,7 @@ events = [{ id = "WorkbenchExtension/DataTableOpen", event = "Click", route = "w
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsSourceControlButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Source Control", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Source Control", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SourceControlOpen", event = "Click", route = "workbench.extension.source_control.open" }]
 
@@ -346,7 +346,7 @@ events = [{ id = "WorkbenchExtension/SourceControlOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsBuildExportButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Build Export", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Build Export", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/BuildExportOpen", event = "Click", route = "workbench.extension.build_export.open" }]
 
@@ -354,7 +354,7 @@ events = [{ id = "WorkbenchExtension/BuildExportOpen", event = "Click", route = 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsAutomationReportButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Automation Report", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Automation Report", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/AutomationReportOpen", event = "Click", route = "workbench.extension.automation_report.open" }]
 
@@ -362,7 +362,7 @@ events = [{ id = "WorkbenchExtension/AutomationReportOpen", event = "Click", rou
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsProjectOverviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Project Overview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Project Overview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ProjectOverviewOpen", event = "Click", route = "workbench.extension.project_overview.open" }]
 
@@ -370,7 +370,7 @@ events = [{ id = "WorkbenchExtension/ProjectOverviewOpen", event = "Click", rout
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsPluginManagerButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Plugin Manager", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Plugin Manager", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PluginManagerOpen", event = "Click", route = "workbench.extension.plugin_manager.open" }]
 
@@ -378,6 +378,6 @@ events = [{ id = "WorkbenchExtension/PluginManagerOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAssetsSaveDataButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Save Data", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Save Data", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SaveDataOpen", event = "Click", route = "workbench.extension.save_data.open" }]

@@ -64,12 +64,31 @@ impl World {
         self.resources.ticks::<T>()
     }
 
-    pub(crate) fn resource_mut_with_ticks<T>(&mut self) -> Option<(&mut T, ComponentTicks)>
+    pub(crate) fn component_mut_with_ticks<T>(
+        &mut self,
+        entity: EntityId,
+    ) -> Option<(&mut T, &mut ComponentTicks, ChangeTick)>
+    where
+        T: Component,
+    {
+        let component_id = self.registered_component_id::<T>()?;
+        let internal = self.internal_entity(entity)?;
+        let tick = self.mutation_change_tick();
+        let (value, ticks) = self
+            .component_storage
+            .get_mut_with_ticks(component_id, internal)?;
+        Some((value, ticks, tick))
+    }
+
+    pub(crate) fn resource_mut_with_ticks<T>(
+        &mut self,
+    ) -> Option<(&mut T, &mut ComponentTicks, ChangeTick)>
     where
         T: Resource,
     {
         let tick = self.mutation_change_tick();
-        self.resources.get_mut_at_tick_with_ticks::<T>(tick)
+        let (value, ticks) = self.resources.get_mut_with_ticks::<T>()?;
+        Some((value, ticks, tick))
     }
 
     pub(crate) fn record_removed_component<T>(&mut self, entity: EntityId)

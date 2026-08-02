@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use uuid::Uuid;
 
-use super::{AssetUuid, ResourceLocator, ResourceScheme, stable_uuid_from_components};
+use super::{stable_uuid_from_components, AssetUuid, ResourceLocator, ResourceScheme};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ResourceId(Uuid);

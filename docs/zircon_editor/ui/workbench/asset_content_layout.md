@@ -16,7 +16,6 @@ related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
@@ -37,7 +36,6 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs

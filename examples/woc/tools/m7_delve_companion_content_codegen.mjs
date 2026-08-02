@@ -52,13 +52,22 @@ const json = `${JSON.stringify(catalog, null, 2)}\n`;
 const companionCases = content.companions
   .map((companion, index) => `    if (index == ${index}) { return \"${companion.id}\"; }`)
   .join('\n');
+const companionUtf8LengthCases = content.companions
+  .map((companion, index) =>
+    `    if (index == ${index}) { return ${Buffer.byteLength(companion.id, 'utf8')}; }`)
+  .join('\n');
+const companionUtf8ByteCases = content.companions
+  .flatMap((companion, index) => Array.from(Buffer.from(companion.id, 'utf8'))
+    .map((byte, byteIndex) =>
+      `    if (index == ${index} && byteIndex == ${byteIndex}) { return <uint>${byte}; }`))
+  .join('\n');
 const marksCases = content.upgrade_costs
   .map((cost) => `    if (rank == ${cost.rank}) { return ${cost.marks}; }`)
   .join('\n');
 const copperCases = content.upgrade_costs
   .map((cost) => `    if (rank == ${cost.rank}) { return ${cost.copper}; }`)
   .join('\n');
-const zr = `// Generated Delve companion identities and rank-up costs.\npub maxRank(required: bool): int {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n    return ${content.max_rank};\n}\n\npub companionCount(required: bool): int {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n    return ${content.companions.length};\n}\n\npub companionId(index: int, required: bool): string {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n${companionCases}\n    return \"\";\n}\n\npub upgradeMarks(rank: int, required: bool): int {\n    if (!required) { throw \"woc Delve companion upgrade is required\"; }\n${marksCases}\n    return 0;\n}\n\npub upgradeCopper(rank: int, required: bool): int {\n    if (!required) { throw \"woc Delve companion upgrade is required\"; }\n${copperCases}\n    return 0;\n}\n\npub contractTest(): int {\n    return maxRank(true) == 3 && companionCount(true) == 2 &&\n        companionId(0, true) == \"companion_tessa\" &&\n        companionId(1, true) == \"companion_edda\" && upgradeMarks(2, true) == 3 &&\n        upgradeMarks(3, true) == 5 && upgradeCopper(2, true) == 0 &&\n        upgradeCopper(3, true) == 0 ? 1 : -1;\n}\n`;
+const zr = `// Generated Delve companion identities and rank-up costs.\npub maxRank(required: bool): int {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n    return ${content.max_rank};\n}\n\npub companionCount(required: bool): int {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n    return ${content.companions.length};\n}\n\npub companionId(index: int, required: bool): string {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n${companionCases}\n    return \"\";\n}\n\npub companionIdUtf8Length(index: int, required: bool): int {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n${companionUtf8LengthCases}\n    return 0;\n}\n\npub companionIdUtf8Byte(index: int, byteIndex: int, required: bool): uint {\n    if (!required) { throw \"woc Delve companion catalog is required\"; }\n${companionUtf8ByteCases}\n    return <uint>0;\n}\n\npub upgradeMarks(rank: int, required: bool): int {\n    if (!required) { throw \"woc Delve companion upgrade is required\"; }\n${marksCases}\n    return 0;\n}\n\npub upgradeCopper(rank: int, required: bool): int {\n    if (!required) { throw \"woc Delve companion upgrade is required\"; }\n${copperCases}\n    return 0;\n}\n\npub contractTest(): int {\n    return maxRank(true) == 3 && companionCount(true) == 2 &&\n        companionId(0, true) == \"companion_tessa\" &&\n        companionId(1, true) == \"companion_edda\" &&\n        companionIdUtf8Length(0, true) == 15 &&\n        companionIdUtf8Length(1, true) == 14 &&\n        companionIdUtf8Byte(0, 0, true) == <uint>99 &&\n        companionIdUtf8Byte(1, 13, true) == <uint>97 &&\n        upgradeMarks(2, true) == 3 &&\n        upgradeMarks(3, true) == 5 && upgradeCopper(2, true) == 0 &&\n        upgradeCopper(3, true) == 0 ? 1 : -1;\n}\n`;
 
 for (const [target, value] of [
   [contractPath, json],

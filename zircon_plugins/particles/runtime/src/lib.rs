@@ -14,7 +14,11 @@ pub use asset::{
     ParticleScalarKey, ParticleScalarRange, ParticleShape, ParticleSimulationBackend,
     ParticleSystemAsset, ParticleVec3Range,
 };
-pub use capability::{PARTICLES_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+pub use capability::{
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, PARTICLES_DECLARATION, PARTICLES_RUNTIME_CAPABILITY,
+    PLUGIN_ID, RUNTIME_CAPABILITIES,
+};
 pub use component::{
     particle_component_descriptors, ParticleEmitterHandle, ParticleSystemComponent,
     PARTICLE_SYSTEM_COMPONENT_TYPE,
@@ -35,7 +39,7 @@ pub use plugin::{
     package_manifest, particle_animation_feature_manifest, particle_gpu_feature_manifest,
     particle_physics_feature_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, ParticlesRuntimePlugin,
-    PARTICLES_DIST_CRATE_NAME, PARTICLES_DIST_RUNTIME_ENTRY, PARTICLES_FEATURE_NAME, PLUGIN_ID,
+    PARTICLES_DIST_CRATE_NAME, PARTICLES_DIST_RUNTIME_ENTRY, PARTICLES_FEATURE_NAME,
 };
 pub use render::{
     build_particle_extract, compile_particle_gpu_layout, compile_particle_gpu_program,

@@ -131,7 +131,7 @@ events = [{ id = "WorkbenchModule/VfxSimulate", event = "Click", route = "workbe
 component = "VerticalGroup"
 control_id = "WorkbenchVfxCanvas"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#11171b", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "vfx_spawn_row" }, { node = "vfx_lifetime_row" }, { node = "vfx_material_row" }]
 

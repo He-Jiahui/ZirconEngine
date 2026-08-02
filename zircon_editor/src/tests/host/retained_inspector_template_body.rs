@@ -5,8 +5,8 @@ use zircon_runtime_interface::math::UVec2;
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, InspectorPaneViewData, PaneContentSize, PanePayloadBuildContext,
-    PanePresentation, PaneShellPresentation,
+    InspectorPaneViewData, PaneContentSize, PanePayloadBuildContext, PanePresentation,
+    PaneShellPresentation, build_pane_body_presentation,
 };
 use crate::ui::retained_host::to_host_contract_inspector_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
@@ -28,7 +28,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             drawers: BTreeMap::new(),
             floating_windows: Vec::new(),
         },
-        scene_entries: Vec::new(),
+        scene_entries: Default::default(),
         inspector: Some(InspectorSnapshot {
             id: 7,
             name: "Root".to_string(),
@@ -37,6 +37,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             plugin_components: Vec::new(),
         }),
         status_line: "Inspector ready".to_string(),
+        console_output: "Inspector ready".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
@@ -168,7 +169,9 @@ fn inspector_template_body_projection_replaces_legacy_inspector_view_data_for_re
         (106.0, 27.2),
         "projected ApplyDraft frame should include text intrinsic size plus runtime button padding"
     );
-    assert!(!nodes
-        .iter()
-        .any(|node| node.control_id == "InspectorContentPanel"));
+    assert!(
+        !nodes
+            .iter()
+            .any(|node| node.control_id == "InspectorContentPanel")
+    );
 }

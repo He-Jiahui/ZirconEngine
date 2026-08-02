@@ -14,5 +14,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_status_control::{
-    WORKBENCH_STATUS_NO_ERRORS_FILL,
+    WORKBENCH_SEMANTIC_STATUS_SIGNAL_VARIANT, WORKBENCH_STATUS_NO_ERRORS_FILL,
 };

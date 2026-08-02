@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
-    GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_PLUGIN_ID_START,
-    ShadingModelDescriptor, ShadingModelId, ShadingModelRegistrationError,
+    GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
+    ShadingModelRegistrationError, SHADING_MODEL_PLUGIN_ID_START,
 };
 
 #[derive(Clone, Debug)]
@@ -114,9 +114,9 @@ impl ShadingModelRegistry {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_ID_STANDARD_PBR,
-        SHADING_MODEL_PLUGIN_ID_START, ShadingModelDescriptor, ShadingModelId,
-        ShadingModelRegistrationError,
+        GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
+        ShadingModelRegistrationError, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_PLUGIN_ID_START,
     };
 
     use super::ShadingModelRegistry;

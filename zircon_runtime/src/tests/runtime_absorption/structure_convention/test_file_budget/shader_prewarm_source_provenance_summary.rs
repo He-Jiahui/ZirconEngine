@@ -52,7 +52,7 @@ fn runtime_15_shader_prewarm_source_provenance_summary_is_wired() {
         "prewarm write path records request-level provenance",
         &prewarm,
         &[
-            "report.record_written_cache_entry(request",
+            "report.record_written_cache_entry(",
             "report.record_failure_request(",
             "report.source_provenance.source_count",
             "written source provenance",
@@ -63,10 +63,10 @@ fn runtime_15_shader_prewarm_source_provenance_summary_is_wired() {
         "manifest producers assign human-readable source labels",
         &format!("{manifest}\n{manifest_tests}\n{dynamic_api}"),
         &[
-            "source_label: stable_label.clone()",
+            "ShaderVariantPrewarmSource::new(",
             "BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL",
             "builtin://shader/pbr.wgsl",
-            "request.source_label",
+            "source.source_label",
         ],
     );
     assert_contains_all(

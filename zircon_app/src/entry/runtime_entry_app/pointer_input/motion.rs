@@ -32,8 +32,6 @@ impl RuntimeEntryApp {
                 position.y as f32,
             )
         };
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, event);
     }
 }

@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/clipping.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/image_cache.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/render_pass.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/retained_cache.rs
@@ -52,4 +53,4 @@ WGPU presenter没有以draw-list/layout generation为key的compiled presentation
 
 ## 修复结果与回传
 
-Open state: `generation compiled presentation、stable text batch reuse、solid/image persistent vertex upload、single retained-cache authority以及command scan/batch/pass/draw/vertex/text/image preparation counters已落地；图像上传现于纹理创建前校验设备2D尺寸上限、checked bytes-per-row与payload长度，active image working set超过软预算时不再逐帧淘汰重建，subpixel裁剪UV按真实frame比例计算，非有限/非正矩形在stats与geometry层一致剔除；圆角quad/border现按原始frame生成并由独立clipping owner裁剪三角形，command clip/damage边界不再被错误重建为新圆角；待current-source managed Windows validation、完整规模预算、GPU/Softbuffer像素与RenderDoc pass/resource parity后回传`。
+Open state: `generation compiled presentation、stable text batch reuse、solid/image persistent vertex upload、single retained-cache authority以及command scan/batch/pass/draw/vertex/text/image preparation counters已落地；图像缓存现执行256条目与64 MiB双硬预算，仅在新增/改尺寸时按非活动LRU规划淘汰，非法同key payload立即移除旧纹理且不会回显陈旧像素；glyph atlas prepare失败不再提交generation cache key；圆角quad/border按原始frame生成并使用调用级双scratch裁剪，非有限端点与零面积三角形被剔除；native submitted item/vertex/layer与compiled full-plan统计已拆分，UI使用共享WGPU timer进行encoder级异步timestamp回读；2026-08-01二次审查首轮0 Critical/8 Important已前向修复，复审追加的scene frame/mesh generation混用与三槽回读乱序2项Important已修复，timer generation选择由生产调用与分歧测试共同使用的getter约束，最终复核0 Critical/0 Important；待current-source managed Windows validation、完整规模预算、GPU/Softbuffer像素与RenderDoc pass/resource parity后回传`。

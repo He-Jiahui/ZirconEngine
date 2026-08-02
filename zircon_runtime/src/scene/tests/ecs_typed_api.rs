@@ -89,6 +89,28 @@ fn world_spawn_insert_get_mut_and_remove_typed_components() {
 }
 
 #[test]
+fn typed_local_transform_insertion_rejects_values_that_cannot_be_persisted() {
+    let mut world = World::new();
+    let entity = world.spawn_node(crate::scene::NodeKind::Mesh);
+    let original = world
+        .get::<LocalTransform>(entity)
+        .expect("mesh nodes must have a local transform")
+        .transform;
+    let mut invalid = original;
+    invalid.scale.z = 0.0;
+
+    assert!(matches!(
+        world.insert(entity, LocalTransform { transform: invalid }),
+        Err(SceneError::ZeroScaleTransform { entity: error_entity, axis: "z" })
+            if error_entity == entity
+    ));
+    assert_eq!(
+        world.get::<LocalTransform>(entity).unwrap().transform,
+        original
+    );
+}
+
+#[test]
 fn world_resources_are_registered_and_replaced_by_type() {
     let mut world = World::empty();
 
@@ -311,7 +333,8 @@ fn archetype_signatures_partition_component_ids_without_combined_vector() {
         signature.contains("self.component_storage.component_ids_for_entity_by_storage(")
             && signature.contains("&mut table_components")
             && signature.contains("&mut sparse_set_components")
-            && signature.contains("ArchetypeSignature::new(table_components, sparse_set_components)")
+            && signature
+                .contains("ArchetypeSignature::new(table_components, sparse_set_components)")
             && !signature.contains("component_ids_for_entity(internal)")
             && !signature.contains("self.component_storage.storage_type(component_id)")
             && !signature.contains("match self.component_storage.storage_type"),
@@ -361,7 +384,8 @@ fn typed_component_presence_rebuild_reuses_dynamic_component_id_scratch() {
             && rebuild.contains("let entity = self.entities[entity_index];")
             && rebuild.contains("self.dynamic_component_type_ids_for_presence_rebuild(")
             && rebuild.contains("for component_type_id in &dynamic_component_type_ids")
-            && rebuild.contains("self.insert_dynamic_component_presence(entity, component_type_id)")
+            && rebuild
+                .contains("self.insert_dynamic_component_presence(entity, component_type_id)")
             && !rebuild.contains("self.entities.clone()")
             && !rebuild.contains("self.dynamic_components.get(&entity).cloned()"),
         "typed component presence rebuild must walk stable entity ids by index and reuse a dynamic component id scratch list"
@@ -431,31 +455,43 @@ fn typed_world_presence_and_tracker_helpers_use_direct_branches() {
     assert!(
         contains_component_id.contains("let Some(internal) = self.internal_entity(entity) else")
             && contains_component_id.contains("return false;")
-            && contains_component_id.contains("self.component_storage.contains(component_id, internal)")
+            && contains_component_id
+                .contains("self.component_storage.contains(component_id, internal)")
             && !contains_component_id.contains(".is_some_and(")
             && contains_component
                 .contains("let Some(component_id) = self.registered_component_id::<T>() else")
             && contains_component.contains("self.contains_component_id(entity, component_id)")
             && !contains_component.contains(".is_some_and(")
-            && is_component_added.contains("let Some(ticks) = self.component_change_ticks::<T>(entity) else")
-            && is_component_added.contains("ticks.is_added(crate::scene::ecs::ChangeTickWindow::new")
+            && is_component_added
+                .contains("let Some(ticks) = self.component_change_ticks::<T>(entity) else")
+            && is_component_added
+                .contains("ticks.is_added(crate::scene::ecs::ChangeTickWindow::new")
             && !is_component_added.contains(".is_some_and(")
-            && is_component_changed.contains("let Some(ticks) = self.component_change_ticks::<T>(entity) else")
-            && is_component_changed.contains("ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new")
+            && is_component_changed
+                .contains("let Some(ticks) = self.component_change_ticks::<T>(entity) else")
+            && is_component_changed
+                .contains("ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new")
             && !is_component_changed.contains(".is_some_and(")
             && remove.contains("if let Some(component_id) = component_id")
             && remove.contains("if self.contains_component_id(entity, component_id)")
             && !remove.contains("component_id\n                .is_some_and(")
             && !remove.contains("component_id.expect(\"checked component id must be present\")")
-            && is_resource_added.contains("let Some(ticks) = self.resource_change_ticks::<T>() else")
-            && is_resource_added.contains("ticks.is_added(crate::scene::ecs::ChangeTickWindow::new")
+            && is_resource_added
+                .contains("let Some(ticks) = self.resource_change_ticks::<T>() else")
+            && is_resource_added
+                .contains("ticks.is_added(crate::scene::ecs::ChangeTickWindow::new")
             && !is_resource_added.contains(".is_some_and(")
-            && is_resource_changed.contains("let Some(ticks) = self.resource_change_ticks::<T>() else")
-            && is_resource_changed.contains("ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new")
+            && is_resource_changed
+                .contains("let Some(ticks) = self.resource_change_ticks::<T>() else")
+            && is_resource_changed
+                .contains("ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new")
             && !is_resource_changed.contains(".is_some_and(")
-            && get_resource_mut.contains("let Some((resource, _ticks)) = self.resource_mut_with_ticks::<T>() else")
+            && get_resource_mut.contains(
+                "let Some((resource, ticks, tick)) = self.resource_mut_with_ticks::<T>() else"
+            )
+            && get_resource_mut.contains("ticks.set_changed(tick);")
             && get_resource_mut.contains("Some(resource)")
-            && !get_resource_mut.contains(".map(|(resource, _ticks)| resource)"),
+            && !get_resource_mut.contains(".map(|(resource, ticks, tick)| resource)"),
         "typed world presence and tracker helpers must use direct branches instead of Option adapter predicates"
     );
 }
@@ -533,7 +569,8 @@ fn dynamic_component_presence_updates_use_direct_result_branches() {
             && insert_presence.contains(")?;")
             && !insert_presence.contains(".map_err(|error| error.to_string())")
             && remove_presence.contains("let removed = self")
-            && remove_presence.contains(".remove::<DynamicComponentPresence>(component_id, internal)")
+            && remove_presence
+                .contains(".remove::<DynamicComponentPresence>(component_id, internal)")
             && remove_presence.contains(")?;")
             && !remove_presence.contains(".map_err(|error| error.to_string())"),
         "dynamic component presence updates must propagate typed SceneResult errors instead of map_err adapters"

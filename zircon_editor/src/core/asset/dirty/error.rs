@@ -22,6 +22,11 @@ pub enum DirtyRegistryError {
     DeltaUnstable { attempts: usize },
     #[error("dirty registry cursor belongs to another registry instance")]
     CursorRegistryMismatch,
+    #[error("document {document:?} changed after save snapshot generation {expected_generation}")]
+    DocumentChangedDuringSave {
+        document: DocumentId,
+        expected_generation: u64,
+    },
     #[error(transparent)]
     Transaction(#[from] EditCommandError),
 }

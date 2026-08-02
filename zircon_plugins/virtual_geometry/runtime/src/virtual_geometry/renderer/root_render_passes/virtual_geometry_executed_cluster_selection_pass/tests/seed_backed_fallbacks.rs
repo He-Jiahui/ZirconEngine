@@ -48,6 +48,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -158,6 +159,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

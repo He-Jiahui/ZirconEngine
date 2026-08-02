@@ -79,3 +79,20 @@ fn asset_content_interaction_setters_clamp_scroll_and_preserve_no_hover() {
         -1
     );
 }
+
+#[test]
+fn console_scroll_setter_stores_and_clamps_the_runtime_offset() {
+    let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
+        640, 420,
+    ))));
+    let context = PaneSurfaceHostContext::from_state(Rc::clone(&state));
+
+    context.set_console_scroll_px(54.0);
+    assert_eq!(
+        state.borrow().pane_interaction_state.console_scroll_px,
+        54.0
+    );
+
+    context.set_console_scroll_px(-9.0);
+    assert_eq!(state.borrow().pane_interaction_state.console_scroll_px, 0.0);
+}

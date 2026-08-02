@@ -14,6 +14,7 @@ use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
     LightGridProjection, LightGridViewInfo, build_light_grid,
 };
+use crate::graphics::scene::scene_renderer::shadow::atlas::SHADOW_ATLAS_COMPARE_FUNCTION;
 use crate::graphics::scene::scene_renderer::shadow::slot::{
     GPU_SHADOW_SLOT_FLAG_VALID, GpuShadowGlobals, GpuShadowSlot,
 };
@@ -27,6 +28,8 @@ mod temporal_product;
 const TEST_GRID: [u32; 3] = [16, 8, 8];
 const TEST_OUTPUT: [u32; 2] = [16, 8];
 const READBACK_BYTES_PER_ROW: u32 = 256;
+const TEST_SHADOW_OCCLUDER_DEPTH: f32 = 0.25;
+const TEST_SHADOWED_RECEIVER_DEPTH: f32 = 0.5;
 const PRODUCT_PNG: &str = "plan18_volumetric_light_scatter_integrate_shadow_wgpu_20260711.png";
 const PRODUCT_REPORT: &str = "plan18_volumetric_light_scatter_integrate_shadow_wgpu_20260711.txt";
 const VOLUMETRIC_APPLY_INCLUDE: &str =
@@ -103,7 +106,7 @@ fn render_volumetric_light_scatter_integrate_consumes_light_grid_and_shadow_atla
     let Some((device, queue)) = test_device() else {
         return;
     };
-    let result = run_volumetric_chain(&device, &queue);
+    let result = run_volumetric_chain(&device, &queue, TEST_SHADOWED_RECEIVER_DEPTH);
     assert_eq!(result.media_dispatch, [4, 2, 2]);
     assert_eq!(result.scatter_dispatch, [4, 2, 2]);
     assert_eq!(result.integrate_dispatch, [2, 1]);
@@ -123,13 +126,35 @@ fn render_volumetric_light_scatter_integrate_consumes_light_grid_and_shadow_atla
 }
 
 #[test]
+fn render_volumetric_shadow_equality_depth_remains_visible_with_less_equal_compare() {
+    let Some((device, queue)) = test_device() else {
+        return;
+    };
+    let shadowed = run_volumetric_chain(&device, &queue, TEST_SHADOWED_RECEIVER_DEPTH);
+    let equality = run_volumetric_chain(&device, &queue, TEST_SHADOW_OCCLUDER_DEPTH);
+
+    assert!(
+        equality.left_average[0] > shadowed.left_average[0] + 0.2,
+        "an equality-depth receiver must remain lit by LessEqual: shadowed={:?}, equality={:?}",
+        shadowed.left_average,
+        equality.left_average,
+    );
+    assert!(
+        (equality.left_average[0] - shadowed.right_average[0]).abs() < 0.05,
+        "equality-depth receiver should match the unshadowed directional shaft: equality={:?}, unshadowed={:?}",
+        equality.left_average,
+        shadowed.right_average,
+    );
+}
+
+#[test]
 #[ignore]
 fn export_volumetric_light_scatter_integrate_shadow_wgpu_png() {
     let Some((device, queue)) = test_device() else {
         eprintln!("skipping volumetric light-shaft product because no adapter is available");
         return;
     };
-    let result = run_volumetric_chain(&device, &queue);
+    let result = run_volumetric_chain(&device, &queue, TEST_SHADOWED_RECEIVER_DEPTH);
     assert!(result.right_average[0] > result.left_average[0] + 0.2);
 
     let output_dir = render_test_output_dir();
@@ -138,7 +163,7 @@ fn export_volumetric_light_scatter_integrate_shadow_wgpu_png() {
     fs::write(
         output_dir.join(PRODUCT_REPORT),
         format!(
-            "png={PRODUCT_PNG}\nwidth=256\nheight=128\ngpu_froxel_dimensions=16x8x8\nintegrated_product=rgba16float_3d_radiance_transmittance\nshading_apply_bindings=group1_26_texture3d_group1_27_sampler\noutput_dimensions=16x8\nmedia_dispatch={},{},{}\nlight_scatter_dispatch={},{},{}\nintegrate_dispatch={},{}\napply_dispatch={},{}\nlight_grid_words_per_tile=1\nlight_grid_selected_directional_lights=1\nshadow_atlas_format=depth32float\nshadow_atlas_compare=greater_equal\nshadow_projection=left_half_shadowed_right_half_outside_slot\nphase_g=0\nstep_length=0.25\nleft_shadowed_average_rgb={:.6},{:.6},{:.6}\nright_unshadowed_average_rgb={:.6},{:.6},{:.6}\nreference=UE_VolumetricFog_LightScatteringCS_plus_front_to_back_integrate\n",
+            "png={PRODUCT_PNG}\nwidth=256\nheight=128\ngpu_froxel_dimensions=16x8x8\nintegrated_product=rgba16float_3d_radiance_transmittance\nshading_apply_bindings=group1_26_texture3d_group1_27_sampler\noutput_dimensions=16x8\nmedia_dispatch={},{},{}\nlight_scatter_dispatch={},{},{}\nintegrate_dispatch={},{}\napply_dispatch={},{}\nlight_grid_words_per_tile=1\nlight_grid_selected_directional_lights=1\nshadow_atlas_format=depth32float\nshadow_atlas_compare=less_equal\nshadow_projection=left_half_shadowed_right_half_outside_slot\nphase_g=0\nstep_length=0.25\nleft_shadowed_average_rgb={:.6},{:.6},{:.6}\nright_unshadowed_average_rgb={:.6},{:.6},{:.6}\nreference=UE_VolumetricFog_LightScatteringCS_plus_front_to_back_integrate\n",
             result.media_dispatch[0],
             result.media_dispatch[1],
             result.media_dispatch[2],
@@ -171,7 +196,11 @@ struct VolumetricChainResult {
     right_average: [f32; 3],
 }
 
-fn run_volumetric_chain(device: &wgpu::Device, queue: &wgpu::Queue) -> VolumetricChainResult {
+fn run_volumetric_chain(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    shadow_receiver_depth: f32,
+) -> VolumetricChainResult {
     let media = create_rgba16f_3d_texture(device, "volumetric-chain-media");
     let media_view = media.create_view(&d3_view_descriptor("volumetric-chain-media-view"));
     let scattering = create_rgba16f_3d_texture(device, "volumetric-chain-scattering");
@@ -192,7 +221,7 @@ fn run_volumetric_chain(device: &wgpu::Device, queue: &wgpu::Queue) -> Volumetri
     });
     let lighting = create_lighting_resources(device);
     let (shadow_atlas, shadow_atlas_view, shadow_sampler, shadow_slots, shadow_globals) =
-        create_shadow_resources(device);
+        create_shadow_resources(device, shadow_receiver_depth);
 
     let grid = FroxelGridParams {
         dimensions: TEST_GRID,
@@ -204,6 +233,7 @@ fn run_volumetric_chain(device: &wgpu::Device, queue: &wgpu::Queue) -> Volumetri
         label: Some("volumetric-chain-encoder"),
     });
     clear_shadow_atlas(&mut encoder, &shadow_atlas_view);
+    write_shadow_occluder_depth(&mut encoder, &shadow_atlas_view);
 
     let media_pipeline = FroxelMediaInjectPipeline::new(device);
     let media_dispatch = media_pipeline
@@ -560,6 +590,7 @@ fn create_lighting_resources(device: &wgpu::Device) -> LightingResources {
 
 fn create_shadow_resources(
     device: &wgpu::Device,
+    receiver_depth: f32,
 ) -> (
     wgpu::Texture,
     wgpu::TextureView,
@@ -584,7 +615,7 @@ fn create_shadow_resources(
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("volumetric-chain-shadow-sampler"),
-        compare: Some(wgpu::CompareFunction::GreaterEqual),
+        compare: Some(SHADOW_ATLAS_COMPARE_FUNCTION),
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Linear,
         ..Default::default()
@@ -593,7 +624,7 @@ fn create_shadow_resources(
         Vec4::new(2.0, 0.0, 0.0, 0.0),
         Vec4::new(0.0, 1.0, 0.0, 0.0),
         Vec4::ZERO,
-        Vec4::new(1.0, 0.0, 0.5, 1.0),
+        Vec4::new(1.0, 0.0, receiver_depth, 1.0),
     );
     let slot = GpuShadowSlot {
         view_proj: left_half_projection.to_cols_array_2d(),
@@ -628,6 +659,26 @@ fn clear_shadow_atlas(encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureVi
             view,
             depth_ops: Some(wgpu::Operations {
                 load: wgpu::LoadOp::Clear(1.0),
+                store: wgpu::StoreOp::Store,
+            }),
+            stencil_ops: None,
+        }),
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
+}
+
+/// The fixture starts from the engine's forward-depth clear and then supplies
+/// a deterministic caster depth for the left-half shadow slot.
+fn write_shadow_occluder_depth(encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("volumetric-chain-write-shadow-occluder-depth"),
+        color_attachments: &[],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(TEST_SHADOW_OCCLUDER_DEPTH),
                 store: wgpu::StoreOp::Store,
             }),
             stencil_ops: None,

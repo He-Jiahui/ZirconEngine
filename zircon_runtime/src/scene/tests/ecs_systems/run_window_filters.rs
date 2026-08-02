@@ -179,7 +179,9 @@ fn system_query_count_and_empty_helpers_reuse_cache_and_run_window_filters() {
         )
     });
     assert_eq!(
-        (baseline.0, baseline.1, baseline.2, baseline.3, baseline.4, baseline.5),
+        (
+            baseline.0, baseline.1, baseline.2, baseline.3, baseline.4, baseline.5
+        ),
         (1, false, 1, false, 1, false)
     );
     assert_eq!(

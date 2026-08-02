@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_editor/src/core/editor_extension.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/tests/editor_authoring_extension_descriptors.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
@@ -84,7 +84,7 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_editor/src/core/editor_extension.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/tests/editor_authoring_extension_descriptors.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs

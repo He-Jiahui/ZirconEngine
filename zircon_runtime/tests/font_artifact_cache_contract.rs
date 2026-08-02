@@ -105,7 +105,7 @@ fn font_artifact_cache_roundtrips_fields_omitted_by_authoring_formats() {
         AssetUri::parse("res://fonts/zircon-sans.font.toml")
             .expect("font resource URI should parse"),
     );
-    let store = ArtifactStore;
+    let store = ArtifactStore::default();
 
     let artifact_uri = store
         .write(&paths, &record, &ImportedAsset::Font(font.clone()))

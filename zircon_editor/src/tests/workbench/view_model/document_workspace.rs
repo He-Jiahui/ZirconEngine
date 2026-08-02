@@ -389,7 +389,7 @@ fn project_empty_state_remains_the_same_when_docked_to_the_right() {
 #[test]
 fn scene_empty_state_actions_expose_typed_menu_bindings() {
     let mut fixture = default_preview_fixture();
-    fixture.editor.scene_entries.clear();
+    fixture.editor.scene_entries = Default::default();
     fixture.editor.project_open = true;
 
     let model = WorkbenchViewModel::build(

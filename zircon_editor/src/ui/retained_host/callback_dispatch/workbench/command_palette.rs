@@ -2,15 +2,15 @@ use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::binding::EditorUiEventKind;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
-use crate::ui::template_runtime::component_adapter::command::{
-    editor_command_binding_for_envelope, COMMAND_DOMAIN,
-};
 use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::component_adapter::command::{
+    COMMAND_DOMAIN, editor_command_binding_for_envelope,
+};
 use zircon_runtime_interface::ui::component::{
     UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiValue,
 };
 
-use super::super::{common::dispatch_editor_binding, BuiltinWorkbenchWindowTemplateSurfaceBridge};
+use super::super::{BuiltinWorkbenchWindowTemplateSurfaceBridge, common::dispatch_editor_binding};
 
 pub(crate) const WORKBENCH_COMMAND_PALETTE_CONTROL_ID: &str = "WorkbenchCommandPalette";
 pub(crate) const WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID: &str = "CommandPalette/Commit";

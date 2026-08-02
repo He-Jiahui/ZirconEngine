@@ -1,28 +1,33 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
 
 use bincode::Options;
 use serde::{Deserialize, Serialize};
 
 use crate::core::resource::{ResourceRecord, ResourceScheme};
-use crate::foundation::persistence::atomic_write;
+use crate::core::resource::io::atomic_file::atomic_write;
 
 use super::cache_payload::ArtifactCacheAsset;
+use super::chunk_residency::{
+    ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY, ArtifactChunkDescriptor,
+    ArtifactChunkInventory, ArtifactChunkResidency, ArtifactChunkResidencyDiagnostics, ChunkReader,
+    chunk_path,
+};
 use crate::asset::project::ProjectPaths;
 use crate::asset::{
-    asset_kind_for_imported_asset, AssetImportError, AssetKind, AssetUri, ImportedAsset,
+    AssetImportError, AssetKind, AssetUri, ImportedAsset, asset_kind_for_imported_asset,
 };
 
 const ARTIFACT_CACHE_EXTENSION: &str = "zasset";
 const ARTIFACT_CACHE_SUFFIX: &str = ".zasset";
 const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM03";
 const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 3;
-const ARTIFACT_CHUNK_DIRECTORY: &str = "chunks";
-const ARTIFACT_CHUNK_EXTENSION: &str = "zchunk";
 const ARTIFACT_STAGING_DIRECTORY: &str = ".staging";
-const ARTIFACT_CHUNK_BYTES: usize = 64 * 1024;
 const ARTIFACT_CACHE_ZSTD_LEVEL: i32 = 1;
 const BLAKE3_HEX_LENGTH: usize = 64;
 const ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES: u64 = 128 * 1024;
@@ -36,7 +41,9 @@ const ARTIFACT_RAW_PAYLOAD_MAX_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 static NEXT_ARTIFACT_STAGING_ID: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Debug, Default)]
-pub struct ArtifactStore;
+pub struct ArtifactStore {
+    chunk_residency: ArtifactChunkResidency,
+}
 
 pub(crate) struct PreparedArtifactWrite {
     pub(crate) locator: AssetUri,
@@ -45,6 +52,12 @@ pub(crate) struct PreparedArtifactWrite {
 }
 
 impl ArtifactStore {
+    pub fn with_chunk_residency_budget(max_resident_bytes: usize) -> Self {
+        Self {
+            chunk_residency: ArtifactChunkResidency::with_max_resident_bytes(max_resident_bytes),
+        }
+    }
+
     pub fn write(
         &self,
         paths: &ProjectPaths,
@@ -106,12 +119,25 @@ impl ArtifactStore {
         paths: &ProjectPaths,
         artifact_uri: &AssetUri,
     ) -> Result<ImportedAsset, AssetImportError> {
-        let artifact_path = resolve_artifact_cache_path(paths, artifact_uri)?;
-        let manifest = read_manifest(&artifact_path)?;
-        validate_manifest(artifact_uri.path(), &manifest)?;
-        let expected_kind = manifest.kind;
-        let expected_raw_bytes = manifest.raw_bytes;
-        let reader = ChunkReader::new(paths.asset_artifact_root(), manifest);
+        self.read_with_raw_payload_limit(paths, artifact_uri, ARTIFACT_RAW_PAYLOAD_MAX_BYTES)
+    }
+
+    pub(crate) fn read_with_raw_payload_limit(
+        &self,
+        paths: &ProjectPaths,
+        artifact_uri: &AssetUri,
+        max_raw_payload_bytes: u64,
+    ) -> Result<ImportedAsset, AssetImportError> {
+        let inventory = self.open_chunk_inventory(paths, artifact_uri)?;
+        let expected_kind = inventory.kind();
+        let expected_raw_bytes = inventory.raw_bytes();
+        if expected_raw_bytes > max_raw_payload_bytes {
+            return Err(AssetImportError::ArtifactRawPayloadLimitExceeded {
+                raw_bytes: expected_raw_bytes,
+                limit_bytes: max_raw_payload_bytes,
+            });
+        }
+        let reader = ChunkReader::new(inventory, self.chunk_residency.clone());
         let decoder = zstd::stream::read::Decoder::new(reader)?;
         let mut decoder = CountingReader::new(decoder);
         let cache_asset: ArtifactCacheAsset = bincode::DefaultOptions::new()
@@ -142,6 +168,39 @@ impl ArtifactStore {
         }
         Ok(asset)
     }
+
+    pub fn open_chunk_inventory(
+        &self,
+        paths: &ProjectPaths,
+        artifact_uri: &AssetUri,
+    ) -> Result<ArtifactChunkInventory, AssetImportError> {
+        let artifact_path = resolve_artifact_cache_path(paths, artifact_uri)?;
+        let manifest = read_manifest(&artifact_path)?;
+        validate_manifest(artifact_uri.path(), &manifest)?;
+        Ok(ArtifactChunkInventory::new(
+            paths.asset_artifact_root(),
+            manifest.kind,
+            manifest.revision,
+            manifest.content_hash,
+            manifest.raw_bytes,
+            manifest.compressed_bytes,
+            manifest.chunks,
+        ))
+    }
+
+    pub fn read_compressed_chunk(
+        &self,
+        inventory: &ArtifactChunkInventory,
+        index: usize,
+    ) -> Result<Arc<[u8]>, AssetImportError> {
+        Ok(self.chunk_residency.read(inventory, index)?)
+    }
+
+    pub fn chunk_residency_diagnostics(
+        &self,
+    ) -> Result<ArtifactChunkResidencyDiagnostics, AssetImportError> {
+        Ok(self.chunk_residency.diagnostics()?)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -152,13 +211,7 @@ struct ArtifactManifest {
     content_hash: String,
     raw_bytes: u64,
     compressed_bytes: u64,
-    chunks: Vec<ArtifactChunk>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct ArtifactChunk {
-    content_hash: String,
-    compressed_bytes: u32,
+    chunks: Vec<ArtifactChunkDescriptor>,
 }
 
 struct StagedArtifactPayload {
@@ -380,7 +433,7 @@ fn create_staging_file(artifact_root: &Path) -> Result<(PathBuf, File), AssetImp
 fn publish_chunks(
     artifact_root: &Path,
     staged_payload_path: &Path,
-) -> Result<Vec<ArtifactChunk>, AssetImportError> {
+) -> Result<Vec<ArtifactChunkDescriptor>, AssetImportError> {
     let chunk_root = artifact_root.join(ARTIFACT_CHUNK_DIRECTORY);
     fs::create_dir_all(&chunk_root)?;
     let mut reader = BufReader::new(File::open(staged_payload_path)?);
@@ -399,10 +452,10 @@ fn publish_chunks(
         if !matches_existing_content {
             atomic_write(&path, bytes)?;
         }
-        chunks.push(ArtifactChunk {
+        chunks.push(ArtifactChunkDescriptor::new(
             content_hash,
-            compressed_bytes: bytes_read as u32,
-        });
+            bytes_read as u32,
+        ));
     }
     if chunks.is_empty() {
         return Err(AssetImportError::Parse(
@@ -499,13 +552,13 @@ fn validate_manifest(path: &str, manifest: &ArtifactManifest) -> Result<(), Asse
                 .to_string(),
         ));
     }
-    if manifest
-        .chunks
-        .iter()
-        .any(|chunk| chunk.compressed_bytes == 0 || !is_blake3_hex(&chunk.content_hash))
-    {
+    if manifest.chunks.iter().any(|chunk| {
+        chunk.compressed_bytes == 0
+            || chunk.compressed_bytes as usize > ARTIFACT_CHUNK_BYTES
+            || !is_blake3_hex(&chunk.content_hash)
+    }) {
         return Err(AssetImportError::Parse(
-            "artifact manifest chunks must have nonzero byte counts and BLAKE3 identifiers"
+            "artifact manifest chunks must have 1..=64 KiB byte counts and BLAKE3 identifiers"
                 .to_string(),
         ));
     }
@@ -573,134 +626,6 @@ fn validate_artifact_compressed_payload_bytes(
     Ok(())
 }
 
-struct ChunkReader {
-    chunk_root: PathBuf,
-    expected_content_hash: String,
-    chunks: Vec<ArtifactChunk>,
-    next_chunk: usize,
-    current: Option<OpenArtifactChunk>,
-    content_hasher: blake3::Hasher,
-    finished: bool,
-}
-
-impl ChunkReader {
-    fn new(artifact_root: &Path, manifest: ArtifactManifest) -> Self {
-        Self {
-            chunk_root: artifact_root.join(ARTIFACT_CHUNK_DIRECTORY),
-            expected_content_hash: manifest.content_hash,
-            chunks: manifest.chunks,
-            next_chunk: 0,
-            current: None,
-            content_hasher: blake3::Hasher::new(),
-            finished: false,
-        }
-    }
-
-    fn open_next_chunk(&mut self) -> io::Result<()> {
-        let chunk = self.chunks.get(self.next_chunk).ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::UnexpectedEof,
-                "artifact chunk list ended early",
-            )
-        })?;
-        self.next_chunk += 1;
-        self.current = Some(OpenArtifactChunk {
-            file: File::open(chunk_path(&self.chunk_root, &chunk.content_hash))?,
-            remaining: u64::from(chunk.compressed_bytes),
-            content_hash: chunk.content_hash.clone(),
-            hasher: blake3::Hasher::new(),
-        });
-        Ok(())
-    }
-
-    fn finish_current_chunk(&mut self) -> io::Result<()> {
-        let Some(mut current) = self.current.take() else {
-            return Ok(());
-        };
-        let mut trailing = [0; 1];
-        if current.file.read(&mut trailing)? != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "artifact chunk has trailing bytes beyond its manifest size",
-            ));
-        }
-        if current.hasher.finalize().to_hex().as_str() != current.content_hash.as_str() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "artifact chunk content hash does not match its manifest",
-            ));
-        }
-        Ok(())
-    }
-
-    fn finish_content(&mut self) -> io::Result<()> {
-        if self.finished {
-            return Ok(());
-        }
-        if self.content_hasher.finalize().to_hex().as_str() != self.expected_content_hash.as_str() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "artifact content hash does not match its manifest",
-            ));
-        }
-        self.finished = true;
-        Ok(())
-    }
-
-    fn verify_complete(&mut self) -> io::Result<()> {
-        let mut buffer = [0; ARTIFACT_CHUNK_BYTES];
-        while self.read(&mut buffer)? != 0 {}
-        Ok(())
-    }
-}
-
-impl Read for ChunkReader {
-    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
-        if buffer.is_empty() {
-            return Ok(0);
-        }
-        loop {
-            if self
-                .current
-                .as_ref()
-                .is_some_and(|current| current.remaining == 0)
-            {
-                self.finish_current_chunk()?;
-                continue;
-            }
-
-            if let Some(current) = self.current.as_mut() {
-                let limit = usize::try_from(current.remaining)
-                    .unwrap_or(usize::MAX)
-                    .min(buffer.len());
-                let bytes_read = current.file.read(&mut buffer[..limit])?;
-                if bytes_read == 0 {
-                    return Err(io::Error::new(
-                        io::ErrorKind::UnexpectedEof,
-                        "artifact chunk ended before its manifest size",
-                    ));
-                }
-                current.remaining -= bytes_read as u64;
-                current.hasher.update(&buffer[..bytes_read]);
-                self.content_hasher.update(&buffer[..bytes_read]);
-                return Ok(bytes_read);
-            }
-            if self.next_chunk == self.chunks.len() {
-                self.finish_content()?;
-                return Ok(0);
-            }
-            self.open_next_chunk()?;
-        }
-    }
-}
-
-struct OpenArtifactChunk {
-    file: File,
-    remaining: u64,
-    content_hash: String,
-    hasher: blake3::Hasher,
-}
-
 fn resolve_artifact_cache_path(
     paths: &ProjectPaths,
     artifact_uri: &AssetUri,
@@ -711,10 +636,6 @@ fn resolve_artifact_cache_path(
         )));
     }
     Ok(paths.asset_artifact_root().join(artifact_uri.path()))
-}
-
-fn chunk_path(chunk_root: &Path, content_hash: &str) -> PathBuf {
-    chunk_root.join(format!("{content_hash}.{ARTIFACT_CHUNK_EXTENSION}"))
 }
 
 fn is_blake3_hex(value: &str) -> bool {

@@ -1,9 +1,9 @@
 use std::fs;
 
-use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::AssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderDirectionalLightSnapshot, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderStats,
@@ -12,7 +12,7 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker};
 use crate::graphics::WgpuRenderFramework;
-use crate::scene::components::{Mobility, default_render_layer_mask};
+use crate::scene::components::{default_render_layer_mask, Mobility};
 
 use super::super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 use super::{

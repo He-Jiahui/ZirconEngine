@@ -38,11 +38,6 @@ class PluginDocsCurrentStatusExportTemplateOwnerSplitTests(unittest.TestCase):
                     "ExportTemplate manifest owner",
                     "template manifest/path/hash helpers",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_export_template_manifest_owner_split",
-                    "export_template_manifest.py",
-                    "ExportTemplate manifest owner",
-                ],
             },
             "Current export/plugin docs do not reflect ExportTemplate manifest owner split",
         )
@@ -71,11 +66,6 @@ class PluginDocsCurrentStatusExportTemplateOwnerSplitTests(unittest.TestCase):
                     "cli_arguments.py",
                     "zircon_export CLI argument owner",
                     "pipeline CLI argument parsing/defaults",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_cli_argument_owner_split",
-                    "cli_arguments.py",
-                    "zircon_export CLI argument owner",
                 ],
             },
             "Current export/plugin docs do not reflect zircon_export CLI argument owner split",
@@ -106,11 +96,6 @@ class PluginDocsCurrentStatusExportTemplateOwnerSplitTests(unittest.TestCase):
                     "ExportTemplate resolution owner",
                     "template root candidate resolution",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_export_template_resolution_owner_split",
-                    "export_template_resolution.py",
-                    "ExportTemplate resolution owner",
-                ],
             },
             "Current export/plugin docs do not reflect ExportTemplate resolution owner split",
         )
@@ -138,7 +123,6 @@ class PluginDocsCurrentStatusExportTemplateOwnerSplitTests(unittest.TestCase):
                     "schema string-array owner",
                     "string-array schema diagnostics",
                 ],
-                "active session notes": [slug, owner_file, "schema string-array owner"],
             },
             "Current plugin docs do not reflect schema string-array owner split",
         )

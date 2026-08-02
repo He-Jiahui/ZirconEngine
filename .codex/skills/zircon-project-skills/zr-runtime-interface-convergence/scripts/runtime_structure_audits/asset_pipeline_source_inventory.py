@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-EXPECTED_SOURCE_FILE_COUNT = 24
-EXPECTED_GUARD_FILE_COUNT = 20
+EXPECTED_SOURCE_FILE_COUNT = 25
+EXPECTED_GUARD_FILE_COUNT = 22
 EXPECTED_WORKER_DIAGNOSTIC_COUNT = 7
 EXPECTED_ARTIFACT_STORE_ROUNDTRIP_COUNT = 4
 EXPECTED_WATCHER_TEST_COUNT = 7
@@ -28,6 +28,7 @@ RUNTIME_04_SOURCE_FILES = (
     "zircon_runtime/src/asset/artifact/cache_payload/mesh.rs",
     "zircon_runtime/src/asset/artifact/cache_payload/scene.rs",
     "zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs",
+    "zircon_runtime/src/asset/artifact/chunk_residency.rs",
     "zircon_runtime/src/asset/artifact/store.rs",
     "zircon_runtime/src/asset/module.rs",
     "zircon_runtime/src/core/resource/manager/registry_ops.rs",
@@ -44,6 +45,8 @@ RUNTIME_04_GUARD_FILES = (
     "zircon_runtime/src/asset/tests/pipeline/worker_pool/task_pool.rs",
     "zircon_runtime/src/asset/tests/watcher.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
+    "zircon_runtime/src/asset/tests/assets/artifact_store/bounded_read.rs",
+    "zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs",
     "zircon_runtime/src/core/resource/tests.rs",

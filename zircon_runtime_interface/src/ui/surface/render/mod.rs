@@ -43,7 +43,7 @@ pub use editable_text::{
 };
 pub use extract::{UiRenderExtract, UiRenderExtractKind, UiRenderStats};
 pub use limits::{
-    MAX_UI_SLIDER_TICK_COUNT, bounded_ui_slider_tick_count, ui_slider_tick_count_for_track,
+    bounded_ui_slider_tick_count, ui_slider_tick_count_for_track, MAX_UI_SLIDER_TICK_COUNT,
 };
 pub use list::UiRenderList;
 pub use paint::{
@@ -55,13 +55,14 @@ pub use parity::{
 };
 pub use resolved_style::UiResolvedStyle;
 pub use text_effects::{
-    MAX_TEXT_EFFECT_EXTENT_PX, UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect,
-    UiTextOutlineEffect, UiTextShadowEffect,
+    UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect, UiTextOutlineEffect,
+    UiTextShadowEffect, MAX_TEXT_EFFECT_EXTENT_PX,
 };
 pub use text_geometry::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
 pub use text_language::normalize_ui_text_language_tag;
 pub use text_layout::{
-    UiResolvedTextBox, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextRange,
+    UiResolvedTextBox, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
+    UiRichTextArtifactHandle, UiTextRange,
 };
 pub use text_shape::{
     UiShapedGlyph, UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText,
@@ -69,8 +70,8 @@ pub use text_shape::{
     UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle,
 };
 pub use typography::{
-    UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode,
-    UiTextRunKind, UiTextWrap, UiTextWritingMode, resolve_ui_text_render_mode,
+    resolve_ui_text_render_mode, UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow,
+    UiTextRenderMode, UiTextRunKind, UiTextWrap, UiTextWritingMode,
 };
 pub use visual_asset_ref::UiVisualAssetRef;
 pub use visualizer::{

@@ -1,4 +1,10 @@
 // Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
+pub learnLevel(required: bool): int { return required ? 14 : 0; }
+pub resourceCost(required: bool): int { return required ? 150 : 0; }
+pub castTimeSeconds(required: bool): float { return required ? 0.0 : 0.0; }
+pub cooldownSeconds(required: bool): int { return required ? 120 : 0; }
+pub range(required: bool): float { return required ? 0.0 : 0.0; }
+pub radius(required: bool): float { return required ? 40.0 : 0.0; }
 pub windowSeconds(required: bool): int { return required ? 5 : 0; }
 pub tickRate(required: bool): int { return required ? 20 : 0; }
 pub windowTicks(required: bool): int { return required ? 100 : 0; }

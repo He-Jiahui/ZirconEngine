@@ -117,7 +117,7 @@ pub beginCast(ability: uint, requestedLevel: int): EmpoweredConeCast {
 // made only after the target passes alive/LOS/cone filtering in effect_dispatch.
 // `targetSurvivesDamage` is supplied after the owning damage reducer runs, so
 // slow/root/incapacitate preserve the source's `if (m.dead) continue` boundary.
-pub resolveHit(
+pub resolveHitWithStageDamage(
     ability: uint,
     requestedLevel: int,
     origin: glacial.PointXZ,
@@ -131,23 +131,24 @@ pub resolveHit(
     damageUnit: float,
     spellPower: float,
     spellDamageMultiplier: float,
-    critDamageSpellBonus: float
+    critDamageSpellBonus: float,
+    stageMinimum: float,
+    stageMaximum: float
 ): EmpoweredConeHit {
     var result = new EmpoweredConeHit();
     var cast = beginCast(ability, requestedLevel);
     if (!cast.valid || !targetAlive || !lineOfSight) return result;
     if (!glacial.glacialFrontContains(origin, facing, target, cast.range, cast.angle)) return result;
     if (damageUnit < 0.0 || damageUnit >= 1.0 || spellPower < 0.0 ||
-        spellDamageMultiplier < 0.0 || critDamageSpellBonus < 0.0) {
+        spellDamageMultiplier < 0.0 || critDamageSpellBonus < 0.0 ||
+        stageMinimum < 0.0 || stageMaximum < stageMinimum) {
         throw "empowered cone hit input is invalid";
     }
 
     var critical = critRoll || fireGuaranteedCrit ||
         (cone.guaranteedCritLevel(ability) > 0.0 &&
             cast.level == <int>cone.guaranteedCritLevel(ability));
-    var rawDamage = cone.stageMinimumDamage(ability, cast.level) +
-        damageUnit * (cone.stageMaximumDamage(ability, cast.level) -
-            cone.stageMinimumDamage(ability, cast.level)) + spellPower;
+    var rawDamage = stageMinimum + damageUnit * (stageMaximum - stageMinimum) + spellPower;
     rawDamage = rawDamage * spellDamageMultiplier;
     if (critical) rawDamage = rawDamage * (1.5 + critDamageSpellBonus);
 
@@ -169,6 +170,31 @@ pub resolveHit(
     result.appliesIncapacitate = result.incapacitateDuration > 0.0;
     result.entersCombat = true;
     return result;
+}
+
+pub resolveHit(
+    ability: uint,
+    requestedLevel: int,
+    origin: glacial.PointXZ,
+    facing: float,
+    target: glacial.PointXZ,
+    targetAlive: bool,
+    lineOfSight: bool,
+    targetSurvivesDamage: bool,
+    critRoll: bool,
+    fireGuaranteedCrit: bool,
+    damageUnit: float,
+    spellPower: float,
+    spellDamageMultiplier: float,
+    critDamageSpellBonus: float
+): EmpoweredConeHit {
+    var level = clampStage(requestedLevel, cone.stageCount(ability));
+    return resolveHitWithStageDamage(
+        ability, requestedLevel, origin, facing, target, targetAlive, lineOfSight,
+        targetSurvivesDamage, critRoll, fireGuaranteedCrit, damageUnit, spellPower,
+        spellDamageMultiplier, critDamageSpellBonus,
+        cone.stageMinimumDamage(ability, level), cone.stageMaximumDamage(ability, level)
+    );
 }
 
 // Source hotStreakOnce defers its spell-hit note until all eligible targets

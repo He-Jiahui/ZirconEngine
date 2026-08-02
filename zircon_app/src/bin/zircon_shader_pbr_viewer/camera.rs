@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::{
-    CameraRenderDescriptor, DEFAULT_RENDER_LAYER_MASK, ProjectionMode, RenderLayerSet,
-    ViewportCameraSnapshot,
+    CameraRenderDescriptor, ProjectionMode, RenderLayerSet, ViewportCameraSnapshot,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3};
 
@@ -118,8 +118,8 @@ fn stable_camera_up(forward: Vec3) -> Vec3 {
 #[cfg(test)]
 mod tests {
     use super::{
-        CAMERA_PITCH_LIMIT_DEGREES, MAX_CAMERA_RADIUS, MIN_CAMERA_RADIUS, OrbitCamera,
-        normalize_yaw_degrees,
+        normalize_yaw_degrees, OrbitCamera, CAMERA_PITCH_LIMIT_DEGREES, MAX_CAMERA_RADIUS,
+        MIN_CAMERA_RADIUS,
     };
 
     #[test]

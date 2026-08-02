@@ -1,12 +1,20 @@
 mod capability;
+#[cfg(feature = "editor")]
 mod extension_ids;
+#[cfg(feature = "editor")]
 mod plugin;
 
-pub use capability::{CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID};
+pub use capability::{
+    CAPABILITY, EDITOR_CAPABILITIES, EDITOR_CRATE_NAME, NATIVE_EDITOR_ENTRY,
+    NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES,
+    NATIVE_WINDOW_HOSTING_DECLARATION, PLUGIN_ID,
+};
+#[cfg(feature = "editor")]
 pub use extension_ids::{
     NATIVE_WINDOW_DRAWER_ID, NATIVE_WINDOW_TEMPLATE_ID, PREFAB_WINDOW_VIEW_ID,
     WORKBENCH_WINDOW_VIEW_ID,
 };
+#[cfg(feature = "editor")]
 pub use plugin::{
     editor_capabilities, editor_plugin, editor_plugin_descriptor,
     native_window_hosting_dist_module_manifest, package_manifest, plugin_registration,
@@ -14,5 +22,5 @@ pub use plugin::{
     NATIVE_WINDOW_HOSTING_DIST_EDITOR_ENTRY,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "editor"))]
 mod tests;

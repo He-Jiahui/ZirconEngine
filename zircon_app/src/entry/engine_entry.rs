@@ -2,7 +2,9 @@ use std::fmt;
 use std::sync::Arc;
 
 use zircon_runtime::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry;
-use zircon_runtime::core::framework::platform::{PreferenceStorageBackendKind, RuntimeTargetMode};
+use zircon_runtime::core::framework::platform::{
+    PreferenceStorageBackendKind, RuntimeTargetMode, PLATFORM_MODULE_NAME,
+};
 use zircon_runtime::core::framework::project::RuntimeProfileId;
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::framework::window::{
@@ -11,14 +13,15 @@ use zircon_runtime::core::framework::window::{
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::platform::{
-    PlatformConfig, PlatformFeatureSelection, PlatformTarget, PreferenceStorageBackend,
-    PLATFORM_CONFIG_KEY,
+    PlatformConfig, PlatformDriver, PlatformFeatureSelection, PlatformTarget,
+    PreferenceStorageBackend, PLATFORM_CONFIG_KEY, PLATFORM_DRIVER_NAME,
 };
 use zircon_runtime::plugin::{
     RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimePluginDescriptor,
 };
 use zircon_runtime::{
-    plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
+    engine_module::factory, plugin::RuntimePluginFeatureRegistrationReport,
+    plugin::RuntimePluginRegistrationReport,
 };
 
 use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
@@ -35,7 +38,7 @@ use super::{
 
 use super::first_party_runtime_plugin_registrations_for_config;
 use super::platform_preferences::{
-    install_default_preference_storage, planned_preference_storage_backend,
+    planned_preference_storage_backend, preference_storage_backend_for_bootstrap,
     HostPreferenceStorageBackend,
 };
 
@@ -313,23 +316,17 @@ impl BuiltinEngineEntry {
         }
     }
 
-    fn store_entry_config(&self, runtime: &CoreRuntime) {
+    fn store_entry_config(&self, runtime: &CoreRuntime) -> Result<(), CoreError> {
         let runtime_handle = runtime.handle();
-        runtime_handle
-            .store_config(
-                PLATFORM_CONFIG_KEY,
-                &platform_config_for_entry_config(&self.config),
-            )
-            .ok();
-        runtime_handle
-            .store_config(RENDER_PROFILE_CONFIG_KEY, &self.config.render_profile)
-            .ok();
-        runtime_handle
-            .store_config(
-                PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
-                &self.config.window_descriptor,
-            )
-            .ok();
+        runtime_handle.store_config(
+            PLATFORM_CONFIG_KEY,
+            &platform_config_for_entry_config(&self.config),
+        )?;
+        runtime_handle.store_config(RENDER_PROFILE_CONFIG_KEY, &self.config.render_profile)?;
+        runtime_handle.store_config(
+            PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
+            &self.config.window_descriptor,
+        )?;
         #[cfg(not(feature = "target-editor-host"))]
         let _ = runtime;
         #[cfg(feature = "target-editor-host")]
@@ -345,6 +342,7 @@ impl BuiltinEngineEntry {
                 serde_json::json!(self.config.editor_runtime_sandbox_enabled),
             );
         }
+        Ok(())
     }
 }
 
@@ -370,24 +368,60 @@ impl EngineEntry for BuiltinEngineEntry {
         let descriptors = self.plugin_group.module_descriptors();
         let platform_config = platform_config_for_entry_config(&self.config);
 
-        self.store_entry_config(&runtime);
+        self.store_entry_config(&runtime)?;
         runtime.replace_devtools_plugin_catalog_entries(builtin_plugin_catalog_entries());
         if let Some(state) = self.plugin_bridge_lifecycle_state.clone() {
             runtime.install_runtime_module_lifecycle_observer(Arc::new(state));
         }
-        for descriptor in descriptors {
-            runtime.register_module(descriptor.clone())?;
-        }
-        runtime.activate_registered_modules()?;
-        install_default_preference_storage(
-            &runtime,
+        let preference_storage_backend = preference_storage_backend_for_bootstrap(
             &platform_config,
             self.preference_storage_backend.as_ref(),
-        )?;
-        self.store_entry_config(&runtime);
+        );
+        for descriptor in descriptors {
+            runtime.register_module(descriptor_with_preference_storage_backend(
+                descriptor.clone(),
+                preference_storage_backend.as_ref(),
+            )?)?;
+        }
+        runtime.activate_registered_modules()?;
+        self.store_entry_config(&runtime)?;
 
         Ok(runtime.handle())
     }
+}
+
+fn descriptor_with_preference_storage_backend(
+    mut descriptor: ModuleDescriptor,
+    backend: Option<&Arc<dyn PreferenceStorageBackend>>,
+) -> Result<ModuleDescriptor, CoreError> {
+    if descriptor.name != PLATFORM_MODULE_NAME {
+        return Ok(descriptor);
+    }
+    let Some(backend) = backend else {
+        return Ok(descriptor);
+    };
+    let driver = descriptor
+        .drivers
+        .iter_mut()
+        .find(|driver| driver.name.as_str() == PLATFORM_DRIVER_NAME)
+        .ok_or_else(|| {
+            CoreError::Initialization(
+                "platform preference storage".to_owned(),
+                "platform descriptor does not own its canonical driver".to_owned(),
+            )
+        })?;
+    let backend = Arc::clone(backend);
+    driver.factory = factory(move |_| {
+        let driver = PlatformDriver::with_preference_storage_backend(Arc::clone(&backend))
+            .map_err(|error| {
+                CoreError::Initialization(
+                    "platform preference storage".to_owned(),
+                    error.to_string(),
+                )
+            })?;
+        Ok(Arc::new(driver) as _)
+    });
+    Ok(descriptor)
 }
 
 fn builtin_plugin_catalog_entries() -> Vec<RuntimeDevtoolsPluginCatalogEntry> {
@@ -412,12 +446,10 @@ fn plugin_group_for_config(
     modules: Vec<Arc<dyn EngineModule>>,
 ) -> Result<ResolvedPluginGroup, CoreError> {
     let mut builder = plugin_group_builder_for_config(config).map_err(plugin_group_core_error)?;
-    let append_unmatched_modules =
-        !matches!(config.runtime_profile(), Some(RuntimeProfileId::Minimal));
     for module in modules {
         if builder.contains(module.module_name()) {
             builder = builder.set(module).map_err(plugin_group_core_error)?;
-        } else if append_unmatched_modules {
+        } else {
             builder = builder
                 .add_module(module)
                 .map_err(plugin_group_core_error)?;

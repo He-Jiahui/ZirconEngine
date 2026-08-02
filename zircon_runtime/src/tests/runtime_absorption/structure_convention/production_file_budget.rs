@@ -156,6 +156,8 @@ mod scene_world_project_io;
 mod scene_world_property_access;
 #[path = "production_file_budget/scene_world_render_lights.rs"]
 mod scene_world_render_lights;
+#[path = "production_file_budget/text_raster_pool.rs"]
+mod text_raster_pool;
 #[path = "production_file_budget/texture_descriptor_settings.rs"]
 mod texture_descriptor_settings;
 #[path = "production_file_budget/ui_accessibility_extract.rs"]

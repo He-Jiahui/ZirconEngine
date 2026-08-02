@@ -141,9 +141,11 @@ fn readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payload
     assert_eq!(missing_report.root.load_state, AssetLoadState::NotLoaded);
     assert_eq!(missing_report.load_states, manager.load_states(missing));
     assert!(missing_report.dependencies.is_empty());
-    assert!(diagnostic_messages(&missing_report.root.diagnostics)
-        .iter()
-        .any(|message| message.contains("missing asset record")));
+    assert!(
+        diagnostic_messages(&missing_report.root.diagnostics)
+            .iter()
+            .any(|message| message.contains("missing asset record"))
+    );
 
     let material_record = record(
         "res://materials/report-wrong-kind.zmaterial",
@@ -163,9 +165,11 @@ fn readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payload
         manager.load_states(wrong_kind)
     );
     assert!(wrong_kind_report.dependencies.is_empty());
-    assert!(diagnostic_messages(&wrong_kind_report.root.diagnostics)
-        .iter()
-        .any(|message| message.contains("not Texture")));
+    assert!(
+        diagnostic_messages(&wrong_kind_report.root.diagnostics)
+            .iter()
+            .any(|message| message.contains("not Texture"))
+    );
 
     let texture_record = record(
         "res://textures/report-non-resident.png",

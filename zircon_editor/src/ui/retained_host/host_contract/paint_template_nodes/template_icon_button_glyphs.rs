@@ -124,8 +124,10 @@ mod tests {
         );
 
         assert!(commands.len() > 1);
-        assert!(commands
-            .iter()
-            .all(|command| command.image_pixels.is_none()));
+        assert!(
+            commands
+                .iter()
+                .all(|command| command.image_pixels.is_none())
+        );
     }
 }

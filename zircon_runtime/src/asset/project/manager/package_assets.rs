@@ -10,7 +10,18 @@ impl ProjectManager {
         package_id: impl Into<String>,
         assets_root: impl AsRef<Path>,
     ) -> Result<(), AssetImportError> {
-        self.package_assets.register_root(package_id, assets_root)
+        let mut package_assets = self.package_assets.clone();
+        package_assets.register_root(package_id, assets_root)?;
+        let catalog_input_generation =
+            super::super::ProjectCatalogInputGeneration::publish_metadata(
+                &self.catalog_input_generation,
+                self.paths.root(),
+                &self.manifest,
+                &package_assets,
+            );
+        self.package_assets = package_assets;
+        self.catalog_input_generation = catalog_input_generation;
+        Ok(())
     }
 
     pub fn register_package_asset_roots<Root>(
@@ -22,7 +33,17 @@ impl ProjectManager {
     where
         Root: AsRef<str>,
     {
-        self.package_assets
-            .register_package_roots(package_id, asset_roots, package_root)
+        let mut package_assets = self.package_assets.clone();
+        package_assets.register_package_roots(package_id, asset_roots, package_root)?;
+        let catalog_input_generation =
+            super::super::ProjectCatalogInputGeneration::publish_metadata(
+                &self.catalog_input_generation,
+                self.paths.root(),
+                &self.manifest,
+                &package_assets,
+            );
+        self.package_assets = package_assets;
+        self.catalog_input_generation = catalog_input_generation;
+        Ok(())
     }
 }

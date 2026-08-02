@@ -3,8 +3,8 @@ use super::{
     MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
 };
 use crate::core::framework::render::{
-    PrimitiveRelevance, RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
-    ShaderQualityTier, packed_sort_key_u64,
+    packed_sort_key_u64, PrimitiveRelevance, RenderMeshStaticState, RenderPhase,
+    RenderPhaseSortComponents, ShaderQualityTier,
 };
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{MaterialDisabledPasses, PipelineKey};
@@ -15,7 +15,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipel
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct MeshBatchCacheIdentity {
-    pub(crate) entity: EntityId,
+    pub(crate) source_entity: EntityId,
+    pub(crate) stable_instance_key: u64,
     pub(crate) draw_ordinal: u32,
 }
 
@@ -43,6 +44,125 @@ pub(crate) struct MeshBatchRef {
     pub(crate) base_color_texture: Option<MeshBindHandle>,
     pub(crate) material: Option<MeshBindHandle>,
     pub(crate) standard_material: Option<MeshBindHandle>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct MeshPassCommandSpec {
+    pub(crate) phase: RenderPhase,
+    pub(crate) pipeline_kind: MeshPassPipelineKind,
+}
+
+pub(crate) fn mesh_pass_command_specs(batch: &MeshBatchRef) -> [Option<MeshPassCommandSpec>; 6] {
+    [
+        depth_prepass_command_spec(batch),
+        shadow_command_spec(batch),
+        opaque_base_command_spec(batch),
+        transparent_command_spec(batch),
+        velocity_command_spec(batch),
+        taa_reactive_mask_command_spec(batch),
+    ]
+}
+
+pub(crate) fn depth_prepass_command_spec(batch: &MeshBatchRef) -> Option<MeshPassCommandSpec> {
+    (!batch.disabled_passes.disables_depth_prepass()
+        && batch.queue_profile.early_z_eligible()
+        && batch.relevant_to_main_phase(RenderPhase::Prepass))
+    .then_some(MeshPassCommandSpec {
+        phase: RenderPhase::Prepass,
+        pipeline_kind: MeshPassPipelineKind::DepthPrepass,
+    })
+}
+
+pub(crate) fn shadow_command_spec(batch: &MeshBatchRef) -> Option<MeshPassCommandSpec> {
+    if batch.disabled_passes.disables_shadow()
+        || !batch.casts_shadow
+        || !batch.relevant_to_shadow_view()
+    {
+        return None;
+    }
+    let pipeline_kind = match batch.phase() {
+        MeshDrawQueuePhase::AlphaMask => MeshPassPipelineKind::ShadowDepthAlphaMask,
+        MeshDrawQueuePhase::Opaque => MeshPassPipelineKind::ShadowDepth,
+        MeshDrawQueuePhase::Transparent => return None,
+    };
+    Some(MeshPassCommandSpec {
+        phase: RenderPhase::Shadow,
+        pipeline_kind,
+    })
+}
+
+pub(crate) fn opaque_base_command_spec(batch: &MeshBatchRef) -> Option<MeshPassCommandSpec> {
+    if batch.disabled_passes.disables_base() {
+        return None;
+    }
+    let phase = match batch.phase() {
+        MeshDrawQueuePhase::Opaque => RenderPhase::Opaque3d,
+        MeshDrawQueuePhase::AlphaMask => RenderPhase::AlphaMask3d,
+        MeshDrawQueuePhase::Transparent => return None,
+    };
+    if !batch.relevant_to_main_phase(phase) {
+        return None;
+    }
+    Some(MeshPassCommandSpec {
+        phase: if batch.pipeline_key.requires_forward_path() {
+            RenderPhase::Transparent3d
+        } else {
+            phase
+        },
+        pipeline_kind: MeshPassPipelineKind::Base,
+    })
+}
+
+pub(crate) fn transparent_command_spec(batch: &MeshBatchRef) -> Option<MeshPassCommandSpec> {
+    (!batch.disabled_passes.disables_base()
+        && batch.phase() == MeshDrawQueuePhase::Transparent
+        && batch.relevant_to_main_phase(RenderPhase::Transparent3d))
+    .then_some(MeshPassCommandSpec {
+        phase: RenderPhase::Transparent3d,
+        pipeline_kind: MeshPassPipelineKind::Base,
+    })
+}
+
+pub(crate) fn velocity_command_spec(batch: &MeshBatchRef) -> Option<MeshPassCommandSpec> {
+    (!batch.disabled_passes.disables_velocity()
+        && batch.queue_profile.early_z_eligible()
+        && batch.queue_profile.velocity_history_eligible()
+        && batch.has_previous_velocity_transform
+        && batch.relevant_to_main_phase(RenderPhase::PostProcess))
+    .then_some(MeshPassCommandSpec {
+        phase: RenderPhase::PostProcess,
+        pipeline_kind: MeshPassPipelineKind::Velocity,
+    })
+}
+
+pub(crate) fn taa_reactive_mask_command_spec(batch: &MeshBatchRef) -> Option<MeshPassCommandSpec> {
+    if batch.disabled_passes.disables_taa_reactive_mask() {
+        return None;
+    }
+    let pipeline_kind = match batch.phase() {
+        MeshDrawQueuePhase::Transparent
+            if batch.relevant_to_main_phase(RenderPhase::Transparent3d) =>
+        {
+            MeshPassPipelineKind::TaaReactiveMask
+        }
+        MeshDrawQueuePhase::Opaque
+            if batch.has_taa_reactive_material_mask()
+                && batch.relevant_to_main_phase(RenderPhase::Opaque3d) =>
+        {
+            MeshPassPipelineKind::TaaReactiveMaterialMask
+        }
+        MeshDrawQueuePhase::AlphaMask
+            if batch.has_taa_reactive_material_mask()
+                && batch.relevant_to_main_phase(RenderPhase::AlphaMask3d) =>
+        {
+            MeshPassPipelineKind::TaaReactiveMaterialMask
+        }
+        _ => return None,
+    };
+    Some(MeshPassCommandSpec {
+        phase: RenderPhase::PostProcess,
+        pipeline_kind,
+    })
 }
 
 impl MeshBatchRef {
@@ -93,9 +213,15 @@ impl MeshBatchRef {
         self
     }
 
-    pub(crate) fn with_cache_identity(mut self, entity: EntityId, draw_ordinal: u32) -> Self {
+    pub(crate) fn with_cache_identity(
+        mut self,
+        source_entity: EntityId,
+        stable_instance_key: u64,
+        draw_ordinal: u32,
+    ) -> Self {
         self.cache_identity = Some(MeshBatchCacheIdentity {
-            entity,
+            source_entity,
+            stable_instance_key,
             draw_ordinal,
         });
         self
@@ -242,7 +368,7 @@ impl MeshBatchRef {
             draw_args,
         );
         if let Some(identity) = self.cache_identity {
-            command = command.with_source_entity(identity.entity);
+            command = command.with_source_entity(identity.source_entity);
         }
         command = command.with_source_draw_index(self.source_draw_index);
         if let Some(material_textures) = &self.material_textures {
@@ -326,11 +452,11 @@ pub(crate) trait MeshPassProcessor {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GeometrySourceId,
-        RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
+        GeometrySourceId, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
     };
     use crate::core::framework::scene::Mobility;
-    use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
+    use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
         MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
     };

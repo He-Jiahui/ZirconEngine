@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::super::collect_manifests::{collect_plugin_manifests, MAX_DISCOVERY_DEPTH};
+use super::super::collect_manifests::MAX_DISCOVERY_DEPTH;
 use super::super::NativePluginLoader;
 
 #[test]
@@ -42,6 +42,35 @@ fn unchanged_discovery_projects_the_published_generation_without_a_second_scanne
     assert!(!authority.contains("DiscoveryRootState"));
     assert!(!authority.contains("collect_plugin_manifests"));
     assert!(authority.contains("in_flight"));
+}
+
+#[test]
+fn warm_root_alias_projects_cached_identity_after_the_filesystem_path_disappears() {
+    let root = TempDiscoveryRoot::new("warm-root-no-restat");
+    root.write_manifest("weather", "weather");
+    let root_name = root.path().file_name().expect("temporary root name");
+    let alias = root.path().join("..").join(root_name);
+
+    let first = NativePluginLoader.discover(&alias);
+    let first_generation = NativePluginLoader
+        .discovery_generation(&alias)
+        .expect("published generation through lexical alias");
+    assert_eq!(plugin_ids(&first), vec!["weather"]);
+
+    fs::remove_dir_all(root.path()).expect("remove canonical discovery root");
+
+    assert_eq!(
+        NativePluginLoader.discovery_generation(&alias),
+        Some(first_generation),
+        "warm generation projection must use the cached lexical-to-canonical identity"
+    );
+    let warm = NativePluginLoader.discover(&alias);
+    assert_eq!(plugin_ids(&warm), vec!["weather"]);
+    assert_eq!(
+        NativePluginLoader.discovery_generation(&alias),
+        Some(first_generation),
+        "warm discovery must not establish a new missing-root identity or generation"
+    );
 }
 
 #[test]
@@ -116,7 +145,7 @@ fn generation_projection_requires_a_cached_root_identity() {
 fn deadline_terminal_is_reported_without_waiting_for_worker_retirement() {
     let authority = include_str!("authority.rs");
 
-    assert!(authority.contains("self.failure_report(&root, ticket.generation(), terminal)"));
+    assert!(authority.contains("self.failure_report(&root, &input, ticket.generation(), terminal)"));
     assert!(authority.contains("NativePluginDiscoveryRefreshTerminal::DeadlineExceeded"));
     assert!(authority.contains("exceeded its deadline before publication"));
 }
@@ -243,11 +272,11 @@ fn recursive_discovery_stops_at_the_depth_bound() {
     fs::write(nested.join("plugin.toml"), plugin_manifest("too-deep"))
         .expect("write over-depth manifest");
 
-    let collection = collect_plugin_manifests(root.path()).expect("bounded collection");
+    let report = NativePluginLoader.discover(root.path());
 
-    assert!(collection.manifest_paths.is_empty());
-    assert!(collection
-        .diagnostics
+    assert!(report.discovered().is_empty());
+    assert!(report
+        .diagnostics()
         .iter()
         .any(|diagnostic| diagnostic.contains("maximum depth")));
 }
@@ -264,11 +293,11 @@ fn recursive_discovery_does_not_follow_directory_symlinks() {
     fs::write(package.join("plugin.toml"), plugin_manifest("weather"))
         .expect("write package manifest");
 
-    let collection = collect_plugin_manifests(root.path()).expect("cycle-safe collection");
+    let report = NativePluginLoader.discover(root.path());
 
-    assert_eq!(collection.manifest_paths.len(), 1);
-    assert!(collection
-        .diagnostics
+    assert_eq!(plugin_ids(&report), vec!["weather"]);
+    assert!(report
+        .diagnostics()
         .iter()
         .any(|diagnostic| diagnostic.contains("symbolic link")));
 }

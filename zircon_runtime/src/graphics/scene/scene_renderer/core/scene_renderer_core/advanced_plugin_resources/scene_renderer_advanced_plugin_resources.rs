@@ -4,6 +4,7 @@ use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RuntimePrepareCollectorContext,
     RuntimePrepareCollectorRegistration, RuntimePrepareExternalBufferBinding,
+    RuntimePrepareGpuReadbackRequest,
 };
 
 pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePrepareCollector =
@@ -15,6 +16,7 @@ pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePr
                 &ResourceStreamer,
                 &ViewportRenderFrame,
                 &mut Vec<RuntimePrepareExternalBufferBinding>,
+                &mut Vec<RuntimePrepareGpuReadbackRequest>,
             ) -> Result<RenderPluginRendererOutputs, GraphicsError>
             + Send,
     >;
@@ -109,14 +111,15 @@ fn scene_runtime_prepare_collector_from_registration(
     registration: RuntimePrepareCollectorRegistration,
 ) -> SceneRendererRuntimePrepareCollector {
     Box::new(
-        move |device, queue, encoder, streamer, frame, external_buffer_bindings| {
-            let mut context = RuntimePrepareCollectorContext::new(
+        move |device, queue, encoder, streamer, frame, external_buffer_bindings, gpu_readbacks| {
+            let mut context = RuntimePrepareCollectorContext::new_with_gpu_readbacks(
                 device,
                 queue,
                 encoder,
                 streamer,
                 frame,
                 external_buffer_bindings,
+                gpu_readbacks,
             );
             registration.collect(&mut context)
         },

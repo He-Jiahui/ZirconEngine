@@ -3,6 +3,7 @@ use std::time::Duration;
 use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{
+        UiDispatchPhase, UiDispatchReply, UiImeInputEvent, UiImeInputEventKind,
         UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputSequence,
         UiInputTimestamp, UiPointerId, UiPointerInputEvent, UiPointerSource,
         UiSubmenuHoverTimerInputEvent, UiToastTimerInputEvent, UiTooltipTimerInputEvent,
@@ -17,12 +18,16 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
-    surface::{input, UiSurface},
+    surface::{UiSurface, input},
 };
 
 use super::{
-    ime_host_requests::append_ime_host_requests_for_result, outcome::UiInputDispatchOutcome,
-    pointer_table::UiActivePointerTable, timers::UiInputTimerState,
+    ime_host_requests::{
+        append_ime_host_requests_for_input_method_requests, append_ime_host_requests_for_result,
+    },
+    outcome::UiInputDispatchOutcome,
+    pointer_table::UiActivePointerTable,
+    timers::UiInputTimerState,
 };
 use crate::core::framework::input::ImeHostRequest;
 
@@ -185,6 +190,16 @@ impl UiInputManager {
                 }),
             )?;
             self.record_ime_host_requests_from_result(&result);
+            results.push(result);
+        }
+        let lifecycle = surface.input.take_deferred_focus_input_lifecycle();
+        append_ime_host_requests_for_input_method_requests(
+            lifecycle.input_method_requests,
+            &mut self.ime_host_requests,
+        );
+        if !lifecycle.component_events.is_empty() {
+            let result = focus_input_method_lifecycle_result(now, lifecycle.component_events);
+            self.arm_timers_from_component_events(surface, now, &result);
             results.push(result);
         }
         Ok(results)
@@ -473,6 +488,28 @@ impl UiInputManager {
                 .iter()
                 .any(|entry| entry.source == source && entry.is_primary)
     }
+}
+
+fn focus_input_method_lifecycle_result(
+    now: UiInputTimestamp,
+    component_events: Vec<zircon_runtime_interface::ui::dispatch::UiComponentEventReport>,
+) -> UiInputDispatchResult {
+    let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
+    metadata.synthetic = true;
+    let mut result = UiInputDispatchResult::new(
+        UiInputEvent::Ime(UiImeInputEvent {
+            metadata,
+            kind: UiImeInputEventKind::Cancel,
+            text: String::new(),
+            cursor_range: None,
+            delete_surrounding: None,
+        }),
+        UiDispatchReply::handled().in_phase(UiDispatchPhase::DefaultAction),
+    );
+    result.diagnostics.routed = true;
+    result.diagnostics.handled_phase = Some("focus.input_method_lifecycle".to_string());
+    result.component_events = component_events;
+    result
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

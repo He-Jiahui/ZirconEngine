@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::gpu_scene::GpuScene;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -11,7 +13,7 @@ impl GpuScene {
     pub(crate) fn previous_morph_weights(&self, stable_instance_key: u64) -> Option<&[f32]> {
         self.previous_morph_weights
             .get(&stable_instance_key)
-            .map(Vec::as_slice)
+            .map(Arc::as_ref)
     }
 
     pub(crate) fn stage_current_morph_weights(
@@ -20,8 +22,15 @@ impl GpuScene {
         weights: Option<&[f32]>,
     ) {
         if let Some(weights) = weights.filter(|weights| !weights.is_empty()) {
+            if self
+                .current_morph_weights
+                .get(&stable_instance_key)
+                .is_some_and(|current| current.as_ref() == weights)
+            {
+                return;
+            }
             self.current_morph_weights
-                .insert(stable_instance_key, weights.to_vec());
+                .insert(stable_instance_key, Arc::from(weights));
         } else {
             self.current_morph_weights.remove(&stable_instance_key);
         }
@@ -39,7 +48,7 @@ impl GpuScene {
         self.previous_morph_weights.extend(
             self.current_morph_weights
                 .iter()
-                .map(|(key, weights)| (*key, weights.clone())),
+                .map(|(key, weights)| (*key, Arc::clone(weights))),
         );
 
         let previous_weight_state_count = self.previous_morph_weights.len();
@@ -147,6 +156,37 @@ mod tests {
             Some([0.0].as_slice()),
             "0 -> nonzero morph changes need an explicit zero previous state for velocity"
         );
+    }
+
+    #[test]
+    fn stable_morph_weights_reuse_current_and_previous_snapshots() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let mut scene = test_gpu_scene(&backend.device);
+
+        scene.stage_current_morph_weights(TEST_STABLE_INSTANCE_KEY, Some(&[0.25, 0.5]));
+        let first_current = Arc::clone(
+            scene
+                .current_morph_weights
+                .get(&TEST_STABLE_INSTANCE_KEY)
+                .expect("current morph snapshot"),
+        );
+        scene.stage_current_morph_weights(TEST_STABLE_INSTANCE_KEY, Some(&[0.25, 0.5]));
+        let stable_current = Arc::clone(
+            scene
+                .current_morph_weights
+                .get(&TEST_STABLE_INSTANCE_KEY)
+                .expect("stable current morph snapshot"),
+        );
+        assert!(Arc::ptr_eq(&first_current, &stable_current));
+
+        let _ = scene.roll_prev_morph_weights_after_success();
+        let previous = scene
+            .previous_morph_weights
+            .get(&TEST_STABLE_INSTANCE_KEY)
+            .expect("previous morph snapshot");
+        assert!(Arc::ptr_eq(&stable_current, previous));
     }
 
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {

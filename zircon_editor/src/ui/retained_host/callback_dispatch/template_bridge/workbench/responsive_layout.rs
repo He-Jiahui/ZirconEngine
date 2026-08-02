@@ -2,7 +2,7 @@ use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeLayoutExt};
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiSize, tree::UiVisibility};
 
 use crate::ui::workbench::autolayout::{
-    workbench_layout_tier_for_physical_width, WorkbenchLayoutTier,
+    WorkbenchLayoutTier, workbench_layout_tier_for_physical_width,
 };
 
 use super::error::BuiltinHostWindowTemplateBridgeError;

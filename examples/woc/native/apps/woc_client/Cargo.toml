@@ -9,3 +9,4 @@ description = "WOC client role bootstrap."
 serde_json = { workspace = true, features = ["arbitrary_precision", "preserve_order"] }
 woc_protocol.workspace = true
 woc_runtime.workspace = true
+zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }

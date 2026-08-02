@@ -1,7 +1,11 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/style.rs
+  - zircon_runtime_interface/src/ui/template/asset/style.rs
   - zircon_runtime/src/ui/v2/style.rs
+  - zircon_runtime/src/ui/v2/style/runtime_state.rs
+  - zircon_runtime/src/ui/v2/style/tokens.rs
+  - zircon_runtime/src/ui/template/asset/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/04-style-theme-and-painter-selector.md
@@ -9,22 +13,23 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/13-taffy-css-constraint-language.md
   - docs/plans/zircon_editor/editor_layout/18-input-response-and-hit-testing.md
   - docs/plans/zircon_editor/editor_layout/19-focus-and-navigation-model.md
-status: planned
+status: in_progress
 ---
 # 20 样式系统:USS/CSS 级联、选择器与计算样式
 
 ## 1. 目标
 
-把"作者写的样式规则如何匹配节点、如何级联合成最终样式"沉淀为一份**类 USS/CSS 的级联样式规范**。当前只有**固定优先级状态选择器**(`UiPainterStyleSelector`,按硬编码 disabled>pressed>… 折叠)与一个**无伪状态**的 v2 resolver(`editor_ui/04` §2.1/2.2),**没有真正的选择器匹配、specificity、级联、计算样式、自定义属性、继承、transition**——这是"style 不成熟"的根因。本计划把样式从"每控件取一档预设色"升级为 **stylesheet → 选择器匹配 → 级联 → computed style** 的引擎,对标 Unity UI Toolkit 的 USS。
+把"作者写的样式规则如何匹配节点、如何级联合成最终样式"沉淀为一份**类 USS/CSS 的级联样式规范**。当前 v2 路径已具备 stylesheet parser、type/class/id/state/host/part token、child/descendant combinator、tuple specificity、源序级联、runtime pseudo-state 和 design-token `var()`；旧 retained painter 仍保留固定优先级状态选择。计划重点已从“从零创建选择器”转为收敛两条样式路径、补齐继承/computed-style 边界、清理绘制族内联状态分支和 transition。
 
 > 工程化硬目标(接 `index` §4.0):样式是**层叠数据**,不是调用点的一次性视觉值。改一处 token/规则,所有匹配节点随动;状态(hover/focus/checked)由伪状态选择器表达,不在绘制族里写 `if state == ...` 分支。
 
 ## 2. 现状(按代码核实)
 
-- `style.rs` 有 `UiPainterStyleSelector`(:272)、`UiPainterResolvedState`(:233)按 family 折叠的**固定优先级**解析;**这是"状态档选择",不是 CSS 级联**——没有选择器语言、没有 specificity、没有多规则合成。
-- `zircon_runtime/src/ui/v2/style.rs` 的 `UiV2StyleResolver::resolve` **无伪状态**(`editor_ui/04` §2.2.2);双路(retained 软绘 / render extract)状态样式不同源。
+- `zircon_runtime_interface/src/ui/template/asset/style.rs` 已定义 `UiSelector`、child/descendant combinator、type/class/id/state/part/host token 与不可压平为整数的 `UiSelectorSpecificity`；`UiV2StyleResolver` 按 `(specificity, source order)` 排序并逐属性覆盖。
+- `zircon_runtime/src/ui/v2/style.rs`/`runtime_state.rs` 已支持 authored 与 retained runtime pseudo-state、深层 descendant 状态匹配和 subtree dirty；`tokens.rs` 与 `register_editor_design_tokens` 已让 stylesheet/inline value 共享 token/`var()` 解析。`UiSelectorSpecificity` 的 interface export 已在源码恢复，但对应 open failure 仍需 fresh managed gate 后才能关闭。
+- `zircon_runtime_interface/src/ui/style.rs` 的 `UiPainterStyleSelector`/`UiPainterResolvedState` 仍按 family 固定优先级折叠；retained 软绘与 v2 resolver 尚未完全同源。
 - 组件绘制族仍有内联状态分支(`editor_ui/04` §2.2.4)。
-- `01` 有设计 token,但 token **未作为可被规则引用的"自定义属性/CSS 变量"**统一进样式解析(13 §3.2 引用 token 是布局侧,视觉 token 散在选择器)。
+- 设计 token 到 stylesheet/inline `var()` 的注册与解析已存在；仍需补主题切换后的精确失效、继承属性的 computed value 和 retained painter 消费同一 resolved artifact 的验收。
 
 ## 3. 设计
 
@@ -109,10 +114,10 @@ pub fn compute_style(node: &UiNode, sheet: &UiStyleSheet, inherited: &UiComputed
 
 | # | 切片 | 验证命令 |
 | -- | --- | --- |
-| S1 | 选择器解析 + specificity + 级联引擎 + var/token + computed | `cargo test -p zircon_runtime --lib style_cascade --locked` |
-| S2 | v2 resolver 接级联引擎(伪状态);retained/extract 同源 | `cargo test -p zircon_editor --lib --locked` |
-| S3 | 组件内联状态分支清除 → 伪状态选择器(收编固定优先级) | `cargo test -p zircon_editor --lib style_selector --locked` |
-| S4(可选) | transition 过渡(接 editor_ui/07) | `cargo test -p zircon_editor --lib style_transition --locked` |
+| S1 | 加固并受管验收现有选择器解析 + tuple specificity + 源序级联 + var/token；补继承/computed 边界 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter style_cascade` |
+| S2 | v2 resolver 接级联引擎(伪状态);retained/extract 同源 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` |
+| S3 | 组件内联状态分支清除 → 伪状态选择器(收编固定优先级) | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter style_selector` |
+| S4(可选) | transition 过渡(接 editor_ui/07) | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter style_transition` |
 
 ## 7. 测试矩阵
 
@@ -146,4 +151,6 @@ token 数据归 01;布局属性求解归 13/Taffy(本计划只定样式匹配/�
 
 ## 12. 状态与产出记录
 
-planned。后续项:S1 选择器解析 + specificity + 级联引擎 + var/token + computed。
+in_progress。v2 选择器/parser、tuple specificity、源序级联、runtime pseudo-state 与 token/`var()` 已有当前源码 owner；retained painter 同源、继承/computed 边界、主题精确失效、内联状态清退和 transition 仍未完成，不据此宣称里程碑完成。
+
+- applicable open failure（保持 open）：[ui-selector-specificity-template-export-drift](20/failure-2026-07-27-ui-selector-specificity-template-export-drift.md)。

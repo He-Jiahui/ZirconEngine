@@ -5,9 +5,11 @@ mod precision_shape;
 mod precision_shape_depth;
 mod precision_shape_hit_frame;
 mod precision_shape_score;
+mod renderer_visible_spatial_pick_source;
 mod shared_resolution_state;
 
 pub(in crate::scene::viewport::pointer) use candidate_score::CandidateScore;
 pub(in crate::scene::viewport::pointer) use precision_candidate::PrecisionCandidate;
 pub(in crate::scene::viewport::pointer) use precision_shape::PrecisionShape;
+pub(in crate::scene::viewport::pointer) use renderer_visible_spatial_pick_source::RendererVisibleSpatialPickSource;
 pub(in crate::scene::viewport::pointer) use shared_resolution_state::SharedResolutionState;

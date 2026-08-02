@@ -9,7 +9,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use winit::window::{Window, WindowAttributes};
 use zircon_runtime::core::framework::render::{
-    RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor,
+    RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor, IBL_BAKE_ALGORITHM_VERSION,
 };
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
@@ -17,7 +17,9 @@ use zircon_runtime::graphics::ViewportFrame;
 use crate::args::ViewerConfig;
 use crate::background_load::{BackgroundTask, BackgroundTaskPoll};
 use crate::camera::OrbitCamera;
-use crate::frame_io::{error_frame, startup_frame, write_ready_frame_png};
+use crate::frame_io::{
+    error_frame, startup_frame, write_ready_frame_evidence, ReadyFrameEvidenceMetadata,
+};
 use crate::presenter::{window_size, SoftbufferViewportPresenter};
 use crate::renderdoc::RenderDocBridge;
 use crate::scene::{PbrMirrorScene, PbrMirrorSceneIblLoadReport};
@@ -27,6 +29,7 @@ const DEFAULT_WINDOW_HEIGHT: u32 = 960;
 const MIN_WINDOW_WIDTH: f64 = 480.0;
 const MIN_WINDOW_HEIGHT: f64 = 360.0;
 const LOAD_STATUS_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+const PBR_VIEWER_RENDER_PROFILE: &str = "environment_only_pbr_preview";
 
 pub(crate) struct PbrMirrorViewerApp {
     hdri_path: PathBuf,
@@ -315,6 +318,15 @@ impl PbrMirrorViewerApp {
         self.redraw_requested = false;
 
         let write_screenshot = self.screenshot_path.is_some() && !self.screenshot_written;
+        let screenshot_camera = self.camera;
+        let interactive_direct_present_enabled = self.direct_present_enabled;
+        let screenshot_input = write_screenshot.then(|| {
+            (
+                self.hdri_path.display().to_string(),
+                self.face_size,
+                self.pmrem_face_size,
+            )
+        });
         if !self.direct_present_enabled || write_screenshot {
             if let Err(error) = self.ensure_cpu_presenter() {
                 eprintln!("failed to create CPU presentation fallback: {error}");
@@ -358,28 +370,14 @@ impl PbrMirrorViewerApp {
                         );
                     }
                     if capture_this_frame {
-                        if let Err(error) = scene.stop_graphics_debugger_capture() {
-                            eprintln!("failed to stop graphics debugger capture: {error}");
+                        if let Err(error) =
+                            finish_graphics_debugger_capture(scene, self.renderdoc_bridge.as_ref())
+                        {
+                            eprintln!("failed to complete graphics debugger capture: {error}");
                             event_loop.exit();
                             return;
                         }
                         self.renderdoc_capture_finished = true;
-                        println!("graphics debugger capture completed");
-                        if let Some(bridge) = self.renderdoc_bridge.as_ref() {
-                            match bridge.capture_report() {
-                                Ok(report) => println!(
-                                    "RenderDoc capture report: count={}, latest_path={}",
-                                    report.capture_count(),
-                                    report.latest_capture_path().map_or_else(
-                                        || "<none>".to_owned(),
-                                        |path| path.display().to_string(),
-                                    ),
-                                ),
-                                Err(error) => {
-                                    eprintln!("failed to query RenderDoc capture report: {error}");
-                                }
-                            }
-                        }
                     }
                     self.flush_ready_window_title();
                     if capture_this_frame && self.exit_after_capture {
@@ -414,31 +412,60 @@ impl PbrMirrorViewerApp {
                     ready_frame_render_started.map(|started| started.elapsed());
                 let scene_frame_timing = write_screenshot.then(|| scene.last_frame_timing_report());
                 if capture_this_frame {
-                    if let Err(error) = scene.stop_graphics_debugger_capture() {
-                        eprintln!("failed to stop graphics debugger capture: {error}");
+                    if let Err(error) =
+                        finish_graphics_debugger_capture(scene, self.renderdoc_bridge.as_ref())
+                    {
+                        eprintln!("failed to complete graphics debugger capture: {error}");
                         event_loop.exit();
                         return;
                     }
                     self.renderdoc_capture_finished = true;
-                    println!("graphics debugger capture completed");
-                    if let Some(bridge) = self.renderdoc_bridge.as_ref() {
-                        match bridge.capture_report() {
-                            Ok(report) => println!(
-                                "RenderDoc capture report: count={}, latest_path={}",
-                                report.capture_count(),
-                                report.latest_capture_path().map_or_else(
-                                    || "<none>".to_owned(),
-                                    |path| path.display().to_string(),
-                                ),
-                            ),
-                            Err(error) => {
-                                eprintln!("failed to query RenderDoc capture report: {error}");
-                            }
-                        }
-                    }
                 }
                 let screenshot_encode_started = write_screenshot.then(Instant::now);
-                if let Err(error) = self.write_ready_frame_screenshot(&frame) {
+                let screenshot_metadata = if write_screenshot {
+                    let timing = scene_frame_timing
+                        .expect("screenshot frames must retain their requested timing report");
+                    let render_elapsed = ready_frame_render_elapsed
+                        .expect("screenshot frames must retain their render interval");
+                    let ibl_report = scene.ibl_load_report();
+                    let base_prewarm_report = scene.base_prewarm_report();
+                    let (hdri_path, requested_source_face_size, requested_pmrem_face_size) =
+                        screenshot_input
+                            .expect("screenshot frames must retain their HDRI input identity");
+                    Some(ReadyFrameEvidenceMetadata {
+                        backend: scene.renderer_backend_name().to_owned(),
+                        interactive_direct_present_enabled,
+                        hdri_path,
+                        requested_source_face_size,
+                        requested_pmrem_face_size,
+                        active_source_cubemap_face_size: ibl_report.source_cubemap_face_size(),
+                        active_source_cubemap_mip_count: ibl_report.source_cubemap_mip_count(),
+                        active_pmrem_face_size: ibl_report.pmrem_face_size(),
+                        active_pmrem_mip_count: ibl_report.pmrem_mip_count(),
+                        render_profile: PBR_VIEWER_RENDER_PROFILE.to_owned(),
+                        environment_only_base_prewarm_cache_hit: base_prewarm_report.cache_hit(),
+                        environment_only_base_prewarm_shader_source_resolution: base_prewarm_report
+                            .shader_source_resolution(),
+                        environment_only_base_prewarm_pipeline_creation: base_prewarm_report
+                            .pipeline_creation(),
+                        environment_only_base_prewarm_elapsed: base_prewarm_report.elapsed(),
+                        camera_yaw_degrees: screenshot_camera.yaw_degrees(),
+                        camera_pitch_degrees: screenshot_camera.pitch_degrees(),
+                        ibl_bake_algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
+                        ibl_staging_status: format!("{:?}", ibl_report.staging_status()),
+                        ibl_staging_elapsed: ibl_report.staging_elapsed(),
+                        ibl_total_elapsed: ibl_report.total_elapsed(),
+                        ready_frame_render_elapsed: render_elapsed,
+                        ready_frame_render_extract: timing.render_extract(),
+                        ready_frame_renderer_call: timing.renderer_frame_call(),
+                        ready_frame_readback_and_completion: timing.readback_and_completion(),
+                    })
+                } else {
+                    None
+                };
+                if let Err(error) =
+                    self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())
+                {
                     eprintln!("failed to write PBR viewer screenshot: {error}");
                     event_loop.exit();
                     return;
@@ -499,18 +526,27 @@ impl PbrMirrorViewerApp {
         self.present_status_frame(event_loop, startup_frame(self.size));
     }
 
-    fn write_ready_frame_screenshot(&mut self, frame: &ViewportFrame) -> Result<(), String> {
+    fn write_ready_frame_screenshot(
+        &mut self,
+        frame: &ViewportFrame,
+        metadata: Option<&ReadyFrameEvidenceMetadata>,
+    ) -> Result<(), String> {
         let Some(path) = self.screenshot_path.as_ref() else {
             return Ok(());
         };
         if self.screenshot_written {
             return Ok(());
         }
-        write_ready_frame_png(path, frame.width, frame.height, &frame.rgba)?;
+        let metadata = metadata.ok_or_else(|| {
+            "Ready-frame screenshot requires an IBL and frame-timing provenance record".to_owned()
+        })?;
+        let metadata_path =
+            write_ready_frame_evidence(path, frame.width, frame.height, &frame.rgba, metadata)?;
         self.screenshot_written = true;
         println!(
-            "wrote PBR viewer Ready-frame screenshot: {}",
-            path.display()
+            "wrote PBR viewer Ready-frame screenshot and provenance: {} / {}",
+            path.display(),
+            metadata_path.display(),
         );
         Ok(())
     }
@@ -615,6 +651,28 @@ fn consume_ready_title_update(ready_title_dirty: &mut bool) -> bool {
     }
     *ready_title_dirty = false;
     true
+}
+
+fn finish_graphics_debugger_capture(
+    scene: &PbrMirrorScene,
+    bridge: Option<&RenderDocBridge>,
+) -> Result<(), String> {
+    scene
+        .stop_graphics_debugger_capture()
+        .map_err(|error| format!("stop graphics debugger capture: {error}"))?;
+    if let Some(bridge) = bridge {
+        let report = bridge.capture_report()?;
+        let capture_path = report.capture_path_for_evidence()?;
+        println!(
+            "RenderDoc capture report: count={}, latest_path={}",
+            report.capture_count(),
+            capture_path.display(),
+        );
+        println!("graphics debugger capture completed");
+    } else {
+        println!("graphics debugger capture stopped without a direct RenderDoc evidence record");
+    }
+    Ok(())
 }
 
 fn viewport_surface_descriptor(

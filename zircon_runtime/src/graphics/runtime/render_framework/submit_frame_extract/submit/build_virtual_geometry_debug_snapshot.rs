@@ -8,9 +8,10 @@ use std::collections::BTreeSet;
 use self::execution::{
     build_execution_snapshot, build_hardware_rasterization_records_from_execution_segments,
     build_selected_clusters_from_execution_segments,
+    build_visbuffer64_entries_from_selected_clusters,
     build_visbuffer_debug_marks_from_selected_clusters,
-    build_visbuffer64_entries_from_selected_clusters, hardware_rasterization_source_for_execution,
-    selected_cluster_source_for_execution, visbuffer64_source_for_execution,
+    hardware_rasterization_source_for_execution, selected_cluster_source_for_execution,
+    visbuffer64_source_for_execution,
 };
 use self::node_cull::build_node_and_cluster_cull_snapshot;
 use self::page::{

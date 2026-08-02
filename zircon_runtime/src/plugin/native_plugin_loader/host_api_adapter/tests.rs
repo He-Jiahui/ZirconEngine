@@ -31,9 +31,28 @@ fn native_bridge_call_context_snapshots_share_the_dispatch_table() {
     let second = bridge_context_for(scope.handle()).expect("second context snapshot");
 
     assert!(
-        Arc::ptr_eq(&first, &second),
-        "bridge calls must clone an Arc context instead of deep-cloning the method map"
+        std::ptr::eq(&*first, &*second),
+        "bridge calls must pin the same registry context instead of cloning nested ownership"
     );
+}
+
+#[test]
+fn native_host_bridge_call_scope_clone_keeps_context_until_the_last_owner_drops() {
+    let scope = unsafe {
+        NativeHostBridgeCallScope::with_methods(
+            RuntimeExtensionRegistry::default().frozen_bridge_table(),
+            std::iter::empty(),
+        )
+    };
+    let handle = scope.handle();
+    let retained = scope.clone();
+
+    assert_eq!(retained.handle(), handle);
+    drop(scope);
+    assert!(contexts().get(handle.raw()).is_some());
+
+    drop(retained);
+    assert!(contexts().get(handle.raw()).is_none());
 }
 
 #[test]
@@ -383,6 +402,7 @@ fn native_host_api_adapter_utf8_error_preserves_source() {
 fn native_host_api_v3_rejects_unknown_registration_handles() {
     let api = NativeHostApiV3RegistrationScope {
         handle: ZrRuntimePluginHandle::invalid(),
+        lifetime: Arc::new(NativeHostRegistrationScopeState::default()),
         _registry: PhantomData,
     }
     .api();
@@ -462,14 +482,16 @@ fn native_host_context_scope_drop_blocks_new_calls_while_in_flight_call_finishes
     let slot = table
         .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
         .unwrap();
-    let scope = NativeHostBridgeCallScope::with_methods(
-        table,
-        [(
-            slot,
-            7,
-            NativeBridgeMethodFn::from_rust(native_bridge_blocking_method),
-        )],
-    );
+    let scope = unsafe {
+        NativeHostBridgeCallScope::with_methods(
+            table,
+            [(
+                slot,
+                7,
+                NativeBridgeMethodFn::from_rust(native_bridge_blocking_method),
+            )],
+        )
+    };
     let handle = scope.handle();
     let call = scope.api().bridge.call.expect("bridge call callback");
     let worker = thread::spawn(move || unsafe {
@@ -508,6 +530,53 @@ fn native_host_context_scope_drop_blocks_new_calls_while_in_flight_call_finishes
 }
 
 #[test]
+fn native_host_registration_scope_drop_waits_for_an_in_flight_context_pin() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "weather.runtime").unwrap();
+    let handle = scope.handle();
+    let pin = context_for(handle).expect("registration context should be available");
+
+    let release = thread::spawn(move || {
+        while !pin.is_closing() {
+            thread::yield_now();
+        }
+        drop(pin);
+    });
+
+    drop(scope);
+    release
+        .join()
+        .expect("in-flight registration context should release");
+    assert!(contexts().get(handle.raw()).is_none());
+}
+
+#[test]
+fn native_host_v4_registration_scope_drop_waits_for_an_in_flight_context_pin() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let scope = NativeHostApiV4RegistrationScope::new(
+        &mut registry,
+        "weather.runtime",
+        NativeHostApiV4RegistrationPolicy::default(),
+    )
+    .unwrap();
+    let handle = scope.handle();
+    let pin = context_for_v4(handle).expect("V4 registration context should be available");
+
+    let release = thread::spawn(move || {
+        while !pin.is_closing() {
+            thread::yield_now();
+        }
+        drop(pin);
+    });
+
+    drop(scope);
+    release
+        .join()
+        .expect("in-flight V4 registration context should release");
+    assert!(contexts().get(handle.raw()).is_none());
+}
+
+#[test]
 fn native_host_bridge_call_scope_dispatches_registered_method() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry.intern_plugin_module("weather.runtime").unwrap();
@@ -518,14 +587,16 @@ fn native_host_bridge_call_scope_dispatches_registered_method() {
     let slot = table
         .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
         .unwrap();
-    let scope = NativeHostBridgeCallScope::with_methods(
-        table.clone(),
-        [(
-            slot,
-            7,
-            NativeBridgeMethodFn::from_rust(native_bridge_test_method),
-        )],
-    );
+    let scope = unsafe {
+        NativeHostBridgeCallScope::with_methods(
+            table.clone(),
+            [(
+                slot,
+                7,
+                NativeBridgeMethodFn::from_rust(native_bridge_test_method),
+            )],
+        )
+    };
     let api = scope.api();
     let payload = b"ping";
 
@@ -558,21 +629,23 @@ fn native_host_bridge_context_builds_dense_method_rows_without_tree_probes() {
     let slot = table
         .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
         .unwrap();
-    let scope = NativeHostBridgeCallScope::with_methods(
-        table,
-        [
-            (
-                slot,
-                7,
-                NativeBridgeMethodFn::from_rust(native_bridge_test_method),
-            ),
-            (
-                slot,
-                4_096,
-                NativeBridgeMethodFn::from_rust(native_bridge_test_method),
-            ),
-        ],
-    );
+    let scope = unsafe {
+        NativeHostBridgeCallScope::with_methods(
+            table,
+            [
+                (
+                    slot,
+                    7,
+                    NativeBridgeMethodFn::from_rust(native_bridge_test_method),
+                ),
+                (
+                    slot,
+                    4_096,
+                    NativeBridgeMethodFn::from_rust(native_bridge_test_method),
+                ),
+            ],
+        )
+    };
 
     let metrics = bridge_context_for(scope.handle())
         .expect("bridge context")
@@ -597,7 +670,7 @@ fn native_host_bridge_context_builds_dense_method_rows_without_tree_probes() {
 
 #[test]
 fn native_host_bridge_dense_dispatch_uses_fixed_width_sparse_slot_directory() {
-    let source = include_str!("../host_api_adapter.rs");
+    let source = include_str!("context_registry.rs");
 
     assert!(source.contains("DENSE_BRIDGE_SLOT_DIRECTORY_BITS"));
     assert!(source.contains("DenseBridgeSlotDirectory"));
@@ -636,6 +709,17 @@ fn native_host_bridge_dispatch_source_uses_frozen_dense_slots() {
 }
 
 #[test]
+fn native_host_bridge_context_pin_owns_only_the_registry_arc() {
+    let adapter_source = include_str!("../host_api_adapter.rs");
+    let registry_source = include_str!("context_registry.rs");
+
+    assert!(!adapter_source.contains("BridgeCall(Arc<NativeHostBridgeCallContext>)"));
+    assert!(registry_source.contains("BridgeCall(NativeHostBridgeCallContext)"));
+    assert!(registry_source.contains("struct NativeHostBridgeCallContextPin"));
+    assert!(registry_source.contains("context: Arc<NativeHostApiV3Context>"));
+}
+
+#[test]
 fn native_host_bridge_call_scope_builds_method_table_from_interface_metadata() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry.intern_plugin_module("weather.runtime").unwrap();
@@ -646,14 +730,16 @@ fn native_host_bridge_call_scope_builds_method_table_from_interface_metadata() {
     let slot = table
         .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
         .unwrap();
-    let scope = NativeHostBridgeCallScope::from_method_descriptors(
-        table.clone(),
-        [NativeBridgeMethodDescriptor::new(
-            <dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID,
-            7,
-            NativeBridgeMethodFn::from_rust(native_bridge_test_method),
-        )],
-    )
+    let scope = unsafe {
+        NativeHostBridgeCallScope::from_method_descriptors(
+            table.clone(),
+            [NativeBridgeMethodDescriptor::new(
+                <dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID,
+                7,
+                NativeBridgeMethodFn::from_rust(native_bridge_test_method),
+            )],
+        )
+    }
     .expect("native bridge method metadata should resolve");
     let api = scope.api();
     let payload = b"ping";
@@ -683,14 +769,16 @@ fn native_host_bridge_call_catches_plugin_method_panic() {
     let slot = table
         .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
         .unwrap();
-    let scope = NativeHostBridgeCallScope::with_methods(
-        table.clone(),
-        [(
-            slot,
-            7,
-            NativeBridgeMethodFn::from_rust(native_bridge_panic_method),
-        )],
-    );
+    let scope = unsafe {
+        NativeHostBridgeCallScope::with_methods(
+            table.clone(),
+            [(
+                slot,
+                7,
+                NativeBridgeMethodFn::from_rust(native_bridge_panic_method),
+            )],
+        )
+    };
     let api = scope.api();
 
     let status = unsafe {
@@ -741,7 +829,8 @@ fn native_bridge_method_descriptors_use_package_manifest_metadata() {
         <dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID
     );
     assert_eq!(descriptors[0].method_slot(), 7);
-    let scope = NativeHostBridgeCallScope::from_method_descriptors(table, descriptors).unwrap();
+    let scope =
+        unsafe { NativeHostBridgeCallScope::from_method_descriptors(table, descriptors) }.unwrap();
     let api = scope.api();
     let payload = b"ping";
 
@@ -782,14 +871,16 @@ fn native_bridge_method_descriptors_reject_missing_manifest_binding() {
 fn native_host_bridge_call_scope_rejects_unknown_interface_metadata() {
     let table = RuntimeExtensionRegistry::default().frozen_bridge_table();
 
-    let result = NativeHostBridgeCallScope::from_method_descriptors(
-        table,
-        [NativeBridgeMethodDescriptor::new(
-            "native.missing.bridge.v1",
-            1,
-            NativeBridgeMethodFn::from_rust(native_bridge_test_method),
-        )],
-    );
+    let result = unsafe {
+        NativeHostBridgeCallScope::from_method_descriptors(
+            table,
+            [NativeBridgeMethodDescriptor::new(
+                "native.missing.bridge.v1",
+                1,
+                NativeBridgeMethodFn::from_rust(native_bridge_test_method),
+            )],
+        )
+    };
 
     assert!(matches!(
         result,
@@ -811,14 +902,16 @@ fn native_host_bridge_call_maps_disabled_provider_to_bridge_not_enabled() {
         .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
         .unwrap();
     table.set_enabled(slot, false).unwrap();
-    let scope = NativeHostBridgeCallScope::with_methods(
-        table.clone(),
-        [(
-            slot,
-            7,
-            NativeBridgeMethodFn::from_rust(native_bridge_test_method),
-        )],
-    );
+    let scope = unsafe {
+        NativeHostBridgeCallScope::with_methods(
+            table.clone(),
+            [(
+                slot,
+                7,
+                NativeBridgeMethodFn::from_rust(native_bridge_test_method),
+            )],
+        )
+    };
     let api = scope.api();
 
     let status = unsafe {

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::super::slot_id::validate_canonical_slot_id;
 use super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchiveError,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn ensure_supported(

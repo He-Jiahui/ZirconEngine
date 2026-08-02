@@ -11,10 +11,14 @@ fn component_storage_type_guards_use_entry_lookup() {
     assert!(storage_source.contains("match self.component_types.entry(component_id)"));
     assert!(storage_source.contains("Entry::Occupied(entry)"));
     assert!(storage_source.contains("Entry::Vacant(entry)"));
-    assert!(!storage_source
-        .contains("if let Some(existing) = self.storage_types.get(&component_id).copied()"));
-    assert!(!storage_source
-        .contains("if let Some(existing) = self.component_types.get(&component_id).copied()"));
+    assert!(
+        !storage_source
+            .contains("if let Some(existing) = self.storage_types.get(&component_id).copied()")
+    );
+    assert!(
+        !storage_source
+            .contains("if let Some(existing) = self.component_types.get(&component_id).copied()")
+    );
 }
 
 #[test]

@@ -29,9 +29,12 @@ doc_type: module-detail
 
 The controller owns a typed `PlayBackend` lifecycle. `ProcessPlayBackend` now implements external runtime command construction, bounded stdout/stderr collection, poll/stop/reap, and versioned scene snapshot cleanup. It is intentionally not the startup default until Editor16 makes `runtime_preview` consume the joint Play arguments; the default `NoopPlayBackend` preserves the in-process editor gateway path without pretending to spawn a game.
 
+The controller also owns the typed preference for the next run through `preferred_kind()` and `set_preferred_kind(PlayKind)`. The Workbench Run Mode menu changes that preference through `MenuAction::SelectPlayMode`; Enter Play reads it when constructing `PlayStartRequest`, so Play In Editor and Simulate no longer collapse to one hard-coded request. This preference is not a second lifecycle state: `mode()` remains the sole Edit/Building/Playing authority, and a selection made during a session only affects the next start.
+
 ## State transitions
 
 - `request_play(immediate)` activates the plugin bridge, starts the selected backend, then moves `Edit -> Playing`.
+- the next-run preference defaults to `PlayKind::Play`; selecting Simulate changes the kind carried by the next `PlayStartRequest` without entering play immediately.
 - `request_play(after_build)` moves `Edit -> Building { play_after_build: true }` without activating plugins.
 - `on_build_finished(true)` activates the bridge and moves `Building -> Playing`; failure moves to `Edit` without activation.
 - a second play request while `Playing` returns `PlaySessionError::InvalidTransition`.

@@ -11,7 +11,10 @@ pub(super) fn editor_product_frame_diagnostics(
             "editor product frame capture requires one opened project",
         ));
     }
-    let mut selected_entries = snapshot.scene_entries.iter().filter(|entry| entry.selected);
+    let mut selected_entries = snapshot
+        .scene_entries
+        .iter()
+        .filter(|entry| snapshot.scene_entries.is_selected(entry.entity));
     let selected = selected_entries.next().ok_or_else(|| {
         io::Error::other("editor product frame capture requires one selected scene node")
     })?;
@@ -23,10 +26,10 @@ pub(super) fn editor_product_frame_diagnostics(
     let inspector = snapshot.inspector.as_ref().ok_or_else(|| {
         io::Error::other("editor product frame capture requires a visible Inspector projection")
     })?;
-    if inspector.id != selected.id || inspector.name != selected.name {
+    if inspector.id != selected.entity || inspector.name != selected.display_name {
         return Err(io::Error::other(format!(
             "editor product frame capture Inspector '{}' ({}) differs from selected node '{}' ({})",
-            inspector.name, inspector.id, selected.name, selected.id
+            inspector.name, inspector.id, selected.display_name, selected.entity
         )));
     }
     if inspector
@@ -42,8 +45,8 @@ pub(super) fn editor_product_frame_diagnostics(
     Ok(format!(
         "editor_product_frame_diagnostics project_path={} selected_node_id={} selected_node_name={} inspector_translation_x={} inspector_translation_y={} inspector_translation_z={}",
         percent_encode_diagnostic_token(&snapshot.project_path),
-        selected.id,
-        percent_encode_diagnostic_token(&selected.name),
+        selected.entity,
+        percent_encode_diagnostic_token(&selected.display_name),
         percent_encode_diagnostic_token(&inspector.translation[0]),
         percent_encode_diagnostic_token(&inspector.translation[1]),
         percent_encode_diagnostic_token(&inspector.translation[2]),

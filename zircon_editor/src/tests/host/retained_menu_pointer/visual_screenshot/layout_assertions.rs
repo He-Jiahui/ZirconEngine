@@ -1,5 +1,5 @@
 use crate::ui::retained_host::UiHostWindow;
-use crate::ui::workbench::autolayout::{minimum_document_width_fraction, WorkbenchChromeMetrics};
+use crate::ui::workbench::autolayout::{WorkbenchChromeMetrics, minimum_document_width_fraction};
 
 pub(super) fn assert_assets_drawer_adaptive_layout(ui: &UiHostWindow, width: u32) {
     let presentation = ui.get_host_presentation();

@@ -9,6 +9,7 @@ pub use zircon_runtime_interface::ui::layout::{
 mod active_tab;
 mod axis_constraint_override;
 mod constraints;
+mod css_like_constraint;
 mod floating_window;
 mod geometry;
 mod layout_tier;
@@ -26,10 +27,17 @@ mod workbench_skeleton;
 pub use axis_constraint_override::AxisConstraintOverride;
 pub(crate) use constraints::fixed_axis;
 pub use constraints::{default_constraints_for_content, default_region_constraints};
+pub use css_like_constraint::{
+    family_for_slot_kind, CssLikeConstraint, CssLikeConstraintError, CssLikeConstraintProperty,
+    CssLikeDimension, CssLikeEdges, CssLikeGap, CssLikeGridTrack, CssLikeGridTrackBreadth,
+    CssLikeOverflow, CssLikeOverflowPair, CssLikeSize,
+};
 pub(crate) use floating_window::{clamp_floating_window_frame, default_floating_window_frame};
-pub use geometry::compute_workbench_shell_geometry;
 pub(crate) use geometry::{
     balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
+};
+pub use geometry::{
+    compute_workbench_shell_geometry, compute_workbench_shell_geometry_with_region_defaults,
 };
 #[cfg(test)]
 pub(crate) use layout_tier::workbench_layout_defaults;

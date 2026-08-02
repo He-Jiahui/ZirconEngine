@@ -43,12 +43,6 @@ class PluginDocsCurrentStatusCookAssetsOwnerSplitTests(unittest.TestCase):
                     "CookAssets report owner",
                     "CookAssets Pack handoff owner",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_cook_assets_report_owner_split",
-                    "pipeline_report_cook_assets_manifest_io.py",
-                    "pipeline_report_cook_assets_pack_handoff.py",
-                    "CookAssets report owner",
-                ],
             },
             "Current export/plugin docs do not reflect CookAssets report owner split",
         )
@@ -77,11 +71,6 @@ class PluginDocsCurrentStatusCookAssetsOwnerSplitTests(unittest.TestCase):
                     "cook_assets_manifest.py",
                     "CookAssets asset manifest owner",
                     "asset manifest diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_cook_assets_manifest_owner_split",
-                    "cook_assets_manifest.py",
-                    "CookAssets asset manifest owner",
                 ],
             },
             "Current export/plugin docs do not reflect CookAssets manifest owner split",
@@ -118,12 +107,6 @@ class PluginDocsCurrentStatusCookAssetsOwnerSplitTests(unittest.TestCase):
                     "CookAssets Pack trim closure owner",
                     "trim-closure reconstruction/source-byte diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_cook_assets_pack_trim_closure_owner_split",
-                    "pipeline_report_cook_assets_pack_trim_closure.py",
-                    "pipeline_report_cook_assets_trim_evidence.py",
-                    "CookAssets Pack trim closure owner",
-                ],
             },
             "Current export/plugin docs do not reflect CookAssets Pack trim closure owner split",
         )
@@ -154,11 +137,6 @@ class PluginDocsCurrentStatusCookAssetsOwnerSplitTests(unittest.TestCase):
                     "cook_assets_project_fallback.py",
                     "CookAssets project fallback owner",
                     "project manifest fallback/res:// direct-reference closure",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_cook_assets_project_fallback_owner_split",
-                    "cook_assets_project_fallback.py",
-                    "CookAssets project fallback owner",
                 ],
             },
             "Current export/plugin docs do not reflect CookAssets project fallback owner split",

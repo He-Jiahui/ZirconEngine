@@ -5,18 +5,19 @@ use crate::bake_panel::{
     NavigationBakeSelectedSubmitError, NavigationBakeSelectionError, NavigationBakeSurfaceRow,
 };
 use crate::overlay::{
-    NavigationOverlayController, NavigationOverlayOptions, NavigationViewportGizmoSink,
-    build_navigation_overlay,
+    build_navigation_overlay, NavigationOverlayController, NavigationOverlayOptions,
+    NavigationViewportGizmoSink,
 };
 use crate::runtime_mirror::{NavigationPieFrame, NavigationPieMirror, NavigationPieMirrorApply};
 use std::sync::{Arc, Mutex};
 use zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerHost;
 use zircon_editor::{EditorRuntimeGateway, GatewayError};
 use zircon_runtime::core::framework::navigation::{
-    AREA_JUMP, AREA_WALKABLE, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
+    NavAgentTickReport, NavMeshBakeReport, NavPathStatus, NavigationAgentDebugState,
+    NavigationGizmoSnapshot, NavigationGizmoTriangle, AREA_JUMP, AREA_WALKABLE,
+    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
-    NAV_MESH_SURFACE_COMPONENT_TYPE, NavAgentTickReport, NavMeshBakeReport, NavPathStatus,
-    NavigationAgentDebugState, NavigationGizmoSnapshot, NavigationGizmoTriangle,
+    NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::framework::render::SceneGizmoKind;
 use zircon_runtime::core::framework::render::SceneGizmoOverlayExtract;
@@ -146,32 +147,26 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
     let registration = plugin_registration();
 
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
-    assert!(
-        registration
-            .capabilities
-            .contains(&NAVIGATION_AUTHORING_CAPABILITY.to_string())
-    );
+    assert!(registration
+        .capabilities
+        .contains(&NAVIGATION_AUTHORING_CAPABILITY.to_string()));
     for view_id in [
         NAVIGATION_AUTHORING_VIEW_ID,
         NAVIGATION_AGENTS_VIEW_ID,
         NAVIGATION_BAKE_VIEW_ID,
         NAVIGATION_DEBUG_VIEW_ID,
     ] {
-        assert!(
-            registration
-                .extensions
-                .views()
-                .iter()
-                .any(|view| view.id() == view_id)
-        );
-    }
-    assert!(
-        registration
+        assert!(registration
             .extensions
-            .drawers()
+            .views()
             .iter()
-            .any(|drawer| drawer.id() == NAVIGATION_DRAWER_ID)
-    );
+            .any(|view| view.id() == view_id));
+    }
+    assert!(registration
+        .extensions
+        .drawers()
+        .iter()
+        .any(|drawer| drawer.id() == NAVIGATION_DRAWER_ID));
     for template_id in [
         NAVIGATION_TEMPLATE_ID,
         NAVIGATION_AGENTS_TEMPLATE_ID,
@@ -180,13 +175,11 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
         NAVIGATION_ASSET_TEMPLATE_ID,
         NAVIGATION_SETTINGS_ASSET_TEMPLATE_ID,
     ] {
-        assert!(
-            registration
-                .extensions
-                .ui_templates()
-                .iter()
-                .any(|template| template.id() == template_id)
-        );
+        assert!(registration
+            .extensions
+            .ui_templates()
+            .iter()
+            .any(|template| template.id() == template_id));
     }
     for component_type in [
         NAV_MESH_SURFACE_COMPONENT_TYPE,
@@ -195,13 +188,11 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
         NAV_MESH_OBSTACLE_COMPONENT_TYPE,
         NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     ] {
-        assert!(
-            registration
-                .extensions
-                .component_drawers()
-                .iter()
-                .any(|drawer| drawer.component_type() == component_type)
-        );
+        assert!(registration
+            .extensions
+            .component_drawers()
+            .iter()
+            .any(|drawer| drawer.component_type() == component_type));
     }
     for operation in [
         "view.navigation.surfaces.open",
@@ -216,27 +207,21 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
         NAVIGATION_OPEN_NAVMESH_ASSET_OPERATION,
         NAVIGATION_OPEN_SETTINGS_ASSET_OPERATION,
     ] {
-        assert!(
-            registration
-                .extensions
-                .command_ids()
-                .any(|command_id| command_id.as_str() == operation)
-        );
+        assert!(registration
+            .extensions
+            .command_ids()
+            .any(|command_id| command_id.as_str() == operation));
     }
-    assert!(
-        registration
-            .extensions
-            .asset_type_contributions()
-            .iter()
-            .any(|contribution| contribution.asset_type().as_str() == "navigation.mesh")
-    );
-    assert!(
-        registration
-            .extensions
-            .asset_type_contributions()
-            .iter()
-            .any(|contribution| contribution.asset_type().as_str() == "navigation.settings")
-    );
+    assert!(registration
+        .extensions
+        .asset_type_contributions()
+        .iter()
+        .any(|contribution| contribution.asset_type().as_str() == "navigation.mesh"));
+    assert!(registration
+        .extensions
+        .asset_type_contributions()
+        .iter()
+        .any(|contribution| contribution.asset_type().as_str() == "navigation.settings"));
 
     for document in navigation_editor_documents() {
         assert!(
@@ -271,17 +256,13 @@ fn navigation_editor_sdk_declaration_and_capability_diagnostics_are_authoritativ
     let missing = catalog.validate_capabilities(Vec::<String>::new());
     assert!(!missing.is_success());
     assert_eq!(missing.diagnostics.len(), EDITOR_CAPABILITIES.len());
-    assert!(
-        missing
-            .diagnostics
-            .iter()
-            .all(|diagnostic| diagnostic.code == "editor.capability.missing")
-    );
-    assert!(
-        catalog
-            .validate_capabilities(EDITOR_CAPABILITIES)
-            .is_success()
-    );
+    assert!(missing
+        .diagnostics
+        .iter()
+        .all(|diagnostic| diagnostic.code == "editor.capability.missing"));
+    assert!(catalog
+        .validate_capabilities(EDITOR_CAPABILITIES)
+        .is_success());
 }
 
 #[test]

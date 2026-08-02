@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::ops::Range;
 
 use crate::rhi::UiSurfaceRect;
 
@@ -70,36 +71,101 @@ fn preferred_sweep_axis(items: &[DrawItem]) -> Axis {
 struct IntervalIndex<'a> {
     items: &'a [DrawItem],
     axis: Axis,
-    root: Option<Box<IntervalNode>>,
+    nodes: Vec<IntervalNode>,
+    crossing_by_start: Vec<usize>,
+    crossing_by_end: Vec<usize>,
+    root: Option<usize>,
 }
 
 impl<'a> IntervalIndex<'a> {
     fn new(items: &'a [DrawItem], axis: Axis) -> Self {
-        let indices = (0..items.len()).collect();
+        let mut indices = (0..items.len()).collect::<Vec<_>>();
+        let mut nodes = Vec::with_capacity(items.len());
+        let mut crossing_by_start = Vec::with_capacity(items.len());
+        let mut crossing_by_end = Vec::with_capacity(items.len());
+        let root = IntervalNode::build(
+            &mut indices,
+            items,
+            axis,
+            &mut nodes,
+            &mut crossing_by_start,
+            &mut crossing_by_end,
+        );
         Self {
             items,
             axis,
-            root: IntervalNode::build(indices, items, axis),
+            nodes,
+            crossing_by_start,
+            crossing_by_end,
+            root,
         }
     }
 
     fn query(&self, rect: UiSurfaceRect, mut visit: impl FnMut(usize)) {
-        if let Some(root) = &self.root {
-            root.query(rect, self.items, self.axis, &mut visit);
+        if let Some(root) = self.root {
+            self.query_node(root, rect, &mut visit);
+        }
+    }
+
+    fn query_node(&self, node_index: usize, rect: UiSurfaceRect, visit: &mut impl FnMut(usize)) {
+        let node = &self.nodes[node_index];
+        let (start, end) = interval(rect, self.axis);
+        match (end.total_cmp(&node.center), start.total_cmp(&node.center)) {
+            (Ordering::Less | Ordering::Equal, _) => {
+                for index in &self.crossing_by_start[node.crossing_by_start.clone()] {
+                    if interval(self.items[*index].rect(), self.axis).0 >= end {
+                        break;
+                    }
+                    visit(*index);
+                }
+                if let Some(left) = node.left {
+                    self.query_node(left, rect, visit);
+                }
+            }
+            (_, Ordering::Greater | Ordering::Equal) => {
+                for index in &self.crossing_by_end[node.crossing_by_end.clone()] {
+                    if interval(self.items[*index].rect(), self.axis).1 <= start {
+                        break;
+                    }
+                    visit(*index);
+                }
+                if let Some(right) = node.right {
+                    self.query_node(right, rect, visit);
+                }
+            }
+            _ => {
+                self.crossing_by_start[node.crossing_by_start.clone()]
+                    .iter()
+                    .copied()
+                    .for_each(&mut *visit);
+                if let Some(left) = node.left {
+                    self.query_node(left, rect, visit);
+                }
+                if let Some(right) = node.right {
+                    self.query_node(right, rect, visit);
+                }
+            }
         }
     }
 }
 
 struct IntervalNode {
     center: f32,
-    crossing_by_start: Vec<usize>,
-    crossing_by_end: Vec<usize>,
-    left: Option<Box<IntervalNode>>,
-    right: Option<Box<IntervalNode>>,
+    crossing_by_start: Range<usize>,
+    crossing_by_end: Range<usize>,
+    left: Option<usize>,
+    right: Option<usize>,
 }
 
 impl IntervalNode {
-    fn build(mut indices: Vec<usize>, items: &[DrawItem], axis: Axis) -> Option<Box<Self>> {
+    fn build(
+        indices: &mut [usize],
+        items: &[DrawItem],
+        axis: Axis,
+        nodes: &mut Vec<Self>,
+        pooled_by_start: &mut Vec<usize>,
+        pooled_by_end: &mut Vec<usize>,
+    ) -> Option<usize> {
         if indices.is_empty() {
             return None;
         }
@@ -111,87 +177,93 @@ impl IntervalNode {
                 .then_with(|| left.cmp(right))
         });
         let center = interval_midpoint(items[indices[median]].rect(), axis);
-        let mut left_indices = Vec::new();
-        let mut right_indices = Vec::new();
-        let mut crossing = Vec::new();
+        let (left_end, crossing_end) = partition_intervals(indices, items, axis, center);
+        let (left_indices, remaining) = indices.split_at_mut(left_end);
+        let (crossing, right_indices) = remaining.split_at_mut(crossing_end - left_end);
 
-        for index in indices {
-            let (start, end) = interval(items[index].rect(), axis);
-            if end <= center {
-                left_indices.push(index);
-            } else if start >= center {
-                right_indices.push(index);
-            } else {
-                crossing.push(index);
-            }
-        }
-
-        let mut crossing_by_start = crossing;
-        crossing_by_start.sort_unstable_by(|left, right| {
+        crossing.sort_unstable_by(|left, right| {
             interval(items[*left].rect(), axis)
                 .0
                 .total_cmp(&interval(items[*right].rect(), axis).0)
                 .then_with(|| left.cmp(right))
         });
-        let mut crossing_by_end = crossing_by_start.clone();
-        crossing_by_end.sort_unstable_by(|left, right| {
+        let start_offset = pooled_by_start.len();
+        pooled_by_start.extend_from_slice(crossing);
+        let crossing_by_start = start_offset..pooled_by_start.len();
+
+        crossing.sort_unstable_by(|left, right| {
             interval(items[*right].rect(), axis)
                 .1
                 .total_cmp(&interval(items[*left].rect(), axis).1)
                 .then_with(|| left.cmp(right))
         });
+        let end_offset = pooled_by_end.len();
+        pooled_by_end.extend_from_slice(crossing);
+        let crossing_by_end = end_offset..pooled_by_end.len();
 
-        Some(Box::new(Self {
+        let node_index = nodes.len();
+        nodes.push(Self {
             center,
             crossing_by_start,
             crossing_by_end,
-            left: Self::build(left_indices, items, axis),
-            right: Self::build(right_indices, items, axis),
-        }))
+            left: None,
+            right: None,
+        });
+        let left = Self::build(
+            left_indices,
+            items,
+            axis,
+            nodes,
+            pooled_by_start,
+            pooled_by_end,
+        );
+        let right = Self::build(
+            right_indices,
+            items,
+            axis,
+            nodes,
+            pooled_by_start,
+            pooled_by_end,
+        );
+        nodes[node_index].left = left;
+        nodes[node_index].right = right;
+        Some(node_index)
     }
+}
 
-    fn query(
-        &self,
-        rect: UiSurfaceRect,
-        items: &[DrawItem],
-        axis: Axis,
-        visit: &mut impl FnMut(usize),
-    ) {
-        let (start, end) = interval(rect, axis);
-        match (end.total_cmp(&self.center), start.total_cmp(&self.center)) {
-            (Ordering::Less | Ordering::Equal, _) => {
-                for index in &self.crossing_by_start {
-                    if interval(items[*index].rect(), axis).0 >= end {
-                        break;
-                    }
-                    visit(*index);
-                }
-                if let Some(left) = &self.left {
-                    left.query(rect, items, axis, visit);
-                }
-            }
-            (_, Ordering::Greater | Ordering::Equal) => {
-                for index in &self.crossing_by_end {
-                    if interval(items[*index].rect(), axis).1 <= start {
-                        break;
-                    }
-                    visit(*index);
-                }
-                if let Some(right) = &self.right {
-                    right.query(rect, items, axis, visit);
-                }
-            }
-            _ => {
-                self.crossing_by_start.iter().copied().for_each(&mut *visit);
-                if let Some(left) = &self.left {
-                    left.query(rect, items, axis, visit);
-                }
-                if let Some(right) = &self.right {
-                    right.query(rect, items, axis, visit);
-                }
-            }
+fn partition_intervals(
+    indices: &mut [usize],
+    items: &[DrawItem],
+    axis: Axis,
+    center: f32,
+) -> (usize, usize) {
+    let mut left_end = 0;
+    let mut cursor = 0;
+    let mut right_start = indices.len();
+    while cursor < right_start {
+        let (start, end) = interval(items[indices[cursor]].rect(), axis);
+        if end <= center {
+            indices.swap(left_end, cursor);
+            left_end += 1;
+            cursor += 1;
+        } else if start >= center {
+            right_start -= 1;
+            indices.swap(cursor, right_start);
+        } else {
+            cursor += 1;
         }
     }
+    (left_end, right_start)
+}
+
+#[cfg(test)]
+pub(super) fn interval_index_storage_counts(items: &[DrawItem]) -> (usize, usize, usize) {
+    let index = IntervalIndex::new(items, preferred_sweep_axis(items));
+    (
+        index.nodes.len(),
+        index.crossing_by_start.len(),
+        index.crossing_by_end.len(),
+    )
 }
 
 fn interval(rect: UiSurfaceRect, axis: Axis) -> (f32, f32) {

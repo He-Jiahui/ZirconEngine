@@ -1,10 +1,8 @@
 use crate::core::commands::DocumentKind;
+use crate::core::extension::{DefaultWorkbenchPreset, WorkbenchSlot};
 use crate::ui::workbench::autolayout::PaneConstraints;
-use crate::ui::workbench::layout::ActivityDrawerSlot;
 
-use super::{
-    ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, PreferredHost, ViewDescriptor,
-};
+use super::{ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, ViewDescriptor};
 
 impl ViewDescriptor {
     pub fn with_document_kind(mut self, document_kind: DocumentKind) -> Self {
@@ -22,14 +20,18 @@ impl ViewDescriptor {
         self
     }
 
-    pub fn with_preferred_drawer_slot(mut self, slot: ActivityDrawerSlot) -> Self {
-        self.preferred_drawer_slot = Some(slot);
-        self.preferred_host = PreferredHost::Drawer(slot);
+    pub fn with_workbench_slot(mut self, workbench_slot: WorkbenchSlot) -> Self {
+        self.workbench_slot = workbench_slot;
         self
     }
 
-    pub fn with_preferred_host(mut self, preferred_host: PreferredHost) -> Self {
-        self.preferred_host = preferred_host;
+    pub fn with_default_presets(
+        mut self,
+        presets: impl IntoIterator<Item = DefaultWorkbenchPreset>,
+    ) -> Self {
+        self.default_presets = presets.into_iter().collect();
+        self.default_presets.sort();
+        self.default_presets.dedup();
         self
     }
 

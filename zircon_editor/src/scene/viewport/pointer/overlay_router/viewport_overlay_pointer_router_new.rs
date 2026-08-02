@@ -19,6 +19,9 @@ impl ViewportOverlayPointerRouter {
             dispatcher,
             shared,
             interaction_extract: None,
+            renderable_candidates: Vec::new().into(),
+            scene_world_generation: None,
+            renderer_visible_spatial_snapshot: None,
         };
         router.rebuild_surface();
         router

@@ -259,6 +259,16 @@ abilityScalesWithRanged(abilityIndex: int): bool {
     return abilities.text(abilityIndex, "scalesWith") == "ranged";
 }
 
+// The reference applies coefficient scaling to a periodic effect only when
+// the enclosing ability is not one of its direct/chain/area damage hybrids.
+// Weapon strikes and roots intentionally remain periodic-scaling candidates.
+dotProfileUsesPowerBonus(abilityIndex: int, rank: int): bool {
+    return !hasEffectType(abilityIndex, rank, "directDamage") &&
+        !hasEffectType(abilityIndex, rank, "chainDamage") &&
+        !hasEffectType(abilityIndex, rank, "aoeDamage") &&
+        !hasEffectType(abilityIndex, rank, "aoeRoot");
+}
+
 scalingPower(state: NumericDispatchState, abilityIndex: int, school: string): float {
     return scaling.abilityScalingPower(
         state.source.spellPower,
@@ -269,38 +279,61 @@ scalingPower(state: NumericDispatchState, abilityIndex: int, school: string): fl
     );
 }
 
-pureDotProfileFromSnapshot(
+pub dotProfileFromResolvedTotal(
     abilityIndex: int,
     rank: int,
-    snapshotPower: int
+    effectIndex: int,
+    snapshotPower: int,
+    resolvedTotal: int
 ): PureDotProfile {
     var profile = new PureDotProfile();
     if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
-        rank > abilities.rankCount(abilityIndex) || snapshotPower < 0 ||
-        effects.count(abilityIndex, rank) != 1 ||
-        effects.typeAt(abilityIndex, rank, 0) != "dot") {
+        rank > abilities.rankCount(abilityIndex) || effectIndex < 0 ||
+        effectIndex >= effects.count(abilityIndex, rank) || snapshotPower < 0 ||
+        resolvedTotal < 0 || effects.typeAt(abilityIndex, rank, effectIndex) != "dot") {
         return profile;
     }
-    var duration = effects.metric(abilityIndex, rank, 0, "duration");
-    var interval = effects.metric(abilityIndex, rank, 0, "interval");
+    var duration = effects.metric(abilityIndex, rank, effectIndex, "duration");
+    var interval = effects.metric(abilityIndex, rank, effectIndex, "interval");
     if (duration <= 0.0 || interval <= 0.0 || duration < interval) { return profile; }
     var ticks = duration / interval;
-    var base = roundPositive(effects.metric(abilityIndex, rank, 0, "total") / ticks);
+    var base = roundPositive(<float>resolvedTotal / ticks);
     if (base < 1) { base = 1; }
     var school = abilities.text(abilityIndex, "school");
-    var bonus = scaling.dotTickBonus(
-        <float>snapshotPower,
-        school,
-        abilityScalesWithRanged(abilityIndex),
-        duration,
-        interval
-    );
+    var bonus = dotProfileUsesPowerBonus(abilityIndex, rank) ?
+        scaling.dotTickBonus(
+            <float>snapshotPower,
+            school,
+            abilityScalesWithRanged(abilityIndex),
+            duration,
+            interval
+        ) : 0;
     profile.valid = true;
     profile.snapshotPower = snapshotPower;
     profile.damage = base + bonus;
     profile.duration = duration;
     profile.interval = interval;
     return profile;
+}
+
+pureDotProfileFromSnapshot(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int
+): PureDotProfile {
+    var profile = new PureDotProfile();
+    if (abilityIndex < 0 || rank <= 0 ||
+        effects.count(abilityIndex, rank) != 1 ||
+        effects.typeAt(abilityIndex, rank, 0) != "dot") {
+        return profile;
+    }
+    return dotProfileFromResolvedTotal(
+        abilityIndex,
+        rank,
+        0,
+        snapshotPower,
+        roundPositive(effects.metric(abilityIndex, rank, 0, "total"))
+    );
 }
 
 pub resolvePureDotProfile(
@@ -335,6 +368,23 @@ pub pureDotProfileMatches(
     interval: float
 ): bool {
     var profile = pureDotProfileFromSnapshot(abilityIndex, rank, snapshotPower);
+    return profile.valid && profile.damage == damage &&
+        closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
+}
+
+pub dotProfileMatchesResolvedTotal(
+    abilityIndex: int,
+    rank: int,
+    effectIndex: int,
+    snapshotPower: int,
+    resolvedTotal: int,
+    damage: int,
+    duration: float,
+    interval: float
+): bool {
+    var profile = dotProfileFromResolvedTotal(
+        abilityIndex, rank, effectIndex, snapshotPower, resolvedTotal
+    );
     return profile.valid && profile.damage == damage &&
         closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
 }
@@ -652,6 +702,10 @@ pub dispatchNumericEffect(
     } else if (effectType == "finisherDamage") {
         dispatchFinisherDamage(state, abilityIndex, rank, effectIndex, spentCombo);
     } else if (effectType == "heal") {
+        dispatchHeal(state, abilityIndex, rank, effectIndex);
+    } else if (effectType == "massTemporalEcho") {
+        // The WOS reducer selects the ordered group target list; each selected
+        // member then consumes this same source heal effect and its RNG draw.
         dispatchHeal(state, abilityIndex, rank, effectIndex);
     } else if (effectType == "dot") {
         dispatchDot(state, abilityIndex, rank, effectIndex);

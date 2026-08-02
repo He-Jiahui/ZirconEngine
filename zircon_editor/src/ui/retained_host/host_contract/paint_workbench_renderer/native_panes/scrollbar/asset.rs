@@ -74,9 +74,9 @@ mod tests {
     use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
     use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
     use crate::ui::workbench::asset_content_layout::{
-        asset_content_paint_metadata, AssetContentPaintNodeInput,
-        BROWSER_CONTENT_PREVIEW_CONTROL_ID, BROWSER_CONTENT_TABLE_CONTROL_ID,
-        BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
+        AssetContentPaintNodeInput, BROWSER_CONTENT_PREVIEW_CONTROL_ID,
+        BROWSER_CONTENT_TABLE_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
+        asset_content_paint_metadata,
     };
 
     #[test]

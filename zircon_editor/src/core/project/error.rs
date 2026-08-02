@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
 use thiserror::Error;
-use zircon_runtime::asset::project::ProjectManifestError;
 use zircon_runtime::asset::AssetImportError;
+use zircon_runtime::asset::project::ProjectManifestError;
+use zircon_runtime::core::CoreError;
+use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime_interface::project::ProjectNameError;
 use zircon_runtime_interface::project::ProjectTemplatePackError;
 
@@ -44,6 +46,51 @@ pub enum ProjectAuthorityError {
         #[from]
         #[source]
         source: AssetImportError,
+    },
+    #[error("scene asset target is invalid: {uri}; {reason}")]
+    SceneTarget { uri: String, reason: &'static str },
+    #[error("scene asset already exists: {path}")]
+    SceneAlreadyExists { path: PathBuf },
+    #[error("scene document operation failed: {source}")]
+    SceneDocument {
+        #[from]
+        #[source]
+        source: SceneProjectError,
+    },
+    #[error("scene catalog synchronization failed: {source}")]
+    SceneCatalog {
+        #[source]
+        source: AssetImportError,
+    },
+    #[error("scene catalog {operation} failed: {source}")]
+    SceneCatalogRuntime {
+        operation: &'static str,
+        #[source]
+        source: CoreError,
+    },
+    #[error(
+        "scene catalog synchronization failed: {catalog}; catalog reconciliation after source rollback also failed: {reconcile}"
+    )]
+    SceneCatalogReconcile {
+        catalog: AssetImportError,
+        #[source]
+        reconcile: AssetImportError,
+    },
+    #[error(
+        "scene catalog synchronization failed: {catalog}; scene source rollback also failed: {rollback}"
+    )]
+    SceneCatalogRollback {
+        #[source]
+        catalog: AssetImportError,
+        rollback: Box<ProjectAuthorityError>,
+    },
+    #[error(
+        "removing the published scene staging source failed: {cleanup}; scene source rollback also failed: {rollback}"
+    )]
+    SceneStagingCleanupRollback {
+        #[source]
+        cleanup: Box<ProjectAuthorityError>,
+        rollback: Box<ProjectAuthorityError>,
     },
     #[error("project template pack failed: {source}")]
     TemplatePack {

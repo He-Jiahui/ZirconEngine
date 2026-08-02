@@ -1,12 +1,12 @@
-use crate::text::layout::{measure_line_width_with_provider, tab_interval_width};
 use crate::text::ParagraphOverride;
 use crate::text::SharedTextLayoutSession;
+use crate::text::layout::{measure_line_width_with_provider, tab_interval_width};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange,
 };
 
-use super::super::adapter::text_style;
+use crate::text::text_style;
 use super::super::rich_text::{UiParsedText, UiTextSourceRun};
 use super::candidate_line::CandidateLine;
 use super::direction::is_rtl_direction;
@@ -83,7 +83,7 @@ impl ResolvedParagraphColumnConstraints {
 }
 
 pub(super) fn has_block_layout(parsed: &UiParsedText) -> bool {
-    parsed.paragraphs.iter().any(|(_, paragraph)| {
+    parsed.paragraphs().any(|(_, paragraph, _)| {
         paragraph.indent.is_some()
             || paragraph.indent_level.is_some()
             || paragraph.list_prefix.is_some()
@@ -120,7 +120,7 @@ pub(super) fn resolve_paragraph_column_constraints_with_provider(
     frame_height: f32,
     provider: &mut SharedTextLayoutSession,
 ) -> ResolvedParagraphColumnConstraints {
-    let paragraphs = physical_paragraph_ranges(&parsed.text)
+    let paragraphs = physical_paragraph_ranges(parsed.text())
         .into_iter()
         .map(|range| ResolvedPhysicalParagraphColumns {
             range,
@@ -161,9 +161,9 @@ pub(super) fn column_constraints_for_candidate_with_provider(
     provider: &mut SharedTextLayoutSession,
 ) -> ColumnConstraints {
     let column = &columns[index];
-    let paragraph_start = physical_paragraph_start(&parsed.text, column.source_range.start);
+    let paragraph_start = physical_paragraph_start(parsed.text(), column.source_range.start);
     let first_physical_column = index == 0
-        || physical_paragraph_start(&parsed.text, columns[index - 1].source_range.start)
+        || physical_paragraph_start(parsed.text(), columns[index - 1].source_range.start)
             != paragraph_start;
     column_constraints_with_provider(
         parsed,
@@ -196,10 +196,10 @@ pub(super) fn wrap_block_paragraphs_with_provider(
     provider: &mut SharedTextLayoutSession,
 ) -> Vec<CandidateLine> {
     let mut lines = Vec::new();
-    for range in physical_paragraph_ranges(&parsed.text) {
-        let paragraph = merged_override(&parsed.paragraphs, range.start);
+    for range in physical_paragraph_ranges(parsed.text()) {
+        let paragraph = merged_override(parsed, range.start);
         let (first_inset, continuation_inset) =
-            paragraph_insets(&parsed.text, &paragraph, style, provider);
+            paragraph_insets(parsed.text(), &paragraph, style, provider);
         let runs = slice_runs(&parsed.runs, range);
         let mut paragraph_lines = wrap_source_runs_with_line_widths_provider(
             &runs,
@@ -230,9 +230,9 @@ pub(super) fn line_constraints_with_provider(
     first_physical_line: bool,
     provider: &mut SharedTextLayoutSession,
 ) -> LineConstraints {
-    let paragraph = merged_override(&parsed.paragraphs, source_offset);
+    let paragraph = merged_override(parsed, source_offset);
     let (first_inset, continuation_inset) =
-        paragraph_insets(&parsed.text, &paragraph, style, provider);
+        paragraph_insets(parsed.text(), &paragraph, style, provider);
     let inset = if first_physical_line {
         first_inset
     } else {
@@ -253,11 +253,11 @@ pub(super) fn conservative_rich_width_with_provider(
     provider: &mut SharedTextLayoutSession,
 ) -> f32 {
     let maximum_inset = parsed
-        .paragraphs
-        .iter()
-        .map(|(range, _)| {
-            let paragraph = merged_override(&parsed.paragraphs, range.0 as usize);
-            let (first, continuation) = paragraph_insets(&parsed.text, &paragraph, style, provider);
+        .paragraphs()
+        .map(|(range, _, _)| {
+            let paragraph = merged_override(parsed, range.start);
+            let (first, continuation) =
+                paragraph_insets(parsed.text(), &paragraph, style, provider);
             first.max(continuation)
         })
         .fold(0.0_f32, f32::max);
@@ -310,23 +310,20 @@ fn paragraph_insets(
     (level_indent + first_indent, level_indent + prefix_width)
 }
 
-fn merged_override(
-    paragraphs: &[((u32, u32), ParagraphOverride)],
-    offset: usize,
-) -> ParagraphOverride {
-    let offset = u32::try_from(offset).unwrap_or(u32::MAX);
+fn merged_override(parsed: &UiParsedText, offset: usize) -> ParagraphOverride {
     let mut merged = ParagraphOverride::default();
     let mut level = 0_u16;
     let mut first_indent = 0.0_f32;
     let mut align_owner = None;
     let mut prefix_owner = None;
-    for (range, paragraph) in paragraphs
-        .iter()
-        .filter(|(range, _)| range.0 <= offset && offset < range.1)
+    for (range, paragraph, list_prefix) in parsed
+        .paragraphs()
+        .filter(|(range, _, _)| range.start <= offset && offset < range.end)
     {
+        let range = (to_u32(range.start), to_u32(range.end));
         if let Some(align) = paragraph.align {
-            if is_more_specific(*range, align_owner) {
-                align_owner = Some(*range);
+            if is_more_specific(range, align_owner) {
+                align_owner = Some(range);
                 merged.align = Some(align);
             }
         }
@@ -334,14 +331,20 @@ fn merged_override(
             .saturating_add(paragraph.indent_level.unwrap_or_default())
             .min(MAX_RESOLVED_INDENT_LEVEL);
         first_indent += paragraph.indent.unwrap_or_default().max(0.0);
-        if paragraph.list_prefix.is_some() && is_more_specific(*range, prefix_owner) {
-            prefix_owner = Some(*range);
-            merged.list_prefix = paragraph.list_prefix;
+        if let Some(list_prefix) = list_prefix {
+            if is_more_specific(range, prefix_owner) {
+                prefix_owner = Some(range);
+                merged.list_prefix = Some((to_u32(list_prefix.start), to_u32(list_prefix.end)));
+            }
         }
     }
     merged.indent_level = (level > 0).then_some(level);
     merged.indent = (first_indent > 0.0).then_some(first_indent);
     merged
+}
+
+fn to_u32(value: usize) -> u32 {
+    u32::try_from(value).unwrap_or(u32::MAX)
 }
 
 fn is_more_specific(candidate: (u32, u32), current: Option<(u32, u32)>) -> bool {
@@ -373,19 +376,7 @@ fn physical_paragraph_ranges(text: &str) -> Vec<UiTextRange> {
 
 fn slice_runs(runs: &[UiTextSourceRun], range: UiTextRange) -> Vec<UiTextSourceRun> {
     runs.iter()
-        .filter_map(|run| {
-            let start = run.source_range.start.max(range.start);
-            let end = run.source_range.end.min(range.end);
-            (start < end).then(|| UiTextSourceRun {
-                kind: run.kind,
-                text: run.text[start - run.source_range.start..end - run.source_range.start]
-                    .to_string(),
-                source_range: UiTextRange { start, end },
-                style: run.style.clone(),
-                inline: run.inline.clone(),
-                link: run.link.clone(),
-            })
-        })
+        .filter_map(|run| run.subrange(range.start, range.end))
         .collect()
 }
 

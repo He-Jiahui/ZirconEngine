@@ -1,13 +1,16 @@
 #[cfg(test)]
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(test)]
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex, MutexGuard};
+#[cfg(test)]
+use std::time::Duration;
 use std::time::Instant;
 
-use super::{
-    LoadedNativePlugin, NativeBridgeMethodBinding, NativePluginCallbackDiagnostics,
-    NativePluginLoader,
-};
+#[cfg(test)]
+use super::NativeBridgeMethodBinding;
+use super::{LoadedNativePlugin, NativePluginCallbackDiagnostics, NativePluginLoader};
 use crate::plugin::PluginModuleKind;
 
 mod bridge_lifecycle;
@@ -22,8 +25,11 @@ mod registration_replay;
 mod reports;
 mod runtime_behavior;
 
+use bridge_methods::ValidatedRuntimeBridgeMethodBindings;
 use keys::NativePluginLiveRegistry;
-use registration_replay::NativePluginRegistrationReplayGeneration;
+use registration_replay::{
+    NativePluginRegistrationReplayBridgeContext, NativePluginRegistrationReplayGeneration,
+};
 
 #[cfg(test)]
 use super::{
@@ -65,18 +71,121 @@ use runtime_behavior::NativePluginRuntimeBehaviorError;
 #[cfg(test)]
 use runtime_behavior::{allow_missing_unload_callback_to_drop_handle, unload_behavior};
 
+#[cfg(test)]
+const NATIVE_PLUGIN_LIVE_HOST_TEST_GATE_TIMEOUT: Duration = Duration::from_secs(10);
+
+#[cfg(test)]
+struct NativePluginLiveHostTestGateTrigger {
+    reached: mpsc::Sender<()>,
+    resume: Mutex<mpsc::Receiver<()>>,
+}
+
+#[cfg(test)]
+struct NativePluginLiveHostTestGate {
+    reached: mpsc::Receiver<()>,
+    resume: Option<mpsc::Sender<()>>,
+}
+
+#[cfg(test)]
+impl NativePluginLiveHostTestGate {
+    fn wait_until_reached(&self, description: &str) {
+        self.reached
+            .recv_timeout(NATIVE_PLUGIN_LIVE_HOST_TEST_GATE_TIMEOUT)
+            .unwrap_or_else(|error| panic!("{description} did not reach its test gate: {error}"));
+    }
+
+    fn resume(&mut self) {
+        if let Some(resume) = self.resume.take() {
+            let _ = resume.send(());
+        }
+    }
+}
+
+#[cfg(test)]
+impl Drop for NativePluginLiveHostTestGate {
+    fn drop(&mut self) {
+        self.resume();
+    }
+}
+
+#[cfg(test)]
+#[derive(Default)]
+struct NativePluginLiveHostTestGateHook {
+    installed: Mutex<Option<Arc<NativePluginLiveHostTestGateTrigger>>>,
+}
+
+#[cfg(test)]
+impl std::fmt::Debug for NativePluginLiveHostTestGateHook {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("NativePluginLiveHostTestGateHook")
+            .finish_non_exhaustive()
+    }
+}
+
+#[cfg(test)]
+impl NativePluginLiveHostTestGateHook {
+    fn install(&self) -> NativePluginLiveHostTestGate {
+        let (reached_tx, reached_rx) = mpsc::channel();
+        let (resume_tx, resume_rx) = mpsc::channel();
+        let trigger = Arc::new(NativePluginLiveHostTestGateTrigger {
+            reached: reached_tx,
+            resume: Mutex::new(resume_rx),
+        });
+        let mut installed = self
+            .installed
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert!(installed.is_none(), "test gate is already installed");
+        *installed = Some(trigger);
+        NativePluginLiveHostTestGate {
+            reached: reached_rx,
+            resume: Some(resume_tx),
+        }
+    }
+
+    fn pause_if_installed(&self) {
+        let trigger = self
+            .installed
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        let Some(trigger) = trigger else {
+            return;
+        };
+        if trigger.reached.send(()).is_err() {
+            return;
+        }
+        let _ = trigger
+            .resume
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .recv_timeout(NATIVE_PLUGIN_LIVE_HOST_TEST_GATE_TIMEOUT);
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct NativePluginLiveHost {
     loader: NativePluginLoader,
     loaded: ObservedLoadedNativePlugins,
-    runtime_bridge_method_bindings: Mutex<NativePluginLiveRegistry<Vec<NativeBridgeMethodBinding>>>,
-    // A generation captures the parsed manifest and the callback owner that backs its slots.
-    // The revision map prevents a late builder from publishing an older load or binding generation.
+    runtime_bridge_method_bindings:
+        Mutex<NativePluginLiveRegistry<ValidatedRuntimeBridgeMethodBindings>>,
+    // Bridge helpers and registration replay share one immutable slot/scope generation. The
+    // registration layer adds parsed manifest data without rebuilding that lower projection.
+    runtime_bridge_generations:
+        Mutex<NativePluginLiveRegistry<Arc<NativePluginRegistrationReplayBridgeContext>>>,
+    runtime_bridge_generation_build_lock: Mutex<()>,
     runtime_registration_replay_generations:
         Mutex<NativePluginLiveRegistry<Arc<NativePluginRegistrationReplayGeneration>>>,
+    runtime_registration_replay_generation_build_lock: Mutex<()>,
+    // The revision prevents a late builder from publishing an older load or binding generation.
     runtime_registration_replay_generation_revisions: Mutex<NativePluginLiveRegistry<u64>>,
     #[cfg(test)]
     registration_replay_context_build_counters: RegistrationReplayContextBuildCounters,
+    #[cfg(test)]
+    registration_replay_source_test_hook: NativePluginLiveHostTestGateHook,
+    #[cfg(test)]
+    registration_replay_before_cache_test_hook: NativePluginLiveHostTestGateHook,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -89,6 +198,10 @@ pub struct NativePluginLiveHostDiagnostics {
 #[derive(Debug, Default)]
 struct ObservedLoadedNativePlugins {
     entries: Mutex<NativePluginLiveRegistry<LoadedNativePlugin>>,
+    #[cfg(test)]
+    lock_attempts: AtomicU64,
+    #[cfg(test)]
+    after_lock_test_hook: NativePluginLiveHostTestGateHook,
     lock_acquisitions: AtomicU64,
     total_lock_wait_ns: AtomicU64,
     max_lock_wait_ns: AtomicU64,
@@ -98,8 +211,14 @@ impl ObservedLoadedNativePlugins {
     fn lock(
         &self,
     ) -> std::sync::LockResult<MutexGuard<'_, NativePluginLiveRegistry<LoadedNativePlugin>>> {
+        #[cfg(test)]
+        self.lock_attempts.fetch_add(1, Ordering::Release);
         let wait_started = Instant::now();
         let result = self.entries.lock();
+        #[cfg(test)]
+        if result.is_ok() {
+            self.after_lock_test_hook.pause_if_installed();
+        }
         let wait_ns = wait_started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
         self.lock_acquisitions.fetch_add(1, Ordering::Relaxed);
         self.total_lock_wait_ns
@@ -114,6 +233,21 @@ impl ObservedLoadedNativePlugins {
             total_loaded_lock_wait_ns: self.total_lock_wait_ns.load(Ordering::Relaxed),
             max_loaded_lock_wait_ns: self.max_lock_wait_ns.load(Ordering::Relaxed),
         }
+    }
+
+    #[cfg(test)]
+    fn is_unlocked(&self) -> bool {
+        self.entries.try_lock().is_ok()
+    }
+
+    #[cfg(test)]
+    fn lock_attempts(&self) -> u64 {
+        self.lock_attempts.load(Ordering::Acquire)
+    }
+
+    #[cfg(test)]
+    fn install_after_lock_test_gate(&self) -> NativePluginLiveHostTestGate {
+        self.after_lock_test_hook.install()
     }
 }
 

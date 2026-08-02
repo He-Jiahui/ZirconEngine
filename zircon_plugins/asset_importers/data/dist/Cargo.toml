@@ -13,4 +13,5 @@ default = ["dist"]
 dist = ["zircon_plugin_sdk/native"]
 
 [dependencies]
+zircon_plugin_asset_importer_data_runtime = { path = "../runtime" }
 zircon_plugin_sdk = { workspace = true, default-features = false }

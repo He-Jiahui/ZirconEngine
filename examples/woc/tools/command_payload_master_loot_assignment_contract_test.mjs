@@ -19,7 +19,7 @@ const coverage = JSON.parse(
   read('reference', 'current-head', 'command_payload_coverage.json'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 assert.deepEqual(payloads.entries.find((entry) => entry.id === 49), {
   id: 49,
   name: 'masterAssign',
@@ -45,9 +45,9 @@ assert.match(input, /MASTER_ASSIGN_COMMAND_ID/);
 const entry = coverage.entries.find((candidate) => candidate.id === 49);
 assert.equal(entry.transport_coverage, 'typed_contract');
 assert.equal(entry.descriptor.kind, 'master_loot_assignment');
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('master-loot assignment payload contract is complete\n');

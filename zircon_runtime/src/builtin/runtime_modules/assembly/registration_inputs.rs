@@ -9,6 +9,8 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
+#[cfg(feature = "graphics")]
+use crate::plugin::PluginShaderModuleSource;
 use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 use super::extension_inputs::{
@@ -25,6 +27,8 @@ pub(super) struct RuntimeModuleRegistrationInputs {
     geometry_sources: Vec<GeometrySourceDescriptor>,
     #[cfg(feature = "graphics")]
     shading_models: Vec<ShadingModelDescriptor>,
+    #[cfg(feature = "graphics")]
+    plugin_shader_module_sources: Vec<PluginShaderModuleSource>,
     #[cfg(feature = "graphics")]
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
     #[cfg(feature = "graphics")]
@@ -58,6 +62,8 @@ impl RuntimeModuleRegistrationInputs {
             geometry_sources: Vec::new(),
             #[cfg(feature = "graphics")]
             shading_models: Vec::new(),
+            #[cfg(feature = "graphics")]
+            plugin_shader_module_sources: Vec::new(),
             #[cfg(feature = "graphics")]
             render_pass_executors: Vec::new(),
             #[cfg(feature = "graphics")]
@@ -99,6 +105,11 @@ impl RuntimeModuleRegistrationInputs {
     }
 
     #[cfg(feature = "graphics")]
+    pub(super) fn plugin_shader_module_sources(&self) -> &[PluginShaderModuleSource] {
+        &self.plugin_shader_module_sources
+    }
+
+    #[cfg(feature = "graphics")]
     pub(super) fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
         &self.render_pass_executors
     }
@@ -136,6 +147,8 @@ impl RuntimeModuleRegistrationInputs {
             geometry_sources: extension_inputs.geometry_sources,
             #[cfg(feature = "graphics")]
             shading_models: extension_inputs.shading_models,
+            #[cfg(feature = "graphics")]
+            plugin_shader_module_sources: extension_inputs.shader_module_sources,
             #[cfg(feature = "graphics")]
             render_pass_executors: extension_inputs.render_pass_executors,
             #[cfg(feature = "graphics")]

@@ -6,12 +6,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
     corner_radius: f32,
     rect: &FrameRect,
 ) {
-    if corner_radius <= 0.0 || image.width == 0 || image.height == 0 {
-        return;
-    }
-    let display_edge = rect.width.min(rect.height).max(1.0);
-    let mask_edge = image.width.min(image.height) as f32;
-    let mask_radius = (corner_radius / display_edge * mask_edge).clamp(0.0, mask_edge * 0.5);
+    let mask_radius = rounded_alpha_mask_radius(image, corner_radius, rect);
     if mask_radius <= 0.0 {
         return;
     }
@@ -31,6 +26,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
         "mui-avatar-mask:{}x{}:{:.3}:{}",
         image.width, image.height, mask_radius, image.resource_key
     );
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn rounded_alpha_mask_radius(
+    image: &HostPaintImagePixels,
+    corner_radius: f32,
+    rect: &FrameRect,
+) -> f32 {
+    if corner_radius <= 0.0 || image.width == 0 || image.height == 0 {
+        return 0.0;
+    }
+    let display_edge = rect.width.min(rect.height).max(1.0);
+    let mask_edge = image.width.min(image.height) as f32;
+    (corner_radius / display_edge * mask_edge).clamp(0.0, mask_edge * 0.5)
 }
 
 fn rounded_mask_contains_pixel(x: u32, y: u32, width: u32, height: u32, radius: f32) -> bool {

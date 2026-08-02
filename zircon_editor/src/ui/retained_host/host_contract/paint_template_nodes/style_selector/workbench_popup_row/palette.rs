@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 
 #[cfg(test)]
@@ -19,8 +19,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub danger_text: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_popup_row_palette(
-) -> WorkbenchPopupRowPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_popup_row_palette()
+-> WorkbenchPopupRowPalette {
     workbench_popup_row_palette_from_host(current_host_palette())
 }
 

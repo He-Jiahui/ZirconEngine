@@ -1,5 +1,6 @@
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
+use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 use crate::core::framework::animation::AnimationPoseOutput;
@@ -511,6 +512,9 @@ pub struct RenderParticleGpuFrameExtract {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VisibilityRenderableInput {
     pub entity: EntityId,
+    /// Stable render-instance identity. Mesh primitives sharing an authoring entity must use
+    /// distinct keys so visibility planning never collapses them by owner.
+    pub stable_instance_key: u64,
     pub mobility: Mobility,
     pub render_layer_mask: RenderLayerSet,
 }
@@ -567,6 +571,7 @@ impl RenderFrameExtract {
             .iter()
             .map(|mesh| VisibilityRenderableInput {
                 entity: mesh.node_id,
+                stable_instance_key: mesh.stable_instance_key,
                 mobility: mesh.mobility,
                 render_layer_mask: mesh.common.layer_mask.clone(),
             })
@@ -574,16 +579,22 @@ impl RenderFrameExtract {
         let renderable_entities = renderables
             .iter()
             .map(|entry| entry.entity)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
             .collect::<Vec<_>>();
         let static_entities = renderables
             .iter()
             .filter(|entry| entry.mobility == Mobility::Static)
             .map(|entry| entry.entity)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
             .collect::<Vec<_>>();
         let dynamic_entities = renderables
             .iter()
             .filter(|entry| entry.mobility == Mobility::Dynamic)
             .map(|entry| entry.entity)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
             .collect::<Vec<_>>();
 
         Self {

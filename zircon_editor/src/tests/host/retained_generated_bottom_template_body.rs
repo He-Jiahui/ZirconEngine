@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, GeneratedBottomPaneViewData, PaneNativeBodyData, PanePayload,
-    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
+    GeneratedBottomPaneViewData, PaneNativeBodyData, PanePayload, PanePayloadBuildContext,
+    PanePresentation, PaneShellPresentation, build_pane_body_presentation,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::to_host_contract_generated_bottom_pane_from_host_pane;
@@ -27,9 +27,10 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             drawers: BTreeMap::new(),
             floating_windows: Vec::new(),
         },
-        scene_entries: Vec::new(),
+        scene_entries: Default::default(),
         inspector: None,
         status_line: String::new(),
+        console_output: "".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),

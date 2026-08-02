@@ -3,8 +3,8 @@ use crate::core::framework::render::{
     RenderParticleSpriteSnapshot,
 };
 use crate::core::math::{Vec2, Vec3, Vec4};
-use crate::scene::components::default_render_layer_mask;
 use crate::scene::EntityId;
+use crate::scene::components::default_render_layer_mask;
 
 use super::World;
 
@@ -534,9 +534,11 @@ mod tests {
         );
 
         assert_eq!(stable_sprite_keys(&sprites), vec![1, 2]);
-        assert!(sprites
-            .iter()
-            .all(|sprite| sprite.render_layer_mask.to_scene_schema_v1_mask_lossy() == 1 << 4));
+        assert!(
+            sprites
+                .iter()
+                .all(|sprite| sprite.render_layer_mask.to_scene_schema_v1_mask_lossy() == 1 << 4)
+        );
     }
 
     #[test]

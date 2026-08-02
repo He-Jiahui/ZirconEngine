@@ -4,11 +4,11 @@ use std::sync::Arc;
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontQuery, FontScript};
 use unicode_normalization::char::canonical_combining_class;
 
-use super::composite_resolve::{candidate_faces_for_cluster, script_for_char, CompositeFontIndex};
+use super::composite_resolve::{CompositeFontIndex, candidate_faces_for_cluster, script_for_char};
 use super::database::FontDatabase;
 use super::fallback_cache::{
-    fallback_candidate_cache_key, fallback_query_identity, fallback_resolution_cache_key,
-    FallbackQueryIdentity,
+    FallbackQueryIdentity, fallback_candidate_cache_key, fallback_query_identity,
+    fallback_resolution_cache_key,
 };
 
 pub(super) const DEFAULT_FALLBACK_MAX_DEPTH: u8 = 10;

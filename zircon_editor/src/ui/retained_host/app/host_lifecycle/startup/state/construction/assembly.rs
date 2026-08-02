@@ -45,7 +45,11 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         module_plugin_projection_cache: Default::default(),
         #[cfg(feature = "profiling")]
         runtime_gateway,
-        module_plugin_live_host_backend: Box::new(native_plugin_live_host),
+        module_plugin_live_host_backend: Box::new(
+            module_plugin_actions::NativePluginDevelopmentLiveHostBackend::new(
+                native_plugin_live_host,
+            ),
+        ),
         desktop_export_reports: BTreeMap::new(),
         desktop_export_jobs: build_export_actions::DesktopExportJobQueue::new(editor_jobs.clone()),
         desktop_export_output_overrides: BTreeMap::new(),
@@ -113,9 +117,11 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         shell_scale_factor,
         chrome_metrics: WorkbenchChromeMetrics::default(),
         shell_geometry: None,
+        shell_token_region_defaults: None,
         transient_region_preferred: BTreeMap::new(),
         active_drawer_resize: None,
         pending_close_prompt: None,
+        scene_picker_session: None,
         invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
         pending_ui_perf_scenario: None,
         presentation_dirty: true,

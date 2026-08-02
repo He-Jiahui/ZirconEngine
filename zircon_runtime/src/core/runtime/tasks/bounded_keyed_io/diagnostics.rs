@@ -14,3 +14,12 @@ pub struct BoundedKeyedIoDiagnostics {
     pub coalesced: u64,
     pub worker_wall: Duration,
 }
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct BoundedKeyedIoShutdownReport {
+    pub complete: bool,
+    pub incomplete_entries: usize,
+    pub failed: u64,
+    pub cancelled: u64,
+    pub diagnostics: BoundedKeyedIoDiagnostics,
+}

@@ -1,9 +1,7 @@
-use crate::core::framework::render::RenderPhase;
-use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MeshDrawQueuePhase;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassPipelineKind,
+    taa_reactive_mask_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext,
     MeshPassProcessor,
 };
 
@@ -18,36 +16,10 @@ impl MeshPassProcessor for TaaReactiveMaskPassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
-        if batch.disabled_passes.disables_taa_reactive_mask() {
-            return;
-        }
-        let Some(pipeline_kind) = reactive_mask_pipeline_kind(batch) else {
+        let Some(spec) = taa_reactive_mask_command_spec(batch) else {
             return;
         };
-        let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
-        out.push(batch.command(RenderPhase::PostProcess, pipeline_kind, pipeline_variant_id));
-    }
-}
-
-fn reactive_mask_pipeline_kind(batch: &MeshBatchRef) -> Option<MeshPassPipelineKind> {
-    match batch.phase() {
-        MeshDrawQueuePhase::Transparent
-            if batch.relevant_to_main_phase(RenderPhase::Transparent3d) =>
-        {
-            Some(MeshPassPipelineKind::TaaReactiveMask)
-        }
-        MeshDrawQueuePhase::Opaque
-            if batch.has_taa_reactive_material_mask()
-                && batch.relevant_to_main_phase(RenderPhase::Opaque3d) =>
-        {
-            Some(MeshPassPipelineKind::TaaReactiveMaterialMask)
-        }
-        MeshDrawQueuePhase::AlphaMask
-            if batch.has_taa_reactive_material_mask()
-                && batch.relevant_to_main_phase(RenderPhase::AlphaMask3d) =>
-        {
-            Some(MeshPassPipelineKind::TaaReactiveMaterialMask)
-        }
-        _ => None,
+        let pipeline_variant_id = context.pipeline_variant_id(spec.pipeline_kind, batch);
+        out.push(batch.command(spec.phase, spec.pipeline_kind, pipeline_variant_id));
     }
 }

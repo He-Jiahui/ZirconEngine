@@ -106,9 +106,9 @@ impl NativeBitmapAtlasStorageSubmission {
     pub(crate) fn atlas_layer_count(&self) -> u32 {
         self.submission
             .gpu_draw
-            .vertices
+            .instances
             .iter()
-            .map(|vertex| vertex.page_index)
+            .map(|instance| instance.page_index)
             .max()
             .unwrap_or(0)
             .saturating_add(1)

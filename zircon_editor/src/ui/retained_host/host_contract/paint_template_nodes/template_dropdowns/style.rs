@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::style_selector::{select_workbench_dropdown_style, WorkbenchDropdownStyle};
+use super::super::style_selector::{WorkbenchDropdownStyle, select_workbench_dropdown_style};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_style(
     node: &TemplatePaneNodeData,

@@ -1,4 +1,4 @@
-use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
+use super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
 
 const DATA_TABLE_TAB_CONTROLS: &[&str] = &[
     "WorkbenchExtensionDataTableRowsTab",

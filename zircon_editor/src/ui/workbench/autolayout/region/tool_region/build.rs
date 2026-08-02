@@ -22,13 +22,20 @@ pub(crate) fn build_tool_region_state(
     region: ShellRegionId,
     slots: &[ActivityDrawerSlot],
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
     metrics: &WorkbenchChromeMetrics,
     force_collapsed: bool,
 ) -> RegionState {
     let tab = active_tool_tab(model, slots);
     let has_tabs = tool_region_has_tabs(model, slots);
     let expanded = tool_region_is_expanded(model, slots);
-    let extent = tool_region_extent(model, region, slots, transient_region_preferred);
+    let extent = tool_region_extent(
+        model,
+        region,
+        slots,
+        transient_region_preferred,
+        token_region_preferred,
+    );
 
     if !has_tabs {
         return RegionState {

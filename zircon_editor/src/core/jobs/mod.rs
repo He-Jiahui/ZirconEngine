@@ -1,3 +1,4 @@
+mod admission;
 mod cancellation_token;
 mod category;
 mod context;
@@ -10,6 +11,7 @@ mod limits;
 mod mutex_group;
 mod progress;
 mod pump;
+mod quota_settings;
 mod shutdown;
 mod spec;
 mod system;
@@ -17,17 +19,23 @@ mod system;
 mod test_support;
 mod ticket;
 
+pub use admission::{EditorJobAdmission, EditorJobAdmissionKey};
 pub use cancellation_token::CancellationToken;
 pub use category::{JobCategory, JobPriority};
 pub use context::JobContext;
-pub use error::{JobError, JobFailure, JobSubmitError, MutexGroupError};
+pub use error::{JobAdmissionKeyError, JobError, JobFailure, JobSubmitError, MutexGroupError};
 pub use event::{JobEvent, JobEventKind};
 pub use id::JobId;
 pub use job::EditorJob;
-pub use limits::EditorJobLimits;
+pub use limits::{EditorJobAdmissionLimits, EditorJobAdmissionSnapshot, EditorJobLimits};
 pub use mutex_group::MutexGroup;
 pub use progress::{EditorJobProgress, EditorJobProgressSnapshot, EditorJobProgressSource};
-pub use pump::{JobEventPumpBudget, DEFAULT_JOB_EVENT_PUMP_BUDGET};
+pub use pump::{DEFAULT_JOB_EVENT_PUMP_BUDGET, JobEventPumpBudget};
+pub use quota_settings::{
+    EDITOR_JOB_EXPORT_QUOTA_KEY, EDITOR_JOB_INTERACTIVE_SAVE_QUOTA_KEY, EDITOR_JOB_PLAY_QUOTA_KEY,
+    EDITOR_JOB_THUMBNAIL_QUOTA_KEY, EditorJobQuotaSettingsError,
+    register_editor_job_quota_settings, resolve_editor_job_limits,
+};
 pub use shutdown::UnfinishedEditorJob;
 pub use spec::EditorJobSpec;
 pub use system::EditorJobSystem;

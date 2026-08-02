@@ -15,6 +15,8 @@ pub(crate) struct GpuSceneSkinnedJointPaletteState {
 pub(super) struct GpuSceneSkinnedJointPaletteBuffers {
     buffers: [Arc<wgpu::Buffer>; 2],
     slots: SkinnedPaletteBufferSlots,
+    committed_storage: Option<SkinnedMeshJointPaletteStorage>,
+    staged_storage: Option<SkinnedMeshJointPaletteStorage>,
 }
 
 impl GpuSceneSkinnedJointPaletteBuffers {
@@ -22,6 +24,8 @@ impl GpuSceneSkinnedJointPaletteBuffers {
         Self {
             buffers: [storage.create_buffer(device), storage.create_buffer(device)],
             slots: SkinnedPaletteBufferSlots::default(),
+            committed_storage: None,
+            staged_storage: None,
         }
     }
 
@@ -29,10 +33,26 @@ impl GpuSceneSkinnedJointPaletteBuffers {
         &mut self,
         queue: &wgpu::Queue,
         storage: &SkinnedMeshJointPaletteStorage,
-    ) -> Arc<wgpu::Buffer> {
+    ) -> (Arc<wgpu::Buffer>, u64) {
+        if self.staged_storage == Some(*storage) {
+            let staged_slot = self.slots.stage();
+            return (self.buffers[staged_slot].clone(), 0);
+        }
+        if self.committed_storage == Some(*storage) {
+            let committed_slot = self
+                .slots
+                .committed()
+                .expect("committed skinned palette storage requires a committed buffer slot");
+            return (self.buffers[committed_slot].clone(), 0);
+        }
+
         let staged_slot = self.slots.stage();
-        storage.write_buffer(queue, &self.buffers[staged_slot]);
-        self.buffers[staged_slot].clone()
+        storage.write_active_prefix(queue, &self.buffers[staged_slot]);
+        self.staged_storage = Some(*storage);
+        (
+            self.buffers[staged_slot].clone(),
+            storage.active_upload_byte_len(),
+        )
     }
 
     fn committed_buffer(&self) -> Option<Arc<wgpu::Buffer>> {
@@ -43,10 +63,14 @@ impl GpuSceneSkinnedJointPaletteBuffers {
 
     fn commit_staged_after_success(&mut self) {
         self.slots.commit_after_success();
+        if let Some(staged_storage) = self.staged_storage.take() {
+            self.committed_storage = Some(staged_storage);
+        }
     }
 
     fn discard_staged(&mut self) {
         self.slots.discard_staged();
+        self.staged_storage = None;
     }
 }
 
@@ -80,7 +104,7 @@ impl GpuScene {
             .entry(stable_instance_key)
             .or_insert_with(|| GpuSceneSkinnedJointPaletteBuffers::new(device, current_storage));
         let previous = use_previous.then(|| buffers.committed_buffer()).flatten();
-        let current = buffers.stage(queue, current_storage);
+        let (current, _) = buffers.stage(queue, current_storage);
         (Some(current), previous)
     }
 
@@ -278,6 +302,23 @@ mod tests {
         assert!(Arc::ptr_eq(&third_current, &first_current));
         assert!(Arc::ptr_eq(&third_previous, &second_current));
         assert!(!Arc::ptr_eq(&third_previous, &first_current));
+    }
+
+    #[test]
+    fn stable_palette_reuses_its_committed_buffer_without_uploading() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let storage = test_palette(1.0).storage;
+        let mut buffers = GpuSceneSkinnedJointPaletteBuffers::new(&backend.device, &storage);
+
+        let (first, first_uploaded_bytes) = buffers.stage(&backend.queue, &storage);
+        assert_eq!(first_uploaded_bytes, storage.active_upload_byte_len());
+        buffers.commit_staged_after_success();
+
+        let (stable, stable_uploaded_bytes) = buffers.stage(&backend.queue, &storage);
+        assert_eq!(stable_uploaded_bytes, 0);
+        assert!(Arc::ptr_eq(&stable, &first));
     }
 
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {

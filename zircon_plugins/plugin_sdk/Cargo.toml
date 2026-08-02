@@ -7,10 +7,11 @@ description = "Shared builder APIs for Zircon plugin packages."
 
 [features]
 default = ["runtime"]
-runtime = ["dep:zircon_runtime"]
+declaration = []
+runtime = ["declaration", "dep:zircon_runtime"]
 editor = ["runtime", "dep:zircon_editor", "editor_contribution"]
 editor_contribution = ["dep:zircon_runtime_interface"]
-native = ["dep:serde", "dep:toml", "editor_contribution"]
+native = ["declaration", "dep:serde", "dep:toml", "editor_contribution"]
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"], optional = true }

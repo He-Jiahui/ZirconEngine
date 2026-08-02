@@ -4,7 +4,9 @@ mod extension_ids;
 mod plugin;
 
 pub use capability::{
-    CAPABILITY, DIAGNOSTICS_CAPABILITY, EDITOR_CAPABILITIES, NATIVE_DYNAMIC_REPORT_CAPABILITY,
+    CAPABILITY, DIAGNOSTICS_CAPABILITY, EDITOR_BUILD_EXPORT_DESKTOP_DECLARATION,
+    EDITOR_CAPABILITIES, EDITOR_CRATE_NAME, NATIVE_DYNAMIC_REPORT_CAPABILITY, NATIVE_EDITOR_ENTRY,
+    NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES,
     PLUGIN_ID,
 };
 pub use export_wizard::{
@@ -42,10 +44,10 @@ pub use plugin::{
 };
 pub use zircon_editor::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,
-    execute_export_wizard_stage, export_wizard_panel_action_call, export_wizard_panel_action_for_control,
-    export_wizard_panel_binding_entries, export_wizard_panel_bindings,
-    export_wizard_panel_retained_projection, export_wizard_panel_template_state,
-    export_wizard_pipeline_plan, project_export_wizard_panel,
+    execute_export_wizard_stage, export_wizard_panel_action_call,
+    export_wizard_panel_action_for_control, export_wizard_panel_binding_entries,
+    export_wizard_panel_bindings, export_wizard_panel_retained_projection,
+    export_wizard_panel_template_state, export_wizard_pipeline_plan, project_export_wizard_panel,
     register_export_wizard_panel_bindings, register_export_wizard_panel_template,
     run_export_wizard_job, ExportWizardCancelSignal, ExportWizardCommandExecution,
     ExportWizardCommandRunner, ExportWizardControlState, ExportWizardJobCompletion,
@@ -61,13 +63,12 @@ pub use zircon_editor::{
     ProcessCommandRunner,
 };
 pub use zircon_editor::{
-    ExportStageProgressKind,
-    ExportWizardProgressState, ExportWizardStageArtifactPath, ExportWizardStageProgressSnapshot,
-    ExportWizardStreamEvent, DESKTOP_EXPORT_ARTIFACT_PATHS_SLOT, DESKTOP_EXPORT_CANCEL_BINDING_ID,
-    DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BINDING_ID,
-    DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, DESKTOP_EXPORT_MISSING_INPUTS_SLOT,
-    DESKTOP_EXPORT_REPORT_BODY_SLOT, DESKTOP_EXPORT_STAGE_ROWS_SLOT,
-    DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
+    ExportStageProgressKind, ExportWizardProgressState, ExportWizardStageArtifactPath,
+    ExportWizardStageProgressSnapshot, ExportWizardStreamEvent, DESKTOP_EXPORT_ARTIFACT_PATHS_SLOT,
+    DESKTOP_EXPORT_CANCEL_BINDING_ID, DESKTOP_EXPORT_CANCEL_BUTTON,
+    DESKTOP_EXPORT_GENERATE_PLAN_BINDING_ID, DESKTOP_EXPORT_GENERATE_PLAN_BUTTON,
+    DESKTOP_EXPORT_MISSING_INPUTS_SLOT, DESKTOP_EXPORT_REPORT_BODY_SLOT,
+    DESKTOP_EXPORT_STAGE_ROWS_SLOT, DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
     DESKTOP_EXPORT_TERMINAL_OUTPUT_SLOT, EXPORT_WIZARD_BINDING_SYMBOL,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
 };

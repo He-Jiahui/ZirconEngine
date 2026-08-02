@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    RenderFrameProfile, RenderFramework, RenderViewportDescriptor,
+    RenderFrameProfile, RenderFramework, RenderSubmissionConfig, RenderViewportDescriptor,
 };
 use crate::core::math::UVec2;
 use crate::graphics::debug_markers;
@@ -53,6 +53,13 @@ fn export_render17_pfm1_render_graph_cold_warm_wgpu_png() {
         "res://textures/plan01_full_chain_lut.png",
     );
     let framework = full_chain_product_framework(asset_manager);
+    framework
+        .set_submission_config(
+            RenderSubmissionConfig::synchronous()
+                .with_parallel_recording(1)
+                .with_gpu_timing(),
+        )
+        .expect("Render17 evidence must explicitly enable parallel recording and GPU timing");
     let viewport = create_full_chain_product_viewport(
         &framework,
         viewport_size,
@@ -162,10 +169,12 @@ fn export_render17_pfm1_render_graph_cold_warm_wgpu_png() {
             .map(String::as_str)
             .collect::<Vec<_>>(),
     );
-    assert!(profile
-        .passes
-        .iter()
-        .all(|pass| graph_dump.contains(&pass.pass_name)));
+    assert!(
+        profile
+            .passes
+            .iter()
+            .all(|pass| graph_dump.contains(&pass.pass_name))
+    );
     assert_terminal_signal_covers_frame(&frame);
     assert_terminal_signal_has_chromatic_content(
         &frame,

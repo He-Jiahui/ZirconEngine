@@ -234,12 +234,28 @@ pub(super) struct NativePluginCallbackLease {
 }
 
 impl NativePluginCallbackLease {
-    fn begin_callback_measurement(&self) -> Option<Instant> {
+    pub(super) fn begin_callback_measurement(&self) -> Option<Instant> {
         self.owner.begin_callback_measurement()
     }
 
-    fn complete_callback_measurement(&self, started_at: Option<Instant>) {
+    pub(super) fn complete_callback_measurement(&self, started_at: Option<Instant>) {
         self.owner.complete_callback_measurement(started_at);
+    }
+}
+
+/// Passive ownership for a loaded dynamic-library generation. Retaining this owner keeps native
+/// function pointers valid without counting as an executing callback or blocking a lifecycle
+/// transition. A callback lease is acquired only immediately before foreign code is invoked.
+#[derive(Clone)]
+pub(super) struct NativePluginLibraryGenerationOwner {
+    owner: Arc<NativePluginStableLibrary>,
+}
+
+impl NativePluginLibraryGenerationOwner {
+    pub(super) fn acquire_callback(
+        &self,
+    ) -> Result<NativePluginCallbackLease, NativePluginCallbackLeaseError> {
+        self.owner.acquire_callback()
     }
 }
 
@@ -297,9 +313,7 @@ impl std::error::Error for NativePluginLifecycleTransitionError {}
 pub(super) struct NativePluginBehaviorSnapshot {
     behavior: Option<NativePluginBehaviorCallbacks>,
     module_kind: &'static str,
-    // The lease starts at snapshot freeze to block unload, while duration starts only when an
-    // operation is invoked so broadcast queueing is not reported as callback execution time.
-    _callback_lease: NativePluginCallbackLease,
+    generation_owner: NativePluginLibraryGenerationOwner,
 }
 
 impl NativePluginBehaviorSnapshot {
@@ -308,49 +322,44 @@ impl NativePluginBehaviorSnapshot {
         name: &str,
         payload: &[u8],
     ) -> NativePluginBehaviorCallReport {
-        self.invoke_measured(|| {
-            self.behavior.as_ref().map_or_else(
-                || missing_behavior_report(self.module_kind),
-                |behavior| behavior.invoke_command(name, payload),
-            )
-        })
+        let Some(behavior) = self.behavior.as_ref() else {
+            return missing_behavior_report(self.module_kind);
+        };
+        self.invoke_measured(|| behavior.invoke_command(name, payload))
     }
 
     pub(super) fn save_state(&self) -> NativePluginBehaviorCallReport {
-        self.invoke_measured(|| {
-            self.behavior.as_ref().map_or_else(
-                || missing_behavior_report(self.module_kind),
-                |behavior| behavior.save_state(),
-            )
-        })
+        let Some(behavior) = self.behavior.as_ref() else {
+            return missing_behavior_report(self.module_kind);
+        };
+        self.invoke_measured(|| behavior.save_state())
     }
 
     pub(super) fn restore_state(&self, state: &[u8]) -> NativePluginBehaviorCallReport {
-        self.invoke_measured(|| {
-            self.behavior.as_ref().map_or_else(
-                || missing_behavior_report(self.module_kind),
-                |behavior| behavior.restore_state(state),
-            )
-        })
+        let Some(behavior) = self.behavior.as_ref() else {
+            return missing_behavior_report(self.module_kind);
+        };
+        self.invoke_measured(|| behavior.restore_state(state))
     }
 
     pub(super) fn unload(&self) -> NativePluginBehaviorCallReport {
-        self.invoke_measured(|| {
-            self.behavior.as_ref().map_or_else(
-                || missing_behavior_report(self.module_kind),
-                |behavior| behavior.unload(),
-            )
-        })
+        let Some(behavior) = self.behavior.as_ref() else {
+            return missing_behavior_report(self.module_kind);
+        };
+        self.invoke_measured(|| behavior.unload())
     }
 
     fn invoke_measured(
         &self,
         callback: impl FnOnce() -> NativePluginBehaviorCallReport,
     ) -> NativePluginBehaviorCallReport {
-        let started_at = self._callback_lease.begin_callback_measurement();
+        let callback_lease = match self.generation_owner.acquire_callback() {
+            Ok(lease) => lease,
+            Err(error) => return callback_rejected_report(self.module_kind, error),
+        };
+        let started_at = callback_lease.begin_callback_measurement();
         let report = callback();
-        self._callback_lease
-            .complete_callback_measurement(started_at);
+        callback_lease.complete_callback_measurement(started_at);
         report
     }
 }
@@ -380,16 +389,15 @@ impl LoadedNativePlugin {
         self.library.acquire_callback()
     }
 
-    fn callback_execution_lease(
-        &self,
-    ) -> Result<NativePluginCallbackLease, NativePluginCallbackLeaseError> {
-        self.library.acquire_callback()
+    pub(super) fn library_generation_owner(&self) -> NativePluginLibraryGenerationOwner {
+        NativePluginLibraryGenerationOwner {
+            owner: self.library.clone(),
+        }
     }
 
     pub(super) fn runtime_behavior_snapshot(
         &self,
     ) -> Result<NativePluginBehaviorSnapshot, NativePluginCallbackLeaseError> {
-        let callback_lease = self.callback_execution_lease()?;
         Ok(NativePluginBehaviorSnapshot {
             behavior: self
                 .runtime_entry_report
@@ -397,14 +405,13 @@ impl LoadedNativePlugin {
                 .and_then(|report| report.behavior.as_ref())
                 .map(NativePluginBehavior::callback_snapshot),
             module_kind: "runtime",
-            _callback_lease: callback_lease,
+            generation_owner: self.library_generation_owner(),
         })
     }
 
     fn editor_behavior_snapshot(
         &self,
     ) -> Result<NativePluginBehaviorSnapshot, NativePluginCallbackLeaseError> {
-        let callback_lease = self.callback_execution_lease()?;
         Ok(NativePluginBehaviorSnapshot {
             behavior: self
                 .editor_entry_report
@@ -412,7 +419,7 @@ impl LoadedNativePlugin {
                 .and_then(|report| report.behavior.as_ref())
                 .map(NativePluginBehavior::callback_snapshot),
             module_kind: "editor",
-            _callback_lease: callback_lease,
+            generation_owner: self.library_generation_owner(),
         })
     }
 

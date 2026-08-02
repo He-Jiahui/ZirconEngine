@@ -152,6 +152,7 @@ impl PreparedMeshVirtualGeometryExecutionStats {
 struct VirtualGeometryExecutionSegmentKey {
     instance_index: Option<u32>,
     entity: u64,
+    stable_instance_key: u64,
     page_id: u32,
     cluster_start_ordinal: u32,
     cluster_span_count: u32,
@@ -168,6 +169,7 @@ impl From<&RenderVirtualGeometryExecutionSegment> for VirtualGeometryExecutionSe
         Self {
             instance_index: segment.instance_index,
             entity: segment.entity,
+            stable_instance_key: segment.stable_instance_key_or_legacy(),
             page_id: segment.page_id,
             cluster_start_ordinal: segment.cluster_start_ordinal,
             cluster_span_count: segment.cluster_span_count,

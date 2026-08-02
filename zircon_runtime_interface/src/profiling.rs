@@ -370,6 +370,9 @@ impl ProfileControlResponse {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RuntimeInputDiagnosticsSnapshot {
+    /// Viewport resize events successfully applied to the active runtime viewport.
+    #[serde(default)]
+    pub viewport_resize_count: u64,
     /// Pointer movement events successfully submitted to the active InputManager.
     pub pointer_move_count: u64,
     /// Mouse button press events successfully submitted to the active InputManager.
@@ -509,6 +512,7 @@ mod tests {
         assert!(json.get("render_backend_name").is_none());
         assert!(json.get("project_identity").is_none());
         assert!(json.get("scene_uri").is_none());
+        assert_eq!(json["input"]["viewport_resize_count"].as_u64(), Some(0));
         assert_eq!(json["input"]["pointer_move_count"].as_u64(), Some(0));
     }
 
@@ -600,9 +604,37 @@ mod tests {
     }
 
     #[test]
+    fn runtime_diagnostics_snapshot_deserializes_input_evidence_without_viewport_resize_count() {
+        let snapshot = RuntimeDiagnosticsSnapshot {
+            input: RuntimeInputDiagnosticsSnapshot {
+                viewport_resize_count: 9,
+                pointer_move_count: 1,
+                mouse_button_press_count: 2,
+                mouse_button_release_count: 3,
+                keyboard_press_count: 4,
+                keyboard_release_count: 5,
+            },
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+        let mut json = serde_json::to_value(snapshot).expect("serialize runtime diagnostics");
+        json["input"]
+            .as_object_mut()
+            .expect("runtime input diagnostics object")
+            .remove("viewport_resize_count");
+
+        let decoded: RuntimeDiagnosticsSnapshot =
+            serde_json::from_value(json).expect("deserialize legacy input diagnostics");
+
+        assert_eq!(decoded.input.viewport_resize_count, 0);
+        assert_eq!(decoded.input.pointer_move_count, 1);
+        assert_eq!(decoded.input.keyboard_release_count, 5);
+    }
+
+    #[test]
     fn runtime_diagnostics_snapshot_roundtrips_product_input_evidence() {
         let snapshot = RuntimeDiagnosticsSnapshot {
             input: RuntimeInputDiagnosticsSnapshot {
+                viewport_resize_count: 6,
                 pointer_move_count: 1,
                 mouse_button_press_count: 2,
                 mouse_button_release_count: 3,

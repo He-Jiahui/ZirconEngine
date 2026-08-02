@@ -20,6 +20,7 @@ pub(super) struct ViewportRecordState {
     quality_profile_taa_quality: Option<TaaQualityPreset>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
     previous_static_index: Option<VisibilityStaticIndex>,
+    previous_dynamic_index: Option<VisibilityStaticIndex>,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     previous_particle_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
     pipeline_asset: RenderPipelineAsset,
@@ -42,6 +43,7 @@ impl ViewportRecordState {
         quality_profile_taa_quality: Option<TaaQualityPreset>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
         previous_static_index: Option<VisibilityStaticIndex>,
+        previous_dynamic_index: Option<VisibilityStaticIndex>,
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
         previous_particle_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
         pipeline_asset: RenderPipelineAsset,
@@ -61,6 +63,7 @@ impl ViewportRecordState {
             quality_profile_taa_quality,
             previous_visibility,
             previous_static_index,
+            previous_dynamic_index,
             previous_motion_vector_camera,
             previous_particle_sprites,
             pipeline_asset,
@@ -94,6 +97,10 @@ impl ViewportRecordState {
 
     pub(super) fn previous_static_index(&self) -> Option<&VisibilityStaticIndex> {
         self.previous_static_index.as_ref()
+    }
+
+    pub(super) fn previous_dynamic_index(&self) -> Option<&VisibilityStaticIndex> {
+        self.previous_dynamic_index.as_ref()
     }
 
     pub(super) fn take_previous_motion_vector_camera(&mut self) -> Option<ViewportCameraSnapshot> {

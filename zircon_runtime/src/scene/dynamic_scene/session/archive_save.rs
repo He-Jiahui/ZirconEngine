@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::{
-    target_path, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveSavePreviewReport,
+    RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveSavePreviewReport, target_path,
 };
 
 pub(super) fn preview_save_to_path(
@@ -10,7 +10,14 @@ pub(super) fn preview_save_to_path(
     target_path: impl AsRef<Path>,
 ) -> Result<RuntimeSessionArchiveSavePreviewReport, RuntimeSessionArchiveError> {
     let target_path = target_path.as_ref();
-    let statistics = archive.statistics()?;
+    preview_artifact_save_to_path(&archive.sealed_artifact()?, target_path)
+}
+
+pub(super) fn preview_artifact_save_to_path(
+    artifact: &RuntimeSessionArchiveArtifact,
+    target_path: impl AsRef<Path>,
+) -> Result<RuntimeSessionArchiveSavePreviewReport, RuntimeSessionArchiveError> {
+    let target_path = target_path.as_ref();
 
     Ok(RuntimeSessionArchiveSavePreviewReport {
         target_path: target_path.to_path_buf(),
@@ -18,6 +25,6 @@ pub(super) fn preview_save_to_path(
             target_path,
             "runtime session archive target",
         )?,
-        statistics,
+        statistics: artifact.statistics().clone(),
     })
 }

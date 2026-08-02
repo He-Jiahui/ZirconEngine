@@ -3,7 +3,7 @@ use std::sync::{Arc, Barrier};
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
@@ -58,7 +58,7 @@ impl EditorRuntimeGateway for SessionOnlyGateway {
     fn poll_operation(
         &self,
         _handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })
@@ -108,7 +108,7 @@ impl EditorRuntimeGateway for BlockingGateway {
     fn poll_operation(
         &self,
         _handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })
@@ -151,7 +151,7 @@ impl EditorRuntimeGateway for PanickingCapabilitiesGateway {
     fn poll_operation(
         &self,
         _handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         unreachable!("panicking gateway must not be published")
     }
 

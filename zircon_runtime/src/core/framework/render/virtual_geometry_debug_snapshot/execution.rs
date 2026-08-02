@@ -1,4 +1,5 @@
 use super::encoding::decode_optional_u32;
+use crate::core::framework::render::render_mesh_stable_instance_key;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderVirtualGeometrySubmissionEntry {
@@ -30,6 +31,7 @@ pub struct RenderVirtualGeometryExecutionSegment {
     pub original_index: u32,
     pub instance_index: Option<u32>,
     pub entity: u64,
+    pub stable_instance_key: u64,
     pub page_id: u32,
     pub draw_ref_index: u32,
     pub submission_index: Option<u32>,
@@ -42,6 +44,17 @@ pub struct RenderVirtualGeometryExecutionSegment {
     pub lineage_depth: u32,
     pub lod_level: u8,
     pub frontier_rank: u32,
+}
+
+impl RenderVirtualGeometryExecutionSegment {
+    /// Preserves execution snapshots produced before virtual geometry carried the render key.
+    pub fn stable_instance_key_or_legacy(&self) -> u64 {
+        if self.stable_instance_key == 0 {
+            render_mesh_stable_instance_key(self.entity, 0)
+        } else {
+            self.stable_instance_key
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

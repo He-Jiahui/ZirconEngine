@@ -50,4 +50,9 @@ WGPU presenter没有generation-owned compiled batch/spatial plan；batch depende
 
 ## 修复结果与回传
 
-Open state: `generation-owned compiled full projection/batch/spatial plan、稳定generation stats cache、首次damage compile单次command traversal、稳定image resource-key preparation fast path及1/100/1k/10k rows/columns确定性scale counter矩阵已落地；stats与WGPU geometry共享finite-positive rect可见性契约，防止NaN/Infinity绕过区间与damage判定；待current-source managed Windows validation、p50/p95与alloc/clone预算、GPU/Softbuffer像素及RenderDoc parity后回传`。
+- 2026-08-01前向性能修复把interval owner从每节点`Box<IntervalNode> + 2 Vec`收敛为一个`Vec<IntervalNode>`与两块预分配crossing index pool；每个可见item只进入一个节点及每个排序池一次，稀疏10k输入不再产生节点级小堆分配。
+- batch layer materialization不再建立`Vec<Vec<item>>`，改为单一`layered_item_indices`按`(depth, painter order)`排序后切片；solid vertex、solid instance与image vertex输出按投影精确容量一次预留。
+- 新增10k稀疏矩阵结构回归，约束node count不超过item count且两个crossing pool都精确覆盖N个item；既有1/100/1k/10k rows/columns、clip、all-overlap、generation cache与damage回归继续约束候选、依赖与painter order。测试owner同时拆分为597行主文件与335行`scale_and_cache.rs`，未形成新的大文件。
+- 二次静态解析发现拆分子模块默认查找路径错误后已前向修复为显式`#[path = "tests/scale_and_cache.rs"]`；精确rustfmt能够解析完整模块树。最新受管编译request `4dca61081c8a4e2b88cc857eb66dd89e`仅为`session.register` accepted timeout，未启动Cargo且不作为动态性能证据。
+
+Open state: `generation-owned compiled full projection/batch/spatial plan、稳定generation stats cache、首次damage compile单次command traversal、稳定image resource-key preparation fast path、连续池化interval index、单缓冲layer分组及1/100/1k/10k确定性规模矩阵已落地；scoped rustfmt/diff-check通过；待current-source managed Windows validation、真实allocator与CPU p50/p95记录、GPU/Softbuffer像素及RenderDoc parity后回传`。

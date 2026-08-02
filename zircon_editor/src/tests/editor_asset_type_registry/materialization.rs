@@ -670,7 +670,7 @@ fn host_asset_type_consumers_route_through_one_generation_cache() {
     let shell = include_str!("../../ui/workbench/shell_state.rs");
 
     assert!(registration.contains("fn enabled_asset_types_for_shell("));
-    assert!(registration.contains("asset_type_registry_cache.extension_registered()"));
+    assert!(registration.contains("asset_type_registry_cache.contributions_changed()"));
     assert!(!runtime_access.contains("materialize_enabled_asset_types("));
     assert!(!asset_event.contains("materialize_enabled_asset_types("));
     assert!(runtime_access.contains("enabled_asset_types_for_shell("));

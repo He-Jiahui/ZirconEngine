@@ -57,7 +57,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/render/index.md
 status: completed
-last_refined: 2026-07-12
+last_refined: 2026-07-23
 ---
 
 # 07 runtime 侧性能热路径
@@ -307,6 +307,9 @@ last_refined: 2026-07-12
   performance guard 28/28 通过。新的全包 focused 构建在执行前被活动 Shader 06
   Realtime IBL 与 Physics 03 ColliderShape 编译中间态阻塞，未改动外部 owner，也不把该共享
   workspace blocker 记作 Runtime 07 实现缺口。M1.1/M1.2/M1.3 与 Runtime 07 设计方案至此完成。
+
+## 性能审阅交接
+
 - 2026-07-18 新性能交接：core scheduler诊断每个微任务事件仍以全局in-flight/epoch执行至少4次额外共享原子RMW，frame snapshot还锁稳定缓存；同时runtime facade的临时handle Arc增减已局部清零。Runtime07需把1M no-op jobs、fan-in 1/100/10k、diagnostics on/off与1M facade calls纳入WPR/CPU/原子争用基线，联动Runtime11完成worker-local/sharded或采样计数。责任见PERF-MVP-317/319。
 - 2026-07-18 state热路径交接：state init二次锁已止损，但transition history仍无界增长/整段clone，hook dispatch仍三表全扫。Runtime07需增加100k transitions、60/120 Hz、1/100/10k hooks压测，记录history bytes、clone bytes、lock wait和hook probes；预算见PERF-MVP-320。
 - 2026-07-18 startup热路径交接：module ready忙轮询已止损为bounded sleep，仍须以WPR证明0/1/100/10,000 ms async ready的启动线程CPU并迁移到notification；module/service/dependency各1/100/10k还需记录activation descriptor/list clone与blocked-unload graph visits。预算见PERF-MVP-321。

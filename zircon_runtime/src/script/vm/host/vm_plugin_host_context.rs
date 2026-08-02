@@ -6,7 +6,7 @@ use crate::core::PluginContext;
 use super::super::{
     CapabilitySet, HostExportRegistry, HostRegistry, PluginSlotId, VmHostInterfaceError,
     VmHostInterfaceRegistry, VmInterfaceCaller, VmPluginPackageSource, VmReflectionCatalog,
-    VmReflectionRegistrySnapshot,
+    VmReflectionRegistrySnapshot, VmReflectionWorldAccess,
 };
 use super::VmPluginSlotLifecycle;
 
@@ -90,9 +90,72 @@ pub struct VmPluginHostContext {
     /// Assigned by the coordinator before backend load/activation. Backends use
     /// this identity when a VM package registers host extension callbacks.
     pub vm_owner: Option<(PluginSlotId, u32)>,
+    reflection_world_access: VmReflectionWorldAccess,
 }
 
 impl VmPluginHostContext {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        plugin: PluginContext,
+        capabilities: CapabilitySet,
+        backend_selector: String,
+        package_source: VmPluginPackageSource,
+        host_registry: HostRegistry,
+        host_exports: HostExportRegistry,
+        host_interfaces: VmHostInterfaceRegistry,
+        reflection_catalog: VmReflectionCatalog,
+        reflection_schema_installer: VmReflectionSchemaInstaller,
+        slot_lifecycle: Arc<dyn VmPluginSlotLifecycle>,
+    ) -> Self {
+        Self {
+            plugin,
+            capabilities,
+            backend_selector,
+            package_source,
+            host_registry,
+            host_exports,
+            host_interfaces,
+            reflection_catalog,
+            reflection_schema_installer,
+            slot_lifecycle,
+            vm_owner: None,
+            reflection_world_access: VmReflectionWorldAccess::new(),
+        }
+    }
+
+    /// Constructs a host context for an external crate's test fixture only.
+    ///
+    /// Production package setup remains crate-private so only the runtime can issue the
+    /// reflection-world access token. This API is deliberately unavailable without the explicit
+    /// non-default `test-support` feature.
+    #[cfg(feature = "test-support")]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_for_tests(
+        plugin: PluginContext,
+        capabilities: CapabilitySet,
+        backend_selector: String,
+        package_source: VmPluginPackageSource,
+        host_registry: HostRegistry,
+        host_exports: HostExportRegistry,
+        host_interfaces: VmHostInterfaceRegistry,
+        reflection_catalog: VmReflectionCatalog,
+        reflection_schema_installer: VmReflectionSchemaInstaller,
+        slot_lifecycle: Arc<dyn VmPluginSlotLifecycle>,
+    ) -> Self {
+        Self::new(
+            plugin,
+            capabilities,
+            backend_selector,
+            package_source,
+            host_registry,
+            host_exports,
+            host_interfaces,
+            reflection_catalog,
+            reflection_schema_installer,
+            slot_lifecycle,
+        )
+    }
+
     pub fn with_vm_owner(&self, slot: PluginSlotId, generation: u32) -> Self {
         let mut context = self.clone();
         context.vm_owner = Some((slot, generation));
@@ -110,6 +173,11 @@ impl VmPluginHostContext {
 
     pub fn vm_owner(&self) -> Option<(PluginSlotId, u32)> {
         self.vm_owner
+    }
+
+    /// Returns the runtime-issued token that a concrete reflection backend receives at setup.
+    pub fn reflection_world_access(&self) -> VmReflectionWorldAccess {
+        self.reflection_world_access.clone()
     }
 
     pub fn install_reflection_schema(

@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
+use crate::asset::{ASSET_MODULE_NAME, AssetManager, AssetUri};
 use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
 use crate::core::manager::RegisteredManagerService;
-use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
+use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::{
     CoreError, CoreHandle, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
     ModuleDescriptor, ServiceKind, StartupMode,
 };
-use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
+use crate::engine_module::{EngineModule, dependency_on, factory, qualified_name};
 
 mod core_error;
 mod default_level_manager;
@@ -17,6 +17,7 @@ mod level_display_name;
 mod level_manager_contract;
 mod level_manager_lifecycle;
 mod level_manager_project_io;
+mod scene_artifact_io;
 mod world_driver;
 
 use core_error::scene_core_error;

@@ -83,7 +83,7 @@ pub(crate) fn mutate_shared_font_database<R>(
 }
 
 #[cfg(test)]
-pub(super) fn force_publish_shared_font_database(database: &FontDatabase) -> u64 {
+pub(crate) fn force_publish_shared_font_database(database: &FontDatabase) -> u64 {
     shared_database().force_publish(database)
 }
 

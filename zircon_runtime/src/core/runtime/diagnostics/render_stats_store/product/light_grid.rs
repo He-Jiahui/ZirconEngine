@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{DiagnosticStore, record_bool, record_count};
+use super::{record_bool, record_count, DiagnosticStore};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_bool(

@@ -5,8 +5,8 @@ use super::super::{
     GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
 };
 use super::staging::{
-    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapUploadSourceBytes,
-    GlyphAtlasBitmapUploadStagingPlan, glyph_atlas_bitmap_upload_staging_plan,
+    glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
+    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasBitmapUploadStagingPlan,
 };
 use super::types::GlyphAtlasBitmapRunPlan;
 

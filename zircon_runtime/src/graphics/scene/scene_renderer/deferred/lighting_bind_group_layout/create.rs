@@ -116,3 +116,22 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_bind
         entries: &entries,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn environment_only_deferred_layout_retains_local_provider_abi_for_upgrades() {
+        let implementation = include_str!("create.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("deferred lighting layout implementation");
+
+        assert!(implementation.contains(
+            "crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries()"
+        ));
+        assert!(
+            !implementation.contains("defers_local_reflection_provider_resources"),
+            "environment-only deferred layout must not drop ABI needed after a provider upgrade"
+        );
+    }
+}

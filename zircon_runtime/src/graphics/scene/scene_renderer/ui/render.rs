@@ -1,6 +1,8 @@
 use std::ops::Range;
+use std::sync::Arc;
 
 use wgpu::util::DeviceExt;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiPaintElement, UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
@@ -21,7 +23,9 @@ use super::image::ScreenSpaceUiImageBatch;
 mod background;
 mod color;
 mod geometry;
+mod glyph_artifact;
 mod record;
+mod resolved_layout;
 mod rich_text;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_advances;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_decorations;
@@ -29,18 +33,23 @@ mod text_distance_field;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_effects;
 mod text_paint;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_projection;
+mod text_route_identity;
 
 use background::{ScreenSpaceUiBackgroundTracker, text_batch_background_color};
 use color::parse_color;
 pub(super) use geometry::ScreenSpaceUiVertex;
 pub(super) use geometry::{ScreenSpaceUiScissor, frame_to_scissor};
 use geometry::{push_border, push_rect};
+pub(in crate::graphics::scene::scene_renderer::ui) use glyph_artifact::{
+    ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine,
+};
 pub(super) use text_advances::ScreenSpaceUiShapedGlyph;
 use text_decorations::{
     ScreenSpaceUiTextDecorations, resolve_text_decorations, resolved_text_decoration_baseline,
 };
 use text_distance_field::resolved_text_distance_field_mode;
 use text_effects::{ScreenSpaceUiTextEffects, resolve_text_effects};
+pub(in crate::graphics::scene::scene_renderer::ui) use text_route_identity::ScreenSpaceUiTextRouteIdentity;
 
 struct PreparedScreenSpaceUi {
     vertex_buffer: Option<wgpu::Buffer>,
@@ -59,12 +68,18 @@ struct ScreenSpaceUiDraw {
 
 #[derive(Clone, Debug)]
 pub(super) struct ScreenSpaceUiTextBatch {
+    pub(super) route_identity: ScreenSpaceUiTextRouteIdentity,
+    pub(super) command_generation: u64,
     pub(super) text: String,
     pub(super) frame: UiFrame,
     pub(super) clip_frame: Option<UiFrame>,
     pub(super) source_range: Option<UiTextRange>,
     pub(super) glyph_advances: Vec<f32>,
     pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
+    // Runtime layout artifacts own these glyph identities. They must survive a font reload
+    // without being replaced by a second, run-local shaping pass.
+    pub(super) preserve_shaped_glyphs: bool,
+    pub(super) glyph_artifact_line: Option<ScreenSpaceUiGlyphArtifactLine>,
     pub(super) layout_error: Option<TextLayoutError>,
     pub(super) color: [f32; 4],
     pub(super) background_color: Option<[f32; 4]>,
@@ -84,6 +99,13 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) text_decorations: ScreenSpaceUiTextDecorations,
     pub(super) text_decoration_baseline: Option<f32>,
     pub(super) clip_transform: Option<text_projection::ScreenSpaceUiTextClipTransform>,
+}
+
+#[derive(Clone)]
+pub(super) struct ScreenSpaceUiTextRouteContext {
+    tree_id: Arc<str>,
+    node_id: UiNodeId,
+    command_generation: u64,
 }
 
 fn prepare_screen_space_ui(
@@ -178,12 +200,20 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
         viewport,
         framebuffer_background_color,
     );
+    let route_tree_id = Arc::<str>::from(extract.tree_id.0.as_str());
 
     for command in &extract.list.commands {
         let paint_elements = command.to_paint_elements(0);
         let scissor = command_scissor(command, viewport, full_scissor);
         let start = plan.vertices.len() as u32;
-        plan_command_batches(command, &paint_elements, viewport, &backgrounds, &mut plan);
+        plan_command_batches(
+            command,
+            &paint_elements,
+            &route_tree_id,
+            viewport,
+            &backgrounds,
+            &mut plan,
+        );
         let end = plan.vertices.len() as u32;
         if end > start {
             plan.draws.push(ScreenSpaceUiDraw {
@@ -294,6 +324,7 @@ fn command_scissor(
 fn plan_command_batches(
     command: &UiRenderCommand,
     paint_elements: &[UiPaintElement],
+    route_tree_id: &Arc<str>,
     viewport: UiFrame,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
@@ -376,6 +407,7 @@ fn plan_command_batches(
         push_text_batches(
             command,
             paint_elements,
+            route_tree_id,
             frame,
             color,
             viewport,
@@ -437,12 +469,21 @@ fn text_decoration_fallback_color(kind: UiTextPaintDecorationKind) -> [f32; 4] {
 fn push_text_batches(
     command: &UiRenderCommand,
     paint_elements: &[UiPaintElement],
+    route_tree_id: &Arc<str>,
     fallback_frame: UiFrame,
     color: [f32; 4],
     viewport: UiFrame,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
+    let route_context = ScreenSpaceUiTextRouteContext {
+        tree_id: Arc::clone(route_tree_id),
+        node_id: command.node_id,
+        command_generation: paint_elements
+            .iter()
+            .find_map(|element| element.cache_generation)
+            .unwrap_or_else(|| command.cache_generation()),
+    };
     if let Some(layout) = command
         .text_layout
         .as_ref()
@@ -454,6 +495,7 @@ fn push_text_batches(
         ) {
             push_resolved_text_layout_line_batches(
                 command,
+                &route_context,
                 layout,
                 color,
                 viewport,
@@ -466,13 +508,14 @@ fn push_text_batches(
 
     if let Some(text_paint) = text_paint::command_text_paint(paint_elements) {
         if !text_paint.runs.is_empty() {
-            let parsed_rich = rich_text::parse_command_rich_text(command);
+            let parsed_rich = rich_text::lookup_command_rich_text(command);
             for run in &text_paint.runs {
                 let rich_run = parsed_rich
                     .as_ref()
                     .and_then(|parsed| rich_text::run_for_range(parsed, run.source_range));
                 if rich_text::plan_inline_run(
                     command,
+                    &route_context,
                     run,
                     rich_run,
                     viewport,
@@ -486,10 +529,12 @@ fn push_text_batches(
                     rich_text::prepare_text_run(command, run, rich_run, viewport, color, plan);
                 push_text_batch(
                     command,
+                    &route_context,
                     run.text.clone(),
                     run.frame,
                     Some(run.source_range),
                     Vec::new(),
+                    None,
                     presentation.font,
                     presentation.font_family,
                     presentation.font_weight,
@@ -519,10 +564,12 @@ fn push_text_batches(
         for line in &layout.lines {
             push_text_batch(
                 command,
+                &route_context,
                 line.text.clone(),
                 line.frame,
                 Some(line.source_range),
                 line.glyph_advances.clone(),
+                None,
                 command.style.font.clone(),
                 command.style.font_family.clone(),
                 command.style.font_weight,
@@ -547,10 +594,12 @@ fn push_text_batches(
         let font_size = command.style.font_size.max(1.0);
         push_text_batch(
             command,
+            &route_context,
             text.clone(),
             fallback_frame,
             None,
             Vec::new(),
+            None,
             command.style.font.clone(),
             command.style.font_family.clone(),
             command.style.font_weight,
@@ -572,19 +621,25 @@ fn push_text_batches(
 
 fn push_resolved_text_layout_line_batches(
     command: &UiRenderCommand,
+    route_context: &ScreenSpaceUiTextRouteContext,
     layout: &zircon_runtime_interface::ui::surface::UiResolvedTextLayout,
     color: [f32; 4],
     viewport: UiFrame,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
-    for line in &layout.lines {
+    let Some(batches) = resolved_layout::logical_text_batches(layout) else {
+        return;
+    };
+    for batch in batches {
         push_text_batch(
             command,
-            line.text.clone(),
-            line.frame,
-            Some(line.source_range),
-            line.glyph_advances.clone(),
+            route_context,
+            batch.text,
+            batch.frame,
+            Some(batch.source_range),
+            batch.glyph_advances,
+            batch.glyph_artifact_line,
             command.style.font.clone(),
             command.style.font_family.clone(),
             command.style.font_weight,
@@ -592,7 +647,7 @@ fn push_resolved_text_layout_line_batches(
             layout.line_height,
             color,
             UiTextAlign::Left,
-            line.direction,
+            batch.direction,
             layout.writing_mode,
             UiTextWrap::None,
             UiTextRunPaintStyle::default(),
@@ -606,10 +661,12 @@ fn push_resolved_text_layout_line_batches(
 
 fn push_text_batch(
     command: &UiRenderCommand,
+    route_context: &ScreenSpaceUiTextRouteContext,
     text: String,
     frame: UiFrame,
     source_range: Option<UiTextRange>,
     glyph_advances: Vec<f32>,
+    glyph_artifact_line: Option<ScreenSpaceUiGlyphArtifactLine>,
     font: Option<String>,
     font_family: Option<String>,
     font_weight: u16,
@@ -635,26 +692,36 @@ fn push_text_batch(
         start: 0,
         end: text.len(),
     });
-    let resolved_glyphs = text_advances::resolve_screen_space_text_glyphs(
-        text_advances::ScreenSpaceTextShapingRequest {
-            text: text.as_str(),
-            font: font.as_deref(),
-            font_family: font_family.as_deref(),
-            language: language.as_deref(),
-            font_weight,
-            font_size,
-            line_height,
-            direction: text_direction,
-            writing_mode,
-            source_range: resolved_source_range,
-        },
-        glyph_advances,
-    );
-    let text_advances::ResolvedScreenSpaceTextGlyphs {
-        glyph_advances,
-        shaped_glyphs,
-        layout_error,
-    } = resolved_glyphs;
+    let has_glyph_artifact_line = glyph_artifact_line.is_some();
+    let (glyph_advances, shaped_glyphs, glyph_artifact_line, layout_error) =
+        match glyph_artifact_line {
+            Some(glyph_artifact_line) => {
+                (glyph_advances, Vec::new(), Some(glyph_artifact_line), None)
+            }
+            None => {
+                let resolved_glyphs = text_advances::resolve_screen_space_text_glyphs(
+                    text_advances::ScreenSpaceTextShapingRequest {
+                        text: text.as_str(),
+                        font: font.as_deref(),
+                        font_family: font_family.as_deref(),
+                        language: language.as_deref(),
+                        font_weight,
+                        font_size,
+                        line_height,
+                        direction: text_direction,
+                        writing_mode,
+                        source_range: resolved_source_range,
+                    },
+                    glyph_advances,
+                );
+                (
+                    resolved_glyphs.glyph_advances,
+                    resolved_glyphs.shaped_glyphs,
+                    None,
+                    resolved_glyphs.layout_error,
+                )
+            }
+        };
 
     let text_effects = command.style.text_effects.normalized();
     let distance_field_mode =
@@ -663,12 +730,20 @@ fn push_text_batch(
         resolved_text_decoration_baseline(command, source_range, writing_mode);
     let text_decorations = resolve_text_decorations(&text_decorations, color, command.opacity);
     let batch = ScreenSpaceUiTextBatch {
+        route_identity: ScreenSpaceUiTextRouteIdentity::new(
+            Arc::clone(&route_context.tree_id),
+            route_context.node_id,
+            source_range,
+        ),
+        command_generation: route_context.command_generation,
         text,
         frame,
         clip_frame: command.clip_frame,
         source_range,
         glyph_advances,
         shaped_glyphs,
+        preserve_shaped_glyphs: has_glyph_artifact_line,
+        glyph_artifact_line,
         layout_error,
         color,
         background_color: text_batch_background_color(command, frame, viewport, backgrounds),
@@ -689,6 +764,10 @@ fn push_text_batch(
         text_decoration_baseline,
         clip_transform: None,
     };
+    if has_glyph_artifact_line {
+        plan.sdf_texts.push(batch);
+        return;
+    }
     match (
         command.style.text_render_mode,
         text_effects.requires_distance_field(),

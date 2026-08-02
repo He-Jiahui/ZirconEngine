@@ -1,4 +1,4 @@
-use super::super::data::FrameRect;
+use super::super::{data::FrameRect, paint_geometry::bounded_extent};
 use super::render_commands::HostPaintCommand;
 
 const ICON_BUTTON_GLYPH_CANONICAL_PIXELS: f32 = 16.0;
@@ -50,8 +50,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
     segments: &[IconButtonGlyphSegmentSpec],
 ) {
     for segment in segments {
+        let rect = icon_button_segment_rect(origin, *segment);
+        if rect.width <= 0.0 || rect.height <= 0.0 {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
-            icon_button_segment_rect(origin, *segment),
+            rect,
             Some(clip.clone()),
             order,
             Some(color),
@@ -64,13 +68,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
 }
 
 fn icon_button_segment_rect(origin: &FrameRect, segment: IconButtonGlyphSegmentSpec) -> FrameRect {
-    let scale_x = origin.width / ICON_BUTTON_GLYPH_GRID_UNITS;
-    let scale_y = origin.height / ICON_BUTTON_GLYPH_GRID_UNITS;
+    let scale_x = bounded_extent(origin.width) / ICON_BUTTON_GLYPH_GRID_UNITS;
+    let scale_y = bounded_extent(origin.height) / ICON_BUTTON_GLYPH_GRID_UNITS;
     FrameRect {
         x: origin.x + f32::from(segment.x_units) * scale_x,
         y: origin.y + f32::from(segment.y_units) * scale_y,
-        width: (f32::from(segment.width_units) * scale_x).max(1.0),
-        height: (f32::from(segment.height_units) * scale_y).max(1.0),
+        width: bounded_extent(f32::from(segment.width_units) * scale_x),
+        height: bounded_extent(f32::from(segment.height_units) * scale_y),
     }
 }
 
@@ -119,5 +123,28 @@ mod tests {
         assert_close(segment.y, 23.0);
         assert_close(segment.width, 3.2);
         assert_close(segment.height, 10.0);
+    }
+
+    #[test]
+    fn collapsed_icon_origin_emits_no_glyph_segments() {
+        let origin = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.0,
+            height: ICON_BUTTON_GLYPH_CANONICAL_PIXELS,
+        };
+        let mut commands = Vec::new();
+
+        push_icon_button_glyph_segments(
+            &mut commands,
+            &origin,
+            &origin,
+            0,
+            [255, 255, 255, 255],
+            1.0,
+            &[IconButtonGlyphSegmentSpec::new(144, 60, 32, 200)],
+        );
+
+        assert!(commands.is_empty());
     }
 }

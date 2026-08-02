@@ -1583,6 +1583,7 @@ fn build_overlapping_extract(
         instances: vec![
             RenderVirtualGeometryInstance {
                 entity: materials[0].0,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform {
                     translation: Vec3::ZERO,
@@ -1598,6 +1599,7 @@ fn build_overlapping_extract(
             },
             RenderVirtualGeometryInstance {
                 entity: materials[1].0,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform {
                     translation: Vec3::ZERO,

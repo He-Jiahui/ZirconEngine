@@ -1,4 +1,4 @@
-use super::{assert_contains_all, read_repo, read_runtime_src};
+use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
@@ -121,7 +121,7 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
         ("plugin bridge doc", plugin_bridge_doc.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[

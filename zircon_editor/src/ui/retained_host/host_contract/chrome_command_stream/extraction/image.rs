@@ -19,6 +19,7 @@ pub(super) fn chrome_image_payload_from_recorded_image(
         .unwrap_or_else(|| u64::from(width) * u64::from(height) * 4);
     ChromeImagePayload {
         resource_key,
+        resource_generation: 0,
         width,
         height,
         upload_bytes,
@@ -38,6 +39,7 @@ fn chrome_atlas_image_payload(
         .unwrap_or_else(|| u64::from(atlas.width) * u64::from(atlas.height) * 4);
     ChromeImagePayload {
         resource_key: atlas.resource_key,
+        resource_generation: atlas.resource_generation,
         width: atlas.width,
         height: atlas.height,
         upload_bytes,

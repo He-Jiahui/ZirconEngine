@@ -1,5 +1,5 @@
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
     EditorAssetFolderRecord,
@@ -11,9 +11,9 @@ use crate::ui::retained_host::asset_pointer::{
     AssetReferenceListPointerEntry, AssetReferenceListPointerLayout,
 };
 use crate::ui::retained_host::callback_dispatch::{
-    dispatch_builtin_asset_surface_control, dispatch_shared_asset_content_pointer_click,
-    dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
-    BuiltinAssetSurfaceTemplateBridge,
+    BuiltinAssetSurfaceTemplateBridge, dispatch_builtin_asset_surface_control,
+    dispatch_shared_asset_content_pointer_click, dispatch_shared_asset_reference_pointer_click,
+    dispatch_shared_asset_tree_pointer_click,
 };
 use crate::ui::workbench::asset_content_layout::{
     AssetContentLayoutMetrics, AssetContentSurfaceProfile,
@@ -364,6 +364,10 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
             "asset controls TOML missing `{needle}`"
         );
     }
+    assert!(
+        controls.contains("gap = \"$editor.density.gap.small\""),
+        "asset controls must use the shared dense spacing rhythm"
+    );
 }
 
 #[test]

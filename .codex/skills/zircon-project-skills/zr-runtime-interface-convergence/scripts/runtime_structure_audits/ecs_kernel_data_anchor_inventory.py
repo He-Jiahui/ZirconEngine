@@ -13,7 +13,7 @@ ARCHETYPE_ANCHORS = (
     "pub fn matching_archetypes(",
     "fn shortest_required_archetype_ids(&self, required: &[ComponentId])",
     "fn insert_archetype_id(ids: &mut Vec<ArchetypeId>, id: ArchetypeId)",
-    "fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize>",
+    "pub(crate) fn remove_entity_at(",
     "pub struct ArchetypeSignature",
     "fn normalize_components(mut components: Vec<ComponentId>)",
 )
@@ -264,10 +264,10 @@ RUNTIME_08_DOC_ANCHORS = (
     "entity/observer/command/messages/change_tick/ecs",
 )
 CARGO_GATE_ANCHORS = (
-    "cargo test -p zircon_runtime --lib entity --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib observer --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib command --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib messages --locked",
-    "cargo test -p zircon_runtime --lib change_tick --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib ecs --locked",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter entity",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter observer",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter command",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter messages",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter change_tick",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter ecs",
 )

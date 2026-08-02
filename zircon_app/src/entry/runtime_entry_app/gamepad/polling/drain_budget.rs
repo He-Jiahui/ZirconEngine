@@ -91,12 +91,15 @@ mod tests {
             budget_check < next_event && next_event < record_event && record_event < update_event
         );
 
-        assert!(source.contains("ifresult.is_err(){should_exit=true;break;}"));
+        let dispatch_error = source
+            .find("ifletErr(error)=result{dispatch_error=Some(error);break;}")
+            .expect("polling retains the runtime event dispatch error");
         let gilrs_increment = source
-            .find("if!should_exit{gamepads.inc();}")
+            .find("ifdispatch_error.is_none(){gamepads.inc();}")
             .expect("polling advances gilrs only after successful event handling");
-        assert!(source
-            .contains("if!should_exit{gamepads.inc();}}forgamepad_idindisconnected_gamepads{"));
+        assert!(source.contains(
+            "ifdispatch_error.is_none(){gamepads.inc();}}forgamepad_idindisconnected_gamepads{"
+        ));
 
         let disconnected_cleanup = source
             .find("forgamepad_idindisconnected_gamepads{")
@@ -104,10 +107,15 @@ mod tests {
         let finished_cleanup = source
             .find("super::rumble::clear_finished_rumble_effects(")
             .expect("polling clears completed rumble effects");
+        let report_failure = source
+            .find("ifletSome(error)=dispatch_error{self.report_fatal_failure(")
+            .expect("polling records a fatal diagnostic before exiting on dispatch errors");
         let exit_or_continue = source
-            .find("ifshould_exit{event_loop.exit();}elseifdrain_budget_exhausted{self.request_runtime_frame();}")
+            .find("event_loop.exit();}elseifdrain_budget_exhausted{self.request_runtime_frame();}")
             .expect("polling exits on errors or requests one continuation after budget exhaustion");
-        assert!(update_event < gilrs_increment && gilrs_increment < disconnected_cleanup);
-        assert!(disconnected_cleanup < finished_cleanup && finished_cleanup < exit_or_continue);
+        assert!(update_event < dispatch_error && dispatch_error < gilrs_increment);
+        assert!(gilrs_increment < disconnected_cleanup);
+        assert!(disconnected_cleanup < finished_cleanup && finished_cleanup < report_failure);
+        assert!(report_failure < exit_or_continue);
     }
 }

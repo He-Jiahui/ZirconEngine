@@ -11,7 +11,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
@@ -25,7 +25,7 @@ plan_sources:
   - docs/ui-and-layout/componentized-workbench-shell.md
   - docs/ui-and-layout/ai-workbench-style/component-prototype/README.md
 tests:
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
   - cargo test -p zircon_editor --lib compact_workbench_toolbar_uses_slate_command_density --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary --message-format short --color never -- --test-threads=1 --nocapture (2026-06-29: passed)
   - cargo test -p zircon_editor --lib full_workbench_secondary_module_commands_keep_readable_width --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-atomic-20260710-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-10: 1 passed)
   - cargo build -q -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary (2026-06-29: passed)

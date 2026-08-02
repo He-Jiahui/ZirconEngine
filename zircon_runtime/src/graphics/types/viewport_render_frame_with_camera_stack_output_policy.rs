@@ -1,4 +1,4 @@
-use super::{ViewportCameraStackOutputPolicy, viewport_render_frame::ViewportRenderFrame};
+use super::{viewport_render_frame::ViewportRenderFrame, ViewportCameraStackOutputPolicy};
 
 impl ViewportRenderFrame {
     pub(crate) fn with_camera_stack_output_policy(

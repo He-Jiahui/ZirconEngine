@@ -1,9 +1,11 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
-use crate::graphics::RuntimePrepareExternalBufferBinding;
+use crate::graphics::{RuntimePrepareExternalBufferBinding, RuntimePrepareGpuReadbackRequest};
+use crate::rhi_wgpu::gpu_readback_queue::GpuReadbackQueue;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginReadbacks {
     pub(super) outputs: RenderPluginRendererOutputs,
     external_buffer_bindings: Vec<RuntimePrepareExternalBufferBinding>,
+    gpu_readbacks: Vec<RuntimePrepareGpuReadbackRequest>,
 }
 
 impl SceneRendererAdvancedPluginReadbacks {
@@ -11,6 +13,7 @@ impl SceneRendererAdvancedPluginReadbacks {
         Self {
             outputs: RenderPluginRendererOutputs::default(),
             external_buffer_bindings: Vec::new(),
+            gpu_readbacks: Vec::new(),
         }
     }
 
@@ -20,6 +23,7 @@ impl SceneRendererAdvancedPluginReadbacks {
         Self {
             outputs,
             external_buffer_bindings: Vec::new(),
+            gpu_readbacks: Vec::new(),
         }
     }
 
@@ -30,13 +34,52 @@ impl SceneRendererAdvancedPluginReadbacks {
         Self {
             outputs,
             external_buffer_bindings,
+            gpu_readbacks: Vec::new(),
+        }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn from_outputs_external_and_gpu_readbacks(
+        outputs: RenderPluginRendererOutputs,
+        external_buffer_bindings: Vec<RuntimePrepareExternalBufferBinding>,
+        gpu_readbacks: Vec<RuntimePrepareGpuReadbackRequest>,
+    ) -> Self {
+        Self {
+            outputs,
+            external_buffer_bindings,
+            gpu_readbacks,
+        }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn register_gpu_readbacks(
+        &mut self,
+        queue: &mut GpuReadbackQueue,
+    ) -> Result<(), String> {
+        let mut requests = std::mem::take(&mut self.gpu_readbacks).into_iter();
+        while let Some(request) = requests.next() {
+            if let Err(error) = request.register(queue) {
+                for remaining in requests {
+                    remaining.fail(error.to_string());
+                }
+                return Err(error.to_string());
+            }
+        }
+        Ok(())
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn fail_gpu_readbacks(
+        &mut self,
+        error: impl Into<String>,
+    ) {
+        let error = error.into();
+        for request in self.gpu_readbacks.drain(..) {
+            request.fail(error.clone());
         }
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn into_outputs(
-        self,
+        mut self,
     ) -> RenderPluginRendererOutputs {
-        self.outputs
+        std::mem::take(&mut self.outputs)
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn external_buffer_bindings(
@@ -47,7 +90,9 @@ impl SceneRendererAdvancedPluginReadbacks {
 
     #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn is_empty(&self) -> bool {
-        self.outputs.is_empty() && self.external_buffer_bindings.is_empty()
+        self.outputs.is_empty()
+            && self.external_buffer_bindings.is_empty()
+            && self.gpu_readbacks.is_empty()
     }
 
     #[cfg(test)]
@@ -58,6 +103,14 @@ impl SceneRendererAdvancedPluginReadbacks {
     }
 }
 
+impl Drop for SceneRendererAdvancedPluginReadbacks {
+    fn drop(&mut self) {
+        self.fail_gpu_readbacks(
+            "runtime prepare GPU readback request was dropped before registration",
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::SceneRendererAdvancedPluginReadbacks;
@@ -65,8 +118,8 @@ mod tests {
         RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
         RenderVirtualGeometryReadbackOutputs,
     };
-    use crate::graphics::RuntimePrepareExternalBufferBinding;
     use crate::graphics::backend::RenderBackend;
+    use crate::graphics::RuntimePrepareExternalBufferBinding;
 
     #[test]
     fn advanced_plugin_readbacks_hold_neutral_plugin_renderer_outputs() {

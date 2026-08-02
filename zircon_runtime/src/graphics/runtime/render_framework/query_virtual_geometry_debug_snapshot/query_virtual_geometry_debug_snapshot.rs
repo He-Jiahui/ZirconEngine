@@ -5,10 +5,7 @@ use super::super::wgpu_render_framework::WgpuRenderFramework;
 pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_debug_snapshot(
     framework: &WgpuRenderFramework,
 ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
-    let state = framework
-        .state
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let state = framework.lock_state();
     let snapshot = state.last_virtual_geometry_debug_snapshot.clone();
     drop(state);
     Ok(snapshot.as_deref().cloned())

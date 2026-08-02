@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 use super::style::IconButtonContext;

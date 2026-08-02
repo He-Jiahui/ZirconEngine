@@ -2,6 +2,20 @@ use super::support::*;
 
 #[test]
 fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button() {
+    let template = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/host/pane_surface_controls.zui"),
+    )
+    .expect("pane surface controls template should be readable");
+    assert!(
+        template.contains("gap = \"$editor.density.gap.small\""),
+        "pane surface controls must consume the shared dense spacing token"
+    );
+    assert!(
+        !template.contains("gap = 6.0"),
+        "pane surface controls must not keep a local spacing literal"
+    );
+
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
@@ -59,7 +73,7 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
         .node_by_control_id("TriggerAction")
         .expect("pane trigger action should project as an authored icon button");
     assert_eq!(button.component, "IconButton");
-    assert_eq!(button.frame, UiFrame::new(0.0, 0.0, 92.0, 32.0));
+    assert_eq!(button.frame, UiFrame::new(0.0, 0.0, 300.0, 32.0));
     assert_eq!(
         button.attributes.get("label").and_then(Value::as_str),
         Some("Action")
@@ -72,4 +86,15 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
         binding.binding_id == "PaneSurface/TriggerAction"
             && binding.event_kind == UiEventKind::Click
     }));
+
+    assert!(
+        template.contains(
+            "layout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }"
+        ),
+        "a sole pane action must consume the full responsive row width"
+    );
+    assert!(
+        !template.contains("preferred = 92.0"),
+        "a sole pane action must not retain a desktop-only fixed width"
+    );
 }

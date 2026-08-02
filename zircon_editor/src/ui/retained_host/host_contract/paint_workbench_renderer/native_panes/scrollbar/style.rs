@@ -1,5 +1,5 @@
 use super::super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics,
+    HostControlMetrics, current_host_metrics, current_host_palette,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]

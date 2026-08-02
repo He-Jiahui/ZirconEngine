@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/PerformanceFilterSamples", event = "Click",
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPerformanceTimeline"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "performance_game_thread_table_row" }, { node = "performance_render_thread_table_row" }, { node = "performance_gpu_lighting_table_row" }, { node = "performance_texture_upload_table_row" }]
 

@@ -6,8 +6,8 @@ use std::time::Instant;
 use image::ImageFormat;
 use zircon_runtime::asset::artifact::IblSourceCubemapStagingStore;
 use zircon_runtime::asset::importer::{
-    DecodedTextureImageRgba32F, EnvironmentIblSourceStagingStatus,
     stage_environment_ibl_source_with_parallel_executor_and_decoded_image,
+    DecodedTextureImageRgba32F, EnvironmentIblSourceStagingStatus,
 };
 use zircon_runtime::asset::{AssetImportContext, AssetUri};
 use zircon_runtime::core::framework::{
@@ -23,6 +23,10 @@ pub(crate) struct SourceCubemapEnvironmentLoad {
     pub(crate) staging_status: EnvironmentIblSourceStagingStatus,
     pub(crate) staging_elapsed: std::time::Duration,
     pub(crate) total_elapsed: std::time::Duration,
+    pub(crate) source_cubemap_face_size: u32,
+    pub(crate) source_cubemap_mip_count: u32,
+    pub(crate) pmrem_face_size: u32,
+    pub(crate) pmrem_mip_count: u32,
 }
 
 pub(crate) struct DecodedViewerHdri {
@@ -105,6 +109,10 @@ where
     let mut environment = store.read_source_cubemap_environment(&request, uri)?;
     environment.intensity = DEFAULT_ENVIRONMENT_INTENSITY * exposure;
     environment.rotation_radians = 0.0;
+    let source_cubemap_face_size = environment.mip_chain.source_face_size();
+    let source_cubemap_mip_count = environment.mip_chain.source_mip_count();
+    let pmrem_face_size = environment.mip_chain.pmrem_face_size();
+    let pmrem_mip_count = environment.mip_chain.pmrem_mip_count();
     // Keep the user-visible IBL time scoped to staging and artifact restoration. The Viewer
     // builds its temporary project and renderer separately, so including those phases here
     // would misreport renderer startup as an environment-reflection cost.
@@ -134,6 +142,10 @@ where
         staging_status: staged.status(),
         staging_elapsed,
         total_elapsed,
+        source_cubemap_face_size,
+        source_cubemap_mip_count,
+        pmrem_face_size,
+        pmrem_mip_count,
     })
 }
 
@@ -285,10 +297,8 @@ mod tests {
     fn viewer_hdri_staging_requires_a_runtime_owned_parallel_executor() {
         let source = production_source();
         assert!(source.contains("parallel_executor: &E"));
-        assert!(
-            source
-                .contains("stage_environment_ibl_source_with_parallel_executor_and_decoded_image(")
-        );
+        assert!(source
+            .contains("stage_environment_ibl_source_with_parallel_executor_and_decoded_image("));
         assert!(source.contains("DecodedTextureImageRgba32F"));
         assert!(source.contains("let staging_started = Instant::now();"));
         assert!(source.contains("staging_elapsed"));

@@ -32,4 +32,16 @@ fn welcome_surface_controls_use_generic_rust_callbacks_and_toml_controls() {
             "welcome controls asset missing `{required}`"
         );
     }
+    assert!(
+        controls.contains("corner_radius = \"$editor.control.radius.control\""),
+        "welcome controls must consume the shared compact control radius"
+    );
+    assert!(
+        !controls.contains("corner_radius = 999.0"),
+        "welcome actions must not render as pill-shaped controls"
+    );
+    assert!(
+        controls.contains("gap = \"$editor.density.gap.small\""),
+        "welcome controls must use the shared dense spacing rhythm"
+    );
 }

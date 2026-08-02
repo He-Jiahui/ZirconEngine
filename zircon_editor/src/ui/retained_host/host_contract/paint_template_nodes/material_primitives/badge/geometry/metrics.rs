@@ -1,4 +1,8 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+pub(super) use super::super::super::bounded_extent as badge_bounded_extent;
+use crate::ui::retained_host::host_contract::paint_theme::{
+    HostControlMetrics, current_host_metrics,
+};
 
 pub(super) const BADGE_STANDARD_HEIGHT: f32 = 20.0;
 pub(super) const BADGE_STANDARD_MIN_WIDTH: f32 = 20.0;
@@ -7,46 +11,61 @@ pub(super) const BADGE_DOT_EDGE: f32 = 8.0;
 pub(super) const BADGE_STANDARD_RADIUS: f32 = 10.0;
 pub(super) const BADGE_DOT_RADIUS: f32 = 4.0;
 pub(super) const BADGE_FONT_SIZE: f32 = 12.0;
-pub(super) const BADGE_ROOT_FONT_SIZE: f32 = 12.0;
 pub(super) const BADGE_ROOT_TEXT_INSET_X: f32 = 8.0;
 pub(super) const BADGE_CIRCULAR_OFFSET_RATIO: f32 = 0.14;
 
-const BADGE_TEXT_LINE_HEIGHT_RATIO: f32 = 1.2;
 const BADGE_MIN_TEXT_EXTENT: f32 = 1.0;
 const BADGE_CENTER_RATIO: f32 = 0.5;
 
-pub(super) fn badge_root_font_size(node: &TemplatePaneNodeData) -> f32 {
+pub(super) fn badge_root_font_size(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
+    badge_root_font_size_from_host(node, rect, current_host_metrics())
+}
+
+fn badge_root_font_size_from_host(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    metrics: HostControlMetrics,
+) -> f32 {
+    let available_edge = badge_bounded_extent(rect.width).min(badge_bounded_extent(rect.height));
     if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        node.font_size.min(available_edge)
     } else {
-        BADGE_ROOT_FONT_SIZE
+        badge_bounded_extent(metrics.font_body).min(available_edge)
     }
 }
 
-pub(super) fn badge_text_line_height(font_size: f32) -> f32 {
-    font_size * BADGE_TEXT_LINE_HEIGHT_RATIO
+pub(super) fn badge_text_line_height(font_size: f32, rect: &FrameRect) -> f32 {
+    badge_bounded_extent(current_host_metrics().line_height(font_size))
+        .min(badge_bounded_extent(rect.height))
 }
 
 pub(super) fn badge_root_available_text_width(rect: &FrameRect) -> f32 {
-    (rect.width - BADGE_ROOT_TEXT_INSET_X * 2.0).max(BADGE_MIN_TEXT_EXTENT)
+    let width = badge_bounded_extent(rect.width);
+    (width - badge_root_text_inset(rect) * 2.0).max(0.0)
 }
 
 pub(super) fn badge_text_width(measured_width: f32, available_width: f32) -> f32 {
     measured_width
-        .min(available_width)
-        .max(BADGE_MIN_TEXT_EXTENT)
+        .is_finite()
+        .then_some(measured_width.max(0.0))
+        .unwrap_or(0.0)
+        .min(badge_bounded_extent(available_width))
 }
 
 pub(super) fn badge_root_text_x(rect: &FrameRect) -> f32 {
-    rect.x + BADGE_ROOT_TEXT_INSET_X
+    rect.x + badge_root_text_inset(rect)
 }
 
 pub(super) fn badge_centered_text_x(rect: &FrameRect, text_width: f32) -> f32 {
-    rect.x + (rect.width - text_width).max(0.0) * BADGE_CENTER_RATIO
+    rect.x + (badge_bounded_extent(rect.width) - text_width).max(0.0) * BADGE_CENTER_RATIO
 }
 
 pub(super) fn badge_centered_text_y(rect: &FrameRect, line_height: f32) -> f32 {
-    rect.y + (rect.height - line_height).max(0.0) * BADGE_CENTER_RATIO
+    rect.y + (badge_bounded_extent(rect.height) - line_height).max(0.0) * BADGE_CENTER_RATIO
+}
+
+fn badge_root_text_inset(rect: &FrameRect) -> f32 {
+    BADGE_ROOT_TEXT_INSET_X.min(badge_bounded_extent(rect.width) * 0.5)
 }
 
 pub(super) fn badge_overlay_font_size() -> f32 {
@@ -85,6 +104,7 @@ pub(super) fn badge_overlay_rect(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
     fn node(font_size: f32) -> TemplatePaneNodeData {
         TemplatePaneNodeData {
@@ -101,12 +121,34 @@ mod tests {
             width: 160.0,
             height: 28.0,
         };
-        let font_size = badge_root_font_size(&node(12.0));
+        let font_size = badge_root_font_size(&node(12.0), &rect);
 
         assert!((font_size - 12.0).abs() <= 0.01);
-        assert!((badge_text_line_height(font_size) - 14.4).abs() <= 0.01);
+        assert!((badge_text_line_height(font_size, &rect) - 14.4).abs() <= 0.01);
         assert!((badge_root_available_text_width(&rect) - 144.0).abs() <= 0.01);
         assert!((badge_root_text_x(&rect) - 10.0).abs() <= 0.01);
+    }
+
+    #[test]
+    fn badge_root_font_size_tracks_host_typography_and_tight_bounds() {
+        let mut host = METRICS;
+        host.font_body = 11.0;
+        let wide = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 80.0,
+            height: 24.0,
+        };
+        let tight = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 4.0,
+            height: 6.0,
+        };
+        let node = node(0.0);
+
+        assert_eq!(badge_root_font_size_from_host(&node, &wide, host), 11.0);
+        assert_eq!(badge_root_font_size_from_host(&node, &tight, host), 4.0);
     }
 
     #[test]
@@ -121,8 +163,8 @@ mod tests {
     }
 
     #[test]
-    fn badge_text_width_clamps_to_available_and_minimum() {
+    fn badge_text_width_clamps_to_available_bounds() {
         assert!((badge_text_width(80.0, 20.0) - 20.0).abs() <= 0.01);
-        assert!((badge_text_width(0.0, 20.0) - 1.0).abs() <= 0.01);
+        assert!((badge_text_width(0.0, 20.0) - 0.0).abs() <= 0.01);
     }
 }

@@ -73,6 +73,8 @@ fn screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output() {
             .gpu()
             .unwrap()
             .screen_space_ui_renderer
+            .as_deref()
+            .unwrap()
             .last_attachment_ops(),
         RenderGraphAttachmentOps::clear_store()
     );

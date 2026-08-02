@@ -20,7 +20,7 @@ implementation_files:
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
   - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/folder_projection.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native_load_state.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
@@ -50,7 +50,7 @@ tests:
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs::performance_tests::animation_mutation_skips_noops_and_does_not_reserialize_the_stable_route
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs::performance_tests::native_package_preparation_indexes_discovery_once
   - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs::performance_tests::reference_graph_borrows_catalog_records_during_rebuild
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/folder_projection.rs::performance_tests::folder_sort_borrows_display_names
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs::performance_tests::folder_sort_borrows_display_names
   - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs::tests::sprite_atlas_artifact_writer_does_not_clone_the_full_rgba_payload
   - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native_load_state.rs::performance_tests::native_load_state_streams_loaded_plugin_checks
 doc_type: module-detail

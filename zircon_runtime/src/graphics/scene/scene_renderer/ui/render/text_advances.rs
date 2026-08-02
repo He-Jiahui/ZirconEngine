@@ -5,7 +5,10 @@ use crate::core::framework::text::{
     TextFontFaceHandle, TextFontRequest, TextGlyphRotation, TextLayoutError, TextLayoutService,
     TextRenderMode, TextShapeRequest, TextShapeResult,
 };
-use crate::text::{ShapedGlyphRotation, shared_text_layout_service};
+use crate::text::font::shared_font_database_generation;
+use crate::text::{
+    ShapedGlyphRotation, rebuild_resolved_text_glyph_artifact_line, shared_text_layout_service,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiShapedGlyph {
@@ -102,6 +105,25 @@ pub(super) fn resolve_screen_space_text_glyphs(
 pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_screen_space_text_batch_glyphs(
     text: &mut super::ScreenSpaceUiTextBatch,
 ) {
+    if text.preserve_shaped_glyphs {
+        let Some(artifact_line) = text.glyph_artifact_line.as_mut() else {
+            return;
+        };
+        let generation = shared_font_database_generation();
+        if artifact_line.font_generation == generation {
+            return;
+        }
+        // Rebind the whole Text02 line after a font generation swap; never shape a visual run.
+        let Some(line) = rebuild_resolved_text_glyph_artifact_line(
+            artifact_line.artifact.as_ref(),
+            artifact_line.line_index,
+        ) else {
+            return;
+        };
+        artifact_line.refreshed_line = Some(line);
+        artifact_line.font_generation = generation;
+        return;
+    }
     let source_range = text.source_range.unwrap_or(UiTextRange {
         start: 0,
         end: text.text.len(),

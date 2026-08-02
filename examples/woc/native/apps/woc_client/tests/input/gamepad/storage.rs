@@ -1,53 +1,26 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::BTreeMap,
-    rc::Rc,
-};
-
 use serde_json::Value;
 use woc_client::{
-    gamepad_button, PreferenceStorage, StoredGamepadBindings, BINDABLE_GAMEPAD_BUTTONS,
-    GAMEPAD_NONE_ACTION, GAMEPAD_STORAGE_KEY,
+    gamepad_button, StoredGamepadBindings, BINDABLE_GAMEPAD_BUTTONS, GAMEPAD_NONE_ACTION,
+    GAMEPAD_STORAGE_KEY,
 };
 
-#[derive(Clone, Default)]
-struct MemoryStorage {
-    values: Rc<RefCell<BTreeMap<String, String>>>,
-    fail_reads: Rc<Cell<bool>>,
-    fail_writes: Rc<Cell<bool>>,
-}
+use crate::preference_storage_support::MemoryPreferenceStorage as MemoryStorage;
 
-impl MemoryStorage {
-    fn insert(&self, key: &str, value: &str) {
-        self.values
-            .borrow_mut()
-            .insert(key.to_string(), value.to_string());
-    }
+#[test]
+fn fresh_backend_gamepad_bindings_load_after_the_cold_read_completes() {
+    let storage = MemoryStorage::default();
+    storage.seed_persisted(GAMEPAD_STORAGE_KEY, r#"{"0":"slot8"}"#);
+    storage.block_read(GAMEPAD_STORAGE_KEY);
 
-    fn get(&self, key: &str) -> Option<String> {
-        self.values.borrow().get(key).cloned()
-    }
-}
+    let mut bindings = StoredGamepadBindings::new(storage.clone());
+    storage.wait_until_read_started(GAMEPAD_STORAGE_KEY);
+    assert_eq!(bindings.action_for(gamepad_button::A), "jump");
+    assert!(!bindings.refresh_from_storage());
+    storage.release_read(GAMEPAD_STORAGE_KEY);
+    storage.wait_until_loaded(GAMEPAD_STORAGE_KEY);
 
-impl PreferenceStorage for MemoryStorage {
-    type Error = ();
-
-    fn read(&self, key: &str) -> Result<Option<String>, Self::Error> {
-        if self.fail_reads.get() {
-            Err(())
-        } else {
-            Ok(self.get(key))
-        }
-    }
-
-    fn write(&self, key: &str, value: &str) -> Result<(), Self::Error> {
-        if self.fail_writes.get() {
-            Err(())
-        } else {
-            self.insert(key, value);
-            Ok(())
-        }
-    }
+    assert!(bindings.refresh_from_storage());
+    assert_eq!(bindings.action_for(gamepad_button::A), "slot8");
 }
 
 #[test]
@@ -163,12 +136,12 @@ fn non_bindable_buttons_do_not_trigger_storage_writes() {
 #[test]
 fn unavailable_storage_degrades_to_defaults_and_keeps_session_mutations() {
     let storage = MemoryStorage::default();
-    storage.fail_reads.set(true);
-    storage.fail_writes.set(true);
+    storage.set_fail_reads(true);
+    storage.set_fail_writes(true);
     let mut bindings = StoredGamepadBindings::new(storage.clone());
     assert_eq!(bindings.entries().len(), BINDABLE_GAMEPAD_BUTTONS.len());
 
     bindings.bind(gamepad_button::A, "slot8");
     assert_eq!(bindings.action_for(gamepad_button::A), "slot8");
-    assert!(storage.get(GAMEPAD_STORAGE_KEY).is_none());
+    assert!(storage.persisted(GAMEPAD_STORAGE_KEY).is_none());
 }

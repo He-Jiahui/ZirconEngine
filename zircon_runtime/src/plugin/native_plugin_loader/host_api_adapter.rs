@@ -27,7 +27,7 @@ use super::bridge_method_bindings::{
     NativeBridgeCall, NativeBridgeMethodDescriptor, NativeBridgeMethodFn,
 };
 use super::ffi_panic_guard::catch_native_host_api_panic;
-use super::loaded_native_plugin::NativePluginCallbackLease;
+use super::loaded_native_plugin::NativePluginLibraryGenerationOwner;
 use super::registration_manifest::{
     NativePluginRegistrationThreadAffinity, NativeSystemAccessAuthority,
     NativeSystemAccessAuthorityError, NativeSystemAccessContractError, NativeSystemAccessPlan,
@@ -35,7 +35,11 @@ use super::registration_manifest::{
 
 mod context_registry;
 
-use context_registry::HostContextRegistry;
+use context_registry::{
+    DenseBridgeMethodTable, HostContextRegistry, NativeHostApiV3Context,
+    NativeHostApiV3RegistrationContextPin, NativeHostApiV4RegistrationContextPin,
+    NativeHostBridgeCallContext, NativeHostBridgeCallContextPin, NativeHostRegistrationScopeState,
+};
 
 type NativeHostApiAdapterResult<T> = std::result::Result<T, NativeHostApiAdapterError>;
 
@@ -246,6 +250,7 @@ impl std::error::Error for NativeHostApiAdapterError {
 
 pub struct NativeHostApiV3RegistrationScope<'registry> {
     handle: ZrRuntimePluginHandle,
+    lifetime: Arc<NativeHostRegistrationScopeState>,
     _registry: PhantomData<&'registry mut RuntimeExtensionRegistry>,
 }
 
@@ -264,14 +269,17 @@ impl<'registry> NativeHostApiV3RegistrationScope<'registry> {
         let owner = registry
             .intern_plugin_module(module_name)
             .map_err(|source| NativeHostApiAdapterError::InvalidPluginModuleOwner { source })?;
+        let lifetime = Arc::new(NativeHostRegistrationScopeState::default());
         let handle = ZrRuntimePluginHandle::new(contexts().insert(Arc::new(
             NativeHostApiV3Context::Registration(NativeHostApiV3RegistrationContext {
                 registry: registry as *mut RuntimeExtensionRegistry as usize,
                 owner,
+                lifetime: Arc::clone(&lifetime),
             }),
         )));
         Ok(Self {
             handle,
+            lifetime,
             _registry: PhantomData,
         })
     }
@@ -347,6 +355,7 @@ impl NativeHostApiV4RegistrationPolicy {
 
 pub struct NativeHostApiV4RegistrationScope<'registry> {
     handle: ZrRuntimePluginHandle,
+    lifetime: Arc<NativeHostRegistrationScopeState>,
     _registry: PhantomData<&'registry mut RuntimeExtensionRegistry>,
 }
 
@@ -373,16 +382,19 @@ impl<'registry> NativeHostApiV4RegistrationScope<'registry> {
         let owner = registry
             .intern_plugin_module(module_name)
             .map_err(|source| NativeHostApiAdapterError::InvalidPluginModuleOwner { source })?;
+        let lifetime = Arc::new(NativeHostRegistrationScopeState::default());
         let handle = ZrRuntimePluginHandle::new(contexts().insert(Arc::new(
             NativeHostApiV3Context::RegistrationV4(NativeHostApiV4RegistrationContext {
                 registry: registry as *mut RuntimeExtensionRegistry as usize,
                 owner,
                 plugin_id,
                 policy,
+                lifetime: Arc::clone(&lifetime),
             }),
         )));
         Ok(Self {
             handle,
+            lifetime,
             _registry: PhantomData,
         })
     }
@@ -420,26 +432,41 @@ impl<'registry> NativeHostApiV4RegistrationScope<'registry> {
 
 impl Drop for NativeHostApiV3RegistrationScope<'_> {
     fn drop(&mut self) {
+        self.lifetime.close_and_wait();
         contexts().remove(self.handle.raw());
     }
 }
 
 impl Drop for NativeHostApiV4RegistrationScope<'_> {
     fn drop(&mut self) {
+        self.lifetime.close_and_wait();
         contexts().remove(self.handle.raw());
     }
 }
 
+#[derive(Clone)]
 pub struct NativeHostBridgeCallScope {
+    handle: ZrRuntimePluginHandle,
+    _registration: Arc<NativeHostBridgeCallRegistration>,
+}
+
+struct NativeHostBridgeCallRegistration {
     handle: ZrRuntimePluginHandle,
 }
 
 impl NativeHostBridgeCallScope {
     pub fn new(table: FrozenBridgeTable) -> Self {
-        Self::with_methods(table, std::iter::empty())
+        Self::with_methods_and_owner(table, std::iter::empty(), None)
     }
 
-    pub fn with_methods(
+    /// Builds a bridge scope without a dynamic-library generation owner.
+    ///
+    /// # Safety
+    ///
+    /// Every supplied callback must remain valid until the last clone of the returned scope is
+    /// dropped. Native ABI callbacks loaded from a dynamic library must use the live-host
+    /// generation-owned construction path instead.
+    pub unsafe fn with_methods(
         table: FrozenBridgeTable,
         methods: impl IntoIterator<Item = (InterfaceSlot, u32, NativeBridgeMethodFn)>,
     ) -> Self {
@@ -449,7 +476,7 @@ impl NativeHostBridgeCallScope {
     pub(super) fn with_methods_and_owner(
         table: FrozenBridgeTable,
         methods: impl IntoIterator<Item = (InterfaceSlot, u32, NativeBridgeMethodFn)>,
-        callback_owner: Option<NativePluginCallbackLease>,
+        library_owner: Option<NativePluginLibraryGenerationOwner>,
     ) -> Self {
         let methods = DenseBridgeMethodTable::from_entries(
             methods
@@ -457,16 +484,26 @@ impl NativeHostBridgeCallScope {
                 .map(|(slot, method_slot, method)| (slot.raw(), method_slot, method)),
         );
         let handle = ZrRuntimePluginHandle::new(contexts().insert(Arc::new(
-            NativeHostApiV3Context::BridgeCall(Arc::new(NativeHostBridgeCallContext {
+            NativeHostApiV3Context::BridgeCall(NativeHostBridgeCallContext {
                 table,
                 methods,
-                _callback_owner: callback_owner,
-            })),
+                library_owner,
+            }),
         )));
-        Self { handle }
+        Self {
+            handle,
+            _registration: Arc::new(NativeHostBridgeCallRegistration { handle }),
+        }
     }
 
-    pub fn from_method_descriptors(
+    /// Builds a bridge scope from descriptors without a dynamic-library generation owner.
+    ///
+    /// # Safety
+    ///
+    /// Every descriptor callback must remain valid until the last clone of the returned scope is
+    /// dropped. Native ABI descriptors loaded from a dynamic library must use the live-host
+    /// generation-owned construction path instead.
+    pub unsafe fn from_method_descriptors(
         table: FrozenBridgeTable,
         descriptors: impl IntoIterator<Item = NativeBridgeMethodDescriptor>,
     ) -> Result<Self, crate::plugin::RuntimeExtensionRegistryError> {
@@ -476,7 +513,7 @@ impl NativeHostBridgeCallScope {
     pub(super) fn from_method_descriptors_with_owner(
         table: FrozenBridgeTable,
         descriptors: impl IntoIterator<Item = NativeBridgeMethodDescriptor>,
-        callback_owner: Option<NativePluginCallbackLease>,
+        library_owner: Option<NativePluginLibraryGenerationOwner>,
     ) -> Result<Self, crate::plugin::RuntimeExtensionRegistryError> {
         let methods = descriptors
             .into_iter()
@@ -491,7 +528,28 @@ impl NativeHostBridgeCallScope {
                 Ok((slot, descriptor.method_slot(), descriptor.method()))
             })
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::with_methods_and_owner(table, methods, callback_owner))
+        Ok(Self::with_methods_and_owner(table, methods, library_owner))
+    }
+
+    pub(super) fn from_method_descriptor_refs_with_owner<'a>(
+        table: FrozenBridgeTable,
+        descriptors: impl IntoIterator<Item = &'a NativeBridgeMethodDescriptor>,
+        library_owner: Option<NativePluginLibraryGenerationOwner>,
+    ) -> Result<Self, crate::plugin::RuntimeExtensionRegistryError> {
+        let methods = descriptors
+            .into_iter()
+            .map(|descriptor| {
+                let slot = table
+                    .resolve_slot(descriptor.interface_id())
+                    .ok_or_else(|| {
+                        crate::plugin::RuntimeExtensionRegistryError::MissingPluginInterface(
+                            descriptor.interface_id().to_string(),
+                        )
+                    })?;
+                Ok((slot, descriptor.method_slot(), descriptor.method()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self::with_methods_and_owner(table, methods, library_owner))
     }
 
     pub const fn handle(&self) -> ZrRuntimePluginHandle {
@@ -522,16 +580,17 @@ impl NativeHostBridgeCallScope {
     }
 }
 
-impl Drop for NativeHostBridgeCallScope {
+impl Drop for NativeHostBridgeCallRegistration {
     fn drop(&mut self) {
         contexts().remove(self.handle.raw());
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct NativeHostApiV3RegistrationContext {
     registry: usize,
     owner: PluginModuleId,
+    lifetime: Arc<NativeHostRegistrationScopeState>,
 }
 
 #[derive(Clone)]
@@ -540,205 +599,17 @@ struct NativeHostApiV4RegistrationContext {
     owner: PluginModuleId,
     plugin_id: String,
     policy: NativeHostApiV4RegistrationPolicy,
+    lifetime: Arc<NativeHostRegistrationScopeState>,
 }
 
 impl NativeHostApiV4RegistrationContext {
-    const fn v3_context(&self) -> NativeHostApiV3RegistrationContext {
+    fn v3_context(&self) -> NativeHostApiV3RegistrationContext {
         NativeHostApiV3RegistrationContext {
             registry: self.registry,
             owner: self.owner,
+            lifetime: Arc::clone(&self.lifetime),
         }
     }
-}
-
-struct NativeHostBridgeCallContext {
-    table: FrozenBridgeTable,
-    methods: DenseBridgeMethodTable,
-    _callback_owner: Option<NativePluginCallbackLease>,
-}
-
-/// Immutable callback dispatch storage indexed by the already-resolved interface and method
-/// slots. The manifest parser may use ordered maps while building descriptors, but a stable ABI
-/// call must not pay a tree lookup after its scope has been frozen.
-struct DenseBridgeMethodTable {
-    interfaces: DenseBridgeSlotDirectory<DenseBridgeMethodRow>,
-    method_count: usize,
-}
-
-impl DenseBridgeMethodTable {
-    fn from_entries(entries: impl IntoIterator<Item = (u32, u32, NativeBridgeMethodFn)>) -> Self {
-        let mut interfaces = DenseBridgeSlotDirectory::default();
-        let mut method_count = 0;
-
-        for (interface_slot, method_slot, method) in entries {
-            if interfaces.get(interface_slot).is_none() {
-                interfaces.insert(interface_slot, DenseBridgeMethodRow::default());
-            }
-            let row = interfaces
-                .get_mut(interface_slot)
-                .expect("inserted bridge interface row must remain addressable");
-            method_count += usize::from(row.insert(method_slot, method));
-        }
-
-        Self {
-            interfaces,
-            method_count,
-        }
-    }
-
-    fn get(&self, interface_slot: u32, method_slot: u32) -> Option<NativeBridgeMethodFn> {
-        self.interfaces.get(interface_slot)?.get(method_slot)
-    }
-
-    const fn len(&self) -> usize {
-        self.method_count
-    }
-
-    #[cfg(test)]
-    fn metrics(&self) -> DenseBridgeMethodTableMetrics {
-        DenseBridgeMethodTableMetrics {
-            interface_rows: self.interfaces.len(),
-            method_rows: self.interfaces.len(),
-            occupied_methods: self.method_count,
-            tree_probes: 0,
-        }
-    }
-}
-
-struct DenseBridgeMethodRow {
-    methods: DenseBridgeSlotDirectory<NativeBridgeMethodFn>,
-}
-
-impl Default for DenseBridgeMethodRow {
-    fn default() -> Self {
-        Self {
-            methods: DenseBridgeSlotDirectory::default(),
-        }
-    }
-}
-
-impl DenseBridgeMethodRow {
-    fn insert(&mut self, method_slot: u32, method: NativeBridgeMethodFn) -> bool {
-        self.methods.insert(method_slot, method).is_none()
-    }
-
-    fn get(&self, method_slot: u32) -> Option<NativeBridgeMethodFn> {
-        self.methods.get(method_slot).copied()
-    }
-}
-
-// ABI slots are arbitrary u32 values. A fixed four-level directory shares the common prefixes
-// of dense registrations while keeping a sparse slot from turning into a slot-sized allocation.
-const DENSE_BRIDGE_SLOT_DIRECTORY_BITS: u32 = 8;
-const DENSE_BRIDGE_SLOT_DIRECTORY_LEVELS: u32 = u32::BITS / DENSE_BRIDGE_SLOT_DIRECTORY_BITS;
-const DENSE_BRIDGE_SLOT_DIRECTORY_FANOUT: usize = 1_usize << DENSE_BRIDGE_SLOT_DIRECTORY_BITS;
-
-struct DenseBridgeSlotDirectory<T> {
-    root: DenseBridgeSlotDirectoryNode<T>,
-    len: usize,
-}
-
-impl<T> Default for DenseBridgeSlotDirectory<T> {
-    fn default() -> Self {
-        Self {
-            root: DenseBridgeSlotDirectoryNode::empty_at_depth(0),
-            len: 0,
-        }
-    }
-}
-
-impl<T> DenseBridgeSlotDirectory<T> {
-    fn get(&self, slot: u32) -> Option<&T> {
-        self.root.get(slot, 0)
-    }
-
-    fn get_mut(&mut self, slot: u32) -> Option<&mut T> {
-        self.root.get_mut(slot, 0)
-    }
-
-    fn insert(&mut self, slot: u32, value: T) -> Option<T> {
-        let previous = self.root.insert(slot, 0, value);
-        if previous.is_none() {
-            self.len += 1;
-        }
-        previous
-    }
-
-    const fn len(&self) -> usize {
-        self.len
-    }
-}
-
-enum DenseBridgeSlotDirectoryNode<T> {
-    Branch(Box<[Option<Box<DenseBridgeSlotDirectoryNode<T>>>; DENSE_BRIDGE_SLOT_DIRECTORY_FANOUT]>),
-    Page(Box<[Option<T>; DENSE_BRIDGE_SLOT_DIRECTORY_FANOUT]>),
-}
-
-impl<T> DenseBridgeSlotDirectoryNode<T> {
-    fn empty_at_depth(depth: u32) -> Self {
-        if depth + 1 == DENSE_BRIDGE_SLOT_DIRECTORY_LEVELS {
-            Self::Page(Box::new(std::array::from_fn(|_| None)))
-        } else {
-            Self::Branch(Box::new(std::array::from_fn(|_| None)))
-        }
-    }
-
-    fn get(&self, slot: u32, depth: u32) -> Option<&T> {
-        let index = dense_bridge_slot_directory_index(slot, depth);
-        match self {
-            Self::Branch(branches) => branches.get(index)?.as_deref()?.get(slot, depth + 1),
-            Self::Page(values) => values.get(index)?.as_ref(),
-        }
-    }
-
-    fn get_mut(&mut self, slot: u32, depth: u32) -> Option<&mut T> {
-        let index = dense_bridge_slot_directory_index(slot, depth);
-        match self {
-            Self::Branch(branches) => branches
-                .get_mut(index)?
-                .as_deref_mut()?
-                .get_mut(slot, depth + 1),
-            Self::Page(values) => values.get_mut(index)?.as_mut(),
-        }
-    }
-
-    fn insert(&mut self, slot: u32, depth: u32, value: T) -> Option<T> {
-        let index = dense_bridge_slot_directory_index(slot, depth);
-        match self {
-            Self::Branch(branches) => branches[index]
-                .get_or_insert_with(|| Box::new(Self::empty_at_depth(depth + 1)))
-                .insert(slot, depth + 1, value),
-            Self::Page(values) => values[index].replace(value),
-        }
-    }
-}
-
-fn dense_bridge_slot_directory_index(slot: u32, depth: u32) -> usize {
-    debug_assert!(depth < DENSE_BRIDGE_SLOT_DIRECTORY_LEVELS);
-    let shift = (DENSE_BRIDGE_SLOT_DIRECTORY_LEVELS - depth - 1) * DENSE_BRIDGE_SLOT_DIRECTORY_BITS;
-    ((slot >> shift) & (DENSE_BRIDGE_SLOT_DIRECTORY_FANOUT as u32 - 1)) as usize
-}
-
-impl NativeHostBridgeCallContext {
-    #[cfg(test)]
-    fn method_table_metrics(&self) -> DenseBridgeMethodTableMetrics {
-        self.methods.metrics()
-    }
-}
-
-#[cfg(test)]
-struct DenseBridgeMethodTableMetrics {
-    interface_rows: usize,
-    method_rows: usize,
-    occupied_methods: usize,
-    tree_probes: usize,
-}
-
-#[derive(Clone)]
-enum NativeHostApiV3Context {
-    Registration(NativeHostApiV3RegistrationContext),
-    RegistrationV4(NativeHostApiV4RegistrationContext),
-    BridgeCall(Arc<NativeHostBridgeCallContext>),
 }
 
 unsafe extern "C" fn native_host_register_system_v1(
@@ -761,7 +632,7 @@ unsafe fn native_host_register_system_v1_inner(
         return status(ZrStatusCode::NotFound);
     };
     let registration = unsafe { &*registration };
-    let result = unsafe { register_system_from_abi(context, handle, registration) };
+    let result = unsafe { register_system_from_abi(&context, handle, registration) };
     match result {
         Ok(()) => ZrStatus::ok(),
         Err(_) => status(ZrStatusCode::Error),
@@ -788,7 +659,7 @@ unsafe fn native_host_register_system_v2_inner(
         return status(ZrStatusCode::NotFound);
     };
     let registration = unsafe { &*registration };
-    let result = unsafe { register_system_from_abi_v4(context, handle, registration) };
+    let result = unsafe { register_system_from_abi_v4(&context, handle, registration) };
     match result {
         Ok(()) => ZrStatus::ok(),
         Err(_) => status(ZrStatusCode::Error),
@@ -816,7 +687,7 @@ unsafe fn native_host_register_component_v1_inner(
         return status(ZrStatusCode::NotFound);
     };
     let descriptor = unsafe { &*descriptor };
-    let result = unsafe { register_component_from_abi(context, descriptor) };
+    let result = unsafe { register_component_from_abi(&context, descriptor) };
     match result {
         Ok(()) => ZrStatus::ok(),
         Err(_) => status(ZrStatusCode::Error),
@@ -895,13 +766,30 @@ unsafe fn native_host_bridge_call_v1_inner(
     let Some(method) = context.methods.get(interface_slot, method_slot) else {
         return status(ZrStatusCode::NotFound);
     };
+    let callback_lease = match context.library_owner.as_ref() {
+        Some(owner) => match owner.acquire_callback() {
+            Ok(lease) => Some(lease),
+            Err(_) => {
+                context.table.record_not_enabled_call(slot);
+                return status(ZrStatusCode::BridgeNotEnabled);
+            }
+        },
+        None => None,
+    };
     context.table.record_enabled_call(slot);
-    method.call(NativeBridgeCall {
+    let started_at = callback_lease
+        .as_ref()
+        .and_then(|lease| lease.begin_callback_measurement());
+    let status = method.call(NativeBridgeCall {
         interface_slot,
         method_slot,
         payload: ZrByteSlice { data: payload, len },
         output,
-    })
+    });
+    if let Some(lease) = callback_lease.as_ref() {
+        lease.complete_callback_measurement(started_at);
+    }
+    status
 }
 
 unsafe extern "C" fn native_host_diagnostics_emit_v1(
@@ -922,7 +810,7 @@ unsafe extern "C" fn native_host_diagnostics_metric_v1(
 }
 
 unsafe fn register_system_from_abi(
-    context: NativeHostApiV3RegistrationContext,
+    context: &NativeHostApiV3RegistrationContext,
     handle: ZrRuntimePluginHandle,
     registration: &ZrSystemRegistrationV1,
 ) -> NativeHostApiAdapterResult<()> {
@@ -933,7 +821,7 @@ unsafe fn register_system_from_abi(
     let after = read_byte_slices(registration.after, registration.after_count)?;
     let invoke = registration.invoke;
     let user_data = registration.user_data;
-    let registry = registry_from_context(context);
+    let registry = unsafe { registry_from_context(context) };
     let sets = set_names
         .into_iter()
         .map(|set_name| {
@@ -965,7 +853,7 @@ unsafe fn register_system_from_abi(
 }
 
 unsafe fn register_system_from_abi_v4(
-    context: NativeHostApiV4RegistrationContext,
+    context: &NativeHostApiV4RegistrationContext,
     handle: ZrRuntimePluginHandle,
     registration: &ZrSystemRegistrationV2,
 ) -> NativeHostApiAdapterResult<()> {
@@ -979,8 +867,8 @@ unsafe fn register_system_from_abi_v4(
             actual: registration.size_bytes,
         });
     }
-    // V3's empty declaration is the legacy conservative fallback. V4 is the opt-in exact
-    // contract, so it must never enter that fallback through an empty access array.
+    // V3's empty declaration is the conservative schema-v3 default. V4 is the opt-in exact
+    // contract, so it must never select that default through an empty access array.
     if registration.access_count == 0 {
         return Err(NativeHostApiAdapterError::EmptyV4AccessContract);
     }
@@ -1005,15 +893,16 @@ unsafe fn register_system_from_abi_v4(
         )
         .map_err(|source| NativeHostApiAdapterError::InvalidV4SystemAccess { source })?,
     );
-    let registry = registry_from_context(context.v3_context());
+    let v3_context = context.v3_context();
+    let registry = unsafe { registry_from_context(&v3_context) };
     let authority = NativeSystemAccessAuthority::new(
-        context.plugin_id,
+        context.plugin_id.clone(),
         registry
             .components()
             .iter()
             .map(|component| component.type_id.clone()),
-        context.policy.known_resource_ids,
-        context.policy.granted_capabilities,
+        context.policy.known_resource_ids.clone(),
+        context.policy.granted_capabilities.clone(),
     );
     authority
         .authorize(access_plan.as_ref())
@@ -1086,12 +975,12 @@ impl SystemParam for NativeDynamicAccess {
 }
 
 unsafe fn register_component_from_abi(
-    context: NativeHostApiV3RegistrationContext,
+    context: &NativeHostApiV3RegistrationContext,
     descriptor: &ZrComponentDescV1,
 ) -> NativeHostApiAdapterResult<()> {
     let type_id = read_utf8(descriptor.type_id)?;
     let display_name = read_utf8(descriptor.display_name)?;
-    let registry = registry_from_context(context);
+    let registry = unsafe { registry_from_context(context) };
     let plugin_id = registry
         .plugin_module_name(context.owner)
         .and_then(plugin_id_from_runtime_module_name)
@@ -1109,7 +998,7 @@ unsafe fn register_component_from_abi(
 }
 
 unsafe fn registry_from_context<'a>(
-    context: NativeHostApiV3RegistrationContext,
+    context: &NativeHostApiV3RegistrationContext,
 ) -> &'a mut RuntimeExtensionRegistry {
     &mut *(context.registry as *mut RuntimeExtensionRegistry)
 }
@@ -1215,39 +1104,47 @@ fn plugin_id_from_runtime_module_name(module_name: &str) -> Option<&str> {
     module_name.strip_suffix(".runtime")
 }
 
-fn context_for(handle: ZrRuntimePluginHandle) -> Option<NativeHostApiV3RegistrationContext> {
+fn context_for(handle: ZrRuntimePluginHandle) -> Option<NativeHostApiV3RegistrationContextPin> {
     if !handle.is_valid() {
         return None;
     }
     match contexts().get(handle.raw()).as_deref()? {
-        NativeHostApiV3Context::Registration(context) => Some(*context),
-        NativeHostApiV3Context::RegistrationV4(context) => Some(context.v3_context()),
+        NativeHostApiV3Context::Registration(context) => {
+            NativeHostApiV3RegistrationContextPin::new(context.clone())
+        }
+        NativeHostApiV3Context::RegistrationV4(context) => {
+            NativeHostApiV3RegistrationContextPin::new(context.v3_context())
+        }
         NativeHostApiV3Context::BridgeCall(_) => None,
     }
 }
 
-fn context_for_v4(handle: ZrRuntimePluginHandle) -> Option<NativeHostApiV4RegistrationContext> {
+fn context_for_v4(handle: ZrRuntimePluginHandle) -> Option<NativeHostApiV4RegistrationContextPin> {
     if !handle.is_valid() {
         return None;
     }
     match contexts().get(handle.raw()).as_deref()? {
-        NativeHostApiV3Context::RegistrationV4(context) => Some(context.clone()),
+        NativeHostApiV3Context::RegistrationV4(context) => {
+            NativeHostApiV4RegistrationContextPin::new(context.clone())
+        }
         NativeHostApiV3Context::Registration(_) | NativeHostApiV3Context::BridgeCall(_) => None,
     }
 }
 
 fn bridge_context_for(
     handle: ZrRuntimePluginHandle,
-) -> Result<Arc<NativeHostBridgeCallContext>, ZrStatusCode> {
+) -> Result<NativeHostBridgeCallContextPin, ZrStatusCode> {
     if !handle.is_valid() {
         return Err(ZrStatusCode::NotFound);
     }
-    match contexts().get(handle.raw()).as_deref() {
-        Some(NativeHostApiV3Context::Registration(_))
-        | Some(NativeHostApiV3Context::RegistrationV4(_)) => Err(ZrStatusCode::UnsupportedVersion),
-        Some(NativeHostApiV3Context::BridgeCall(context)) => Ok(context.clone()),
-        None => Err(ZrStatusCode::NotFound),
+    let context = contexts().get(handle.raw()).ok_or(ZrStatusCode::NotFound)?;
+    match context.as_ref() {
+        NativeHostApiV3Context::Registration(_) | NativeHostApiV3Context::RegistrationV4(_) => {
+            return Err(ZrStatusCode::UnsupportedVersion);
+        }
+        NativeHostApiV3Context::BridgeCall(_) => {}
     }
+    Ok(NativeHostBridgeCallContextPin::new(context))
 }
 
 fn contexts() -> &'static HostContextRegistry<NativeHostApiV3Context> {

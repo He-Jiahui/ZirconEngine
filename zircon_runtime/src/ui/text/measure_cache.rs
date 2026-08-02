@@ -1,12 +1,13 @@
 use crate::core::framework::text::TextDirection;
 use crate::core::runtime::tasks::TaskPool;
 use crate::text::{
-    SharedTextLayoutSession, TextRange,
+    SharedTextLayoutSession, TextRange, text_style,
     cache::{
         DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
         ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport, TextLayoutCache,
         TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache, TextMeasureCacheReport,
     },
+    font::shared_font_database_generation,
     layout::measure_line_width,
     parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
 };
@@ -16,14 +17,12 @@ use std::{
 };
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextRange, UiTextWrap,
+    UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
-use super::adapter::text_style;
 use super::resolved_layout::{
     UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey, resolve_text_layout_with_provider,
 };
-use super::rich_text::parse_source_text;
 use super::shaper::measure_text_size_with_provider as measure_backend_text_size_with_provider;
 
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
@@ -57,6 +56,7 @@ pub(crate) struct UiTextMeasureKey {
     pub clip_frame: Option<UiFrameKey>,
     pub width_bucket: UiWidthBucket,
     pub style: UiTextStyleKey,
+    pub font_database_generation: u64,
 }
 
 impl Hash for UiTextMeasureKey {
@@ -66,17 +66,26 @@ impl Hash for UiTextMeasureKey {
         self.clip_frame.hash(state);
         self.width_bucket.hash(state);
         self.style.hash(state);
+        self.font_database_generation.hash(state);
     }
 }
 
 impl UiTextMeasureKey {
     pub(crate) fn from_request(request: &UiTextLayoutRequest<'_>) -> Self {
+        Self::from_request_at_generation(request, shared_font_database_generation())
+    }
+
+    fn from_request_at_generation(
+        request: &UiTextLayoutRequest<'_>,
+        font_database_generation: u64,
+    ) -> Self {
         Self {
             content_hash: request.source_hash(),
             frame: UiFrameKey::from_frame(request.frame),
             clip_frame: request.clip_frame.map(UiFrameKey::from_frame),
             width_bucket: UiWidthBucket::from_request(request),
             style: request.style_key(),
+            font_database_generation,
         }
     }
 }
@@ -85,12 +94,14 @@ impl UiTextMeasureKey {
 pub(crate) struct UiTextMeasureSizeKey {
     pub content_hash: u64,
     pub style: UiTextStyleKey,
+    pub font_database_generation: u64,
 }
 
 impl Hash for UiTextMeasureSizeKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.content_hash.hash(state);
         self.style.hash(state);
+        self.font_database_generation.hash(state);
     }
 }
 
@@ -99,10 +110,46 @@ impl UiTextMeasureSizeKey {
         text: &str,
         style: &zircon_runtime_interface::ui::surface::UiResolvedStyle,
     ) -> Self {
+        Self::from_text_style_at_generation(text, style, shared_font_database_generation())
+    }
+
+    fn from_text_style_at_generation(
+        text: &str,
+        style: &zircon_runtime_interface::ui::surface::UiResolvedStyle,
+        font_database_generation: u64,
+    ) -> Self {
         Self {
             content_hash: text_hash(text),
             style: UiTextStyleKey::from_style(style),
+            font_database_generation,
         }
+    }
+}
+
+#[cfg(test)]
+mod generation_key_tests {
+    use super::{UiTextMeasureKey, UiTextMeasureSizeKey};
+    use crate::ui::text::UiTextLayoutRequest;
+    use zircon_runtime_interface::ui::{layout::UiFrame, surface::UiResolvedStyle};
+
+    #[test]
+    fn ui_text_cache_keys_change_with_font_database_generation() {
+        let style = UiResolvedStyle::default();
+        let request = UiTextLayoutRequest::new(
+            "generation",
+            &style,
+            UiFrame::new(0.0, 0.0, 100.0, 20.0),
+            None,
+        );
+
+        assert_ne!(
+            UiTextMeasureSizeKey::from_text_style_at_generation("generation", &style, 1),
+            UiTextMeasureSizeKey::from_text_style_at_generation("generation", &style, 2)
+        );
+        assert_ne!(
+            UiTextMeasureKey::from_request_at_generation(&request, 1),
+            UiTextMeasureKey::from_request_at_generation(&request, 2)
+        );
     }
 }
 
@@ -156,8 +203,16 @@ impl UiTextShapePrewarmRequest {
     }
 
     pub(crate) fn from_layout_source(text: &str, style: UiResolvedStyle) -> Option<Self> {
-        let text = layout_prewarm_text(text, style.rich_text_format)?;
-        Some(Self { text, style })
+        if text.is_empty()
+            || !matches!(style.rich_text_format, UiRichTextFormat::Plain)
+            || !matches!(style.text_writing_mode, UiTextWritingMode::HorizontalTb)
+        {
+            return None;
+        }
+        Some(Self {
+            text: Arc::from(text),
+            style,
+        })
     }
 
     fn to_shape_paragraph(&self) -> TextShapeParagraph {
@@ -171,18 +226,6 @@ impl UiTextShapePrewarmRequest {
             },
         )
     }
-}
-
-fn layout_prewarm_text(text: &str, format: UiRichTextFormat) -> Option<Arc<str>> {
-    if text.is_empty() {
-        return None;
-    }
-    if matches!(format, UiRichTextFormat::Plain) {
-        return Some(Arc::from(text));
-    }
-
-    let visible_text = parse_source_text(text, format.into()).text;
-    (!visible_text.is_empty()).then(|| Arc::from(visible_text))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -297,6 +340,10 @@ impl UiTextMeasureCache {
             .shape_prewarm_report
             .batch_duplicate_count
             .saturating_add(report.batch_duplicate_count);
+        self.shape_prewarm_report.pending_lookup_candidate_count = self
+            .shape_prewarm_report
+            .pending_lookup_candidate_count
+            .saturating_add(report.pending_lookup_candidate_count);
         self.shape_prewarm_report.shaped_count = self
             .shape_prewarm_report
             .shaped_count
@@ -305,6 +352,22 @@ impl UiTextMeasureCache {
             .shape_prewarm_report
             .inserted_count
             .saturating_add(report.inserted_count);
+        self.shape_prewarm_report.generation_deferred_count = self
+            .shape_prewarm_report
+            .generation_deferred_count
+            .saturating_add(report.generation_deferred_count);
+        self.shape_prewarm_report.inline_batch_count = self
+            .shape_prewarm_report
+            .inline_batch_count
+            .saturating_add(report.inline_batch_count);
+        self.shape_prewarm_report.parallel_join_count = self
+            .shape_prewarm_report
+            .parallel_join_count
+            .saturating_add(report.parallel_join_count);
+        self.shape_prewarm_report.caller_wait_nanos = self
+            .shape_prewarm_report
+            .caller_wait_nanos
+            .saturating_add(report.caller_wait_nanos);
         self.shape_prewarm_report.chunk_size =
             self.shape_prewarm_report.chunk_size.max(report.chunk_size);
         self.shape_prewarm_report.worker_parallelism = self

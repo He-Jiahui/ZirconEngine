@@ -9,15 +9,20 @@ mod orientation;
 #[path = "vertical/backend.rs"]
 mod backend;
 
-#[path = "vertical/projection.rs"]
-mod projection;
+#[path = "vertical/direct.rs"]
+mod direct;
 
 #[cfg(test)]
 #[path = "vertical/tests.rs"]
 mod tests;
 
 use orientation::vertical_glyph_metrics;
-use projection::apply_vertical_backend_shaping;
+
+pub(in crate::text::shaping) use orientation::{
+    vertical_shape_orientation, VerticalShapeOrientation,
+};
+
+pub(super) use direct::shape_vertical_request;
 
 pub(crate) fn vertical_glyph_rotation(
     mode: crate::text::VerticalMode,
@@ -41,26 +46,16 @@ pub(super) fn apply_vertical_layout(
     request: BackendShapeRequest<'_>,
     font_database: Option<&FontDatabase>,
 ) {
-    let backend_advances =
-        font_database.map(|database| apply_vertical_backend_shaping(shaped, request, database));
     let mut vertical_metrics = HashMap::new();
-    apply_vertical_layout_with_native_metrics(shaped, request, |line_index, glyph_index, glyph| {
-        backend_advances
-            .as_ref()
-            .and_then(|lines| lines.get(line_index))
-            .and_then(|line| line.get(glyph_index))
-            .copied()
-            .flatten()
-            .or_else(|| {
-                let face = glyph.font_id?;
-                let metrics = cached_vertical_metrics(
-                    &mut vertical_metrics,
-                    font_database?,
-                    face,
-                    request.style.font_size,
-                )?;
-                metrics.glyph_advance_px(glyph.glyph_id)
-            })
+    apply_vertical_layout_with_native_metrics(shaped, request, |_, _, glyph| {
+        let face = glyph.font_id?;
+        let metrics = cached_vertical_metrics(
+            &mut vertical_metrics,
+            font_database?,
+            face,
+            request.style.font_size,
+        )?;
+        metrics.glyph_advance_px(glyph.glyph_id)
     });
 }
 

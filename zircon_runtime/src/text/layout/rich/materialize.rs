@@ -2,30 +2,34 @@ use std::ops::Range;
 
 use crate::core::math::Vec2;
 use crate::text::shaping::TextShapeRunProvider;
-use crate::text::{LaidOutLine, LaidOutText, LayoutItem, RichParseResult, TextRange, TextStyle};
+use crate::text::{LaidOutLine, LaidOutText, LayoutItem, TextRange, TextStyle};
 
 use super::super::line_metrics_with_provider;
 use super::metrics::{inline_box_metrics, inline_origin_y};
-use super::{resolve_rich_run_style, RichAdvanceIndex};
+use super::{resolve_rich_run_style, RichAdvanceIndex, RichTextLayoutSource};
 
-pub(crate) fn layout_rich_line_with_provider<P>(
-    parsed: &RichParseResult,
+pub(crate) fn layout_rich_line_with_provider<S, P>(
+    source: &S,
     style: &TextStyle,
     provider: &mut P,
 ) -> LaidOutText
 where
+    S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
-    let index = HorizontalRichLayoutIndex::new(parsed, style, provider);
-    let end = u32::try_from(parsed.text.len()).unwrap_or(u32::MAX);
-    layout_rich_source_range(parsed, (0, end), 0..parsed.runs.len(), &index)
+    let index = HorizontalRichLayoutIndex::new(source, style, provider);
+    let end = u32::try_from(source.text().len()).unwrap_or(u32::MAX);
+    layout_rich_source_range(source, (0, end), 0..source.run_count(), &index)
 }
 
-pub(super) fn layout_rich_ranges_with_index(
-    parsed: &RichParseResult,
+pub(super) fn layout_rich_ranges_with_index<S>(
+    source: &S,
     source_ranges: Vec<(u32, u32)>,
     index: &HorizontalRichLayoutIndex,
-) -> LaidOutText {
+) -> LaidOutText
+where
+    S: RichTextLayoutSource + ?Sized,
+{
     let mut items = Vec::new();
     let mut lines = Vec::new();
     let mut cursor_y = 0.0;
@@ -33,23 +37,21 @@ pub(super) fn layout_rich_ranges_with_index(
     let mut run_cursor = 0_usize;
 
     for source_range in source_ranges {
-        while parsed
-            .runs
-            .get(run_cursor)
+        while source
+            .run(run_cursor)
             .is_some_and(|run| run.byte_range.1 <= source_range.0)
         {
             run_cursor = run_cursor.saturating_add(1);
         }
         let mut run_end = run_cursor;
-        while parsed
-            .runs
-            .get(run_end)
+        while source
+            .run(run_end)
             .is_some_and(|run| run.byte_range.0 < source_range.1)
         {
             run_end = run_end.saturating_add(1);
         }
         let mut line_layout =
-            layout_rich_source_range(parsed, source_range, run_cursor..run_end, index);
+            layout_rich_source_range(source, source_range, run_cursor..run_end, index);
         let item_start = u32::try_from(items.len()).unwrap_or(u32::MAX);
         items.append(&mut line_layout.items);
         let item_end = u32::try_from(items.len()).unwrap_or(u32::MAX);
@@ -71,21 +73,25 @@ pub(super) fn layout_rich_ranges_with_index(
     }
 }
 
-fn layout_rich_source_range(
-    parsed: &RichParseResult,
+fn layout_rich_source_range<S>(
+    source: &S,
     source_range: (u32, u32),
     run_range: Range<usize>,
     index: &HorizontalRichLayoutIndex,
-) -> LaidOutText {
-    let runs = parsed.runs.get(run_range.clone()).unwrap_or_default();
+) -> LaidOutText
+where
+    S: RichTextLayoutSource + ?Sized,
+{
     let mut text_ascent = index.base_ascent;
     let mut text_descent = index.base_descent;
-    for (local_run_index, run) in runs.iter().enumerate() {
-        let original_run_index = run_range.start.saturating_add(local_run_index);
+    for local_run_index in run_range.clone() {
+        let Some(run) = source.run(local_run_index) else {
+            continue;
+        };
         if clipped_run_range(run.byte_range, source_range).is_some() {
             if let Some(metrics) = index
                 .run_metrics
-                .get(original_run_index)
+                .get(local_run_index)
                 .and_then(Option::as_ref)
             {
                 text_ascent = text_ascent.max(metrics.ascent);
@@ -95,11 +101,15 @@ fn layout_rich_source_range(
     }
     let mut ascent = text_ascent;
     let mut descent = text_descent;
-    let mut inline_metrics = Vec::with_capacity(runs.len());
+    let mut inline_metrics = Vec::with_capacity(run_range.len());
 
-    for run in runs {
+    for local_run_index in run_range.clone() {
+        let Some(run) = source.run(local_run_index) else {
+            inline_metrics.push(None);
+            continue;
+        };
         let metrics = clipped_run_range(run.byte_range, source_range)
-            .and_then(|_| run.inline.as_ref())
+            .and_then(|_| run.inline)
             .map(|inline| inline_box_metrics(inline, text_ascent, text_descent));
         if let Some(metrics) = metrics {
             ascent = ascent.max(metrics.ascent);
@@ -108,21 +118,23 @@ fn layout_rich_source_range(
         inline_metrics.push(metrics);
     }
 
-    let mut items = Vec::with_capacity(runs.len());
+    let mut items = Vec::with_capacity(run_range.len());
     let mut cursor_x = 0.0;
     let line_baseline = ascent;
-    for (local_run_index, run) in runs.iter().enumerate() {
+    for (inline_metric_index, local_run_index) in run_range.clone().enumerate() {
+        let Some(run) = source.run(local_run_index) else {
+            continue;
+        };
         let Some(clipped_range) = clipped_run_range(run.byte_range, source_range) else {
             continue;
         };
         let Some(text_range) = ui_range(clipped_range) else {
             continue;
         };
-        let original_run_index = run_range.start.saturating_add(local_run_index);
-        if let (Some(inline), Some(metrics)) = (&run.inline, inline_metrics[local_run_index]) {
+        if let (Some(inline), Some(metrics)) = (run.inline, inline_metrics[inline_metric_index]) {
             let origin_y = inline_origin_y(metrics, line_baseline, ascent + descent);
             items.push(LayoutItem::Inline {
-                run_index: u32::try_from(original_run_index).unwrap_or(u32::MAX),
+                run_index: run.source_index,
                 source_range: clipped_range,
                 object: inline.clone(),
                 size: metrics.size,
@@ -133,19 +145,23 @@ fn layout_rich_source_range(
             cursor_x += metrics.advance;
             continue;
         }
-        if parsed.text.get(text_range.start..text_range.end).is_none() {
+        if source
+            .text()
+            .get(text_range.start..text_range.end)
+            .is_none()
+        {
             continue;
         }
         let Some(run_metrics) = index
             .run_metrics
-            .get(original_run_index)
+            .get(local_run_index)
             .and_then(Option::as_ref)
         else {
             continue;
         };
         let advance = index.advances.advance(text_range.start, text_range.end);
         items.push(LayoutItem::Text {
-            run_index: u32::try_from(original_run_index).unwrap_or(u32::MAX),
+            run_index: run.source_index,
             source_range: clipped_range,
             origin: Vec2::new(cursor_x, line_baseline - run_metrics.ascent),
             advance,
@@ -184,14 +200,15 @@ pub(super) struct HorizontalRichLayoutIndex {
 }
 
 impl HorizontalRichLayoutIndex {
-    pub(super) fn new<P>(parsed: &RichParseResult, style: &TextStyle, provider: &mut P) -> Self
+    pub(super) fn new<S, P>(source: &S, style: &TextStyle, provider: &mut P) -> Self
     where
+        S: RichTextLayoutSource + ?Sized,
         P: TextShapeRunProvider + ?Sized,
     {
         let base_line_metrics = line_metrics_with_provider(style, provider);
         let base_ascent = base_line_metrics.baseline.max(0.0);
         let base_descent = (base_line_metrics.line_height - base_ascent).max(0.0);
-        let advances = RichAdvanceIndex::new(parsed, style, provider, |inline, _| {
+        let advances = RichAdvanceIndex::new(source, style, provider, |inline, _| {
             let metrics = inline_box_metrics(inline, base_ascent, base_descent);
             (metrics.advance, metrics.size.y)
         });
@@ -200,16 +217,21 @@ impl HorizontalRichLayoutIndex {
             ascent: base_ascent,
             descent: base_descent,
         };
-        let mut run_metrics = Vec::with_capacity(parsed.runs.len());
+        let mut run_metrics = Vec::with_capacity(source.run_count());
         let mut previous_text_run: Option<((u32, u32), TextRunMetrics)> = None;
-        for run in &parsed.runs {
+        for index in 0..source.run_count() {
+            let Some(run) = source.run(index) else {
+                run_metrics.push(None);
+                previous_text_run = None;
+                continue;
+            };
             if run.inline.is_some() {
                 run_metrics.push(None);
                 previous_text_run = None;
                 continue;
             }
 
-            let run_style = resolve_rich_run_style(style, &run.style);
+            let run_style = resolve_rich_run_style(style, run.style);
             let metrics = if run_style == base_metrics.style {
                 base_metrics.clone()
             } else if let Some(previous_metrics) =

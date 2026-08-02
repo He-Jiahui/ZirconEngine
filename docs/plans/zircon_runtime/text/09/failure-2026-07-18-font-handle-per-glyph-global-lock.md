@@ -50,4 +50,9 @@ neutral glyph DTO只保存32-bit slot+generation，而64-bit face/instance ident
 
 ## 修复结果与回传
 
-Open state: `等待Text09联动Text01回传batch/unique handle projection、stable-generation lock budget、current-source Cargo与多线程规模证据`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / managed_validation_pending`.
+
+- `register_font_handle_batch(...)` and `resolve_font_handle_batch(...)` normalize a glyph stream into unique `(face, instance)` pairs. Registration publishes only on a changed snapshot; resolution takes one generation-checked immutable snapshot and remaps the results to the original glyph order.
+- The resolver records batch count, unique-pair count, rejected stale pairs, and snapshot acquire/wait/hold time. The canonical internal layout session keeps `ShapedGlyphRun` directly and does not project font handles into the framework DTO only to resolve them again.
+- The production guards cover one snapshot acquisition for a repeated batch, unique-pair accounting, an unchanged second registration batch without a republish, and the internal-session no-framework-roundtrip invariant.
+- This records source implementation and deterministic regression coverage only. Managed current-source Cargo plus the 1/100/10k glyph and 1/2/16-thread evidence matrix remain coordinator-owned; keep the handoff open until their receipt is recorded.

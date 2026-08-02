@@ -9,8 +9,8 @@ use crate::behavior_tree::{
 use crate::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin_descriptor,
     AI_BEHAVIOR_TICK_SYSTEM, AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY,
-    AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_MODULE_NAME, AI_PERCEPTION_CAPABILITY,
-    AI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_MAIN_SYSTEM_SET, AI_MODULE_NAME,
+    AI_PERCEPTION_CAPABILITY, AI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
 };
 use zircon_runtime::core::framework::ai::{
     AiAgentTickRequest, AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor,
@@ -72,6 +72,42 @@ fn behavior_tick_anchor_in_update() {
         behavior_tick.stage,
         zircon_runtime::scene::SystemStage::Update
     );
+}
+
+#[test]
+fn ai_runtime_systems_join_main_system_set() {
+    assert_eq!(AI_MAIN_SYSTEM_SET, "ai.main");
+
+    let mut report = plugin_registration();
+    let runtime_module = report
+        .package_manifest
+        .modules
+        .iter()
+        .find(|module| module.name == AI_MODULE_NAME)
+        .expect("ai.runtime module");
+    assert_eq!(
+        runtime_module.system_sets,
+        vec![AI_MAIN_SYSTEM_SET.to_string()]
+    );
+
+    let main_set = report
+        .extensions
+        .intern_system_set(AI_MAIN_SYSTEM_SET)
+        .expect("ai.main should be a valid system set");
+    let runtime_systems = report
+        .extensions
+        .plugin_runtime_systems()
+        .map(|(_, system)| system)
+        .collect::<Vec<_>>();
+    assert_eq!(runtime_systems.len(), 2);
+    for system in runtime_systems {
+        assert_eq!(
+            system.sets,
+            vec![main_set],
+            "{} must join ai.main",
+            system.id
+        );
+    }
 }
 
 #[test]
@@ -225,6 +261,7 @@ fn generated_plugin_toml_matches_runtime_events_and_system_anchors() {
         generated_runtime.system_anchors,
         runtime_module.system_anchors
     );
+    assert_eq!(generated_runtime.system_sets, runtime_module.system_sets);
 }
 
 #[test]

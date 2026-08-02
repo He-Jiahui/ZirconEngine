@@ -1,7 +1,7 @@
 use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset};
 use crate::core::framework::render::{
     RenderImageDescriptor, RenderImageDimension, RenderImageUsage, RenderSamplerAddressMode,
-    RenderSamplerFilter,
+    RenderSamplerFilter, TextureMetadata,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
@@ -291,6 +291,7 @@ mod tests {
             dimension: RenderImageDimension::D2,
             format: RGBA8_UNORM_SRGB_FORMAT.to_string(),
             color_space: RenderImageColorSpace::Srgb,
+            metadata: TextureMetadata::default(),
             sampler: RenderSamplerDescriptor::default(),
             usage,
             asset_usage: Vec::new(),

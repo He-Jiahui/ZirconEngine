@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/gpu_pass_timer/gpu_pass_timer.rs
+  - zircon_runtime/src/rhi_wgpu/gpu_pass_timer.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --lib offscreen_device_features_request_gpu_timestamps_only_when_fully_supported --locked --jobs 1 --color never -- --nocapture --test-threads=1
@@ -60,5 +60,8 @@ runtime branch or duplicate bit mask is required.
 
 ## 修复结果与回传
 
-Open state: implementation uses the const-safe feature-set constructor; managed
-current-source compile and focused regression evidence remain pending.
+Open state: implementation uses the const-safe feature-set constructor, and both scene/offscreen
+and retained-UI device negotiation reuse that single all-or-nothing feature authority. Retained UI
+now requests no timestamp features while its descriptor-level timing switch is off; an explicit
+profiling descriptor requests the complete feature set only when the adapter supports all required
+bits. Managed current-source compile and focused regression evidence remain pending.

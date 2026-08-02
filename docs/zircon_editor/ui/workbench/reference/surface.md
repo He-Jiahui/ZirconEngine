@@ -450,7 +450,7 @@ related_code:
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_pointer_preview.rs
   - zircon_editor/src/tests/workbench/mod.rs
   - zircon_editor/src/tests/workbench/reference_surface.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_pointer_preview.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs
   - zircon_runtime/src/ui/surface/surface.rs
@@ -887,7 +887,7 @@ implementation_files:
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_pointer_preview.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/context_menu.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
@@ -956,7 +956,7 @@ tests:
   - cargo fmt -p zircon_editor --check (2026-07-05 Asset Browser preview-artifact routing: passed)
   - git diff --check over Asset Browser preview-routing source/doc paths and target screenshot scan (2026-07-05: passed with existing CRLF warnings only; target scan clean; focused Cargo/screenshots deferred while other Cargo/rustc lanes were active)
   - zircon_editor/src/tests/workbench/reference_surface.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics.rs
@@ -1735,6 +1735,10 @@ The upper region is a horizontal layout. Its fixed columns are the 72 px activit
 The standalone declarative template mirrors these same bands with a 72 px two-row toolbar, a flexible main band, a 407 px component drawer, and a 46 px status bar. Inside the retained desktop host, `workbench_shell.zui` keeps the 24 px menu bar, 32 px host-page strip, and 1 px separator as outer chrome. `BuiltinHostRootShellFrames::componentized_workbench_mount_frame(...)` derives the remaining mount from the real `WorkbenchBody` boundary; the Workbench bridge lays out against that reduced local height and projects frames, clips, popup anchors, and pointer coordinates through the mount origin. The componentized painter renders host menu/page chrome first, then the mounted 72 px Workbench toolbar, while the mounted 46 px Workbench status bar remains anchored to the window bottom. At the default wide reference width, the main band resolves to 72 px activity rail, 332 px scene tree, a stretched viewport, and a 404 px inspector. Because `workbench_window.zui` mounts large components through wrapper nodes, the host-visible chrome IDs are the wrapper controls such as `WorkbenchWindowTopToolbarRegion`, `WorkbenchWindowMainBandRegion`, `WorkbenchMainBandViewportPanel`, and `WorkbenchWindowStatusBarRegion`. Lower-level controls such as `WorkbenchPrimaryButton` remain directly addressable through the expanded component tree.
 
 Interactive controls are regular runtime UI nodes. Buttons, tree rows, text fields, toggles, slider thumb, and list rows receive `UiInputPolicy::Receive`, pointer state flags, and widget contracts. Button-like nodes also receive click bindings so pointer dispatch can produce component events, not just hit-test results.
+
+Host navigation projection keeps selection identity separate from keyboard focus. An active PageTab, DockTab, or ActivityRail entry projects `selected=true` for its persistent surface, text, and underline state, but does not derive `focused=true` from activity. Focus is reserved for the actual pointer/keyboard focus route, so changing the active document or drawer cannot leave a false focus ring on every selected navigation control or its icon child.
+
+The host-page strip treats the project path as secondary chrome. Its width uses the remaining shell budget after reserving a readable primary tab, overflow control, gaps, and side insets; when that budget cannot hold the 150 px caption slot, the project path collapses to zero instead of overlapping tabs or escaping the shell. At regular and wide widths it retains the existing 22% responsive width capped at 150-260 px.
 
 The template surface entry point also projects retained host nodes from the same arranged `UiSurface`. This gives the next preview/native-host layer a single object containing the surface render data, the major chrome frames, and the retained host projection with route metadata for controls such as `WorkbenchPrimaryButton` and `WorkbenchToolMove`.
 
@@ -3486,6 +3490,30 @@ The corrected current-source TextField test binary is now available. Its two sel
 The accepted ConfirmDialog correction applies the same relative-composition rule to a composite surface. The prior shared painter placed title, body, and the default Cancel/Confirm row from unrelated fixed offsets, allowing the body to overlap actions in the 220×104 Workbench atlas sample. `template_dialogs` now measures action labels through the Runtime Text path, keeps the pair horizontally right-aligned when both measured widths fit, and otherwise stacks them from the same right edge. A short frame first compacts the tokenized body/action or stack gap; it suppresses the body only when a complete line still cannot fit. ConfirmDialog commands are clipped to the dialog rectangle, while AlertDialog keeps its separate legacy identity, severity chrome, body offset, action offset, and inherited clip. The fresh current-source binary passed five exact Dialog guards and the ignored aggregate capture 1/1. `docs/tests/editor/editor-components-workbench-slate-atlas-900x620.png` is 99,148 bytes with SHA-256 `2334AB05CDF5FC6744870B79F4A71A79D9164FBCA7D4E6475186164D19A6AA99`; visual review confirms the title, body, Cancel, and Confirm no longer overlap. The new capture was written only under `docs/tests/editor`. The managed full-package runner was released with actual `exit 124` after an evidenced no-progress worker, so this is focused compile/contract/visual acceptance rather than full-package acceptance.
 
 The accepted Dialog typography-density slice follows the explicit Starship standard-dialog roles rather than deriving a private oversized scale. Unreal's `StarshipCoreStyle.cpp` maps `StandardDialog.LargeFont` to the normal 10-point font and `StandardDialog.SmallFont` to the 8-point small font. `dialog_metrics_from_host(...)` maps title and action labels to the shared `font_body` token and body copy to `font_small`, with each role deriving its own line height; it no longer mixes the 10/14-point tokens or adds border width to text size. This preserves user-configured typography and the Runtime Text measurement/rendering path while reducing Dialog information density to the same 10/8/10-point hierarchy. The old compact-gap guard correctly showed that its 104px fixture was no longer constrained after the smaller line heights; the final 84px fixture now proves a token-relative gap between `content_gap` and `content_action_gap` without changing production layout. Windows managed job `f10ce55f61804e7aaa6e66d53b2f6d79` produced a fresh binary for that final source, and eight exact tests passed: metrics projection, explicit StandardDialog roles, normal and compact body/action rails, normal and compact narrow action stacks, Alert legacy identity, and the dedicated painter guard. Two ignored captures passed from the same binary. `docs/tests/editor/editor-components-dialogs-900x360.png` is 33,044 bytes with SHA-256 `29929C5A47ED94A1315D16C8BAF9F2283128E26BAC3A31941624A12A8CD0EFAA`; `docs/tests/editor/editor-components-workbench-slate-atlas-900x620.png` is 95,681 bytes with SHA-256 `BAAF115498884D16B1233F71D67E277809D9E58D1496563DF28AD45613E80184`. Visual review confirms clear title/body/action hierarchy and no overlap, and no matching screenshot was written under the repository target or managed Cargo pool. The broad package worker later entered an evidenced no-progress state and was finish/released as actual `exit 124`, so this is focused current-source visual acceptance rather than full-package acceptance.
+
+## Closable Host Page Tabs
+
+Exclusive main pages now carry their close target as the originating `ViewInstanceId`; the permanent
+Workbench page carries no close target. The page-tab width owner adds close-control reserve only for
+those exclusive pages, and `main_page_tab_close_frame(...)` derives the 20 px hit target from the final
+relative tab frame. The chrome projector and retained host-page pointer surface consume that same
+geometry, so the visible `PageTabClose*` ghost icon button and the actionable close region cannot drift
+between display widths or mount offsets.
+
+The close node sits above the tab-body node in the shared pointer surface. The native/authored callback
+supplies a strip-local tab origin and measured width; the pointer bridge translates that frame once and
+accepts only `Tab` or `Close` routes owned by the callback's page index. A stale estimated close frame from
+an adjacent tab therefore cannot close the wrong page. A body hit keeps the existing main-page activation
+route, while a close hit carries the exact view instance into the established `DocumentTabs/CloseTab`
+binding and falls back to `LayoutCommand::CloseView` only when that authored binding is unavailable.
+
+Core `CloseView` execution uses `EditorManager::close_view`, not raw layout mutation, so closing an
+exclusive page removes the runtime/session registry entry, reports the page-list change, and restores a
+surviving Workbench page as the active page. This does not add a parallel event kind,
+page-id/instance-id guess, or fixed screenshot coordinate. Current evidence is model, metric, projection,
+hit-test, real single-instance close/reopen lifecycle source, and rustfmt/static guards; managed Cargo and
+current-source 640/900/1260 captures remain pending, and any later visual evidence must be written under
+`docs/tests/editor` rather than `target`.
 
 ## Open Issues Or Follow-up
 

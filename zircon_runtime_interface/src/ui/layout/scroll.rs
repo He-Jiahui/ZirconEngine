@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::{UiLayoutEngineFamily, UiSlotKind};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAxis {
     Horizontal,
@@ -113,6 +115,24 @@ impl UiContainerKind {
             Self::ScrollableBox(_) => Some(super::UiSlotKind::Scrollable),
             Self::WrapBox(_) | Self::MasonryBox(_) => Some(super::UiSlotKind::Flow),
             Self::GridBox(_) => Some(super::UiSlotKind::Grid),
+        }
+    }
+
+    /// Selects the owning layout algorithm while preserving the portable child-slot
+    /// contract. Block, virtual list, and Masonry behavior require parent context
+    /// that a generic child placement kind intentionally does not encode.
+    pub const fn layout_engine_family(self) -> UiLayoutEngineFamily {
+        match self {
+            Self::BlockBox => UiLayoutEngineFamily::Block,
+            Self::ScrollableBox(UiScrollableBoxConfig {
+                virtualization: Some(_),
+                ..
+            }) => UiLayoutEngineFamily::VirtualizedList,
+            Self::MasonryBox(_) => UiLayoutEngineFamily::Masonry,
+            _ => match self.child_slot_kind() {
+                Some(slot_kind) => slot_kind.layout_engine_family(),
+                None => UiLayoutEngineFamily::Container,
+            },
         }
     }
 

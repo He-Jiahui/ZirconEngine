@@ -58,4 +58,9 @@ retry selection对source×queued做nested find，再用Vec contains过滤并多�
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-231已完成根模块/bitmap run静态验证；等待Text04回传persistent key-slot表、shared bytes、stable零upload、mixed/retry近线性、current-source Cargo与RenderDoc证据`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / managed_validation_pending`。
+
+- canonical owner 已硬切到 `zircon_runtime/src/text/atlas` 与 `zircon_runtime/src/text/native_bitmap_atlas`。`GlyphAtlasSlotCache` 持久保存 `GlyphRasterKey -> {page, page_generation, inserted_frame, rect, content_size}` 及每页 shelf allocator；key 覆盖 instanced face、glyph id、物理 px bucket、水平/垂直 subpixel、format、hinting/smoothing 与 synthetic style。
+- source-cache pixels 使用共享 `Arc<[u8]>`；同 key 的 draw occurrence 只保留 screen placement，重复 occurrence 共用 slot。同帧重复 key 只上传一次，后续稳定帧命中不再产生 dirty rect 或 upload command；新 glyph 仅增量分配和上传。
+- page eviction、page-size change、generation mismatch 与 upload failure 会失效对应 slot/allocator/shadow，并通过 raster-key reverse index 前向失效 CPU source；bounded CPU/page pressure 不跨 generation 复用旧 slot。
+- focused source tests 已覆盖 stable-frame slot hit + zero upload、only-new-glyph upload、same-frame projection、duplicate-key single upload、page eviction/rebuild、retained shadow replay、mixed-storage 顺序与 submission counters。当前只声明实现和静态契约核验完成；300-frame/100/10k 规模执行、managed current-source Cargo、真实 WGPU/Softbuffer 像素与 RenderDoc texture lifetime 仍待 coordinator wakeup 后验收，未生成新截图。

@@ -67,4 +67,8 @@ scene extract 已经区分 authoring entity 与 render instance，但 visibility
 
 ## 修复结果与回传
 
-Open state: `待 Render04/02/03 把 stable_instance_key 贯穿 visibility 与 batching`。
+Render04 direct-mesh path now carries `stable_instance_key` through pending draw creation, GPU
+scene sync, visibility/BVH/history, batching cache identity and command sorting; sibling primitive
+regression coverage is present. The virtual-geometry indirect branch is separately owned by
+Render03 and remains open at `../03/failure-2026-08-01-virtual-geometry-stable-instance-key-collapse.md`.
+Managed multi-primitive validation and the Render03 forward repair remain pending.

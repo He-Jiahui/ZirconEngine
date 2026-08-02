@@ -73,6 +73,19 @@ impl TableComponentStorage {
         entry.value.downcast_mut::<T>()
     }
 
+    pub(super) fn get_mut_with_ticks<T>(
+        &mut self,
+        entity: InternalEntity,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: 'static + Send + Sync,
+    {
+        let row = self.rows.get(&entity).copied()?;
+        let TableEntry { value, ticks, .. } = &mut self.entries[row];
+        let value = value.downcast_mut::<T>()?;
+        Some((value, ticks))
+    }
+
     pub(super) fn remove(&mut self, entity: InternalEntity) -> Option<RawRemoveResult> {
         let row = self.rows.remove(&entity)?;
         let last_row = self.entries.len() - 1;

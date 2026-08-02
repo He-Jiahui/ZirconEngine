@@ -4,7 +4,7 @@ mod panel;
 mod row;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use common::pixel_aligned_rect;
-pub(super) use metrics::{notification_center_metrics, NotificationCenterMetrics};
+pub(super) use metrics::{NotificationCenterMetrics, notification_center_metrics};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use panel::{
     empty_text_rect, header_rect,
 };

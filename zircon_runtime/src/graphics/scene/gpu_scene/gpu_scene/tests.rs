@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use super::*;
+use crate::graphics::backend::{read_buffer_bytes, BufferByteReadback};
 use crate::graphics::scene::gpu_scene::{
     GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
@@ -9,6 +10,7 @@ const TEST_STABLE_INSTANCE_KEY: u64 = 0x1000_0001;
 const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
 const TEST_SKINNED_JOINT_MATRIX_BYTES: u64 = 64;
 const TEST_SKINNED_JOINT_PARAMS_BYTES: u64 = 16;
+const TEST_STAGING_ENTRY_COUNT: u64 = 2_048;
 
 #[test]
 fn render_gpu_scene_static_scene_second_frame_uploads_zero_bytes() {
@@ -84,6 +86,100 @@ fn render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads() {
 
     assert_eq!(unchanged_report.uploaded_bytes, 0);
     assert_eq!(unchanged_report.light_upload_range_count, 0);
+}
+
+#[test]
+fn render_gpu_scene_uploads_only_changed_light_rows() {
+    let Some(backend) = test_backend() else {
+        return;
+    };
+    let mut scene = test_gpu_scene(&backend.device);
+    let lights = vec![test_light_data(1), test_light_data(2)];
+    scene.write_lights(&backend.device, &lights);
+    let _ = scene.flush_updates(&backend.queue);
+
+    let changed_lights = vec![lights[0], test_light_data(3)];
+    scene.write_lights(&backend.device, &changed_lights);
+    let report = scene.flush_updates(&backend.queue);
+
+    assert_eq!(report.light_upload_range_count, 1);
+    assert_eq!(report.uploaded_bytes, GpuLightData::STRIDE as u64);
+}
+
+#[test]
+fn render_gpu_scene_large_frame_upload_uses_persistent_staging_ring() {
+    let Some(backend) = test_backend() else {
+        return;
+    };
+    let mut scene = test_gpu_scene(&backend.device);
+    let mut encoder = backend
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-test-gpu-scene-staging-upload"),
+        });
+
+    for stable_instance_key in 0..TEST_STAGING_ENTRY_COUNT {
+        let entry = scene.register(&backend.device, stable_instance_key, 1);
+        scene.write_primitive(entry, test_primitive_data());
+        scene.write_instances(entry, &[test_instance_data(stable_instance_key as f32)]);
+    }
+
+    let report = scene.flush_updates_with_staging(&backend.device, &backend.queue, &mut encoder);
+
+    assert_eq!(report.upload_path, GpuSceneUploadPath::StagingCopy);
+    assert!(report.uploaded_bytes >= 256 * 1024);
+    backend.queue.submit([encoder.finish()]);
+}
+
+#[test]
+fn render_gpu_scene_staging_ring_rotates_and_preserves_last_instance_upload() {
+    let Some(backend) = test_backend() else {
+        return;
+    };
+    let mut scene = test_gpu_scene(&backend.device);
+    let entries = (0..TEST_STAGING_ENTRY_COUNT)
+        .map(|stable_instance_key| scene.register(&backend.device, stable_instance_key, 1))
+        .collect::<Vec<_>>();
+    let final_frame = 3_u32;
+
+    for frame in 0..=final_frame {
+        let mut encoder = backend
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("zircon-test-gpu-scene-staging-ring-rotation"),
+            });
+        for (index, entry) in entries.iter().copied().enumerate() {
+            scene.write_instances(entry, &[test_instance_data(index as f32 + frame as f32)]);
+        }
+
+        let report =
+            scene.flush_updates_with_staging(&backend.device, &backend.queue, &mut encoder);
+
+        assert_eq!(report.upload_path, GpuSceneUploadPath::StagingCopy);
+        backend.queue.submit([encoder.finish()]);
+    }
+
+    let byte_len = TEST_STAGING_ENTRY_COUNT * GPU_INSTANCE_DATA_STRIDE as u64;
+    let uploaded_bytes = read_buffer_bytes(
+        &backend.device,
+        &backend.queue,
+        scene.instance_buffer(),
+        BufferByteReadback {
+            source_offset: 0,
+            byte_len,
+            label: "zircon-test-gpu-scene-staging-ring-readback",
+        },
+    )
+    .expect("staging ring test should read back the instance buffer");
+    let uploaded_instances = bytemuck::cast_slice::<u8, GpuInstanceData>(&uploaded_bytes);
+
+    assert_eq!(uploaded_instances.len(), TEST_STAGING_ENTRY_COUNT as usize);
+    for (index, instance) in uploaded_instances.iter().enumerate() {
+        assert_eq!(
+            instance.world_from_local[3][0],
+            index as f32 + final_frame as f32
+        );
+    }
 }
 
 fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {

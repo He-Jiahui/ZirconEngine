@@ -18,8 +18,8 @@ impl RetainedEditorHost {
             ViewContentKind::Console,
         );
         if self.console_scroll_surface.set_size(size) {
-            let status_line = self.runtime.status_line();
-            self.sync_console_pointer_layout(&status_line);
+            let console_output = self.runtime.console_output();
+            self.sync_console_pointer_layout(console_output.as_ref());
         }
         match self
             .console_scroll_surface

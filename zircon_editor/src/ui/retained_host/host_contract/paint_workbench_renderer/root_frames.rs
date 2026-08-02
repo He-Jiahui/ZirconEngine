@@ -1,7 +1,7 @@
 mod model;
 mod selection;
 
-pub(in crate::ui::retained_host::host_contract) use self::model::{zero_origin, RootFrames};
+pub(in crate::ui::retained_host::host_contract) use self::model::{RootFrames, zero_origin};
 use self::selection::selected_root_layout;
 use super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::paint_diagnostics::presentation_top_bar_frame;

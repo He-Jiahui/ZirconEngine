@@ -4,7 +4,8 @@ related_code:
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/workbench/view/view_host.rs
-  - zircon_editor/src/ui/workbench/layout/manager/persistence.rs
+  - zircon_editor/src/ui/host/layout_persistence.rs
+  - zircon_editor/src/tests/workbench/layout/layout_preset_persistence.rs
   - zircon_editor/src/ui/layouts/views
   - zircon_editor/src/ui/reflection/builder.rs
 reference_sources:
@@ -20,7 +21,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
   - docs/plans/zircon_editor/editor_layout/04-layout-presets-and-persistence.md
   - docs/plans/zircon_editor/editor_layout/08-plugin-page-interface-and-messaging.md
-status: planned
+status: in_progress
 ---
 
 # 06 编辑器 UI 扩展框架（drawer / window / inspector / field / 自定义区域）
@@ -51,7 +52,7 @@ status: planned
 
 ### 宿主与布局
 
-`ViewHost` 四态（`view_host.rs:5-11`，serde 可持久化）：`Drawer(ActivityDrawerSlot) | Document(MainPageId, Vec<usize>) | FloatingWindow(MainPageId, Vec<usize>) | ExclusivePage(MainPageId)`。`LayoutPreset { name, drawer_states, size_overrides, center_split }` 四内建预设（Authoring/Review/Focus/Debug）；`persistence.rs:6-27` 四函数（`load/save_global_default`、`load/save_project_workspace`）**返回克隆零 IO**。
+`ViewHost` 四态（`view_host.rs:5-11`，serde 可持久化）：`Drawer(ActivityDrawerSlot) | Document(MainPageId, Vec<usize>) | FloatingWindow(MainPageId, Vec<usize>) | ExclusivePage(MainPageId)`。`LayoutPreset { name, drawer_states, size_overrides, center_split }` 四内建预设（Authoring/Review/Focus/Debug）；持久化已硬切到 `ui/host/layout_persistence.rs`，经配置与项目 layout asset 保存/恢复全局、preset 和按 `(user_id, page_id)` 作用域的版本化布局。
 
 ### inspector 反射面
 
@@ -145,7 +146,7 @@ pub trait DocumentToolkit: Send {
 | `EditorEventRuntimeState.editor_extensions: Vec<_>` | store 批列表（01 M1 批 4 协同） |
 | `component_drawers` 表 | `InspectorCustomization` 实例族（表删除） |
 | `ViewHost/ActivityDrawerSlot` | 保留为运行位；`WorkbenchSlot` 是声明位，映射在 workbench 物化器 |
-| `persistence.rs` 四空函数 | 实 IO（签名保留：global→17 User 目录、project→`.zircon/`；格式 11 契约） |
+| 已删除的 `ui/workbench/layout/manager/persistence.rs` 空实现 | `ui/host/layout_persistence.rs` 的真实配置/项目资产持久化；`LayoutPresetPersistenceStore` 按用户/页面作用域版本化恢复，失配回退 Authoring |
 
 ### 深度测试
 
@@ -168,7 +169,7 @@ pub trait DocumentToolkit: Send {
 ### M3 DocumentToolkit 与布局落盘
 
 - 切片 3.1：toolkit trait + workbench 物化（`ToolkitLayout`→`ViewHost::Document/ExclusivePage`）；asset_editor 先行迁实例（animation/material 随 07）。
-- 切片 3.2：`default_presets` 声明 + `persistence.rs` 实 IO + 预设往返。
+- 切片 3.2：`default_presets` 声明 + `ui/host/layout_persistence.rs` 实 IO + 预设往返（实现与 focused 验收由 editor_layout/04 owner 收敛）。
 - 测试阶段：toolkit 开闭/脏态/保存钩子生命周期；布局保存→重载逐字段等价（补现空实现的测试缺口）；editor_layout/04 口径对账记状态节。
 
 ## 风险与开放问题
@@ -180,13 +181,18 @@ pub trait DocumentToolkit: Send {
 - 2026-07-22 Workbench menu/control性能交接：PERF-MVP-560已把responsive toolbar约39×全tree control scan止损为单次借用HashMap index，静态合同1/1。asset creation menu仍每layout重建labels/map/set/String，单action点击又重建整map；Editor06联动Editor09发布template+asset generation的compiled action/control slots，见[open failure](06/failure-2026-07-22-workbench-menu-control-generation.md)。
 - 2026-07-22 Workbench test反查补充：PERF-MVP-128已让componentized template surface构造期一次建立`control_id→UiNodeId`，required frame与visible frame不再每项全tree scan，Editor06源码合同2/2。remaining `RetainedUiHostModel/Projection`与动态virtual node必须由EditorUI01/08的surface generation owner维护duplicate-aware索引；禁止插件/bridge缓存跨generation node id。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 状态 (2026-08-02)
 
-### 与代码现状不符，需修订
+- 上次 review 所述 `ContributionStore`、ticket、`revoke`、`changed_since` 未落地的观察已过期：这些能力现在由 `core/extension/store/` 的 `ContributionStore`、批模型和 immutable snapshot 统一持有；旧 `EditorExtensionRegistry` materializer 的删除仍由 [plugin ticket revoke failure](06/failure-2026-07-28-plugin-contribution-ticket-revoke-contract.md) 中的 Editor12 修复责任计划追踪。
+- `core/extension` 当前生产 owner 已按 Store snapshot、ticket lifecycle、field editor 与 DocumentToolkit 子域拆分，最大生产文件为 754 行；不保留平行 Store、alias 或 compatibility fallback。
+- 已删除的 `ui/workbench/layout/manager/persistence.rs` 不再是 M3.2 owner：真实 I/O 由 `ui/host/layout_persistence.rs` 收敛，按全局配置、项目 preset asset 及 `(user_id, page_id)` 版本化 store 保存/恢复；`layout_preset_persistence` focused 2/2 已由 editor_layout/04 记录。Editor06 只消费该结果，不复建旧路径。当前五项 failure 仍维持 `open`，受管 Cargo/性能证据取得 durable receipt 前不得标记 accepted 或 `fixed`。
 
-- §现状与证据「注册表：13 张表 + 批模型」把 `editor_extension.rs` 记作 **896 行**、`editor_authoring_extension.rs` 记作 **474 行**、`register_*` 记作 **14 个**；实读 `zircon_editor/src/core/editor_extension.rs` 为 **606 行**、`editor_authoring_extension.rs` 为 **419 行**，`register_*` 为 **15 个**（`grep -c 'pub fn register_'`）。§迁移映射的「两文件删除」前提也已部分失效：`editor_extension.rs` 旁已出现同名文件夹 `zircon_editor/src/core/editor_extension/`（`contribution_descriptors.rs / template_contributions.rs / view_descriptor.rs / viewport_overlay_provider.rs`），即部分描述符/贡献类型已迁出主文件。建议把行号/行数/文件数刷新为「主文件 + `editor_extension/` 子文件夹」的现状，并把 §架构设计目标目录 `core/extension/` 与既存 `core/editor_extension/` 的关系说清（是重命名还是并存），避免执行 M1 时误判为从单文件起步。
-- §关键类型的 `ContributionStore` / `ContributionTicket` / `ContributionBatch` / `revoke` / `changed_since` 均尚未落地：`core/editor_extension.rs:43` 仍是 `EditorExtensionRegistry`、`:380` 仍是 `EditorExtensionRegistration`，无 `contribute/revoke/changed_since` 方法（grep 零命中）。作为 `planned` 计划这是预期的，但因为 §现状把批模型说成「已在」，建议在目标节明确区分「已在：批 + 能力门控（`EditorExtensionRegistration.is_enabled_by`）」与「未落地：ticket/revoke/changed_since/合并索引」，防止读者误以为 store 已具备撤销能力。
+## 产出记录与时间
 
-### 验证缺口
-
-- §现状与 §M3.2 都以 `persistence.rs` 为「无 IO 空实现」作为待补缺口，实读 `zircon_editor/src/ui/workbench/layout/manager/persistence.rs:6-27` 确认四函数仍是 passthrough / clone（`load_*` 直接回传入参、`save_*` 仅 `layout.clone()`），无任何落盘。该证据仍准确，但计划把文件路径写作 `ui/workbench/layout/manager/persistence.rs`（front-matter 里则是 `ui/workbench/layout/manager/persistence.rs`），而函数签名已从 §现状描述的 `load/save_global_default、load/save_project_workspace` 演化为接收 `Option<WorkbenchLayout>` / `Option<ProjectEditorWorkspace>` 并回传同类型。建议把 §现状的签名描述更新为当前形态，使 M3.2「布局保存→重载逐字段等价」的验收能对齐真实入参类型。
+| 日期 | 项目 | 状态 | 证据 |
+| --- | --- | --- | --- |
+| 2026-08-02 | M1 `ContributionStore` 快照模型与 UI template replacement 原子性 | core_contract_complete / hard_cut_dependency_open / managed_validation_pending | `store/model/snapshot.rs` 承担 immutable snapshot/index；replacement 在发布 generation/snapshot 前返回 `UnknownTicket`，无已发布部分状态。`changed_since` 现仅保留 4096 条变更，过期或未来 cursor 返回 reset，消费者必须重建 immutable snapshot，避免长生命周期插件 reload 无界累积。`store/batch.rs` 仍引用旧 `core/editor_extension` 的 view/drawer 描述符，且 Host 尚未从 Store snapshot 可撤销物化；完整 hard cut 继续由 plugin ticket revoke failure 的 Editor12 上游迁移处理。静态合同、格式检查与独立二次审查（0/0/0）均已完成；受管 Cargo 尚无 durable receipt。 |
+| 2026-08-02 | M2 ticket-owned `FieldEditorContainer`、inspector 注册与多选 batch mutation | core_contract_complete / second_review_complete_0_0_0 / managed_validation_pending | field editor 已拆至 `core/extension/inspector/field_editor.rs`，按 ticket 归属和精确 type key 解析；多选变更走单个 disable-merge transaction。`InspectorCustomizationDescriptor` 现在发布前校验 target 与 retained surface；责任链也对任意自定义实现复查 `.zui`、可选 template/data root 与 operation binding，`ContributionBatch` 保留动态 trait 防线，三者均在发布前拒绝无效声明。跨 ticket field-editor duplicate fixture 现以同一 `BrandColor` key 验证原子拒绝。静态合同与格式检查通过，独立二次审查为 `0/0/0`；受管 Cargo 尚无 durable receipt。 |
+| 2026-08-02 | M3 `DocumentToolkit` 保存钩子与 workbench generation hot path | core_contract_complete / second_review_complete_0_0_0 / managed_validation_pending | toolkit save 生命周期、公开 `CloseView` 的 document close lease 收束与 workbench menu/control generation 静态合同通过；同 normalized label 的 collision suffix 改为增量索引，避免二次扫描。两轮独立静态审查均为 `0/0/0`；受管性能/Cargo evidence 尚待 coordinator wakeup。 |
+| 2026-08-02 | M3.2 layout persistence owner hard cut | implemented-focused-passed / upstream broader validation pending | 已删除的 workbench manager `persistence.rs` 不再保留；`ui/host/layout_persistence.rs` 通过配置和项目 asset 保存全局、preset 与按用户/页面作用域的版本化 layout，`layout_preset_persistence` focused 2/2 由 editor_layout/04 记录。Editor06 仅消费该 owner。 |
+| 2026-08-02 | 失败交接状态 | open | [DocumentToolkit save hook](06/failure-2026-07-22-document-toolkit-save-hook-contract-missing.md)、[workbench generation](06/failure-2026-07-22-workbench-menu-control-generation.md)、[plugin ticket revoke](06/failure-2026-07-28-plugin-contribution-ticket-revoke-contract.md)、[inspector multi-selection](06/failure-2026-08-01-inspector-multi-selection-batch-mutation-missing.md) 与 [ticket-owned field editor](06/failure-2026-08-02-ticket-owned-field-editor-container-missing.md) 均保持 `open`；Editor12 的 legacy materializer hard-cut 仍是 plugin ticket revoke 的跨计划依赖。 |

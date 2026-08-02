@@ -8,8 +8,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
@@ -57,7 +57,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/engine-architecture/runtime-interface-convergence.md
 status: in_progress
-last_refined: 2026-07-17
+last_refined: 2026-08-01
 ---
 
 # 10 dynamic_api 与 runtime_interface 收敛线
@@ -82,8 +82,8 @@ last_refined: 2026-07-17
 
 ## 现状与证据（2026-06-12 实仓盘点）
 
-- **C 出口单点**：`dynamic_api/exports.rs` 仅 1 个 `#[no_mangle] pub unsafe extern "C" fn zircon_runtime_get_api_v1(`（:25-26）——出口面已极窄（健康项）。2026-06-13 M1.3 后，函数表实际指向 `exports.rs` 的 `_ffi` wrappers；`session.rs` owner 函数保持私有 Rust ABI `unsafe fn`，避免 panic 先跨 `extern "C"` 边界再被捕获。
-- **函数表双族、版本不同步**：`runtime_api/api_table.rs` 有 `ZrHostApiV1`（宿主回调面）与 `ZrRuntimeApiV1`（runtime 服务面）；`plugin_api.rs` 有 `ZrHostApiV3` + 子 API `ZrHostEcsApiV1`/`ZrHostAssetApiV1`/`ZrHostEventApiV1`/`ZrHostBridgeApiV1`/`ZrHostDiagnosticsApiV1` + `ZrPluginStateSnapshotApiV1` + `ZrPluginApiV1`——**runtime 表 V1 与 plugin 宿主表 V3 并存，子 API 各自 V1**，版本演进规则已在 M0 定稿，当前机器清册由 `dynamic_runtime_api_boundary` 复核为函数表 10/10、字段数漂移 0、缺失 `#[repr(C)]` 0。
+- **C 出口单点**：`dynamic_api/exports.rs` 当前唯一 `#[no_mangle]` 出口是 `zircon_runtime_get_api_v3(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV3`；入口用 `catch_unwind` containment，`RUNTIME_API_V3` 的 18 个函数指针全部指向 `_ffi` wrappers，再委派到 `session.rs` 私有 Rust-ABI owner。V1/V2 runtime 表与符号已硬删除。
+- **函数表版本面已收敛**：`runtime_api/api_table.rs` 的宿主回调面为 `ZrHostApiV1`，runtime 服务面只有冻结的 `ZrRuntimeApiV3`；加载符号为 `ZR_RUNTIME_GET_API_SYMBOL_V3`。`plugin_api.rs` 的 native-plugin `ZrHostApiV3` 与各 V1 子 API 属于独立版本域，不再描述为 runtime V1/V3 双族漂移。当前机器清册继续由 `dynamic_runtime_api_boundary` 复核 repr、字段与禁入类型。
 - **interface 依赖面已纯净**（01 计划核实）：`zircon_runtime_interface` 依赖仅 glam/serde/serde_json/thiserror/toml/unicode-segmentation/uuid，无 wgpu/winit——守卫已由 01-M1 切片 1.4 锁定。
 - **UI 镜像契约面巨大**：`zircon_runtime_interface/src/ui/` 22 条目（含 `v2/`、`template/asset/component_contract/api_version.rs` 的 `UiComponentApiVersion` :8 带 parse error 类型 :80），与 `zircon_runtime/src/ui/` 同构——共享 DTO 与重复定义的甄别、同步规则与漂移守卫缺失（09 计划的 runtime 侧形状收束后，移交清单落到本计划 M2）。
 - **支撑件**：`handles.rs`（句柄）、`buffer.rs`（状态/缓冲契约）、`status.rs`、`version.rs`（版本常量）、`reflect/`、`resource/`、`profiling.rs`、`plugin_events.rs`、`plugin_diagnostics.rs`、`manifest.rs`、`math.rs`。
@@ -96,7 +96,7 @@ last_refined: 2026-07-17
 
 ## 目标
 
-1. 函数表版本策略定稿：`ZrRuntimeApiV1`/`ZrHostApiV1`/`ZrHostApiV3` 及子 API 的版本矩阵、bump 规则（加字段=新版尾追 vs 破坏=新表）、协商失败路径——与 06 的 native ABI 策略同口径但分表治理。
+1. 函数表版本策略维持：`ZrRuntimeApiV3` 是 runtime 单一当前表，任何字段变化必须新建版本并原子硬切；`ZrHostApiV1` 宿主回调面与 native-plugin `ZrHostApiV3`/子 API 各自独立演进，协商失败必须显式。
 2. ABI-safe 结构守卫：函数表与跨界 DTO 全部 `#[repr(C)]`/ABI-safe，违例可被结构测试拒绝。
 3. UI 镜像契约漂移治理：共享 DTO 单一来源判定规则 + 同步守卫，消化 09 移交的重复定义清单。
 4. session 生命周期出口收口：经函数表的 session 操作面盘点成册，失败路径（坏句柄、双 destroy、tick 在 destroy 后）测试完备。
@@ -127,14 +127,14 @@ last_refined: 2026-07-17
 #### 切片 0.1 函数表与跨界类型清册
 
 - 目标文件：`docs/engine-architecture/runtime-interface-convergence.md`（扩展"现状清册"节，不另起新文件）。
-- 改动形态：纯文档。清册三表：(a) 函数表族（7+ 个 Zr*Api* 结构，逐表列字段数、版本、消费方 crate）；(b) 跨界 DTO 域（handles/buffer/status/manifest/reflect/resource/ui/...，逐域列 `#[repr(C)]` vs serde-序列化两类传输形态）；(c) session 操作面（经 `ZrRuntimeApiV1` 可达的全部函数指针，从 api_table.rs:63 起逐项，含 `tick_frame`/`create`/`destroy` 族）。
+- 改动形态：纯文档。清册三表：(a) 函数表族（逐表列字段数、版本、消费方 crate）；(b) 跨界 DTO 域（handles/buffer/status/manifest/reflect/resource/ui/...，逐域列 `#[repr(C)]` vs serde-序列化两类传输形态）；(c) session 操作面（经 `ZrRuntimeApiV3` 可达的 18 个函数指针，含 create/destroy、event/frame/surface、profile/tick、host/plugin drains 与 operation 族）。
 - 验收：三表齐备；每个函数表有版本与消费方两列。
 - DoD：清册落文档；后续守卫以清册为白名单源。
 
 #### 切片 0.2 版本矩阵与 bump 规则定稿
 
 - 目标文件：同 0.1 文档（"版本策略"节）。
-- 改动形态：决策记录——矩阵现状（RuntimeApi V1 / HostApi V1 / plugin 宿主 HostApi V3 / 子 API V1×4 / PluginApi V1 / StateSnapshotApi V1）+ 规则定稿：尾追字段不 bump（C 布局前缀兼容）还是任何变更即 bump（候选二选一，与 06 的 native ABI"单一当前版 + 显式协商失败"口径对齐）；`version.rs` 常量与表版本的对应关系单点化。
+- 改动形态：决策记录——矩阵现状（RuntimeApi V3 / HostApi V1 / plugin 宿主 HostApi V3 / 各版本化子 API）+ 已冻结规则：`ZrRuntimeApiV3` 任何字段变化都要求新表版本与所有 dynamic host 原子硬切，不做尾追兼容；`version.rs` 与 API table 的版本对应保持单点。
 - 验收：规则判词 + 矩阵表；与 06-M3 的 ABI 支持矩阵互引。
 - DoD：策略落文档且 `version.rs` 引用关系明确。
 
@@ -167,13 +167,13 @@ last_refined: 2026-07-17
 - 验收（测试名草案）：`destroy_session_reports_explicit_not_found_for_missing_nonzero_handle`、`session_destroy_reports_explicit_not_found_after_headless_destroy`、`destroyed_headless_session_entry_points_reject_old_handle`、`all_session_entry_points_reject_invalid_handle`、`missing_session_entry_points_reject_nonzero_handle`。
 - DoD：清册 (c) 的每个入口至少有一条坏句柄或销毁后旧句柄测试覆盖；destroy 入口的 registry removal 契约有守卫；headless/minimal profile 明确跳过 render bridge。
 
-#### 切片 1.3 FFI panic 边界
+#### 切片 1.3 FFI panic 边界（已落地，保留 current-source 验收）
 
 - 目标文件：`zircon_runtime/src/dynamic_api/exports.rs`、`zircon_runtime/src/dynamic_api/tests/api_table.rs`、`docs/zircon_runtime/dynamic_api/session.md`。
-- 改动形态：`zircon_runtime_get_api_v1` 与 `ZrRuntimeApiV1` 函数表入口增加最终 `catch_unwind` containment；函数表仍只暴露同一批 ABI entry points，但每个 entry point 先经过 `exports.rs` 的 `_ffi` wrapper，再委派到 `session.rs` 内部 Rust-ABI owner 函数。
-- 调用方迁移：无 ABI 字段变化；加载方仍按 `zircon_runtime_get_api_v1` 获取同一 `ZrRuntimeApiV1` 表。
-- 验收：`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` 锁定函数表不得直接指向 session owner 函数；panic 被转换为 `ZrStatusCode::Panic` 与稳定诊断；`zircon_runtime_get_api_v1` 获取表期间的 panic 返回 null 指针。
-- DoD：panic containment 不扩大公共 Rust API，不移动 session 正常错误校验 owner；session owner 函数不得保留 `extern "C"`；rustfmt、源码锚点、冲突标记/尾随空白、scoped diff 检查通过；Cargo 在编译通道空闲后补跑 `dynamic_api`。
+- 当前实现：`zircon_runtime_get_api_v3` 已有顶层 `catch_unwind`，18 个 `ZrRuntimeApiV3` entry points 全部经过 `catch_ffi_panic` `_ffi` wrapper 后委派给 `session.rs` owner；panic 映射为 `ZrStatusCode::Panic`，获取表期间 panic 返回 null。
+- 调用方迁移：`zircon_app` 已按 `ZR_RUNTIME_GET_API_SYMBOL_V3` 加载并校验 `ZIRCON_RUNTIME_API_VERSION_V3`、alignment、size 与必需函数字段；不保留 V1/V2 fallback。
+- 剩余验收：current-source dynamic API 与 app loader Cargo；显式锁定非 null 错 ABI 返回 null，以及 null host 放行是否继续作为内嵌加载契约。
+- DoD：函数表不得直接指向 session owner；session owner 不恢复 `extern "C"`；无 V1/V2 symbol/table/alias；focused tests 与 app loader 失败注入通过。
 
 #### M1 测试阶段（milestone-first）
 
@@ -209,8 +209,8 @@ last_refined: 2026-07-17
 
 #### 切片 3.1 runtime 库重载失败注入
 
-- 目标文件：加载侧 `zircon_app`（libloading 装载点，执行时核验：Grep `libloading|zircon_runtime_get_api_v1`，path `zircon_app/src`）+ `runtime-interface-cdylib-loader.md` 口径刷新。
-- 改动形态：对照 06-M3 的热重载回滚测试模式，补 runtime cdylib 自身的装载失败路径：符号缺失（`zircon_runtime_get_api_v1` 不存在）、版本协商失败（表版本不匹配）、装载后首调用失败——三类各一测试，宿主侧行为定稿（报错退出 vs 回退，判词）。
+- 目标文件：加载侧 `zircon_app`（libloading 装载点，执行时核验 `libloading|zircon_runtime_get_api_v3|ZR_RUNTIME_GET_API_SYMBOL_V3`）+ `runtime-interface-cdylib-loader.md` 口径刷新。
+- 改动形态：对照 06-M3 的热重载回滚测试模式，保持 runtime cdylib 三类装载失败路径：V3 符号缺失、`ZIRCON_RUNTIME_API_VERSION_V3`/table size 协商失败、装载后首调用失败；不得回退 V1/V2 表。
 - 调用方迁移：无公共面变化。
 - 验收（测试名草案）：`runtime_library_missing_entry_symbol_fails_load_with_explicit_report`、`runtime_api_version_mismatch_is_rejected_before_session_creation`。
 - DoD：`cargo test -p zircon_app --locked` 含新测试全绿；loader 文档与行为一致。
@@ -233,7 +233,8 @@ last_refined: 2026-07-17
 - 2026-07-17 P0 空 host-request ABI fast-path：`drain_host_requests` 在请求集合为空时直接写出 canonical `ZrOwnedByteBuffer::empty()`，跳过 JSON 编码、分配和释放 owner；非空 batch 的 schema、owned-buffer 所有权和释放路径保持不变，既有 `zircon_app` consumer 在解码前已显式接受 empty buffer。受管 Windows lib-only job `b0ea82ad0943466794e3af3c5333816b` / run `4b9e4151d39f4cd9b95de28b2c0ee261` 执行 `cargo test -p zircon_runtime --lib --locked dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_once -- --test-threads=1`，原始输出为 `1 passed / 0 failed / 8190 filtered`、exit 0；Performance01 failure 已 canonical return 为 [`../../performance/01/fixed-2026-07-17-empty-host-request-batch.md`](../../performance/01/fixed-2026-07-17-empty-host-request-batch.md)，独立规范与质量复审均为 `critical=0 / important=0`。该项只证明 Runtime10 ABI 空批次契约，不宣告全 runtime 性能或 MVP 完成。
 - open 待修复：[editor-selection-state-runtime-session-boundary](10/failure-2026-07-17-editor-selection-state-runtime-session-boundary.md)；Editor01 M2.3 已证明 `selected_node` 是 construction-only 默认 orbit anchor 的过期 authoring 命名，Runtime10 负责删除字段、事件同步 helper 与固化旧边界的结构锚，不得用改名字段或兼容 setter 保留第二份选择真相。
 - open 待修复：[dynamic-api-owner-status-anchor-loss](15/failure-2026-07-17-dynamic-api-owner-status-anchor-loss.md)；Runtime10 `dynamic_api` 上行门暴露 Runtime15 current parent/index 与既有 Dynamic API child-owner/status records 的五组镜像断链，修复责任归 Runtime15，不得由 Runtime10 放宽结构守卫。
-- 2026-07-18 M2 reactive wake V3 interface owner：`zircon_runtime_interface` 已静态实现 V3-only 函数表、`ZrRuntimeSessionConfigV2`/`ZrRuntimeWakeSinkV1`、raw-`u32` `ZrRuntimeFrameDemandV1` 与 V2 retirement/layout/version guards；旧 V2 表/符号/get-api type、ConfigV1、CreateSessionFnV1、TickFrameFnV1 已从 interface 生产面硬删除，无 alias/forwarder。当前状态为 `implemented_static_pending_atomic_runtime_app_migration`：rustfmt 与精确范围 `git diff --check` 通过；按批准设计，Runtime10 runtime export/lifecycle 与 Runtime03 app loader/cadence/真实 producer 全部迁移并取得受管 Cargo 证据前，本项不得独立提交或宣告 M2 完成。
+- 2026-07-18 M2 reactive wake V3 interface owner（2026-08-01 current-source 对齐）：interface、runtime export 与 `zircon_app` loader 均已硬切 V3-only；旧 V1/V2 表/符号/type 与 fallback 为 0。当前状态收敛为 `implemented_pending_current_source_cadence_and_product_validation`：剩余是 Runtime03 cadence/真实 producer 与受管 Cargo/产品证据，不再把已完成的 runtime/app API migration 写成 pending。
+- open 待修复：[zrvm-vampire-behavior-test-ownership-gap](../../zircon_plugins/08/failure-2026-08-01-zrvm-vampire-behavior-test-ownership-gap.md)；10 个 RuntimeDynamicSession Vampire tests 被永久 ignore 并声称真实覆盖已迁至 Plugins08，但插件树没有等价 Vampire 行为测试。Plugins08 必须先建立 real-backend gameplay/HUD/menu/diagnostics 覆盖，Runtime10/Runtime15 才能删除 1,263 行旧 test/support owner。
 
 ## 性能审阅交接
 
@@ -246,20 +247,8 @@ last_refined: 2026-07-17
 - 2026-07-23 profile-control ABI容量补充：`ProfileCaptureConfig`的非零max entries和wide String当前无hard byte ceiling，`ProfileControlResponse`也可携带多个宽snapshot/report。Runtime10按PERF-MVP-566在decode/encode边界验证finite/effective config与最大output page bytes，但只消费Runtime07唯一recorder budget/generation；不得建立动态库专用第二ring，也不得以截断最终JSON替代producer端eviction/drop诊断。
 - 2026-07-23 App runtime-library owned-output/teardown补充：PERF-MVP-574要求先冻结error-after-output所有权，再让App对frame/host request/plugin event/operation out-param从status与decode前建立RAII exactly-once free；cleanup错误组合诊断但不覆盖primary status。`destroy_session`失败不得以可重复的永久forget作为常规终态，需显式wake detach+destroy retry，或count/bytes/age硬有界且可观测的quarantine。fake FFI覆盖0/1KiB/64MiB output、success/error/invalid JSON/wrong ABI/free failure；1/1k/100k failed destroy证明无UAF，leaked bytes=0且registry/proxy为0或硬有界。继续使用[`10/failure-2026-07-19-app-entry-host-request-and-wake-boundary.md`](10/failure-2026-07-19-app-entry-host-request-and-wake-boundary.md)，不得创建重复failure。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 同步结论 (2026-07-30，2026-08-01 落实)
 
-### 与代码现状不符，需修订
-
-- 正文 M0/M1/M3 全篇以 `ZrRuntimeApiV1` / `zircon_runtime_get_api_v1` 为对象，但当前代码已硬切到 V3-only，且状态节 2026-07-18「reactive wake V3 interface owner」已明确 V2 表/符号/get-api type「已从 interface 生产面硬删除，无 alias/forwarder」。正文与状态节自相矛盾，建议整体把 V1 口径改写为 V3：
-  - §「现状与证据」第 1 点「`dynamic_api/exports.rs` 仅 1 个 `#[no_mangle] ... zircon_runtime_get_api_v1(`（:25-26）」已过时。实测 `zircon_runtime/src/dynamic_api/exports.rs:41-51` 唯一 `#[no_mangle]` 出口是 `zircon_runtime_get_api_v3(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV3`，已带 `catch_unwind` 顶层 containment；表实例为 `RUNTIME_API_V3`（:19-39），含 18 个 `_ffi` wrapper 入口且全部经 `catch_ffi_panic`（:70-78）委派到 `session.rs` 的私有 Rust-ABI owner。
-  - §「现状与证据」第 2 点「runtime 表 V1 与 plugin 宿主表 V3 并存」已过时。实测 `zircon_runtime_interface/src/runtime_api/api_table.rs` 只有 `ZrHostApiV1`（:48）与 `ZrRuntimeApiV3`（:72），load 符号常量为 `ZR_RUNTIME_GET_API_SYMBOL_V3 = b"zircon_runtime_get_api_v3\0"`（:15），版本常量 `ZIRCON_RUNTIME_API_VERSION_V3`（:97）。`ZrRuntimeApiV1` 已不存在。
-  - M1 切片 1.3 DoD/验收把守卫锚在 `zircon_runtime_get_api_v1` 与 `ZrRuntimeApiV1` 函数表；当前 FFI panic 边界已在 V3 出口与 18 个 `_ffi` wrapper 上实现（`exports.rs:41-51,70-78,80-202`）。建议把切片 1.3 的入口名、表名、`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` 的对象全部改为 V3，并标注「已落地」。
-  - M3 切片 3.1「符号缺失（`zircon_runtime_get_api_v1` 不存在）」「版本协商失败」测试名草案 `runtime_api_version_mismatch_is_rejected_before_session_creation` 需改为 V3 符号 `zircon_runtime_get_api_v3` 与 V3 版本常量，否则失败注入测试会锚在不存在的符号上。
-
-### 设计优化建议
-
-- 状态节 2026-07-18 项自评为 `implemented_static_pending_atomic_runtime_app_migration`，但 `exports.rs` 已实实在在导出 V3-only 表且无 V1/V2 残留。建议复核该状态标签是否仍准确：若 runtime export 侧迁移已完成（代码证据支持），应把「pending atomic runtime/app migration」收窄为仅 app loader/cadence 侧，并在 M0 版本矩阵节把「RuntimeApi V1 / plugin HostApi V3 并存」更新为「RuntimeApi V3 单当前版 + HostApi V1 宿主回调面」的实际现状。
-
-### 验证缺口
-
-- `host_abi_is_supported`（`exports.rs:63-68`）对 `host.is_null()` 直接返回 `true`（放行 null host），仅在非 null 时校验 `abi_version == ZIRCON_RUNTIME_ABI_VERSION_V1`。M3 切片 3.1 的「版本协商失败」失败注入应显式覆盖：(a) 非 null host 且 abi_version 不匹配 → 返回 null 表；(b) null host 的放行语义是否为有意契约。当前计划未把「null host 放行」列为待验证契约，建议在 M3 补一条守卫锚定该分支语义，避免后续被误判为漏校验。
+- 旧 V1 runtime 表、符号与 pending atomic runtime/app migration 叙述已按 current source 修正为 V3-only；本节不再保留已完成的“建议修订”清单。
+- `host_abi_is_supported` 对非 null host 校验 `ZIRCON_RUNTIME_ABI_VERSION_V1`，对 null host 放行。该分支仍需由 M1.3/M3.1 验收明确为内嵌加载契约或收紧，不能由计划文字推定正确。
+- Runtime10 仍为 `in_progress`；V3 API 对齐不替代 cadence、failure injection、current-source Cargo 与产品验证。

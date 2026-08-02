@@ -79,7 +79,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_editor/src/ui/host/editor_asset_manager/records.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/folder_projection.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
   - zircon_editor/src/core/project/authority.rs
@@ -169,7 +169,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_editor/src/ui/host/editor_asset_manager/records.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/folder_projection.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
   - zircon_editor/src/core/project/authority.rs

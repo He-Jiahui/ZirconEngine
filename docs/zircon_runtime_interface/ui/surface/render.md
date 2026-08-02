@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/
   - zircon_runtime_interface/src/ui/surface/render/visual_asset_ref.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
@@ -45,7 +45,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
@@ -143,7 +143,7 @@ These fields do not claim final HarfBuzz or platform IME parity yet. They create
 
 ### Resolved source/visual geometry
 
-`text_geometry/` is folder-backed because editable decoration construction and source/visual cluster mapping are distinct responsibilities. `source_map.rs` owns the neutral `UiTextLineSourceMap`: it consumes post-layout resolved runs and preserves source range, visual range and direction per grapheme cluster. Caret affinity maps logical boundaries to direction-correct visual edges, while source selections become one or more adjacent visual spans. The decoration owner consumes those spans for selection, composition and caret frames in both HorizontalTb and VerticalRl.
+`text_geometry/` is folder-backed because editable decoration construction and source/visual cluster mapping are distinct responsibilities. The `source_map/` family owns the neutral mapping contract, with `line.rs` defining `UiTextLineSourceMap`: it consumes post-layout resolved runs and preserves source range, visual range and direction per grapheme cluster. Caret affinity maps logical boundaries to direction-correct visual edges, while source selections become one or more adjacent visual spans. The decoration owner consumes those spans for selection, composition and caret frames in both HorizontalTb and VerticalRl.
 
 Runtime hit testing and IME geometry import this owner through the public neutral surface. The former runtime-local visual-source helper and the monolithic interface mapping implementation were deleted, so renderers and input paths cannot silently diverge on mixed-BiDi boundaries.
 

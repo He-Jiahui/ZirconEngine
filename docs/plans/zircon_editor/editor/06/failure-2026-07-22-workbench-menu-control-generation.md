@@ -43,4 +43,4 @@ Editor06联动Editor09按template+asset-type generation发布稳定menu action t
 
 ## 修复结果与回传
 
-Open state: `待 Editor06/Editor09 建立 generation owner 并回传规模、像素与行为等价证据`。
+Open state: `generation owner 已落地；当前补齐规模矩阵的无计时回归，待受管验证与像素/行为等价证据后回传`。

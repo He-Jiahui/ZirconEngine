@@ -18,9 +18,9 @@ use crate::core::runtime_event_consumer::{
 use crate::ui::workbench::shell_state::WorkbenchShellState;
 use crate::ui::workbench::state::EditorState;
 
-use super::EditorManager;
 use super::play_pending_decision::PlayPendingEditDecisionAdapter;
 use super::scene_inspection_publication::SceneInspectionPublication;
+use super::EditorManager;
 
 const FIRST_PLAY_SESSION_GENERATION: u64 = 1;
 

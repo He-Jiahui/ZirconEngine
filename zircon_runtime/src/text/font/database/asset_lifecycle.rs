@@ -6,10 +6,10 @@ use crate::asset::FontAsset;
 use crate::text::{FontFaceDescriptor, FontFaceId, FontFamilyName};
 
 use super::{
-    read_decoded_font_source, FontAssetOwnerState, FontAssetUpdateReport, FontDatabase,
-    FontDatabaseError,
+    FontAssetOwnerState, FontAssetUpdateReport, FontDatabase, FontDatabaseError,
+    read_decoded_font_source,
 };
-use crate::text::font::asset_registration::{font_asset_faces, FontAssetSourceKey};
+use crate::text::font::asset_registration::{FontAssetSourceKey, font_asset_faces};
 use crate::text::font::descriptors::descriptor_from_font_metadata;
 use crate::text::font::face_metadata::FontFaceMetadata;
 use crate::text::font::matching::font_family_identity;

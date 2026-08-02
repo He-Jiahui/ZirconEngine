@@ -5,13 +5,12 @@ fn hierarchy_selection_dispatches_through_runtime_and_updates_selected_node() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_callback_hierarchy");
-    let target = harness
-        .runtime
-        .editor_snapshot()
+    let initial_snapshot = harness.runtime.editor_snapshot();
+    let target = initial_snapshot
         .scene_entries
         .iter()
-        .find(|entry| !entry.selected)
-        .map(|entry| entry.id)
+        .find(|entry| !initial_snapshot.scene_entries.is_selected(entry.entity))
+        .map(|entry| entry.entity)
         .expect("default scene should contain an unselected node");
 
     let effects = dispatch_hierarchy_selection(&harness.runtime, target).unwrap();
@@ -24,8 +23,8 @@ fn hierarchy_selection_dispatches_through_runtime_and_updates_selected_node() {
         snapshot
             .scene_entries
             .iter()
-            .find(|entry| entry.id == target)
-            .map(|entry| entry.selected),
+            .find(|entry| entry.entity == target)
+            .map(|entry| snapshot.scene_entries.is_selected(entry.entity)),
         Some(true)
     );
 }

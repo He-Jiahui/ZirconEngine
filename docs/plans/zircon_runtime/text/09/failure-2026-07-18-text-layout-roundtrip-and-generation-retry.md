@@ -54,4 +54,9 @@ neutral contract DTO同时被当作跨模块接口和runtime内部canonical stor
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-232已删除每line一次冗余String clone并通过源码/rustfmt/diff门禁；等待Text09回传single canonical run、有界generation retry、DTO/restart counter、current-source Cargo与产品trace`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / managed_validation_pending`.
+
+- `SharedTextLayoutSession` now owns and caches the canonical `Arc<ShapedGlyphRun>` directly. Its shaping path calls `shape_backend_request_at_stable_generation(...)`; it no longer performs an internal canonical-run to neutral-DTO to canonical-run round trip.
+- `SharedTextLayoutService` projects a neutral `TextShapeResult` only at the framework contract boundary and reports canonical shapes, neutral projection count/glyphs/bytes, generation restarts, and typed deferrals.
+- Stable-generation shaping is explicitly bounded to two attempts. A continuing generation change returns `TextLayoutError::FontGenerationChanged`, which the session converts to the existing explicit empty fallback and records as `generation_deferred_count` rather than spinning on the caller thread.
+- Regression coverage asserts the internal no-handle/DTO round trip, external projection counters, bounded retry count, restart count, and deferred result. Managed current-source Cargo and product workbench/Console traces remain pending coordinator receipt, so this handoff stays open.

@@ -257,13 +257,12 @@ tests:
   - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
   - zircon_editor/src/tests/host/template_runtime/host_window_document.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_creates_and_resizes_render_framework_viewports.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs

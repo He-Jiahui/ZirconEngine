@@ -1,12 +1,12 @@
+use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
     justify_line_advances, measure_line_width_with_provider,
     measured_grapheme_widths_with_provider, tab_aligned_advances,
 };
-use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextAlign, UiTextDirection};
 
-use super::super::adapter::text_style;
+use crate::text::text_style;
 use super::candidate_line::CandidateLine;
 use super::direction::is_rtl_direction;
 

@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 
 use super::super::super::resolved_style_color;

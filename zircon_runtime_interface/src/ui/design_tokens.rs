@@ -176,10 +176,10 @@ impl EditorDesignTokens {
 
     fn corner_radius_for_family(&self, family: UiPainterFamily) -> f32 {
         match family {
-            UiPainterFamily::IconButton
-            | UiPainterFamily::Checkbox
-            | UiPainterFamily::Radio
-            | UiPainterFamily::Toggle => self.controls.small_radius,
+            UiPainterFamily::IconButton | UiPainterFamily::Checkbox | UiPainterFamily::Radio => {
+                self.controls.small_radius
+            }
+            UiPainterFamily::Toggle => self.controls.pill_radius,
             UiPainterFamily::Chrome
             | UiPainterFamily::Alert
             | UiPainterFamily::Tooltip
@@ -658,7 +658,16 @@ pub struct EditorControlTokens {
     pub control_radius: f32,
     pub large_radius: f32,
     pub panel_radius: f32,
+    #[serde(default = "default_control_pill_radius")]
+    pub pill_radius: f32,
     pub border_width: f32,
+}
+
+/// Keeps binary toggle tracks pill-shaped across every supported control height.
+const DEFAULT_CONTROL_PILL_RADIUS: f32 = 999.0;
+
+fn default_control_pill_radius() -> f32 {
+    DEFAULT_CONTROL_PILL_RADIUS
 }
 
 impl Default for EditorControlTokens {
@@ -675,9 +684,10 @@ impl EditorControlTokens {
             compact_height: 30.0,
             dense_height: 28.0,
             small_radius: 4.0,
-            control_radius: 5.0,
+            control_radius: 4.0,
             large_radius: 8.0,
             panel_radius: 8.0,
+            pill_radius: DEFAULT_CONTROL_PILL_RADIUS,
             border_width: 1.0,
         }
     }
@@ -691,6 +701,7 @@ impl EditorControlTokens {
         insert_float_token(values, "editor.control.radius.control", self.control_radius);
         insert_float_token(values, "editor.control.radius.large", self.large_radius);
         insert_float_token(values, "editor.control.radius.panel", self.panel_radius);
+        insert_float_token(values, "editor.control.radius.pill", self.pill_radius);
         insert_float_token(values, "editor.control.border_width", self.border_width);
     }
 }
@@ -705,6 +716,8 @@ pub struct EditorDensityTokens {
     pub drawer_padding: f32,
     pub panel_padding: f32,
     pub activity_rail_width: f32,
+    pub toolbar_action_width: f32,
+    pub toolbar_wide_action_width: f32,
     pub row_height: f32,
     pub left_drawer_width: f32,
     pub right_drawer_width: f32,
@@ -752,6 +765,8 @@ impl EditorDensityTokens {
             drawer_padding: 12.0,
             panel_padding: 16.0,
             activity_rail_width: 72.0,
+            toolbar_action_width: 76.0,
+            toolbar_wide_action_width: 96.0,
             row_height: Self::WORKBENCH_ROW_HEIGHT,
             left_drawer_width: 332.0,
             right_drawer_width: 404.0,
@@ -793,6 +808,16 @@ impl EditorDensityTokens {
             values,
             "editor.density.activity_rail_width",
             self.activity_rail_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.toolbar_action_width",
+            self.toolbar_action_width,
+        );
+        insert_float_token(
+            values,
+            "editor.density.toolbar_wide_action_width",
+            self.toolbar_wide_action_width,
         );
         insert_float_token(values, "editor.density.row_height", self.row_height);
         insert_float_token(

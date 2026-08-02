@@ -1,14 +1,14 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/ui/text/geometry/source_metrics.rs
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/ui/text/geometry/source_metrics.rs
   - zircon_runtime/src/ui/text/hit_test.rs

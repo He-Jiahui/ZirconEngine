@@ -11,19 +11,19 @@ node = "root"
 component = "VerticalGroup"
 control_id = "PerformanceTimelinePaneBodyRoot"
 classes = ["editor-pane", "performance-timeline-pane"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "header" }, { node = "summary" }, { node = "session" }, { node = "output" }, { node = "controls" }, { node = "frame_list", slot = { name = "performance_timeline_frame_list" } }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "PerformanceTimelineHeader"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 children = [{ node = "refresh" }]
 
 [nodes.refresh]
 component = "IconButton"
 control_id = "RefreshTimelineSnapshot"
-props = { label = "Refresh Timeline", icon = "editor_pages/console_profiler/profiling/frame-time.svg" }
+props = { label = "Refresh Timeline", icon = "editor_pages/console_profiler/profiling/frame-time.svg", icon_placement = "leading" }
 layout = { width = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "PerformanceTimelinePaneBody/RefreshSnapshot", event = "Click", route = "workbench.dock.focus_view" }]
 
@@ -48,7 +48,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 1
 [nodes.controls]
 component = "HorizontalGroup"
 control_id = "PerformanceTimelineCaptureControls"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.frame_list]
 component = "Container"

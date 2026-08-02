@@ -1,4 +1,4 @@
-use crate::core::framework::render::FrameHistoryHandle;
+use crate::core::framework::render::{FrameHistoryHandle, RenderViewportHandle};
 
 use super::super::super::viewport_record::ViewportRecord;
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -11,11 +11,18 @@ use super::record_history::record_history;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn record_present_submission(
     record: &mut ViewportRecord,
+    viewport: RenderViewportHandle,
     context: &FrameSubmissionContext,
     allocated_history: Option<FrameHistoryHandle>,
     generation: u64,
     runtime_feedback: RuntimeFeedbackBatch,
 ) -> SubmissionRecordUpdate {
+    record.store_visible_spatial_query(
+        viewport,
+        context.source_world(),
+        generation,
+        context.visibility_context(),
+    );
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
     let (previous_handle, history_handle, history_status) =

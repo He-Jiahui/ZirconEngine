@@ -57,4 +57,10 @@ Text09已经定义“主线程只装配/上传”和每帧≤256新glyph、≤2 
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-229/230已完成4/4静态审查与UE/Bevy调度对照；等待Text09回传shared face bytes、有界双向backpressure、budgeted drain/cancel、single shape join、规模counter、current-source Cargo与产品trace`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / managed_validation_pending`.
+
+- Native bitmap raster work shares `Arc<[u8]>` font bytes from `NativeBitmapAtlasSourceCache`, keyed by backend font id and cleared with face invalidation. The first source copy is counted; later glyph work only clones the `Arc`.
+- `TextRasterWorkerPool` bounds request count/input bytes and completion count/bytes, exposes queue/running/backlog/rejected/cancelled diagnostics, and drains only through `drain_completed_for_face_epoch(max_items, max_bytes)`. Source-cache application preserves deferred completions for a later frame and maps queue pressure to the existing placeholder/deferred path.
+- Worker shutdown marks cancellation before joining, including a completion-backpressure regression case. Deterministic tests cover queue fullness, completion byte limits, budgeted drains, face-epoch discard, cancellation, and backlog release.
+- Paragraph shaping hashes and deduplicates same-frame misses, uses the shared compute-pool parallelism, keeps small batches inline, and performs exactly one parallel join for a non-inline batch while reporting caller wait and generation deferral.
+- Managed current-source Cargo, the requested thread/label scale matrix, and live product trace remain coordinator-owned. This is a non-validation completion record, not an acceptance claim; retain `open` until a coordinator receipt is attached.

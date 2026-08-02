@@ -51,9 +51,9 @@ fn shader_prewarm_read_manifest_reports_typed_parse_error() {
 
 #[test]
 fn shader_prewarm_merge_manifest_reports_typed_schema_error() {
-    let mut stale_manifest = ShaderVariantPrewarmManifest::new(Vec::new());
+    let mut stale_manifest = ShaderVariantPrewarmManifest::empty();
     stale_manifest.schema_version = ShaderVariantPrewarmManifest::SCHEMA_VERSION + 1;
-    let valid_manifest = ShaderVariantPrewarmManifest::new(Vec::new());
+    let valid_manifest = ShaderVariantPrewarmManifest::empty();
 
     let error = merge_manifests(stale_manifest, valid_manifest).unwrap_err();
 
@@ -66,6 +66,6 @@ fn shader_prewarm_merge_manifest_reports_typed_schema_error() {
     }
     assert_eq!(
         error.to_string(),
-        "shader prewarm manifest schema 2 is not supported; expected 1"
+        "shader prewarm manifest schema 3 is not supported; expected 2"
     );
 }

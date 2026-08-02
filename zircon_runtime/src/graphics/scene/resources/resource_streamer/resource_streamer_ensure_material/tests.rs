@@ -1,8 +1,8 @@
 use crate::asset::TextureUploadSupport;
 use crate::core::resource::{ResourceId, ResourceLocator};
 
-use super::PreparedMaterialTextureDependency;
 use super::material_readiness::prepared_material_cache_identity_is_current;
+use super::PreparedMaterialTextureDependency;
 
 #[test]
 fn prepared_material_dependency_cache_uses_registry_identity_and_revision() {

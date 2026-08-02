@@ -33,9 +33,11 @@ pub fn first_party_editor_plugin_registrations_for_manifest(
 pub fn first_party_registration_for_editor_plugin(
     _plugin_id: RuntimePluginId,
 ) -> Option<EditorPluginRegistrationReport> {
+    // @cargo-zircon:editor-registration-begin
     #[cfg(feature = "navigation-editor-plugin")]
     if _plugin_id == RuntimePluginId::Navigation {
         return Some(zircon_plugin_navigation_editor::plugin_registration());
     }
+    // @cargo-zircon:editor-registration-end
     None
 }

@@ -1,5 +1,5 @@
 use super::super::model::WorkbenchIconButtonContext;
-use super::super::palette::{workbench_icon_button_palette, WorkbenchIconButtonPalette};
+use super::super::palette::{WorkbenchIconButtonPalette, workbench_icon_button_palette};
 use super::super::state::{icon_button_node_uses_active_glyph, is_unavailable_icon_button_state};
 use super::declared::declared_icon_color;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;

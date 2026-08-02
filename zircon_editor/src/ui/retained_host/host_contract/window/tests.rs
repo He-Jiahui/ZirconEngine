@@ -165,6 +165,30 @@ fn first_presented_frame_capture_reports_an_unwritable_parent_to_the_app_boundar
 }
 
 #[test]
+fn host_window_retains_the_first_fatal_event_loop_failure() {
+    let host = UiHostWindow::new().expect("host window should construct for failure test");
+    let callback_host = host.clone_strong();
+    callback_host.report_fatal_failure(
+        "editor_host_window",
+        "native_window size=1280x720",
+        "native window creation failed: desktop unavailable",
+        "verify the desktop session can create windows and retry zircon_editor",
+    );
+    callback_host.report_fatal_failure(
+        "editor_host_window",
+        "presenter_backend=softbuffer",
+        "presenter creation failed: device lost",
+        "verify the graphics adapter and restart zircon_editor",
+    );
+
+    assert_eq!(
+        host.take_fatal_failure().unwrap().to_string(),
+        "editor startup diagnostic: component=editor_host_window requested=native_window size=1280x720 cause=native window creation failed: desktop unavailable recovery=verify the desktop session can create windows and retry zircon_editor"
+    );
+    assert!(host.take_fatal_failure().is_none());
+}
+
+#[test]
 fn window_scale_factor_defaults_to_one_and_filters_invalid_values() {
     let host = UiHostWindow::new().expect("host window should construct for scale test");
     let window = host.window();

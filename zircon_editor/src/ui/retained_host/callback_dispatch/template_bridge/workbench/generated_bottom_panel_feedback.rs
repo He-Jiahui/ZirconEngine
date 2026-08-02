@@ -4,8 +4,8 @@ use super::{
     componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge,
     error::BuiltinHostWindowTemplateBridgeError,
     generated_bottom_panel_navigation::{
-        workbench_generated_bottom_mode_control_id, workbench_generated_bottom_route_target,
-        GENERATED_BOTTOM_MODE_CONTROLS,
+        GENERATED_BOTTOM_MODE_CONTROLS, workbench_generated_bottom_mode_control_id,
+        workbench_generated_bottom_route_target,
     },
 };
 

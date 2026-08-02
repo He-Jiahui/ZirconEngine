@@ -9,10 +9,55 @@ if ($PSVersionTable.PSEdition -eq 'Core') {
 }
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $stager = Join-Path $repoRoot 'tools\mvp\Stage-MvpProducts.ps1'
+$preflightModule = Join-Path $repoRoot 'tools\mvp\MvpStagingPreflight.psm1'
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
     if (-not $Condition) { throw $Message }
+}
+
+function Assert-ProcessTiming {
+    param(
+        [Parameter(Mandatory)]$Evidence,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    $startedAt = [DateTimeOffset]::MinValue
+    $endedAt = [DateTimeOffset]::MinValue
+    Assert-True ([DateTimeOffset]::TryParse([string]$Evidence.started_at_utc, [ref]$startedAt)) "$Label is missing a parseable started_at_utc."
+    Assert-True ([DateTimeOffset]::TryParse([string]$Evidence.ended_at_utc, [ref]$endedAt)) "$Label is missing a parseable ended_at_utc."
+    Assert-True ($endedAt -ge $startedAt) "$Label ended before it started."
+    Assert-True ($Evidence.exit_code -eq 0) "$Label did not retain its successful exit code."
+}
+
+function Get-ProcessJournalEntries {
+    param([Parameter(Mandatory)][string]$StageRoot)
+
+    $journalPath = Join-Path $StageRoot 'logs/process-execution-journal.jsonl'
+    Assert-True (Test-Path -LiteralPath $journalPath -PathType Leaf) "Stage did not persist process journal '$journalPath'."
+    return @(
+        Get-Content -LiteralPath $journalPath -Encoding UTF8 |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            ForEach-Object { $_ | ConvertFrom-Json }
+    )
+}
+
+function Assert-ProcessJournalEntry {
+    param(
+        [Parameter(Mandatory)]$Entry,
+        [Parameter(Mandatory)][string]$Phase,
+        [Parameter(Mandatory)][string]$Outcome,
+        [Parameter(Mandatory)][AllowNull()][Nullable[int]]$ExitCode
+    )
+
+    Assert-True ($Entry.phase -eq $Phase) "Process journal phase differs from '$Phase'."
+    Assert-True ($Entry.outcome -eq $Outcome) "Process journal outcome differs from '$Outcome'."
+    Assert-True ($Entry.exit_code -eq $ExitCode) "Process journal exit code differs from '$ExitCode'."
+    $startedAt = [DateTimeOffset]::MinValue
+    $endedAt = [DateTimeOffset]::MinValue
+    Assert-True ([DateTimeOffset]::TryParse([string]$Entry.started_at_utc, [ref]$startedAt)) "Process journal '$Phase' has no parseable start time."
+    Assert-True ([DateTimeOffset]::TryParse([string]$Entry.ended_at_utc, [ref]$endedAt)) "Process journal '$Phase' has no parseable end time."
+    Assert-True ($endedAt -ge $startedAt) "Process journal '$Phase' ended before it started."
 }
 
 function New-MvpStagingFixture {
@@ -230,7 +275,7 @@ public static class FixtureProduct
             if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_DIAGNOSTICS") != "1")
             {
                 var inputEvidence = Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_MVP_INPUT_PROBE") == "1"
-                    ? " input_pointer_move_count=1 input_mouse_button_press_count=1 input_mouse_button_release_count=1 input_keyboard_press_count=1 input_keyboard_release_count=1"
+                    ? " input_viewport_resize_count=2 input_pointer_move_count=1 input_mouse_button_press_count=1 input_mouse_button_release_count=1 input_keyboard_press_count=1 input_keyboard_release_count=1"
                     : "";
                 var materialFallbackCount = Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_MATERIAL_FALLBACK") == "1" ? "1" : "0";
                 File.AppendAllText(logPath,
@@ -360,6 +405,7 @@ function Invoke-MvpStager {
 }
 
 $stagerSource = Get-Content -LiteralPath $stager -Raw -Encoding UTF8
+$preflightSource = Get-Content -LiteralPath $preflightModule -Raw -Encoding UTF8
 Assert-True ($stagerSource -notmatch '`\$') 'MVP staging diagnostics must interpolate their input values.'
 Assert-True ($stagerSource -match 'could not launch from') 'MVP staging launch failures must identify the staged executable path.'
 Assert-True ($stagerSource -match 'first_frame_exit_requested') 'MVP staging must record that each product used the first-frame exit path.'
@@ -411,9 +457,73 @@ Assert-True ($stagerSource -notmatch 'Get-FileHash') 'MVP staging must not requi
 Assert-True ($stagerSource -notmatch '(?m)^\s*\[string\]\$Toolchain\s*[,)]') 'MVP staging must not accept caller-provided toolchain provenance.'
 Assert-True ($stagerSource -notmatch '(?m)^\s*\[string\]\$Target\s*[,)]') 'MVP staging must not accept caller-provided target provenance.'
 Assert-True ($stagerSource -match 'rustc -Vv') 'MVP staging must record toolchain provenance from the active Rust compiler.'
+Assert-True ($stagerSource -match 'MvpStagingPreflight\.psm1') 'MVP staging must import its dedicated environment preflight boundary.'
+Assert-True ($preflightSource -match 'function Get-MvpStagingRequiredBytes') 'MVP staging must derive its disk budget from the files that will be copied.'
+Assert-True ($preflightSource -match 'function Assert-MvpStagingDiskCapacity') 'MVP staging must reject a run before copying when its staging drive lacks capacity.'
+Assert-True ($preflightSource -match 'function Assert-MvpStagingCapacityValues') 'MVP staging capacity policy must have a directly testable value boundary.'
+Assert-True ($preflightSource -match 'function Get-MvpInteractiveDesktopPreflight') 'MVP staging must check the interactive desktop before launching windowed products.'
+Assert-True ($preflightSource -match 'function Assert-MvpInteractiveSessionValues') 'MVP staging interactive-session policy must have a directly testable value boundary.'
+Assert-True ($preflightSource -match 'function Assert-MvpAttachedDisplayCount') 'MVP staging monitor policy must have a directly testable value boundary.'
+Assert-True ($preflightSource -match 'function Assert-MvpStagingEntryBudget') 'MVP staging must verify copied manifest entries against the preflight byte budget.'
+$preflightIndex = $stagerSource.IndexOf('$preflight = Get-MvpStagingPreflight', [StringComparison]::Ordinal)
+$partialDirectoryCreateIndex = $stagerSource.IndexOf('New-Item -ItemType Directory -Force -Path $partialDirectory', [StringComparison]::Ordinal)
+Assert-True ($preflightIndex -ge 0 -and $partialDirectoryCreateIndex -gt $preflightIndex) 'MVP staging must complete disk and desktop preflight before creating its partial output directory.'
+Assert-True ($stagerSource -match 'preflight = \$preflight') 'MVP staging manifest must retain the source-bound environment preflight evidence.'
+$entryBudgetIndex = $stagerSource.IndexOf('$null = Assert-MvpStagingEntryBudget', [StringComparison]::Ordinal)
+$manifestIndex = $stagerSource.IndexOf('$manifest = [ordered]@{', [StringComparison]::Ordinal)
+Assert-True ($entryBudgetIndex -ge 0 -and $manifestIndex -gt $entryBudgetIndex) 'MVP staging must verify final entry bytes before writing its manifest.'
+$preflightModuleHandle = Import-Module $preflightModule -Force -PassThru -ErrorAction Stop
+$entryBudgetMismatchRejected = $false
+try {
+    & $preflightModuleHandle {
+        Assert-MvpStagingEntryBudget `
+            -Entries @([ordered]@{ size_bytes = 7 }) `
+            -ExpectedInputCopyBytes 8
+    } | Out-Null
+}
+catch {
+    $entryBudgetMismatchRejected = $_.Exception.Message -match 'final entry bytes.*preflight input_copy_bytes'
+}
+Assert-True $entryBudgetMismatchRejected 'MVP staging did not reject final entry bytes detached from preflight input_copy_bytes.'
+$insufficientCapacityRejected = $false
+try {
+    & $preflightModuleHandle {
+        Assert-MvpStagingCapacityValues `
+            -StagingRootPath 'E:\ZirconBuilds' `
+            -RequiredFreeSpaceBytes 1024 `
+            -AvailableFreeSpaceBytes 1023
+    } | Out-Null
+}
+catch {
+    $insufficientCapacityRejected = $_.Exception.Message -match 'requires at least 1024.*only 1023.*available'
+}
+Assert-True $insufficientCapacityRejected 'MVP staging did not reject an insufficient capacity observation.'
+foreach ($desktopFailure in @(
+    @{ user_interactive = $false; session_id = 1; monitor_count = 1; pattern = 'interactive Windows user session' },
+    @{ user_interactive = $true; session_id = 0; monitor_count = 1; pattern = 'non-interactive Windows session 0' },
+    @{ user_interactive = $true; session_id = 1; monitor_count = 0; pattern = 'at least one attached display' }
+)) {
+    $desktopFailureRejected = $false
+    try {
+        & $preflightModuleHandle {
+            param($fixture)
+            Assert-MvpInteractiveSessionValues `
+                -UserInteractive $fixture.user_interactive `
+                -SessionId $fixture.session_id
+            Assert-MvpAttachedDisplayCount -MonitorCount $fixture.monitor_count
+        } $desktopFailure | Out-Null
+    }
+    catch {
+        $desktopFailureRejected = $_.Exception.Message -match $desktopFailure.pattern
+    }
+    Assert-True $desktopFailureRejected "MVP staging did not reject desktop preflight fixture '$($desktopFailure.pattern)'."
+}
 Assert-True ($stagerSource -match '\[switch\]\$CreateProject') 'MVP staging must expose an explicit fresh-project creation mode.'
 Assert-True ($stagerSource -match 'CreateProject cannot be combined with ProjectRoot') 'MVP staging must reject a pre-existing project when staged creation is requested.'
 Assert-True ($stagerSource -match 'CreateProject cannot be combined with NoLaunch') 'MVP staging must reject a project-creation request that would skip the staged editor launch.'
+Assert-True ($stagerSource -match 'function Assert-MvpProjectName') 'MVP staging must validate a created project name before composing its target path.'
+Assert-True ($stagerSource -match 'GetInvalidFileNameChars') 'MVP staging must reject project names that are not one filesystem directory segment.'
+Assert-True ($stagerSource -match 'createdProjectExpectedRoot') 'MVP staging must bind the created project root to the expected child of stage/project.'
 Assert-True ($stagerSource -match "'--create-project', '--project-name'") 'MVP staging must create projects through the normal staged editor CLI.'
 Assert-True ($stagerSource -match "'--template', 'renderable-empty'") 'MVP staging fresh-project creation must use the renderable-empty template.'
 Assert-True ($stagerSource -match 'Staged created project') 'MVP staging must verify that the staged editor created the canonical project root.'
@@ -429,6 +539,7 @@ Assert-True ($stagerSource -notmatch 'source_path = \$SourcePath') 'MVP staging 
 Assert-True ($stagerSource -match 'project_creation') 'MVP staging must record the staged editor project-creation process as structured evidence.'
 Assert-True ($stagerSource -match 'Get-MvpEditorProjectOpenEvidence') 'MVP staging must parse the normal editor project-open diagnostic from the creation process.'
 Assert-True ($stagerSource -match 'Authoring automation diagnostic log') 'MVP staging must retain diagnostic evidence for normal editor automation processes.'
+Assert-True ($stagerSource -match 'process-execution-journal\.jsonl') 'MVP staging must persist an incremental journal for every started child process.'
 
 $defaultAuthoringAutomationPath = Join-Path $repoRoot 'tools\mvp\mvp-authoring-automation.json'
 Assert-True (Test-Path -LiteralPath $defaultAuthoringAutomationPath -PathType Leaf) 'The source-bound F5 authoring automation request is missing.'
@@ -457,6 +568,16 @@ try {
     Assert-True ($result.staged_project_root -eq (Join-Path $result.staging_root 'project')) 'Staging result did not report the staged project root.'
     Assert-True (Test-Path -LiteralPath (Join-Path $result.staging_root 'project\zircon-project.toml')) 'Project manifest was not staged.'
     Assert-True (Test-Path -LiteralPath (Join-Path $result.staging_root 'project\assets\scenes\main.scene.toml')) 'Project scene was not staged.'
+    Assert-True ($manifest.preflight.required_free_space_bytes -gt 0) 'NoLaunch staging did not record its source-derived disk budget.'
+    [Int64]$manifestEntryBytes = 0
+    foreach ($entry in @($manifest.entries)) {
+        $manifestEntryBytes += [Int64]$entry.size_bytes
+    }
+    Assert-True ($manifest.preflight.input_copy_bytes -eq $manifestEntryBytes) 'NoLaunch staging disk budget does not equal the staged manifest entry bytes.'
+    Assert-True ($manifest.preflight.evidence_reserve_bytes -eq 512MB) 'NoLaunch staging lost the fixed MVP evidence reserve.'
+    Assert-True ($manifest.preflight.available_free_space_bytes -ge $manifest.preflight.required_free_space_bytes) 'NoLaunch staging recorded insufficient disk capacity as successful.'
+    Assert-True (-not $manifest.preflight.interactive_desktop.required) 'NoLaunch staging must not require an interactive desktop.'
+    Assert-True ($null -eq $manifest.preflight.interactive_desktop.monitor_count) 'NoLaunch staging must not probe a display that it will not use.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $result.staging_root 'project\.zircon\cache\stale.zasset'))) 'Machine-local project cache must not be staged.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $result.staging_root 'project\.zircon\registry\asset-registry.json'))) 'Machine-local project registry must not be staged.'
     Assert-True ($manifest.source_fingerprint -eq 'fixture-source-fingerprint') 'Manifest lost the source fingerprint.'
@@ -530,6 +651,14 @@ try {
     Assert-True ($authoringLaunched.authoring_automation.project_identity -eq 'fixture-project') 'MVP staging launch fixture lost the authoring project identity.'
     Assert-True ($authoringLaunched.authoring_automation.scene_uri -eq 'res://scenes/main.scene.toml') 'MVP staging launch fixture lost the authoring scene URI.'
     Assert-True ($authoringLaunched.authoring_automation.selected_model_resource_id -eq 'fixture-cube-model-resource') 'MVP staging launch fixture lost the selected Cube model reference.'
+    Assert-ProcessTiming -Evidence $authoringLaunched.baseline_automation -Label 'Baseline automation process'
+    Assert-ProcessTiming -Evidence $authoringLaunched.authoring_automation -Label 'Authoring automation process'
+    foreach ($reopenProcess in @($authoringLaunched.reopen_automation)) {
+        Assert-ProcessTiming -Evidence $reopenProcess -Label 'Reopen automation process'
+    }
+    foreach ($productProcess in @($authoringLaunched.product_runs)) {
+        Assert-ProcessTiming -Evidence $productProcess -Label "$($productProcess.product) product process"
+    }
     Assert-True (@($authoringLaunched.reopen_automation).Count -eq 2) 'MVP staging launch fixture did not run independent persisted-state reopen reports twice.'
     Assert-True (@($authoringLaunched.product_runs).Count -eq 5) 'MVP staging launch fixture did not preserve two pre-edit products, two editor reopens, and one after-edit runtime.'
     Assert-True (@($authoringLaunched.product_runs | Where-Object { $_.product -eq 'runtime' -and $_.attempt -eq 3 }).Count -eq 1) 'MVP staging launch fixture did not assign a new runtime attempt after authoring.'
@@ -622,6 +751,9 @@ try {
         $authoringFailureStderr = Join-Path $authoringFailureStage 'logs/editor-authoring.stderr.log'
         Assert-True (Test-Path -LiteralPath $authoringFailureStderr) 'A nonzero authoring automation exit did not preserve its stderr log.'
         Assert-True ((Get-Content -Raw -LiteralPath $authoringFailureStderr) -match 'fixture automation failed after spawning child') 'A nonzero authoring automation stderr log was not drained before failure.'
+        $authoringFailureJournal = @(Get-ProcessJournalEntries -StageRoot $authoringFailureStage | Where-Object { $_.phase -eq 'editor-authoring' })
+        Assert-True ($authoringFailureJournal.Count -eq 1) 'Nonzero authoring automation did not emit exactly one journal entry.'
+        Assert-ProcessJournalEntry -Entry $authoringFailureJournal[0] -Phase 'editor-authoring' -Outcome 'cleanup_failed' -ExitCode 32
         Start-Sleep -Milliseconds 250
         $authoringFailurePrefix = [IO.Path]::GetFullPath($authoringFailureStage).TrimEnd('\') + [IO.Path]::DirectorySeparatorChar
         $authoringFailurePids = @(
@@ -746,6 +878,17 @@ try {
             -TimeoutSeconds 10 `
             -AllowUnsafeStagingRoot)
         Assert-True $launched.launched 'MVP staging launch fixture did not run the staged products.'
+        $launchedManifest = Get-Content -Raw -Encoding UTF8 $launched.manifest | ConvertFrom-Json
+        [Int64]$launchedManifestEntryBytes = 0
+        foreach ($entry in @($launchedManifest.entries)) {
+            $launchedManifestEntryBytes += [Int64]$entry.size_bytes
+        }
+        Assert-True ($launchedManifest.preflight.input_copy_bytes -eq $launchedManifestEntryBytes) 'Launched staging disk budget does not equal the staged manifest entry bytes.'
+        Assert-True ($launchedManifest.preflight.available_free_space_bytes -ge $launchedManifest.preflight.required_free_space_bytes) 'Launched staging did not prove sufficient disk capacity before copying.'
+        Assert-True $launchedManifest.preflight.interactive_desktop.required 'Launched staging did not require an interactive desktop.'
+        Assert-True $launchedManifest.preflight.interactive_desktop.user_interactive 'Launched staging did not record an interactive Windows user session.'
+        Assert-True ($launchedManifest.preflight.interactive_desktop.session_id -gt 0) 'Launched staging did not record a non-service Windows session.'
+        Assert-True ($launchedManifest.preflight.interactive_desktop.monitor_count -gt 0) 'Launched staging did not record an attached display.'
         Assert-True (@($launched.product_runs).Count -eq 2) 'MVP staging launch fixture did not record both products.'
         Assert-True (@($launched.product_runs | Where-Object { $_.first_frame_presented -and $_.teardown_complete }).Count -eq 2) 'MVP staging launch fixture did not verify first-frame teardown for both products.'
         $runtimeRun = @($launched.product_runs | Where-Object { $_.product -eq 'runtime' })[0]
@@ -770,6 +913,7 @@ try {
         Assert-True ($runtimeRun.runtime_product_diagnostics.directional_light_count -eq '1') 'MVP staging launch fixture did not preserve directional-light evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.material_fallback_count -eq '0') 'MVP staging launch fixture did not preserve material-fallback evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.material_validation_error_count -eq '0') 'MVP staging launch fixture did not preserve material-validation evidence.'
+        Assert-True ($runtimeRun.runtime_product_diagnostics.input_viewport_resize_count -eq '2') 'MVP staging launch fixture did not preserve viewport-resize input evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.input_pointer_move_count -eq '1') 'MVP staging launch fixture did not preserve pointer-input evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.input_mouse_button_press_count -eq '1') 'MVP staging launch fixture did not preserve mouse-button press evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.input_mouse_button_release_count -eq '1') 'MVP staging launch fixture did not preserve mouse-button release evidence.'
@@ -832,6 +976,7 @@ try {
     $createdStartupSummary = Get-Content -Raw -Encoding UTF8 (Join-Path $created.staging_root 'startup-summary.json') | ConvertFrom-Json
     Assert-True ($createdStartupSummary.staged_project_root -match '^project[\\/]ZirconMvpFixture$') 'Created project startup evidence did not record the canonical staged project root.'
     Assert-True ($createdStartupSummary.project_creation.exit_code -eq 0) 'Created project startup evidence did not preserve the staged editor creation exit code.'
+    Assert-ProcessTiming -Evidence $createdStartupSummary.project_creation -Label 'Project creation process'
     Assert-True ($createdStartupSummary.project_creation.editor_window_capture.path -eq 'captures/editor-before-edit.png') 'Created project startup evidence did not archive the editor window PNG before authoring.'
     Assert-True ($createdStartupSummary.project_creation.editor_window_capture.non_background_pixels -ge 100) 'Created project startup evidence accepted an insufficiently visible editor window PNG before authoring.'
     Assert-True ($createdStartupSummary.project_creation.editor_product_diagnostics.selected_node_name -eq 'Cube') 'Created project startup evidence did not tie the editor window PNG to Cube.'
@@ -948,6 +1093,9 @@ try {
             } | Select-Object -ExpandProperty ProcessId
         )
         Assert-True ($createFailurePids.Count -eq 0) 'A nonzero staged project-creation exit must not leave a staged child process.'
+        $createFailureJournal = @(Get-ProcessJournalEntries -StageRoot $createFailureStage | Where-Object { $_.phase -eq 'editor-create' })
+        Assert-True ($createFailureJournal.Count -eq 1) 'Nonzero project creation did not emit exactly one journal entry.'
+        Assert-ProcessJournalEntry -Entry $createFailureJournal[0] -Phase 'editor-create' -Outcome 'cleanup_failed' -ExitCode 24
     }
     finally {
         if ($null -eq $previousCreateFailureWithChild) {
@@ -1106,6 +1254,9 @@ try {
         $timeoutStderr = Join-Path $timeoutStage 'logs/runtime-1.stderr.log'
         Assert-True (Test-Path -LiteralPath $timeoutStderr) 'A timed-out staged product did not preserve its stderr log.'
         Assert-True ((Get-Content -Raw -LiteralPath $timeoutStderr) -match 'fixture timeout emitted before termination') 'A timed-out staged product stderr stream was not drained before failure.'
+        $timeoutJournal = @(Get-ProcessJournalEntries -StageRoot $timeoutStage | Where-Object { $_.phase -eq 'runtime-1' })
+        Assert-True ($timeoutJournal.Count -eq 1) 'Timed-out runtime did not emit exactly one journal entry.'
+        Assert-ProcessJournalEntry -Entry $timeoutJournal[0] -Phase 'runtime-1' -Outcome 'timed_out' -ExitCode $null
         Start-Sleep -Milliseconds 250
         $timeoutPids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1168,6 +1319,9 @@ try {
             $nonzeroExitDetected = $_.Exception.Message -match 'exited with code 23'
         }
         Assert-True $nonzeroExitDetected 'A nonzero staged product exit was not reported as a failure.'
+        $nonzeroJournal = @(Get-ProcessJournalEntries -StageRoot $nonzeroStage | Where-Object { $_.phase -eq 'runtime-1' })
+        Assert-True ($nonzeroJournal.Count -eq 1) 'Nonzero runtime did not emit exactly one journal entry.'
+        Assert-ProcessJournalEntry -Entry $nonzeroJournal[0] -Phase 'runtime-1' -Outcome 'cleanup_failed' -ExitCode 23
         Start-Sleep -Milliseconds 250
         $nonzeroPids = @(
             Get-CimInstance Win32_Process | Where-Object {

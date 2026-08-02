@@ -8,7 +8,6 @@ impl PreviewSceneEntry {
             id: self.id,
             name: self.name,
             depth: self.depth,
-            selected: self.selected,
         }
     }
 }

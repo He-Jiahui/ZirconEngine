@@ -75,11 +75,10 @@ plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
   - user: 2026-04-12 将 undo/redo 从整世界快照推进到真正的 EditorCommand/UndoableStack 命令化实现
   - user: 2026-04-12 实现 Zircon Editor Workbench Shell V1
-  - user: 2026-05-02 Unity 式编辑器优先补齐计划：Inspector / Component Drawer 接入 Undo/Redo
-  - user: 2026-05-03 Full Milestone Android/iOS/WebGPU/WASM hosts and Component Drawer templates
+  - user: 2026-05-02 Unity 式编辑器优先补齐计划：Inspector / Inspector Customization 接入 Undo/Redo
+  - user: 2026-05-03 Full Milestone Android/iOS/WebGPU/WASM hosts and Inspector Customization templates
   - docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
-  - .codex/plans/Full Milestone Export Hosts And Component Drawer Templates.md
   - .cursor/plans/基本路线图.md
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
 tests:
@@ -102,12 +101,12 @@ tests:
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe editor_operation_registry_exposes_builtin_menu_operations_by_path --nocapture (passed)
   - cargo test -p zircon_editor --lib workbench_window_menu_exposes_unreal_style_functional_windows --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
   - cargo test -p zircon_editor --lib editor_operation_registry_exposes_builtin_menu_operations_by_path --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
-  - pending: cargo test -p zircon_editor inspector_payload_preserves_component_drawer_template_metadata --locked --jobs 1
-  - pending: cargo test -p zircon_editor editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_component --locked --jobs 1
-  - pending: cargo test -p zircon_editor editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled --locked --jobs 1
-  - 2026-05-04: cargo test -p zircon_editor component_drawer_adapter_accepts_safe_action_events_beyond_press --locked --jobs 1 --target-dir target-codex-editor-check --message-format short --color never (passed; existing warnings only)
+  - pending: cargo test -p zircon_editor --lib editor_runtime_exposes_plugin_inspector_customization_surface_for_inspector_lookup --locked --jobs 1
+  - pending: cargo test -p zircon_editor --lib editor_snapshot_resolves_enabled_inspector_customization_for_selected_dynamic_component --locked --jobs 1
+  - pending: cargo test -p zircon_editor --lib editor_runtime_rejects_inspector_customization_bindings_to_missing_operations --locked --jobs 1
+  - 2026-05-04: cargo test -p zircon_editor inspector_customization_adapter_accepts_safe_action_events_beyond_press --locked --jobs 1 --target-dir target-codex-editor-check --message-format short --color never (passed; existing warnings only)
   - 2026-05-13: RUSTFLAGS="-C linker=rust-lld" cargo test -p zircon_editor --lib editor_extension_registry_rejects_legacy_ui_template_documents --jobs 1 (passed, 1 passed)
-  - 2026-05-13: RUSTFLAGS="-C linker=rust-lld" cargo test -p zircon_editor --lib editor_extension_registry_rejects_legacy_component_drawer_documents --jobs 1 (passed, 1 passed)
+  - current contract: cargo test -p zircon_editor --lib editor_extension_registry_rejects_non_zui_inspector_customization_documents --locked
 doc_type: module-detail
 ---
 
@@ -165,15 +164,15 @@ doc_type: module-detail
 
 ## Control Flow
 
-### Component Drawer Template Projection
+### Inspector Customization Surface Projection
 
-插件贡献的 `ComponentDrawerDescriptor` now carries the component type, UI document, controller, optional template id, optional data root, and validated operation bindings as descriptor metadata. The UI document must be a `.zui` component asset; the registry rejects stale `.ui.toml` and `.v2.ui.toml` drawer/template documents before they can enter Inspector projection. The live editor runtime filters these descriptors through the current capability snapshot before lookup and before `EditorState::snapshot_with_component_drawers(...)` builds Inspector data, so disabled plugin capabilities cannot surface custom Inspector controls.
+插件贡献的 `InspectorCustomizationDescriptor` carries the target component type, UI document, controller, optional template id, optional data root, and validated operation bindings as descriptor metadata. The UI document must be a `.zui` component asset; the contribution batch rejects stale `.ui.toml` and `.v2.ui.toml` customization/template documents before they can enter Inspector projection. The live editor runtime filters these customizations through the current capability snapshot before lookup and before `EditorState::snapshot_with_inspector_customizations(...)` builds Inspector data, so disabled plugin capabilities cannot surface custom Inspector controls.
 
-Status `editor_ui_11_m5_editor_extension_contract_zui_guard_passed` keeps the editor extension contract tests aligned with that authority: `test_editor_extension_contract_tests_use_zui_suffix` scans `zircon_editor/src/tests/editor_authoring_extension_descriptors.rs` and `zircon_editor/src/tests/editor_event/runtime.rs` so `register_ui_template` and `register_component_drawer` tests do not reuse retired `.ui.toml` / `.v2.ui.toml` suffixes as active or negative fixture names.
+The editor extension contract tests keep that authority aligned: `zircon_editor/src/tests/editor_authoring_extension_descriptors.rs` and `zircon_editor/src/tests/editor_event/runtime/extensions_validation.rs` exercise `register_ui_template` and `register_inspector_customization` without accepting retired `.ui.toml` / `.v2.ui.toml` suffixes as active registrations.
 
-Inspector snapshots and pane payloads preserve Component Drawer template metadata separately from generic dynamic component properties. When a runtime component schema and an enabled drawer descriptor are both present, the snapshot carries the drawer UI document, controller, template id, data root, and operation binding ids into the pane payload. The retained host-contract projection annotates the component header with the template id and UI document so the host can route the row as a custom drawer surface. When the plugin schema or enabled drawer descriptor is unavailable, `drawer_available` remains false, property rows stay disabled, and the warning diagnostic protects serialized component data until the plugin reloads or the required editor capability is enabled.
+Inspector snapshots and pane payloads preserve inspector customization surface metadata separately from generic dynamic component properties. When a runtime component schema and an enabled customization are both present, the snapshot carries the customization UI document, controller, template id, data root, and operation binding ids into the pane payload. The retained host-contract projection annotates the component header with the template id and UI document so the host can route the row as a custom inspector surface. When the plugin schema or enabled customization is unavailable, `customization_available` remains false, property rows stay disabled, and the warning diagnostic protects serialized component data until the plugin reloads or the required editor capability is enabled.
 
-Component Drawer template execution is host-mediated rather than native plugin UI embedding. A custom drawer control dispatches a `UiComponentEventEnvelope` targeting the `component_drawer` domain, with the dynamic component type in `subject` and the requested editor operation path in `path`. `EditorEventRuntime::dispatch_ui_component_adapter_event(...)` resolves only enabled drawer descriptors, rejects operations not declared in that descriptor's bindings, rejects draft-edit events such as `ValueChanged`, and accepts only safe action-style events such as pressed buttons, committed fields, selected options, expansion toggles, and reference navigation actions. Accepted envelopes then invoke the existing `EditorOperation` dispatcher as `UiBinding`. The operation registry still enforces missing handlers, disabled capabilities, undo metadata, and journal recording. The drawer adapter returns a component-adapter result for projection refresh, but the mutation authority remains the normal editor operation/command path.
+Inspector customization surface execution is host-mediated rather than native plugin UI embedding. A customization control dispatches a `UiComponentEventEnvelope` targeting the retained host's `component_drawer` event domain, with the dynamic component type in `subject` and the requested editor operation path in `path`. `EditorEventRuntime::dispatch_ui_component_adapter_event(...)` resolves only enabled customizations, rejects operations not declared in the customization bindings, rejects draft-edit events such as `ValueChanged`, and accepts only safe action-style events such as pressed buttons, committed fields, selected options, expansion toggles, and reference navigation actions. Accepted envelopes then invoke the existing `EditorOperation` dispatcher as `UiBinding`. The operation registry still enforces missing handlers, disabled capabilities, undo metadata, and journal recording. The retained adapter returns a component-adapter result for projection refresh, but the mutation authority remains the normal editor operation/command path.
 
 ### EditorOperation 分派
 
@@ -205,7 +204,7 @@ Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一
 6. `TransactionScope::commit` 把非空命令序列提交到 `HistoryStore` 的全局 history context
 7. `EditorState::sync_selection_state` 从当前世界回填 inspector 草稿和 orbit target
 
-`EditorState::snapshot_with_component_drawers(...)` 读取场景树时使用 `World::node_records()`，而不是 schedule-maintained `World::nodes()` 缓存。原因是 editor 命令在同一交互帧内需要立刻投影刚创建、导入、撤销或重做的节点；runtime ECS 的 `nodes()` 缓存仍遵守 `PostUpdate`/`RenderExtract` 刷新边界，不能作为 live authoring snapshot 的数据源。
+`EditorState::snapshot_with_inspector_customizations(...)` 读取场景树时使用 `World::node_records()`，而不是 schedule-maintained `World::nodes()` 缓存。原因是 editor 命令在同一交互帧内需要立刻投影刚创建、导入、撤销或重做的节点；runtime ECS 的 `nodes()` 缓存仍遵守 `PostUpdate`/`RenderExtract` 刷新边界，不能作为 live authoring snapshot 的数据源。
 
 ### Inspector 批量提交
 
@@ -276,9 +275,9 @@ UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scen
 - toolbar Play/Stop binding 会分派成 `runtime.play_mode.enter` / `runtime.play_mode.exit`
 - workbench menu action `CreateCube` 会通过 operation runtime 进入 undo stack
 - editor operation registry 暴露内置 menu/view/play-mode operation descriptor
-- enabled Component Drawer descriptors resolve into selected dynamic component Inspector snapshots
-- disabled Component Drawer capabilities keep drawer metadata hidden and leave dynamic component editing protected
-- Component Drawer adapter accepts safe action-style events beyond button press while rejecting draft value-change events before operation invocation
+- enabled inspector customizations resolve into selected dynamic component Inspector snapshots
+- disabled inspector customization capabilities keep customization metadata hidden and leave dynamic component editing protected
+- the retained inspector customization adapter accepts safe action-style events beyond button press while rejecting draft value-change events before operation invocation
 - `migrate-assets` commandlet 必须经唯一 registry 注册、dry-run 不写入、apply 使用 Runtime 事务、未知/互斥参数输出 JSON exit 2、缺失 capability 输出 JSON exit 3、Runtime typed error 输出 JSON exit 1
 
 `zircon_runtime/src/scene/mod.rs` 当前覆盖：
@@ -292,7 +291,7 @@ UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scen
 
 - 用户要求 editor 继续补齐删除节点、改父子层级、重命名和 inspector 字段批量提交
 - 用户要求把 undo/redo 从整世界快照升级为真正的 `EditorCommand/UndoableStack`
-- 用户要求 Unity 式编辑器优先补齐 Component Drawer 实际编辑 UI 和插件卸载后的保护/降级诊断
+- 用户要求 Unity 式编辑器优先补齐 Inspector Customization 实际编辑 UI 和插件卸载后的保护/降级诊断
 - 当前路线图要求 editor 只维护编辑器域状态，世界修改通过 scene/core 边界下沉到可复用运行时层
 
 ## Open Issues Or Follow-up

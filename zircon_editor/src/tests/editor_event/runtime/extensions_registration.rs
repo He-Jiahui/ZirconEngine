@@ -94,7 +94,7 @@ fn viewport_overlay_provider_registration_routes_toggle_and_capability_lifecycle
     runtime
         .runtime
         .register_editor_extension_with_required_capabilities(
-            extension,
+            extension.into_contribution_batch().unwrap(),
             vec![CAPABILITY.to_string()],
         )
         .expect("host installs overlay provider factory");
@@ -169,7 +169,7 @@ fn viewport_overlay_provider_registration_routes_toggle_and_capability_lifecycle
         .expect("a distinct extension can declare its provider before host validation");
     let error = runtime
         .runtime
-        .register_editor_extension(duplicate)
+        .register_editor_extension(duplicate.into_contribution_batch().unwrap())
         .expect_err("the host must preflight duplicate provider ids before installation");
     assert!(matches!(
         error,
@@ -220,7 +220,7 @@ fn editor_runtime_prepares_each_scene_mode_factory_once_before_host_commit() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("prepared scene mode registry commits without a second factory invocation");
 
     assert_eq!(factory_calls.load(Ordering::SeqCst), 1);
@@ -244,7 +244,7 @@ fn editor_runtime_rejects_invalid_scene_mode_factory_without_partial_host_commit
         "zircon_editor_event_scene_mode_atomic_registration",
         &[],
     );
-    let initial_extension_count = runtime.runtime.shell().lock().editor_extensions.len();
+    let initial_extension_count = runtime.runtime.shell().lock().contributions.len();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_view(ViewDescriptor::new(VIEW_ID, "Atomic Registration", "Tests"))
@@ -267,12 +267,12 @@ fn editor_runtime_rejects_invalid_scene_mode_factory_without_partial_host_commit
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect_err("invalid scene mode factory must reject the whole extension batch");
 
     assert!(matches!(error, EditorExtensionRegistryError::SceneMode(_)));
     assert_eq!(
-        runtime.runtime.shell().lock().editor_extensions.len(),
+        runtime.runtime.shell().lock().contributions.len(),
         initial_extension_count
     );
     assert!(
@@ -350,16 +350,16 @@ fn rejected_plugin_extension_does_not_publish_runtime_event_consumers() {
         &[],
     );
     let descriptor = SceneModeDescriptor::new(
-        "test.scene.atomic.plugin_mode",
+        "plugin.test.scene.atomic.plugin.mode",
         "Atomic Plugin Mode",
         "test.scene",
-        EditorOperationPath::parse("test.scene.atomic.plugin_mode.activate").unwrap(),
+        EditorOperationPath::parse("plugin.test.scene.atomic.plugin.mode.activate").unwrap(),
     );
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_scene_mode(SceneModeRegistration::new(descriptor, || {
             crate::tests::support::pass_through_scene_mode(SceneModeId::new(
-                "test.scene.atomic.plugin_mode.wrong",
+                "plugin.test.scene.atomic.plugin.mode.wrong",
             ))
         }))
         .unwrap();
@@ -403,7 +403,7 @@ fn editor_runtime_contains_overlay_provider_factory_panic_without_partial_host_c
         "zircon_editor_event_overlay_provider_atomic_registration",
         &[],
     );
-    let initial_extension_count = runtime.runtime.shell().lock().editor_extensions.len();
+    let initial_extension_count = runtime.runtime.shell().lock().contributions.len();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_view(ViewDescriptor::new(VIEW_ID, "Atomic Overlay", "Tests"))
@@ -417,7 +417,7 @@ fn editor_runtime_contains_overlay_provider_factory_panic_without_partial_host_c
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect_err("provider panic must reject the whole extension batch");
 
     assert!(matches!(
@@ -426,7 +426,7 @@ fn editor_runtime_contains_overlay_provider_factory_panic_without_partial_host_c
             if message.contains("provider factory panic")
     ));
     assert_eq!(
-        runtime.runtime.shell().lock().editor_extensions.len(),
+        runtime.runtime.shell().lock().contributions.len(),
         initial_extension_count
     );
     assert!(
@@ -494,7 +494,7 @@ fn editor_runtime_contains_overlay_provider_extract_panic() {
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap();
     {
         let mut shell = runtime.runtime.shell().lock();
@@ -526,6 +526,7 @@ fn editor_runtime_contains_overlay_provider_extract_panic() {
             })
             .expect_err("a faulted provider must remain quarantined");
         assert!(error.contains("quarantined after callback failure"));
+        assert!(error.contains("provider extract panic"));
         shell
             .state
             .apply_viewport_command(&ViewportCommand::Resized {
@@ -571,7 +572,7 @@ fn editor_runtime_rejects_scene_mode_with_an_unregistered_overlay_provider() {
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect_err("the host must reject a descriptor without its registered provider");
     assert!(matches!(
         error,
@@ -609,7 +610,7 @@ fn editor_runtime_folds_menu_capabilities_into_the_shared_command_descriptor() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("menu capability should fold into its extension-owned command");
 
     let descriptor = runtime
@@ -652,17 +653,16 @@ fn editor_runtime_consumes_plugin_command_descriptors_into_the_shared_registry()
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     {
         let shell = runtime.runtime.shell().lock();
-        let stored = shell
-            .editor_extensions
-            .last()
-            .expect("stored extension registration")
-            .registry();
-        assert!(stored.pending_commands().next().is_none());
-        assert!(stored.command_ids().any(|id| id == &operation_path));
+        let stored = shell.contributions.snapshot();
+        assert!(
+            stored
+                .commands(&crate::core::extension::CapabilitySet::default())
+                .any(|command| command.id() == &operation_path)
+        );
     }
     let record = runtime
         .runtime
@@ -705,7 +705,7 @@ fn explicit_plugin_operation_keeps_its_identity_without_synthetic_history() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     runtime
         .runtime
@@ -748,7 +748,7 @@ fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflectio
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     runtime.runtime.refresh_reflection();
 
@@ -818,7 +818,7 @@ fn editor_operation_ui_binding_arguments_are_preserved_in_journal() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     runtime.runtime.handle_event_listener_control_request(
         EditorEventListenerControlRequest::Register {
@@ -888,7 +888,7 @@ fn editor_runtime_registers_plugin_views_as_activity_descriptors() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     runtime.runtime.refresh_reflection();
 
@@ -925,7 +925,7 @@ fn editor_runtime_projects_plugin_views_into_view_menu_operations() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     runtime.runtime.refresh_reflection();
 
@@ -978,9 +978,11 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     use crate::core::editor_operation::{
         EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
     };
+    use crate::core::extension::InspectorCustomizationDescriptor;
     use crate::core::plugin::EditorPluginRegistrationReport;
     use crate::ui::host::EditorManager;
     use crate::ui::host::module::EDITOR_MANAGER_NAME;
+    use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
     use zircon_runtime::{plugin::PluginModuleManifest, plugin::PluginPackageManifest};
 
     let _guard = env_lock().lock().unwrap();
@@ -992,12 +994,12 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_view(ViewDescriptor::new(
-            "weather.cloud_layers",
+            "plugin.weather.cloud_layers",
             "Cloud Layers",
             "Weather",
         ))
         .unwrap();
-    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
+    let operation_path = EditorOperationPath::parse("plugin.weather.cloud_layer.refresh").unwrap();
     extension
         .register_command(
             EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
@@ -1010,6 +1012,39 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
             operation_path.clone(),
         ))
         .unwrap();
+    let component_type = "plugin.weather.CloudLayer";
+    extension
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
+                component_type,
+                "plugins://weather/editor/cloud_layer.inspector.zui",
+                "plugin.weather.CloudLayerInspectorController",
+            )
+            .with_id("plugin.weather.cloud_layer")
+            .with_binding("plugin.weather.cloud_layer.refresh"),
+        )
+        .unwrap();
+    let selected_node = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("default selection")
+        .id;
+    {
+        let shell = runtime.runtime.shell().lock();
+        shell.state.world.with_world_mut(|scene| {
+            scene
+                .register_component_type(
+                    ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
+                        .with_property("coverage", "scalar", true),
+                )
+                .unwrap();
+            scene
+                .set_dynamic_component(selected_node, component_type, json!({ "coverage": 0.75 }))
+                .unwrap();
+        });
+    }
 
     runtime
         .runtime
@@ -1030,17 +1065,32 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .expect("register editor plugin report");
     runtime.runtime.refresh_reflection();
 
+    let disabled_component = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("plugin component snapshot while disabled");
+    assert!(!disabled_component.customization_available);
+    assert_eq!(disabled_component.customization_ui_document, None);
+
     assert!(
         runtime
             .runtime
             .descriptors()
             .iter()
-            .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers")
+            .all(|descriptor| descriptor.descriptor_id.0 != "plugin.weather.cloud_layers")
     );
     let disabled_menu = runtime
         .runtime
         .handle_control_request(UiControlRequest::QueryNode {
-            node_path: UiNodePath::new("editor/workbench/menu/view/view.weather.cloud_layers.open"),
+            node_path: UiNodePath::new(
+                "editor/workbench/menu/view/view.plugin.weather.cloud_layers.open",
+            ),
         });
     assert!(matches!(disabled_menu, UiControlResponse::Node(None)));
     let disabled_operations = runtime
@@ -1057,7 +1107,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
             .any(|operation| operation
                 .get("operation_id")
                 .and_then(serde_json::Value::as_str)
-                == Some("weather.cloud_layer.refresh"))
+                == Some("plugin.weather.cloud_layer.refresh"))
     );
     let disabled_invoke = runtime.runtime.handle_operation_control_request(
         EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
@@ -1067,7 +1117,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     assert_eq!(
         disabled_invoke.error.as_deref(),
         Some(
-            "editor command weather.cloud_layer.refresh requires disabled capabilities: editor.extension.weather_authoring"
+            "editor command plugin.weather.cloud_layer.refresh requires disabled capabilities: editor.extension.weather_authoring"
         )
     );
 
@@ -1076,15 +1126,35 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
     manager
-        .set_editor_capabilities_enabled(&[capability], true)
+        .set_editor_capabilities_enabled(&[capability.clone()], true)
         .unwrap();
     runtime.runtime.refresh_reflection();
+
+    let enabled_component = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("plugin component snapshot while enabled");
+    assert!(enabled_component.customization_available);
+    assert_eq!(
+        enabled_component.customization_ui_document.as_deref(),
+        Some("plugins://weather/editor/cloud_layer.inspector.zui")
+    );
+    assert_eq!(
+        enabled_component.customization_controller.as_deref(),
+        Some("plugin.weather.CloudLayerInspectorController")
+    );
 
     let descriptor = runtime
         .runtime
         .descriptors()
         .into_iter()
-        .find(|descriptor| descriptor.descriptor_id.0 == "weather.cloud_layers")
+        .find(|descriptor| descriptor.descriptor_id.0 == "plugin.weather.cloud_layers")
         .expect("enabled plugin view descriptor registered");
     assert_eq!(
         descriptor.required_capabilities,
@@ -1093,14 +1163,16 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     let enabled_menu = runtime
         .runtime
         .handle_control_request(UiControlRequest::QueryNode {
-            node_path: UiNodePath::new("editor/workbench/menu/view/view.weather.cloud_layers.open"),
+            node_path: UiNodePath::new(
+                "editor/workbench/menu/view/view.plugin.weather.cloud_layers.open",
+            ),
         });
     assert!(matches!(
         enabled_menu,
         UiControlResponse::Node(Some(node))
             if node.display_name == "Cloud Layers"
                 && node.properties["operation_path"].reflected_value
-                    == json!("view.weather.cloud_layers.open")
+                    == json!("view.plugin.weather.cloud_layers.open")
     ));
     let enabled_operations = runtime
         .runtime
@@ -1117,7 +1189,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
             operation
                 .get("operation_id")
                 .and_then(serde_json::Value::as_str)
-                == Some("weather.cloud_layer.refresh")
+                == Some("plugin.weather.cloud_layer.refresh")
         })
         .expect("weather operation is discoverable when capability is enabled");
     assert_eq!(
@@ -1128,7 +1200,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         operation
             .get("operation_id")
             .and_then(serde_json::Value::as_str)
-            == Some("weather.cloud_layer.refresh")
+            == Some("plugin.weather.cloud_layer.refresh")
     }));
     let enabled_invoke = runtime.runtime.handle_operation_control_request(
         EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
@@ -1136,6 +1208,23 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         )),
     );
     assert!(enabled_invoke.error.is_none());
+
+    manager
+        .set_editor_capabilities_enabled(&[capability], false)
+        .unwrap();
+    runtime.runtime.refresh_reflection();
+    let disabled_again_component = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("plugin component snapshot after capability revocation");
+    assert!(!disabled_again_component.customization_available);
+    assert_eq!(disabled_again_component.customization_ui_document, None);
 }
 
 #[test]
@@ -1158,7 +1247,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_ui_template(EditorUiTemplateDescriptor::new(
-            "weather.cloud_layer.inspector",
+            "plugin.weather.cloud_layer.inspector",
             "plugins://weather/editor/cloud_layer.inspector.zui",
         ))
         .expect("template descriptor should be accepted");
@@ -1214,7 +1303,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
             .iter()
             .map(|descriptor| descriptor.id())
             .collect::<Vec<_>>(),
-        vec!["weather.cloud_layer.inspector"]
+        vec!["plugin.weather.cloud_layer.inspector"]
     );
 
     let unknown_owner_error = runtime
@@ -1249,7 +1338,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
         .replace_editor_plugin_ui_template_contributions(
             "weather",
             [EditorUiTemplateDescriptor::new(
-                "weather.cloud_layer.inspector",
+                "plugin.weather.cloud_layer.inspector",
                 "plugins://weather/editor/cloud_layer.inspector.reloaded.zui",
             )],
             BTreeMap::new(),
@@ -1304,14 +1393,13 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
 }
 
 #[test]
-fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup() {
-    use crate::core::editor_extension::{
-        ComponentDrawerDescriptor, EditorExtensionRegistry, EditorUiTemplateDescriptor,
-    };
+fn editor_runtime_exposes_plugin_inspector_customization_surface_for_inspector_lookup() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorUiTemplateDescriptor};
     use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::extension::{InspectorCustomization, InspectorCustomizationDescriptor};
 
     let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_component_drawer");
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_inspector_customization");
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(EditorCommandDescriptor::operation(
@@ -1326,8 +1414,8 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         ))
         .unwrap();
     extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 "weather.Component.CloudLayer",
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -1340,27 +1428,28 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
 
-    let drawer = runtime
+    let customization = runtime
         .runtime
-        .component_drawer_descriptor("weather.Component.CloudLayer")
-        .expect("component drawer registered");
+        .inspector_customization("weather.Component.CloudLayer")
+        .expect("inspector customization registered");
+    let surface = customization.surface().expect("customization UI surface");
     assert_eq!(
-        drawer.ui_document(),
+        surface.ui_document(),
         "asset://weather/editor/cloud_layer.inspector.zui"
     );
     assert_eq!(
-        drawer.controller(),
+        surface.controller(),
         "weather.editor.CloudLayerInspectorController"
     );
-    assert_eq!(drawer.template_id(), Some("weather.cloud_layer.inspector"));
+    assert_eq!(surface.template_id(), Some("weather.cloud_layer.inspector"));
     assert_eq!(
-        drawer.data_root(),
+        surface.data_root(),
         Some("inspector.plugin_components.weather.Component.CloudLayer")
     );
-    assert_eq!(drawer.bindings(), ["weather.cloud_layer.refresh"]);
+    assert_eq!(surface.bindings(), ["weather.cloud_layer.refresh"]);
 
     let template = runtime
         .runtime
@@ -1373,13 +1462,14 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
 }
 
 #[test]
-fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_component() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn editor_snapshot_resolves_enabled_inspector_customization_for_selected_dynamic_component() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
     use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::extension::InspectorCustomizationDescriptor;
     use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 
     let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_component_drawer_snapshot");
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_inspector_customization_snapshot");
     let component_type = "weather.Component.CloudLayer";
     let selected_node = runtime
         .runtime
@@ -1413,8 +1503,8 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
         ))
         .unwrap();
     extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 component_type,
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -1426,7 +1516,7 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
 
     let snapshot = runtime.runtime.editor_snapshot();
@@ -1439,20 +1529,23 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
         .find(|component| component.component_id == component_type)
         .expect("dynamic component snapshot");
 
-    assert!(component.drawer_available);
+    assert!(component.customization_available);
     assert_eq!(
-        component.drawer_ui_document.as_deref(),
+        component.customization_ui_document.as_deref(),
         Some("asset://weather/editor/cloud_layer.inspector.zui")
     );
     assert_eq!(
-        component.drawer_controller.as_deref(),
+        component.customization_controller.as_deref(),
         Some("weather.editor.CloudLayerInspectorController")
     );
     assert_eq!(
-        component.drawer_template_id.as_deref(),
+        component.customization_template_id.as_deref(),
         Some("weather.cloud_layer.inspector")
     );
-    assert_eq!(component.drawer_bindings, ["weather.cloud_layer.refresh"]);
+    assert_eq!(
+        component.customization_bindings,
+        ["weather.cloud_layer.refresh"]
+    );
     assert_eq!(component.diagnostic, None);
     assert_eq!(
         component.properties[0].field_id,
@@ -1461,13 +1554,127 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
 }
 
 #[test]
-fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
-    use crate::core::editor_operation::EditorOperationPath;
+fn editor_snapshot_resolves_plugin_field_editors_from_active_contributions() {
+    use crate::core::extension::{
+        ContributionBatch, FieldEditorDefinition, FieldEditorInstance, FieldEditorKind,
+    };
+    use crate::ui::host::EditorManager;
+    use crate::ui::host::module::EDITOR_MANAGER_NAME;
     use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 
     let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_component_drawer_disabled");
+    let runtime = EventRuntimeHarness::with_enabled_subsystems(
+        "zircon_editor_event_plugin_field_editor_snapshot",
+        &[],
+    );
+    let capability = "editor.extension.weather_authoring".to_string();
+    let component_type = "plugin.weather.CloudLayer";
+    let selected_node = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("default selection")
+        .id;
+    {
+        let shell = runtime.runtime.shell().lock();
+        shell.state.world.with_world_mut(|scene| {
+            scene
+                .register_component_type(
+                    ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
+                        .with_property("coverage", "plugin.weather.CloudCoverage", true),
+                )
+                .unwrap();
+            scene
+                .set_dynamic_component(selected_node, component_type, json!({ "coverage": 0.75 }))
+                .unwrap();
+        });
+    }
+
+    let mut batch = ContributionBatch::default().with_required_capabilities([capability.clone()]);
+    batch
+        .register_field_editor(FieldEditorDefinition::new(
+            "plugin.weather.CloudCoverage",
+            |_| FieldEditorInstance::new(FieldEditorKind::Color),
+        ))
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(batch)
+        .expect("register field editor contribution");
+
+    let disabled_snapshot = runtime.runtime.editor_snapshot();
+    let disabled = disabled_snapshot
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("dynamic component snapshot");
+    assert_eq!(
+        disabled.properties[0].field_editor.kind(),
+        FieldEditorKind::Auto
+    );
+
+    let manager = runtime
+        .core
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    manager
+        .set_editor_capabilities_enabled(&[capability], true)
+        .expect("enable field editor capability");
+    assert_eq!(
+        disabled.properties[0].field_editor.kind(),
+        FieldEditorKind::Auto,
+        "published editor snapshots retain resolved field metadata after capability changes"
+    );
+    let enabled_snapshot = runtime.runtime.editor_snapshot();
+    let enabled = enabled_snapshot
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("dynamic component snapshot");
+    assert_eq!(
+        enabled.properties[0].field_editor.kind(),
+        FieldEditorKind::Color
+    );
+    manager
+        .set_editor_capabilities_enabled(&[capability], false)
+        .expect("disable field editor capability");
+    assert_eq!(
+        enabled.properties[0].field_editor.kind(),
+        FieldEditorKind::Color,
+        "published snapshots must retain resolved field metadata after capability removal"
+    );
+    let revoked_snapshot = runtime.runtime.editor_snapshot();
+    let revoked = revoked_snapshot
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("dynamic component snapshot");
+    assert_eq!(
+        revoked.properties[0].field_editor.kind(),
+        FieldEditorKind::Auto,
+        "new snapshots must fall back when the field editor contribution is no longer active"
+    );
+}
+
+#[test]
+fn editor_snapshot_hides_inspector_customization_when_extension_capability_is_disabled() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::extension::InspectorCustomizationDescriptor;
+    use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_inspector_customization_disabled");
     let component_type = "weather.Component.CloudLayer";
     let selected_node = runtime
         .runtime
@@ -1501,8 +1708,8 @@ fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled(
         ))
         .unwrap();
     extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 component_type,
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -1513,7 +1720,7 @@ fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled(
     runtime
         .runtime
         .register_editor_extension_with_required_capabilities(
-            extension,
+            extension.into_contribution_batch().unwrap(),
             vec!["editor.extension.weather_authoring".to_string()],
         )
         .expect("register disabled extension");
@@ -1528,10 +1735,10 @@ fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled(
         .find(|component| component.component_id == component_type)
         .expect("dynamic component snapshot");
 
-    assert!(!component.drawer_available);
-    assert_eq!(component.drawer_ui_document, None);
-    assert_eq!(component.drawer_controller, None);
+    assert!(!component.customization_available);
+    assert_eq!(component.customization_ui_document, None);
+    assert_eq!(component.customization_controller, None);
     assert!(component.diagnostic.as_deref().is_some_and(|diagnostic| {
-        diagnostic.contains("enabled editor extension registers a drawer")
+        diagnostic.contains("enabled editor extension registers a customization")
     }));
 }

@@ -8,7 +8,8 @@ use zircon_runtime_interface::ui::{
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+    require_valid_input_owner, text_state::editable_text_input_is_secure,
+    UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
 };
 
 pub(super) fn apply_text_service_effect(
@@ -38,6 +39,9 @@ fn apply_input_method_request(
     }
     match request.kind {
         UiInputMethodRequestKind::Enable => {
+            if editable_text_input_is_secure(surface, request.owner) {
+                return Err(UiSurfaceInputEffectError::InputMethodDisabledForSecureTextInput);
+            }
             surface.input.input_method_owner = Some(request.owner);
             surface.input.input_method_request = Some(request.clone());
         }

@@ -191,15 +191,13 @@ mod tests {
             "plugin.virtual_geometry.registered_asset",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::DepthPrepass,
-                    "plugin-virtual-geometry-registered-asset",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("virtual-geometry.prepare")
-                .with_side_effects(),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "plugin-virtual-geometry-registered-asset",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("virtual-geometry.prepare")
+            .with_side_effects()],
         )
         .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
     }

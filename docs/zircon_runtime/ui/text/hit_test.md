@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/grapheme.rs
@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
 implementation_files:
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs

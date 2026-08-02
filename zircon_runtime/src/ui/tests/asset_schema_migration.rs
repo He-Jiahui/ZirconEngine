@@ -1,6 +1,6 @@
 use crate::ui::template::{UiAssetLoader, UiAssetSchemaMigrator};
 use zircon_runtime_interface::ui::template::{
-    UiAssetError, UiAssetKind, UiAssetMigrationStep, UiAssetSchemaSourceKind,
+    UiAssetError, UiAssetMigrationStep, UiAssetSchemaSourceKind,
     UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 
@@ -87,18 +87,6 @@ node_id = "future_root"
 kind = "native"
 type = "VerticalBox"
 "##;
-
-const SOURCE_TEMPLATE_FIXTURE_TOML: &str = r#"
-version = 1
-
-[root]
-component = "VerticalBox"
-control_id = "SourceFixtureRoot"
-attributes = { layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } } }
-children = [
-  { component = "Button", control_id = "SourceFixtureButton", attributes = { text = "Open" } }
-]
-"#;
 
 #[test]
 fn current_tree_asset_returns_no_op_schema_report() {
@@ -222,38 +210,6 @@ fn below_minimum_schema_version_is_rejected_with_structured_error() {
             current: UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
         }
     );
-}
-
-#[test]
-fn source_template_fixture_converts_through_schema_migrator() {
-    let outcome = UiAssetSchemaMigrator::migrate_source_template_fixture_str(
-        "source.workbench",
-        "Source Workbench",
-        SOURCE_TEMPLATE_FIXTURE_TOML,
-    )
-    .unwrap();
-
-    assert_eq!(
-        outcome.report.source_kind,
-        UiAssetSchemaSourceKind::SourceTemplateFixture
-    );
-    assert_eq!(outcome.report.source_schema_version, Some(1));
-    assert_eq!(outcome.document.asset.kind, UiAssetKind::Layout);
-    assert_eq!(outcome.document.asset.id, "source.workbench");
-    assert_eq!(outcome.document.asset.display_name, "Source Workbench");
-    assert_eq!(
-        outcome.document.asset.version,
-        UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
-    );
-    assert!(outcome
-        .report
-        .steps
-        .contains(&UiAssetMigrationStep::SourceTemplateFixtureConverted));
-
-    let root = outcome.document.root.as_ref().expect("source fixture root");
-    assert_eq!(root.node_id, "root");
-    assert_eq!(root.widget_type.as_deref(), Some("VerticalBox"));
-    assert_eq!(root.children[0].node.widget_type.as_deref(), Some("Button"));
 }
 
 #[test]

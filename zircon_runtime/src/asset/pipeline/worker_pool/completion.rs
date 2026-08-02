@@ -7,8 +7,8 @@ use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use crate::asset::types::{AssetRequest, CpuAssetPayload};
-use crate::core::runtime::tasks::{TaskTimer, TaskTimerSubscription};
 use crate::core::CoreResult;
+use crate::core::runtime::tasks::{TaskTimer, TaskTimerSubscription};
 
 use super::diagnostics::record_duration_measurement;
 use super::payload::payload_bytes;

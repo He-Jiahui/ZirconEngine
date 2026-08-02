@@ -39,15 +39,25 @@ pub(super) fn tool_region_extent(
     region: ShellRegionId,
     slots: &[ActivityDrawerSlot],
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
 ) -> f32 {
     transient_region_preferred
         .and_then(|map| map.get(&region).copied())
-        .unwrap_or_else(|| {
-            slots
-                .iter()
-                .filter_map(|slot| model.drawer_ring.drawers.get(slot))
-                .filter(|drawer| drawer.visible)
-                .map(|drawer| drawer.extent)
-                .fold(0.0_f32, f32::max)
+        .or_else(|| persisted_tool_region_extent(model, slots))
+        .or_else(|| token_region_preferred.and_then(|map| map.get(&region).copied()))
+        .unwrap_or(0.0)
+}
+
+fn persisted_tool_region_extent(
+    model: &WorkbenchViewModel,
+    slots: &[ActivityDrawerSlot],
+) -> Option<f32> {
+    slots
+        .iter()
+        .filter_map(|slot| model.drawer_ring.drawers.get(slot))
+        .filter(|drawer| drawer.visible)
+        .map(|drawer| drawer.extent)
+        .fold(None, |maximum, extent| {
+            Some(maximum.map_or(extent, |current: f32| current.max(extent)))
         })
 }

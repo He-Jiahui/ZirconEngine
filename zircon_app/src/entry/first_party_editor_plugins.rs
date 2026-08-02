@@ -63,10 +63,12 @@ mod tests {
     #[test]
     fn app_composition_projects_selected_navigation_editor_provider() {
         let manifest = ProjectPluginManifest {
-            selections: vec![
-                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Navigation, true, false)
-                    .with_target_modes([RuntimeTargetMode::EditorHost]),
-            ],
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Navigation,
+                true,
+                false,
+            )
+            .with_target_modes([RuntimeTargetMode::EditorHost])],
         };
 
         let registrations = first_party_editor_plugin_registrations_for_manifest(

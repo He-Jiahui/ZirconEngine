@@ -41,6 +41,36 @@ fn image_importer_decodes_texture_asset() {
 }
 
 #[test]
+fn image_importer_rejects_invalid_texture_metadata() {
+    let report = plugin_registration();
+    let importer = report
+        .extensions
+        .asset_importers()
+        .select(std::path::Path::new("normal.png"))
+        .expect("png importer");
+    let context = zircon_runtime::asset::AssetImportContext::new(
+        "normal.png".into(),
+        zircon_runtime::asset::AssetUri::parse("res://textures/normal.png").unwrap(),
+        tiny_png_bytes(),
+        r#"usage_hint = "normal"
+color_space = "srgb""#
+            .parse()
+            .expect("valid texture import settings"),
+    );
+
+    let error = importer
+        .import(&context)
+        .expect_err("normal map metadata must be linear");
+
+    assert!(
+        error
+            .to_string()
+            .contains("normal map must use linear color space"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn image_importer_decodes_common_extension_format_matrix() {
     let report = plugin_registration();
     let cases = [

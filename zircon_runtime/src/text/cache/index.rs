@@ -24,6 +24,7 @@ struct TextCacheLruLinks {
 pub(super) struct IndexedTextCache<K: Eq + Hash, E> {
     entries: HashMap<TextCacheSlot, E>,
     buckets: HashMap<K, Vec<TextCacheSlot>>,
+    bucket_positions: HashMap<TextCacheSlot, usize>,
     lru_links: HashMap<TextCacheSlot, TextCacheLruLinks>,
     lru_head: Option<TextCacheSlot>,
     lru_tail: Option<TextCacheSlot>,
@@ -39,6 +40,7 @@ where
         Self {
             entries: HashMap::new(),
             buckets: HashMap::new(),
+            bucket_positions: HashMap::new(),
             lru_links: HashMap::new(),
             lru_head: None,
             lru_tail: None,
@@ -49,6 +51,7 @@ where
     pub(super) fn clear(&mut self) {
         self.entries.clear();
         self.buckets.clear();
+        self.bucket_positions.clear();
         self.lru_links.clear();
         self.lru_head = None;
         self.lru_tail = None;
@@ -143,7 +146,10 @@ where
                 // before returning it so lookup and LRU ownership stay coherent.
                 let entry = make_entry(input);
                 let key = entry.cache_key().clone();
-                self.buckets.entry(key).or_default().push(slot);
+                let candidates = self.buckets.entry(key).or_default();
+                let candidate_index = candidates.len();
+                candidates.push(slot);
+                self.bucket_positions.insert(slot, candidate_index);
                 if track_lru {
                     Self::attach_most_recent_parts(
                         &mut self.lru_links,
@@ -160,7 +166,10 @@ where
     fn insert_inner(&mut self, entry: E, track_lru: bool) -> (TextCacheSlot, &mut E) {
         let slot = self.next_slot();
         let key = entry.cache_key().clone();
-        self.buckets.entry(key).or_default().push(slot);
+        let candidates = self.buckets.entry(key).or_default();
+        let candidate_index = candidates.len();
+        candidates.push(slot);
+        self.bucket_positions.insert(slot, candidate_index);
         if track_lru {
             self.attach_most_recent(slot);
         }
@@ -198,8 +207,12 @@ where
 
         let key = entry.cache_key();
         let remove_bucket = if let Some(candidates) = self.buckets.get_mut(key) {
-            if let Some(index) = candidates.iter().position(|candidate| *candidate == slot) {
-                candidates.swap_remove(index);
+            if let Some(index) = self.bucket_positions.remove(&slot) {
+                let removed = candidates.swap_remove(index);
+                debug_assert_eq!(removed, slot);
+                if let Some(&moved_slot) = candidates.get(index) {
+                    self.bucket_positions.insert(moved_slot, index);
+                }
             }
             candidates.is_empty()
         } else {
@@ -369,5 +382,37 @@ mod tests {
         cache.touch(second);
 
         assert_eq!(cache.pop_oldest().unwrap().value, 20);
+    }
+
+    #[test]
+    fn collision_bucket_removal_does_not_scan_candidates() {
+        let source = include_str!("index.rs");
+        let linear_search = concat!("candidates.iter()", ".position");
+
+        assert!(
+            !source.contains(linear_search),
+            "eviction must remove a collision-bucket slot through its indexed position"
+        );
+    }
+
+    #[test]
+    fn removing_a_middle_collision_candidate_keeps_remaining_slots_indexed() {
+        let mut cache = IndexedTextCache::new();
+        let first = cache.insert(Entry { key: 1, value: 10 });
+        let middle = cache.insert(Entry { key: 1, value: 20 });
+        let last = cache.insert(Entry { key: 1, value: 30 });
+
+        assert_eq!(cache.remove(middle).map(|entry| entry.value), Some(20));
+        assert_eq!(
+            cache.find_slot(&1, |entry| entry.value == 10).slot,
+            Some(first)
+        );
+        assert_eq!(
+            cache.find_slot(&1, |entry| entry.value == 30).slot,
+            Some(last)
+        );
+        assert_eq!(cache.remove(last).map(|entry| entry.value), Some(30));
+        assert_eq!(cache.pop_oldest().map(|entry| entry.value), Some(10));
+        assert!(cache.is_empty());
     }
 }

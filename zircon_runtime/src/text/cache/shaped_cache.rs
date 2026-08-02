@@ -10,10 +10,13 @@ use super::index::{IndexedTextCache, IndexedTextCacheEntry, TextCacheSlot};
 use crate::core::framework::text::TextDirection;
 use crate::text::font::shared_font_database_generation;
 use crate::text::{
-    normalized_open_type_features, BackendShapeRequest, ShapedGlyph, ShapedGlyphRun,
-    ShapedTextLine, TextOrientation, VerticalMode,
+    BackendShapeRequest, OpenTypeFeature, ShapedGlyphRun, TextOrientation, VerticalMode,
 };
 use crate::text::{TextRange, TextStyle};
+
+mod memory;
+
+use memory::estimated_entry_bytes;
 
 pub(crate) const DEFAULT_SHAPED_RUN_CACHE_CAPACITY: usize = 1024;
 pub(crate) const DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
@@ -30,7 +33,9 @@ pub(crate) struct ShapedRunCacheKey {
     pub(crate) base_direction: TextDirection,
     pub(crate) orientation: TextOrientation,
     pub(crate) vertical_mode: VerticalMode,
+    include_kerning: bool,
     pub(crate) features_hash: u64,
+    features: Arc<[OpenTypeFeature]>,
     pub(crate) language: Option<String>,
     pub(crate) font_database_generation: u64,
 }
@@ -47,7 +52,9 @@ pub(crate) struct ShapedRunCacheLookupKey<'a> {
     base_direction: TextDirection,
     orientation: TextOrientation,
     vertical_mode: VerticalMode,
+    include_kerning: bool,
     features_hash: u64,
+    features: &'a [OpenTypeFeature],
     language: Option<&'a str>,
     font_database_generation: u64,
 }
@@ -69,7 +76,9 @@ impl ShapedRunCacheKey {
             base_direction: lookup.base_direction,
             orientation: lookup.orientation,
             vertical_mode: lookup.vertical_mode,
+            include_kerning: lookup.include_kerning,
             features_hash: lookup.features_hash,
+            features: Arc::from(lookup.features),
             language: owned_normalized_language_tag(lookup.language),
             font_database_generation: lookup.font_database_generation,
         }
@@ -87,7 +96,9 @@ impl ShapedRunCacheKey {
             base_direction: self.base_direction,
             orientation: self.orientation,
             vertical_mode: self.vertical_mode,
+            include_kerning: self.include_kerning,
             features_hash: self.features_hash,
+            features: self.features.as_ref(),
             language: self.language.as_deref(),
             font_database_generation: self.font_database_generation,
         }
@@ -104,14 +115,21 @@ impl ShapedRunCacheKey {
             && self.base_direction == lookup.base_direction
             && self.orientation == lookup.orientation
             && self.vertical_mode == lookup.vertical_mode
+            && self.include_kerning == lookup.include_kerning
             && self.features_hash == lookup.features_hash
+            && self.features.as_ref() == lookup.features
             && normalized_language_matches(self.language.as_deref(), lookup.language)
             && self.font_database_generation == lookup.font_database_generation
+    }
+
+    pub(crate) const fn font_database_generation(&self) -> u64 {
+        self.font_database_generation
     }
 }
 
 impl<'a> ShapedRunCacheLookupKey<'a> {
     pub(crate) fn from_request(request: &BackendShapeRequest<'a>) -> Self {
+        debug_assert!(request.features_are_normalized());
         let font_size = request.style.font_size.max(1.0);
         let line_height = request.style.line_height.max(font_size);
 
@@ -126,7 +144,9 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
             base_direction: request.base_direction,
             orientation: request.orientation,
             vertical_mode: request.vertical_mode,
+            include_kerning: request.include_kerning,
             features_hash: shaping_features_hash(request),
+            features: request.features(),
             language: cache_language_tag(request.language),
             font_database_generation: shared_font_database_generation(),
         }
@@ -134,6 +154,10 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
 
     pub(crate) fn exact_fingerprint(&self) -> u64 {
         self.full_fingerprint()
+    }
+
+    pub(crate) const fn font_database_generation(&self) -> u64 {
+        self.font_database_generation
     }
 
     fn full_fingerprint(&self) -> u64 {
@@ -149,6 +173,7 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         std::mem::discriminant(&self.base_direction).hash(&mut hasher);
         std::mem::discriminant(&self.orientation).hash(&mut hasher);
         std::mem::discriminant(&self.vertical_mode).hash(&mut hasher);
+        self.include_kerning.hash(&mut hasher);
         self.features_hash.hash(&mut hasher);
         normalized_language_hash(self.language).hash(&mut hasher);
         self.font_database_generation.hash(&mut hasher);
@@ -167,6 +192,7 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         self.tab_size_bits.hash(&mut hasher);
         std::mem::discriminant(&self.orientation).hash(&mut hasher);
         std::mem::discriminant(&self.vertical_mode).hash(&mut hasher);
+        self.include_kerning.hash(&mut hasher);
         self.features_hash.hash(&mut hasher);
         normalized_language_hash(self.language).hash(&mut hasher);
         self.font_database_generation.hash(&mut hasher);
@@ -177,6 +203,11 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         self.font_family
             .map_or(0, str::len)
             .saturating_add(normalized_language_len(self.language))
+            .saturating_add(
+                self.features
+                    .len()
+                    .saturating_mul(size_of::<OpenTypeFeature>()),
+            )
     }
 }
 
@@ -193,7 +224,9 @@ impl Hash for ShapedRunCacheKey {
         std::mem::discriminant(&self.base_direction).hash(state);
         std::mem::discriminant(&self.orientation).hash(state);
         std::mem::discriminant(&self.vertical_mode).hash(state);
+        self.include_kerning.hash(state);
         self.features_hash.hash(state);
+        self.features.hash(state);
         self.language.hash(state);
         self.font_database_generation.hash(state);
     }
@@ -223,7 +256,6 @@ pub(crate) struct ShapedRunCacheReport {
 #[derive(Clone, Debug, PartialEq)]
 struct ShapedRunCacheEntry {
     key: ShapedRunCacheKey,
-    text: Arc<str>,
     run: Arc<ShapedGlyphRun>,
     estimated_bytes: usize,
 }
@@ -238,7 +270,9 @@ impl IndexedTextCacheEntry<ShapedRunCacheKey> for ShapedRunCacheEntry {
 pub(crate) struct ShapedRunCache {
     index: IndexedTextCache<ShapedRunCacheKey, ShapedRunCacheEntry>,
     lookup_buckets: HashMap<u64, Vec<TextCacheSlot>>,
+    lookup_bucket_positions: HashMap<TextCacheSlot, usize>,
     direction_alias_buckets: HashMap<u64, Vec<TextCacheSlot>>,
+    direction_alias_bucket_positions: HashMap<TextCacheSlot, usize>,
     capacity: usize,
     max_bytes: usize,
     estimated_bytes: usize,
@@ -267,7 +301,9 @@ impl ShapedRunCache {
         let mut cache = Self {
             index: IndexedTextCache::new(),
             lookup_buckets: HashMap::new(),
+            lookup_bucket_positions: HashMap::new(),
             direction_alias_buckets: HashMap::new(),
+            direction_alias_bucket_positions: HashMap::new(),
             capacity,
             max_bytes,
             estimated_bytes: 0,
@@ -301,7 +337,9 @@ impl ShapedRunCache {
         self.frame_report.clear_count = self.frame_report.clear_count.saturating_add(1);
         self.index.clear();
         self.lookup_buckets.clear();
+        self.lookup_bucket_positions.clear();
         self.direction_alias_buckets.clear();
+        self.direction_alias_bucket_positions.clear();
         self.estimated_bytes = 0;
         self.refresh_report_size();
     }
@@ -327,7 +365,7 @@ impl ShapedRunCache {
 
     pub(crate) fn contains_exact(&self, key: &ShapedRunCacheKey, text: &str) -> bool {
         self.index
-            .find_slot(key, |entry| entry.text.as_ref() == text)
+            .find_slot(key, |entry| entry.run.source_text.as_ref() == text)
             .slot
             .is_some()
     }
@@ -354,7 +392,7 @@ impl ShapedRunCache {
                     if !entry.key.matches_lookup(lookup) {
                         return false;
                     }
-                    if entry.text.as_ref() == text {
+                    if entry.run.source_text.as_ref() == text {
                         true
                     } else {
                         collision_seen = true;
@@ -375,7 +413,7 @@ impl ShapedRunCache {
                         entry
                             .key
                             .can_reuse_resolved_direction_for_lookup(lookup, &entry.run)
-                            && entry.text.as_ref() == text
+                            && entry.run.source_text.as_ref() == text
                     })
                 })
                 .unwrap_or_default();
@@ -412,14 +450,14 @@ impl ShapedRunCache {
     pub(crate) fn insert(
         &mut self,
         key: ShapedRunCacheKey,
-        text: impl Into<Arc<str>>,
         run: ShapedGlyphRun,
     ) -> Arc<ShapedGlyphRun> {
-        let text = text.into();
         let run = Arc::new(run);
-        let estimated_bytes = estimated_entry_bytes(text.as_ref(), run.as_ref());
+        let estimated_bytes = estimated_entry_bytes(&key, run.as_ref());
 
-        let lookup = self.index.find_slot(&key, |entry| entry.text == text);
+        let lookup = self
+            .index
+            .find_slot(&key, |entry| entry.run.source_text == run.source_text);
         if let Some(slot) = lookup.slot {
             let updated = if let Some(entry) = self.index.entry_mut(slot) {
                 self.estimated_bytes = self
@@ -446,18 +484,21 @@ impl ShapedRunCache {
         let alias_fingerprint = lookup.direction_alias_fingerprint();
         let slot = self.index.insert(ShapedRunCacheEntry {
             key,
-            text,
             run: Arc::clone(&run),
             estimated_bytes,
         });
-        self.lookup_buckets
-            .entry(lookup_fingerprint)
-            .or_default()
-            .push(slot);
-        self.direction_alias_buckets
-            .entry(alias_fingerprint)
-            .or_default()
-            .push(slot);
+        Self::insert_bucket_slot(
+            &mut self.lookup_buckets,
+            &mut self.lookup_bucket_positions,
+            lookup_fingerprint,
+            slot,
+        );
+        Self::insert_bucket_slot(
+            &mut self.direction_alias_buckets,
+            &mut self.direction_alias_bucket_positions,
+            alias_fingerprint,
+            slot,
+        );
         self.frame_report.insert_count = self.frame_report.insert_count.saturating_add(1);
         self.trim_to_limits();
         run
@@ -472,7 +513,7 @@ impl ShapedRunCache {
         if let Some(run) = self.get(&key, text) {
             return run;
         }
-        self.insert(key, text, shape())
+        self.insert(key, shape())
     }
 
     fn trim_to_limits(&mut self) {
@@ -509,9 +550,7 @@ impl ShapedRunCache {
 
     fn remove_lookup_slot(&mut self, fingerprint: u64, slot: TextCacheSlot) {
         let remove_bucket = if let Some(candidates) = self.lookup_buckets.get_mut(&fingerprint) {
-            if let Some(index) = candidates.iter().position(|candidate| *candidate == slot) {
-                candidates.swap_remove(index);
-            }
+            Self::remove_bucket_slot(candidates, &mut self.lookup_bucket_positions, slot);
             candidates.is_empty()
         } else {
             false
@@ -522,17 +561,43 @@ impl ShapedRunCache {
     }
 
     fn remove_direction_alias_slot(&mut self, fingerprint: u64, slot: TextCacheSlot) {
-        let remove_bucket =
-            if let Some(candidates) = self.direction_alias_buckets.get_mut(&fingerprint) {
-                if let Some(index) = candidates.iter().position(|candidate| *candidate == slot) {
-                    candidates.swap_remove(index);
-                }
-                candidates.is_empty()
-            } else {
-                false
-            };
+        let remove_bucket = if let Some(candidates) =
+            self.direction_alias_buckets.get_mut(&fingerprint)
+        {
+            Self::remove_bucket_slot(candidates, &mut self.direction_alias_bucket_positions, slot);
+            candidates.is_empty()
+        } else {
+            false
+        };
         if remove_bucket {
             self.direction_alias_buckets.remove(&fingerprint);
+        }
+    }
+
+    fn insert_bucket_slot(
+        buckets: &mut HashMap<u64, Vec<TextCacheSlot>>,
+        positions: &mut HashMap<TextCacheSlot, usize>,
+        fingerprint: u64,
+        slot: TextCacheSlot,
+    ) {
+        let candidates = buckets.entry(fingerprint).or_default();
+        let position = candidates.len();
+        candidates.push(slot);
+        positions.insert(slot, position);
+    }
+
+    fn remove_bucket_slot(
+        candidates: &mut Vec<TextCacheSlot>,
+        positions: &mut HashMap<TextCacheSlot, usize>,
+        slot: TextCacheSlot,
+    ) {
+        let Some(position) = positions.remove(&slot) else {
+            return;
+        };
+        let removed = candidates.swap_remove(position);
+        debug_assert_eq!(removed, slot);
+        if let Some(&moved_slot) = candidates.get(position) {
+            positions.insert(moved_slot, position);
         }
     }
 
@@ -568,7 +633,9 @@ impl ShapedRunCacheKey {
             && self.tab_size_bits == lookup.tab_size_bits
             && self.orientation == lookup.orientation
             && self.vertical_mode == lookup.vertical_mode
+            && self.include_kerning == lookup.include_kerning
             && self.features_hash == lookup.features_hash
+            && self.features.as_ref() == lookup.features
             && normalized_language_matches(self.language.as_deref(), lookup.language)
             && self.font_database_generation == lookup.font_database_generation
     }
@@ -599,7 +666,7 @@ fn shaping_features_hash(request: &BackendShapeRequest<'_>) -> u64 {
     let mut hasher = DefaultHasher::new();
     b"shaped-run-features-v2".hash(&mut hasher);
     request.include_kerning.hash(&mut hasher);
-    normalized_open_type_features(request.features).hash(&mut hasher);
+    request.features().hash(&mut hasher);
     hasher.finish()
 }
 
@@ -676,152 +743,5 @@ fn normalized_f32_bits(value: f32) -> u32 {
     }
 }
 
-fn estimated_entry_bytes(text: &str, run: &ShapedGlyphRun) -> usize {
-    let line_bytes = run.lines.iter().fold(0_usize, |total, line| {
-        total
-            .saturating_add(size_of::<ShapedTextLine>())
-            .saturating_add(line.text.len())
-            .saturating_add(line.glyphs.len().saturating_mul(size_of::<ShapedGlyph>()))
-    });
-
-    size_of::<ShapedRunCacheEntry>()
-        .saturating_add(size_of::<ShapedGlyphRun>())
-        .saturating_add(text.len())
-        .saturating_add(run.source_text.len())
-        .saturating_add(line_bytes)
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn shaped_run_cache_reuses_single_paragraph_auto_result_for_resolved_ltr() {
-        let text = "editor base.zui";
-        let style = TextStyle::default();
-        let source_range = TextRange {
-            start: 0,
-            end: text.len(),
-        };
-        let auto = BackendShapeRequest::horizontal(text, &style, TextDirection::Auto, source_range);
-        let explicit =
-            BackendShapeRequest::horizontal(text, &style, TextDirection::LeftToRight, source_range);
-        let auto_key = ShapedRunCacheKey::from_request(&auto);
-        let explicit_key = ShapedRunCacheKey::from_request(&explicit);
-        let mut cache = ShapedRunCache::with_capacity(4);
-
-        assert!(cache.get(&auto_key, text).is_none());
-        cache.insert(
-            auto_key,
-            text,
-            cached_run(&auto, TextDirection::LeftToRight),
-        );
-        assert!(cache.get(&explicit_key, text).is_some());
-        assert_eq!(cache.report().miss_count, 1);
-        assert_eq!(cache.report().hit_count, 1);
-    }
-
-    #[test]
-    fn shaped_run_cache_does_not_alias_multi_paragraph_auto_with_forced_direction() {
-        let style = TextStyle::default();
-        for separator in [
-            '\n', '\r', '\u{001c}', '\u{001d}', '\u{001e}', '\u{0085}', '\u{2029}',
-        ] {
-            let text = format!("abc{separator}\u{645}\u{631}\u{62d}\u{628}\u{627}");
-            let source_range = TextRange {
-                start: 0,
-                end: text.len(),
-            };
-            let auto =
-                BackendShapeRequest::horizontal(&text, &style, TextDirection::Auto, source_range);
-            let explicit = BackendShapeRequest::horizontal(
-                &text,
-                &style,
-                TextDirection::LeftToRight,
-                source_range,
-            );
-            let auto_key = ShapedRunCacheKey::from_request(&auto);
-            let explicit_key = ShapedRunCacheKey::from_request(&explicit);
-            let mut cache = ShapedRunCache::with_capacity(4);
-
-            cache.insert(
-                auto_key,
-                text.as_str(),
-                cached_run(&auto, TextDirection::LeftToRight),
-            );
-            assert!(
-                cache.get(&explicit_key, &text).is_none(),
-                "paragraph separator U+{:04X} must prevent direction aliasing",
-                separator as u32
-            );
-        }
-    }
-
-    #[test]
-    fn shaped_run_cache_preserves_forced_direction_and_vertical_mode_boundaries() {
-        let text = "vertical";
-        let style = TextStyle::default();
-        let source_range = TextRange {
-            start: 0,
-            end: text.len(),
-        };
-        let mixed = BackendShapeRequest::vertical(
-            text,
-            &style,
-            TextDirection::Mixed,
-            source_range,
-            VerticalMode::Upright,
-        );
-        let resolved = BackendShapeRequest::vertical(
-            text,
-            &style,
-            TextDirection::LeftToRight,
-            source_range,
-            VerticalMode::Upright,
-        );
-        let forced_rtl = BackendShapeRequest::vertical(
-            text,
-            &style,
-            TextDirection::RightToLeft,
-            source_range,
-            VerticalMode::Upright,
-        );
-        let different_mode = BackendShapeRequest::vertical(
-            text,
-            &style,
-            TextDirection::LeftToRight,
-            source_range,
-            VerticalMode::Sideways,
-        );
-        let mut cache = ShapedRunCache::with_capacity(4);
-
-        cache.insert(
-            ShapedRunCacheKey::from_request(&mixed),
-            text,
-            cached_run(&mixed, TextDirection::LeftToRight),
-        );
-        assert!(cache
-            .get(&ShapedRunCacheKey::from_request(&resolved), text)
-            .is_some());
-        assert!(cache
-            .get(&ShapedRunCacheKey::from_request(&forced_rtl), text)
-            .is_none());
-        assert!(cache
-            .get(&ShapedRunCacheKey::from_request(&different_mode), text)
-            .is_none());
-    }
-
-    fn cached_run(request: &BackendShapeRequest<'_>, direction: TextDirection) -> ShapedGlyphRun {
-        ShapedGlyphRun {
-            source_text: request.text.to_string(),
-            source_range: request.source_range,
-            direction,
-            orientation: request.orientation,
-            vertical_mode: request.vertical_mode,
-            include_kerning: request.include_kerning,
-            measured_width: 1.0,
-            measured_height: 1.0,
-            lines: Vec::new(),
-        }
-    }
-}
+mod tests;

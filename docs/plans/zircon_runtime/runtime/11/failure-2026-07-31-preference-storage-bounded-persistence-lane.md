@@ -10,17 +10,19 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/11
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/platform/preferences/storage.rs
-  - zircon_runtime/src/core/framework/platform/preferences/backend.rs
   - zircon_runtime/src/core/framework/platform/preferences/mod.rs
   - zircon_runtime/src/core/framework/platform/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io
   - zircon_runtime/src/platform/service_types/manager.rs
   - zircon_runtime/src/platform/service_types/driver.rs
   - zircon_runtime/src/platform/preferences/backend.rs
   - zircon_runtime/src/platform/preferences/persistence
   - zircon_runtime/src/platform/preferences/atomic_file.rs
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
-  - zircon_runtime/src/core/runtime/tasks/pools.rs
-  - zircon_runtime/src/core/runtime/tasks/timer.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/platform_preferences.rs
+  - zircon_runtime/tests/runtime11_preference_backend_authority.rs
+  - examples/woc/native/apps/woc_client/src/preferences/storage.rs
+  - examples/woc/native/apps/woc_client/tests/preference_storage_support.rs
 tests:
   - 'python -B -c "from pathlib import Path; source = Path(''zircon_runtime/src/platform/service_types/manager.rs'').read_text(encoding=''utf-8''); assert ''preference_storage_backend().read('' not in source and ''preference_storage_backend().write('' not in source and ''preference_storage_backend().remove('' not in source and ''preference_storage_backend().flush('' not in source"'
   - python -B -m unittest tools.tests.test_runtime11_preference_persistence_lane_contract -v
@@ -28,6 +30,7 @@ tests:
   - cargo +1.94.1 test -p zircon_runtime --lib platform_preference_storage --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --test runtime11_preference_backend_authority --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --doc --locked --jobs 1
+  - cargo +1.94.1 test --manifest-path examples/woc/native/Cargo.toml -p woc_client --tests --locked --jobs 1 -- --nocapture --test-threads=1
 ---
 
 # Runtime11：偏好存储缺少有界持久化执行通道
@@ -83,14 +86,21 @@ Platform manager 直接实现第一条合同并同步转发第二条合同，使
 
 ## 修复结果与回传
 
-Open state: `runtime11_bounded_persistence_lane_tdd_red_implementation_pending`。Frameworks05 的中立合同、Platform manager/backend 注入与 desktop atomic-file primitive 已存在，Runtime11 persistence lane、typed ticket/fence、背压/合并/诊断及动态矩阵尚未实现；没有 Runtime/WOC managed pass、fixed return 或产品接线通过声明。
+Current state: `resolving_failure`。Runtime11/Platform/WOC hard cut 已实现，静态契约与精确格式门通过；独立 current-source 二次审查、canonical Rust 1.94.1 受管编译、focused tests、doctest、WOC 上行门、Frameworks05 上行门和 coordinator failure return 尚未完成，因此本 artifact 继续保持 `handoff_kind: failure` / `status: open`，不得提前声明 fixed。
 
-2026-07-31 architecture-first TDD evidence:
+2026-08-01 current-source implementation evidence:
 
-- 新增 `tools/tests/test_runtime11_preference_persistence_lane_contract.py`，锁定 Runtime11 folder-backed `bounded_keyed_io` owner、领域中立性、entry/retained-byte 双上限、ticket/fence/terminal/diagnostics、global admission epoch、独立 work/wait/cancel/shutdown 语义，以及 Platform persistence adapter 的 overlay reservation、generation 条件完成、跨 key flush 顺序与 backend-work ownership。
-- shutdown guard 必须复用共享 I/O pool 的 `JobHandle`/tickets 并禁止 `std::thread`、`JoinHandle`、`ThreadPoolBuilder` 或私有 scheduler；Platform 复合 quote 分别暴露 checked `overlay_retained_bytes` 与 `lane_retained_bytes`。
-- hard-cut contract 还要求删除旧 neutral `preferences/backend.rs`，真实路由 host backend/persistence modules，并把 `PreferenceStorageBackend` 类型与 read/write/remove/flush primitive 调用限定在精确 Platform allowlist，防止 driver/helper/局部变量改名旁路。
-- backend primitive 进一步由 public host-route `PreferenceBackendWorkAuthority` 编译期 capability 锁定：外部 fixture 必须能实现 trait，但 authority 只能在 `persistence/work.rs` 的私有 constructor 构造；完整 derive token 集合、限定/非限定 `Clone`/`Copy`/`Default` impl、authority inherent impl 中返回 `Self`/authority/alias 的公开 factory 或 associated const/static，以及全文件返回 authority/传递 alias 的公开 free factory/value 都必须被常驻负向守卫拒绝，且不得误伤同文件其他 work 类型的公开 `-> Self` constructor。外部集成夹具同时锁定“可实现 host SPI”和“authority 只由 persistence worker 签发”的边界；owner 上的 `compile_fail` doctest 由 Rust 编译器证明外部 crate 不能直接构造私有 token。读取 SPI 只返回 stream，worker 统一 max+1 bounded consume；atomic-file `fs::read` 常驻负向守卫与 `CountingRead` 用例证明 oversized persisted value 不会先形成完整 Vec。bounded read 与 capped failure projection 的上限必须进入复合 quote，新增 oversized persisted value/error-detail 行为用例。
-- 同一 contract 要求 consumer-facing `PreferenceStorage` 硬切为 snapshot/mutation-ticket/flush-fence API，neutral framework 不再导出同步 backend SPI，`PlatformManager` 不再接受/引用 backend；同步 primitive 只能存在于新的 host-only `platform::preferences::backend` owner。
-- current source 运行该 contract 为预期 0/6：generic lane 缺失、Platform adapter/authority 缺失、同步 consumer signature 仍存在、manager 仍直达 backend、backend SPI 仍从 neutral framework 公开。这是实现前 RED，不是 acceptance 结果。
-- Runtime source 存在其他有效写入租约；本切片没有越权编辑 task/platform Rust。待协调器提供 disjoint source wakeup 后，从 generic lane 最低层开始实现并逐层转绿。
+- `core::runtime::tasks::bounded_keyed_io` 现在由 lane 持有所有已接纳 work；Fence 在分配 prerequisite snapshot 前先计算精确 retained bytes 并与 caller quote 一起完成有界接纳，容量拒绝不分配 ticket、不推进 global epoch。连续 Fence 只链向最近一个 Fence，再捕获该 Fence 之后的 non-fence obligation，使 256 个排队 Fence 的 prerequisite records 保持 O(N)，而不是重复复制全部历史形成 O(N^2)。Fence 依赖仍使用可释放 pin；后继同 key durable generation 可替代旧失败，而不同 key 的 non-durable obligation 继续使 Fence 失败。
+- work/Fence deadline 通过既有 process `TaskTimer` 独立于饱和 I/O worker 发布 `DeadlineBeforeStart`；work panic 被收敛为 typed `work_panicked` terminal，容量、observer 和 shutdown report 均在终态后释放或可查询。Shutdown 使用 `Condvar` drain，不再 spin，也不依赖 admission owner 后续 activate/drop 才能完成 fence-pinned work。
+- lane 出队与 `mark_started` 现在在同一控制锁临界区内线性化，shutdown 不会再遗漏 active-before-start work；active observer 由最终清理路径恰好通知一次，shutdown complete 同时要求 pump 状态和对应 `JobHandle` 已真实 terminal，因此 terminal observer 尚未返回时 guard 不会提前完成。
+- Platform adapter 用短 submission mutex 线性化 generation、overlay reservation、lane admission、可见 generation 安装、terminal observer 与 activation；pre-start terminal 无需 ticket polling 即投影 `visible_not_durable`。已失败 generation 会阻断每个 Fence，直到同 key retry durable 或调用显式 lossy eviction。
+- `PreferencePersistenceLimits` 对 `max_value_bytes > MAX_PREFERENCE_VALUE_BYTES` typed-reject；lane quote 同时计入 opaque key 与 closure 保留的 `PreferenceKey`。同 key recovery 不重复占用 overlay entry quota，跨 key 容量只能通过明确 eviction 释放。
+- Overlay 对同 key replacement 使用旧 generation 退出后的投影 retained bytes 计费，使默认限制下完整 64 MiB 失败值仍可原 key retry；显式 eviction 只接受已经终止的 `VisibleNotDurable` generation，Pending 和 Durable generation 均不可被移除或与仍在执行的 backend work 脱节。
+- Platform 复合诊断现在包含 lane/overlay generation durability、backend wall、固定为 0 的 caller filesystem wall，以及 atomic backend 的 hash/path、staged-write/commit、fsync wall 与 operation counters；应用在注册 Platform descriptor 时把 host backend 注入其 canonical driver factory，使 driver 从首次构造起已安装 backend，任何模块激活通知或 consumer resolution 都不会观察临时 `Unavailable`。
+- 首次 backend read 仍按最大值 admission，但 completion 会把 overlay quote 收敛到真实 value 长度；空值和 typed failure 收敛为 0 value bytes，不再把最坏 64 MiB 预算永久占用。对应小容量矩阵证明多个小冷读可持续接纳。
+- Atomic-file backend 的 namespace/key hash path 由同一 mutex owner 的 4096-entry bounded FIFO cache 复用，并公开 hit/miss/build/eviction/current-entry 诊断；命中只执行 `HashMap` O(1) lookup，不再扫描或移动 FIFO order，容量满时确定逐出最旧 key，不引入全局静态 map 或无界 retained path。
+- `PreferencePersistenceAdapter` 的 public bypass 已从 platform route 硬切为 crate-private，`PlatformManager::default` 已删除；模块 cleanup 以 250ms 有名预算等待持久化 lane，超时返回 typed `ModuleCleanupTimeout` 并保留 shutdown guard 和 manager/driver 服务，后续 cleanup 可继续 drain，不 detach、不在 adapter Drop 阻塞启动 shutdown。
+- WOC 删除自有同步 `PreferenceStorage` trait 与公开 re-export，stored settings/keybind/gamepad/inventory 直接消费引擎 `PreferenceStorage` snapshot/submission 合同；冷读桥接显式区分 `Pending` 与 `Ready`，stored model 通过 `refresh_from_storage` 接收首次 backend completion，库存读取提供同等的 `try_load_inventory_filter`，不再把启动期 Pending 永久固化为默认。每个 stored model 保留最后一次 `PreferenceMutationSubmission`，库存写直接返回 submission，使 typed durability failure 可由 consumer 观察而不回滚 session-visible overlay。集成测试通过真实 `CoreRuntime -> PlatformDriver -> manager service` 安装 host-memory backend，并用只写 backend、不预热 overlay 的 seed 覆盖 settings/gamepad/keybind/inventory fresh-process 冷启动；测试 backend 为每个 key 提供显式 `Mutex + Condvar` read gate，构造器先被确定性阻塞在 backend read 内，测试断言 Pending/default 后才释放，避免内存 backend 过快完成造成竞态假绿或偶发失败。keybind 另覆盖 scoped miss completion 后才启动 legacy cold read、两次 completion 均不固化中间默认值。backend 后续不可用时 session-visible overlay 不倒退，fresh unavailable storage 才降级默认。
+- Rust 行为矩阵已覆盖 1/1k/100k 接纳、1k same-key storm 与 interleaved-key fairness、64 MiB 失败值 retry、1000ms backend stall、active-before-start shutdown、active observer 单次通知、饱和 worker/Fence deadline、pin release、reverse activation、failed-generation repeated Fence、in-flight failure + durable successor、same-key single-slot recovery、terminal-only eviction、stale read、deadline during in-flight、multiple waiters、panic、shutdown timeout/query/drop、bounded stream、failure detail cap、atomic diagnostics、跨 key Fence 顺序、Fence prerequisite 预算拒绝/epoch 回滚和 256-Fence 线性 retained bytes 上界。
+- Runtime11 静态契约中 6 个非 lock 用例 GREEN；新增的第 7 个用 `tomllib` 结构化解析 nested `Cargo.lock`，当前按 TDD 精确 RED 于旧 `woc_client` dependency list 缺少 `zircon_runtime`，将在 coordinator 受管生成 lock 后转 GREEN。`tools.tests.test_frameworks_05_preference_storage_boundary` 为 7/7 GREEN；direct manager primitive audit、`failed_epochs`/spin-loop negative audit、Rust 1.94.1 scoped rustfmt 和 `git diff --check` 均 GREEN。Cargo 证据只允许由 immutable managed validation receipt 补充。
+- 前一轮只读审查发现的 shutdown 线性化、最大值 retry、terminal-only eviction、行为矩阵、observer/handle drain 和私有 owner import 已逐项前向修复。2026-08-01 首轮扩展二审为 `Critical 0 / Important 2 / Minor 0`：指出 WOC 冷启动只读一次 Pending 且无 refresh，以及 `examples/woc/native/Cargo.lock` 尚未包含新增 `zircon_runtime` 依赖。随后 current-source 复审再指出两个 Important：Fence prerequisite snapshot 未纳入 retained-byte admission 且重复 queued Fence 会形成 O(N^2) 保留，以及内存 backend 过快完成使 cold-read Pending 测试存在竞态。前两项源码问题均已按上述显式 refresh、精确 prerequisite 计费/O(N) Fence 链和 per-key read gate 完成前向修复，当前正对最终源码进行独立二次审查；nested lock 仍禁止手写，必须在二审收敛后由 coordinator 受管 `cargo +1.94.1 generate-lockfile --manifest-path examples/woc/native/Cargo.toml --offline` 生成并纳入精确快照。只有 lock 生成且最终 current-source 审查达到 `Critical 0 / Important 0`，才可提交受管 acceptance 门。

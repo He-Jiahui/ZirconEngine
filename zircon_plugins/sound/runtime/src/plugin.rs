@@ -37,9 +37,6 @@ impl zircon_runtime::plugin::RuntimePlugin for SoundRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = attach_sound_manifest_contributions(self.descriptor.package_manifest());
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(sound_dist_module_manifest());
         manifest.with_distribution(PluginDistributionManifest {
             forms: vec!["dist".to_string()],

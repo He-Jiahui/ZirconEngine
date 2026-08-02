@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct NotificationCenterMetrics
@@ -30,8 +30,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Not
     pub message_top: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn notification_center_metrics(
-) -> NotificationCenterMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn notification_center_metrics()
+-> NotificationCenterMetrics {
     notification_center_metrics_from_host(current_host_metrics())
 }
 

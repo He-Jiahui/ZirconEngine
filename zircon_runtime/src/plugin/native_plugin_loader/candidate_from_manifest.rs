@@ -16,16 +16,9 @@ pub(super) type NativePluginManifestCandidateResult<T> =
 
 #[derive(Debug)]
 pub(super) enum NativePluginManifestCandidateError {
-    ReadManifest {
-        manifest_path: PathBuf,
-        source: io::Error,
-    },
     ParseManifest {
         manifest_path: PathBuf,
         source: toml::de::Error,
-    },
-    ManifestChangedDuringRead {
-        manifest_path: PathBuf,
     },
     MissingRuntimeOrEditorModule {
         plugin_id: String,
@@ -35,25 +28,12 @@ pub(super) enum NativePluginManifestCandidateError {
 impl std::fmt::Display for NativePluginManifestCandidateError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ReadManifest {
-                manifest_path,
-                source,
-            } => write!(
-                formatter,
-                "failed to read native plugin manifest {}: {source}",
-                manifest_path.display()
-            ),
             Self::ParseManifest {
                 manifest_path,
                 source,
             } => write!(
                 formatter,
                 "failed to parse native plugin manifest {}: {source}",
-                manifest_path.display()
-            ),
-            Self::ManifestChangedDuringRead { manifest_path } => write!(
-                formatter,
-                "native plugin manifest changed while it was read: {}",
                 manifest_path.display()
             ),
             Self::MissingRuntimeOrEditorModule { plugin_id } => write!(
@@ -67,25 +47,10 @@ impl std::fmt::Display for NativePluginManifestCandidateError {
 impl std::error::Error for NativePluginManifestCandidateError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::ReadManifest { source, .. } => Some(source),
             Self::ParseManifest { source, .. } => Some(source),
-            Self::ManifestChangedDuringRead { .. } => None,
             Self::MissingRuntimeOrEditorModule { .. } => None,
         }
     }
-}
-
-#[cfg(test)]
-fn test_candidate_from_manifest_path(
-    manifest_path: PathBuf,
-) -> NativePluginManifestCandidateResult<NativePluginCandidate> {
-    let source = fs::read_to_string(&manifest_path).map_err(|source| {
-        NativePluginManifestCandidateError::ReadManifest {
-            manifest_path: manifest_path.clone(),
-            source,
-        }
-    })?;
-    candidate_from_manifest_source(manifest_path, &source)
 }
 
 pub(super) fn append_candidate_from_manifest_path(
@@ -241,23 +206,6 @@ fn ensure_bounded_read_is_stable(
         "{file_kind} changed while it was read: {}",
         path.display()
     )))
-}
-
-fn ensure_manifest_read_is_stable(
-    manifest_path: &Path,
-    expected_bytes: u64,
-    buffer_len: usize,
-    filled: usize,
-    current_bytes: u64,
-) -> NativePluginManifestCandidateResult<()> {
-    if filled == buffer_len && current_bytes == expected_bytes {
-        return Ok(());
-    }
-    Err(
-        NativePluginManifestCandidateError::ManifestChangedDuringRead {
-            manifest_path: manifest_path.to_path_buf(),
-        },
-    )
 }
 
 fn candidate_from_manifest_source(
@@ -424,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn candidate_from_manifest_path_reports_read_error_with_typed_source() {
+    fn bounded_manifest_read_error_preserves_file_context() {
         let missing_manifest = std::env::temp_dir().join(format!(
             "zircon-missing-native-plugin-manifest-{}-{}.toml",
             std::process::id(),
@@ -433,39 +381,47 @@ mod tests {
                 .expect("system time should be after unix epoch")
                 .as_nanos()
         ));
-        let error = test_candidate_from_manifest_path(missing_manifest.clone())
-            .expect_err("missing manifest should report typed candidate error");
+        let error = read_error(
+            "native plugin manifest",
+            &missing_manifest,
+            io::Error::new(io::ErrorKind::NotFound, "manifest unavailable"),
+        );
 
-        match error {
-            NativePluginManifestCandidateError::ReadManifest { manifest_path, .. } => {
-                assert_eq!(manifest_path, missing_manifest);
-            }
-            NativePluginManifestCandidateError::ParseManifest { .. }
-            | NativePluginManifestCandidateError::ManifestChangedDuringRead { .. }
-            | NativePluginManifestCandidateError::MissingRuntimeOrEditorModule { .. } => {
-                panic!("missing manifest should fail while reading manifest")
-            }
-        }
+        assert!(matches!(
+            error,
+            NativePluginDiscoveryRefreshError::Collector { ref message }
+                if message.contains("native plugin manifest")
+                    && message.contains(&missing_manifest.display().to_string())
+                    && message.contains("manifest unavailable")
+        ));
     }
 
     #[test]
-    fn manifest_stability_check_rejects_short_or_changed_handle_reads() {
+    fn production_bounded_read_stability_check_rejects_short_or_changed_handle_reads() {
         let manifest_path = PathBuf::from("plugins/weather/plugin.toml");
 
-        assert!(ensure_manifest_read_is_stable(&manifest_path, 12, 12, 12, 12).is_ok());
+        assert!(ensure_bounded_read_is_stable(
+            "native plugin manifest",
+            &manifest_path,
+            12,
+            12,
+            12,
+            12
+        )
+        .is_ok());
         for (filled, current_bytes) in [(11, 12), (12, 13), (11, 13)] {
-            assert!(matches!(
-                ensure_manifest_read_is_stable(
-                    &manifest_path,
-                    12,
-                    12,
-                    filled,
-                    current_bytes
-                ),
-                Err(NativePluginManifestCandidateError::ManifestChangedDuringRead {
-                    manifest_path: changed_path,
-                }) if changed_path == manifest_path
-            ));
+            let error = ensure_bounded_read_is_stable(
+                "native plugin manifest",
+                &manifest_path,
+                12,
+                12,
+                filled,
+                current_bytes,
+            )
+            .expect_err("changed handle length must be rejected");
+            assert!(error
+                .to_string()
+                .contains("native plugin manifest changed while it was read"));
         }
     }
 

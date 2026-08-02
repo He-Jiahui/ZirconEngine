@@ -271,7 +271,7 @@ tests:
   - npm run typecheck
   - npm run build
   - npm run tauri:build
-  - npm run tauri:dev -- --no-watch --no-dev-server-wait --config target/hub-visual-check/tauri-dev/tauri-dev-override.json
+  - npm run tauri:dev -- --no-watch --no-dev-server-wait
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1 -OutputDir target/hub-visual-check/tauri-project-pages-full-matrix -CapturePendingDelete -CaptureBrowserMenus
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-visual-state-matrix.ps1
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1

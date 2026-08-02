@@ -1,9 +1,10 @@
 use crate::capability::{
-    HYBRID_GI_ADVANCED_RENDER_CAPABILITY, HYBRID_GI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    HYBRID_GI_ADVANCED_RENDER_CAPABILITY, HYBRID_GI_DECLARATION, HYBRID_GI_RUNTIME_CAPABILITY,
+    RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
 };
 use crate::{
     hybrid_gi_runtime_provider_registration, module_descriptor, render_feature_descriptor,
-    render_pass_executor_registrations, runtime_prepare_collector_registration, PLUGIN_ID,
+    render_pass_executor_registrations, runtime_prepare_collector_registration,
 };
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
@@ -44,9 +45,6 @@ impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("hybrid_gi.dist", HYBRID_GI_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -82,22 +80,10 @@ impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Hybrid GI",
-        zircon_runtime::builtin::RuntimePluginId::HybridGi,
-        "zircon_plugin_hybrid_gi_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("rendering")
-    .with_target_modes([
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
-    ])
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
-    .with_capability(HYBRID_GI_RUNTIME_CAPABILITY)
-    .with_capability(HYBRID_GI_ADVANCED_RENDER_CAPABILITY)
-    .build()
+    HYBRID_GI_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(HybridGiRuntimePlugin);

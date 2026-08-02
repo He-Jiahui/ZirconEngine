@@ -36,10 +36,6 @@ def _current_doc_sections(repo_root: Path) -> dict[str, str]:
         "export tooling docs": (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8"),
-        "active session notes": (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8"),
     }
 
 
@@ -71,11 +67,6 @@ PLUGIN_BUILD_DOC_STATUS_CASES = [
                 "Plugin build Cargo command owner",
                 "Cargo command construction/execution semantics",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_plugin_build_command_owner_split",
-                "plugin_build_command.py",
-                "Plugin build Cargo command owner",
-            ],
         },
     },
     {
@@ -105,11 +96,6 @@ PLUGIN_BUILD_DOC_STATUS_CASES = [
                 "Plugin build preflight owner",
                 "distribution scalar validation and signing option normalization",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_plugin_build_preflight_owner_split",
-                "plugin_build_preflight.py",
-                "Plugin build preflight owner",
-            ],
         },
     },
 ]
@@ -125,10 +111,6 @@ class PluginDocsCurrentStatusPluginBuildOwnerSplitsTests(unittest.TestCase):
         export_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         sections = {
             "standalone current contract": _section(
@@ -140,11 +122,6 @@ class PluginDocsCurrentStatusPluginBuildOwnerSplitsTests(unittest.TestCase):
                 export_text,
                 "Plugin build signature/hash sidecar assembly is owned",
                 "The independent plugin structure audit applies",
-            ),
-            "active session build owner notes": _section(
-                session_text,
-                "- `plugin_build_signature.py` now owns",
-                "- `tools/zircon_build.py` now treats",
             ),
         }
 
@@ -168,10 +145,6 @@ class PluginDocsCurrentStatusPluginBuildOwnerSplitsTests(unittest.TestCase):
             "export plugin build docs": [
                 "`plugin_build_package.py`",
                 "`plugin_build.py` build orchestration owner",
-            ],
-            "active session build owner notes": [
-                "`plugin_build_package.py` consumes the signature owner",
-                "`plugin_build_package.py` consumes `materialize_plugin_asset_pack(...)`",
             ],
         }
         self._collect_missing_required_phrases(

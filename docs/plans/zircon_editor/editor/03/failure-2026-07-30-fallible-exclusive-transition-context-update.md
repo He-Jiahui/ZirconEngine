@@ -4,7 +4,6 @@ status: open
 created_at: 2026-07-30
 summary_slug: fallible-exclusive-transition-context-update
 origin_plan: docs/plans/zircon_editor/editor/04-pie-and-simulation.md
-origin_workflow_node: M2.4 authoring facade hard cut
 fixing_plan: docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
 origin_child_dir: docs/plans/zircon_editor/editor/04
 fixing_child_dir: docs/plans/zircon_editor/editor/03

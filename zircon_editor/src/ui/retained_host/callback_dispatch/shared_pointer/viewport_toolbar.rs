@@ -8,8 +8,8 @@ use crate::ui::retained_host::{
 };
 
 use super::super::{
-    dispatch_builtin_viewport_toolbar_control, dispatch_viewport_toolbar_pointer_route,
-    BuiltinViewportToolbarTemplateBridge,
+    BuiltinViewportToolbarTemplateBridge, dispatch_builtin_viewport_toolbar_control,
+    dispatch_viewport_toolbar_pointer_route,
 };
 
 #[derive(Debug, Clone, PartialEq)]

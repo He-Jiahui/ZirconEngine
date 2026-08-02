@@ -14,6 +14,7 @@ pub(in super::super) struct ProjectedTextLayout {
     pub(in super::super) layout_second_cell_offset_x: f32,
     pub(in super::super) layout_third_cell_offset_x: f32,
     pub(in super::super) layout_fourth_cell_offset_x: f32,
+    pub(in super::super) icon_placement: String,
     pub(in super::super) selected_segment_border_width: Option<f64>,
     pub(in super::super) selected_segment_underline_height: f32,
     pub(in super::super) selected_segment_underline_color: Color,

@@ -8,7 +8,7 @@ use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::template_node_conversion::to_host_contract_template_node;
-use super::inspector_fields::{inspector_field_nodes, InspectorVisualFields};
+use super::inspector_fields::{InspectorVisualFields, inspector_field_nodes};
 use super::pane_component_projection::host_template_node;
 use super::pane_template_runtime;
 use super::pane_value_conversion::{value_as_bool, value_as_string};
@@ -129,9 +129,9 @@ fn inspector_template_projection(
             .map(|component| InspectorPluginComponentViewData {
                 component_id: component.component_id.clone(),
                 display_name: component.display_name.clone(),
-                drawer_available: component.drawer_available,
-                drawer_ui_document: component.drawer_ui_document.clone(),
-                drawer_template_id: component.drawer_template_id.clone(),
+                customization_available: component.customization_available,
+                customization_ui_document: component.customization_ui_document.clone(),
+                customization_template_id: component.customization_template_id.clone(),
                 diagnostic: component.diagnostic.clone(),
                 properties: component
                     .properties

@@ -1,3 +1,4 @@
+mod cache;
 mod entry;
 mod geometry;
 mod key;

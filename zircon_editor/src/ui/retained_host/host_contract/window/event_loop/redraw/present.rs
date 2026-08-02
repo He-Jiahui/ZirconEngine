@@ -1,5 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::{write_error, write_log};
+use zircon_runtime::diagnostic_log::write_log;
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::profiling_artifacts::export_present_artifacts;
@@ -35,9 +35,11 @@ pub(super) fn present_redraw(
                 event_loop_state
                     .host
                     .record_first_presented_frame_capture_error(&error);
-                write_error(
+                event_loop_state.host.report_fatal_failure(
                     "editor_host_window",
+                    "first_presented_frame_capture",
                     format!("editor first-frame capture failed: {error}"),
+                    "choose a writable PNG capture path and retry zircon_editor",
                 );
                 event_loop.exit();
                 return;
@@ -48,9 +50,15 @@ pub(super) fn present_redraw(
             );
         }
         Err(error) => {
-            write_error(
+            let requested = event_loop_state
+                .presenter_backend
+                .map(|backend| format!("presenter_backend={}", backend.label()))
+                .unwrap_or_else(|| "presenter_backend=<unknown>".to_owned());
+            event_loop_state.host.report_fatal_failure(
                 "editor_host_window",
+                requested,
                 format!("presenter present failed: {error}"),
+                "verify the graphics adapter and window surface, then restart zircon_editor",
             );
             event_loop.exit();
         }

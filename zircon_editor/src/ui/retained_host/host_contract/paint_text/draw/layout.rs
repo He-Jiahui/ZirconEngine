@@ -7,9 +7,9 @@ use zircon_runtime::{
 use zircon_runtime_interface::ui::surface::{UiTextOverflow, UiTextRunPaintStyle, UiTextWrap};
 
 use super::super::super::data::FrameRect;
-use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
+use super::super::super::paint_theme::{HostTextSmoothing, current_host_text_preferences};
 use super::super::font::{
-    font_face_for_paint_style, font_for_face, runtime_text_style_for_face, HostTextFontFace,
+    HostTextFontFace, font_face_for_paint_style, font_for_face, runtime_text_style_for_face,
 };
 use super::metrics::runtime_text_layout_frame;
 use super::placement::{

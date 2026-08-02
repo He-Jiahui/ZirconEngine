@@ -189,7 +189,7 @@ gltf importer 样板、dev-only 文件监视、计划 02 生命周期完整勾�
 ## 6. 状态与产出记录
 
 - failure（最高优先，resolving）：
-  [`runtime12 native entry-report fixture drift`](../runtime/12/failure-2026-07-18-frameworks04-native-plugin-entry-report-fixture-drift.md)
+  [`runtime12 native entry-report fixture drift`](04/failure-2026-07-18-frameworks04-native-plugin-entry-report-fixture-drift.md)
   的 E0063 consumer 修复已在 current source；fresh source-valid managed compile 尚未返回，不能标 fixed。
 - failure（最高优先，resolving）：
   [`native discovery metered collector contract`](04/failure-2026-07-29-native-discovery-metered-collector-contract.md)

@@ -19,16 +19,14 @@ pub(crate) struct AssetThumbnailGridMetrics {
 
 impl AssetThumbnailGridMetrics {
     pub(crate) fn new(viewport_width: f32, item_count: usize) -> Self {
-        if item_count == 0 {
-            return Self {
-                columns: 0,
-                card_width: 0.0,
-                card_height: 0.0,
-                item_count,
-            };
+        if item_count == 0 || !viewport_width.is_finite() {
+            return Self::empty(item_count);
         }
 
         let inner_width = (viewport_width - GRID_PADDING * 2.0).max(0.0);
+        if inner_width < CARD_MIN_WIDTH {
+            return Self::empty(item_count);
+        }
         let columns = (((inner_width + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP))
             .floor()
             .max(1.0) as usize)
@@ -43,6 +41,15 @@ impl AssetThumbnailGridMetrics {
             columns,
             card_width,
             card_height,
+            item_count,
+        }
+    }
+
+    fn empty(item_count: usize) -> Self {
+        Self {
+            columns: 0,
+            card_width: 0.0,
+            card_height: 0.0,
             item_count,
         }
     }
@@ -91,5 +98,33 @@ mod tests {
         assert!(second.x > 140.0);
         assert_eq!(fourth.x, 8.0);
         assert!(fourth.y > 150.0);
+    }
+
+    #[test]
+    fn grid_omits_cards_when_the_viewport_cannot_fit_the_minimum_card_width() {
+        let minimum_viewport_width = GRID_PADDING * 2.0 + CARD_MIN_WIDTH;
+        let too_narrow = AssetThumbnailGridMetrics::new(minimum_viewport_width - 0.1, 12);
+        let exact_fit = AssetThumbnailGridMetrics::new(minimum_viewport_width, 12);
+
+        assert_eq!(too_narrow.columns(), 0);
+        assert!(too_narrow.item_frame(0).is_none());
+        assert_eq!(too_narrow.content_extent(), 0.0);
+
+        assert_eq!(exact_fit.columns(), 1);
+        assert_eq!(
+            exact_fit.item_frame(0).expect("minimum-width card").width,
+            CARD_MIN_WIDTH
+        );
+    }
+
+    #[test]
+    fn grid_rejects_non_finite_or_collapsed_viewports() {
+        for viewport_width in [0.0, -1.0, f32::NAN, f32::INFINITY] {
+            let metrics = AssetThumbnailGridMetrics::new(viewport_width, 1);
+
+            assert_eq!(metrics.columns(), 0);
+            assert!(metrics.item_frame(0).is_none());
+            assert_eq!(metrics.content_extent(), 0.0);
+        }
     }
 }

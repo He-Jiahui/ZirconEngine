@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::asset::AssetTypeRegistry;
-use crate::core::editor_extension::EditorExtensionRegistration;
+use crate::core::extension::{ContributionStore, ContributionTicket};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::reflection::EditorTransientUiState;
@@ -17,19 +17,36 @@ pub(crate) struct WorkbenchShellStateData {
     pub(crate) manager: Arc<EditorManager>,
     pub(crate) transient: EditorTransientUiState,
     pub(crate) control_service: EditorUiControlService,
-    pub(crate) editor_extensions: Vec<EditorExtensionRegistration>,
-    pub(crate) editor_template_generation: u64,
+    pub(crate) contributions: ContributionStore,
+    pub(crate) contribution_owners: Vec<OwnedContribution>,
     pub(crate) asset_type_registry_cache: AssetTypeRegistryGenerationCache,
 }
 
 impl WorkbenchShellStateData {
-    pub(crate) fn template_contributions_changed(&mut self) {
-        self.editor_template_generation = self.editor_template_generation.saturating_add(1);
+    pub(crate) fn contributions_changed(&mut self) {
+        self.asset_type_registry_cache.contributions_changed();
+    }
+}
+
+pub(crate) struct OwnedContribution {
+    owner_id: String,
+    ticket: ContributionTicket,
+}
+
+impl OwnedContribution {
+    pub(crate) fn new(owner_id: impl Into<String>, ticket: ContributionTicket) -> Self {
+        Self {
+            owner_id: owner_id.into(),
+            ticket,
+        }
     }
 
-    pub(crate) fn extension_registered(&mut self) {
-        self.template_contributions_changed();
-        self.asset_type_registry_cache.extension_registered();
+    pub(crate) fn owner_id(&self) -> &str {
+        &self.owner_id
+    }
+
+    pub(crate) fn ticket(&self) -> ContributionTicket {
+        self.ticket
     }
 }
 
@@ -48,7 +65,7 @@ struct CachedAssetTypeRegistry {
 }
 
 impl AssetTypeRegistryGenerationCache {
-    pub(crate) fn extension_registered(&mut self) {
+    pub(crate) fn contributions_changed(&mut self) {
         self.extension_generation = self.extension_generation.saturating_add(1);
         self.cached = None;
     }
@@ -93,8 +110,8 @@ impl WorkbenchShellState {
                 manager,
                 transient: EditorTransientUiState::default(),
                 control_service: EditorUiControlService::default(),
-                editor_extensions: Vec::new(),
-                editor_template_generation: 0,
+                contributions: ContributionStore::default(),
+                contribution_owners: Vec::new(),
                 asset_type_registry_cache: AssetTypeRegistryGenerationCache::default(),
             }),
         }

@@ -12,7 +12,7 @@ pub(super) fn module_plugins_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Plugin Manager",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::LeftBottom)
+    .with_workbench_slot(WorkbenchSlot::LeftBottomDrawer)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::ModulePlugins,
     ))

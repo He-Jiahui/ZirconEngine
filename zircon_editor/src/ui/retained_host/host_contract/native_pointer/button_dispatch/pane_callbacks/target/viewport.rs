@@ -4,13 +4,13 @@ mod toolbar;
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
-use zircon_runtime_interface::ui::surface::UiPointerButton;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
+use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use self::body::dispatch_viewport_body_target_button;
 use self::toolbar::dispatch_viewport_toolbar_target_button;
-use super::super::super::super::routing::{PanePointerRoute, PanePointerTarget};
 use super::super::super::super::NativePointerButtonState;
+use super::super::super::super::routing::{PanePointerRoute, PanePointerTarget};
 
 pub(super) fn dispatch_viewport_pane_target_button(
     pane_host: &PaneSurfaceHostContext<'_>,

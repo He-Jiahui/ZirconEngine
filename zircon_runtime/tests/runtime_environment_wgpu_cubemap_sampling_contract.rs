@@ -1,4 +1,10 @@
-const ENVIRONMENT_SHADER: &str = include_str!("../src/graphics/shader/wgsl/zr_environment.wgsl");
+const ENVIRONMENT_SHADER: &str = concat!(
+    include_str!("../src/graphics/shader/wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_environment_generic_api.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_environment.wgsl"),
+);
 const SKYBOX_SHADER: &str =
     include_str!("../src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl");
 const REALTIME_CAPTURE_SHADER: &str = include_str!(
@@ -6,6 +12,14 @@ const REALTIME_CAPTURE_SHADER: &str = include_str!(
 );
 const SKYBOX_SETTINGS_SOURCE: &str =
     include_str!("../src/core/framework/render/environment/skybox.rs");
+
+fn environment_pbr_composition_source() -> &'static str {
+    ENVIRONMENT_SHADER
+        .split("fn zr_environment_pbr_components_from_reflection(")
+        .nth(1)
+        .and_then(|source| source.split("fn zr_environment_pbr_components(").next())
+        .expect("environment shader should retain shared PBR composition")
+}
 
 fn function_body<'a>(source: &'a str, signature: &str) -> &'a str {
     let start = source
@@ -161,7 +175,11 @@ fn runtime_environment_source_cubemap_reflections_use_pmrem_before_procedural_fa
     let reflection = ENVIRONMENT_SHADER
         .split("fn zr_environment_sky_reflection_color(")
         .nth(1)
-        .and_then(|source| source.split("fn zr_environment_planar_reflection(").next())
+        .and_then(|source| {
+            source
+                .split("fn zr_environment_diffuse_color_normalized(")
+                .next()
+        })
         .expect("environment shader should retain the sky-reflection owner");
 
     for expected in [
@@ -216,7 +234,7 @@ fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
         .nth(1)
         .and_then(|source| {
             source
-                .split("fn zr_environment_procedural_sky_color(")
+                .split("fn zr_environment_sky_reflection_color(")
                 .next()
         })
         .expect("environment shader should retain the normalized procedural-sky owner");
@@ -239,7 +257,11 @@ fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
     let diffuse = ENVIRONMENT_SHADER
         .split("fn zr_environment_diffuse_color_normalized(")
         .nth(1)
-        .and_then(|source| source.split("fn zr_environment_diffuse_color(").next())
+        .and_then(|source| {
+            source
+                .split("fn zr_environment_pbr_components_from_reflection(")
+                .next()
+        })
         .expect("environment shader should retain the normalized diffuse owner");
     assert!(
         diffuse.contains("zr_environment_procedural_sky_color_normalized(normal)"),
@@ -254,7 +276,7 @@ fn runtime_environment_procedural_sun_uses_cpu_prepared_parameters() {
         .nth(1)
         .and_then(|source| {
             source
-                .split("fn zr_environment_procedural_sky_color(")
+                .split("fn zr_environment_sky_reflection_color(")
                 .next()
         })
         .expect("environment shader should retain procedural sky sampling");
@@ -303,7 +325,7 @@ fn runtime_environment_direct_procedural_sun_obeys_final_sampling_intensity() {
         .nth(1)
         .and_then(|source| {
             source
-                .split("fn zr_environment_procedural_sky_color(")
+                .split("fn zr_environment_sky_reflection_color(")
                 .next()
         })
         .expect("environment shader should retain procedural sky sampling");
@@ -360,7 +382,7 @@ fn runtime_environment_planar_reflection_short_circuits_pmrem_and_probe_work() {
     let reflection = ENVIRONMENT_SHADER
         .split("fn zr_environment_reflection_color_normalized(")
         .nth(1)
-        .and_then(|source| source.split("fn zr_environment_diffuse_color(").next())
+        .and_then(|source| source.split("fn zr_environment_pbr_components(").next())
         .expect("environment shader should retain the reflection owner");
 
     let planar = reflection
@@ -403,7 +425,7 @@ fn runtime_environment_full_probe_coverage_skips_zero_weight_sky_sample() {
     let reflection = ENVIRONMENT_SHADER
         .split("fn zr_environment_reflection_color_after_planar(")
         .nth(1)
-        .and_then(|source| source.split("fn zr_environment_diffuse_color(").next())
+        .and_then(|source| source.split("fn zr_environment_pbr_components(").next())
         .expect("environment shader should retain the post-planar reflection owner");
 
     let no_probes = reflection
@@ -490,11 +512,7 @@ fn runtime_environment_pbr_reuses_normalized_reflection_inputs() {
 
 #[test]
 fn runtime_environment_full_metal_skips_zero_weight_diffuse_ibl() {
-    let components = ENVIRONMENT_SHADER
-        .split("fn zr_environment_pbr_components(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_indirect(").next())
-        .expect("environment shader should retain PBR indirect components");
+    let components = environment_pbr_composition_source();
 
     let diffuse_energy = components
         .find("let diffuse_energy_scale = 1.0 - clamped_metallic;")
@@ -517,7 +535,11 @@ fn runtime_environment_pbr_diffuse_reuses_its_normalized_normal() {
     let normalized_diffuse = ENVIRONMENT_SHADER
         .split("fn zr_environment_diffuse_color_normalized(")
         .nth(1)
-        .and_then(|source| source.split("fn zr_environment_diffuse_color(").next())
+        .and_then(|source| {
+            source
+                .split("fn zr_environment_pbr_components_from_reflection(")
+                .next()
+        })
         .expect("environment shader should retain the normalized diffuse IBL owner");
 
     assert!(
@@ -539,7 +561,11 @@ fn runtime_environment_sh9_diffuse_tracks_runtime_sky_rotation() {
     let normalized_diffuse = ENVIRONMENT_SHADER
         .split("fn zr_environment_diffuse_color_normalized(")
         .nth(1)
-        .and_then(|source| source.split("fn zr_environment_diffuse_color(").next())
+        .and_then(|source| {
+            source
+                .split("fn zr_environment_pbr_components_from_reflection(")
+                .next()
+        })
         .expect("environment shader should retain the normalized diffuse IBL owner");
 
     assert_eq!(

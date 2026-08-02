@@ -15,7 +15,5 @@ pub(super) fn forward_ime_delete_surrounding(
         usize_to_u32(before_bytes),
         usize_to_u32(after_bytes),
     );
-    if app.session.handle_event(event).is_err() {
-        event_loop.exit();
-    }
+    app.dispatch_runtime_event(event_loop, event);
 }

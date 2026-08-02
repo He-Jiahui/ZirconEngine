@@ -9,14 +9,14 @@ use crate::core::framework::physics::PhysicsWorldStepPlan;
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::ecs::Resource;
 use crate::scene::{
-    DefaultLevelManager, DynamicScene, DynamicSceneError, NodeKind, ReflectResource,
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy,
-    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata, RuntimeSessionSlot, SceneError,
-    ScenePatch, World,
+    DefaultLevelManager, DynamicScene, DynamicSceneError, NodeKind, PreparedDynamicSceneSpawn,
+    ReflectResource, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata,
+    RuntimeSessionSlot, SceneError, ScenePatch, World,
 };
 
 use super::authoring_boundary::{
-    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
 };
 
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
@@ -76,12 +76,31 @@ fn frame_counter_registration() -> ReflectTypeRegistration {
 
 fn frame_counter_adapter() -> ReflectResource {
     ReflectResource {
+        estimate_stage_clone_bytes: Some(frame_counter_stage_clone_bytes),
+        stage_clone: Some(frame_counter_stage_clone),
         ensure: None,
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
         read_fields: frame_counter_read_fields,
         write_field: frame_counter_write_field,
     }
+}
+
+fn frame_counter_stage_clone_bytes(source: &World) -> Result<usize, ReflectError> {
+    source
+        .get_resource::<FrameCounter>()
+        .ok_or_else(missing_frame_counter_resource)?;
+    Ok(std::mem::size_of::<FrameCounter>())
+}
+
+fn frame_counter_stage_clone(source: &World, target: &mut World) -> Result<(), ReflectError> {
+    let source = source
+        .get_resource::<FrameCounter>()
+        .ok_or_else(missing_frame_counter_resource)?;
+    target.insert_resource(FrameCounter {
+        value: source.value,
+    });
+    Ok(())
 }
 
 fn frame_counter_adapter_with_ensure() -> ReflectResource {

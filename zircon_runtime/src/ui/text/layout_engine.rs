@@ -1,17 +1,21 @@
+use crate::text::{
+    SharedTextLayoutSession, build_resolved_text_glyph_artifact,
+    register_resolved_text_glyph_artifact, text_style,
+};
 use crate::text::layout::{
-    line_metrics_with_provider,
+    TextLineMetrics, line_metrics_with_provider,
     measure_text_size_with_provider as measure_backend_text_size_with_provider,
     measure_text_source_range_width_with_provider as measure_backend_text_source_range_width_with_provider,
-    TextLineMetrics,
 };
-use crate::text::SharedTextLayoutSession;
+use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextOverflow,
-    UiTextRange, UiTextWritingMode,
+    UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
-use super::adapter::text_style;
+use crate::text::register_compiled_rich_text_artifact;
+
 use super::rich_text::parse_source_text;
 
 mod candidate_line;
@@ -32,7 +36,7 @@ use ellipsis::{
     ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
-use line_box::{aligned_x, resolve_line_widths_with_provider, text_advance, MIN_TEXT_FONT_SIZE};
+use line_box::{MIN_TEXT_FONT_SIZE, aligned_x, resolve_line_widths_with_provider, text_advance};
 use wrapping::wrap_source_runs_with_provider;
 
 pub(crate) use direction::resolve_direction as resolve_text_direction;
@@ -48,7 +52,31 @@ pub(crate) fn measure_text_size_with_provider(
     provider: &mut SharedTextLayoutSession,
 ) -> UiSize {
     let parsed = parse_source_text(text, style.rich_text_format.into());
-    measure_backend_text_size_with_provider(&parsed.text, &text_style(style), provider).into()
+    if !matches!(
+        style.rich_text_format,
+        zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
+    ) || matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
+    {
+        let mut intrinsic_style = style.clone();
+        intrinsic_style.wrap = UiTextWrap::None;
+        intrinsic_style.text_overflow = UiTextOverflow::Clip;
+        let em = intrinsic_style
+            .line_height
+            .max(intrinsic_style.font_size)
+            .max(1.0);
+        let extent = (parsed.text().len().max(1) as f32)
+            .mul_add(em, em)
+            .min(f32::MAX.sqrt());
+        let layout = layout_parsed_text_with_provider(
+            &parsed,
+            &intrinsic_style,
+            UiFrame::new(0.0, 0.0, extent, extent),
+            None,
+            provider,
+        );
+        return UiSize::new(layout.measured_width, layout.measured_height);
+    }
+    measure_backend_text_size_with_provider(parsed.text(), &text_style(style), provider).into()
 }
 
 pub(crate) fn measure_text_source_range_width(
@@ -59,7 +87,7 @@ pub(crate) fn measure_text_source_range_width(
     let parsed = parse_source_text(text, style.rich_text_format.into());
     let mut session = SharedTextLayoutSession::new();
     measure_backend_text_source_range_width_with_provider(
-        &parsed.text,
+        parsed.text(),
         &text_style(style),
         range.into(),
         &mut session,
@@ -84,7 +112,20 @@ pub(crate) fn layout_text_with_provider(
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
     let parsed = parse_source_text(text, style.rich_text_format.into());
-    layout_parsed_text_with_provider(&parsed, style, frame, clip_frame, provider)
+    let mut layout = layout_parsed_text_with_provider(&parsed, style, frame, clip_frame, provider);
+    if !matches!(
+        style.rich_text_format,
+        zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
+    ) {
+        layout.rich_text_artifact = Some(register_compiled_rich_text_artifact(Arc::clone(
+            &parsed.rich,
+        )));
+    } else if let Some(artifact) =
+        build_resolved_text_glyph_artifact(parsed.text(), style, &layout, provider)
+    {
+        layout.rich_text_artifact = Some(register_resolved_text_glyph_artifact(Arc::new(artifact)));
+    }
+    layout
 }
 
 pub(super) fn layout_parsed_text_with_provider(
@@ -109,7 +150,7 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
     clip_frame: Option<UiFrame>,
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
-    let visible_text = parsed.text.as_str();
+    let visible_text = parsed.text();
     let effective_style =
         resolve_overflow_style_with_provider(visible_text, style, frame, provider);
     let style = &effective_style;
@@ -255,6 +296,7 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
         boxes: Vec::new(),
         overflow_clipped,
         editable: None,
+        rich_text_artifact: None,
     }
 }
 
@@ -268,10 +310,10 @@ fn block_line_constraints(
 ) -> paragraph_layout::LineConstraints {
     let line = &lines[index];
     let paragraph_start =
-        paragraph_layout::physical_paragraph_start(&parsed.text, line.source_range.start);
+        paragraph_layout::physical_paragraph_start(parsed.text(), line.source_range.start);
     let first_physical_line = index == 0
         || paragraph_layout::physical_paragraph_start(
-            &parsed.text,
+            parsed.text(),
             lines[index - 1].source_range.start,
         ) != paragraph_start;
     paragraph_layout::line_constraints_with_provider(

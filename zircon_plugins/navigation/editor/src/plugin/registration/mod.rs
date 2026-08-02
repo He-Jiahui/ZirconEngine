@@ -7,7 +7,7 @@ use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError,
 };
 use zircon_plugin_editor_support::{
-    EditorAuthoringExtensions, EditorAuthoringSurface, register_authoring_extensions,
+    register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
 
 use crate::extension_ids::{

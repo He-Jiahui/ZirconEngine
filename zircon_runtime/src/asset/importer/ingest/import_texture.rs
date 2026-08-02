@@ -1,6 +1,6 @@
 use crate::asset::assets::{ImportedAsset, TextureAsset};
 use crate::asset::{
-    decode_texture_source_image, AssetImportContext, AssetImportError, AssetImportOutcome,
+    AssetImportContext, AssetImportError, AssetImportOutcome, decode_texture_source_image,
 };
 
 pub(crate) fn import_texture(

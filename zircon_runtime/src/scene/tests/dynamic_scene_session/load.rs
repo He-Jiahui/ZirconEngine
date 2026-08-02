@@ -13,14 +13,15 @@ fn runtime_session_archive_restores_slot_from_path_to_empty_world() {
     source
         .rename_node(saved_entity, "Path Restored Mesh")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![RuntimeSessionSlot::from_world_with_metadata(
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world_with_metadata(
             "manual",
             &source,
             RuntimeSessionMetadata::default().with_display_name("Manual"),
         )
-        .expect("manual slot should capture")])
-        .expect("archive should validate");
+        .expect("manual slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_restore_path_to_world");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive
@@ -48,16 +49,17 @@ fn runtime_session_archive_restores_slot_from_path_into_level_and_applies_metada
     source
         .rename_node(saved_entity, "Path Restored Camera")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![RuntimeSessionSlot::from_world_with_metadata(
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world_with_metadata(
             "level",
             &source,
             RuntimeSessionMetadata::default()
                 .with_display_name("Loaded From Path")
                 .with_tag("manual"),
         )
-        .expect("level slot should capture")])
-        .expect("archive should validate");
+        .expect("level slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_restore_path_to_level");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive
@@ -104,11 +106,10 @@ fn runtime_session_archive_applies_slot_from_path_to_live_world_and_level() {
     source
         .rename_node(source_entity, "Path Instanced Mesh")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![
-            RuntimeSessionSlot::from_world("prefab", &source).expect("prefab slot should capture")
-        ])
-        .expect("archive should validate");
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world("prefab", &source).expect("prefab slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_apply_path");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive

@@ -44,6 +44,20 @@ fn prepared_queue_stats_carry_virtual_geometry_execution_counts() {
     assert_eq!(stats.virtual_geometry_execution_repeated_draw_count, 1);
 }
 
+#[test]
+fn prepared_queue_execution_stats_keep_same_entity_primitives_distinct_by_stable_key() {
+    let first = execution_draw(0, 10, RenderVirtualGeometryExecutionState::Resident);
+    let mut second = execution_draw(0, 10, RenderVirtualGeometryExecutionState::Resident);
+    second.execution_segment.stable_instance_key = (42 << 16) | 1;
+    let stats = PreparedMeshVirtualGeometryExecutionStats::from_execution_draws([first, second]);
+
+    assert_eq!(stats.draw_count, 2);
+    assert_eq!(stats.segment_count, 2);
+    assert_eq!(stats.page_count, 1);
+    assert_eq!(stats.resident_segment_count, 2);
+    assert_eq!(stats.repeated_draw_count, 0);
+}
+
 fn execution_draw(
     draw_ref_index: u32,
     page_id: u32,
@@ -58,6 +72,7 @@ fn execution_draw(
             original_index: draw_ref_index,
             instance_index: Some(1),
             entity: 42,
+            stable_instance_key: 0,
             page_id,
             draw_ref_index,
             submission_index: Some(page_id),

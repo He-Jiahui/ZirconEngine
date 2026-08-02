@@ -8,12 +8,12 @@ mod text;
 
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
-use geometry::TimelineStripGeometry;
+use geometry::{TimelineStripGeometry, has_paintable_timeline_strip_extent};
 use identity::is_timeline_strip;
 use keys::push_timeline_keys_and_playhead;
 use metrics::timeline_metrics;
 use palette::timeline_palette;
-use surface::{push_timeline_surface, timeline_ticks, MAX_TIMELINE_TICKS};
+use surface::{MAX_TIMELINE_TICKS, push_timeline_surface, timeline_ticks};
 use text::push_timeline_text;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_timeline_strip_commands(
@@ -27,10 +27,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ti
     if !is_timeline_strip(node) {
         return false;
     }
+    if !has_paintable_timeline_strip_extent(rect) {
+        return true;
+    }
 
     let metrics = timeline_metrics();
     let palette = timeline_palette();
     let geometry = TimelineStripGeometry::from_frame(rect, metrics);
+    if geometry.plot.width <= 0.0 || geometry.plot.height <= 0.0 {
+        return true;
+    }
     let tick_budget = (geometry.plot.width.ceil().max(1.0) as usize)
         .saturating_add(1)
         .clamp(2, MAX_TIMELINE_TICKS);

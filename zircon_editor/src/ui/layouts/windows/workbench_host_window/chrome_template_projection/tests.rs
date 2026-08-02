@@ -10,11 +10,13 @@ use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
 };
 use crate::ui::workbench::page_tabs::{
-    main_page_tab_preferred_width_from_title_width, MAIN_PAGE_TAB_TITLE_FONT_SIZE,
+    main_page_tab_close_frame, main_page_tab_preferred_width_from_title_width,
+    MAIN_PAGE_TAB_CLOSE_EXTENT, MAIN_PAGE_TAB_TITLE_FONT_SIZE,
 };
 use zircon_runtime_interface::ui::design_tokens::{
     EditorControlTokens, EditorDensityTokens, EditorTypographyTokens,
 };
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 #[test]
 fn authored_chrome_assets_use_workbench_typography_baseline() {
@@ -340,12 +342,18 @@ fn activity_rail_nodes_current_drawer_tabs_svg_icons_and_selected_state() {
         "inset",
         "active activity rail button should project selected surface metadata"
     );
+    assert!(hierarchy_button.selected);
+    assert!(
+        !hierarchy_button.focused,
+        "active drawer selection must not impersonate keyboard focus"
+    );
     assert_eq!(hierarchy_icon.icon_name.as_str(), "layers-outline");
     assert!(
         hierarchy_icon.has_preview_image,
         "activity rail icons should resolve SVG preview pixels during chrome projection"
     );
     assert_eq!(hierarchy_icon.text_tone.as_str(), "default");
+    assert!(!hierarchy_icon.focused);
     assert_eq!(assets_icon.icon_name.as_str(), "folder-open-outline");
     assert_eq!(assets_icon.text_tone.as_str(), "subtle");
 }
@@ -374,6 +382,10 @@ fn page_and_dock_tabs_project_svg_icons_and_close_button_icon() {
     );
     assert!(page_scene.has_preview_image);
     assert!(page_scene.selected);
+    assert!(
+        !page_scene.focused,
+        "active page selection must not impersonate keyboard focus"
+    );
     assert_eq!(page_scene.text_tone.as_str(), "default");
     assert_eq!(page_assets.icon_name.as_str(), "folder-open-outline");
     assert!(page_assets.has_preview_image);
@@ -387,12 +399,45 @@ fn page_and_dock_tabs_project_svg_icons_and_close_button_icon() {
 
     assert_eq!(dock_scene.icon_name.as_str(), "cube-outline");
     assert!(dock_scene.has_preview_image);
+    assert!(dock_scene.selected);
+    assert!(
+        !dock_scene.focused,
+        "active dock selection must not impersonate keyboard focus"
+    );
     assert_eq!(dock_close.role.as_str(), "IconButton");
     assert_eq!(dock_close.icon_name.as_str(), "close-outline");
     assert!(
         dock_close.has_preview_image,
         "dock close controls should render as SVG icon buttons instead of empty inset blocks"
     );
+}
+
+#[test]
+fn authored_tab_projection_keeps_selection_and_focus_independent() {
+    let active_tabs = model_rc(vec![test_tab("Scene", true, false)]);
+    let active = tab_node_with_state(
+        ViewTemplateNodeData {
+            control_id: "PageTab0".into(),
+            ..ViewTemplateNodeData::default()
+        },
+        PAGE_TAB_PREFIX,
+        &active_tabs,
+    );
+    let inactive_tabs = model_rc(vec![test_tab("Scene", false, false)]);
+    let focused = tab_node_with_state(
+        ViewTemplateNodeData {
+            control_id: "PageTab0".into(),
+            focused: true,
+            ..ViewTemplateNodeData::default()
+        },
+        PAGE_TAB_PREFIX,
+        &inactive_tabs,
+    );
+
+    assert!(active.selected);
+    assert!(!active.focused);
+    assert!(!focused.selected);
+    assert!(focused.focused);
 }
 
 #[test]
@@ -460,6 +505,38 @@ fn fallback_page_chrome_preserves_clickable_tab_and_project_path_frames() {
         EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
     );
     assert!(project_path.frame.width > 0.0);
+}
+
+#[test]
+fn fallback_page_chrome_projects_close_only_for_closeable_pages() {
+    let tabs = model_rc(vec![
+        test_tab("Workbench", true, false),
+        test_tab("Prefab Editor", false, true),
+    ]);
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"ZirconProject4".into(), 760.0, 0.0);
+    let close = node(&nodes, "PageTabClose1");
+    let closeable_tab = node(&nodes, "PageTab1");
+    let frames = page_tab_frames(&nodes, &tabs);
+    let closeable_frame = frames.row_data(1).expect("closeable page frame");
+    let expected = main_page_tab_close_frame(UiFrame::new(
+        closeable_tab.frame.x,
+        closeable_tab.frame.y,
+        closeable_tab.frame.width,
+        closeable_tab.frame.height,
+    ));
+
+    assert!(maybe_node(&nodes, "PageTabClose0").is_none());
+    assert_eq!(close.role.as_str(), "IconButton");
+    assert_eq!(close.icon_name.as_str(), "close-outline");
+    assert!(close.has_preview_image);
+    assert_eq!(close.frame.width, MAIN_PAGE_TAB_CLOSE_EXTENT);
+    assert_close(close.frame.x, expected.x);
+    assert_close(close.frame.y, expected.y);
+    assert_close(closeable_frame.close_frame.x, expected.x);
+    assert_close(closeable_frame.close_frame.y, expected.y);
+    assert_close(closeable_frame.close_frame.width, expected.width);
+    assert_close(closeable_frame.close_frame.height, expected.height);
 }
 
 #[test]
@@ -580,6 +657,32 @@ fn fallback_page_chrome_narrow_tier_caps_visible_tabs_before_project_path() {
         overflow.frame.x + overflow.frame.width <= project_path.frame.x,
         "overflow must stay inside the tab lane before the project path label"
     );
+}
+
+#[test]
+fn fallback_page_chrome_collapses_project_path_before_primary_tabs() {
+    let tabs = model_rc(vec![
+        test_tab("Scene Editor", true, false),
+        test_tab("Effects", false, false),
+        test_tab("Assets", false, false),
+    ]);
+    let shell_width = 280.0;
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"Zircon M3 Visual".into(), shell_width, 0.0);
+    let project_path = node(&nodes, PAGE_PROJECT_PATH_CONTROL_ID);
+    let primary_tabs = (0..nodes.row_count())
+        .filter_map(|row| nodes.row_data(row))
+        .filter(|node| {
+            node.control_id.as_str().starts_with(PAGE_TAB_PREFIX)
+                || node.control_id.as_str() == "PageTabOverflow"
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(project_path.frame.width, 0.0);
+    assert!(!primary_tabs.is_empty());
+    assert!(primary_tabs
+        .iter()
+        .all(|node| { node.frame.x >= 0.0 && node.frame.x + node.frame.width <= shell_width }));
 }
 
 #[test]

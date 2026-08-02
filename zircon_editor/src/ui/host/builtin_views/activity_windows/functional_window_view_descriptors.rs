@@ -2,7 +2,7 @@ use crate::core::commands::DocumentKind;
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
-    ActivityWindowTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind,
+    ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot,
 };
 
 pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
@@ -13,7 +13,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             "Scene/Game",
         )
         .with_document_kind(DocumentKind::scene())
-        .with_preferred_host(PreferredHost::DocumentCenter)
+        .with_workbench_slot(WorkbenchSlot::DocumentCenter)
         .with_default_constraints(default_constraints_for_content(ViewContentKind::Scene))
         .with_icon_key("scene-game-window"),
         ViewDescriptor::new(
@@ -23,7 +23,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
         )
         .with_document_kind(DocumentKind::prefab())
         .with_multi_instance(true)
-        .with_preferred_host(PreferredHost::FloatingWindow)
+        .with_workbench_slot(WorkbenchSlot::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::PrefabEditor,
         ))
@@ -35,7 +35,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
         )
         .with_document_kind(DocumentKind::material())
         .with_multi_instance(true)
-        .with_preferred_host(PreferredHost::FloatingWindow)
+        .with_workbench_slot(WorkbenchSlot::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::AssetBrowser,
         ))
@@ -47,7 +47,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
         )
         .with_document_kind(DocumentKind::ui_asset())
         .with_multi_instance(true)
-        .with_preferred_host(PreferredHost::FloatingWindow)
+        .with_workbench_slot(WorkbenchSlot::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::UiAssetEditor,
         ))
@@ -62,7 +62,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
         )
         .with_document_kind(DocumentKind::animation_graph())
         .with_multi_instance(true)
-        .with_preferred_host(PreferredHost::FloatingWindow)
+        .with_workbench_slot(WorkbenchSlot::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::AnimationGraphEditor,
         ))
@@ -72,7 +72,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "Asset Browser",
         )
-        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::AssetBrowser,
         ))
@@ -85,7 +85,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "Diagnostics",
         )
-        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::RuntimeDiagnostics,
         ))

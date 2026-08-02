@@ -177,7 +177,7 @@ fn shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions
         let requests = manifest
             .variants
             .iter()
-            .filter(|request| request.source_label == label)
+            .filter(|request| super::source_for(&manifest, request).source_label == label)
             .collect::<Vec<_>>();
         assert_eq!(
             requests.len(),
@@ -187,16 +187,17 @@ fn shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions
         assert!(requests
             .iter()
             .all(|request| request.key.material_revision == record.revision));
-        assert!(requests
-            .iter()
-            .all(|request| request.template_revision == "zr-material-template-v1"));
+        assert!(requests.iter().all(|request| {
+            super::source_for(&manifest, request).template_revision == "zr-material-template-v1"
+        }));
         let forward = requests
             .iter()
             .find(|request| request.key.pass_type == ShaderPassType::Forward)
             .expect("forward project/plugin registry request");
-        assert!(forward.wgsl_source.contains("fn vs_main("));
-        assert!(forward.wgsl_source.contains("fn fs_main("));
-        assert!(forward
+        let forward_source = super::source_for(&manifest, forward);
+        assert!(forward_source.wgsl_source.contains("fn vs_main("));
+        assert!(forward_source.wgsl_source.contains("fn fs_main("));
+        assert!(forward_source
             .wgsl_source
             .contains("// include: zr_template_forward.wgsl"));
     }

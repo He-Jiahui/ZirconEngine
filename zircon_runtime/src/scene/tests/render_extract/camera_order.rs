@@ -243,16 +243,20 @@ fn render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views(
     ));
 
     assert_eq!(extract.view.scene_camera_entity, Some(primary));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == main_mesh));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == custom_target_mesh));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == main_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == custom_target_mesh)
+    );
     assert_eq!(
         extract
             .view

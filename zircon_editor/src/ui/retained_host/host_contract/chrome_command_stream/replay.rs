@@ -34,7 +34,7 @@ fn paint_chrome_command_stream_into_frame(frame: &mut HostRgbaFrame, stream: &Ch
         .all(|pair| pair[0].z_index <= pair[1].z_index)
     {
         for command in commands {
-            paint_chrome_command(frame, command);
+            paint_chrome_command(frame, stream, command);
         }
         return;
     }
@@ -42,6 +42,6 @@ fn paint_chrome_command_stream_into_frame(frame: &mut HostRgbaFrame, stream: &Ch
     let mut ordered = commands.iter().enumerate().collect::<Vec<_>>();
     ordered.sort_by_key(|(index, command)| (command.z_index, *index));
     for (_, command) in ordered {
-        paint_chrome_command(frame, command);
+        paint_chrome_command(frame, stream, command);
     }
 }

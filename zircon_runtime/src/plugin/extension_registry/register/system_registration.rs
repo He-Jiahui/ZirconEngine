@@ -3,15 +3,15 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::plugin::RuntimeExtensionRegistryError;
+use crate::scene::World;
 use crate::scene::ecs::{
     BoxedSceneSystem, SceneSystem, SceneSystemMetadata, SceneSystemThreadAffinity, ScheduleError,
     SystemOrderingConstraint, SystemParam, SystemParamAccess, SystemParamError, SystemRef,
-    SystemSetId, SystemStage, SystemState,
+    SystemSetId, SystemStage, SystemState, WorkerCommandBuffer,
 };
-use crate::scene::World;
 
-use super::super::owner::PluginModuleId;
 use super::super::RuntimeExtensionRegistry;
+use super::super::owner::PluginModuleId;
 
 type SystemBuildFn =
     Arc<dyn Fn(&mut World) -> Result<BoxedSceneSystem, ScheduleError> + Send + Sync>;
@@ -166,6 +166,8 @@ where
 type ExternalAccessBuildFn =
     Arc<dyn Fn(&mut World) -> Result<SystemParamAccess, String> + Send + Sync>;
 
+const DEFAULT_WORKER_COMMAND_BUFFER_CAPACITY: usize = 32;
+
 pub(crate) struct ExternalSystemRegistrationBuilder<'registry, S> {
     registry: &'registry mut RuntimeExtensionRegistry,
     owner: PluginModuleId,
@@ -270,6 +272,120 @@ where
     }
 }
 
+pub(crate) struct ExternalCommandSystemRegistrationBuilder<'registry, S> {
+    registry: &'registry mut RuntimeExtensionRegistry,
+    owner: PluginModuleId,
+    id: String,
+    stage: SystemStage,
+    affinity: SceneSystemThreadAffinity,
+    access_build: ExternalAccessBuildFn,
+    system: S,
+    sets: Vec<SystemSetId>,
+    constraints: Vec<SystemOrderingConstraint>,
+    order: i32,
+    command_capacity: usize,
+}
+
+impl<'registry, S> ExternalCommandSystemRegistrationBuilder<'registry, S>
+where
+    S: FnMut(&mut WorkerCommandBuffer) + Send + Sync + Clone + 'static,
+{
+    fn new(
+        registry: &'registry mut RuntimeExtensionRegistry,
+        owner: PluginModuleId,
+        id: impl Into<String>,
+        stage: SystemStage,
+        affinity: SceneSystemThreadAffinity,
+        access_build: ExternalAccessBuildFn,
+        system: S,
+    ) -> Self {
+        Self {
+            registry,
+            owner,
+            id: id.into(),
+            stage,
+            affinity,
+            access_build,
+            system,
+            sets: Vec::new(),
+            constraints: Vec::new(),
+            order: 0,
+            command_capacity: DEFAULT_WORKER_COMMAND_BUFFER_CAPACITY,
+        }
+    }
+
+    pub(crate) fn in_set(mut self, set: SystemSetId) -> Self {
+        self.sets.push(set);
+        self
+    }
+
+    pub(crate) fn with_order(mut self, order: i32) -> Self {
+        self.order = order;
+        self
+    }
+
+    pub(crate) fn before(mut self, reference: SystemRef) -> Self {
+        self.constraints
+            .push(SystemOrderingConstraint::Before(reference));
+        self
+    }
+
+    pub(crate) fn after(mut self, reference: SystemRef) -> Self {
+        self.constraints
+            .push(SystemOrderingConstraint::After(reference));
+        self
+    }
+
+    pub(crate) fn with_command_capacity(mut self, command_capacity: usize) -> Self {
+        self.command_capacity = command_capacity;
+        self
+    }
+
+    pub(crate) fn register(self) -> Result<(), RuntimeExtensionRegistryError> {
+        let id = self.id;
+        let stage = self.stage;
+        let order = self.order;
+        let sets = self.sets;
+        let constraints = self.constraints;
+        let command_capacity = self.command_capacity;
+        let system_template = self.system;
+        let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
+            .with_sets(sets.clone())
+            .with_constraints(constraints.clone())
+            .with_thread_affinity(self.affinity);
+        let build_id = id.clone();
+        let access_build = self.access_build;
+        let build = SharedSystemBuild::new(
+            build_id.clone(),
+            Arc::new(move |world| {
+                let mut access =
+                    access_build(world).map_err(|message| ScheduleError::ExternalAccess {
+                        system_id: build_id.clone(),
+                        message,
+                    })?;
+                access.add_deferred_commands();
+                Ok(Box::new(ExternalCommandCallbackSceneSystem::new(
+                    metadata.clone(),
+                    access,
+                    command_capacity,
+                    system_template.clone(),
+                )))
+            }),
+        );
+        self.registry.register_system(
+            self.owner,
+            SystemRegistration {
+                id,
+                stage,
+                sets,
+                constraints,
+                order,
+                build,
+            },
+        )
+    }
+}
+
 impl RuntimeExtensionRegistry {
     pub fn register_native_system<P, S>(
         &mut self,
@@ -299,6 +415,29 @@ impl RuntimeExtensionRegistry {
         S: FnMut() + Send + Sync + Clone + 'static,
     {
         ExternalSystemRegistrationBuilder::new(
+            self,
+            owner,
+            id,
+            stage,
+            affinity,
+            Arc::new(access_build),
+            system,
+        )
+    }
+
+    pub(crate) fn register_external_native_command_system<S>(
+        &mut self,
+        owner: PluginModuleId,
+        id: impl Into<String>,
+        stage: SystemStage,
+        affinity: SceneSystemThreadAffinity,
+        access_build: impl Fn(&mut World) -> Result<SystemParamAccess, String> + Send + Sync + 'static,
+        system: S,
+    ) -> ExternalCommandSystemRegistrationBuilder<'_, S>
+    where
+        S: FnMut(&mut WorkerCommandBuffer) + Send + Sync + Clone + 'static,
+    {
+        ExternalCommandSystemRegistrationBuilder::new(
             self,
             owner,
             id,
@@ -439,6 +578,68 @@ where
 
     fn supports_worldless_execution(&self) -> bool {
         true
+    }
+}
+
+struct ExternalCommandCallbackSceneSystem<S> {
+    metadata: SceneSystemMetadata,
+    access: SystemParamAccess,
+    command_buffer: WorkerCommandBuffer,
+    system: S,
+}
+
+impl<S> ExternalCommandCallbackSceneSystem<S>
+where
+    S: FnMut(&mut WorkerCommandBuffer) + Send + 'static,
+{
+    fn new(
+        metadata: SceneSystemMetadata,
+        access: SystemParamAccess,
+        command_capacity: usize,
+        system: S,
+    ) -> Self {
+        let command_buffer =
+            WorkerCommandBuffer::with_capacity(metadata.order(), metadata.id(), command_capacity);
+        Self {
+            metadata,
+            access,
+            command_buffer,
+            system,
+        }
+    }
+
+    fn run_callback(&mut self) {
+        (self.system)(&mut self.command_buffer);
+    }
+}
+
+impl<S> SceneSystem for ExternalCommandCallbackSceneSystem<S>
+where
+    S: FnMut(&mut WorkerCommandBuffer) + Send + 'static,
+{
+    fn metadata(&self) -> &SceneSystemMetadata {
+        &self.metadata
+    }
+
+    fn access(&self) -> &SystemParamAccess {
+        &self.access
+    }
+
+    fn run(&mut self, world: &mut World) {
+        self.run_callback();
+        world.merge_worker_command_buffer(&mut self.command_buffer);
+    }
+
+    fn run_without_world(&mut self) {
+        self.run_callback();
+    }
+
+    fn supports_worldless_execution(&self) -> bool {
+        true
+    }
+
+    fn worker_command_buffer_mut(&mut self) -> Option<&mut WorkerCommandBuffer> {
+        Some(&mut self.command_buffer)
     }
 }
 

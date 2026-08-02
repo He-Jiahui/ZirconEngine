@@ -3,7 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::template_status_control_geometry::has_paintable_status_control_extent;
 use super::chips::push_status_chip;
 use super::icons::push_status_icon_button;
-use super::identity::{status_control_kind, StatusControlKind};
+use super::identity::{StatusControlKind, status_control_kind};
 use super::signals::push_status_signal_item;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_control_commands(

@@ -6,8 +6,8 @@ use crate::core::math::UVec2;
 use std::sync::Arc;
 
 use super::{
-    ViewportCameraStackAttachmentPolicy, ViewportCameraStackOutputPolicy, ViewportRenderRegion,
-    viewport_render_frame::ViewportRenderFrame,
+    viewport_render_frame::ViewportRenderFrame, ViewportCameraStackAttachmentPolicy,
+    ViewportCameraStackOutputPolicy, ViewportRenderRegion,
 };
 
 impl ViewportRenderFrame {

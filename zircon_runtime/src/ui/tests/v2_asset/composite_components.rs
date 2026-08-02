@@ -1,4 +1,5 @@
 use super::*;
+use zircon_runtime_interface::ui::layout::UiSlotKind;
 
 #[test]
 fn ui_v2_composite_component_patches_root_props_and_fills_slots() {
@@ -15,7 +16,7 @@ node = "root"
 [components.Card]
 root = "card_root"
 default_classes = ["material-card"]
-slots = { content = {} }
+slots = { content = { kind = "linear", accepts = ["Text"] } }
 
 [nodes.root]
 component = "Card"
@@ -54,6 +55,11 @@ props = { text = "Instanced body" }
 "#,
     )
     .unwrap();
+
+    let content_slot = &document.components["Card"].slots["content"];
+    assert_eq!(content_slot.kind, Some(UiSlotKind::Linear));
+    assert!(content_slot.accepts_component("Text"));
+    assert!(!content_slot.accepts_component("Button"));
 
     let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
     let root = compiled
@@ -251,6 +257,7 @@ fn ui_v2_composite_component_validates_declared_slots() {
                 UiNamedSlotSchema {
                     required: true,
                     multiple: false,
+                    ..UiNamedSlotSchema::default()
                 },
             )]),
             ..Default::default()
@@ -311,6 +318,125 @@ fn ui_v2_composite_component_validates_declared_slots() {
 }
 
 #[test]
+fn ui_v2_composite_component_rejects_slot_fills_outside_the_declared_accept_set() {
+    let mut document = v2_document("asset://ui/tests/slot_accepts.v2.ui", "root");
+    document.components.insert(
+        "Card".to_string(),
+        zircon_runtime_interface::ui::v2::UiV2ComponentDefinition {
+            root: "card_root".to_string(),
+            slots: BTreeMap::from([(
+                "content".to_string(),
+                UiNamedSlotSchema {
+                    accepts: ["Text".to_string()].into_iter().collect(),
+                    ..UiNamedSlotSchema::default()
+                },
+            )]),
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Card".to_string(),
+            children: vec![UiV2ChildMount {
+                node: "body".to_string(),
+                slot: BTreeMap::from([("name".to_string(), Value::String("content".to_string()))]),
+            }],
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "card_root".to_string(),
+        UiV2NodeDefinition {
+            component: "Slot".to_string(),
+            props: BTreeMap::from([("name".to_string(), Value::String("content".to_string()))]),
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "body".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            ..Default::default()
+        },
+    );
+
+    let error = UiV2DocumentCompiler::compile(&document).expect_err("Button is not accepted");
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::SlotDoesNotAcceptComponent {
+            slot_name,
+            child_component,
+            ..
+        } if slot_name == "content" && child_component == "Button"
+    ));
+}
+
+#[test]
+fn ui_v2_composite_component_accepts_explicit_component_reference_slot_fills() {
+    let external_component = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/components/slot_panel.v2.ui"
+version = 2
+
+[components.Panel]
+root = "panel_root"
+
+[nodes.panel_root]
+component = "Container"
+control_id = "PrototypePanel"
+"#,
+    )
+    .expect("external panel prototype should parse");
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/explicit_slot_component_reference.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[components.Card]
+root = "card_root"
+slots = { content = { accepts = ["Panel"] } }
+
+[nodes.root]
+component = "Card"
+children = [{ node = "external_panel", slot = { name = "content" } }]
+
+[nodes.card_root]
+component = "VerticalGroup"
+children = [{ node = "content_slot" }]
+
+[nodes.content_slot]
+component = "Slot"
+props = { name = "content" }
+
+[nodes.external_panel]
+component = "asset://ui/components/slot_panel.v2.ui#Panel"
+control_id = "ExternalPanel"
+"#,
+    )
+    .expect("explicit component-reference slot fixture should parse");
+    let mut store = UiV2PrototypeStore::new();
+    store.insert(external_component);
+
+    let compiled = UiV2DocumentCompiler::compile_with_prototype_store(&document, &store)
+        .expect("the slot contract should compare the named component identity");
+    assert!(compiled
+        .arena
+        .nodes
+        .iter()
+        .any(|node| node.control_id.as_deref() == Some("ExternalPanel")
+            && node.component == "Container"));
+}
+
+#[test]
 fn ui_v2_composite_component_can_be_loaded_from_prototype_store() {
     let component = UiV2AssetLoader::load_toml_str(
         r#"
@@ -365,6 +491,74 @@ props = { text = "Apply Draft" }
         root.props.get("text").and_then(Value::as_str),
         Some("Apply Draft")
     );
+}
+
+#[test]
+fn ui_v2_prototype_store_builder_tracks_whole_asset_widget_imports() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/whole_import_owner.v2.ui"
+version = 2
+
+[imports]
+widgets = ["asset://ui/components/material_button.v2.ui"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+"#,
+    )
+    .expect("whole-asset widget import fixture should parse");
+    let mut builder = UiV2PrototypeStoreBuilder::new();
+    let _ = builder.insert(document);
+
+    let error = builder
+        .build()
+        .expect_err("whole-asset imports must be loaded before the store is built");
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { asset_id, detail }
+            if asset_id == "asset://ui/components/material_button.v2.ui"
+                && detail.contains("declared UI v2 import is not loaded")
+    ));
+}
+
+#[test]
+fn ui_v2_prototype_store_builder_rejects_widget_imports_with_multiple_fragments() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/ambiguous_import_owner.v2.ui"
+version = 2
+
+[imports]
+widgets = ["asset://ui/components/material_button.v2.ui#MaterialButton#Unexpected"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+"#,
+    )
+    .expect("ambiguous widget import fixture should parse before contract validation");
+    let mut builder = UiV2PrototypeStoreBuilder::new();
+    let _ = builder.insert(document);
+
+    let error = builder
+        .build()
+        .expect_err("multiple component fragments must fail before prototype lookup");
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { asset_id, detail }
+            if asset_id == "asset://ui/tests/ambiguous_import_owner.v2.ui"
+                && detail.contains("exactly one non-empty #Component suffix")
+    ));
 }
 
 #[test]

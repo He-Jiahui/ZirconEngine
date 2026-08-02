@@ -38,13 +38,47 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             "if runtime_session_args.help_requested",
             "return Ok(());",
             "LoadedRuntime::load_default()",
-            "EventLoop::new()?",
+            "EventLoop::new().map_err",
             "event_loop.create_proxy()",
             "RuntimeSession::create_with_profile_and_project",
             "runtime_session_args.profile.as_bytes()",
             "runtime_session_args.project_root.as_deref()",
+            "let session_teardown_failure = session.teardown_failure_state();",
         ],
         "runtime runner should parse logging first, allow help before dynamic loading, create the event loop wake proxy, then pass the selected session profile and project root to the dynamic runtime",
+    );
+    let runtime_load_start = runtime_runner_source
+        .find("let runtime = LoadedRuntime::load_default()")
+        .expect("runtime runner should load the staged dynamic runtime");
+    let event_loop_start = runtime_runner_source[runtime_load_start..]
+        .find("let event_loop = EventLoop::new()")
+        .map(|offset| runtime_load_start + offset)
+        .expect("runtime runner should create an event loop after dynamic runtime loading");
+    let runtime_load = &runtime_runner_source[runtime_load_start..event_loop_start];
+    assert!(
+        runtime_load.contains(".map_err(|error|"),
+        "runtime library loading failures should enter the product diagnostic boundary"
+    );
+    let runtime_load_lines = runtime_load.lines().map(str::trim).collect::<Vec<_>>();
+    assert!(
+        runtime_load_lines.windows(5).any(|lines| {
+            lines
+                == [
+                    "runtime_library_startup_error(",
+                    "runtime_session_args.profile,",
+                    "runtime_session_args.project_root.as_deref(),",
+                    "error,",
+                    ")",
+                ]
+        }),
+        "runtime library diagnostics should receive the selected profile/project and original loading error"
+    );
+    assert!(
+        runtime_runner_source.contains("fn runtime_library_startup_error(")
+            && runtime_runner_source.contains("\"runtime_library\"")
+            && runtime_runner_source
+                .contains("runtime_session_startup_request(profile, project_root)"),
+        "runtime library startup diagnostics should retain the selected request and a stable component"
     );
     assert!(
         runtime_session_source.contains("profile: ZrByteSlice::from_static(profile)"),
@@ -59,5 +93,23 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             && runtime_runner_source.contains("RuntimeWakeRegistration::register")
             && runtime_runner_source.contains("event_loop.create_proxy()"),
         "standalone runtime creation should bind the V3 session to a real host wake proxy"
+    );
+    assert_source_order(
+        runtime_runner_source,
+        &[
+            "let session_teardown_failure = session.teardown_failure_state();",
+            "let result = event_loop.run_app(app);",
+            "let event_loop_failure = result.err().map",
+            "let runtime_app_failure = failure_state",
+            ".take()",
+            "let runtime_session_failure = session_teardown_failure.take().map",
+            "finish_runtime_process(",
+            "event_loop_failure,",
+            "runtime_app_failure,",
+            "runtime_session_failure,",
+            ")?;",
+            "runtime_process_teardown_complete_diagnostic()",
+        ],
+        "runtime runner must collect event-loop, callback, and session teardown failures before reporting successful product teardown",
     );
 }

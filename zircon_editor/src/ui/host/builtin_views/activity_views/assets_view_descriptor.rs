@@ -9,7 +9,7 @@ pub(super) fn assets_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Assets",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::LeftTop)
+    .with_workbench_slot(WorkbenchSlot::LeftTopDrawer)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Assets))
     .with_icon_key("assets")
 }

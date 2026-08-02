@@ -37,7 +37,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         metrics,
     );
     let status_mark_size = toast_status_mark_size_for_metrics(node, metrics);
-    if frame_is_within(&icon, rect)
+    let has_icon = !node.icon_name.is_empty();
+    if has_icon
+        && frame_is_within(&icon, rect)
         && icon.width >= status_mark_size
         && icon.height >= status_mark_size
     {
@@ -53,7 +55,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         commands,
         node,
         rect,
-        &icon,
+        if has_icon { Some(&icon) } else { None },
         &close,
         clip,
         order + 2,

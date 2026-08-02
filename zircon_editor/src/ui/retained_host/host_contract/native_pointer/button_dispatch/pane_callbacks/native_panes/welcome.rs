@@ -1,8 +1,8 @@
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::super::super::super::routing::PanePointerRoute;
 use super::super::super::super::NativePointerButtonState;
+use super::super::super::super::routing::PanePointerRoute;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_welcome_button(
     pane_host: &PaneSurfaceHostContext<'_>,

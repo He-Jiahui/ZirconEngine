@@ -42,7 +42,7 @@ fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
         "script host ledger keeps descriptor counts stable",
         &script_host_ledger,
         &[
-            "6 host modules, 52 fixed host functions, and 2 fixed script type descriptors",
+            "6 host modules, 61 fixed host functions, and 2 fixed script type descriptors",
             "Type `Vec3`",
             "Type `ColorRgba`",
         ],

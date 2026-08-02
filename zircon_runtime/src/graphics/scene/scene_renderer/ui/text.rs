@@ -19,18 +19,20 @@ mod font_assets;
 mod font_id_report;
 mod prepare_report;
 mod resolved_batches;
+mod sdf_cpu_frame;
 mod sdf_fallback;
 
-use self::font_assets::{UiFontAssetCache, ensure_font_asset_record};
-use self::font_id_report::{ScreenSpaceUiTextFontIdReport, accumulate_text_font_id_report};
+use self::font_assets::{ensure_font_asset_record, UiFontAssetCache};
+use self::font_id_report::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
+use self::prepare_report::text_prepare_report;
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
-use self::prepare_report::text_prepare_report;
-use self::resolved_batches::resolve_text_batches;
+use self::resolved_batches::{resolve_text_batches, AutoTextRasterRouter};
+use self::sdf_cpu_frame::SdfTextCpuFrame;
+use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use self::sdf_fallback::apply_sdf_atlas_fallbacks;
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 #[cfg(test)]
 use super::sdf_atlas::SdfAtlasCacheReport;
@@ -43,9 +45,9 @@ use super::text_pixel_snap::text_origin_device_px;
 #[cfg(test)]
 use crate::text::native_bitmap_atlas;
 use crate::text::native_bitmap_atlas::{
-    NativeBitmapAtlasFrame, NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
-    NativeBitmapAtlasStorageSubmission, NativeBitmapAtlasTextArea, bitmap_atlas_page_size,
-    native_bitmap_atlas_handoff_for_report,
+    bitmap_atlas_page_size, native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasFrame,
+    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport, NativeBitmapAtlasStorageSubmission,
+    NativeBitmapAtlasTextArea,
 };
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
@@ -58,7 +60,9 @@ pub(super) struct ScreenSpaceUiTextSystem {
     native: ScreenSpaceUiTextBackend,
     bitmap_atlas_renderer: GlyphAtlasBitmapRenderer,
     sdf_atlas: ScreenSpaceUiSdfAtlas,
+    sdf_cpu_frame: SdfTextCpuFrame,
     sdf_renderer: ScreenSpaceUiSdfRenderer,
+    auto_raster_router: AutoTextRasterRouter,
     last_prepare_report: ScreenSpaceUiTextPrepareReport,
 }
 
@@ -100,7 +104,9 @@ impl ScreenSpaceUiTextSystem {
             native: ScreenSpaceUiTextBackend::new(device, queue, target_format),
             bitmap_atlas_renderer: GlyphAtlasBitmapRenderer::new(device, target_format),
             sdf_atlas: ScreenSpaceUiSdfAtlas::new(),
+            sdf_cpu_frame: SdfTextCpuFrame::default(),
             sdf_renderer: ScreenSpaceUiSdfRenderer::new(device, target_format),
+            auto_raster_router: AutoTextRasterRouter::default(),
             last_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
         })
     }
@@ -119,6 +125,7 @@ impl ScreenSpaceUiTextSystem {
             &mut self.text_state,
             &mut self.font_assets,
             asset_manager.as_ref(),
+            &mut self.auto_raster_router,
             auto_texts,
             native_texts,
             sdf_texts,
@@ -127,48 +134,58 @@ impl ScreenSpaceUiTextSystem {
             self.invalidate_font_faces();
         }
         self.sdf_atlas.prepare(resolved_texts.sdf_texts());
-        let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
-            self.sdf_atlas.plan(),
-            &mut self.text_state,
+        let mut sdf_atlas_bake = self.text_state.build_sdf_atlas(
+            self.sdf_atlas.plan().atlas_size,
+            &self.sdf_atlas.plan().slots,
             asset_manager.as_ref(),
         );
         self.sdf_atlas
-            .record_generation_failures(&sdf_generation_failures);
-        let sdf_fallback_glyph_advances =
-            self.sdf_renderer.measure_text_glyph_advances_for_fallbacks(
-                resolved_texts.sdf_texts(),
-                &mut self.text_state,
-                asset_manager.as_ref(),
-            );
-        let sdf_fallback_report = apply_sdf_atlas_fallbacks(
-            &mut resolved_texts.native_texts,
-            &mut resolved_texts.sdf_texts,
-            &self.sdf_atlas.plan().runs,
-            &sdf_fallback_glyph_advances,
+            .record_generation_failures(&sdf_atlas_bake.generation_failures);
+        let cpu_plan_reused = self.sdf_cpu_frame.prepare(
+            resolved_texts.sdf_texts(),
+            resolved_texts.native_texts(),
+            &mut self.text_state,
+            asset_manager.as_ref(),
         );
+        let sdf_fallback_report = {
+            let (sdf_cpu_runs, native_decoration_metrics) = self.sdf_cpu_frame.outputs_mut();
+            apply_sdf_atlas_fallbacks_with_cpu_runs(
+                &mut resolved_texts.native_texts,
+                &mut resolved_texts.sdf_texts,
+                &self.sdf_atlas.plan().runs,
+                sdf_cpu_runs,
+                native_decoration_metrics,
+            )
+        };
+        if sdf_fallback_report.fallback_text_batch_count > 0 {
+            self.sdf_cpu_frame.invalidate();
+        }
         if sdf_fallback_report.has_whole_batch_fallbacks() {
             self.sdf_atlas
                 .discard_cached_slots_not_in_texts(resolved_texts.sdf_texts());
             self.sdf_atlas.prepare(resolved_texts.sdf_texts());
-            let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
-                self.sdf_atlas.plan(),
-                &mut self.text_state,
+            sdf_atlas_bake = self.text_state.build_sdf_atlas(
+                self.sdf_atlas.plan().atlas_size,
+                &self.sdf_atlas.plan().slots,
                 asset_manager.as_ref(),
             );
             self.sdf_atlas
-                .record_generation_failures(&sdf_generation_failures);
+                .record_generation_failures(&sdf_atlas_bake.generation_failures);
         }
         let sdf_atlas_report = self.sdf_atlas.cache_report();
+        let (sdf_cpu_runs, native_decoration_metrics) = self.sdf_cpu_frame.outputs();
         self.sdf_renderer.prepare(
             device,
             queue,
             viewport_size,
             resolved_texts.sdf_texts(),
+            sdf_cpu_runs,
             resolved_texts.native_texts(),
+            native_decoration_metrics,
             self.sdf_atlas.plan(),
+            &sdf_atlas_bake,
             sdf_atlas_report.clone(),
-            &mut self.text_state,
-            asset_manager.as_ref(),
+            cpu_plan_reused,
         );
         self.sdf_atlas.mark_prepared_pages_uploaded();
         let sdf_renderer_report = self.sdf_renderer.prepare_report();
@@ -203,6 +220,7 @@ impl ScreenSpaceUiTextSystem {
         self.bitmap_atlas_renderer
             .discard_all_for_face_invalidation();
         self.sdf_atlas.invalidate_font_faces();
+        self.sdf_cpu_frame.invalidate();
     }
 
     pub(super) fn render<'pass>(&'pass mut self, pass: &mut wgpu::RenderPass<'pass>) {

@@ -13,7 +13,7 @@ pub trait ZrReflect: Sized {
     ) -> Result<bool, ReflectError>;
 
     fn read_reflected_field_by_slot(&self, field_slot: u32)
-    -> Result<ReflectedValue, ReflectError>;
+        -> Result<ReflectedValue, ReflectError>;
 
     fn write_reflected_field_by_slot(
         &mut self,

@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::framework::render::{
-    FroxelGridParams, ViewProjectionMatrixPair, ViewportCameraSnapshot, halton,
+    halton, FroxelGridParams, ViewProjectionMatrixPair, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 

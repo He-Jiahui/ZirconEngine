@@ -16,7 +16,7 @@ related_code:
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_app/src/entry/entry_runner/editor/tests.rs
+  - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/scene/level_system.rs
 implementation_files:
@@ -36,7 +36,6 @@ implementation_files:
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_app/src/entry/entry_runner/editor/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
@@ -48,6 +47,7 @@ tests:
   - zircon_editor/src/tests/gateway/handle.rs
   - zircon_editor/src/tests/runtime_event_consumer.rs
   - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
 doc_type: module-detail
 ---
 

@@ -2,7 +2,7 @@ use crate::core::framework::channel::ChannelReceiver;
 use crate::core::CoreError;
 use crossbeam_channel::unbounded;
 
-use super::super::errors::asset_error;
+use super::super::errors::{asset_error, asset_error_message};
 use super::super::project_asset_manager::ProjectAssetManager;
 use super::super::records::{build_project_info, build_status_record};
 use super::super::resource_sync::{clear_removed_project_resources, project_locators};
@@ -137,66 +137,118 @@ impl AssetManagerContract for ProjectAssetManager {
 
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
         let uri = AssetUri::parse(uri).map_err(asset_error)?;
-        let _generation = self.project_generation_read();
-        let indexed_source_path = self.indexed_project_source_path(&uri);
-        let mut project = self.project_write();
-        let Some(active_project) = project.as_mut() else {
-            return Ok(None);
+        let (
+            expected_generation,
+            expected_preparation_epoch,
+            mut candidate,
+            source_path,
+            previous_source_records,
+        ) = {
+            let _generation = self.project_generation_read();
+            let indexed_source_path = self.indexed_project_source_path(&uri);
+            let project = self.project_read();
+            let Some(active_project) = project.as_ref() else {
+                return Ok(None);
+            };
+            let source_path = match indexed_source_path {
+                Some(path) => path,
+                None if uri.scheme() == ResourceScheme::Res => active_project
+                    .primary_project_source_path_for_uri(&uri)
+                    .map_err(asset_error)?,
+                None => {
+                    return Err(asset_error(AssetImportError::MissingProjectAssetUri {
+                        uri,
+                    }));
+                }
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                active_project.clone(),
+                source_path,
+                active_project.source_resource_records(&uri),
+            )
         };
-        let source_path = match indexed_source_path {
-            Some(path) => path,
-            None if uri.scheme() == ResourceScheme::Res => active_project
-                .primary_project_source_path_for_uri(&uri)
-                .map_err(asset_error)?,
-            None => {
-                return Err(asset_error(AssetImportError::MissingProjectAssetUri {
-                    uri,
-                }));
-            }
-        };
-        let previous_source_records = active_project.source_resource_records(&uri);
-        let mut candidate = active_project.clone();
-        let (imported, affected, ready_payloads) = candidate
-            .import_targeted_generation(&uri, &source_path)
+        let mut prepared_generation = candidate
+            .prepare_targeted_generation(&uri, &source_path)
             .map_err(asset_error)?;
         let prepared = self.prepare_targeted_project_resource_sync(
             &candidate,
             &uri,
             source_path,
             &previous_source_records,
-            &imported,
-            &affected,
-            ready_payloads,
+            prepared_generation.imported(),
+            prepared_generation.affected(),
+            prepared_generation.take_ready_payloads(),
         );
         let status = candidate
             .registry()
             .get_by_locator(&uri)
             .map(build_status_record);
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        let Some(active_project) = project.as_mut() else {
+            return Err(asset_error_message(
+                "targeted asset import lost its active project before commit",
+            ));
+        };
+        if active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "targeted asset import was superseded by a newer project generation",
+            ));
+        }
+        prepared_generation.commit().map_err(asset_error)?;
         self.commit_targeted_project_resource_sync(prepared);
         *active_project = candidate;
         drop(project);
-        if status.is_some() {
-            self.broadcast(vec![AssetChange::new(AssetChangeKind::Modified, uri, None)]);
-        }
+        let published_changes = status
+            .is_some()
+            .then(|| AssetChange::new(AssetChangeKind::Modified, uri, None))
+            .into_iter()
+            .collect();
+        self.publish_project_generation(generation, published_changes);
         Ok(status)
     }
 
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
-        let _generation = self.project_generation_read();
-        let mut project = self.project_write();
-        let Some(active_project) = project.as_mut() else {
-            return Ok(Vec::new());
+        let (expected_generation, expected_preparation_epoch, previous_locators, mut candidate) = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            let Some(active_project) = project.as_ref() else {
+                return Ok(Vec::new());
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                project_locators(active_project),
+                active_project.clone(),
+            )
         };
-        let previous_locators = project_locators(active_project);
-        let mut candidate = active_project.clone();
         let imported = candidate.scan_and_import().map_err(asset_error)?;
         let prepared = self.prepare_project_resource_sync(&candidate)?;
         let statuses = imported.iter().map(build_status_record).collect::<Vec<_>>();
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        let Some(active_project) = project.as_mut() else {
+            return Err(asset_error_message(
+                "project reimport lost its active project before commit",
+            ));
+        };
+        if active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "project reimport was superseded by a newer project generation",
+            ));
+        }
         clear_removed_project_resources(&self.resource_manager(), &previous_locators, &candidate);
         self.commit_project_resource_sync(prepared);
         *active_project = candidate;
         drop(project);
-        self.broadcast(
+        self.publish_project_generation(
+            generation,
             imported
                 .into_iter()
                 .map(|metadata| {
@@ -215,12 +267,69 @@ impl AssetManagerContract for ProjectAssetManager {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, Weak};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use crate::asset::project::{ProjectManager, ProjectManifest};
-    use crate::asset::{AssetImportError, AssetManager, AssetUri};
+    use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+    use crate::asset::{
+        AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
+        AssetImporterHandler, AssetKind, AssetManager, AssetUri, DataAsset, DataAssetFormat,
+        ImportedAsset,
+    };
 
     use super::ProjectAssetManager;
+
+    #[derive(Debug)]
+    struct EpochSupersedingCountedImporter {
+        descriptor: AssetImporterDescriptor,
+        manager: Weak<ProjectAssetManager>,
+        advance_epoch: Arc<AtomicBool>,
+    }
+
+    impl EpochSupersedingCountedImporter {
+        fn new(manager: Weak<ProjectAssetManager>, advance_epoch: Arc<AtomicBool>) -> Self {
+            Self {
+                descriptor: AssetImporterDescriptor::new(
+                    "test.epoch.superseding.counted",
+                    "test.epoch.superseding",
+                    AssetKind::Data,
+                    1,
+                )
+                .with_source_extensions(["counted"]),
+                manager,
+                advance_epoch,
+            }
+        }
+    }
+
+    impl AssetImporterHandler for EpochSupersedingCountedImporter {
+        fn descriptor(&self) -> &AssetImporterDescriptor {
+            &self.descriptor
+        }
+
+        fn import(
+            &self,
+            context: &AssetImportContext,
+        ) -> Result<AssetImportOutcome, AssetImportError> {
+            if self.advance_epoch.swap(false, Ordering::SeqCst) {
+                self.manager
+                    .upgrade()
+                    .expect("test manager remains alive while its importer runs")
+                    .begin_project_preparation();
+            }
+            let text = context.source_text()?;
+            Ok(AssetImportOutcome::new(
+                context.uri.clone(),
+                ImportedAsset::Data(DataAsset {
+                    uri: context.uri.clone(),
+                    format: DataAssetFormat::Json,
+                    text,
+                    canonical_json: serde_json::json!({ "superseding": true }),
+                }),
+            ))
+        }
+    }
 
     #[test]
     fn project_queries_resolve_inside_the_manager_without_cloning_a_project_snapshot() {
@@ -389,6 +498,79 @@ mod tests {
             AssetManager::current_project_source_path(&manager, &unrelated).unwrap(),
             Some(unrelated_path)
         );
+        drop(manager);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn targeted_facade_import_superseded_after_prepare_leaves_disk_generation_unchanged() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "zircon_asset_manager_targeted_superseded_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        let target_path = root.join("assets/data/target.counted");
+        fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+        ProjectManifest::new(
+            "Targeted Superseded Fixture",
+            AssetUri::parse("res://data/target.counted").unwrap(),
+            1,
+        )
+        .save(root.join("zircon-project.toml"))
+        .unwrap();
+        fs::write(&target_path, "target-v1").unwrap();
+        let paths = ProjectPaths::from_root(&root).unwrap();
+
+        let manager = Arc::new(ProjectAssetManager::default());
+        let advance_epoch = Arc::new(AtomicBool::new(false));
+        let mut project = ProjectManager::open(&root).unwrap();
+        project
+            .register_asset_importer(EpochSupersedingCountedImporter::new(
+                Arc::downgrade(&manager),
+                advance_epoch.clone(),
+            ))
+            .unwrap();
+        manager.open_prepared_project(project).unwrap();
+
+        let target_uri = AssetUri::parse("res://data/target.counted").unwrap();
+        let active_project = manager.current_project_snapshot().unwrap();
+        let record = active_project
+            .registry()
+            .get_by_locator(&target_uri)
+            .cloned()
+            .unwrap();
+        let artifact_path = paths
+            .asset_artifact_root()
+            .join(record.artifact_locator().unwrap().path());
+        let meta_path = target_path.with_file_name("target.counted.zmeta");
+        let registry_path = paths.registry_root().join("asset-registry.json");
+        let artifact_before = fs::read(&artifact_path).unwrap();
+        let meta_before = fs::read(&meta_path).unwrap();
+        let registry_before = fs::read(&registry_path).unwrap();
+
+        fs::write(&target_path, "target-v2").unwrap();
+        advance_epoch.store(true, Ordering::SeqCst);
+        let error = AssetManager::import_asset(&*manager, &target_uri.to_string()).unwrap_err();
+
+        assert!(error.to_string().contains("superseded"));
+        assert_eq!(fs::read(&artifact_path).unwrap(), artifact_before);
+        assert_eq!(fs::read(&meta_path).unwrap(), meta_before);
+        assert_eq!(fs::read(&registry_path).unwrap(), registry_before);
+        assert_eq!(
+            manager
+                .current_project_snapshot()
+                .unwrap()
+                .registry()
+                .get_by_locator(&target_uri)
+                .unwrap()
+                .source_hash,
+            record.source_hash,
+        );
+
         drop(manager);
         let _ = fs::remove_dir_all(root);
     }

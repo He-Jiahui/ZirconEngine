@@ -8,6 +8,7 @@ mod measure;
 mod overflow;
 mod rich;
 mod rich_advance_index;
+mod rich_source;
 mod rich_vertical;
 mod tab;
 mod vertical_layout;
@@ -35,6 +36,7 @@ pub(crate) use rich::{
     resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
     rich_word_line_ranges_with_provider, RichWordWrapMode,
 };
+pub(crate) use rich_source::{RichTextLayoutRun, RichTextLayoutSource};
 pub(crate) use rich_vertical::rich_vertical_columns_with_provider;
 pub(crate) use tab::{tab_aligned_advances, tab_interval_width};
 pub(crate) use vertical_layout::layout_vertical_rl_columns;

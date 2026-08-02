@@ -514,6 +514,9 @@ GPUScene 衔接(计划 03):`LightmapInstanceSlot`(uv_rect + atlas_page)进 insta
 - fixed 已修复：[reflection-probe-product-type-inference](../text/01/fixed-2026-07-12-reflection-probe-product-type-inference.md)
 - fixed 已修复：[source-cubemap-source-texel-test-api-drift](../../zircon_editor/editor/10/fixed-2026-07-12-source-cubemap-source-texel-test-api-drift.md)
 - fixed 已修复：[lightmap-forward-bind-group-integration-compile](../../zircon_editor/editor/15/fixed-2026-07-13-lightmap-forward-bind-group-integration-compile.md)
+
+## 性能审阅交接
+
 - 2026-07-18 environment 性能交接：SceneRenderer 构造期约 1,678 万 BRDF LUT 积分、source-cubemap 稳定帧同步读盘/深拷贝、lightmap 每 draw 线性 slot 查询及 production serial PMREM 已回链 PERF-MVP-351..354。Render11 联动 Runtime04、Render03/17交付版本化预计算/设备共享 BRDF 工件、generation resident IBL artifact、共享 lightmap id→slot 索引及 asset compute pool/GPU bake；见 `docs/plans/performance/01/2026-07-18-runtime-core-framework-render-environment-static-review.md`。
 - 2026-07-18 irradiance-volume选择交接：存在volume时，compiled-scene每camera/frame收集全部layer-visible mesh positions，再做volumes×positions containment并clone选中volume。Render11联动Render18/17按scene/lighting generation发布visible bounds/spatial candidates与priority index，多camera共享且返回borrowed/handle identity；见PERF-MVP-377。
 - 2026-07-18 cubemap GPU上传交接：environment generation变化时renderer仍在submission线程把source/PMREM/irradiance全部f32 texel编码RGBA16F并按face×mip碎片`write_texture`；per-face/mip编码Vec已局部止损。Render11联动Runtime04、Render13/17发布预编码row-aligned upload artifact与持久staging batch，stable转换/上传=0、changed artifact build≤1/generation且upload batch≤1；见PERF-MVP-380。

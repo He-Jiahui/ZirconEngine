@@ -26,7 +26,7 @@ if (!sunder || sunder.class !== "warrior" || sunder.learnLevel !== 5 ||
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(
   world,
-  /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?entitySunderArmorStacks[\s\S]*?entitySunderArmorRemaining[\s\S]*?entitySunderArmorValues/,
+  /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?entitySunderArmorStacks[\s\S]*?entitySunderArmorRemaining[\s\S]*?entitySunderArmorValues/,
   "WOS59 must retain the durable Sunder Armor tail in the current codec",
 );
 requireText(
@@ -86,8 +86,8 @@ requireText(
 );
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS71/g) ?? []).length !== 2) {
-  throw new Error("main schema metadata must publish WOS71 in both runtime paths");
+if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) {
+  throw new Error("main schema metadata must publish WOS72 in both runtime paths");
 }
 
 const contract = read("contracts", "world-state.md");

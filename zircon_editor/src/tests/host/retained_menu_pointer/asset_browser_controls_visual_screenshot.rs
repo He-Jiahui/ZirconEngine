@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::{
-    paint_template_nodes_for_test_with_background, TemplateNodeFrameData, TemplatePaneNodeData,
+    TemplateNodeFrameData, TemplatePaneNodeData, paint_template_nodes_for_test_with_background,
 };
 
 const ASSET_BROWSER_CONTROLS_SCREENSHOT: &str =
@@ -41,6 +41,28 @@ fn asset_browser_controls_visual_paints_toolbar_chips_tabs_and_search_state_spli
         }),
         "focused-only utility tab fixture must stay separate from selected state"
     );
+    for (control_id, icon_name, selected) in [
+        ("AssetBrowserViewModeListButton", "list-outline", false),
+        ("AssetBrowserViewModeThumbButton", "grid-outline", true),
+        (
+            "LocateSelectedAsset",
+            "editor_pages/asset_browser/navigation/search.svg",
+            false,
+        ),
+    ] {
+        assert!(
+            nodes.iter().any(|node| {
+                node.control_id.as_str() == control_id
+                    && node.role.as_str() == "IconButton"
+                    && node.icon_name.as_str() == icon_name
+                    && node.icon_placement.as_str() == "icon_only"
+                    && node.frame.width == 30.0
+                    && node.frame.height == 30.0
+                    && node.selected == selected
+            }),
+            "{control_id} must model the production icon-only direct toolbar action"
+        );
+    }
 
     let bytes = asset_browser_controls_bytes_from_nodes(nodes);
     let toolbar_panel = pixel_at(&bytes, 34, 94);
@@ -100,11 +122,11 @@ fn asset_browser_controls_visual_paints_toolbar_chips_tabs_and_search_state_spli
         "focused-only utility tab should stay visually quiet instead of drawing a focus slab"
     );
 
-    let import_surface = pixel_at(&bytes, 730, 114);
+    let import_surface = pixel_at(&bytes, 652, 114);
     assert!(
         distinct_pixel_count(
             &bytes,
-            744,
+            660,
             106,
             64,
             20,
@@ -173,14 +195,7 @@ fn asset_browser_controls_nodes() -> Vec<TemplatePaneNodeData> {
             10.0,
             "muted",
         ),
-        surface(
-            "AssetBrowserToolbarPanel",
-            "panel",
-            18.0,
-            76.0,
-            864.0,
-            78.0,
-        ),
+        surface("AssetBrowserToolbarPanel", "panel", 18.0, 76.0, 864.0, 78.0),
         surface(
             "AssetBrowserUtilityPanel",
             "panel",
@@ -239,34 +254,42 @@ fn asset_browser_controls_nodes() -> Vec<TemplatePaneNodeData> {
             30.0,
             ButtonState::Hovered,
         ),
-        button(
+        icon_button(
             "AssetBrowserViewModeListButton",
-            "List",
-            "text",
+            "list-outline",
             "workbench.asset.view_mode.set",
             536.0,
             100.0,
-            62.0,
+            30.0,
             30.0,
             ButtonState::Normal,
         ),
-        button(
+        icon_button(
             "AssetBrowserViewModeThumbButton",
-            "Thumb",
-            "text",
+            "grid-outline",
             "workbench.asset.view_mode.set",
-            606.0,
+            570.0,
             100.0,
-            78.0,
+            30.0,
             30.0,
             ButtonState::Selected,
+        ),
+        icon_button(
+            "LocateSelectedAsset",
+            "editor_pages/asset_browser/navigation/search.svg",
+            "workbench.asset.locate_selected_asset",
+            604.0,
+            100.0,
+            30.0,
+            30.0,
+            ButtonState::Normal,
         ),
         button(
             "ImportModel",
             "Quick Import",
             "primary",
             "workbench.asset.import_model",
-            718.0,
+            640.0,
             100.0,
             116.0,
             30.0,
@@ -376,6 +399,33 @@ fn button(
         component_role: "button".into(),
         button_variant: variant.into(),
         text: text.into(),
+        selected,
+        checked: selected,
+        hovered: matches!(state, ButtonState::Hovered),
+        focused: matches!(state, ButtonState::Focused),
+        frame: frame(x, y, width, height),
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn icon_button(
+    control_id: &str,
+    icon_name: &str,
+    action_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    state: ButtonState,
+) -> TemplatePaneNodeData {
+    let selected = matches!(state, ButtonState::Selected);
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        action_id: action_id.into(),
+        role: "IconButton".into(),
+        component_role: "icon-button".into(),
+        icon_name: icon_name.into(),
+        icon_placement: "icon_only".into(),
         selected,
         checked: selected,
         hovered: matches!(state, ButtonState::Hovered),

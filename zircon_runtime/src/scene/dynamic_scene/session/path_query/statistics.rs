@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::{io as archive_io, RuntimeSessionArchiveError, RuntimeSessionArchiveStatistics};
+use super::super::{RuntimeSessionArchiveError, RuntimeSessionArchiveStatistics, io as archive_io};
 
 pub(in crate::scene::dynamic_scene::session) fn statistics_from_path(
     path: impl AsRef<Path>,

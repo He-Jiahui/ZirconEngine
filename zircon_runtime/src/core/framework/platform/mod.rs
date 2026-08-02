@@ -6,11 +6,12 @@ mod runtime_target_mode;
 
 pub use module_identity::PLATFORM_MODULE_NAME;
 pub use preferences::{
-    PreferenceDurabilityState, PreferenceFlushTicket, PreferenceKey, PreferenceKeyError,
-    PreferenceKeyErrorKind, PreferenceMutationCancelError, PreferenceMutationCancellation,
-    PreferenceMutationSubmission, PreferenceMutationTerminal, PreferenceMutationTicket,
-    PreferencePersistenceFailureProjection, PreferenceReadSnapshot, PreferenceStorage,
-    PreferenceStorageBackendKind, PreferenceStorageError, PreferenceStorageErrorKind,
-    PreferenceStorageOperation, PreferenceTicketWaitResult, PreferenceWorkDeadline,
+    PreferenceDurabilityState, PreferenceEviction, PreferenceFlushTicket, PreferenceKey,
+    PreferenceKeyError, PreferenceKeyErrorKind, PreferenceMutationCancelError,
+    PreferenceMutationCancellation, PreferenceMutationSubmission, PreferenceMutationTerminal,
+    PreferenceMutationTicket, PreferencePersistenceFailureProjection, PreferenceReadSnapshot,
+    PreferenceStorage, PreferenceStorageBackendKind, PreferenceStorageError,
+    PreferenceStorageErrorKind, PreferenceStorageOperation, PreferenceTicketWaitResult,
+    PreferenceWorkDeadline,
 };
 pub use runtime_target_mode::RuntimeTargetMode;

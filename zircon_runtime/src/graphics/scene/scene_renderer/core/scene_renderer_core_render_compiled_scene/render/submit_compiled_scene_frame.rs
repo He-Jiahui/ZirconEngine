@@ -10,19 +10,15 @@ use crate::core::framework::render::{
     RenderPostProcessEffectStackSettings, RenderSceneVelocityReadbackReport, RenderTonemapOperator,
     RenderTonemapSettings,
 };
-use crate::graphics::backend::GpuPassTimer;
 #[cfg(test)]
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::write_ibl_bake_runtime_cache_from_graph_resources;
 use crate::graphics::scene::scene_renderer::environment::RealtimeIblPendingSubmission;
+use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::write_ibl_bake_runtime_cache_from_graph_resources;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources,
 };
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
-use crate::graphics::scene::scene_renderer::mesh::{
-    MeshIndirectArgsReadback, MeshPassIndirectDrawExecutions,
-};
 use crate::graphics::types::GraphicsError;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::{
@@ -36,15 +32,14 @@ use super::super::super::scene_renderer_core::SceneRendererCore;
 pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
     pub(super) device: &'a wgpu::Device,
     pub(super) queue: &'a wgpu::Queue,
-    pub(super) encoder: wgpu::CommandEncoder,
+    pub(super) command_buffers: Vec<wgpu::CommandBuffer>,
     pub(super) streamer: &'a ResourceStreamer,
     pub(super) frame: &'a ViewportRenderFrame,
     pub(super) graph_resources: &'a mut RenderGraphExecutionResources,
     pub(super) graph_execution_record: &'a mut RenderGraphExecutionRecord,
-    pub(super) mesh_pass_indirect_draws: &'a MeshPassIndirectDrawExecutions,
     pub(super) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
     pub(super) realtime_ibl_submission: Option<RealtimeIblPendingSubmission>,
-    pub(super) gpu_pass_timer: Option<&'a mut GpuPassTimer>,
+    pub(super) readback_frame_index: Option<u64>,
 }
 
 impl SceneRendererCore {
@@ -55,33 +50,33 @@ impl SceneRendererCore {
         let CompiledSceneFrameSubmissionContext {
             device,
             queue,
-            mut encoder,
+            command_buffers,
             streamer,
             frame,
             graph_resources,
             graph_execution_record,
-            mesh_pass_indirect_draws,
             environment_ibl_bake_request,
             realtime_ibl_submission,
-            gpu_pass_timer,
+            readback_frame_index,
         } = ctx;
 
-        let hzb_occlusion_indirect_args_readbacks = encode_hzb_occlusion_indirect_args_readbacks(
-            device,
-            &mut encoder,
-            mesh_pass_indirect_draws,
-            graph_execution_record,
-        );
-        queue.submit([encoder.finish()]);
-        if let Some(timer) = gpu_pass_timer {
-            timer.after_submit();
-        }
+        debug_assert!(!command_buffers.is_empty());
+        queue.submit(command_buffers);
         if let Some(submission) = realtime_ibl_submission {
-            self.realtime_ibl
-                .complete_submission(device, queue, submission, true);
-        } else {
-            self.realtime_ibl.poll_gpu_timestamps(device);
+            self.realtime_ibl.complete_submission(submission, true);
         }
+        let readback_map_result = if let Some(readback_frame_index) = readback_frame_index {
+            let result = self
+                .readback_queue
+                .begin_map(readback_frame_index)
+                .map_err(|error| GraphicsError::BufferMap(error.to_string()));
+            if result.is_err() {
+                self.readback_queue.abort_frame(readback_frame_index);
+            }
+            result
+        } else {
+            Ok(())
+        };
 
         #[cfg(not(test))]
         let _ = (streamer, frame);
@@ -108,18 +103,17 @@ impl SceneRendererCore {
         if let Some(hzb_occlusion_culler) = self.hzb_occlusion_culler.as_ref() {
             attach_hzb_occlusion_readback_stats(
                 hzb_occlusion_culler,
-                device,
-                hzb_occlusion_indirect_args_readbacks,
+                readback_frame_index,
                 graph_execution_record,
             );
         }
-        attach_environment_ibl_runtime_cache_writeback(
+        let environment_ibl_writeback_result = attach_environment_ibl_runtime_cache_writeback(
             device,
             queue,
             streamer,
             environment_ibl_bake_request,
             graph_resources,
-        )?;
+        );
         graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
         self.transient_resource_pool.end_frame();
         graph_execution_record.set_resource_report(
@@ -127,6 +121,8 @@ impl SceneRendererCore {
                 .resource_report()
                 .with_transient_pool_report(self.transient_resource_pool.last_frame_report()),
         );
+        readback_map_result?;
+        environment_ibl_writeback_result?;
         Ok(())
     }
 }
@@ -587,8 +583,7 @@ fn rgba8_len(width: u32, height: u32) -> Option<usize> {
 
 fn attach_hzb_occlusion_readback_stats(
     culler: &HzbOcclusionCuller,
-    device: &wgpu::Device,
-    indirect_args_readbacks: Vec<MeshIndirectArgsReadback>,
+    current_frame_index: Option<u64>,
     graph_execution_record: &mut RenderGraphExecutionRecord,
 ) {
     let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
@@ -598,54 +593,63 @@ fn attach_hzb_occlusion_readback_stats(
         report
             .with_readback_stats(HzbOcclusionCullReadbackStats::default())
             .with_indirect_args_readback(HzbOcclusionIndirectArgsReadbackSummary::default())
-    } else if let Some(readback_stats) = culler.collect_last_readback_stats(device) {
-        report.with_readback_stats(readback_stats)
+    } else if let Some((source_frame_index, readback_stats)) = culler.collect_last_readback_stats() {
+        report
+            .with_readback_stats(readback_stats)
+            .with_readback_stats_source_frame_index(source_frame_index)
     } else {
         report
     };
     if report.dispatched_phase_count > 0 {
-        if let Some(summary) =
-            collect_hzb_occlusion_indirect_args_readback_summary(device, indirect_args_readbacks)
-        {
-            report = report.with_indirect_args_readback(summary);
+        if let Some((source_frame_index, summary)) = culler.collect_last_indirect_args_summary() {
+            report = report
+                .with_indirect_args_readback(summary)
+                .with_indirect_args_readback_source_frame_index(source_frame_index);
         }
     }
+    let report = culler.with_readback_queue_diagnostics(report, current_frame_index);
     graph_execution_record.set_hzb_occlusion_cull_report(report);
 }
 
-fn encode_hzb_occlusion_indirect_args_readbacks(
-    device: &wgpu::Device,
-    encoder: &mut wgpu::CommandEncoder,
-    indirect_draws: &MeshPassIndirectDrawExecutions,
-    graph_execution_record: &RenderGraphExecutionRecord,
-) -> Vec<MeshIndirectArgsReadback> {
-    let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
-        return Vec::new();
-    };
-    if report.dispatched_phase_count == 0 {
-        return Vec::new();
+#[cfg(test)]
+mod submission_order_tests {
+    #[test]
+    fn compiled_scene_propagates_post_submit_errors_after_transient_cleanup() {
+        let source = include_str!("submit_compiled_scene_frame.rs");
+        let map_result = source.find("let readback_map_result").unwrap_or_default();
+        let writeback_result = source
+            .find("let environment_ibl_writeback_result")
+            .unwrap_or_default();
+        let release = source
+            .find("graph_resources.release_transient_backings_into_pool")
+            .unwrap_or_default();
+        let map_propagation = source.find("readback_map_result?;").unwrap_or_default();
+        let writeback_propagation = source
+            .find("environment_ibl_writeback_result?;")
+            .unwrap_or_default();
+
+        assert!(map_result < release);
+        assert!(writeback_result < release);
+        assert!(release < map_propagation);
+        assert!(map_propagation < writeback_propagation);
     }
 
-    indirect_draws.copy_hzb_occlusion_args_to_readbacks(
-        device,
-        encoder,
-        "zircon-hzb-occlusion-indirect-args-readback",
-    )
-}
+    #[test]
+    fn immediate_scene_finalizes_submitted_state_before_readback_error() {
+        let source = include_str!("../../scene_renderer_core_render_scene/render_scene.rs");
+        let map_error = source.find("let readback_map_error").unwrap_or_default();
+        let complete_submission = source
+            .find("self.realtime_ibl.complete_submission")
+            .unwrap_or_default();
+        let roll_transforms = source
+            .find("self.gpu_scene.roll_prev_transforms_after_success")
+            .unwrap_or_default();
+        let propagate = source
+            .find("if let Some(error) = readback_map_error")
+            .unwrap_or_default();
 
-fn collect_hzb_occlusion_indirect_args_readback_summary(
-    device: &wgpu::Device,
-    readbacks: Vec<MeshIndirectArgsReadback>,
-) -> Option<HzbOcclusionIndirectArgsReadbackSummary> {
-    let mut summary = HzbOcclusionIndirectArgsReadbackSummary::default();
-    for readback in readbacks {
-        let snapshot = readback.collect(device)?;
-        summary.add_assign(HzbOcclusionIndirectArgsReadbackSummary::new(
-            snapshot.args_count(),
-            snapshot.compacted_draw_count(),
-            snapshot.zero_instance_arg_count(),
-            snapshot.remaining_instance_count(),
-        ));
+        assert!(map_error < complete_submission);
+        assert!(complete_submission < roll_transforms);
+        assert!(roll_transforms < propagate);
     }
-    Some(summary)
 }

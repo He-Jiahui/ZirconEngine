@@ -12,10 +12,16 @@ related_code:
   - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
+  - zircon_runtime/src/graphics/visibility/spatial_query.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs
   - zircon_editor/src/scene/viewport/interaction_extract/cache.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidates.rs
+  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
+  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs
+  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
 ---
 
 # Viewport picking visible spatial query
@@ -62,10 +68,25 @@ Render04 只发布“渲染提交内部的可见性结果”，没有发布可�
 
 ## 修复结果与回传
 
-Open state: `等待 Render04 发布 generation-bound renderer-neutral visible spatial query；完成后通过 lifecycle key 回传 Editor05 failure，再由 Editor05 接入 cursor broad phase并补 1/1k/10k 与 p95 证据`。
+Render04 now publishes an immutable renderer-neutral snapshot bound to source world, viewport,
+frame generation and main view. It reuses COW static and dynamic visibility indexes, returns sorted
+entities with visit/candidate/hit stats, and applies bounded-cell queries with a conservative COW
+overflow set for extreme indexed bounds plus a visible-entry fallback for extreme finite queries.
+The contract also supports normalized cursor-ray queries through bounded grid traversal, so pointer
+selection need not represent a long ray as a scene-wide sphere. Editor frame extracts now bind their
+world snapshot handle to `Scene::world_generation()`, allowing stale query identities to be rejected.
+Editor05 now consumes the facade only after a successful viewport submission: it adopts only the
+matching world generation, maps query-hit owners through an immutable interaction-generation owner table,
+and combines those candidates with UI handle/gizmo candidates in the existing runtime picking
+resolver. Camera, resize, extract/world mutation and unavailable facade states clear the dynamic
+source; rectangle selection retains its independent extract-owned candidate table. Managed 1/1k/10k
+validation and render evidence remain pending.
 
 ## 产出记录与时间
 
 | 日期 | 事项 | 状态 | 证据与后续 |
 | --- | --- | --- | --- |
-| 2026-07-18 | Editor05 → Render04 visible spatial query failure handoff | 待修复（open） | 源码确认 runtime 已有 `FrameVisibility`、private static uniform-grid 与 persistent viewport history，但 viewport packet 无同 generation query snapshot，dynamic 也无 query budget；验收/禁止方案已记录，Editor05 不会复制 runtime 索引。 |
+| 2026-07-18 | Editor05 → Render04 visible spatial query failure handoff | 运行时源码已修复（open） | immutable generation-bound query snapshot、COW static/dynamic index、bounded bounds/ray query 与 source-world generation binding 均归 Render04；Editor05 不会复制 runtime 索引。 |
+| 2026-08-01 | Render04 immutable visible spatial query source slice | 修复中（resolving_failure） | runtime contract、viewport generation snapshot、COW static/dynamic index reuse and bounded fallback are implemented; Editor05 consumer and managed validation remain open. |
+| 2026-08-02 | Render04 cursor-ray query and world-generation binding | 修复中（resolving_failure） | `RenderSpatialRay` 由 framework contract 承载，static/dynamic grid 共用一次归一化的 bounded traversal，ray result 保留 stable sorted entities 与 visits/candidates/hits；未声明运行时验收。 |
+| 2026-08-02 | Editor05 renderer facade query consumer | 源码修复完成（open） | successful submit 后经 `RenderFramework::query_visible_spatial_snapshot` 取回同代 snapshot；pointer event 仅为 ray-query hit owners 构造 renderable candidates，并与 handle/gizmo runtime resolver 合并。错代/不可用 snapshot 清空动态 source，受管 1/1k/10k 与截图证据仍待执行。 |

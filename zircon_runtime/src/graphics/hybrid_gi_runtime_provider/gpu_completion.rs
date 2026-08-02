@@ -162,10 +162,10 @@ mod tests {
 
     #[test]
     fn gpu_completion_skips_empty_neutral_hybrid_gi_readback_outputs() {
-        assert!(
-            HybridGiGpuCompletion::from_readback_outputs(RenderHybridGiReadbackOutputs::default())
-                .is_none()
-        );
+        assert!(HybridGiGpuCompletion::from_readback_outputs(
+            RenderHybridGiReadbackOutputs::default()
+        )
+        .is_none());
     }
 
     #[test]

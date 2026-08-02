@@ -91,3 +91,88 @@ fn compile_exposes_inferred_resource_dependencies_on_compiled_passes() {
     assert_eq!(final_blit_pass.dependencies, vec![opaque]);
     assert_eq!(graph.stats().total_dependency_count, 1);
 }
+
+#[test]
+fn compile_accepts_transitively_ordered_resource_writers() {
+    let mut builder = RenderGraphBuilder::new("transitive-writers");
+    let color = builder.create_texture(TextureDesc::new(
+        "scene-color",
+        64,
+        64,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT,
+    ));
+    let first_writer = builder.add_pass("first-writer", QueueLane::Graphics);
+    let ordering_bridge = builder.add_pass("ordering-bridge", QueueLane::Graphics);
+    let second_writer = builder.add_pass("second-writer", QueueLane::Graphics);
+    builder.write_texture(first_writer, color).unwrap();
+    builder.write_texture(second_writer, color).unwrap();
+    builder
+        .add_dependency(first_writer, ordering_bridge)
+        .unwrap();
+    builder
+        .add_dependency(ordering_bridge, second_writer)
+        .unwrap();
+    builder
+        .set_pass_flags(
+            second_writer,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
+
+    let graph = builder.compile().unwrap();
+
+    assert_eq!(
+        graph
+            .passes()
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["first-writer", "ordering-bridge", "second-writer"]
+    );
+}
+
+#[test]
+fn compile_accepts_transitive_writer_chains_across_reachability_words() {
+    for pass_count in [65, 129] {
+        let mut builder = RenderGraphBuilder::new("wide-transitive-writers");
+        let color = builder.create_texture(TextureDesc::new(
+            "scene-color",
+            64,
+            64,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT,
+        ));
+        let first_writer = builder.add_pass("first-writer", QueueLane::Graphics);
+        let mut previous = first_writer;
+        for index in 1..pass_count {
+            let bridge = builder.add_pass(format!("ordering-bridge-{index}"), QueueLane::Graphics);
+            builder.add_dependency(previous, bridge).unwrap();
+            previous = bridge;
+        }
+        builder.write_texture(first_writer, color).unwrap();
+        builder.write_texture(previous, color).unwrap();
+        builder
+            .set_pass_flags(
+                previous,
+                PassFlags {
+                    has_side_effects: true,
+                    ..PassFlags::default()
+                },
+            )
+            .unwrap();
+
+        let graph = builder.compile().unwrap();
+
+        assert_eq!(graph.passes().len(), pass_count);
+        assert!(graph.passes().iter().all(|pass| !pass.culled));
+        assert_eq!(
+            graph.passes().first().map(|pass| pass.id),
+            Some(first_writer)
+        );
+        assert_eq!(graph.passes().last().map(|pass| pass.id), Some(previous));
+    }
+}

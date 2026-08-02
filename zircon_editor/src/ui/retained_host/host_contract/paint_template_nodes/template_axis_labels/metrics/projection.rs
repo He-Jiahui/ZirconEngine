@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 use super::model::AxisLabelMetrics;
 
 const LINK_LOBE_WIDTH_BORDER_UNITS: f32 = 2.0;
@@ -6,8 +6,8 @@ const LINK_OVERLAP_BORDER_UNITS: f32 = 2.0;
 const LINK_LOBE_RADIUS_RATIO: f32 = 0.5;
 const MIN_LINK_METRIC_EXTENT: f32 = 1.0;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_label_metrics(
-) -> AxisLabelMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_label_metrics()
+-> AxisLabelMetrics {
     axis_label_metrics_from_host(current_host_metrics())
 }
 

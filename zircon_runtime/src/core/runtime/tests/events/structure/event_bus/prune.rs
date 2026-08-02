@@ -1,4 +1,4 @@
-use super::fixture::{EventBusSources, assert_absent, assert_contains, assert_ordered};
+use super::fixture::{assert_absent, assert_contains, assert_ordered, EventBusSources};
 
 #[test]
 fn event_bus_drop_deactivates_and_removes_the_subscription_from_its_topic() {

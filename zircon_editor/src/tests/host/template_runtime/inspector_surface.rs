@@ -35,8 +35,7 @@ fn editor_ui_host_runtime_projects_builtin_inspector_surface_template_into_retai
             "PositionXField",
             "PositionYField",
             "PositionZField",
-            "ApplyBatchButton",
-            "DeleteSelected",
+            "InspectorActionsRow",
         ]
     );
 
@@ -57,6 +56,39 @@ fn editor_ui_host_runtime_projects_builtin_inspector_surface_template_into_retai
     assert_eq!(apply.binding.path().event_kind, UiEventKind::Click);
     assert_eq!(apply.binding.path().view_id, "InspectorView");
     assert_eq!(apply.binding.path().control_id, "ApplyBatchButton");
+}
+
+#[test]
+fn inspector_actions_stay_in_one_dense_responsive_row() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/host/inspector_surface_controls.zui"),
+    )
+    .expect("inspector controls template should be readable");
+
+    assert!(
+        source.contains(
+            "component = \"HorizontalGroup\"\ncontrol_id = \"InspectorActionsRow\"\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }"
+        ),
+        "inspector commands must share one dense action row rather than stretch independently in the vertical form"
+    );
+    for control_id in ["ApplyBatchButton", "DeleteSelected"] {
+        let control_start = source
+            .find(&format!("control_id = \"{control_id}\""))
+            .expect("inspector action must remain in the template");
+        let control = &source[control_start..];
+        let layout_end = control
+            .find("\nevents =")
+            .expect("inspector action must declare an event after its layout");
+        assert!(
+            control[..layout_end].contains("width = { stretch = \"Stretch\" }"),
+            "{control_id} must share the available action-row width"
+        );
+    }
+    assert!(
+        !source.contains("preferred = 84.0") && !source.contains("preferred = 88.0"),
+        "inspector actions must not keep fixed desktop-only widths"
+    );
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use super::*;
 use crate::core::framework::render::{
-    GBufferChannelMask, RenderQueueValue, SHADING_MODEL_PLUGIN_ID_START, ShadingModelDescriptor,
-    ShadingModelId,
+    GBufferChannelMask, RenderQueueValue, ShadingModelDescriptor, ShadingModelId,
+    SHADING_MODEL_PLUGIN_ID_START,
 };
 
 mod pbr_projection;
@@ -475,14 +475,12 @@ fn render_product_streamer_shader_standard_alias_shadows_unresolved_stale_textur
     assert!(material.readiness_report.is_ready());
     assert!(material.readiness_report.validation_errors.is_empty());
     assert!(material.readiness_report.fallback_usages.is_empty());
-    assert!(
-        material
-            .readiness_report
-            .dependencies
-            .textures
-            .iter()
-            .all(|reference| reference.locator != locator("res://textures/missing-stale-base.png"))
-    );
+    assert!(material
+        .readiness_report
+        .dependencies
+        .textures
+        .iter()
+        .all(|reference| reference.locator != locator("res://textures/missing-stale-base.png")));
 }
 
 #[test]

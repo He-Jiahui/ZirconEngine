@@ -864,6 +864,7 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -1241,6 +1242,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -1767,6 +1769,7 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -2105,6 +2108,7 @@ fn build_node_and_cluster_cull_history_extract(
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

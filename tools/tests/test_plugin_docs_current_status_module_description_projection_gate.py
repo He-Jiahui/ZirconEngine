@@ -39,7 +39,6 @@ class PluginValidateModuleDescriptionProjectionStatusTests(unittest.TestCase):
             "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
             "docs/plans/engine-code-structure-convention.md",
             "docs/plans/engine-code-review-findings-2026-06.md",
-            ".codex/sessions/20260702-2358-runtime-frameworks-foundation.md",
         ]
         framework_required = [
             FRAMEWORKS_STATUS_ID,

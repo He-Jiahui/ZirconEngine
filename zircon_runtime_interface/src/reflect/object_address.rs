@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ReflectError, type_path::validate_non_empty_type_path};
+use super::{type_path::validate_non_empty_type_path, ReflectError};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]

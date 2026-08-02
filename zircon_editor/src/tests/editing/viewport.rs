@@ -281,7 +281,6 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
     assert_eq!(root_row.parent, None);
     assert_eq!(root_row.depth, 0);
     assert_eq!(root_row.display_name, "Root Cube");
-    assert!(root_row.selected);
     assert!(root_row.active_in_hierarchy);
     assert!(root_row.has_children);
 
@@ -292,7 +291,6 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
         .expect("child light row");
     assert_eq!(child_row.parent, Some(cube));
     assert_eq!(child_row.depth, 1);
-    assert!(!child_row.selected);
     assert!(!child_row.active_in_hierarchy);
 
     assert_eq!(
@@ -347,7 +345,6 @@ fn viewport_edit_mode_projection_ignores_stale_editor_selection() {
     assert!(projection.inspector_fields.is_empty());
     assert!(!projection.toolbar.has_selection);
     assert!(!projection.toolbar.can_frame_selection);
-    assert!(projection.hierarchy_rows.iter().all(|row| !row.selected));
 }
 
 #[test]

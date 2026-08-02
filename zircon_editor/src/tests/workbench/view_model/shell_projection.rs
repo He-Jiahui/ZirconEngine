@@ -53,12 +53,14 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             "Help"
         ]
     );
-    assert!(model
-        .menu_bar
-        .menus
-        .iter()
-        .flat_map(|menu| menu.items.iter())
-        .any(|item| item.action.as_ref() == Some(&MenuAction::Undo) && item.enabled));
+    assert!(
+        model
+            .menu_bar
+            .menus
+            .iter()
+            .flat_map(|menu| menu.items.iter())
+            .any(|item| item.action.as_ref() == Some(&MenuAction::Undo) && item.enabled)
+    );
     let undo_operation = model
         .menu_bar
         .menus
@@ -80,10 +82,12 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         vec!["Workbench", "Scene"]
     );
     assert!(model.drawer_ring.visible);
-    assert!(model
-        .drawer_ring
-        .drawers
-        .contains_key(&ActivityDrawerSlot::LeftTop));
+    assert!(
+        model
+            .drawer_ring
+            .drawers
+            .contains_key(&ActivityDrawerSlot::LeftTop)
+    );
     assert_eq!(model.status_bar.primary_text, "Editor booted");
     assert_eq!(model.status_bar.viewport_label, "1280 x 720");
     assert_eq!(model.status_bar.error_text, "No Errors");
@@ -298,6 +302,11 @@ fn workbench_view_model_freezes_drawers_for_exclusive_page() {
         model.host_strip.mode,
         MainHostStripModel::ExclusiveWindow { .. }
     ));
+    assert!(model.host_strip.pages[0].closeable);
+    assert_eq!(
+        model.host_strip.pages[0].close_instance_id,
+        Some(ViewInstanceId::new("editor.prefab#1"))
+    );
     assert_eq!(
         model
             .host_strip
@@ -425,10 +434,18 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
         )
         .unwrap();
 
-    let disabled_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
+    let mut contributions = crate::core::extension::ContributionStore::default();
+    contributions
+        .contribute(
+            crate::core::extension::ContributionSource::Builtin,
+            extension.into_contribution_batch().unwrap(),
+        )
+        .unwrap();
+    let contribution_snapshot = contributions.snapshot();
+    let disabled_model = WorkbenchViewModel::build_with_contributions_and_capabilities(
         &commands,
         &chrome,
-        &[extension.clone()],
+        &contribution_snapshot,
         &[],
     );
     let disabled_tools = disabled_model
@@ -463,10 +480,10 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
     );
 
     let enabled_capabilities = vec![weather_capability.to_string()];
-    let enabled_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
+    let enabled_model = WorkbenchViewModel::build_with_contributions_and_capabilities(
         &commands,
         &chrome,
-        &[extension],
+        &contribution_snapshot,
         &enabled_capabilities,
     );
     let enabled_tools = enabled_model
@@ -597,9 +614,10 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
 
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Ready".to_string(),
+            console_output: "Ready".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

@@ -1,4 +1,4 @@
-use super::commands::{workbench_popup_keyboard_command, WorkbenchPopupKeyboardCommand};
+use super::commands::{WorkbenchPopupKeyboardCommand, workbench_popup_keyboard_command};
 use winit::keyboard::{Key, NamedKey};
 
 #[test]

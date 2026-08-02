@@ -173,7 +173,7 @@ zircon_runtime/src/asset/pack/          # 既有模块扩：zrpack 写入器（�
 
 2026-07-19 性能 failure 子修复：`ExportGenerationInventory` 已升级为 generation + persistent file/directory/tool identity 唯一 owner，并完成流式完整日志/有界 tail、wizard typed delta/backpressure、native staging delta、Build/Export pane source/overlay cache 与 structured report parse-once。静态合同 9/9、snapshot 556、精确 rustfmt 40/40 通过。首次受管 Rust gate 因外部 Runtime 源竞态及 Editor05/Layout15 编译漂移 exit 101/tests 0；其中 Editor15 自有 E0509 和 overlay 可见性已修复，原 performance failure 继续 open，待外部 fixed-return 后运行 fresh focused/p95/review/managed commit。详见 [子计划记录](15/2026-07-18-export-generation-inventory.md) 与 [open failure](15/failure-2026-07-17-export-overlapping-recursive-digests.md)。
 
-- open / Coordinator01 待修复：failure-priority burst-eligible consume 在 concurrent warm job 下泄漏 SQLite UNIQUE internal error，详见 [burst-eligible-consume-warm-lane-unique-constraint](../../zircon_tooling/session_coordinator/01/failure-2026-07-18-burst-eligible-consume-warm-lane-unique-constraint.md)。
+- fixed / Coordinator01 已修复：failure-priority burst-eligible consume 的 concurrent warm job SQLite UNIQUE internal error 已返回，详见 [burst-eligible-consume-warm-lane-unique-constraint](15/fixed-2026-07-23-burst-eligible-consume-warm-lane-unique-constraint.md)。
 
 - open / Editor05 待修复：shared viewport extract 的 `Arc<[T]>` consumer 仍按旧容器引用迭代，详见 [viewport-shared-extract-arc-slice-iteration-compile-regression](05/failure-2026-07-19-viewport-shared-extract-arc-slice-iteration-compile-regression.md)。
 
@@ -191,7 +191,7 @@ M1.2 产出记录：[2026-07-12-m1-2-preset-production-pipeline.md](15/2026-07-1
 
 当前测试阶段记录（`in_progress`）：[m1-full-lib-partition-validation](15/2026-07-12-m1-full-lib-partition-validation.md)
 
-- 当前最低执行阻塞（`open / Runtime02 service-registry 强引用环`）：[service-corehandle-retention-cycle](../../zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md)
+- 已修复的历史阻塞（`fixed / Runtime02 service-registry 强引用环`）：[service-corehandle-retention-cycle](14/fixed-2026-07-14-service-corehandle-retention-cycle.md)
 
 - 后续资源预算复测（`open / Runtime11 task-pool 与 asset worker`）：[editor-full-harness-runtime-thread-budget](../../zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md)
 

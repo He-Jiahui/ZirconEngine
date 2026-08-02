@@ -146,9 +146,10 @@ fn search_workbench_field_prefers_shell_search_asset_pixels() {
     let metrics = workbench_field_metrics();
     assert_eq!(icon.frame.width, metrics.search_icon_size);
     assert_eq!(icon.frame.height, metrics.search_icon_size);
-    assert!(icon
-        .image_pixels
-        .as_ref()
-        .map(|image| !image.resource_key.starts_with("missing-icon:"))
-        .unwrap_or(false));
+    assert!(
+        icon.image_pixels
+            .as_ref()
+            .map(|image| !image.resource_key.starts_with("missing-icon:"))
+            .unwrap_or(false)
+    );
 }

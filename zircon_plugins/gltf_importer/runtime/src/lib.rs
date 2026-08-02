@@ -1,29 +1,38 @@
 mod capability;
+#[cfg(feature = "runtime")]
 mod plugin;
+#[cfg(feature = "runtime")]
 mod subassets;
-#[cfg(test)]
+#[cfg(all(test, feature = "runtime"))]
 mod test_fixtures;
 
+#[cfg(feature = "runtime")]
 use std::collections::BTreeMap;
+#[cfg(feature = "runtime")]
 use std::path::Path;
 
+#[cfg(feature = "runtime")]
 use subassets::{
     add_gltf_animation_placeholders_and_skin_subassets, add_gltf_material_subassets,
     add_gltf_mesh_subassets, add_gltf_scene_subassets, add_gltf_texture_subassets,
     gltf_label_reference, GltfMeshSubasset, GltfPrimitiveSubasset,
 };
+#[cfg(feature = "runtime")]
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
     ImportedAsset, MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, MeshVertex,
     ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL,
     MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
 };
+#[cfg(feature = "runtime")]
 use zircon_runtime::core::math::{Vec2, Vec3};
 
 pub use capability::{
-    GLTF_IMPORTER_DECLARATION, IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY,
-    RUNTIME_CRATE_NAME,
+    GLTF_IMPORTER_DECLARATION, IMPORTER_CAPABILITY, MODULE_NAME, NATIVE_PLUGIN_ID,
+    NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST,
+    PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
+#[cfg(feature = "runtime")]
 pub use plugin::{
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
     plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
@@ -31,6 +40,7 @@ pub use plugin::{
     GltfImporterRuntimePlugin, GLTF_IMPORTER_DIST_CRATE_NAME, GLTF_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
+#[cfg(feature = "runtime")]
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     validate_external_gltf_buffers(context)?;
     let (document, buffers, images) = gltf::import(&context.source_path)
@@ -147,6 +157,7 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     Ok(outcome)
 }
 
+#[cfg(feature = "runtime")]
 fn validate_external_gltf_buffers(context: &AssetImportContext) -> Result<(), AssetImportError> {
     let gltf = gltf::Gltf::from_slice(&context.source_bytes)
         .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
@@ -176,6 +187,7 @@ fn validate_external_gltf_buffers(context: &AssetImportContext) -> Result<(), As
     Ok(())
 }
 
+#[cfg(feature = "runtime")]
 fn morph_targets_from_reader<'a, 's, F>(
     reader: &gltf::mesh::Reader<'a, 's, F>,
 ) -> Vec<MeshMorphTargetAsset>
@@ -213,6 +225,7 @@ where
         .collect()
 }
 
+#[cfg(feature = "runtime")]
 fn mesh_skin_assets_by_mesh(
     document: &gltf::Document,
     buffers: &[gltf::buffer::Data],
@@ -243,6 +256,7 @@ fn mesh_skin_assets_by_mesh(
     mesh_skins
 }
 
+#[cfg(feature = "runtime")]
 fn primitive_from_indexed_mesh(
     positions: &[f32],
     normals: &[f32],
@@ -329,6 +343,7 @@ fn primitive_from_indexed_mesh(
     })
 }
 
+#[cfg(feature = "runtime")]
 fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
     let vertex_count = positions.len() / 3;
     let mut normals = vec![0.0_f32; vertex_count * 3];
@@ -357,5 +372,5 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
     normals
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "runtime"))]
 mod tests;

@@ -85,7 +85,9 @@ pub fn cook_virtual_geometry_from_mesh(
             source_hint: config.source_hint,
             notes: vec![format!(
                 "zircon-native cook: {} leaf cluster(s), {} triangle(s)/cluster, {} cluster(s)/page",
-                leaf_sources.len(), cluster_triangle_count, page_cluster_count
+                leaf_sources.len(),
+                cluster_triangle_count,
+                page_cluster_count
             )],
         },
     })

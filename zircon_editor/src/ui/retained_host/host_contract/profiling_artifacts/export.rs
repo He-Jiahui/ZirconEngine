@@ -1,12 +1,12 @@
 use std::fs;
 
 use super::super::data::HostWindowPresentationData;
-use super::super::presenter::{paint_host_presentation_snapshot, HostPresenterBackend};
+use super::super::presenter::{HostPresenterBackend, paint_host_presentation_snapshot};
+use super::UiProfileGeometry;
 use super::environment::{
     is_forced_softbuffer_screenshot_run, profile_capture_enabled, profile_export_dir,
     profile_screenshot_capture_enabled,
 };
-use super::UiProfileGeometry;
 use crate::ui::retained_host::primitives::PhysicalSize;
 
 const GEOMETRY_FILE: &str = "ui_profile_geometry.json";

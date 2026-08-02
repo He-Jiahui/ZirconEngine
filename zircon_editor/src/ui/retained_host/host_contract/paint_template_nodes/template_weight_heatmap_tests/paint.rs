@@ -12,12 +12,16 @@ fn weight_heatmap_paints_a_continuous_multicolor_field_and_source_markers() {
 
     assert!(changed_pixels(&bytes, [0, 0, 0, 255]) > 18_000);
     assert!(colors.len() > 40, "expected a multicolor heat field");
-    assert!(bytes
-        .chunks_exact(4)
-        .any(|pixel| pixel[0] > 180 && pixel[1] < 120));
-    assert!(bytes
-        .chunks_exact(4)
-        .any(|pixel| pixel[2] > 120 && pixel[0] < 80));
+    assert!(
+        bytes
+            .chunks_exact(4)
+            .any(|pixel| pixel[0] > 180 && pixel[1] < 120)
+    );
+    assert!(
+        bytes
+            .chunks_exact(4)
+            .any(|pixel| pixel[2] > 120 && pixel[0] < 80)
+    );
 }
 
 #[test]

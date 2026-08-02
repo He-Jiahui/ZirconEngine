@@ -4,6 +4,8 @@ mod decode;
 mod fdsm_gen;
 pub(crate) mod font_bake;
 mod generation_error;
+mod generation_scheduler;
+mod generation_source;
 mod geometry_preprocess;
 mod glyph_data;
 mod mode;
@@ -11,6 +13,15 @@ mod offline;
 mod params;
 
 pub(crate) use generation_error::SdfGlyphGenerationError;
+pub(crate) use generation_scheduler::{
+    SdfGenerationCompletion, SdfGenerationCompletionDrainBudget, SdfGenerationInactiveWorkOutcome,
+    SdfGenerationScheduler, SdfGenerationSchedulerDiagnostics, SdfGenerationSchedulerOptions,
+    SdfGenerationSubmitError, SdfGenerationWorkId,
+};
+pub(crate) use generation_source::{
+    SdfGenerationBatch, SdfGenerationBatchGlyph, SdfGenerationBatchReport,
+    SdfGenerationSourceContext, SdfGenerationSourceHandle, SdfGenerationSourceReport,
+};
 pub(crate) use glyph_data::SdfGlyphData;
 pub(crate) use mode::SdfMode;
 pub(crate) use offline::{
@@ -30,6 +41,7 @@ pub(crate) use fdsm_gen::{
 };
 pub(crate) use font_bake::{
     scale_sdf_metrics_for_display, sdf_scalar_is_invisible_format, sdf_scalar_requires_atlas_slot,
-    SdfAtlasBake, SdfAtlasBakeReport, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakedGlyph,
+    SdfAtlasBake, SdfAtlasBakeDirtyPage, SdfAtlasBakePage, SdfAtlasBakeReport,
+    SdfAtlasGlyphGenerationFailure, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakedGlyph,
     SdfFontBakeCache, SdfGlyphMetrics, SdfRunCpuPreparation, SdfShapedGlyphIdentity, SdfTextRun,
 };

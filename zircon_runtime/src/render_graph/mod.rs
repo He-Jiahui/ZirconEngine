@@ -4,6 +4,7 @@ mod builder;
 mod dump;
 mod error;
 mod graph;
+mod store_lint;
 mod types;
 
 pub use builder::RenderGraphBuilder;
@@ -15,6 +16,10 @@ pub use error::RenderGraphError;
 pub use graph::{
     CompiledRenderGraph, CompiledRenderGraphStats, CompiledRenderGraphTransientAllocation,
     CompiledRenderGraphTransientAllocationPlan, CompiledRenderPass,
+};
+pub use store_lint::{
+    RenderGraphAttachmentBandwidthLedger, RenderGraphAttachmentBandwidthRow,
+    RenderGraphStoreLintKind, RenderGraphStoreLintReport, RenderGraphStoreLintRow,
 };
 pub use types::{
     ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,

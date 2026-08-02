@@ -2,7 +2,7 @@ use crate::scene::ecs::{
     Bundle, Command, CommandQueue, Component, DeferredCommandError, DeferredCommandOperation,
     FnCommand, Resource,
 };
-use crate::scene::{EntityId, World};
+use crate::scene::{EntityId, SceneError, World};
 
 use super::entity_commands::EntityCommands;
 
@@ -26,8 +26,18 @@ impl<'world> Commands<'world> {
 
     pub fn spawn_empty(&mut self) -> EntityCommands<'_> {
         let entity = self.queue_reserved_entity();
-        self.queue_fn(move |world| {
-            world.spawn_empty_at(entity);
+        self.queue_fn(move |world| match world.spawn_empty_at(entity) {
+            Ok(true) => {}
+            Ok(false) => world.record_deferred_command_error(DeferredCommandError::new(
+                DeferredCommandOperation::Spawn,
+                entity,
+                SceneError::DuplicateEntity { entity }.to_string(),
+            )),
+            Err(error) => world.record_deferred_command_error(DeferredCommandError::new(
+                DeferredCommandOperation::Spawn,
+                entity,
+                error.to_string(),
+            )),
         });
         self.entity(entity)
     }
@@ -55,7 +65,13 @@ impl<'world> Commands<'world> {
 
     pub fn entity_or_spawn(&mut self, entity: EntityId) -> EntityCommands<'_> {
         self.queue_fn(move |world| {
-            world.spawn_empty_at(entity);
+            if let Err(error) = world.spawn_empty_at(entity) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Spawn,
+                    entity,
+                    error.to_string(),
+                ));
+            }
         });
         self.entity(entity)
     }

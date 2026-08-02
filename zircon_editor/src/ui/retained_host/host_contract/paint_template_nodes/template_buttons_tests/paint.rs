@@ -9,10 +9,10 @@ use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_nodes::{
     paint_template_nodes_for_test, push_template_node_commands,
 };
-use super::super::content::button_label_paint_style_with_preferences;
+use super::super::{button_kind, content::button_label_paint_style_with_preferences};
 use super::support::{
-    changed_pixel_count, pixel_at, positioned_button_node, resolved_button_style,
-    TemplatePaneNodeDataTestExt,
+    TemplatePaneNodeDataTestExt, changed_pixel_count, pixel_at, positioned_button_node,
+    resolved_button_style,
 };
 use crate::ui::layouts::common::model_rc;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -324,6 +324,39 @@ fn workbench_button_with_svg_icon_paints_asset_pixels_before_label() {
 }
 
 #[test]
+fn icon_only_button_centers_asset_icon_without_painting_its_accessible_label() {
+    let mut node = positioned_button_node(
+        "WorkbenchIconOnly",
+        "Focus Console",
+        "text",
+        12.0,
+        8.0,
+        28.0,
+        28.0,
+    );
+    node.icon_name = "editor_pages/console_profiler/logs/log-info.svg".into();
+    node.icon_placement = "icon_only".into();
+    let origin = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 52.0,
+        height: 44.0,
+    };
+    let clip = origin.clone();
+    let mut commands = Vec::new();
+
+    push_template_node_commands(&mut commands, &node, &origin, &clip, None, 0);
+
+    let icon = commands
+        .iter()
+        .find(|command| command.image_pixels.is_some())
+        .expect("icon-only button asset icon");
+    assert!(commands.iter().all(|command| command.text.is_none()));
+    assert!((icon.frame.x + icon.frame.width * 0.5 - 26.0).abs() < 0.001);
+    assert!((icon.frame.y + icon.frame.height * 0.5 - 22.0).abs() < 0.001);
+}
+
+#[test]
 fn semantic_button_glyphs_prefer_shell_asset_pixels() {
     let cases = [
         ("WorkbenchAddComponent", "Add Component", "outlined"),
@@ -589,12 +622,65 @@ fn asset_browser_utility_tab_label_role_can_switch_to_code_text_preference() {
         code_weight: 400,
     };
 
-    let utility_style = button_label_paint_style_with_preferences(&utility_tab, &preferences);
-    let ordinary_style = button_label_paint_style_with_preferences(&ordinary_button, &preferences);
+    let utility_style = button_label_paint_style_with_preferences(
+        &utility_tab,
+        button_kind(&utility_tab),
+        &preferences,
+    );
+    let ordinary_style = button_label_paint_style_with_preferences(
+        &ordinary_button,
+        button_kind(&ordinary_button),
+        &preferences,
+    );
 
     assert!(utility_style.code);
     assert!(!utility_style.emphasis);
     assert!(!ordinary_style.code);
+}
+
+#[test]
+fn primary_button_label_defaults_to_strong_weight_without_affecting_secondary_buttons() {
+    let primary_button = positioned_button_node(
+        "WorkbenchPrimaryButton",
+        "Compile",
+        "filled",
+        12.0,
+        8.0,
+        88.0,
+        28.0,
+    );
+    let secondary_button = positioned_button_node(
+        "WorkbenchSecondaryButton",
+        "Cancel",
+        "secondary",
+        12.0,
+        8.0,
+        88.0,
+        28.0,
+    );
+    let mut explicitly_strong_secondary = secondary_button.clone();
+    explicitly_strong_secondary.font_weight = 600;
+    let preferences = HostTextPreferences::default();
+
+    let primary_style = button_label_paint_style_with_preferences(
+        &primary_button,
+        button_kind(&primary_button),
+        &preferences,
+    );
+    let secondary_style = button_label_paint_style_with_preferences(
+        &secondary_button,
+        button_kind(&secondary_button),
+        &preferences,
+    );
+    let explicit_secondary_style = button_label_paint_style_with_preferences(
+        &explicitly_strong_secondary,
+        button_kind(&explicitly_strong_secondary),
+        &preferences,
+    );
+
+    assert!(primary_style.strong);
+    assert!(!secondary_style.strong);
+    assert!(explicit_secondary_style.strong);
 }
 
 #[test]

@@ -38,14 +38,14 @@ requireText(dispatch, /case 'hot':[\s\S]*?const hybridHeal = res\.effects\.some\
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/swipe',[\s\S]*?'regrowth'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 93") ||
+    !zrGenerator.includes("document.entries.length === 93")) {
   throw new Error("M4 Regrowth projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "regrowth",
 );
-if (!entry || entry.index !== 65 || entry.definition.cost !== 55 ||
+if (!entry || entry.index !== 69 || entry.definition.cost !== 55 ||
     entry.definition.castTime !== 2 || entry.definition.targetType !== "friendly" ||
     entry.definition.effects?.length !== 2 ||
     entry.definition.effects[0].type !== "heal" || entry.definition.effects[0].min !== 52 ||
@@ -72,7 +72,7 @@ requireText(world, /completeOfflineRegrowthCast[\s\S]*?m4AbilityEffects\.count\(
   "Regrowth direct-then-HoT completion ordering is missing");
 requireText(world, /applyOfflineRegrowthHot[\s\S]*?hybridHotProfiles\.resolveHybridHotProfile[\s\S]*?offlineHotSnapshotPowers\.add\(0\)/,
   "Regrowth zero-snapshot HoT queue reducer is missing");
-requireText(world, /offlineHotStateIsValid[\s\S]*?hybridHotProfiles\.hybridHotProfileMatches/,
+requireText(world, /offlineHotStateIsValid[\s\S]*?hybridHotProfiles\.hybridHotProfileSnapshotMatches/,
   "Regrowth serialized HoT profile validation is missing");
 requireText(world, /applySupportedCastSlotCommand[\s\S]*?regrowthAbilityCode\(\)[\s\S]*?startOfflineRegrowthCast/,
   "Regrowth action-slot routing is missing");

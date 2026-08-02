@@ -1,3 +1,4 @@
+use super::pointer_hits::sorted_hits_by_pointer;
 use super::{
     CameraRaySource, PickingBackend, PickingEventState, PickingHoverMap, PickingPipelineReport,
     PickingPointerEvent, PickingScheduleLabel, PickingSettings, PointerHits, PointerInput,
@@ -112,7 +113,7 @@ pub fn run_picking_pipeline(
         backend_outputs.len(),
     ));
 
-    let hover_map = PickingHoverMap::from_outputs(&backend_outputs);
+    let (hover_map, report) = resolve_picking_outputs_with_ray_map(&ray_map, &backend_outputs);
     let hovered_hit_count = hover_map.iter().map(|(_, hits)| hits.len()).sum();
     stages.push(PickingPipelineStageReport::new(
         PickingScheduleLabel::Hover,
@@ -133,8 +134,6 @@ pub fn run_picking_pipeline(
         events.len(),
     ));
 
-    let report = PickingPipelineReport::from_ray_map_and_outputs(&ray_map, &backend_outputs);
-
     PickingPipelineOutput {
         ray_map,
         backend_outputs,
@@ -143,6 +142,23 @@ pub fn run_picking_pipeline(
         report,
         stages,
     }
+}
+
+pub fn resolve_picking_outputs(
+    outputs: &[PointerHits],
+) -> (PickingHoverMap, PickingPipelineReport) {
+    resolve_picking_outputs_with_ray_map(&RayMap::default(), outputs)
+}
+
+fn resolve_picking_outputs_with_ray_map(
+    ray_map: &RayMap,
+    outputs: &[PointerHits],
+) -> (PickingHoverMap, PickingPipelineReport) {
+    let sorted_hits = sorted_hits_by_pointer(outputs);
+    let report =
+        PickingPipelineReport::from_ray_map_outputs_and_sorted_hits(ray_map, outputs, &sorted_hits);
+    let hover_map = PickingHoverMap::from_sorted_hits(sorted_hits);
+    (hover_map, report)
 }
 
 fn disabled_output(input: PickingPipelineInput<'_>) -> PickingPipelineOutput {

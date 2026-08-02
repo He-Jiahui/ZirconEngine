@@ -32,10 +32,12 @@ plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/zircon_hub/05-frontend-componentization-and-type-safety.md
   - docs/zircon_hub/ui/responsive-component-system.md
-status: planned
+status: in_progress
 ---
 
 # 06 布局与视觉标准对齐（参考图基线）
+
+> 2026-08-01 实仓复核：M1 的响应式/溢出修复与 M2 的 token 一元化已经落入当前源码，主要结构契约也已存在；M3 的全页面细节盘点和可重复截图矩阵仍未完成。计划状态因此由 `planned` 修正为 `in_progress`，在截图证据齐备前不标记完成。
 
 ## 现状与证据
 

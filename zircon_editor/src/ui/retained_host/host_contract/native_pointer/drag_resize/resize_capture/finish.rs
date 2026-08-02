@@ -1,12 +1,12 @@
 use crate::ui::retained_host::ui_perf::{
-    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
+    UiPerfScenario, enter_ui_perf_scenario, time_ui_perf_scenario,
 };
 
 use super::super::super::super::globals::UiHostContext;
 use super::super::super::super::redraw::NativePointerDispatchResult;
 use super::super::super::super::window::UiHostWindow;
-use super::super::super::redraw_result::resize_pointer_redraw;
 use super::super::super::HOST_POINTER_UP;
+use super::super::super::redraw_result::resize_pointer_redraw;
 
 pub(in crate::ui::retained_host::host_contract) fn finish_native_resize(
     ui: &UiHostWindow,

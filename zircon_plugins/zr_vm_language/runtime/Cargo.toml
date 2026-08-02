@@ -18,3 +18,4 @@ zr_vm_rust_binding = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_r
 zr_vm_rust_binding_sys = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }
 
 [dev-dependencies]
+zircon_runtime = { workspace = true, features = ["net-contracts", "script", "test-support"] }

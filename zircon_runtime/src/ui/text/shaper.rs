@@ -1,9 +1,6 @@
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
-    surface::{
-        resolve_ui_text_render_mode, UiResolvedStyle, UiResolvedTextLayout, UiTextRange,
-        UiTextRenderMode,
-    },
+    surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
 };
 
 use crate::text::SharedTextLayoutSession;
@@ -49,68 +46,6 @@ pub(crate) trait UiTextShaper {
         style: &UiResolvedStyle,
         range: UiTextRange,
     ) -> f32;
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum UiTextBackendIntent {
-    SharedTextService,
-    NativeGlyphon,
-    SdfAtlas,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct UiTextShaperSelection {
-    pub requested_mode: UiTextRenderMode,
-    pub effective_mode: UiTextRenderMode,
-    pub intended_backend: UiTextBackendIntent,
-    pub active_backend: UiTextBackendIntent,
-    pub fallback_reason: Option<&'static str>,
-}
-
-impl UiTextShaperSelection {
-    pub(crate) fn for_style(style: &UiResolvedStyle) -> Self {
-        Self::for_render_mode_with_font_default(style.text_render_mode, None)
-    }
-
-    pub(crate) const fn for_render_mode_with_font_default(
-        requested_mode: UiTextRenderMode,
-        font_render_mode: Option<UiTextRenderMode>,
-    ) -> Self {
-        let effective_mode = resolve_ui_text_render_mode(requested_mode, font_render_mode);
-        let intended_backend = backend_intent_for_render_mode(effective_mode);
-        let active_backend = active_layout_backend_for_intent(intended_backend);
-        Self {
-            requested_mode,
-            effective_mode,
-            intended_backend,
-            active_backend,
-            fallback_reason: fallback_reason_for_backend(intended_backend, active_backend),
-        }
-    }
-}
-
-const fn backend_intent_for_render_mode(render_mode: UiTextRenderMode) -> UiTextBackendIntent {
-    match render_mode {
-        UiTextRenderMode::Auto | UiTextRenderMode::Native => UiTextBackendIntent::NativeGlyphon,
-        UiTextRenderMode::Sdf | UiTextRenderMode::Msdf | UiTextRenderMode::Mtsdf => {
-            UiTextBackendIntent::SdfAtlas
-        }
-    }
-}
-
-const fn active_layout_backend_for_intent(intent: UiTextBackendIntent) -> UiTextBackendIntent {
-    match intent {
-        UiTextBackendIntent::SharedTextService
-        | UiTextBackendIntent::NativeGlyphon
-        | UiTextBackendIntent::SdfAtlas => UiTextBackendIntent::SharedTextService,
-    }
-}
-
-const fn fallback_reason_for_backend(
-    _intended_backend: UiTextBackendIntent,
-    _active_backend: UiTextBackendIntent,
-) -> Option<&'static str> {
-    None
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -177,27 +112,12 @@ impl UiTextShaperStack {
         }
     }
 
-    pub(crate) fn selection_for_style(&self, style: &UiResolvedStyle) -> UiTextShaperSelection {
-        UiTextShaperSelection::for_style(style)
-    }
-
     pub(crate) fn shape_text_with_provider(
         &self,
         request: &UiTextShapeRequest<'_>,
         provider: &mut SharedTextLayoutSession,
     ) -> UiResolvedTextLayout {
-        let selection = self.selection_for_style(request.style);
-
-        debug_assert_eq!(selection.requested_mode, request.style.text_render_mode);
-        debug_assert!(selection.fallback_reason.is_none());
-
-        match selection.active_backend {
-            UiTextBackendIntent::SharedTextService
-            | UiTextBackendIntent::NativeGlyphon
-            | UiTextBackendIntent::SdfAtlas => {
-                self.shared.shape_text_with_provider(request, provider)
-            }
-        }
+        self.shared.shape_text_with_provider(request, provider)
     }
 
     pub(crate) fn measure_text_with_provider(
@@ -206,44 +126,18 @@ impl UiTextShaperStack {
         style: &UiResolvedStyle,
         provider: &mut SharedTextLayoutSession,
     ) -> UiSize {
-        let selection = self.selection_for_style(style);
-
-        debug_assert!(selection.fallback_reason.is_none());
-
-        match selection.active_backend {
-            UiTextBackendIntent::SharedTextService
-            | UiTextBackendIntent::NativeGlyphon
-            | UiTextBackendIntent::SdfAtlas => self
-                .shared
-                .measure_text_with_provider(text, style, provider),
-        }
+        self.shared
+            .measure_text_with_provider(text, style, provider)
     }
 }
 
 impl UiTextShaper for UiTextShaperStack {
     fn shape_text(&self, request: &UiTextShapeRequest<'_>) -> UiResolvedTextLayout {
-        let selection = self.selection_for_style(request.style);
-
-        debug_assert_eq!(selection.requested_mode, request.style.text_render_mode);
-        debug_assert!(selection.fallback_reason.is_none());
-
-        match selection.active_backend {
-            UiTextBackendIntent::SharedTextService
-            | UiTextBackendIntent::NativeGlyphon
-            | UiTextBackendIntent::SdfAtlas => self.shared.shape_text(request),
-        }
+        self.shared.shape_text(request)
     }
 
     fn measure_text(&self, text: &str, style: &UiResolvedStyle) -> UiSize {
-        let selection = self.selection_for_style(style);
-
-        debug_assert!(selection.fallback_reason.is_none());
-
-        match selection.active_backend {
-            UiTextBackendIntent::SharedTextService
-            | UiTextBackendIntent::NativeGlyphon
-            | UiTextBackendIntent::SdfAtlas => self.shared.measure_text(text, style),
-        }
+        self.shared.measure_text(text, style)
     }
 
     fn measure_text_source_range_width(
@@ -252,17 +146,8 @@ impl UiTextShaper for UiTextShaperStack {
         style: &UiResolvedStyle,
         range: UiTextRange,
     ) -> f32 {
-        let selection = self.selection_for_style(style);
-
-        debug_assert!(selection.fallback_reason.is_none());
-
-        match selection.active_backend {
-            UiTextBackendIntent::SharedTextService
-            | UiTextBackendIntent::NativeGlyphon
-            | UiTextBackendIntent::SdfAtlas => self
-                .shared
-                .measure_text_source_range_width(text, style, range),
-        }
+        self.shared
+            .measure_text_source_range_width(text, style, range)
     }
 }
 

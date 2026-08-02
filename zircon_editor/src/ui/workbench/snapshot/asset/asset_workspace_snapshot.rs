@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
+use crate::core::asset::AssetCreationMenuGeneration;
 use zircon_runtime_interface::resource::ResourceKind;
 
 use super::{
-    AssetFolderSnapshot, AssetItemSnapshot, AssetOperationProjectionSnapshot,
-    AssetSelectionSnapshot, AssetSurfaceMode, AssetUtilityTab, AssetViewMode,
+    AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetSurfaceMode,
+    AssetUtilityTab, AssetViewMode,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -21,7 +24,7 @@ pub struct AssetWorkspaceSnapshot {
     pub folder_tree: Vec<AssetFolderSnapshot>,
     pub visible_folders: Vec<AssetFolderSnapshot>,
     pub visible_assets: Vec<AssetItemSnapshot>,
-    pub creation_templates: Vec<AssetOperationProjectionSnapshot>,
+    pub creation_menu: Arc<AssetCreationMenuGeneration>,
     pub selected_folder_id: Option<String>,
     pub selected_asset_uuid: Option<String>,
     pub selection: AssetSelectionSnapshot,

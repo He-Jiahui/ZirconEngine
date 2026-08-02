@@ -140,7 +140,7 @@ events = [{ id = "WorkbenchExtension/BuildExportPackage", event = "Click", route
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBuildExportQueue"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "build_export_cook_step_row" }, { node = "build_export_pak_step_row" }, { node = "build_export_sign_step_row" }, { node = "build_export_publish_step_row" }]
 

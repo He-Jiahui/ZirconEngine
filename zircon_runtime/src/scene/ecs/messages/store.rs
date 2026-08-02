@@ -1,14 +1,18 @@
 use std::any::{Any, TypeId, type_name};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
 use crate::scene::ecs::messages::id::{Message, MessageId};
-use crate::scene::ecs::messages::queue::Messages;
+use crate::scene::ecs::messages::queue::{MessageRetention, MessageRetentionMetrics, Messages};
 
 #[derive(Default)]
 pub struct MessageStore {
     stores: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
     type_names: HashMap<TypeId, &'static str>,
+    advance_operations: HashMap<TypeId, fn(&mut (dyn Any + Send + Sync), u64) -> bool>,
+    active_channels: BTreeSet<TypeId>,
+    last_advance_channel_visits: usize,
+    frame: u64,
 }
 
 impl MessageStore {
@@ -26,6 +30,10 @@ impl MessageStore {
     {
         let type_id = TypeId::of::<T>();
         self.type_names.entry(type_id).or_insert(type_name::<T>());
+        self.advance_operations
+            .entry(type_id)
+            .or_insert(advance_message_queue::<T>);
+        self.active_channels.insert(type_id);
         self.stores
             .entry(type_id)
             .or_insert_with(|| Box::<Messages<T>>::default())
@@ -37,7 +45,8 @@ impl MessageStore {
     where
         T: Message,
     {
-        self.messages_mut::<T>().write(message)
+        let frame = self.frame;
+        self.messages_mut::<T>().write_at_frame(message, frame)
     }
 
     pub fn write_batch<T, I>(&mut self, messages: I) -> Vec<MessageId<T>>
@@ -45,14 +54,53 @@ impl MessageStore {
         T: Message,
         I: IntoIterator<Item = T>,
     {
-        self.messages_mut::<T>().write_batch(messages)
+        let frame = self.frame;
+        self.messages_mut::<T>()
+            .write_batch_at_frame(messages, frame)
     }
 
     pub fn clear<T>(&mut self)
     where
         T: Message,
     {
+        let type_id = TypeId::of::<T>();
         self.messages_mut::<T>().clear();
+        self.active_channels.remove(&type_id);
+    }
+
+    pub fn configure_retention<T>(&mut self, retention: MessageRetention)
+    where
+        T: Message,
+    {
+        self.messages_mut::<T>().set_retention(retention);
+    }
+
+    pub fn retention_metrics<T>(&self) -> Option<MessageRetentionMetrics>
+    where
+        T: Message,
+    {
+        self.messages::<T>().map(Messages::retention_metrics)
+    }
+
+    pub fn advance_frame(&mut self) {
+        self.frame = self.frame.saturating_add(1);
+        let active_channels = std::mem::take(&mut self.active_channels);
+        self.last_advance_channel_visits = active_channels.len();
+        for type_id in active_channels {
+            let Some(advance) = self.advance_operations.get(&type_id) else {
+                continue;
+            };
+            let Some(store) = self.stores.get_mut(&type_id) else {
+                continue;
+            };
+            if advance(store.as_mut(), self.frame) {
+                self.active_channels.insert(type_id);
+            }
+        }
+    }
+
+    pub fn last_advance_channel_visits(&self) -> usize {
+        self.last_advance_channel_visits
     }
 
     pub fn registered_type_names(&self) -> Vec<&'static str> {
@@ -65,11 +113,23 @@ impl MessageStore {
     }
 }
 
+fn advance_message_queue<T>(store: &mut (dyn Any + Send + Sync), frame: u64) -> bool
+where
+    T: Message,
+{
+    let messages = store
+        .downcast_mut::<Messages<T>>()
+        .expect("message store type id must match message queue type");
+    messages.advance_frame(frame);
+    !messages.is_empty()
+}
+
 impl fmt::Debug for MessageStore {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("MessageStore")
             .field("registered_type_names", &self.registered_type_names())
+            .field("active_channel_count", &self.active_channels.len())
             .finish()
     }
 }

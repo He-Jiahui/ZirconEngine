@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 use crate::project::RelPath;
 
 use super::{
-    ProjectManifestSummary, ProjectManifestSummaryError, load_project_manifest_value_from_toml_str,
+    load_project_manifest_value_from_toml_str, ProjectManifestSummary, ProjectManifestSummaryError,
 };
 
 pub(super) fn parse_str(

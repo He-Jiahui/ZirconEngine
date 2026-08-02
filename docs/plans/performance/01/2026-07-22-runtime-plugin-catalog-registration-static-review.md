@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin.rs
+  - zircon_runtime/src/plugin/runtime_plugin/mod.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin
   - zircon_runtime/src/plugin/runtime_plugin/descriptor
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog

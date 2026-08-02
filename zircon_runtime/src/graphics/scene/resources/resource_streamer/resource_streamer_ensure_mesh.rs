@@ -5,8 +5,8 @@ use crate::core::resource::{MeshMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::GpuMeshResource;
 use super::super::prepared::PreparedMesh;
+use super::super::GpuMeshResource;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {

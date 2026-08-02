@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, HostWindowBootstrapData, HostWindowPresentationData};
 use super::super::super::globals::HostContractState;
-use super::super::{template_hover, UiHostWindow};
+use super::super::{UiHostWindow, template_hover};
 
 impl UiHostWindow {
     pub(crate) fn get_host_window_bootstrap(&self) -> HostWindowBootstrapData {

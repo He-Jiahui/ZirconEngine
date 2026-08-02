@@ -22,6 +22,5 @@ pub(super) const SELECTED_POINT_RADIUS: i32 = 6;
 pub(super) const POINT_EDGE_INSET: f32 = 7.0;
 pub(super) const SAMPLE_LABEL_HEIGHT: f32 = 18.0;
 pub(super) const SAMPLE_LABEL_MIN_WIDTH: f32 = 54.0;
-pub(super) const SAMPLE_LABEL_CHARACTER_WIDTH: f32 = 6.4;
 pub(super) const SAMPLE_LABEL_OFFSET_X: f32 = 9.0;
 pub(super) const SAMPLE_LABEL_OFFSET_Y: f32 = -22.0;

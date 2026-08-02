@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 
 const CIRCULAR_INDETERMINATE_PERCENT: f32 = 0.58;
 

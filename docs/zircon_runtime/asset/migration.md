@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/asset/migration
   - zircon_runtime/src/asset/registry/inspection.rs
-  - zircon_runtime/src/foundation/persistence/atomic_file.rs
+  - zircon_runtime/src/core/resource/io/atomic_file.rs
   - zircon_runtime_interface/src/project/retired_asset_ref_migration
 implementation_files:
   - zircon_runtime/src/asset/migration/mod.rs

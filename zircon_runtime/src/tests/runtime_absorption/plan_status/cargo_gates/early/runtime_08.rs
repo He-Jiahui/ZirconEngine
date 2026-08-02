@@ -44,12 +44,12 @@ fn runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation(
         "Runtime 08 validation gate commands",
         runtime_08_plan,
         &[
-            "cargo test -p zircon_runtime --lib entity --locked -- --nocapture",
-            "cargo test -p zircon_runtime --lib observer --locked -- --nocapture",
-            "cargo test -p zircon_runtime --lib command --locked -- --nocapture",
-            "cargo test -p zircon_runtime --lib change_tick --locked -- --nocapture",
-            "cargo test -p zircon_runtime --lib messages --locked",
-            "cargo test -p zircon_runtime --lib ecs --locked",
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter entity",
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter observer",
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter command",
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter change_tick",
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter messages",
+            r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter ecs",
             "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
         ],
     );

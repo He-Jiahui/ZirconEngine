@@ -6,13 +6,14 @@ mod light;
 mod light_grid;
 mod material;
 mod mesh_queue;
+mod readback;
 mod sprite;
 mod ui;
 mod visibility;
 
 use crate::core::framework::render::RenderStats;
 
-use super::{DiagnosticStore, record_bool, record_bytes, record_count};
+use super::{record_bool, record_bytes, record_count, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     camera::record(store, stats);
@@ -22,6 +23,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     material::record(store, stats);
     light::record(store, stats);
     mesh_queue::record(store, stats);
+    readback::record(store, stats);
     gpu_scene::record(store, stats);
     sprite::record(store, stats);
     effect_stack::record(store, stats);

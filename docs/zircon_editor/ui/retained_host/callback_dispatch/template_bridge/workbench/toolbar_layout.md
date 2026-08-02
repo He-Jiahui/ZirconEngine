@@ -7,7 +7,9 @@ related_code:
   - zircon_editor/assets/icons/zircon_editor_shell/controls/check.svg
   - zircon_editor/assets/icons/zircon_editor_shell/status/disabled.svg
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/run_mode_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
@@ -17,10 +19,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/run_mode_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
@@ -33,7 +37,7 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
 tests:
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
   - cargo test -p zircon_editor --lib mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts --locked --jobs 1 --color never -- --exact --test-threads=1
   - direct fresh zircon_editor test binary capture_narrow_workbench_mvp_run_controls_visual_artifact --exact --ignored --test-threads=1 --nocapture (writes docs/tests/editor/editor-window-m3-workbench-mvp-run-controls-640x520.png)
   - cargo test -p zircon_editor --lib compact_workbench_toolbar_uses_slate_command_density --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary --message-format short --color never -- --test-threads=1 --nocapture
@@ -82,6 +86,10 @@ The compact module command group reserves 276 px for the primary text commands: 
 `WorkbenchModuleMore` uses `zircon_editor_shell/toolbar/more-vertical.svg` so the compact module overflow trigger reads as a toolbar menu/overflow affordance. It no longer reuses the tab/file-shaped `editor_pages/workbench/tabs/tab-overflow.svg` placeholder. The rendering path still uses the existing SVG visual asset raster path first and the established glyph fallback only when an asset is missing.
 
 `WorkbenchRunMode` uses `zircon_editor_shell/toolbar/dropdown.svg` so every tier reads it as a toolbar dropdown affordance. It no longer reuses the tab/file-shaped `editor_pages/workbench/tabs/tab-overflow.svg` placeholder. The 640/900/1260 contract is locked by `mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts`; the complete 1672x941 group remains locked by `full_workbench_run_mode_uses_toolbar_dropdown_icon` and the focused wide screenshot artifact.
+
+`run_mode_menu.rs` maps the Play In Editor and Simulate rows to the canonical typed `MenuAction::SelectPlayMode(PlayKind)` path. The shared popup primitive moves the persistent `checked` marker to the selected row while preserving icon and disabled flags; the event executor stores the preference in `PlaySessionController`, and the existing Enter Play path consumes it when building `PlayStartRequest`. Standalone and Network Preview remain visible as disabled rows because the current play backend contract does not implement those modes; the toolbar therefore exposes only capabilities that produce real engine behavior.
+
+`layout_menu.rs` keeps the adjacent Layout popup equally honest. Reset Layout reuses the existing canonical `MenuAction::ResetLayout` path and the editor manager's real `LayoutCommand::ResetToDefault` implementation. Gameplay Layout and Rendering Layout remain visible but disabled until registered preset ownership is projected into this surface. Default Layout is a disabled+checked current-layout indicator and does not synthesize a second reset route.
 
 `WorkbenchToolbarOpen` and `WorkbenchModuleBrowse` use `zircon_editor_shell/toolbar/folder-open.svg`, while `WorkbenchToolbarSave` and `WorkbenchModuleSave` use `zircon_editor_shell/toolbar/save.svg`. These controls now share the toolbar icon family instead of borrowing Workbench menu icon assets, so file-group icon buttons and module command buttons follow the same primitive visual identity.
 

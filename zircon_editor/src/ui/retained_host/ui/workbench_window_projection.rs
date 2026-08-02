@@ -13,10 +13,10 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 
 use super::component_contract_metadata::tokens_for_component_role;
 use super::pane_data_conversion::{
-    projected_command_palette_options, projected_command_palette_structured_options,
-    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
-    projected_notification_center_value_text, structured_menu_items, structured_options_for_node,
-    NotificationCenterMetadata,
+    NotificationCenterMetadata, projected_command_palette_options,
+    projected_command_palette_structured_options, projected_notification_center_metadata_from_host,
+    projected_notification_center_option_rows, projected_notification_center_value_text,
+    structured_menu_items, structured_options_for_node,
 };
 use super::template_layout_context::apply_table_layout_context_variant;
 
@@ -39,7 +39,7 @@ use host_value_toml::{
 use mount::project_node_into_mount;
 use node_index::ProjectionNodeIndex;
 use notification_cache::reusable_notification_rows;
-use previous_node_index::{model_with_projection_identity, PreviousWorkbenchNodeIndex};
+use previous_node_index::{PreviousWorkbenchNodeIndex, model_with_projection_identity};
 use typed_canvas::projected_typed_canvas_data;
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;

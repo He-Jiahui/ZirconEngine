@@ -22,6 +22,7 @@ impl ResourceManager {
             slot.ref_count += 1;
             slot.state = RuntimeResourceState::Loaded;
         }
+        self.refresh_readiness(handle.id());
 
         let manager = self.clone();
         Some(ResourceLease::new(
@@ -50,6 +51,7 @@ impl ResourceManager {
         if next_ref_count == 0 {
             self.lock_payloads_write().remove(&id);
         }
+        self.refresh_readiness(id);
 
         Some(next_ref_count)
     }

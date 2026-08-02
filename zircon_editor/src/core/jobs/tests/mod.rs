@@ -2,6 +2,7 @@ mod admission_scaling_contract;
 mod background_storm_contract;
 mod progress_contract;
 mod pump_contract;
+mod quota_settings_contract;
 mod scheduling_contract;
 mod thread_ownership_contract;
 

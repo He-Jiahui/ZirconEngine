@@ -34,22 +34,22 @@ requireText(world, /standUpRequested[\s\S]*?entitySitting\[index\] = false;\s*cl
   'movement interruption wiring is missing');
 requireText(world, /clearOfflineBreakableIncapacitateOnDamage[\s\S]*?if \(amount <= 0\)[\s\S]*?clearOfflineConsumables\(state, targetIndex\)/,
   'damage interruption wiring is missing');
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)/,
-  'WOS71 encoder schema is missing');
+requireText(world, /writer\.u16\(<uint>78, 1, 1\)/,
+  'WOS72 encoder schema is missing');
 requireText(world, /schemaVersion != <uint>68 &&\s*schemaVersion != <uint>69/,
-  'WOS71 decoder admission is missing');
+  'WOS72 decoder admission is missing');
 requireText(world, /if \(schemaVersion >= <uint>69\)[\s\S]*?entityEatingItemCodes[\s\S]*?entityDrinkingItemCodes/,
-  'WOS71 consumable tail decode is missing');
+  'WOS72 consumable tail decode is missing');
 requireText(world, /pub consumableCommandStateTest\(\): int[\s\S]*?tough_jerky[\s\S]*?spring_water[\s\S]*?encodeState[\s\S]*?stepOfflineConsumables/,
   'consumable state regression coverage is missing');
 requireText(world, /if \(consumableCommandStateTest\(\) != 1\) \{[\s\S]*?return -136;/,
   'world selfTest must execute consumable coverage');
 const main = read('scripts', 'woc_game', 'src', 'main.zr');
 const protocol = read('native', 'crates', 'woc_protocol', 'src', 'lib.rs');
-if ((main.match(/world_state[^\r\n]*WOS71/g) ?? []).length !== 2 ||
-    !protocol.includes('WORLD_STATE_FORMAT: &str = "WOS71"') ||
-    !protocol.includes('WORLD_STATE_SCHEMA_VERSION: u16 = 71')) {
-  throw new Error('WOS71 public protocol identity is missing');
+if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2 ||
+    !protocol.includes('WORLD_STATE_FORMAT: &str = "WOS78"') ||
+    !protocol.includes('WORLD_STATE_SCHEMA_VERSION: u16 = 78')) {
+  throw new Error('WOS72 public protocol identity is missing');
 }
 
 process.stdout.write(`WOS142 consumable static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

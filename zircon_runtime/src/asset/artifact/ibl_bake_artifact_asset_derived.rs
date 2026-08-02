@@ -4,10 +4,10 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    IblBakeArtifactBlob, IblBakeArtifactBlobCandidate, IblBakeArtifactBlobError,
-    IblBakeArtifactDescriptor, IblBakeArtifactPayload, IblBakeArtifactPayloadError,
-    IblBakeArtifactRequest, SourceCubemapIrradianceCube, SourceCubemapMipChain,
-    IBL_BAKE_ALGORITHM_VERSION,
+    IBL_BAKE_ALGORITHM_VERSION, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
+    IblBakeArtifactBlobError, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+    IblBakeArtifactPayloadError, IblBakeArtifactRequest, SourceCubemapIrradianceCube,
+    SourceCubemapMipChain,
 };
 
 use super::ibl_bake_artifact_cache::ibl_bake_artifact_request_identity_hash;

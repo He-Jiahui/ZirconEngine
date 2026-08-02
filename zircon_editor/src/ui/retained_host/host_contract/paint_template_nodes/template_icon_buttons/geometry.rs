@@ -1,6 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::icon_button_glyph_metrics;
 use super::style::IconButtonContext;
+use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_button_paint_rect(
     node: &TemplatePaneNodeData,
@@ -67,6 +68,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_gl
         width: size,
         height: size,
     }
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_button_surface_radius(
+    rect: &FrameRect,
+    requested_radius: f32,
+) -> f32 {
+    corner_radius_for_frame(rect, requested_radius)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_glyph_is_paintable(

@@ -26,7 +26,7 @@ impl EditorState {
             .copied()
             .collect::<Vec<_>>();
         if selected.is_empty() {
-            self.status_line = "Nothing selected".to_string();
+            self.set_status_line("Nothing selected");
             return Ok(false);
         }
         self.apply_intent(EditorIntent::DeleteNodes(selected))
@@ -37,15 +37,13 @@ impl EditorState {
         let selected = self
             .viewport_controller
             .selection()
-            .active_primary()
-            .and_then(|node_id| {
-                self.world
-                    .try_with_world(|scene| scene.find_node(node_id).map(|_| node_id))
-                    .flatten()
-            });
-        let Some(node_id) = selected else {
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        if selected.is_empty() {
             return Err("Nothing selected".to_string());
-        };
+        }
 
         let parent = parse_parent_field(&self.parent_field)?;
         let parsed = [
@@ -56,23 +54,25 @@ impl EditorState {
         let [Ok(x), Ok(y), Ok(z)] = parsed else {
             return Err("Transform fields must be valid numbers".to_string());
         };
-        let mut reflected_updates =
-            self.prepare_reflected_node_updates(parent, Vec3::new(x, y, z))?;
-        reflected_updates.extend(self.prepare_reflected_component_updates(node_id)?);
         let mut commands = Vec::new();
 
-        for update in reflected_updates {
-            let result = self.capture_scene_command(|scene| {
-                EditorCommand::set_reflected_scene_field(
-                    scene,
-                    node_id,
-                    update.component_type_path,
-                    update.field_name,
-                    update.value,
-                )
-            })?;
-            if let Some(command) = result {
-                commands.push(command);
+        for node_id in &selected {
+            let mut reflected_updates =
+                self.prepare_reflected_node_updates(parent, Vec3::new(x, y, z))?;
+            reflected_updates.extend(self.prepare_reflected_component_updates(*node_id)?);
+            for update in reflected_updates {
+                let result = self.capture_scene_command(|scene| {
+                    EditorCommand::set_reflected_scene_field(
+                        scene,
+                        *node_id,
+                        update.component_type_path,
+                        update.field_name,
+                        update.value,
+                    )
+                })?;
+                if let Some(command) = result {
+                    commands.push(command);
+                }
             }
         }
 
@@ -80,7 +80,10 @@ impl EditorState {
             return Ok(false);
         }
         self.execute_scene_commands("Apply inspector changes", commands, MergeMode::Disable)?;
-        self.status_line = format!("Applied inspector changes to node {node_id}");
+        self.set_status_line(format!(
+            "Applied inspector changes to {} selected nodes",
+            selected.len()
+        ));
         Ok(true)
     }
 
@@ -159,7 +162,7 @@ impl EditorState {
             .active_primary()
             .ok_or_else(|| "imported mesh node did not become selected".to_string())?;
         self.mesh_import_path = display_path.into();
-        self.status_line = format!("Imported mesh node {id}");
+        self.set_status_line(format!("Imported mesh node {id}"));
         Ok(true)
     }
 
@@ -280,7 +283,7 @@ fn reflected_value_from_text(
         | ReflectedValue::List(_)
         | ReflectedValue::Map(_)
         | ReflectedValue::Json(_) => Err(
-            "Inspector component drawer only supports scalar, bool, string, enum, resource, vector, quaternion, and entity fields"
+            "Inspector customization only supports scalar, bool, string, enum, resource, vector, quaternion, and entity fields"
                 .to_string(),
         ),
     }

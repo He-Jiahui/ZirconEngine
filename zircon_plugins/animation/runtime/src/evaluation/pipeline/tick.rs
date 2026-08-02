@@ -17,7 +17,7 @@ use super::events::{enqueue_clip_event_samples, publish_clip_events, publish_eve
 use super::graph_evaluate::resolve_graph_pose_requests;
 use super::parameter_apply::scan_animation_scene;
 use super::pose_apply::apply_pose_transforms_to_scene_nodes;
-use super::sequences::apply_loaded_sequences;
+use super::sequences::{LoadedSequenceSample, apply_loaded_sequences};
 use super::simulated_pose_blend::blend_simulated_pose_feed;
 use super::state_machine_layers::apply_state_machine_layers;
 use super::state_machine_step::resolve_state_machine_pose_requests;
@@ -87,7 +87,13 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             asset_manager
                 .load_animation_sequence_asset(pending.sequence_id)
                 .ok()
-                .map(|sequence| (sequence, pending.time_seconds, pending.looping))
+                .map(|sequence| LoadedSequenceSample {
+                    asset_id: pending.sequence_id,
+                    asset_revision: pending.asset_revision,
+                    sequence,
+                    time_seconds: pending.time_seconds,
+                    looping: pending.looping,
+                })
         })
         .collect::<Vec<_>>();
     if !loaded_sequences.is_empty() {

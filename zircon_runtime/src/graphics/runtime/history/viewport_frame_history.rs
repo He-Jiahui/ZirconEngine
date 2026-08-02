@@ -17,6 +17,7 @@ pub(crate) struct ViewportFrameHistory {
     pub(super) bindings: Vec<FrameHistoryBinding>,
     pub(super) visibility: VisibilityHistorySnapshot,
     pub(super) static_index: VisibilityStaticIndex,
+    pub(super) dynamic_index: VisibilityStaticIndex,
     pub(super) validation_key: Arc<FrameHistoryValidationKey>,
 }
 

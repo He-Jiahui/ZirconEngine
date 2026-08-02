@@ -98,8 +98,10 @@ fn virtual_geometry_vertex_ordinals_do_not_rewrite_skinned_primitives() {
 
 #[test]
 fn virtual_geometry_vertex_ordinals_do_not_rewrite_non_vg_primitives() {
-    let vertices = vec![MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
-        .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0])];
+    let vertices = vec![
+        MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
+            .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
+    ];
     let mut primitive = ModelPrimitiveAsset {
         vertices: vertices.clone(),
         indices: vec![0],

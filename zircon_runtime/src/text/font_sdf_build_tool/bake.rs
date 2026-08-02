@@ -2,15 +2,18 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use ttf_parser::Face;
 
 use crate::asset::assets::{decode_font_source, standalone_sfnt_face};
 use crate::core::math::UVec2;
+use crate::core::runtime::tasks::TaskPools;
 use crate::text::sdf::{
-    generate_distance_field_glyph, sdf_font_source_hash, sdf_offline_artifact_path, SdfBakeParams,
-    SdfMode, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
+    sdf_offline_artifact_path, SdfBakeParams, SdfGenerationSourceContext,
+    SdfGenerationSourceHandle, SdfMode, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
 };
+use crate::text::VariationCoords;
 
 use super::pack::{pack_generated_glyphs, GeneratedGlyph};
 use super::{FontSdfBakeError, FontSdfBakeMode, FontSdfBakeRequest, FontSdfGlyphSelection};
@@ -23,6 +26,14 @@ pub struct FontSdfBakeReport {
     pub skipped_glyph_count: usize,
     pub page_count: usize,
     pub encoded_len: usize,
+    pub source_context_count: usize,
+    pub source_hash_count: usize,
+    pub face_parse_count: usize,
+    pub generation_batch_count: usize,
+    pub generation_requested_glyph_count: usize,
+    pub generation_unique_glyph_count: usize,
+    pub generation_duplicate_glyph_count: usize,
+    pub generation_worker_count: usize,
 }
 
 pub struct FontSdfBakeArtifact {
@@ -63,30 +74,45 @@ pub fn bake_font_sdf_artifact(
                 message: error.to_string(),
             }
         })?;
-    let face = Face::parse(&standalone, 0)
-        .map_err(|error| FontSdfBakeError::ParseFace(error.to_string()))?;
-    let codepoints = selected_codepoints(&face, &request.selection)?;
-    let glyph_map = mapped_glyphs(&face, &codepoints);
-    if glyph_map.is_empty() {
-        return Err(FontSdfBakeError::NoMappedGlyphs);
-    }
-
     let params = SdfBakeParams {
         mode: mode(request.mode),
         bake_em_px: request.bake_em_px,
         spread_px_milli: request.spread_px_milli,
     }
     .normalized();
-    let mut skipped_glyph_count = 0_usize;
+    let source = SdfGenerationSourceContext::new(
+        SdfGenerationSourceHandle::new(0),
+        Arc::from(standalone.into_boxed_slice()),
+        0,
+        Arc::new(VariationCoords::default()),
+    )
+    .map_err(|error| FontSdfBakeError::ParseFace(error.to_string()))?;
+    let (codepoints, glyph_map) = source.with_face(|face| {
+        let codepoints = selected_codepoints(face, &request.selection)?;
+        let glyph_map = mapped_glyphs(face, &codepoints);
+        Ok::<_, FontSdfBakeError>((codepoints, glyph_map))
+    })?;
+    if glyph_map.is_empty() {
+        return Err(FontSdfBakeError::NoMappedGlyphs);
+    }
+
+    let task_pools = TaskPools::process_default();
+    let generation_pool = task_pools.compute();
+    let generation = source.generate_batch_with_pool(
+        generation_pool,
+        params,
+        &glyph_map.keys().copied().collect::<Vec<_>>(),
+    );
+    let skipped_glyph_count = generation.report.failed_glyph_count;
     let mut generated = Vec::with_capacity(glyph_map.len());
-    for (glyph_id, codepoint) in &glyph_map {
-        match generate_distance_field_glyph(&standalone, 0, *glyph_id, params) {
+    for glyph in generation.glyphs {
+        match glyph.result {
             Ok(data) => generated.push(GeneratedGlyph {
-                codepoint: *codepoint,
-                glyph_id: u32::from(*glyph_id),
+                codepoint: glyph_map[&glyph.glyph_id],
+                glyph_id: u32::from(glyph.glyph_id),
                 data,
             }),
-            Err(_) => skipped_glyph_count = skipped_glyph_count.saturating_add(1),
+            Err(_) => {}
         }
     }
     if generated.is_empty() {
@@ -99,7 +125,7 @@ pub fn bake_font_sdf_artifact(
         asset_guid: request.asset_guid.clone(),
         face_index: request.face_index,
         variation_hash: request.variation_hash,
-        source_hash: sdf_font_source_hash(&standalone),
+        source_hash: source.source_hash(),
         params,
     };
     let artifact = SdfOfflineArtifact::new(
@@ -121,6 +147,14 @@ pub fn bake_font_sdf_artifact(
         skipped_glyph_count,
         page_count,
         encoded_len: encoded.len(),
+        source_context_count: 1,
+        source_hash_count: source.report().source_hash_count,
+        face_parse_count: source.report().face_parse_count,
+        generation_batch_count: 1,
+        generation_requested_glyph_count: generation.report.requested_glyph_count,
+        generation_unique_glyph_count: generation.report.unique_glyph_count,
+        generation_duplicate_glyph_count: generation.report.duplicate_glyph_count,
+        generation_worker_count: generation_pool.parallelism(),
     };
     Ok(FontSdfBakeArtifact {
         identity,

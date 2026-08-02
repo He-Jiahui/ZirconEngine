@@ -18,6 +18,14 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn close_project_from_workbench(
         &mut self,
     ) -> Result<(), String> {
+        let palette_closed = self
+            .workbench_window_bridge
+            .close_command_palette()
+            .map_err(|error| error.to_string())?;
+        self.scene_picker_session = None;
+        if palette_closed {
+            self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+        }
         let closed_root = self
             .editor_manager
             .close_project()

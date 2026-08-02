@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/core/framework/platform/preferences/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/platform/module.rs
+  - zircon_runtime/src/platform/preferences/backend.rs
   - zircon_runtime/src/platform/preferences/atomic_file.rs
   - zircon_app/src/entry/platform_preferences.rs
   - zircon_runtime/src/input/module/descriptor.rs
@@ -20,10 +21,11 @@ implementation_files:
   - zircon_runtime/src/core/framework/platform/module_identity.rs
   - zircon_runtime/src/core/framework/platform/runtime_target_mode.rs
   - zircon_runtime/src/core/framework/platform/preferences/mod.rs
-  - zircon_runtime/src/core/framework/platform/preferences/backend.rs
+  - zircon_runtime/src/core/framework/platform/preferences/backend_kind.rs
   - zircon_runtime/src/core/framework/platform/preferences/error.rs
   - zircon_runtime/src/core/framework/platform/preferences/key.rs
   - zircon_runtime/src/core/framework/platform/preferences/storage.rs
+  - zircon_runtime/src/platform/preferences/backend.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
   - docs/plans/zircon_runtime/frameworks/05/failure-2026-07-13-core-contract-reverse-dependencies.md

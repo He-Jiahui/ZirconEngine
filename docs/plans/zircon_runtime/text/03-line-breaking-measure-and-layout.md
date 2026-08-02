@@ -17,6 +17,7 @@ related_code:
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/layout/mod.rs
   - zircon_runtime/src/text/layout/advance_index.rs
   - zircon_runtime/src/text/layout/rich.rs
@@ -26,7 +27,6 @@ related_code:
   - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
   - zircon_runtime/src/text/layout/rich_vertical/tests.rs
-  - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
@@ -87,7 +87,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
@@ -618,6 +618,8 @@ line count、backend calls、最大 shaping window 与 p50/p95 ns；它不以机
 `rich_inline.rs` 315、`rich_inline_vertical.rs` 273，均低于 800 行 review warning。
 `rustfmt --check`、whitespace、旧增长候选和 production panic/unwrap/expect/dead-code allow
 扫描通过，二次审查未留下 actionable P0/P1/P2。
+
+Text02实现完成后的定向二次审查又发现Text03仍只消费LF风格分行，并把每个shaped line的相对`visual_range`当全文offset。现已前向修复：`text/hard_line.rs`成为shaping/layout/UI共用mandatory hard-line owner；measure、rich forced ranges与UI source segmentation统一识别CR、CRLF、LF、VT、FF、NEL、LS、PS；line-break chunk使用absolute source range并携带mandatory标记，kinsoku/word-smart不得跨强制边界合并。`BidiParagraph::line_order`也从一次reordered-level结果同时生成logical levels与visual indices，L1/L2仍只在确定行边界后执行。对应Unicode separator、跨hard-line kinsoku和UI source-range回归已写入，格式/whitespace静态检查通过，managed Cargo仍待coordinator。
 
 当前状态为 `implementation_complete / resolving_failure / managed_validation_pending`。
 本计划及 child failure 仍保持 open，直到 coordinator 执行 focused/upward Cargo、

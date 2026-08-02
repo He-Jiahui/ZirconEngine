@@ -22,12 +22,12 @@ Options:
   -h, --help                            Print this help without loading the dynamic runtime library
 
 Environment:
-  ZIRCON_RUNTIME_LIBRARY                Override the dynamic runtime library path
+  ZIRCON_RUNTIME_LIBRARY                Override the dynamic runtime library with an absolute path
   ZIRCON_LOG_FILTER                     Override scoped process log filters
   ZIRCON_LOG                            Alias for scoped process log filters when ZIRCON_LOG_FILTER is unset
   RUST_LOG                              Bevy-style fallback scoped log filter when Zircon filter variables are unset
   ZIRCON_LOG_LEVEL                      Override the minimum process log level
-  ZIRCON_RUNTIME_CAPTURE_FRAME_PNG      Write the first successfully presented runtime frame to this PNG path
+  ZIRCON_RUNTIME_CAPTURE_FRAME_PNG      Write the first successfully presented runtime frame to an absolute PNG path
 
 Profiles:
   runtime                               Default runtime preview policy
@@ -410,6 +410,8 @@ mod tests {
             "--log-level",
             "--log-filter",
             "ZIRCON_RUNTIME_LIBRARY",
+            "absolute path",
+            "absolute PNG path",
             "ZIRCON_LOG_FILTER",
             "ZIRCON_LOG",
             "RUST_LOG",

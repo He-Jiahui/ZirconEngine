@@ -1,10 +1,10 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_text::measure_runtime_text_width;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::SampleGridGeometry;
 use super::metrics::{
-    POINT_RADIUS, SAMPLE_LABEL_CHARACTER_WIDTH, SAMPLE_LABEL_HEIGHT, SAMPLE_LABEL_MIN_WIDTH,
-    SAMPLE_LABEL_OFFSET_X, SAMPLE_LABEL_OFFSET_Y, SELECTED_POINT_RADIUS, TICK_FONT_SIZE,
-    TICK_LINE_HEIGHT,
+    POINT_RADIUS, SAMPLE_LABEL_HEIGHT, SAMPLE_LABEL_MIN_WIDTH, SAMPLE_LABEL_OFFSET_X,
+    SAMPLE_LABEL_OFFSET_Y, SELECTED_POINT_RADIUS, TICK_FONT_SIZE, TICK_LINE_HEIGHT,
 };
 use super::palette::{
     POINT, POINT_CENTER, SELECTED_HALO, SELECTED_LABEL_SURFACE, SELECTED_LABEL_TEXT, SELECTED_POINT,
@@ -52,10 +52,7 @@ pub(super) fn push_sample_points(
         push_diamond(commands, x, y, 1, POINT_CENTER, clip, order + 8, opacity);
 
         if point.selected() && !point.label().trim().is_empty() {
-            let label_width =
-                ((point.label().chars().count() as f32 * SAMPLE_LABEL_CHARACTER_WIDTH) + 12.0)
-                    .max(SAMPLE_LABEL_MIN_WIDTH)
-                    .min(geometry.plot.width * 0.6);
+            let label_width = selected_sample_label_width(point.label(), geometry.plot.width);
             let label_x = (x + SAMPLE_LABEL_OFFSET_X)
                 .min(geometry.plot.x + geometry.plot.width - label_width - 2.0)
                 .max(geometry.plot.x + 2.0);
@@ -98,6 +95,12 @@ pub(super) fn push_sample_points(
     }
 }
 
+fn selected_sample_label_width(label: &str, plot_width: f32) -> f32 {
+    (measure_runtime_text_width(label, TICK_FONT_SIZE) + 12.0)
+        .max(SAMPLE_LABEL_MIN_WIDTH)
+        .min(plot_width.max(0.0) * 0.6)
+}
+
 fn push_diamond(
     commands: &mut Vec<HostPaintCommand>,
     x: f32,
@@ -125,5 +128,36 @@ fn push_diamond(
             0.0,
             opacity,
         ));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selected_sample_label_width_uses_runtime_text_measurement() {
+        let label_width_limit = 480.0;
+        let narrow_label = "iiiiiiiiiiiiiiii";
+        let wide_label = "WWWWWWWWWWWWWWWW";
+        let narrow_width = selected_sample_label_width(narrow_label, label_width_limit);
+        let wide_width = selected_sample_label_width(wide_label, label_width_limit);
+
+        assert_eq!(
+            narrow_width,
+            (measure_runtime_text_width(narrow_label, TICK_FONT_SIZE) + 12.0)
+                .max(SAMPLE_LABEL_MIN_WIDTH)
+                .min(label_width_limit * 0.6)
+        );
+        assert_eq!(
+            wide_width,
+            (measure_runtime_text_width(wide_label, TICK_FONT_SIZE) + 12.0)
+                .max(SAMPLE_LABEL_MIN_WIDTH)
+                .min(label_width_limit * 0.6)
+        );
+        assert!(
+            wide_width > narrow_width,
+            "selected labels need their actual glyph advances rather than a character count"
+        );
     }
 }

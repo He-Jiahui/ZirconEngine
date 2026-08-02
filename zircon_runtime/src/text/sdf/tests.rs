@@ -6,6 +6,7 @@ use super::*;
 
 mod decode;
 mod fdsm_gen;
+mod generation_scheduler;
 mod offline;
 
 #[test]

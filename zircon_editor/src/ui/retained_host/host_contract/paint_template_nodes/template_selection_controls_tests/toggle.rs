@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::{
-    control_border_color, selection_label_gap, toggle_thumb_color, toggle_thumb_rect,
-    toggle_track_color, toggle_track_rect, PALETTE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH,
+    PALETTE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH, control_border_color, selection_label_gap,
+    toggle_thumb_color, toggle_thumb_rect, toggle_track_color, toggle_track_rect,
 };
 use super::support::{node_with_role, resolved_background_foreground_and_border};
 

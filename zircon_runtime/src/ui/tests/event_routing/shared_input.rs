@@ -318,8 +318,8 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
         delete_surrounding.diagnostics.route_target,
         Some(UiNodeId::new(2))
     );
-    assert_eq!(editable_attr_string(&surface, "value"), preedit);
-    assert!(delete_surrounding
+    assert_eq!(editable_attr_string(&surface, "value"), "draf");
+    assert!(!delete_surrounding
         .diagnostics
         .notes
         .iter()

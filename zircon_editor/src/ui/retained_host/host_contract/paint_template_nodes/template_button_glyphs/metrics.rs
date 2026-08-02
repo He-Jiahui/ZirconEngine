@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 const MIN_BUTTON_ICON_SIZE: f32 = 1.0;

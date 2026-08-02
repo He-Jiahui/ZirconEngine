@@ -19,7 +19,14 @@ tests:
 
 # Plugins03: Physics debug overlay lacks an executable provider
 
-## Failure
+## 来源执行者
+
+- 来源计划：`docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md`
+- 来源执行切片：Editor05 executable scene-mode hard cut current-source review
+- 修复责任计划：`docs/plans/zircon_plugins/03-physics.md`
+- 交接原因：Editor05 只能删除不可执行的伪 scene mode；Physics 调试几何、capability 生命周期和 overlay provider 必须由 Plugins03 提供。
+
+## 失败现象与复现证据
 
 The Physics editor registered `physics.debug_overlay.mode` as descriptor-only viewport metadata.
 It supplied neither a `SceneModeRegistration` factory nor a
@@ -27,7 +34,13 @@ It supplied neither a `SceneModeRegistration` factory nor a
 geometry. Editor05 removed this pseudo mode during the executable scene-mode hard cut; keeping a
 PassThrough factory would only disguise the missing Physics behavior.
 
-## Required Repair
+## 最低共享层根因
+
+The old contribution contract treated toolbar metadata as proof of an executable mode. Plugins03
+did not own a provider that converts canonical Physics debug geometry into the shared viewport
+extract, so the UI descriptor had no production behavior behind it.
+
+## 架构修复验收
 
 - Register a Physics-owned `ViewportOverlayProviderRegistration` backed by the canonical debug
   geometry generation and capability lifecycle.
@@ -36,12 +49,16 @@ PassThrough factory would only disguise the missing Physics behavior.
 - Prove enabled/disabled extract publication through the host's shared render/pointer interaction
   extract, including stale-frame clearing.
 
-## Forbidden Workarounds
+## 禁止临时方案
 
 No descriptor-only mode, empty PassThrough factory, fabricated geometry, global cache, direct
 viewport mutation, compatibility alias, or test-only provider.
 
-## 产出记录与时间
+## 修复结果与回传
+
+Open state: Editor05 已移除 `physics.debug_overlay.mode` 伪注册，Plugins03 尚未交付真实
+`ViewportOverlayProviderRegistration`、共享 extract 产品证据或 focused Cargo GREEN。本记录保持
+`open`，不得把“不可点击的伪入口已删除”误记为 Physics overlay 已完成。
 
 | 日期 | 项目 | 状态 | 证据 |
 | --- | --- | --- | --- |

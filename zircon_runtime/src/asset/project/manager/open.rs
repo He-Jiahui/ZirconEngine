@@ -6,7 +6,9 @@ use crate::core::runtime::tasks::TaskPool;
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{ArtifactStore, AssetImportError, AssetImporter};
 
-use super::super::{PackageAssetRegistry, ProjectManifest, ProjectPaths};
+use super::super::{
+    PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths,
+};
 use super::ProjectManager;
 
 impl ProjectManager {
@@ -21,14 +23,21 @@ impl ProjectManager {
             package_assets.project_roots(),
             paths.registry_root(),
         )?;
+        let catalog_input_generation = ProjectCatalogInputGeneration::initial(
+            paths.root(),
+            manifest.clone(),
+            package_assets.clone(),
+        );
         Ok(Self {
             paths,
             manifest,
             registry: ResourceRegistry::default(),
             asset_registry,
             package_assets,
+            catalog_input_generation,
             importer: AssetImporter::default(),
-            artifact_store: ArtifactStore,
+            artifact_store: ArtifactStore::default(),
+            shader_import_dependencies: Default::default(),
             environment_ibl_parallel_executor: None,
         })
     }

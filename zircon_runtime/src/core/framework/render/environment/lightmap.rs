@@ -132,6 +132,15 @@ impl LightmapConsumeContract {
         Ok(())
     }
 
+    /// Returns slots in their immutable contract order.
+    pub fn slots(&self) -> &[(u64, LightmapInstanceSlot)] {
+        &self.slots
+    }
+
+    pub(crate) fn slot_capacity(&self) -> usize {
+        self.slots.capacity()
+    }
+
     pub fn slot_for_instance(&self, instance_id: u64) -> Option<LightmapInstanceSlot> {
         self.slots
             .iter()

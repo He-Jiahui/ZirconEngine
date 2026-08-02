@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::core::asset::DirtyRegistry;
 use crate::core::commands::{CommandEvalSnapshotHandle, EditorCommandRegistryHandle};
 use crate::core::editing::engine::EditorTransactionEngine;
 use crate::core::editor_event::EditorEventService;
@@ -16,7 +17,8 @@ pub struct EditorContext {
     events: Arc<EditorEventService>,
     jobs: EditorJobSystem,
     notifications: EditorNotificationService,
-    transactions: EditorTransactionEngine,
+    transactions: Arc<EditorTransactionEngine>,
+    dirty_documents: DirtyRegistry,
     commands: EditorCommandRegistryHandle,
     command_eval: CommandEvalSnapshotHandle,
     tools: ToolSchedulerService,
@@ -35,12 +37,15 @@ impl EditorContext {
         tools: ToolSchedulerService,
         gateway: EditorRuntimeGatewayHandle,
     ) -> Self {
+        let transactions = Arc::new(transactions);
+        let dirty_documents = DirtyRegistry::new(Arc::clone(&transactions));
         Self {
             bus,
             events,
             jobs,
             notifications,
             transactions,
+            dirty_documents,
             commands,
             command_eval,
             tools,
@@ -65,7 +70,11 @@ impl EditorContext {
     }
 
     pub fn transactions(&self) -> &EditorTransactionEngine {
-        &self.transactions
+        self.transactions.as_ref()
+    }
+
+    pub fn dirty_documents(&self) -> &DirtyRegistry {
+        &self.dirty_documents
     }
 
     pub fn commands(&self) -> &EditorCommandRegistryHandle {

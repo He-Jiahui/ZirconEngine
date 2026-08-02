@@ -52,11 +52,9 @@ fn validate_native_function_arity_rejects_min_greater_than_max() {
     let error = validate_native_function_arity("example", &descriptor).unwrap_err();
 
     assert!(error.to_string().contains("example.bad"));
-    assert!(
-        error
-            .to_string()
-            .contains("min arity 3 exceeds max arity 2")
-    );
+    assert!(error
+        .to_string()
+        .contains("min arity 3 exceeds max arity 2"));
 }
 
 #[test]
@@ -73,11 +71,9 @@ fn validate_native_function_arity_rejects_parameter_count_above_max() {
     let error = validate_native_function_arity("example", &descriptor).unwrap_err();
 
     assert!(error.to_string().contains("example.bad"));
-    assert!(
-        error
-            .to_string()
-            .contains("declares 2 parameters but max arity is 1")
-    );
+    assert!(error
+        .to_string()
+        .contains("declares 2 parameters but max arity is 1"));
 }
 
 #[test]
@@ -86,12 +82,10 @@ fn to_zr_value_lowers_supported_host_values() {
         to_zr_value(ScriptHostValue::Null).unwrap().kind(),
         zr_vm_rust_binding::ValueKind::Null
     ));
-    assert!(
-        to_zr_value(ScriptHostValue::Bool(true))
-            .unwrap()
-            .as_bool()
-            .unwrap()
-    );
+    assert!(to_zr_value(ScriptHostValue::Bool(true))
+        .unwrap()
+        .as_bool()
+        .unwrap());
     assert_eq!(
         to_zr_value(ScriptHostValue::Int(7))
             .unwrap()
@@ -197,11 +191,9 @@ fn to_zr_value_for_function_wraps_return_lowering_errors_with_context() {
         Err(error) => error,
     };
 
-    assert!(
-        error
-            .message
-            .contains("failed to lower host return value for example.return_value")
-    );
+    assert!(error
+        .message
+        .contains("failed to lower host return value for example.return_value"));
     assert!(error.message.contains("string contains interior NUL"));
 }
 

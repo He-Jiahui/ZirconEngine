@@ -1,5 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::tooltip_metrics;
+use super::text::{tooltip_body, tooltip_title};
+use crate::ui::retained_host::host_contract::paint_text::measure_runtime_text_width;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_tooltip_extent(
     rect: &FrameRect,
@@ -29,12 +31,32 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
     rect: &FrameRect,
 ) -> FrameRect {
     let metrics = tooltip_metrics();
+    let width = tooltip_bubble_width(node, rect, metrics);
     FrameRect {
-        x: rect.x + (rect.width - metrics.bubble_width).max(0.0) * 0.5 + node.layout_offset_x,
+        x: rect.x + (rect.width - width).max(0.0) * 0.5 + node.layout_offset_x,
         y: rect.y + node.layout_offset_y,
-        width: metrics.bubble_width.min(rect.width.max(0.0)),
+        width,
         height: metrics.bubble_height.min(rect.height.max(0.0)),
     }
+}
+
+fn tooltip_bubble_width(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    metrics: super::metrics::WorkbenchTooltipMetrics,
+) -> f32 {
+    let title_width = measure_runtime_text_width(&tooltip_title(node), metrics.title_font_size);
+    let body_width = measure_runtime_text_width(&tooltip_body(node), metrics.body_font_size);
+    let desired_width = title_width.max(body_width) + metrics.text_left * 2.0;
+    let available_width = rect.width.max(0.0);
+    let maximum_width = metrics
+        .bubble_max_width
+        .max(metrics.bubble_min_width)
+        .min(available_width);
+    let minimum_width = metrics.bubble_min_width.min(maximum_width);
+
+    // Content leads the bubble width, while authored bounds remain authoritative.
+    desired_width.clamp(minimum_width, maximum_width)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(

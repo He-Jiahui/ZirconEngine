@@ -130,7 +130,7 @@ fn split_map_arguments(inner: &str) -> Result<(&str, &str), String> {
         match character {
             '<' => depth = depth.saturating_add(1),
             '>' if depth == 0 => {
-                return Err("Map<K, V> contains an unmatched closing bracket".to_string())
+                return Err("Map<K, V> contains an unmatched closing bracket".to_string());
             }
             '>' => depth -= 1,
             ',' if depth == 0 => {

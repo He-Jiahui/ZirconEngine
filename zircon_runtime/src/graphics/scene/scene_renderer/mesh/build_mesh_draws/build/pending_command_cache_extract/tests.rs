@@ -14,7 +14,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    PendingMeshCommandCacheExtractItem, cached_commands_for_extract_item, commands_for_extract_item,
+    cached_commands_for_extract_item, commands_for_extract_item, PendingMeshCommandCacheExtractItem,
 };
 
 #[test]
@@ -28,7 +28,7 @@ fn pending_command_cache_extracts_full_hit_without_rebuild_input() {
     ] {
         cache.store(
             CachedMeshDrawKey {
-                entity: item.entity,
+                stable_instance_key: item.stable_instance_key,
                 draw_ordinal: item.draw_ordinal,
                 phase,
                 disabled_passes: item.disabled_passes,
@@ -44,11 +44,9 @@ fn pending_command_cache_extracts_full_hit_without_rebuild_input() {
 
     assert_eq!(commands.len(), 3);
     assert!(commands.iter().all(|command| command.source_entity == 7));
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.source_draw_index == 9)
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.source_draw_index == 9));
     cache.retain_generation(2);
     assert_eq!(cache.len(), 3);
 }
@@ -59,7 +57,7 @@ fn pending_command_cache_extract_waits_for_residual_path_on_partial_miss() {
     let item = item(MeshDrawQueuePhase::Opaque, true, 0);
     cache.store(
         CachedMeshDrawKey {
-            entity: item.entity,
+            stable_instance_key: item.stable_instance_key,
             draw_ordinal: item.draw_ordinal,
             phase: RenderPhase::Prepass,
             disabled_passes: Default::default(),
@@ -122,7 +120,7 @@ fn pending_command_cache_extract_rebuilds_non_material_miss_when_material_phase_
     for (phase, sort_key) in [(RenderPhase::Prepass, 10), (RenderPhase::Opaque3d, 30)] {
         cache.store(
             CachedMeshDrawKey {
-                entity: item.entity,
+                stable_instance_key: item.stable_instance_key,
                 draw_ordinal: item.draw_ordinal,
                 phase,
                 disabled_passes: item.disabled_passes,
@@ -152,6 +150,7 @@ fn item(
 ) -> PendingMeshCommandCacheExtractItem {
     PendingMeshCommandCacheExtractItem {
         entity: 7,
+        stable_instance_key: (7 << 16) | 1,
         draw_ordinal: 1,
         source_draw_index,
         queue_profile: MeshDrawQueueProfile::new(
@@ -192,7 +191,7 @@ fn batch(
         MeshDrawArgs::direct_indexed(0, 3),
     )
     .with_source_draw_index(item.source_draw_index)
-    .with_cache_identity(item.entity, item.draw_ordinal)
+    .with_cache_identity(item.entity, item.stable_instance_key, item.draw_ordinal)
     .with_static_state(item.static_state)
     .with_casts_shadow(item.casts_shadow)
     .with_visibility(relevance, main_view_visible, shadow_view_visible)

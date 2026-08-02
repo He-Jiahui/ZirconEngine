@@ -67,6 +67,7 @@ fn render_framework_visbuffer_marks_follow_execution_segments_not_missing_visibi
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

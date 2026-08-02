@@ -1,6 +1,6 @@
-use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::SceneGizmoOverlayExtract;
 use zircon_runtime::scene::Scene;
@@ -25,19 +25,23 @@ struct ActiveViewportOverlayProvider {
     required_capabilities: Vec<String>,
     provider: Arc<dyn ViewportOverlayProvider>,
     enabled: bool,
-    faulted: Cell<bool>,
-    last_failure: RefCell<Option<String>>,
+    faulted: Arc<AtomicBool>,
+    last_failure: Arc<Mutex<Option<String>>>,
 }
 
 impl std::fmt::Debug for ActiveViewportOverlayProvider {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let last_failure = self
+            .last_failure
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         formatter
             .debug_struct("ActiveViewportOverlayProvider")
             .field("owner_id", &self.owner_id)
             .field("required_capabilities", &self.required_capabilities)
             .field("enabled", &self.enabled)
-            .field("faulted", &self.faulted)
-            .field("last_failure", &self.last_failure)
+            .field("faulted", &self.faulted.load(Ordering::Acquire))
+            .field("last_failure", &*last_failure)
             .finish_non_exhaustive()
     }
 }
@@ -74,8 +78,8 @@ impl ViewportOverlayProviderRegistry {
                 required_capabilities: registration.required_capabilities().to_vec(),
                 provider: registration.create(),
                 enabled: false,
-                faulted: Cell::new(false),
-                last_failure: RefCell::new(None),
+                faulted: Arc::new(AtomicBool::new(false)),
+                last_failure: Arc::new(Mutex::new(None)),
             };
             candidate.providers.insert(provider_id, provider);
         }
@@ -107,8 +111,11 @@ impl ViewportOverlayProviderRegistry {
             .providers
             .get_mut(provider_id)
             .ok_or_else(|| format!("unknown viewport overlay provider `{provider_id}`"))?;
-        if provider.faulted.get() {
-            let message = provider.last_failure.borrow();
+        if provider.faulted.load(Ordering::Acquire) {
+            let message = provider
+                .last_failure
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             return Err(format!(
                 "viewport overlay provider `{provider_id}` is quarantined after callback failure: {}",
                 message.as_deref().unwrap_or("unknown callback failure")
@@ -136,7 +143,7 @@ impl ViewportOverlayProviderRegistry {
             .values()
             .filter(|provider| {
                 provider.enabled
-                    && !provider.faulted.get()
+                    && !provider.faulted.load(Ordering::Acquire)
                     && provider
                         .required_capabilities
                         .iter()
@@ -150,8 +157,12 @@ impl ViewportOverlayProviderRegistry {
                 ) {
                     Ok(gizmos) => gizmos,
                     Err(error) => {
-                        provider.faulted.set(true);
-                        provider.last_failure.replace(Some(error.to_string()));
+                        *provider
+                            .last_failure
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+                            Some(error.to_string());
+                        provider.faulted.store(true, Ordering::Release);
                         Vec::new()
                     }
                 }

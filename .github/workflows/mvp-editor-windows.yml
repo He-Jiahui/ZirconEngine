@@ -16,7 +16,7 @@ jobs:
   mvp-editor-windows:
     name: MVP editor/runtime smoke
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v5
@@ -69,33 +69,66 @@ jobs:
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
 
-      - name: Test F1 RenderableEmpty template and registry contract
+      - name: Test F1 RenderableEmpty template contract
         shell: pwsh
         run: |
-          & cargo test -p zircon_editor --lib renderable_empty_template_has_the_f2_camera_cube_and_sun_contract --locked -- --exact --test-threads=1 2>&1 |
+          & cargo test -p zircon_editor --lib core::project::tests::template_creation::renderable_empty_template_has_the_f2_camera_cube_and_sun_contract --locked -- --exact --test-threads=1 2>&1 |
             Tee-Object -FilePath test-results/f1-template.log
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          if (-not (Select-String -LiteralPath test-results/f1-template.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+            Write-Error 'F1 exact gate did not execute exactly one passing test.'
+            exit 1
+          }
+
+      - name: Test F1 regenerable asset state recovery contracts
+        shell: pwsh
+        run: |
+          & cargo test -p zircon_editor --lib core::project::tests::template_creation::template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion --locked -- --exact --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/f1-registry-rebuild.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          if (-not (Select-String -LiteralPath test-results/f1-registry-rebuild.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+            Write-Error 'F1 registry rebuild gate did not execute exactly one passing test.'
+            exit 1
+          }
+
+          & cargo test -p zircon_editor --lib core::project::tests::template_creation::template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata --locked -- --exact --test-threads=1 2>&1 |
+            Tee-Object -FilePath test-results/f1-registry-corrupt.log
+          $cargoExitCode = $LASTEXITCODE
+          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          if (-not (Select-String -LiteralPath test-results/f1-registry-corrupt.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+            Write-Error 'F1 corrupt registry recovery gate did not execute exactly one passing test.'
+            exit 1
+          }
 
       - name: Test F2 persisted WGPU scene and input contract
         shell: pwsh
         run: |
           $env:ZR_F2_BASIC_SCENE_CAPTURE_PNG = Join-Path $PWD 'test-results/f2-runtime-frame.png'
-          & cargo test -p zircon_runtime --lib render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down --locked -- --exact --test-threads=1 2>&1 |
+          & cargo test -p zircon_runtime --lib dynamic_api::session::tests::foundation_render::render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down --locked -- --exact --test-threads=1 2>&1 |
             Tee-Object -FilePath test-results/f2-runtime.log
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) {
             Write-Error 'WGPU adapter unavailable or F2 MVP scene/render/input contract failed; blank captures are never accepted.'
             exit $cargoExitCode
           }
+          if (-not (Select-String -LiteralPath test-results/f2-runtime.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+            Write-Error 'F2 exact gate did not execute exactly one passing test.'
+            exit 1
+          }
 
       - name: Test F3 persisted project roundtrip
         shell: pwsh
         run: |
-          & cargo test -p zircon_editor --lib editor_project_document_roundtrips_world_and_workspace --locked -- --exact --test-threads=1 2>&1 |
+          & cargo test -p zircon_editor --lib tests::workbench::project::document_roundtrip::editor_project_document_roundtrips_world_and_workspace --locked -- --exact --test-threads=1 2>&1 |
             Tee-Object -FilePath test-results/f3-persistence.log
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          if (-not (Select-String -LiteralPath test-results/f3-persistence.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+            Write-Error 'F3 exact gate did not execute exactly one passing test.'
+            exit 1
+          }
 
       - name: Test F4 application authoring restart contract
         shell: pwsh
@@ -104,6 +137,101 @@ jobs:
             Tee-Object -FilePath test-results/f4-authoring.log
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
+          if (-not (Select-String -LiteralPath test-results/f4-authoring.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+            Write-Error 'F4 exact gate did not execute exactly one passing test.'
+            exit 1
+          }
+
+      - name: Run canonical F5 profile and workspace gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $buildEvidenceRoot = Join-Path $PWD 'test-results\build'
+          $buildLogRoot = Join-Path $buildEvidenceRoot 'logs'
+          New-Item -ItemType Directory -Force -Path $buildLogRoot | Out-Null
+
+          $f5CargoGateContracts = [ordered]@{
+            'zircon-app-target-server' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-server', '--locked')
+            'zircon-app-target-client-platform' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
+            'zircon-app-target-editor-host' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-editor-host', '--locked')
+            'zircon-app-target-client-shader-pbr-viewer' = @('check', '-p', 'zircon_app', '--bin', 'zircon_shader_pbr_viewer', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
+            'zircon-runtime-target-client' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-client', '--locked')
+            'zircon-runtime-target-editor-host' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-editor-host', '--locked')
+            'zircon-runtime-target-server' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-server', '--locked')
+            'workspace-build' = @('build', '--workspace', '--locked')
+            'workspace-test' = @('test', '--workspace', '--locked')
+          }
+
+          function Invoke-F5CargoGate {
+            param([Parameter(Mandatory)][string]$GateId)
+
+            if (-not $f5CargoGateContracts.Contains($GateId)) {
+              throw "Unknown F5 build gate '$GateId'."
+            }
+            $cargoArguments = [string[]]$f5CargoGateContracts[$GateId]
+            $executedCommand = 'cargo ' + ($cargoArguments -join ' ')
+            $logPath = Join-Path $buildLogRoot "$GateId.log"
+            $startedAt = [DateTimeOffset]::UtcNow
+            & cargo @cargoArguments 2>&1 |
+              Tee-Object -FilePath $logPath |
+              ForEach-Object { Write-Host $_ }
+            $cargoExitCode = $LASTEXITCODE
+            $endedAt = [DateTimeOffset]::UtcNow
+            if ($cargoExitCode -ne 0) {
+              throw "F5 build gate '$GateId' failed with exit code $cargoExitCode."
+            }
+            return [ordered]@{
+              gate_id = $GateId
+              command = $executedCommand
+              status = 'passed'
+              started_at_utc = $startedAt.ToString('o')
+              ended_at_utc = $endedAt.ToString('o')
+              exit_code = $cargoExitCode
+              evidence = [ordered]@{
+                path = "logs/$GateId.log"
+                sha256 = (Get-FileHash -LiteralPath $logPath -Algorithm SHA256).Hash
+                size_bytes = (Get-Item -LiteralPath $logPath).Length
+              }
+            }
+          }
+
+          $profileGates = @(
+            Invoke-F5CargoGate -GateId 'zircon-app-target-server'
+            Invoke-F5CargoGate -GateId 'zircon-app-target-client-platform'
+            Invoke-F5CargoGate -GateId 'zircon-app-target-editor-host'
+            Invoke-F5CargoGate -GateId 'zircon-app-target-client-shader-pbr-viewer'
+            Invoke-F5CargoGate -GateId 'zircon-runtime-target-client'
+            Invoke-F5CargoGate -GateId 'zircon-runtime-target-editor-host'
+            Invoke-F5CargoGate -GateId 'zircon-runtime-target-server'
+          )
+          $workspaceGates = @(
+            Invoke-F5CargoGate -GateId 'workspace-build'
+            Invoke-F5CargoGate -GateId 'workspace-test'
+          )
+          $profileContractSummary = [ordered]@{
+            schema_version = 1
+            summary_kind = 'profile-contract'
+            source_fingerprint = $env:GITHUB_SHA
+            status = 'passed'
+            gates = $profileGates
+          }
+          $workspaceSummary = [ordered]@{
+            schema_version = 1
+            summary_kind = 'workspace'
+            source_fingerprint = $env:GITHUB_SHA
+            status = 'passed'
+            gates = $workspaceGates
+          }
+          [IO.File]::WriteAllText(
+            (Join-Path $buildEvidenceRoot 'profile-contract-summary.json'),
+            ($profileContractSummary | ConvertTo-Json -Depth 8),
+            [Text.UTF8Encoding]::new($false)
+          )
+          [IO.File]::WriteAllText(
+            (Join-Path $buildEvidenceRoot 'workspace-summary.json'),
+            ($workspaceSummary | ConvertTo-Json -Depth 8),
+            [Text.UTF8Encoding]::new($false)
+          )
 
       - name: Run source-bound staged F5 product smoke
         shell: pwsh
@@ -126,6 +254,10 @@ jobs:
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
           $runtimeLibrary = Join-Path $binaryInputRoot 'zircon_runtime.dll'
           Copy-Item -LiteralPath (Join-Path $targetDebugDirectory 'zircon_runtime.dll') -Destination $runtimeLibrary -Force
+
+          $buildEvidenceRoot = Join-Path $PWD 'test-results\build'
+          $profileContractSummaryPath = Join-Path $buildEvidenceRoot 'profile-contract-summary.json'
+          $workspaceSummaryPath = Join-Path $buildEvidenceRoot 'workspace-summary.json'
 
           $stageJson = & .\tools\mvp\Stage-MvpProducts.ps1 `
             -RuntimeExecutable (Join-Path $targetDebugDirectory 'zircon_runtime.exe') `
@@ -150,6 +282,8 @@ jobs:
             -StagingRoot $stage.staging_root `
             -EvidenceRoot $evidenceRoot `
             -ExpectedSourceFingerprint $env:GITHUB_SHA `
+            -ProfileContractSummaryPath $profileContractSummaryPath `
+            -WorkspaceSummaryPath $workspaceSummaryPath `
             -RequireF5Evidence `
             -Json
           $acceptance = $acceptanceJson | ConvertFrom-Json

@@ -1,6 +1,6 @@
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::support::{
-    changed_pixel_count, checkbox_node, pixel_at, unchecked_checkbox_node, SELECTION_MARK_IDLE_FILL,
+    SELECTION_MARK_IDLE_FILL, changed_pixel_count, checkbox_node, pixel_at, unchecked_checkbox_node,
 };
 use crate::ui::layouts::common::model_rc;
 

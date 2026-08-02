@@ -23,6 +23,10 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateShadingModel(String),
     #[error("invalid shading model contribution: {0}")]
     InvalidShadingModel(String),
+    #[error("shader module {0} already registered")]
+    DuplicateShaderModule(String),
+    #[error("invalid shader module contribution: {0}")]
+    InvalidShaderModule(String),
     #[error("runtime prepare collector {0} already registered")]
     DuplicateRuntimePrepareCollector(String),
     #[error("virtual geometry runtime provider {0} already registered")]

@@ -1,16 +1,20 @@
 use crate::core::framework::render::{
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, GeometrySourceDescriptor, RenderShaderDefinitionValue,
-    ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor, strip_wgsl_include_directives,
+    strip_wgsl_include_directives, wgsl_include_paths, GeometrySourceDescriptor,
+    RenderShaderDefinitionValue, ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor,
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 
+use super::material_surface::STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
 use super::module_registry::{
+    geometry_source_include_for, gpu_scene_include, scene_runtime_include,
+    shading_model_forward_include_for, shading_model_forward_include_token, surface_types_include,
     ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
-    ShaderTemplateIncludeRegistry, geometry_source_include_for, gpu_scene_include,
-    scene_runtime_include, shading_model_forward_include_for, shading_model_forward_include_token,
-    surface_types_include,
+    ShaderTemplateIncludeRegistry,
 };
-use super::pass_specialization::{MATERIAL_SHADER_TEMPLATE_REVISION, pass_template_for};
+use super::pass_specialization::{
+    pass_template_for_shading_model, MATERIAL_SHADER_TEMPLATE_REVISION,
+};
 
 const MATERIAL_SURFACE_ENTRY_POINT: &str = "zr_material_surface";
 const MATERIAL_DEFINES_MODULE_ID: &str = "zircon::template::defines";
@@ -253,7 +257,13 @@ pub(crate) enum ShaderTemplateAssemblyError {
 pub(crate) fn assemble_material_shader_template(
     request: MaterialShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {
-    let pass_template = pass_template_for(request.pass_type, request.features);
+    let uses_builtin_standard_pbr = request.shading_model_descriptor.is_none()
+        && request.material_surface_entry == STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
+    let pass_template = pass_template_for_shading_model(
+        request.pass_type,
+        request.features,
+        uses_builtin_standard_pbr,
+    );
     let mut registry = ShaderTemplateIncludeRegistry::default();
     let mut builder = ShaderAssemblyBuilder::default();
 
@@ -288,6 +298,8 @@ pub(crate) fn assemble_material_shader_template(
         let shading_include = shading_model_forward_include_for(
             request.shading_model_descriptor.as_ref(),
             &request.shading_model_forward_include_sources,
+            request.features,
+            uses_builtin_standard_pbr,
         )
         .ok_or_else(|| ShaderTemplateAssemblyError::UnknownShadingInclude {
             token: shading_model_forward_include_token(request.shading_model_descriptor.as_ref())
@@ -361,12 +373,16 @@ pub(super) fn push_source_module_includes(
     source: &str,
     module_include_sources: &[ShaderTemplateInclude],
 ) -> Result<(), ShaderTemplateAssemblyError> {
-    let mut module_registry = ShaderModuleRegistry::with_builtin_modules();
-    for include in module_include_sources.iter().cloned() {
-        module_registry.register(include);
+    let roots = wgsl_include_paths(source);
+    if roots.is_empty() {
+        return Ok(());
     }
+    let module_registry = ShaderModuleRegistry::with_builtin_modules_for_roots(
+        roots.iter().cloned(),
+        module_include_sources.iter().cloned(),
+    );
     let resolved = module_registry
-        .resolve_for_source(source)
+        .resolve_roots(roots)
         .map_err(shader_module_resolution_error)?;
     for include in resolved.ordered_sources {
         push_include_chunk(registry, builder, include);
@@ -447,6 +463,10 @@ pub(super) fn format_defines_header(
         format!(
             "const ZR_FEATURE_VOLUMETRIC_FOG: bool = {};",
             features.contains(ShaderFeatureBits::VOLUMETRIC_FOG)
+        ),
+        format!(
+            "const ZR_FEATURE_ENVIRONMENT_ONLY_PBR: bool = {};",
+            features.contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
         ),
     ];
     for define in &geometry_source.shader_defines {
@@ -531,13 +551,13 @@ fn declared_functions(source: &str) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GENERATED_MATERIAL_MODULE_IMPORT_PATH, GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType,
-        builtin_geometry_source_descriptor,
+        builtin_geometry_source_descriptor, ShaderPassType, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
+        GEOMETRY_SOURCE_ID_STATIC_MESH,
     };
 
     use super::{
-        MATERIAL_SURFACE_ENTRY_POINT, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
         assemble_material_shader_template, shader_assembly_source_location_for_line,
+        MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, MATERIAL_SURFACE_ENTRY_POINT,
     };
 
     const GENERATED_MATERIAL: &str = r#"

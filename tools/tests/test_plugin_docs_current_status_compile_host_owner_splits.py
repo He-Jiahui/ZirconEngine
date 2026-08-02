@@ -38,11 +38,6 @@ class PluginDocsCurrentStatusCompileHostOwnerSplitTests(unittest.TestCase):
                     "CompileHost plan owner",
                     "plan/evidence diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_compile_host_plan_owner_split",
-                    "compile_host_plan.py",
-                    "CompileHost plan owner",
-                ],
             },
             "Current export/plugin docs do not reflect CompileHost plan owner split",
         )
@@ -73,11 +68,6 @@ class PluginDocsCurrentStatusCompileHostOwnerSplitTests(unittest.TestCase):
                     "pipeline_report_compile_host.py",
                     "Pipeline Report CompileHost owner",
                     "CompileHost final Report diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_pipeline_report_compile_host_owner_split",
-                    "pipeline_report_compile_host.py",
-                    "Pipeline Report CompileHost owner",
                 ],
             },
             "Current export/plugin docs do not reflect Pipeline Report CompileHost owner split",
@@ -110,11 +100,6 @@ class PluginDocsCurrentStatusCompileHostOwnerSplitTests(unittest.TestCase):
                     "Validate CompileHost semantics owner",
                     "Validate CompileHost identity semantics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_validate_compile_host_semantics_owner_split",
-                    "pipeline_report_validate_compile_host_semantics.py",
-                    "Validate CompileHost semantics owner",
-                ],
             },
             "Current export/plugin docs do not reflect Validate CompileHost semantics owner split",
         )
@@ -146,11 +131,6 @@ class PluginDocsCurrentStatusCompileHostOwnerSplitTests(unittest.TestCase):
                     "Validate CompileHost command semantics owner",
                     "Cargo command semantic diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_validate_compile_host_command_semantics_owner_split",
-                    "pipeline_report_validate_compile_host_command_semantics.py",
-                    "Validate CompileHost command semantics owner",
-                ],
             },
             "Current plugin docs do not reflect Validate CompileHost command semantics owner split",
         )
@@ -181,11 +161,6 @@ class PluginDocsCurrentStatusCompileHostOwnerSplitTests(unittest.TestCase):
                     "compile_host_plan_command_semantics.py",
                     "CompileHost plan command semantics owner",
                     "plan-side Cargo command semantic diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_compile_host_plan_command_semantics_owner_split",
-                    "compile_host_plan_command_semantics.py",
-                    "CompileHost plan command semantics owner",
                 ],
             },
             "Current plugin docs do not reflect CompileHost plan command semantics owner split",

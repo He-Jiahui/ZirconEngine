@@ -56,6 +56,128 @@ fn builtin_host_modules_register_gameplay_capabilities() {
 }
 
 #[test]
+fn runtime13_scalar_math_host_uses_libm_vectors_and_rejects_non_finite_values() {
+    let exports = HostExportRegistry::default();
+    super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
+    let math = exports.module("zr.zircon.math").expect("math host module");
+    assert_eq!(math.descriptor.version, "0.2.0");
+    assert!(math
+        .descriptor
+        .capabilities
+        .contains(&"math.scalar".to_string()));
+    for name in [
+        "abs", "atan2", "ceil", "cos", "exp", "floor", "sin", "sqrt", "pow",
+    ] {
+        assert!(
+            math.descriptor
+                .functions
+                .iter()
+                .any(|function| function.name == name),
+            "math module must expose {name}"
+        );
+    }
+
+    let capabilities = CapabilitySet::default().with("math.scalar");
+    let call = |name: &str, arguments: Vec<ScriptHostValue>| match exports
+        .call_with_capabilities("zr.zircon.math", name, arguments, &capabilities)
+        .expect("finite scalar operation")
+    {
+        ScriptHostValue::Float(value) => value,
+        value => panic!("{name} returned {value:?}, expected float"),
+    };
+
+    let absolute_zero = call("abs", vec![ScriptHostValue::Float(-0.0)]);
+    assert_eq!(absolute_zero, 0.0);
+    assert!(absolute_zero.is_sign_positive());
+    assert!(
+        (call(
+            "atan2",
+            vec![ScriptHostValue::Float(1.0), ScriptHostValue::Float(-1.0)],
+        ) - 3.0 * std::f64::consts::FRAC_PI_4)
+            .abs()
+            < 1.0e-12
+    );
+    let positive_pi = call(
+        "atan2",
+        vec![ScriptHostValue::Float(0.0), ScriptHostValue::Float(-1.0)],
+    );
+    assert!((positive_pi - std::f64::consts::PI).abs() < 1.0e-12);
+    assert!(positive_pi.is_sign_positive());
+    let negative_pi = call(
+        "atan2",
+        vec![ScriptHostValue::Float(-0.0), ScriptHostValue::Float(-1.0)],
+    );
+    assert!((negative_pi + std::f64::consts::PI).abs() < 1.0e-12);
+    assert!(negative_pi.is_sign_negative());
+    assert_eq!(call("ceil", vec![ScriptHostValue::Float(-1.25)]), -1.0);
+    assert_eq!(call("floor", vec![ScriptHostValue::Float(-1.25)]), -2.0);
+    assert_eq!(call("cos", vec![ScriptHostValue::Float(0.0)]), 1.0);
+    assert!((call("exp", vec![ScriptHostValue::Float(1.0)]) - std::f64::consts::E).abs() < 1.0e-12);
+    assert!(
+        (call(
+            "sin",
+            vec![ScriptHostValue::Float(std::f64::consts::FRAC_PI_2)]
+        ) - 1.0)
+            .abs()
+            < 1.0e-12
+    );
+    assert_eq!(call("sqrt", vec![ScriptHostValue::Float(9.0)]), 3.0);
+    assert_eq!(
+        call(
+            "pow",
+            vec![ScriptHostValue::Float(-2.0), ScriptHostValue::Float(3.0)],
+        ),
+        -8.0
+    );
+    assert!(matches!(
+        exports.call_with_capabilities(
+            "zr.zircon.math",
+            "sqrt",
+            vec![ScriptHostValue::Float(-1.0)],
+            &capabilities,
+        ),
+        Err(VmError::Operation(message)) if message.contains("sqrt produced a non-finite result")
+    ));
+    assert!(matches!(
+        exports.call_with_capabilities(
+            "zr.zircon.math",
+            "sin",
+            vec![ScriptHostValue::Float(f64::NAN)],
+            &capabilities,
+        ),
+        Err(VmError::Operation(message)) if message.contains("sin argument 0 must be finite")
+    ));
+    for (name, arguments) in [
+        ("abs", vec![ScriptHostValue::Float(f64::INFINITY)]),
+        ("cos", vec![ScriptHostValue::Float(f64::NEG_INFINITY)]),
+    ] {
+        assert!(matches!(
+            exports.call_with_capabilities("zr.zircon.math", name, arguments, &capabilities),
+            Err(VmError::Operation(message)) if message.contains("argument 0 must be finite")
+        ));
+    }
+    for (name, arguments) in [
+        ("exp", vec![ScriptHostValue::Float(1_000.0)]),
+        (
+            "pow",
+            vec![
+                ScriptHostValue::Float(f64::MAX),
+                ScriptHostValue::Float(2.0),
+            ],
+        ),
+        (
+            "pow",
+            vec![ScriptHostValue::Float(-2.0), ScriptHostValue::Float(0.5)],
+        ),
+    ] {
+        assert!(matches!(
+            exports.call_with_capabilities("zr.zircon.math", name, arguments, &capabilities),
+            Err(VmError::Operation(message)) if message.contains("produced a non-finite result")
+        ));
+    }
+}
+
+#[test]
 fn script_module_descriptor_registers_vm_plugin_runtime_before_manager_facade() {
     let descriptor = module_descriptor();
 

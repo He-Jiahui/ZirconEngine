@@ -16,7 +16,6 @@ related_code:
   - zircon_editor/src/ui/workbench/asset_content_layout/mod.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs

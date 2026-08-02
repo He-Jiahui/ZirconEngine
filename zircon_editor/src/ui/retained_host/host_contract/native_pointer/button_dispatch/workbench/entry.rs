@@ -8,8 +8,8 @@ use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use self::pressed::dispatch_pressed_workbench_button;
 use self::released::dispatch_released_workbench_button;
-use super::super::super::routing::route_pointer_to_workbench_window;
 use super::super::super::NativePointerButtonState;
+use super::super::super::routing::route_pointer_to_workbench_window;
 
 pub(in super::super) fn dispatch_workbench_button(
     ui: &UiHostWindow,

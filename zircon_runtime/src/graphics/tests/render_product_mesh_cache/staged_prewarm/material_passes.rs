@@ -2,17 +2,17 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    AntiAliasSettings, CorePipelineKind, DEFAULT_RENDER_LAYER_MASK, DisplayMode,
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometryExtract, LightShadowSettings,
+    AntiAliasSettings, CorePipelineKind, DisplayMode, GeometryExtract, LightShadowSettings,
     PostProcessGraphResourceNames, ProjectionMode, RenderDirectionalLightSnapshot, RenderFramework,
     RenderLayerSet, RenderMeshSnapshot, RenderPhase, RenderPipelineHandle, RenderQualityProfile,
-    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderQualityTier, ShaderVariantMissReport,
-    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
-    ShaderVariantRuntimeDimensionCount, ShadowPcfQuality, ShadowResolutionTier,
+    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle, ShaderFeatureBits,
+    ShaderQualityTier, ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantRuntimeDimensionCount,
+    ShadowPcfQuality, ShadowResolutionTier, DEFAULT_RENDER_LAYER_MASK,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -525,18 +525,17 @@ fn assert_runtime_dimension_requested_without_miss(
 }
 
 fn material_mesh_shader_cache_product_manifest() -> ShaderVariantPrewarmManifest {
-    let mut variants = builtin_fallback_shader_prewarm_manifest().variants;
-    variants.extend(
-        builtin_standard_material_shader_prewarm_manifest_for_geometry(
-            ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
-            SHADING_MODEL_ID_STANDARD_PBR,
-            None,
-            GEOMETRY_SOURCE_ID_STATIC_MESH,
-            &[ShaderQualityTier::Medium],
-        )
-        .variants,
+    let mut manifest = builtin_fallback_shader_prewarm_manifest();
+    let extra = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+        ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
+        SHADING_MODEL_ID_STANDARD_PBR,
+        None,
+        GEOMETRY_SOURCE_ID_STATIC_MESH,
+        &[ShaderQualityTier::Medium],
     );
-    ShaderVariantPrewarmManifest::new(variants)
+    manifest.sources.extend(extra.sources);
+    manifest.variants.extend(extra.variants);
+    manifest
 }
 
 fn material_mesh_shader_cache_product_pipeline() -> RenderPipelineAsset {
@@ -632,25 +631,23 @@ fn material_mesh_deferred_lighting_product_feature() -> RenderFeatureDescriptor 
             "lighting".to_string(),
         ],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Lighting,
-                "plan08-staged-prewarm-deferred-lighting",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("lighting.deferred")
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
-            .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
-            .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
-            .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
-            .read_external_texture(PostProcessGraphResourceNames::FINAL_COLOR)
-            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "plan08-staged-prewarm-deferred-lighting",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.deferred")
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
+        .read_external_texture(PostProcessGraphResourceNames::FINAL_COLOR)
+        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
     )
 }
 

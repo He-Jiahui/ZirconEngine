@@ -34,6 +34,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot 'MvpProjectOpenEvidence.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflight.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpStagingRelease.psm1') -Force -ErrorAction Stop
 
 function Get-TextSha256 {
     param([Parameter(Mandatory)][string]$Text)
@@ -157,6 +159,23 @@ function Assert-MvpRunId {
     }
 }
 
+function Assert-MvpProjectName {
+    param([Parameter(Mandatory)][string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        throw 'CreateProject requires a non-empty ProjectName.'
+    }
+    if ($Value -eq '.' -or $Value -eq '..' -or
+        [IO.Path]::IsPathRooted($Value) -or
+        $Value.IndexOf([IO.Path]::DirectorySeparatorChar) -ge 0 -or
+        $Value.IndexOf([IO.Path]::AltDirectorySeparatorChar) -ge 0 -or
+        $Value.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0 -or
+        $Value.Trim() -ne $Value -or
+        $Value.EndsWith('.', [StringComparison]::Ordinal)) {
+        throw "ProjectName '$Value' must be one safe directory name under the staged project root."
+    }
+}
+
 function Get-MvpRelativePath {
     param(
         [Parameter(Mandatory)][string]$Root,
@@ -240,7 +259,7 @@ function Write-MvpJson {
 
     [IO.File]::WriteAllText(
         $Path,
-        ($Value | ConvertTo-Json -Depth 8),
+        ($Value | ConvertTo-Json -Depth 64),
         [Text.UTF8Encoding]::new($false)
     )
 }
@@ -283,6 +302,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 public sealed class ZirconMvpPngEvidence
 {
@@ -290,6 +310,7 @@ public sealed class ZirconMvpPngEvidence
     public int Height { get; private set; }
     public long NonBackgroundPixels { get; private set; }
     public long NonTransparentPixels { get; private set; }
+    public string PixelSha256 { get; private set; }
 
     public static ZirconMvpPngEvidence Inspect(string path)
     {
@@ -318,6 +339,7 @@ public sealed class ZirconMvpPngEvidence
                         Width = normalized.Width,
                         Height = normalized.Height,
                     };
+                    var canonicalPixels = new byte[checked(normalized.Width * normalized.Height * 4)];
                     var background = 0;
                     var backgroundSet = false;
                     for (var y = 0; y < normalized.Height; y++)
@@ -341,7 +363,12 @@ public sealed class ZirconMvpPngEvidence
                             {
                                 evidence.NonTransparentPixels++;
                             }
+                            Buffer.BlockCopy(pixels, offset, canonicalPixels, (y * normalized.Width + x) * 4, 4);
                         }
+                    }
+                    using (var hasher = SHA256.Create())
+                    {
+                        evidence.PixelSha256 = BitConverter.ToString(hasher.ComputeHash(canonicalPixels)).Replace("-", string.Empty);
                     }
                     return evidence;
                 }
@@ -367,6 +394,7 @@ public sealed class ZirconMvpPngEvidence
         path = Get-MvpRelativePath -Root $StageRoot -Path $Path -Label $Label
         sha256 = Get-FileSha256 -Path $Path
         size_bytes = $capture.Length
+        pixel_sha256 = $summary.PixelSha256
         width = $summary.Width
         height = $summary.Height
         non_background_pixels = $summary.NonBackgroundPixels
@@ -409,12 +437,40 @@ function ConvertTo-MvpProcessArgument {
     return '"' + $Value + ((@('\') * $trailingBackslashes) -join '') + '"'
 }
 
+function Write-MvpProcessJournalEntry {
+    param(
+        [Parameter(Mandatory)][string]$StageRoot,
+        [Parameter(Mandatory)][string]$Phase,
+        [Parameter(Mandatory)][string]$StartedAtUtc,
+        [Parameter(Mandatory)][string]$EndedAtUtc,
+        [Parameter(Mandatory)][AllowNull()][Nullable[int]]$ExitCode,
+        [Parameter(Mandatory)][ValidateSet('exited', 'timed_out', 'cleanup_failed')][string]$Outcome
+    )
+
+    $logRoot = Join-Path $StageRoot 'logs'
+    New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
+    $journalPath = Join-Path $logRoot 'process-execution-journal.jsonl'
+    $entry = [ordered]@{
+        phase = $Phase
+        started_at_utc = $StartedAtUtc
+        ended_at_utc = $EndedAtUtc
+        exit_code = $ExitCode
+        outcome = $Outcome
+    }
+    [IO.File]::AppendAllText(
+        $journalPath,
+        (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine),
+        [Text.UTF8Encoding]::new($false)
+    )
+}
+
 function Start-MvpStagedProcess {
     param(
         [Parameter(Mandatory)][string]$ExecutablePath,
         [Parameter(Mandatory)][string]$WorkingDirectory,
         [Parameter(Mandatory)][hashtable]$Environment,
         [Parameter(Mandatory)][string]$StageRoot,
+        [Parameter(Mandatory)][string]$Phase,
         [string]$ProjectRoot,
         [string[]]$Arguments = @()
     )
@@ -452,6 +508,7 @@ function Start-MvpStagedProcess {
 
     $process = [Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
+    $startedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
     if (-not $process.Start()) {
         $process.Dispose()
         throw "The operating system did not start '$ExecutablePath'."
@@ -461,6 +518,9 @@ function Start-MvpStagedProcess {
         stdout_task = $process.StandardOutput.ReadToEndAsync()
         stderr_task = $process.StandardError.ReadToEndAsync()
         staged_product_root = [IO.Path]::GetFullPath($StageRoot)
+        phase = $Phase
+        started_at_utc = $startedAtUtc
+        ended_at_utc = $null
     }
 }
 
@@ -577,6 +637,7 @@ function Complete-MvpStagedProcess {
     if (-not $processExited) {
         $timeoutCleanupErrors.Add('Root process did not exit within 5 seconds after timeout cleanup.')
     }
+    $ProcessState.ended_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
     $exitCode = if ($processExited) { $process.ExitCode } else { -1 }
     $releaseError = $null
     if (-not $timedOut) {
@@ -591,6 +652,23 @@ function Complete-MvpStagedProcess {
     $stderr = Receive-MvpProcessStream -Task $ProcessState.stderr_task -Label 'stderr'
     [IO.File]::WriteAllText($StdoutPath, $stdout, [Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText($StderrPath, $stderr, [Text.UTF8Encoding]::new($false))
+    $outcome = if ($timedOut) {
+        'timed_out'
+    }
+    elseif ($null -ne $releaseError) {
+        'cleanup_failed'
+    }
+    else {
+        'exited'
+    }
+    $journalExitCode = if ($timedOut) { $null } else { $exitCode }
+    Write-MvpProcessJournalEntry `
+        -StageRoot $ProcessState.staged_product_root `
+        -Phase $ProcessState.phase `
+        -StartedAtUtc $ProcessState.started_at_utc `
+        -EndedAtUtc $ProcessState.ended_at_utc `
+        -ExitCode $journalExitCode `
+        -Outcome $outcome
     if ($timedOut) {
         $cleanupDetail = if ($timeoutCleanupErrors.Count -eq 0) {
             ''
@@ -652,6 +730,7 @@ function Get-MvpRuntimeProductDiagnosticsEvidence {
         'directional_light_count',
         'material_fallback_count',
         'material_validation_error_count',
+        'input_viewport_resize_count',
         'input_pointer_move_count',
         'input_mouse_button_press_count',
         'input_mouse_button_release_count',
@@ -701,6 +780,7 @@ function Get-MvpRuntimeProductDiagnosticsEvidence {
         }
     }
     foreach ($name in @(
+        'input_viewport_resize_count',
         'input_pointer_move_count',
         'input_mouse_button_press_count',
         'input_mouse_button_release_count',
@@ -855,6 +935,7 @@ function Invoke-MvpStagedProduct {
                 -WorkingDirectory $WorkingDirectory `
                 -Environment $environment `
                 -StageRoot $StageRoot `
+                -Phase "$Product-$attempt" `
                 -ProjectRoot $ProjectRoot
         }
         catch {
@@ -880,17 +961,29 @@ function Invoke-MvpStagedProduct {
                 $processState.process.Dispose()
             }
         }
-        if ($exitCode -ne 0) {
-            $failureMessage = "Staged $Product attempt $attempt exited with code $exitCode. See $stdout and $stderr."
-            try {
-                Assert-MvpStagingProcessesReleased -StageDirectory $StageRoot
+        $failureMessage = if ($exitCode -ne 0) {
+            "Staged $Product attempt $attempt exited with code $exitCode. See $stdout and $stderr."
+        }
+        else {
+            $null
+        }
+        try {
+            Assert-MvpStagingProcessesReleased -StageDirectory $StageRoot
+            if (-not [string]::IsNullOrWhiteSpace($ProjectRoot)) {
+                Test-MvpStagedProjectDirectoryReleased `
+                    -StageDirectory $StageRoot `
+                    -ProjectDirectory $ProjectRoot
             }
-            catch {
+        }
+        catch {
+            if ($null -ne $failureMessage) {
                 throw "$failureMessage Cleanup: $($_.Exception.Message)"
             }
+            throw
+        }
+        if ($null -ne $failureMessage) {
             throw $failureMessage
         }
-        Assert-MvpStagingProcessesReleased -StageDirectory $StageRoot
         $diagnosticFiles = @(Get-ChildItem -LiteralPath $diagnosticRoot -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue | Sort-Object FullName)
         $diagnosticText = ($diagnosticFiles | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n"
         if ($diagnosticText.IndexOf($firstFrameDiagnostic, [StringComparison]::Ordinal) -lt 0) {
@@ -924,6 +1017,8 @@ function Invoke-MvpStagedProduct {
             product = $Product
             attempt = $attempt
             exit_code = $exitCode
+            started_at_utc = $processState.started_at_utc
+            ended_at_utc = $processState.ended_at_utc
             first_frame_exit_requested = $true
             first_frame_presented = $true
             teardown_complete = $true
@@ -1045,6 +1140,7 @@ function Invoke-MvpStagedAuthoringAutomation {
             -WorkingDirectory $WorkingDirectory `
             -Environment $environment `
             -StageRoot $StageRoot `
+            -Phase $EvidenceLabel `
             -Arguments @('--project', $ProjectRoot, '--automation', $AutomationRequestPath, '--headless')
         $exitCode = Complete-MvpStagedProcess `
             -ProcessState $processState `
@@ -1065,6 +1161,9 @@ function Invoke-MvpStagedAuthoringAutomation {
         }
     }
     Assert-MvpStagingProcessesReleased -StageDirectory $StageRoot
+    Test-MvpStagedProjectDirectoryReleased `
+        -StageDirectory $StageRoot `
+        -ProjectDirectory $ProjectRoot
     if ($exitCode -ne 0) {
         throw "Staged editor $EvidenceLabel automation exited with code $exitCode. See $stdout and $stderr."
     }
@@ -1076,6 +1175,8 @@ function Invoke-MvpStagedAuthoringAutomation {
         -DiagnosticRoot $environment.ZIRCON_LOG_ROOT `
         -ProjectRoot $ProjectRoot
     $report | Add-Member -NotePropertyName 'exit_code' -NotePropertyValue $exitCode
+    $report | Add-Member -NotePropertyName 'started_at_utc' -NotePropertyValue $processState.started_at_utc
+    $report | Add-Member -NotePropertyName 'ended_at_utc' -NotePropertyValue $processState.ended_at_utc
     $report | Add-Member -NotePropertyName 'elapsed_milliseconds' -NotePropertyValue ([int][Math]::Round($started.Elapsed.TotalMilliseconds))
     return $report
 }
@@ -1146,8 +1247,8 @@ function Invoke-MvpProductStaging {
     if ($CreateProject -and $null -ne $projectRootPath) {
         throw 'CreateProject cannot be combined with ProjectRoot; the staged editor must create the canonical project.'
     }
-    if ($CreateProject -and [string]::IsNullOrWhiteSpace($ProjectName)) {
-        throw 'CreateProject requires a non-empty ProjectName.'
+    if ($CreateProject) {
+        Assert-MvpProjectName -Value $ProjectName
     }
     if ($CreateProject -and $NoLaunch) {
         throw 'CreateProject cannot be combined with NoLaunch; a staged editor launch is required to create the canonical project.'
@@ -1170,6 +1271,50 @@ function Invoke-MvpProductStaging {
         $SourceFingerprint = Get-MvpSourceFingerprint
     }
     $validationMetadata = Resolve-MvpValidationMetadata
+    $engineAssetFiles = @(Get-ChildItem -LiteralPath $engineAssetRootPath -Recurse -File | Sort-Object FullName)
+    if ($engineAssetFiles.Count -eq 0) {
+        throw "EngineAssetRoot '$engineAssetRootPath' has no files to stage."
+    }
+    $templateFiles = @(Get-ChildItem -LiteralPath $templateRootPath -Recurse -File | Sort-Object FullName)
+    if ($templateFiles.Count -eq 0) {
+        throw "TemplateRoot '$templateRootPath' has no files to stage."
+    }
+    $projectFiles = if ($null -eq $projectRootPath) {
+        @()
+    }
+    else {
+        @(Get-ChildItem -LiteralPath $projectRootPath -Recurse -File | Sort-Object FullName | Where-Object {
+            $relative = Get-MvpRelativePath -Root $projectRootPath -Path $_.FullName -Label 'Project file'
+            Test-MvpProjectSourceRelativePath -RelativePath $relative
+        })
+    }
+    if ($null -ne $projectRootPath -and $projectFiles.Count -eq 0) {
+        throw "ProjectRoot '$projectRootPath' has no source files to stage."
+    }
+    $inputCopies = [System.Collections.Generic.List[object]]::new()
+    foreach ($path in @(
+        $runtimeExecutablePath,
+        $editorExecutablePath,
+        $runtimeLibraryPath,
+        $editorRuntimeLibraryPath
+    )) {
+        $inputCopies.Add([ordered]@{ path = $path; copy_count = 1 }) | Out-Null
+    }
+    foreach ($file in $engineAssetFiles) {
+        $inputCopies.Add([ordered]@{ path = $file.FullName; copy_count = 2 }) | Out-Null
+    }
+    foreach ($file in @($templateFiles) + @($projectFiles)) {
+        $inputCopies.Add([ordered]@{ path = $file.FullName; copy_count = 1 }) | Out-Null
+    }
+    foreach ($path in @($authoringAutomationRequestPath, $reopenAutomationRequestPath)) {
+        if ($null -ne $path) {
+            $inputCopies.Add([ordered]@{ path = $path; copy_count = 1 }) | Out-Null
+        }
+    }
+    $preflight = Get-MvpStagingPreflight `
+        -StagingRootPath $stagingRootPath `
+        -InputCopies ($inputCopies.ToArray()) `
+        -InteractiveDesktopRequired (-not $NoLaunch)
 
     $stageDirectory = Join-Path $stagingRootPath $RunId
     $partialDirectory = "$stageDirectory.partial-$([guid]::NewGuid().ToString('N'))"
@@ -1191,10 +1336,6 @@ function Invoke-MvpProductStaging {
         $entries.Add((Copy-MvpStageFile -LogicalId 'editor-executable' -SourcePath $editorExecutablePath -StageRoot $partialDirectory -TargetRelativePath 'editor\zircon_editor.exe')) | Out-Null
         $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-library/editor' -SourcePath $editorRuntimeLibraryPath -StageRoot $partialDirectory -TargetRelativePath 'editor\zircon_runtime.dll')) | Out-Null
 
-        $engineAssetFiles = @(Get-ChildItem -LiteralPath $engineAssetRootPath -Recurse -File | Sort-Object FullName)
-        if ($engineAssetFiles.Count -eq 0) {
-            throw "EngineAssetRoot '$engineAssetRootPath' has no files to stage."
-        }
         foreach ($engineAssetFile in $engineAssetFiles) {
             $relative = Get-MvpRelativePath -Root $engineAssetRootPath -Path $engineAssetFile.FullName -Label 'Engine asset'
             foreach ($product in @('runtime', 'editor')) {
@@ -1206,10 +1347,6 @@ function Invoke-MvpProductStaging {
             }
         }
 
-        $templateFiles = @(Get-ChildItem -LiteralPath $templateRootPath -Recurse -File | Sort-Object FullName)
-        if ($templateFiles.Count -eq 0) {
-            throw "TemplateRoot '$templateRootPath' has no files to stage."
-        }
         foreach ($templateFile in $templateFiles) {
             $relative = Get-MvpRelativePath -Root $templateRootPath -Path $templateFile.FullName
             $entries.Add((Copy-MvpStageFile `
@@ -1233,24 +1370,19 @@ function Invoke-MvpProductStaging {
                 -TargetRelativePath 'reopen\automation.json')) | Out-Null
         }
         if ($null -ne $projectRootPath) {
-            $projectFiles = @(Get-ChildItem -LiteralPath $projectRootPath -Recurse -File | Sort-Object FullName)
-            $stagedProjectFiles = 0
             foreach ($projectFile in $projectFiles) {
                 $relative = Get-MvpRelativePath -Root $projectRootPath -Path $projectFile.FullName -Label 'Project file'
-                if (-not (Test-MvpProjectSourceRelativePath -RelativePath $relative)) {
-                    continue
-                }
                 $entries.Add((Copy-MvpStageFile `
                     -LogicalId ('project/' + $relative) `
                     -SourcePath $projectFile.FullName `
                     -StageRoot $partialDirectory `
                     -TargetRelativePath ('project\' + $relative.Replace('/', '\')))) | Out-Null
-                $stagedProjectFiles++
-            }
-            if ($stagedProjectFiles -eq 0) {
-                throw "ProjectRoot '$projectRootPath' has no source files to stage."
             }
         }
+
+        $null = Assert-MvpStagingEntryBudget `
+            -Entries ($entries.ToArray()) `
+            -ExpectedInputCopyBytes ([Int64]$preflight.input_copy_bytes)
 
         $manifest = [ordered]@{
             schema_version = 1
@@ -1259,6 +1391,7 @@ function Invoke-MvpProductStaging {
             toolchain = $validationMetadata.toolchain
             target = $validationMetadata.target
             staged_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
+            preflight = $preflight
             entries = $entries.ToArray()
         }
         Write-MvpJson -Path (Join-Path $partialDirectory 'staging-manifest.json') -Value $manifest
@@ -1303,6 +1436,7 @@ function Invoke-MvpProductStaging {
                         -WorkingDirectory (Join-Path $stageDirectory 'editor') `
                         -Environment $createEnvironment `
                         -StageRoot $stageDirectory `
+                        -Phase 'editor-create' `
                         -Arguments @('--create-project', '--project-name', $ProjectName, '--location', (Join-Path $stageDirectory 'project'), '--template', 'renderable-empty')
                     $createExitCode = Complete-MvpStagedProcess `
                         -ProcessState $createProcess `
@@ -1339,7 +1473,19 @@ function Invoke-MvpProductStaging {
                         throw "Staged editor project creation exited without the $diagnostic diagnostic under '$createDiagnosticRoot'. See $createStdout and $createStderr."
                     }
                 }
-                $createdProjectRoot = Resolve-MvpInputDirectory -Path (Join-Path $stageDirectory (Join-Path 'project' $ProjectName)) -Label 'Staged created project'
+                $createdProjectParent = [IO.Path]::GetFullPath((Join-Path $stageDirectory 'project'))
+                $createdProjectExpectedRoot = [IO.Path]::GetFullPath((Join-Path $createdProjectParent $ProjectName))
+                $createdProjectParentPrefix = $createdProjectParent.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
+                if (-not $createdProjectExpectedRoot.StartsWith($createdProjectParentPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+                    throw "Created project target '$createdProjectExpectedRoot' escapes staged project root '$createdProjectParent'."
+                }
+                $createdProjectRoot = Resolve-MvpInputDirectory -Path $createdProjectExpectedRoot -Label 'Staged created project'
+                if (-not $createdProjectRoot.Equals($createdProjectExpectedRoot, [StringComparison]::OrdinalIgnoreCase)) {
+                    throw "Created project root '$createdProjectRoot' differs from expected staged target '$createdProjectExpectedRoot'."
+                }
+                Test-MvpStagedProjectDirectoryReleased `
+                    -StageDirectory $stageDirectory `
+                    -ProjectDirectory $createdProjectRoot
                 $projectOpenEvidence = Get-MvpEditorProjectOpenEvidence `
                     -DiagnosticText $createDiagnosticText `
                     -StagingRoot $stageDirectory `
@@ -1353,6 +1499,8 @@ function Invoke-MvpProductStaging {
                     -ProjectRoot $createdProjectRoot
                 $projectCreation = [ordered]@{
                     exit_code = $createExitCode
+                    started_at_utc = $createProcess.started_at_utc
+                    ended_at_utc = $createProcess.ended_at_utc
                     first_frame_presented = $true
                     teardown_complete = $true
                     elapsed_milliseconds = [int][Math]::Round($createStarted.Elapsed.TotalMilliseconds)
@@ -1468,7 +1616,7 @@ function Invoke-MvpProductStaging {
 
 $result = Invoke-MvpProductStaging
 if ($Json) {
-    $result | ConvertTo-Json -Depth 8
+    $result | ConvertTo-Json -Depth 64
 } else {
     $result
 }

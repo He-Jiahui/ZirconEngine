@@ -75,7 +75,7 @@ fn dock_header_nodes(
     model_rc(
         (0..nodes.row_count())
             .filter_map(|row| nodes.row_data(row))
-            .filter(|node| node_survives_dock_tab_close_filter(node, tabs))
+            .filter(|node| node_survives_tab_close_filter(node, tabs))
             .map(|node| tab_node_with_state(node, DOCK_TAB_PREFIX, tabs))
             .collect(),
     )
@@ -140,7 +140,7 @@ pub(super) fn fallback_dock_header_nodes(
             surface_variant: if tab.active { "inset" } else { "" }.into(),
             button_variant: "ghost".into(),
             selected: tab.active,
-            focused: tab.active,
+            focused: false,
             frame: ViewTemplateFrameData {
                 x,
                 y: DOCUMENT_TAB_STRIP_Y,

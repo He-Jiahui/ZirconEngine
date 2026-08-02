@@ -31,6 +31,7 @@ define_job_enum! {
         Compile,
         Thumbnail,
         Export,
+        InteractiveSave,
         Index,
         Play,
         Misc,

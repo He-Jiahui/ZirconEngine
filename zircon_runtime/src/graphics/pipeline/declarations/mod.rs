@@ -12,10 +12,10 @@ mod renderer_feature_reference;
 mod renderer_feature_source;
 
 pub(crate) use advanced_pbr_pass_contract::{
-    ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
-    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS, transmission_mesh_pass_name,
-    transmission_mesh_step_index, transmission_scene_copy_pass_name,
-    transmission_scene_copy_step_index,
+    transmission_mesh_pass_name, transmission_mesh_step_index, transmission_scene_copy_pass_name,
+    transmission_scene_copy_step_index, ADVANCED_PBR_OPAQUE_EXECUTOR_ID,
+    ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
+    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
 pub(crate) use compiled_render_pipeline::CompiledRenderPipelineParts;
 pub use compiled_render_pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
@@ -25,8 +25,8 @@ pub use render_pipeline_compile_options::RenderPipelineCompileOptions;
 pub use render_pipeline_compile_report::RenderPipelineCompileReport;
 pub use renderer_asset::RendererAsset;
 pub use renderer_data_document::{
-    RENDERER_DATA_DOCUMENT_VERSION, RendererDataDocument, RendererDataDocumentError,
-    RendererFeatureDocument, RendererFeatureReferenceListKind,
+    RendererDataDocument, RendererDataDocumentError, RendererFeatureDocument,
+    RendererFeatureReferenceListKind, RENDERER_DATA_DOCUMENT_VERSION,
 };
 pub use renderer_feature_asset::RendererFeatureAsset;
 pub use renderer_feature_contract_diagnostic::{

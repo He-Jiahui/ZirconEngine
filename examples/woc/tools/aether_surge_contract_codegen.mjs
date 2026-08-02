@@ -15,7 +15,7 @@ const checkOnly = process.argv.includes('--check');
 
 const blob = execFileSync('git', ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${SOURCE_PATH}`], { encoding: 'buffer' });
 const source = blob.toString('utf8');
-const constants = Object.fromEntries(['AETHER_SURGE_MAX_CHARGES', 'AETHER_SURGE_DMG_PER_CHARGE', 'AETHER_SURGE_COST_PER_CHARGE', 'AETHER_SURGE_CHARGE_WINDOW', 'AETHER_DARTS_BONUS_PER_CHARGE', 'AETHER_DARTS_FULL_CHARGE_MISSILES', 'AETHER_SURGE_CAST_HASTE_PER_CHARGE', 'AETHER_SURGE_PROC_CAST_MULT', 'PERFECT_MOMENT_DURATION'].map((name) => {
+const constants = Object.fromEntries(['AETHER_SURGE_MAX_CHARGES', 'AETHER_SURGE_DMG_PER_CHARGE', 'AETHER_SURGE_COST_PER_CHARGE', 'AETHER_SURGE_CHARGE_WINDOW', 'AETHER_SURGE_FREE_PROC_CHANCE', 'AETHER_SURGE_FREE_WINDOW', 'AETHER_DARTS_BONUS_PER_CHARGE', 'AETHER_DARTS_FULL_CHARGE_MISSILES', 'AETHER_SURGE_CAST_HASTE_PER_CHARGE', 'AETHER_SURGE_PROC_CAST_MULT', 'PERFECT_MOMENT_DURATION'].map((name) => {
   const match = source.match(new RegExp(`export const ${name}\\s*=\\s*([\\d.]+);`));
   invariant(match, `${name} is no longer a literal`);
   return [name, Number(match[1])];
@@ -46,6 +46,8 @@ const zr = `// Generated from ${SOURCE_COMMIT}; do not edit by hand.\n` +
   `pub maxCharges(): int { return ${constants.AETHER_SURGE_MAX_CHARGES}; }\n` +
   `pub damagePerCharge(): float { return ${constants.AETHER_SURGE_DMG_PER_CHARGE}; }\n` +
   `pub chargeWindow(): float { return ${constants.AETHER_SURGE_CHARGE_WINDOW}.0; }\n` +
+  `pub freeProcChance(): float { return ${constants.AETHER_SURGE_FREE_PROC_CHANCE}; }\n` +
+  `pub freeWindow(): float { return ${constants.AETHER_SURGE_FREE_WINDOW}.0; }\n` +
   `pub dartsBonusPerCharge(): int { return ${constants.AETHER_DARTS_BONUS_PER_CHARGE}; }\n` +
   `pub fullChargeMissiles(): int { return ${constants.AETHER_DARTS_FULL_CHARGE_MISSILES}; }\n` +
   `pub castHastePerCharge(): float { return ${constants.AETHER_SURGE_CAST_HASTE_PER_CHARGE}; }\n` +

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::family::FontFamilyName;
+use crate::asset::assets::FontFamilyName;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FontWeight(pub u16);

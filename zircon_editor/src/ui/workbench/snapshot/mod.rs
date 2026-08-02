@@ -11,11 +11,14 @@ pub use asset::{
     AssetReferenceSnapshot, AssetSelectionSnapshot, AssetSubassetSnapshot, AssetSurfaceMode,
     AssetTypeProjectionSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
 };
+pub(crate) use data::CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
+pub(crate) use data::SceneEntryProjectionCache;
 pub use data::{
-    EditorBridgeDiagnosticsSnapshot, EditorBridgeDiagnosticsSummarySnapshot,
-    EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
-    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
-    ProjectOverviewSnapshot, SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone,
+    ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorBridgeDiagnosticsSnapshot,
+    EditorBridgeDiagnosticsSummarySnapshot, EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot,
+    EditorConsoleMessageLevel, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
+    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntries,
+    SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone,
 };
 pub use workbench::{
     ActivityDrawerSnapshot, DocumentWorkspaceSnapshot, FloatingWindowSnapshot, MainPageSnapshot,

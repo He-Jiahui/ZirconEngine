@@ -161,6 +161,39 @@ pub struct PreferenceReadSnapshot {
     last_terminal: Option<PreferenceMutationTerminal>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PreferenceEviction {
+    generation: u64,
+    durability: PreferenceDurabilityState,
+    last_terminal: Option<PreferenceMutationTerminal>,
+}
+
+impl PreferenceEviction {
+    pub(crate) fn new(
+        generation: u64,
+        durability: PreferenceDurabilityState,
+        last_terminal: Option<PreferenceMutationTerminal>,
+    ) -> Self {
+        Self {
+            generation,
+            durability,
+            last_terminal,
+        }
+    }
+
+    pub const fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub const fn durability(&self) -> PreferenceDurabilityState {
+        self.durability
+    }
+
+    pub fn last_terminal(&self) -> Option<&PreferenceMutationTerminal> {
+        self.last_terminal.as_ref()
+    }
+}
+
 impl PreferenceReadSnapshot {
     pub(crate) fn new(
         generation: u64,
@@ -219,4 +252,9 @@ pub trait PreferenceStorage: Send + Sync + 'static {
         &self,
         deadline: PreferenceWorkDeadline,
     ) -> Result<Arc<dyn PreferenceFlushTicket>, PreferenceStorageError>;
+
+    /// Explicitly discards one terminal, visible-not-durable generation and its failure state.
+    ///
+    /// Pending and durable generations are not eligible for lossy eviction.
+    fn evict(&self, key: &PreferenceKey) -> Option<PreferenceEviction>;
 }

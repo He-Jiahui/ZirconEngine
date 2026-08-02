@@ -3,8 +3,8 @@ use super::super::super::globals::{PaneSurfaceHostContext, UiHostContext};
 use super::super::super::redraw::NativePointerDispatchResult;
 use super::super::super::window::UiHostWindow;
 use super::super::target::{
-    PopupKeyboardRow, PopupKeyboardTarget, PopupKeyboardWindowFocus, PopupKeyboardWindowRequest,
-    HOST_PAGE_OVERFLOW_DISPATCH_KIND,
+    HOST_PAGE_OVERFLOW_DISPATCH_KIND, PopupKeyboardRow, PopupKeyboardTarget,
+    PopupKeyboardWindowFocus, PopupKeyboardWindowRequest,
 };
 use crate::ui::retained_host::callback_dispatch::{
     WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,

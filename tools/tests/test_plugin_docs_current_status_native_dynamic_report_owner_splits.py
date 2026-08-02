@@ -47,16 +47,6 @@ class PluginDocsCurrentStatusNativeDynamicReportOwnerSplitTests(unittest.TestCas
                     "Operation-audit helper diagnostics",
                     "Payload schema helper diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_build_execution_owner_split",
-                    "plugins_13_m5_t1_native_dynamic_build_plan_command_owner_split",
-                    "plugins_13_m5_t1_native_dynamic_operation_audit_schema_helper_owner_split",
-                    "plugins_13_m5_t1_native_dynamic_payload_schema_helper_owner_split",
-                    "pipeline_report_native_dynamic_build_execution",
-                    "pipeline_report_native_dynamic_build_plan_commands",
-                    "pipeline_report_native_dynamic_operation_audit_schema_helpers",
-                    "pipeline_report_native_dynamic_payload_schema_helpers",
-                ],
             },
             "Current export/plugin docs do not reflect NativeDynamic report owner splits",
         )

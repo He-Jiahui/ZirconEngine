@@ -61,10 +61,10 @@ mod tests {
         AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
     };
     use zircon_runtime::core::math::{Transform, Vec3};
-    use zircon_runtime::scene::World;
     use zircon_runtime::scene::components::NodeKind;
+    use zircon_runtime::scene::World;
 
-    use super::{AnimationEvaluationPipeline, node_pose_transform_updates};
+    use super::{node_pose_transform_updates, AnimationEvaluationPipeline};
 
     #[test]
     fn node_pose_updates_named_descendants_without_touching_root_or_outsiders() {

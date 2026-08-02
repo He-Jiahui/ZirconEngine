@@ -1,8 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::{
-    select_workbench_status_icon_button_style, status_control_offset_rect,
-    status_icon_button_glyph_rect, PALETTE,
+    PALETTE, select_workbench_status_icon_button_style, status_control_offset_rect,
+    status_icon_button_glyph_rect,
 };
 use super::support::{changed_pixel_count, pixel_at, status_icon_node};
 use crate::ui::layouts::common::model_rc;

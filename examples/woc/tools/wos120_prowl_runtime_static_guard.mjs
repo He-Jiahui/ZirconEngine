@@ -76,7 +76,7 @@ const world = read("scripts", "woc_game", "src", "world", "state.zr");
 const motionState = read("scripts", "woc_game", "src", "world", "motion_aura_state.zr");
 const main = read("scripts", "woc_game", "src", "main.zr");
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)/,
+requireText(world, /writer\.u16\(<uint>78, 1, 1\)/,
   "current encoder schema is missing");
 requireText(world, /schemaVersion != <uint>67 &&\s*schemaVersion != <uint>68 &&\s*schemaVersion != <uint>69/,
   "current decoder admission is missing");
@@ -108,9 +108,9 @@ requireText(world, /if \(prowlCommandStateTest\(\) != 1\) \{[\s\S]*?return -114;
   "world selfTest must execute Prowl");
 requireText(motionState, /movementMultiplierWithStealth[\s\S]*?stealthMultiplier[\s\S]*?slow = stealthMultiplier/,
   "motion state must fold Prowl into the source slow-before-speed order");
-if (!main.includes('\\"world_state\\":\\"WOS71\\"') ||
-    !protocol.includes('WORLD_STATE_FORMAT: &str = "WOS71"') ||
-    !protocol.includes('WORLD_STATE_SCHEMA_VERSION: u16 = 71')) {
+if (!main.includes('\\"world_state\\":\\"WOS78\\"') ||
+    !protocol.includes('WORLD_STATE_FORMAT: &str = "WOS78"') ||
+    !protocol.includes('WORLD_STATE_SCHEMA_VERSION: u16 = 78')) {
   throw new Error("WOC package metadata still advertises the prior WOS schema");
 }
 

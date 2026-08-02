@@ -28,7 +28,6 @@ pub(crate) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
     crate::render_feature_descriptor()
 }
 
-#[allow(dead_code)]
 pub(crate) fn pluginized_wgpu_render_framework_with_asset_manager(
     asset_manager: Arc<ProjectAssetManager>,
 ) -> PluginizedWgpuRenderFrameworkFixture {

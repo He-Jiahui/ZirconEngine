@@ -1,6 +1,7 @@
 use crate::core::asset::AssetTypeId;
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord};
+use zircon_runtime::core::framework::asset::ResourceManagementGeneration;
+use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetDetailsGeneration,
@@ -17,8 +18,8 @@ impl EditorState {
         self.asset_workspace.sync_selected_details(details);
     }
 
-    pub fn sync_asset_resources(&mut self, resources: Vec<ResourceRecord>) {
-        self.asset_workspace.sync_resources(resources);
+    pub fn sync_asset_resources(&mut self, resources: Arc<ResourceManagementGeneration>) -> bool {
+        self.asset_workspace.sync_resources(resources)
     }
 
     pub fn select_asset_folder(&mut self, folder_id: impl Into<String>) {

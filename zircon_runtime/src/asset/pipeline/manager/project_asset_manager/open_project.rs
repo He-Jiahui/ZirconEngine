@@ -3,7 +3,7 @@ use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::core::CoreError;
 
-use super::super::errors::asset_error;
+use super::super::errors::{asset_error, asset_error_message};
 use super::super::records::build_project_info;
 use super::super::resource_sync::{clear_removed_project_resources, project_locators};
 use super::ProjectAssetManager;
@@ -19,21 +19,27 @@ impl ProjectAssetManager {
         &self,
         mut project: ProjectManager,
     ) -> Result<ProjectInfo, CoreError> {
-        let _generation = self.project_generation_write();
+        let preparation_epoch = self.begin_project_preparation();
         let installed_importers = self.importer_registry_read().clone();
         project
             .register_asset_importers_from_registry(&installed_importers)
             .map_err(asset_error)?;
         project.set_environment_ibl_parallel_executor(self.worker_task_pool.clone());
+        let prepared_watchers = self.prepare_project_watchers(&project)?;
+        let imported = project.scan_and_import().map_err(asset_error)?;
+        let prepared_resources = self.prepare_project_resource_sync(&project)?;
+        let info = build_project_info(&project);
+        let _generation = self.project_generation_write();
+        if !self.is_latest_project_preparation(preparation_epoch) {
+            return Err(asset_error_message(
+                "project activation was superseded by a newer preparation",
+            ));
+        }
         let previous_locators = self
             .project_read()
             .as_ref()
             .map(project_locators)
             .unwrap_or_default();
-        let prepared_watchers = self.prepare_project_watchers(&project)?;
-        let imported = project.scan_and_import().map_err(asset_error)?;
-        let prepared_resources = self.prepare_project_resource_sync(&project)?;
-        let info = build_project_info(&project);
         let (retired_watchers, watcher_activation) = {
             let mut active_project = self.project_write();
             clear_removed_project_resources(&self.resource_manager(), &previous_locators, &project);

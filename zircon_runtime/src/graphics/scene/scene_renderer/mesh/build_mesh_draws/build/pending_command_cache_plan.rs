@@ -1,5 +1,4 @@
 use crate::core::framework::render::{PrimitiveRelevance, RenderMeshStaticState, RenderPhase};
-use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MeshDrawQueuePhase, MeshDrawQueueProfile,
 };
@@ -63,12 +62,12 @@ impl PendingMeshCommandCachePlanItem {
 
 pub(super) fn summarize_pending_mesh_command_cache_plan(
     pending_draws: &[PendingMeshDraw],
-    visibility_for_entity: impl Fn(EntityId) -> Option<PendingMeshCommandCacheVisibility>,
+    visibility_for_instance: impl Fn(u64) -> Option<PendingMeshCommandCacheVisibility>,
 ) -> PendingMeshCommandCachePlanStats {
     summarize_pending_mesh_command_cache_plan_items(pending_draws.iter().map(|pending_draw| {
         (
             pending_mesh_command_cache_plan_item(pending_draw),
-            visibility_for_entity(pending_draw.source_entity),
+            visibility_for_instance(pending_draw.stable_instance_key),
         )
     }))
 }
@@ -178,8 +177,8 @@ mod tests {
     };
 
     use super::{
-        PendingMeshCommandCachePlanItem, PendingMeshCommandCacheVisibility,
-        summarize_pending_mesh_command_cache_plan_items,
+        summarize_pending_mesh_command_cache_plan_items, PendingMeshCommandCachePlanItem,
+        PendingMeshCommandCacheVisibility,
     };
 
     #[test]

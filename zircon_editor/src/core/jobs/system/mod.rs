@@ -2,7 +2,6 @@ mod pending;
 mod state;
 
 use std::any::Any;
-use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::Instant;
@@ -11,14 +10,17 @@ use zircon_runtime::core::runtime::tasks::JobScheduler;
 
 use crate::core::editor_message::SharedEditorMessageBus;
 
-use self::pending::PendingJob;
+use self::pending::{LatestPendingTask, PendingJob, PendingTask};
 use self::state::EditorJobSystemState;
 use super::event_sink::JobEventSink;
 use super::pump::JobEventPump;
 use super::{
-    EditorJob, EditorJobLimits, EditorJobProgressSource, EditorJobSpec, JobContext, JobError,
-    JobEventKind, JobId, JobSubmitError, JobTicket, UnfinishedEditorJob,
+    EditorJob, EditorJobAdmission, EditorJobAdmissionSnapshot, EditorJobLimits,
+    EditorJobProgressSource, EditorJobSpec, JobContext, JobError, JobEventKind, JobId,
+    JobSubmitError, JobTicket, UnfinishedEditorJob,
 };
+
+const MAX_PROMOTION_DISPATCH_BATCH: usize = 64;
 
 #[derive(Clone)]
 pub struct EditorJobSystem {
@@ -31,6 +33,7 @@ struct EditorJobSystemInner {
     event_queue: super::pump::JobEventQueue,
     event_pump: JobEventPump,
     state: Mutex<EditorJobSystemState>,
+    promotion: Mutex<()>,
     state_changed: Condvar,
     progress: EditorJobProgressSource,
 }
@@ -54,6 +57,7 @@ impl EditorJobSystem {
                 event_queue: event_queue.clone(),
                 event_pump: JobEventPump::new(bus, event_queue),
                 state: Mutex::new(EditorJobSystemState::default()),
+                promotion: Mutex::new(()),
                 state_changed: Condvar::new(),
                 progress: EditorJobProgressSource::default(),
             }),
@@ -68,48 +72,138 @@ impl EditorJobSystem {
     where
         J: EditorJob,
     {
+        if spec.admission_key.is_some() {
+            return Err(JobSubmitError::KeyedAdmissionRequiresOutcome);
+        }
+        match self.submit_admitted(spec, job)? {
+            EditorJobAdmission::Accepted(ticket) => Ok(ticket),
+            EditorJobAdmission::Merged { .. } => {
+                unreachable!("unkeyed editor jobs cannot merge into a pending reservation")
+            }
+        }
+    }
+
+    pub fn submit_admitted<J>(
+        &self,
+        spec: EditorJobSpec,
+        job: J,
+    ) -> Result<EditorJobAdmission<J::Output>, JobSubmitError>
+    where
+        J: EditorJob,
+    {
         if spec.label.trim().is_empty() {
             return Err(JobSubmitError::EmptyLabel);
         }
         let (sender, receiver) = mpsc::sync_channel(1);
         let cancel_sender = sender.clone();
+        let mut task: Option<Box<dyn PendingTask>> =
+            Some(Box::new(LatestPendingTask::new(job, sender)));
         let cancel_task = Box::new(move |context: JobContext| {
             context.emit(JobEventKind::Cancelled);
             let _ = cancel_sender.send(Err(JobError::Cancelled));
-        });
-        let task = Box::new(move |context: JobContext| {
-            let event_context = context.clone();
-            let result = if context.is_cancelled() {
-                Err(JobError::Cancelled)
-            } else {
-                catch_unwind(AssertUnwindSafe(|| job.run(context)))
-                    .unwrap_or_else(|payload| Err(JobError::Panicked(panic_message(payload))))
-            };
-            let kind = match &result {
-                Ok(_) => JobEventKind::Completed,
-                Err(JobError::Cancelled) => JobEventKind::Cancelled,
-                Err(error) => JobEventKind::Failed {
-                    message: error.to_string(),
-                },
-            };
-            event_context.emit(kind);
-            let _ = sender.send(result);
         });
 
         let id = {
             let mut state = self.inner.lock_state();
             state.ensure_accepting_submissions()?;
+            let admitted_at = Instant::now();
+            if let Some(existing_job) = state.pending_admission_id(&spec) {
+                let existing_job = state.merge_pending_admission(
+                    existing_job,
+                    &spec,
+                    task.take().expect("pending task exists before keyed merge"),
+                    &self.inner.limits,
+                    admitted_at,
+                )?;
+                return Ok(EditorJobAdmission::Merged { existing_job });
+            }
             for dependency in &spec.after {
                 state.validate_dependency(*dependency)?;
             }
+            state.ensure_pending_admissible(&spec, &self.inner.limits, admitted_at)?;
             let id = state.allocate_id();
             state.register(id);
             self.inner.progress.register(id, &spec);
-            state.enqueue_pending(PendingJob::new(id, spec, task, cancel_task));
+            state.enqueue_pending(PendingJob::new(
+                id,
+                spec,
+                task.take().expect("pending task exists before admission"),
+                cancel_task,
+                admitted_at,
+            ));
             id
         };
         self.inner.promote();
-        Ok(JobTicket::new(id, receiver))
+        Ok(EditorJobAdmission::Accepted(JobTicket::new(id, receiver)))
+    }
+
+    /// Admits an all-or-nothing group of unkeyed jobs through the one queue.
+    ///
+    /// This is for a single logical operation whose callers must not observe a
+    /// partial set of queued work after admission backpressure. Individual
+    /// keyed requests use [`Self::submit_admitted`] so their merge outcome
+    /// remains explicit.
+    pub fn submit_batch<J>(
+        &self,
+        requests: Vec<(EditorJobSpec, J)>,
+    ) -> Result<Vec<JobTicket<J::Output>>, JobSubmitError>
+    where
+        J: EditorJob,
+    {
+        if requests.is_empty() {
+            return Ok(Vec::new());
+        }
+        for (spec, _) in &requests {
+            if spec.label.trim().is_empty() {
+                return Err(JobSubmitError::EmptyLabel);
+            }
+            if spec.admission_key.is_some() {
+                return Err(JobSubmitError::KeyedAdmissionRequiresOutcome);
+            }
+        }
+
+        let mut submissions = requests
+            .into_iter()
+            .map(|(spec, job)| {
+                let (sender, receiver) = mpsc::sync_channel(1);
+                let cancel_sender = sender.clone();
+                let task: Box<dyn PendingTask> = Box::new(LatestPendingTask::new(job, sender));
+                let cancel_task: Box<dyn FnOnce(JobContext) + Send + 'static> =
+                    Box::new(move |context: JobContext| {
+                        context.emit(JobEventKind::Cancelled);
+                        let _ = cancel_sender.send(Err(JobError::Cancelled));
+                    });
+                (spec, task, cancel_task, receiver)
+            })
+            .collect::<Vec<_>>();
+
+        let tickets = {
+            let mut state = self.inner.lock_state();
+            state.ensure_accepting_submissions()?;
+            let admitted_at = Instant::now();
+            let specs = submissions
+                .iter()
+                .map(|(spec, _, _, _)| spec)
+                .collect::<Vec<_>>();
+            state.ensure_batch_pending_admissible(&specs, &self.inner.limits, admitted_at)?;
+            for spec in &specs {
+                for dependency in &spec.after {
+                    state.validate_dependency(*dependency)?;
+                }
+            }
+
+            let mut tickets = Vec::with_capacity(submissions.len());
+            for (spec, task, cancel_task, receiver) in submissions.drain(..) {
+                let id = state.allocate_id();
+                state.register(id);
+                self.inner.progress.register(id, &spec);
+                state.enqueue_pending(PendingJob::new(id, spec, task, cancel_task, admitted_at));
+                tickets.push(JobTicket::new(id, receiver));
+            }
+            tickets
+        };
+        self.inner.promote();
+        Ok(tickets)
     }
 
     pub fn pump_events(&self) -> usize {
@@ -131,6 +225,10 @@ impl EditorJobSystem {
 
     pub fn progress(&self) -> EditorJobProgressSource {
         self.inner.progress.clone()
+    }
+
+    pub fn admission_snapshot(&self) -> EditorJobAdmissionSnapshot {
+        self.inner.lock_state().admission_snapshot(Instant::now())
     }
 
     /// Runs two borrowing tasks through the shared runtime scheduler without creating editor threads.
@@ -272,30 +370,40 @@ impl EditorJobSystemInner {
     }
 
     fn promote(self: &Arc<Self>) {
-        let mut state = self.lock_state();
-        loop {
-            let Some(pending) = state.take_next_admissible(&self.limits) else {
-                break;
-            };
-            let mut dependencies = pending
-                .spec
-                .after
-                .iter()
-                .map(|id| {
-                    state
-                        .dependency_handle(*id)
-                        .expect("pending dependency records stay pinned until scheduling")
-                })
-                .collect::<Vec<_>>();
-            if let Some(group) = pending.spec.mutex_group.as_ref() {
-                if let Some(group_tail) = state.mutex_group_tail(group) {
-                    dependencies.push(group_tail);
+        // This gate preserves mutex-group chain construction while runtime
+        // scheduling remains outside the state mutex.
+        let _promotion = self
+            .promotion
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        for _ in 0..MAX_PROMOTION_DISPATCH_BATCH {
+            let dispatch = {
+                let mut state = self.lock_state();
+                let Some(pending) = state.take_next_admissible(&self.limits) else {
+                    break;
+                };
+                let mut dependencies = pending
+                    .spec
+                    .after
+                    .iter()
+                    .map(|id| {
+                        state
+                            .dependency_handle(*id)
+                            .expect("pending dependency records stay pinned until scheduling")
+                    })
+                    .collect::<Vec<_>>();
+                if let Some(group) = pending.spec.mutex_group.as_ref() {
+                    if let Some(group_tail) = state.mutex_group_tail(group) {
+                        dependencies.push(group_tail);
+                    }
                 }
-            }
-            state.mark_started(&pending);
-
+                state.mark_started(&pending);
+                (pending, dependencies)
+            };
+            let (pending, dependencies) = dispatch;
             let id = pending.id;
             let category = pending.spec.category;
+            let mutex_group = pending.spec.mutex_group.clone();
             let events = JobEventSink::new(
                 id,
                 pending.spec.label.clone(),
@@ -310,11 +418,12 @@ impl EditorJobSystemInner {
             let handle = self.scheduler.schedule_after(&dependencies, move || {
                 let _completion = CompletionGuard::new(inner, id, category);
                 events.emit(JobEventKind::Started);
-                task(context);
+                task.run(context);
             });
+            let mut state = self.lock_state();
             // Completion takes the same state lock, so it cannot overtake this handle install.
             state.store_scheduled_handle(id, handle.clone());
-            if let Some(mutex_group) = pending.spec.mutex_group {
+            if let Some(mutex_group) = mutex_group {
                 state.update_mutex_group_tail(mutex_group, id, handle);
             }
         }

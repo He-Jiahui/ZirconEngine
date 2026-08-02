@@ -67,8 +67,10 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
     assert!(matching_archetypes.contains("return Vec::new();"));
     assert!(matching_archetypes.contains("let mut matches = Vec::with_capacity(ids.len());"));
     assert!(matching_archetypes.contains("for id in ids"));
-    assert!(matching_archetypes
-        .contains("if self.archetype_matches_required_without(*id, required, without)"));
+    assert!(
+        matching_archetypes
+            .contains("if self.archetype_matches_required_without(*id, required, without)")
+    );
     assert!(matching_archetypes.contains("matches.push(*id);"));
     assert!(matching_archetypes.contains("return matches;"));
     assert!(

@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use serde_json::{Map, Value};
 use woc_runtime::{InventoryItemProjection, InventoryWindowProjection};
+use zircon_runtime::core::framework::platform::{PreferenceMutationSubmission, PreferenceStorage};
 
-use crate::preferences::PreferenceStorage;
+use crate::preferences::{read_preference_text, submit_preference_text};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InventoryCategory {
@@ -312,18 +313,29 @@ pub fn decode_inventory_filter(raw: Option<&str>) -> InventoryFilter {
 
 pub fn load_inventory_filter<S>(storage: &S) -> InventoryFilter
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
-    let raw = storage.read(INVENTORY_FILTER_STORAGE_KEY).ok().flatten();
-    decode_inventory_filter(raw.as_deref())
+    try_load_inventory_filter(storage).unwrap_or_default()
 }
 
-pub fn persist_inventory_filter<S>(storage: &S, filter: &InventoryFilter)
+pub fn try_load_inventory_filter<S>(storage: &S) -> Option<InventoryFilter>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
+{
+    read_preference_text(storage.as_ref(), INVENTORY_FILTER_STORAGE_KEY)
+        .map(|raw| decode_inventory_filter(raw.as_deref()))
+        .into_ready()
+}
+
+pub fn persist_inventory_filter<S>(
+    storage: &S,
+    filter: &InventoryFilter,
+) -> Option<PreferenceMutationSubmission>
+where
+    S: AsRef<dyn PreferenceStorage>,
 {
     let encoded = encode_inventory_filter(filter);
-    let _ = storage.write(INVENTORY_FILTER_STORAGE_KEY, &encoded);
+    submit_preference_text(storage.as_ref(), INVENTORY_FILTER_STORAGE_KEY, &encoded)
 }
 
 fn item_view(

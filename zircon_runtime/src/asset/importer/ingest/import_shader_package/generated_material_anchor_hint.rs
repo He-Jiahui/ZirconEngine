@@ -1,5 +1,5 @@
 use crate::asset::assets::ZShaderDocumentV2;
-use crate::core::framework::render::{wgsl_include_paths, GENERATED_MATERIAL_MODULE_IMPORT_PATH};
+use crate::core::framework::render::{GENERATED_MATERIAL_MODULE_IMPORT_PATH, wgsl_include_paths};
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity};
 
 pub(super) fn append_generated_material_anchor_hint(

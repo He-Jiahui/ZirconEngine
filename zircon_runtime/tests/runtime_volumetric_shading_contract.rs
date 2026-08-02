@@ -10,6 +10,10 @@ const FORWARD: &str = concat!(
     "\n",
     include_str!("../src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
     "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_environment_generic_api.wgsl"),
+    "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment.wgsl"),
 );
 const DEFERRED: &str = concat!(
@@ -28,6 +32,10 @@ const DEFERRED: &str = concat!(
     include_str!("../src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl"),
     "\n",
     include_str!("../src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_environment_generic_api.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment.wgsl"),
 );

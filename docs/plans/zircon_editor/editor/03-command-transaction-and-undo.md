@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/core/editor_operation.rs
@@ -44,7 +44,7 @@ pub struct CommandStack { commands: Vec<Command>, top: Option<usize>, max_capaci
 
 ## 现状与证据（zircon，2026-07-05 实读）——三套栈 + 三套合并机制并存
 
-### 1. 场景栈 `EditorHistory`（`core/editing/history.rs:17-124`，`pub(crate)`）
+### 1. 场景栈 `EditorHistory`（当前 owner：`core/editing/engine/history.rs`，`pub(crate)`）
 
 方法面：`push/begin_drag/end_drag/undo/redo/clear/can_undo/can_redo`。`HISTORY_LIMIT=128` 以 `remove(0)` 淘汰（O(n)，收编时顺手修）；双栈式（undo 清空 redo）；`drag_origin: Option<GizmoDragState{node_id, before: Transform}>` 实现 gizmo 拖拽合并（合并机制一）。
 

@@ -82,6 +82,7 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
         ZrRuntimeHostRequestV1::Ime(ref request)
             if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
                 && request.cursor_area == Some(ZrRuntimeImeCursorAreaV1::new(12.0, 34.0, 2.0, 18.0))
+                && request.target_viewport == Some(default_viewport())
     ));
     assert!(matches!(
         batch.requests[1],
@@ -92,6 +93,7 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
                     .as_ref()
                     .map(|text| (text.value.as_str(), text.cursor, text.anchor))
                     == Some(("abcdef", 5, 1))
+                && request.target_viewport == Some(default_viewport())
     ));
 
     let mut second_output = ZrOwnedByteBuffer::empty();

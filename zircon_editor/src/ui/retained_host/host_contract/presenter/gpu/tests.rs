@@ -92,6 +92,7 @@ fn gpu_presenter_records_upload_bytes_draw_calls_and_damage_diagnostics() {
         None,
         ChromeImagePayload {
             resource_key: "viewport".to_string(),
+            resource_generation: 0,
             width: 2,
             height: 2,
             upload_bytes: 16,

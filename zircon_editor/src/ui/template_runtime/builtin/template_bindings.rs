@@ -536,14 +536,48 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
-            "ConsolePaneBody/FocusConsole".to_string(),
+            "ConsolePaneBody/ClearConsole".to_string(),
             EditorUiBinding::new(
                 "ConsolePaneBody",
-                "FocusConsole",
+                "ClearConsole",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
-                    instance_id: "editor.console#1".to_string(),
-                }),
+                EditorUiBindingPayload::editor_operation("view.console.clear"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/FilterAll".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "FilterAll",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.filter.all"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/FilterError".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "FilterError",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.filter.error"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/FilterWarning".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "FilterWarning",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.filter.warning"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/FilterInfo".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "FilterInfo",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.filter.info"),
             ),
         ),
         (

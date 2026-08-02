@@ -62,10 +62,10 @@ requireText(
 const sourceGenerator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/WOC_RETAINED_ABILITY_IDS\s*=\s*\[[\s\S]*?'renew',[\s\S]*?'power_word_shield'/.test(sourceGenerator) ||
-!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 79")) {
+!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 83")) {
   throw new Error("M4 Power Word Shield projection scope is missing");
 }
-if (!zrGenerator.includes("document.entries.length === 79")) {
+if (!zrGenerator.includes("document.entries.length === 83")) {
   throw new Error("M4 Power Word Shield Zr projection count is missing");
 }
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
@@ -80,7 +80,7 @@ if (!shield || shield.index !== 26 || shield.scenarios.length !== 0 ||
 
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(world, /offlineAbsorbTargetIds[\s\S]*?offlineAbsorbSourceIds[\s\S]*?offlineAbsorbAbilityCodes[\s\S]*?offlineAbsorbRanks[\s\S]*?offlineAbsorbAmounts[\s\S]*?offlineAbsorbRemaining/, "WOS66 absorb rows are missing");
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?offlineAbsorbTargetIds[\s\S]*?offlineAbsorbRemaining/, "WOS66 absorb tail is missing");
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)[\s\S]*?offlineAbsorbTargetIds[\s\S]*?offlineAbsorbRemaining/, "current schema absorb tail is missing");
 requireText(world, /schemaVersion != <uint>66[\s\S]*?schemaVersion >= <uint>66/, "WOS66 decoder migration is missing");
 requireText(world, /powerWordShieldAbilityCode\([\s\S]*?startOfflinePowerWordShieldCast/, "Power Word Shield cast reducer is missing");
 requireText(world, /abilityCooldownExpiresAt\(state, casterIndex, abilityCode\) > state\.timeMicros[\s\S]*?setAbilityCooldownExpiration\(state, casterIndex, abilityCode, state\.timeMicros \+ <uint>6000000\)/, "Power Word Shield must honor its source cooldown");
@@ -91,13 +91,13 @@ requireText(world, /ageOfflineAbsorbs\(state\);[\s\S]*?stepOfflineEastbrookMobMe
 requireText(world, /pub powerWordShieldCommandStateTest\(\): int[\s\S]*?power_word_shield[\s\S]*?decodeState\(encodeState\(state\)\)[\s\S]*?applyOfflineAbsorbDamage/, "Power Word Shield state regression coverage is missing");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if (!/\\"world_state\\":\\"WOS71\\"/.test(main)) {
-  throw new Error("package state identity must advance to WOS66");
-}
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
-if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS71"') ||
-    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 71")) {
-  throw new Error("native state identity must advance to WOS71");
+const packageState = main.match(/\\"world_state\\":\\"WOS(\d+)\\"/);
+const nativeFormat = protocol.match(/WORLD_STATE_FORMAT: &str = "WOS(\d+)"/);
+const nativeVersion = protocol.match(/WORLD_STATE_SCHEMA_VERSION: u16 = (\d+)/);
+if (!packageState || !nativeFormat || !nativeVersion ||
+    packageState[1] !== nativeFormat[1] || nativeFormat[1] !== nativeVersion[1]) {
+  throw new Error("package and native world-state identities must agree");
 }
 
 process.stdout.write(`WOS86 Power Word Shield static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

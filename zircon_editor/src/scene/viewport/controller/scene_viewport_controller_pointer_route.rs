@@ -27,9 +27,30 @@ impl SceneViewportController {
             || handles.build_overlays(scene, selected, settings, handle_kind, &camera),
             || self.viewport_overlay_gizmos(scene, selected),
         );
-        self.pointer_bridge
-            .sync_scene(&camera, self.state.viewport.size, interaction_extract);
+        self.pointer_bridge.sync_scene(
+            &camera,
+            self.state.viewport.size,
+            scene.world_generation(),
+            interaction_extract,
+        );
         camera
+    }
+
+    pub(crate) fn sync_renderer_visible_spatial_snapshot(
+        &mut self,
+        scene: &Scene,
+        snapshot: Option<
+            zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot,
+        >,
+    ) -> bool {
+        self.sync_pointer_bridge(scene);
+        self.pointer_bridge
+            .sync_renderer_visible_spatial_snapshot(scene.world_generation(), snapshot)
+    }
+
+    pub(crate) fn clear_renderer_visible_spatial_snapshot(&mut self) {
+        self.pointer_bridge
+            .sync_renderer_visible_spatial_snapshot(0, None);
     }
 
     pub(in crate::scene::viewport::controller) fn route_at_cursor(

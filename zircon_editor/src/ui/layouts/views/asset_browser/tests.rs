@@ -732,6 +732,44 @@ fn thumbnail_view_wraps_cards_on_narrow_content_width() {
 }
 
 #[test]
+fn narrow_asset_toolbar_keeps_direct_asset_actions_available() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: (1..=6).map(|index| asset_item(index, index == 1)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(420.0, 360.0));
+    let search = find_node(&nodes, "SearchEdited");
+    let list = find_node(&nodes, "AssetBrowserViewModeListButton");
+    let thumbnail = find_node(&nodes, "AssetBrowserViewModeThumbButton");
+    let locate = find_node(&nodes, "LocateSelectedAsset");
+    let import = find_node(&nodes, "ImportModel");
+
+    for action in [&list, &thumbnail, &locate] {
+        assert_eq!(action.frame.width, 30.0);
+        assert_eq!(action.frame.height, 30.0);
+        assert!(
+            action.frame.x >= search.frame.x + search.frame.width,
+            "{} must remain reachable after the narrow search field: action={:?}, search={:?}",
+            action.control_id,
+            action.frame,
+            search.frame
+        );
+    }
+    assert_eq!(thumbnail.frame.x, list.frame.x + list.frame.width + 4.0);
+    assert!(
+        locate.frame.x >= thumbnail.frame.x + thumbnail.frame.width,
+        "Locate must remain available after the view-mode actions"
+    );
+    assert!(
+        import.frame.x >= locate.frame.x + locate.frame.width,
+        "Import must remain a distinct trailing action instead of overlapping direct asset actions"
+    );
+}
+
+#[test]
 fn thumbnail_view_keeps_selection_inside_tiles_without_inline_summary_card() {
     let snapshot = AssetWorkspaceSnapshot {
         view_mode: AssetViewMode::Thumbnail,

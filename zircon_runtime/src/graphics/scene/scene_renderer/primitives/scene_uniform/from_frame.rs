@@ -30,6 +30,13 @@ impl SceneUniform {
         } else {
             0.0
         };
+        let environment_rotation_sin_cos = if environment_rotation == 0.0 {
+            [0.0, 1.0, 0.0, 0.0]
+        } else {
+            let (environment_rotation_sin, environment_rotation_cos) =
+                environment_rotation.sin_cos();
+            [environment_rotation_sin, environment_rotation_cos, 1.0, 0.0]
+        };
         let resolved_sun = sky_params.resolved_sun();
         let scene_sun_direction =
             resolved_sun.direction_for_sampling_rotation(environment_rotation);
@@ -67,7 +74,7 @@ impl SceneUniform {
             motion_params,
             jitter_params: jitter_params(&camera),
             camera_world_position: render_vec3_or(camera.transform.translation, RenderVec3::ZERO)
-                .extend(1.0)
+                .extend(0.0)
                 .to_array(),
             camera_view_direction: camera_view_direction(&camera),
             sky_horizon_color: render_vec4_or(
@@ -104,6 +111,7 @@ impl SceneUniform {
                 if has_ibl_source { 1.0 } else { 0.0 },
             ],
             environment_sample_params,
+            environment_rotation_sin_cos,
         }
     }
 }
@@ -282,7 +290,7 @@ mod tests {
 
         let uniform = SceneUniform::from_frame(&frame);
 
-        assert_eq!(uniform.camera_world_position, [1.25, -2.5, 7.0, 1.0]);
+        assert_eq!(uniform.camera_world_position, [1.25, -2.5, 7.0, 0.0]);
         assert_eq!(uniform.camera_view_direction, [0.0, 0.0, 1.0, 0.0]);
     }
 
@@ -387,6 +395,9 @@ mod tests {
         assert_close(uniform.sky_sun_params[1], 0.08_f32.cos());
         assert_close(uniform.sky_sun_params[2], (0.08_f32 * 0.72).cos());
         assert_eq!(uniform.environment_params, [0.0, 1.0, 0.5, 1.0]);
+        assert_close(uniform.environment_rotation_sin_cos[0], rotation.sin());
+        assert_close(uniform.environment_rotation_sin_cos[1], rotation.cos());
+        assert_eq!(uniform.environment_rotation_sin_cos[2], 1.0);
         assert_eq!(uniform.environment_sample_params, [1.0, 0.0, 0.0, 0.0]);
     }
 
@@ -403,6 +414,7 @@ mod tests {
         uniform.use_realtime_ibl(128, 128, 8);
 
         assert_eq!(uniform.environment_params, [0.0, 1.0, 0.0, 1.0]);
+        assert_eq!(uniform.environment_rotation_sin_cos, [0.0, 1.0, 0.0, 0.0]);
         assert_eq!(uniform.environment_sample_params, [4.0, 128.0, 128.0, 8.0]);
     }
 
@@ -431,6 +443,7 @@ mod tests {
         let uniform = SceneUniform::from_frame(&frame);
 
         assert_eq!(uniform.environment_params[2], 0.0);
+        assert_eq!(uniform.environment_rotation_sin_cos, [0.0, 1.0, 0.0, 0.0]);
         assert_eq!(uniform.sky_sun_direction, [0.0, 1.0, 0.0, 1.0]);
     }
 
@@ -456,6 +469,9 @@ mod tests {
         let environment_sh9 = SceneEnvironmentSh9::from_frame(&frame);
 
         assert_eq!(uniform.environment_params, [0.0, 1.75, 0.5, 1.0]);
+        assert_close(uniform.environment_rotation_sin_cos[0], 0.5_f32.sin());
+        assert_close(uniform.environment_rotation_sin_cos[1], 0.5_f32.cos());
+        assert_eq!(uniform.environment_rotation_sin_cos[2], 1.0);
         assert_eq!(uniform.environment_sample_params, [3.0, 4.0, 128.0, 8.0]);
         assert!(
             environment_sh9.coefficients()[0][0] > 0.0,

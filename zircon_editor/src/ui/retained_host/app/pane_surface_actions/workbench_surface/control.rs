@@ -1,4 +1,5 @@
 use super::super::super::*;
+use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
@@ -26,6 +27,12 @@ impl RetainedEditorHost {
             control_id,
             action_id,
         ) {
+            if result.is_ok()
+                && control_id == callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID
+                && action_id == WORKBENCH_POPUP_CANCEL_ACTION_ID
+            {
+                self.scene_picker_session = None;
+            }
             return Some(result);
         }
         if !has_workbench_binding && !action_id.is_empty() {

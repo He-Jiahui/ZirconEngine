@@ -34,7 +34,12 @@ impl EditorManager {
     pub fn new(core: &CoreHandle) -> Result<Self, CoreError> {
         let scheduler = core.scheduler().clone();
         let context = EditorContextBuilder::new(scheduler).build();
-        let host = EditorUiHost::bootstrap(core, context.jobs().clone()).map_err(|error| {
+        let host = EditorUiHost::bootstrap(
+            core,
+            context.jobs().clone(),
+            context.dirty_documents().clone(),
+        )
+        .map_err(|error| {
             CoreError::Initialization("EditorManager".to_string(), error.to_string())
         })?;
         let settings = settings_registry_at_startup();

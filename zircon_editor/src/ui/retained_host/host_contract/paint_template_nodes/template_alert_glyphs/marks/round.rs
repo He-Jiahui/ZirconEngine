@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::segments::{push_segments, AlertGlyphSegmentSpec};
+use super::super::segments::{AlertGlyphSegmentSpec, push_segments};
 
 pub(super) fn push_round_mark(
     commands: &mut Vec<HostPaintCommand>,

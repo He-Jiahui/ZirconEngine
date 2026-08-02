@@ -1,6 +1,6 @@
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
-use crate::scene::{reflect::ReflectComponent, EntityId, World};
+use crate::scene::{EntityId, World, reflect::ReflectComponent};
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue,
     ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
@@ -47,6 +47,7 @@ pub fn reflect_component_for_dynamic_descriptor(
         remove,
     )
     .with_dense_field_slots(read_dense_slot, write_dense_slot)
+    .with_dense_field_batch_write(write_dense_slots)
 }
 
 fn field_from_property_descriptor(
@@ -193,6 +194,65 @@ fn write_dense_slot(
     write_declared_field(world, entity, type_path, &field, value)
 }
 
+fn write_dense_slots(
+    world: &mut World,
+    entity: EntityId,
+    type_path: &str,
+    fields: Vec<(u32, ReflectedValue)>,
+) -> Result<bool, ReflectError> {
+    let mut candidate = ensure_dynamic_component(world, entity, type_path)?.clone();
+    let Some(object) = candidate.as_object_mut() else {
+        return Err(ReflectError::UnsupportedConversion {
+            source: "dynamic component JSON is not an object".to_string(),
+            target: type_path.to_string(),
+        });
+    };
+
+    let registration = world.type_registry().registration(type_path)?;
+    let is_vm_type = world.is_vm_dynamic_type_path(type_path);
+    let mut changed = false;
+    for (field_slot, value) in fields {
+        let field = declared_field_by_slot(registration, field_slot)?;
+        if !field.editable {
+            return Err(ReflectError::NonEditableField {
+                type_path: type_path.to_string(),
+                field_name: field.name.clone(),
+            });
+        }
+        let json_value = if is_vm_type {
+            super::type_registry::ensure_reflected_value_type(
+                type_path,
+                &field.name,
+                &field.value_type_path,
+                &value,
+            )?;
+            super::dynamic_json::json_value_from_reflected(value)?
+        } else {
+            let value = super::scene_value_from_reflected(value)?;
+            crate::scene::world::json_from_scene_property_value(value).ok_or_else(|| {
+                ReflectError::UnsupportedConversion {
+                    source: "ScenePropertyValue".to_string(),
+                    target: format!("dynamic component `{type_path}` batch update"),
+                }
+            })?
+        };
+        if object.get(&field.name) != Some(&json_value) {
+            object.insert(field.name.clone(), json_value);
+            changed = true;
+        }
+    }
+    if !changed {
+        return Ok(false);
+    }
+
+    world
+        .set_dynamic_component(entity, type_path, candidate)
+        .map_err(|error| ReflectError::UnsupportedConversion {
+            source: error.to_string(),
+            target: format!("dynamic component `{type_path}` batch update"),
+        })
+}
+
 fn write_declared_field(
     world: &mut World,
     entity: EntityId,
@@ -296,6 +356,58 @@ fn ensure_json_field_present(
         type_path: type_path.to_string(),
         field_name: field_name.to_string(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use zircon_runtime_interface::reflect::ReflectedValue;
+
+    use crate::core::framework::scene::ComponentTypeDescriptor;
+    use crate::scene::{NodeKind, World};
+
+    use super::reflect_component_for_dynamic_descriptor;
+
+    #[test]
+    fn dense_batch_write_publishes_one_dynamic_component_mutation() {
+        let descriptor = ComponentTypeDescriptor::new(
+            "runtime.tests.DynamicBatchComponent",
+            "runtime.tests",
+            "Dynamic Batch Component",
+        )
+        .with_property("first", "Scalar", true)
+        .with_property("second", "Scalar", true);
+        let mut world = World::empty();
+        world
+            .register_component_type(descriptor.clone())
+            .expect("test dynamic component descriptor must register");
+        let entity = world.spawn_node(NodeKind::Empty);
+        world
+            .set_dynamic_component(
+                entity,
+                &descriptor.type_id,
+                json!({"first": 1.0, "second": 2.0}),
+            )
+            .expect("test dynamic component must attach");
+
+        let generation_before = world.world_generation();
+        reflect_component_for_dynamic_descriptor(&descriptor)
+            .write_fields_by_slot(
+                &mut world,
+                entity,
+                vec![
+                    (0, ReflectedValue::Scalar(3.0)),
+                    (1, ReflectedValue::Scalar(4.0)),
+                ],
+            )
+            .expect("batch field write must succeed");
+
+        assert_eq!(world.world_generation(), generation_before + 1);
+        assert_eq!(
+            world.dynamic_component(entity, &descriptor.type_id),
+            Some(&json!({"first": 3.0, "second": 4.0}))
+        );
+    }
 }
 
 fn declared_field_by_slot(

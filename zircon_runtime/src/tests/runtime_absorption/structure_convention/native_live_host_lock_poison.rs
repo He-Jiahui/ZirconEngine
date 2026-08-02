@@ -1,4 +1,5 @@
-use super::{assert_contains_all, repo_path, runtime_src_path};
+use super::support::assert_contains_all_exact;
+use super::{repo_path, runtime_src_path};
 
 const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
 
@@ -7,18 +8,25 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
     let bridge_methods =
         read_runtime_src("plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs");
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/runtime_services_recovery.rs",
     );
 
-    assert_contains_all(
+    assert_contains_all_exact(
         "native live host bridge methods poison recovery",
         &bridge_methods,
         &[
@@ -31,7 +39,7 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
             "native_live_host_bridge_method_bindings_recover_poisoned_lock",
         ],
     );
-    assert_contains_all(
+    assert_contains_all_exact(
         "native live host lock poison guard mount",
         &structure_parent,
         &[
@@ -46,10 +54,22 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
     );
 
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
+        (
+            "Runtime 15 archived output",
+            runtime_15_plan_output.as_str(),
+        ),
+        (
+            "runtime index archived output",
+            runtime_index_output.as_str(),
+        ),
+        (
+            "review findings archived output",
+            review_findings_output.as_str(),
+        ),
+        (
+            "structure convention archived output",
+            structure_convention_output.as_str(),
+        ),
         ("module convention doc", module_doc.as_str()),
         ("plugin bridge doc", plugin_bridge_doc.as_str()),
         (
@@ -57,7 +77,7 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
             status_rows.as_str(),
         ),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[

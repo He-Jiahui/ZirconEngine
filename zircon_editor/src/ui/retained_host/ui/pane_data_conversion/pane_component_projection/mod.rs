@@ -38,10 +38,10 @@ pub(in crate::ui::retained_host::ui) use self::command_palette::{
 };
 pub(super) use self::host_template_node::host_template_node;
 pub(in crate::ui::retained_host::ui) use self::notification_center::{
-    projected_notification_center_metadata, projected_notification_center_metadata_from_host,
-    projected_notification_center_option_rows, projected_notification_center_options,
-    projected_notification_center_structured_options, projected_notification_center_value_text,
-    NotificationCenterMetadata,
+    NotificationCenterMetadata, projected_notification_center_metadata,
+    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
+    projected_notification_center_options, projected_notification_center_structured_options,
+    projected_notification_center_value_text,
 };
 pub(in crate::ui::retained_host::ui) use self::sample_grid::projected_sample_grid_data;
 pub(in crate::ui::retained_host::ui) use self::timeline_strip::projected_timeline_strip_data;

@@ -1,5 +1,6 @@
 mod brightness;
 mod command;
+mod component_variant;
 mod metrics;
 mod model;
 mod palette;
@@ -9,6 +10,7 @@ mod tab_like;
 #[cfg(test)]
 mod tests;
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use component_variant::is_compact_icon_text_workbench_button;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::workbench_button_border_width_from_host;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::{

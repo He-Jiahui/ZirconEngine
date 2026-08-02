@@ -10,8 +10,10 @@ pub(in crate::ui::retained_host::host_contract) use runtime_draw_list::{
     ui_surface_draw_list_from_owned_stream, ui_surface_draw_list_from_owned_stream_with_generation,
     ui_surface_draw_list_from_stream,
 };
-pub(in crate::ui::retained_host::host_contract) use stream::ChromeCommandStream;
 use stream::clamp_surface_size;
+pub(in crate::ui::retained_host::host_contract) use stream::{
+    ChromeCommandStream, ChromeImageResource,
+};
 
 #[cfg(test)]
 use extraction::chrome_command_from_recorded_for_test;
@@ -30,6 +32,22 @@ pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream(
     damage: Option<&FrameRect>,
     include_image_bytes: bool,
 ) -> ChromeCommandStream {
+    build_chrome_command_stream_with_residency(
+        presentation,
+        surface_size,
+        damage,
+        include_image_bytes,
+        |_, _| false,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream_with_residency(
+    presentation: &HostWindowPresentationData,
+    surface_size: (u32, u32),
+    damage: Option<&FrameRect>,
+    include_image_bytes: bool,
+    is_resident: impl FnMut(&str, u64) -> bool,
+) -> ChromeCommandStream {
     let surface_size = clamp_surface_size(surface_size);
     let extraction =
         extract_chrome_commands(presentation, surface_size, damage, include_image_bytes);
@@ -42,6 +60,7 @@ pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream(
         stream.push_clip(ChromeCommandLayer::Dynamic, 0, damage);
     }
     stream.extend_commands(extraction.commands);
+    stream.compact_image_resources_with_residency(is_resident);
     stream
 }
 

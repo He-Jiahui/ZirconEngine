@@ -29,7 +29,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows.rs
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/features.rs
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/labels.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/manifest.rs
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/tests.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
 implementation_files:
@@ -61,7 +60,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows.rs
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/features.rs
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/labels.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/manifest.rs
   - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -158,12 +156,11 @@ The parent action module delegates policy transitions and status formatting to t
 - Keep live-host regressions in `app/module_plugin_actions/live_host/tests.rs`.
 - Keep `app/module_plugin_projection.rs` as the structural projection entry.
 - Keep Plugin Manager pane orchestration in `app/module_plugin_projection/pane_data.rs`; do not add pane data mapping back to action routing.
-- Keep active project status lookup, manifest fallback, and diagnostics aggregation in `app/module_plugin_projection/pane_data/report.rs`.
+- Keep the published plugin status report lookup in `app/module_plugin_projection/pane_data/report.rs`.
 - Keep `ModulePluginStatusViewData` row DTO construction in `app/module_plugin_projection/pane_data/view_rows.rs`.
 - Keep `app/module_plugin_projection/rows.rs` as the structural row-helper entry.
 - Keep optional feature summaries and feature action ids in `app/module_plugin_projection/rows/features.rs`.
 - Keep primary action ids plus target/packaging labels in `app/module_plugin_projection/rows/labels.rs`.
-- Keep fallback manifest construction in `app/module_plugin_projection/rows/manifest.rs`.
 - Keep row-helper regressions in `app/module_plugin_projection/rows/tests.rs`.
 - Keep lifecycle recompute orchestration in `app/host_lifecycle.rs`; do not add plugin action or projection helper ownership back to lifecycle code.
 
@@ -183,7 +180,7 @@ The 2026-06-18 action-id/project-policy split reduced `module_plugin_actions.rs`
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app module-plugin action-id/project-policy ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
-The 2026-06-18 projection row split reduced `module_plugin_projection.rs` from 349 lines to 114 lines. `module_plugin_projection/rows.rs` is 242 lines and owns row/action label helpers, optional feature summaries, target/packaging labels, fallback project manifest construction, and the moved projection helper regressions.
+The 2026-06-18 projection row split originally placed fallback project-manifest construction under the row helpers. That fallback has since been retired: current projection reads the published plugin status report in `module_plugin_projection/pane_data/report.rs`, while `rows.rs` only mounts feature and label helpers plus their regressions.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app module-plugin projection rows ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 

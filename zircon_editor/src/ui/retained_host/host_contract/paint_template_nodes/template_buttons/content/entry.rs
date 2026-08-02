@@ -23,14 +23,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     kind: WorkbenchButtonKind,
     opacity: f32,
 ) {
-    let label = template_node_label(node, None);
+    let label = if node.icon_placement.eq_ignore_ascii_case("icon_only") {
+        String::new()
+    } else {
+        template_node_label(node, None)
+    };
     let content_style = button_content_style(node, kind);
     let content_y_offset = content_style.y_offset;
     let glyph = button_glyph(node);
-    let glyph_width = button_glyph_width(node, glyph);
+    let glyph_width = button_glyph_width(node, glyph, !label.trim().is_empty());
     let chevron_width = chevron_width(glyph);
     let font_size = button_label_font_size(node, rect);
-    let text_style = button_label_paint_style(node);
+    let text_style = button_label_paint_style(node, kind);
     let label_ink_width = measured_label_ink_width(&label, font_size, text_style);
     let layout = button_content_layout(node, rect, glyph_width, chevron_width, label_ink_width);
     let mut x = layout.start_x;

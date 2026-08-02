@@ -6,7 +6,10 @@ use serde_json::Value;
 use zircon_runtime::asset::project::{
     shader_resource_records_from_asset_root as project_shader_resource_records_from_asset_root,
     shader_resource_records_from_asset_roots as project_shader_resource_records_from_asset_roots,
-    ShaderResourceRecordExportError,
+    shader_resource_records_from_loaded_meta_document_refs as project_shader_resource_records_from_loaded_meta_document_refs,
+    shader_resource_records_from_loaded_meta_documents as project_shader_resource_records_from_loaded_meta_documents,
+    shader_resource_records_from_meta_paths as project_shader_resource_records_from_meta_paths,
+    AssetMetaDocument, ShaderResourceRecordExportError,
 };
 use zircon_runtime::core::resource::{
     ResourceId, ResourceKind, ResourceManager, ResourceRecord, ResourceState,
@@ -76,6 +79,25 @@ pub(crate) fn shader_resource_records_from_asset_roots(
     asset_roots: &[PathBuf],
 ) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
     project_shader_resource_records_from_asset_roots(asset_roots).map_err(Into::into)
+}
+
+pub(crate) fn shader_resource_records_from_meta_paths(
+    meta_paths: &[PathBuf],
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
+    project_shader_resource_records_from_meta_paths(meta_paths).map_err(Into::into)
+}
+
+pub(crate) fn shader_resource_records_from_loaded_meta_documents(
+    documents_by_path: &BTreeMap<PathBuf, AssetMetaDocument>,
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
+    project_shader_resource_records_from_loaded_meta_documents(documents_by_path)
+        .map_err(Into::into)
+}
+
+pub(crate) fn shader_resource_records_from_loaded_meta_document_refs<'a>(
+    documents: impl IntoIterator<Item = &'a AssetMetaDocument>,
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
+    project_shader_resource_records_from_loaded_meta_document_refs(documents).map_err(Into::into)
 }
 
 pub(crate) fn shader_resource_records_from_manager(

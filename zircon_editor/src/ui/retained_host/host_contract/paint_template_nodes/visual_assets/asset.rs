@@ -4,7 +4,7 @@ use super::candidates::{icon_candidates, image_candidates};
 use super::keys::visual_asset_cache_key;
 use super::loading::{load_pixels_from_candidates, missing_icon_pixels};
 use super::pixels::HostPaintImagePixels;
-use super::target::{RasterTargetSize, MUI_ICON_DEFAULT_EDGE};
+use super::target::{MUI_ICON_DEFAULT_EDGE, RasterTargetSize};
 use super::tint::ICON_TINT;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_visual_asset_pixels(

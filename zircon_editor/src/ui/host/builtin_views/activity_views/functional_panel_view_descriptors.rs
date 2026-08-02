@@ -1,7 +1,7 @@
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
-    DockPolicy, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind,
+    DockPolicy, ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot,
 };
 
 pub(super) fn functional_panel_view_descriptors() -> Vec<ViewDescriptor> {
@@ -59,9 +59,7 @@ pub(super) fn functional_panel_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityView,
             "Asset Preview",
         )
-        .with_preferred_host(PreferredHost::Drawer(
-            crate::ui::workbench::layout::ActivityDrawerSlot::RightTop,
-        ))
+        .with_workbench_slot(WorkbenchSlot::RightTopDrawer)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::AssetBrowser,
         ))
@@ -71,9 +69,7 @@ pub(super) fn functional_panel_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityView,
             "Asset Metadata",
         )
-        .with_preferred_host(PreferredHost::Drawer(
-            crate::ui::workbench::layout::ActivityDrawerSlot::RightTop,
-        ))
+        .with_workbench_slot(WorkbenchSlot::RightTopDrawer)
         .with_default_constraints(default_constraints_for_content(ViewContentKind::Inspector))
         .with_icon_key("asset-metadata"),
     ]
@@ -91,7 +87,7 @@ fn document_view(
         title,
     )
     .with_dock_policy(DockPolicy::DocumentOnly)
-    .with_preferred_host(PreferredHost::DocumentCenter)
+    .with_workbench_slot(WorkbenchSlot::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(content_kind))
     .with_icon_key(icon_key)
 }

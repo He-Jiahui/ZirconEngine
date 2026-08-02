@@ -1,6 +1,6 @@
 use std::any::TypeId;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 
 use crate::scene::ecs::{ChangeTick, ComponentId, ComponentTicks, InternalEntity, StorageType};
@@ -123,6 +123,26 @@ impl ComponentStorage {
             StorageType::SparseSet => {
                 let storage = self.sparse_components.get_mut(&component_id)?;
                 storage.get_mut_at_tick(entity, tick)
+            }
+        }
+    }
+
+    pub fn get_mut_with_ticks<T>(
+        &mut self,
+        component_id: ComponentId,
+        entity: InternalEntity,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: 'static + Send + Sync,
+    {
+        match self.storage_types.get(&component_id).copied()? {
+            StorageType::Table => {
+                let storage = self.table_components.get_mut(&component_id)?;
+                storage.get_mut_with_ticks(entity)
+            }
+            StorageType::SparseSet => {
+                let storage = self.sparse_components.get_mut(&component_id)?;
+                storage.get_mut_with_ticks(entity)
             }
         }
     }

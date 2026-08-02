@@ -1,4 +1,4 @@
-use super::super::{Format, load_versioned};
+use super::super::{load_versioned, Format};
 use super::FixtureDocument;
 
 #[test]

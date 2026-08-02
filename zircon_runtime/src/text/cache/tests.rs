@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::framework::text::TextDirection;
 use crate::text::{
     BackendShapeRequest, OpenTypeFeature, ShapedGlyphRun, TextOrientation, VerticalMode,
@@ -105,6 +107,21 @@ fn text_measure_cache_get_or_insert_measures_only_on_miss() {
     assert_eq!(measure_count, 1);
     assert_eq!(cache.report().hit_count, 1);
     assert_eq!(cache.report().miss_count, 1);
+}
+
+#[test]
+fn text_measure_cache_get_or_insert_keeps_misses_inside_lru_capacity() {
+    let mut cache = TextMeasureCache::with_capacity(2);
+    cache.begin_frame(1);
+
+    for index in 0..3_u64 {
+        let key = MeasureKey::new(index, 80.0);
+        let text = format!("measure-{index}");
+        cache.get_or_insert_with(key, text, || index);
+    }
+
+    assert_eq!(cache.len(), 2);
+    assert_eq!(cache.report().evicted_count, 1);
 }
 
 #[test]
@@ -231,6 +248,22 @@ fn text_layout_cache_get_or_insert_lays_out_only_on_miss() {
 }
 
 #[test]
+fn text_layout_cache_get_or_insert_keeps_misses_inside_lru_capacity() {
+    let width = TextLayoutWidthValidity::exact(80.0);
+    let mut cache = TextLayoutCache::with_capacity(2);
+    cache.begin_frame(1);
+
+    for index in 0..3_u64 {
+        let key = MeasureKey::new(index, 80.0);
+        let text = format!("layout-{index}");
+        cache.get_or_insert_with(key, text, width, 80.0, || index);
+    }
+
+    assert_eq!(cache.len(), 2);
+    assert_eq!(cache.report().evicted_count, 1);
+}
+
+#[test]
 fn text_frame_dedup_shares_value_inside_one_frame() {
     let key = MeasureKey::new(51, 80.0);
     let mut produce_count = 0_u32;
@@ -345,11 +378,7 @@ fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant() {
             layout.insert(key.clone(), text.as_str(), width, index as u32);
             dedup.insert(key, text.as_str(), index as u32);
             let shaped_key = key_for(text.as_str(), &style);
-            shaped.insert(
-                shaped_key,
-                text.as_str(),
-                dummy_run(text.as_str(), index as f32),
-            );
+            shaped.insert(shaped_key, dummy_run(text.as_str(), index as f32));
         }
 
         let hot_index = capacity - 1;
@@ -385,7 +414,6 @@ fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant() {
         layout.insert(replacement_key, replacement_text.as_str(), width, u32::MAX);
         shaped.insert(
             replacement_shaped_key,
-            replacement_text.as_str(),
             dummy_run(replacement_text.as_str(), u32::MAX as f32),
         );
 
@@ -483,21 +511,31 @@ fn shaped_run_cache_key_normalizes_open_type_feature_order() {
         OpenTypeFeature::new(*b"liga", 0),
         OpenTypeFeature::new(*b"tnum", 1),
     ];
+    let duplicated_features = [
+        OpenTypeFeature::new(*b"tnum", 1),
+        OpenTypeFeature::new(*b"liga", 0),
+        OpenTypeFeature::new(*b"tnum", 1),
+    ];
     let changed_features = [OpenTypeFeature::new(*b"liga", 1)];
-    let first = ShapedRunCacheKey::from_request(
-        &BackendShapeRequest::horizontal("0123", &style, TextDirection::LeftToRight, source_range)
-            .with_features(&first_features),
-    );
-    let reordered = ShapedRunCacheKey::from_request(
-        &BackendShapeRequest::horizontal("0123", &style, TextDirection::LeftToRight, source_range)
-            .with_features(&reordered_features),
-    );
-    let changed = ShapedRunCacheKey::from_request(
-        &BackendShapeRequest::horizontal("0123", &style, TextDirection::LeftToRight, source_range)
-            .with_features(&changed_features),
-    );
+    let key_for_features = |features: &[OpenTypeFeature]| {
+        let request = BackendShapeRequest::horizontal(
+            "0123",
+            &style,
+            TextDirection::LeftToRight,
+            source_range,
+        )
+        .with_features(features)
+        .canonicalized();
+        let request = request.request();
+        ShapedRunCacheKey::from_request(&request)
+    };
+    let first = key_for_features(&first_features);
+    let reordered = key_for_features(&reordered_features);
+    let changed = key_for_features(&changed_features);
+    let duplicated = key_for_features(&duplicated_features);
 
     assert_eq!(first, reordered);
+    assert_eq!(first, duplicated);
     assert_ne!(first, changed);
 }
 
@@ -508,7 +546,7 @@ fn shaped_run_cache_rejects_text_hash_collision_without_text_match() {
     let mut cache = ShapedRunCache::with_capacity(4);
     cache.begin_frame(1);
 
-    cache.insert(key.clone(), "abc", dummy_run("abc", 12.0));
+    cache.insert(key.clone(), dummy_run("abc", 12.0));
 
     assert!(cache.get(&key, "xyz").is_none());
     assert!(cache.get(&key, "abc").is_some());
@@ -526,8 +564,8 @@ fn shaped_run_cache_keeps_colliding_texts_as_distinct_entries() {
     let mut cache = ShapedRunCache::with_capacity(4);
     cache.begin_frame(1);
 
-    cache.insert(key.clone(), "abc", dummy_run("abc", 12.0));
-    cache.insert(key.clone(), "xyz", dummy_run("xyz", 21.0));
+    cache.insert(key.clone(), dummy_run("abc", 12.0));
+    cache.insert(key.clone(), dummy_run("xyz", 21.0));
 
     let abc = cache
         .get(&key, "abc")
@@ -550,14 +588,14 @@ fn shaped_run_cache_trims_lru_only_when_capacity_is_exceeded() {
     let mut cache = ShapedRunCache::with_capacity(2);
 
     cache.begin_frame(1);
-    cache.insert(key_a.clone(), "a", dummy_run("a", 1.0));
-    cache.insert(key_b.clone(), "b", dummy_run("b", 2.0));
+    cache.insert(key_a.clone(), dummy_run("a", 1.0));
+    cache.insert(key_b.clone(), dummy_run("b", 2.0));
 
     cache.begin_frame(2);
     assert!(cache.get(&key_a, "a").is_some());
 
     cache.begin_frame(3);
-    cache.insert(key_c.clone(), "c", dummy_run("c", 3.0));
+    cache.insert(key_c.clone(), dummy_run("c", 3.0));
 
     assert!(cache.contains_exact(&key_a, "a"));
     assert!(!cache.contains_exact(&key_b, "b"));
@@ -573,11 +611,7 @@ fn shaped_run_cache_frame_end_does_not_clear_unreferenced_entries() {
     let mut cache = ShapedRunCache::with_capacity(4);
 
     cache.begin_frame(1);
-    cache.insert(
-        key.clone(),
-        "folder-open.svg",
-        dummy_run("folder-open.svg", 96.0),
-    );
+    cache.insert(key.clone(), dummy_run("folder-open.svg", 96.0));
 
     cache.begin_frame(2);
     cache.finish_frame();
@@ -629,7 +663,7 @@ fn shaped_run_cache_borrowed_request_lookup_avoids_owned_key_bytes_on_hot_hit() 
 
     cache.begin_frame(1);
     let key = cache.own_lookup_key(&lookup);
-    cache.insert(key, request.text, dummy_run(request.text, 96.0));
+    cache.insert(key, dummy_run(request.text, 96.0));
     assert!(cache.report().owned_key_allocation_bytes > 0);
 
     cache.begin_frame(2);
@@ -650,7 +684,7 @@ fn key_for(text: &str, style: &TextStyle) -> ShapedRunCacheKey {
 
 fn dummy_run(text: &str, measured_width: f32) -> ShapedGlyphRun {
     ShapedGlyphRun {
-        source_text: text.to_string(),
+        source_text: Arc::from(text),
         source_range: source_range_for(text),
         direction: TextDirection::LeftToRight,
         orientation: TextOrientation::Horizontal,

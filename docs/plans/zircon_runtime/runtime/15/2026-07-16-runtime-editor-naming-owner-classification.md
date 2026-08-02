@@ -2,7 +2,7 @@
 related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - tools/tests/test_runtime_init_level_naming.py
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene
   - zircon_runtime/src/script/vm/host_interface/descriptor.rs
   - zircon_runtime/src/script/vm/host_interface/registry.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
@@ -32,7 +32,7 @@ status_anchor: runtime_15_runtime_editor_naming_owner_classification_unclassifie
 
 ## Owner 决策
 
-- `zircon_runtime/src/scene/components/scene.rs` 的 23 个新增命中只描述反射可见性提示，归入既有 `scene-reflection-editor-visible-metadata`；序列化数据没有吸收 Editor authoring state。
+- `zircon_runtime/src/scene/components/scene/` 的 23 个命中只描述反射可见性提示，归入既有 `scene-reflection-editor-visible-metadata`；序列化数据没有吸收 Editor authoring state。
 - `zircon_runtime/src/script/**` 的 42 个命中属于 typed editor-operation contribution descriptor、capability、registration 与反射迁移样例，归入 `script-editor-operation-contribution-descriptor`；命令执行和编辑事务仍由 Editor owner 持有。
 - `shaped_cache.rs` 与 `shape_pool.rs` 的 8 个命中只存在于 `#[cfg(test)]` product fixture，归入 `runtime-text-editor-product-fixture`；没有为整个 text 子树开放路径豁免，也没有改变生产 shaping/cache 行为。
 - 分类器只接受精确 `editor_hint` token、8 个已审查 script owner 和两个精确 text 文件中的 `cfg(test)` item；未新增兼容 shim、公开 API 或生产分支。

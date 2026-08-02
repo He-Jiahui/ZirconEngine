@@ -5,11 +5,37 @@ use zircon_plugin_sdk::native::{
     NativePluginOutputSinkV4, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 
+zircon_plugin_sdk::declare_plugin! {
+    EDITOR_CONTRIBUTION_FIXTURE_DECLARATION {
+        id: PLUGIN_ID = "editor_contribution_fixture",
+        display_name: "Editor Contribution Fixture",
+        category: sdk,
+        module: MODULE_NAME = "editor_contribution_fixture.editor",
+        crate_name: NATIVE_CRATE_NAME = "zircon_plugin_editor_contribution_fixture_native",
+        module_description: "Versioned serialized editor contribution ABI fixture",
+        targets: [editor_host],
+        platforms: [windows, linux, macos],
+        capabilities: [
+            EDITOR_CAPABILITY = "editor.extension.editor_contribution_fixture" => editor_registration,
+        ],
+        maturity: experimental,
+        packaging: [native_dynamic],
+        native_projection: {
+            plugin_id: NATIVE_PLUGIN_ID,
+            requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,
+            editor: {
+                entry: NATIVE_EDITOR_ENTRY = "zircon_editor_contribution_fixture_entry_v3",
+                registration_manifest: NATIVE_EDITOR_REGISTRATION_MANIFEST,
+                modules: [{ name: "editor", kind: "editor" }],
+                systems: [],
+                events: [],
+                extensions: [],
+            },
+        },
+    }
+}
+
 const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
-const PLUGIN_ID: &[u8] = b"editor_contribution_fixture\0";
-const EDITOR_ENTRY: &[u8] = b"zircon_editor_contribution_fixture_entry_v3\0";
-const REQUESTED_CAPABILITIES: &[u8] = b"editor.extension.editor_contribution_fixture\0";
-const EDITOR_NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.editor_contribution_fixture\0";
 const EDITOR_DIAGNOSTICS: &[u8] =
     b"editor contribution fixture exposed serialized contribution payload\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] =
@@ -77,17 +103,17 @@ const STATUS_COMMAND_DENIED: &[u8] = b"editor contribution fixture has no comman
 const STATUS_UNLOADED: &[u8] = b"editor contribution fixture unloaded\0";
 
 zircon_plugin_sdk::native_dist_editor_plugin_v3! {
-    plugin_id: PLUGIN_ID,
+    plugin_id: NATIVE_PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
     descriptor_abi_version: native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     editor_entry: zircon_editor_contribution_fixture_entry_v3,
-    editor_entry_name: EDITOR_ENTRY,
-    requested_capabilities: REQUESTED_CAPABILITIES,
+    editor_entry_name: NATIVE_EDITOR_ENTRY.cstr(),
+    requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,
     missing_host_diagnostics: MISSING_HOST_DIAGNOSTICS,
     editor: {
         required_capabilities: ["editor.extension.editor_contribution_fixture"],
         denied_capabilities: [],
-        negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES,
+        negotiated_capabilities: NATIVE_REQUESTED_CAPABILITIES,
         diagnostics: EDITOR_DIAGNOSTICS,
         is_stateless: true,
         state_schema_version: 0,

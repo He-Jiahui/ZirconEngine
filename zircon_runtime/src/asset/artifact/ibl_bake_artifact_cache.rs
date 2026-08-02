@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    IblBakeArtifactBlob, IblBakeArtifactBlobError, IblBakeArtifactCandidate,
-    IblBakeArtifactDescriptor, IblBakeArtifactRequest, IblBakeKey, IBL_BAKE_ALGORITHM_VERSION,
+    IBL_BAKE_ALGORITHM_VERSION, IblBakeArtifactBlob, IblBakeArtifactBlobError,
+    IblBakeArtifactCandidate, IblBakeArtifactDescriptor, IblBakeArtifactRequest, IblBakeKey,
 };
 
 pub const IBL_BAKE_RUNTIME_CACHE_DIRECTORY: &str = "render/ibl";

@@ -1,6 +1,6 @@
 use super::super::super::super::super::super::{
-    slot_copy, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionSlotImportPreviewReport, RuntimeSessionSlotSelector,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotImportPreviewReport,
+    RuntimeSessionSlotSelector, slot_copy,
 };
 
 impl RuntimeSessionArchive {

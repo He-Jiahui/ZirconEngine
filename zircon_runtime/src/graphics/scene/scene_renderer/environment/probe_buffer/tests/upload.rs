@@ -1,15 +1,15 @@
 use crate::asset::{
-    AssetUri, TextureAsset, TextureAssetDescriptor, decode_ibl_pmrem_rgba16f_texture,
-    texture_asset_from_ibl_bake_artifact_pmrem, texture_asset_from_source_cubemap_zcube,
+    decode_ibl_pmrem_rgba16f_texture, texture_asset_from_ibl_bake_artifact_pmrem,
+    texture_asset_from_source_cubemap_zcube, AssetUri, TextureAsset, TextureAssetDescriptor,
 };
 use crate::core::framework::render::{
-    IblBakeArtifactBlob, IblBakeArtifactContents, IblBakeArtifactDescriptor,
-    IblBakeArtifactPayload, ProceduralSkyParams, RenderImageDimension,
-    build_source_cubemap_from_equirect, decode_rgba16f_texels,
+    build_source_cubemap_from_equirect, decode_rgba16f_texels, IblBakeArtifactBlob,
+    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+    ProceduralSkyParams, RenderImageDimension,
 };
 use crate::core::resource::ResourceId;
 
-use super::super::upload::{ReflectionProbeAssetError, validate_probe_pmrem_texture};
+use super::super::upload::{validate_probe_pmrem_texture, ReflectionProbeAssetError};
 
 #[test]
 fn render_probe_source_cubemap_mips_are_rejected_as_pmrem() {

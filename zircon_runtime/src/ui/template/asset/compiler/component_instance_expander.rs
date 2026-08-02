@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use toml::{map::Map, Value};
 
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetKind, UiChildMount, UiComponentDefinition,
-    UiNodeDefinition, UiTemplateNode,
+    parse_component_reference, UiAssetDocument, UiAssetError, UiAssetKind, UiChildMount,
+    UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind, UiTemplateNode,
 };
 
 use super::ui_document_compiler::{CompilationArtifacts, UiDocumentCompiler};
@@ -267,6 +267,15 @@ fn validate_slot_mounts(
                 slot_name,
             });
         }
+        let child_component =
+            child_component_name(&child.node)?.unwrap_or("<unresolved>".to_string());
+        if !slot.accepts_component(&child_component) {
+            return Err(UiAssetError::SlotDoesNotAcceptComponent {
+                component: component_name.to_string(),
+                slot_name: child.mount.clone().unwrap_or_default(),
+                child_component,
+            });
+        }
     }
 
     for (slot_name, slot) in &component.slots {
@@ -281,12 +290,17 @@ fn validate_slot_mounts(
     Ok(())
 }
 
-pub(super) fn component_name_from_reference(reference: &str) -> Result<String, UiAssetError> {
-    reference
-        .split_once('#')
-        .map(|(_, component)| component.to_string())
-        .ok_or_else(|| UiAssetError::InvalidDocument {
-            asset_id: reference.to_string(),
-            detail: "component references must include a #Component suffix".to_string(),
-        })
+fn child_component_name(node: &UiNodeDefinition) -> Result<Option<String>, UiAssetError> {
+    match node.kind {
+        UiNodeDefinitionKind::Component => Ok(node.component.clone()),
+        UiNodeDefinitionKind::Reference => node
+            .component_ref
+            .as_deref()
+            .map(|reference| {
+                parse_component_reference(reference).map(|(_, component)| component.to_string())
+            })
+            .transpose(),
+        UiNodeDefinitionKind::Native => Ok(node.widget_type.clone()),
+        UiNodeDefinitionKind::Slot => Ok(None),
+    }
 }

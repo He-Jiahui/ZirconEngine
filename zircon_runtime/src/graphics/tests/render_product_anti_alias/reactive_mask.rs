@@ -16,9 +16,9 @@ use crate::core::resource::{
 use crate::graphics::WgpuRenderFramework;
 
 use super::{
-    TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID, TAA_REACTIVE_MASK_MESH_EXECUTOR_ID,
-    TAA_RESOLVE_EXECUTOR_ID, anti_alias_product_profile, assert_taa_resolve_product_stats,
-    submit_and_capture_anti_alias_product,
+    anti_alias_product_profile, assert_taa_resolve_product_stats,
+    submit_and_capture_anti_alias_product, TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID,
+    TAA_REACTIVE_MASK_MESH_EXECUTOR_ID, TAA_RESOLVE_EXECUTOR_ID,
 };
 
 #[test]

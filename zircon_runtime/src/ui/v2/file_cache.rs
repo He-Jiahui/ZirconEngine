@@ -10,6 +10,7 @@ use zircon_runtime_interface::ui::template::{
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2CompiledDocument};
 
 use super::{
+    component_reference::{parse_v2_widget_import_reference, UiV2WidgetImportReference},
     UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreBuilder, UiZuiAssetLoader,
 };
 use crate::ui::template::{UiCompiledArtifactKey, UiCompiledArtifactStore};
@@ -365,7 +366,7 @@ fn collect_v2_sources(paths: &[PathBuf]) -> Result<Vec<UiV2FileSource>, UiV2Asse
         let path = queue[index].clone();
         index += 1;
         let document = load_ui_v2_source_file(&path)?;
-        for reference in v2_import_references(&document) {
+        for reference in v2_import_references(&document)? {
             if let Some(import_path) = resolve_resource_reference_path(&path, &reference)
                 .or_else(|| resolve_asset_id_reference_path(&path, &reference, &mut asset_id_index))
             {
@@ -385,17 +386,19 @@ fn push_source_path(queue: &mut Vec<PathBuf>, seen: &mut BTreeSet<PathBuf>, path
     }
 }
 
-fn v2_import_references(document: &UiV2AssetDocument) -> Vec<String> {
+fn v2_import_references(document: &UiV2AssetDocument) -> Result<Vec<String>, UiV2AssetError> {
     let mut references =
         Vec::with_capacity(document.imports.widgets.len() + document.imports.styles.len());
-    references.extend(document.imports.widgets.iter().map(|reference| {
-        reference
-            .split_once('#')
-            .map_or(reference.as_str(), |(asset_id, _)| asset_id)
-            .to_string()
-    }));
+    for reference in &document.imports.widgets {
+        match parse_v2_widget_import_reference(&document.asset.id, reference)? {
+            UiV2WidgetImportReference::WholeAsset(asset_id)
+            | UiV2WidgetImportReference::Component { asset_id, .. } => {
+                references.push(asset_id.to_string());
+            }
+        }
+    }
     references.extend(document.imports.styles.iter().cloned());
-    references
+    Ok(references)
 }
 
 fn build_file_store_cache_entry(
@@ -456,7 +459,6 @@ fn root_document_with_imported_styles(sources: &[UiV2FileSource]) -> UiV2AssetDo
 
 fn resolve_resource_reference_path(source_path: &Path, reference: &str) -> Option<PathBuf> {
     let relative = reference.strip_prefix("res://")?;
-    let relative = relative.split_once('#').map_or(relative, |(path, _)| path);
     let asset_root = asset_root_for_path(source_path)?;
     let mut path = asset_root.to_path_buf();
     for segment in relative.split('/') {

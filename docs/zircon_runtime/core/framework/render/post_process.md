@@ -47,7 +47,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
   - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
   - zircon_runtime/src/core/framework/render/post_process/validation.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
@@ -140,7 +140,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/depth_of_field_prepare.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_tile_max.wgsl
@@ -197,7 +199,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
   - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
   - zircon_runtime/src/core/framework/render/post_process/validation.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
@@ -279,7 +281,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/depth_of_field_prepare.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_tile_max.wgsl

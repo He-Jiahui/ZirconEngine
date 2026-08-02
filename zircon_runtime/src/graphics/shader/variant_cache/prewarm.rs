@@ -1,142 +1,140 @@
 use std::path::Path;
 
 use crate::core::framework::render::{
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
 };
-use crate::graphics::shader::template::validate_shader_variant_prewarm_wgsl;
 
-use super::disk::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey};
+mod worker;
 
 pub(crate) fn prewarm_shader_variants_to_disk(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
 ) -> ShaderVariantPrewarmReport {
-    prewarm_shader_variants_to_disk_inner(manifest, cache_root, None, None)
+    prewarm_shader_variants_to_disk_with_budget(
+        manifest,
+        cache_root,
+        ShaderVariantPrewarmExecutionBudget::default(),
+    )
+}
+
+pub(crate) fn prewarm_shader_variants_to_disk_with_budget(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_root: impl AsRef<Path>,
+    budget: ShaderVariantPrewarmExecutionBudget,
+) -> ShaderVariantPrewarmReport {
+    worker::prewarm_shader_variants_to_disk_inner(manifest, cache_root, budget, None, None)
 }
 
 pub(crate) fn prewarm_shader_variants_to_disk_with_module_validation(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
-    validate_module: impl Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>,
+    validate_module: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
 ) -> ShaderVariantPrewarmReport {
-    prewarm_shader_variants_to_disk_inner(manifest, cache_root, Some(&validate_module), None)
+    prewarm_shader_variants_to_disk_with_module_validation_and_budget(
+        manifest,
+        cache_root,
+        ShaderVariantPrewarmExecutionBudget::default(),
+        validate_module,
+    )
+}
+
+pub(crate) fn prewarm_shader_variants_to_disk_with_module_validation_and_budget(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_root: impl AsRef<Path>,
+    budget: ShaderVariantPrewarmExecutionBudget,
+    validate_module: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
+) -> ShaderVariantPrewarmReport {
+    worker::prewarm_shader_variants_to_disk_inner(
+        manifest,
+        cache_root,
+        budget,
+        Some(&validate_module),
+        None,
+    )
 }
 
 pub(crate) fn prewarm_shader_variants_to_disk_with_pipeline_validation(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
-    validate_pipeline: impl Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>,
+    validate_pipeline: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
 ) -> ShaderVariantPrewarmReport {
-    prewarm_shader_variants_to_disk_inner(manifest, cache_root, None, Some(&validate_pipeline))
+    prewarm_shader_variants_to_disk_with_pipeline_validation_and_budget(
+        manifest,
+        cache_root,
+        ShaderVariantPrewarmExecutionBudget::default(),
+        validate_pipeline,
+    )
+}
+
+pub(crate) fn prewarm_shader_variants_to_disk_with_pipeline_validation_and_budget(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_root: impl AsRef<Path>,
+    budget: ShaderVariantPrewarmExecutionBudget,
+    validate_pipeline: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
+) -> ShaderVariantPrewarmReport {
+    worker::prewarm_shader_variants_to_disk_inner(
+        manifest,
+        cache_root,
+        budget,
+        None,
+        Some(&validate_pipeline),
+    )
 }
 
 pub(crate) fn prewarm_shader_variants_to_disk_with_module_and_pipeline_validation(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
-    validate_module: impl Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>,
-    validate_pipeline: impl Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>,
+    validate_module: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
+    validate_pipeline: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
 ) -> ShaderVariantPrewarmReport {
-    prewarm_shader_variants_to_disk_inner(
+    prewarm_shader_variants_to_disk_with_module_and_pipeline_validation_and_budget(
         manifest,
         cache_root,
-        Some(&validate_module),
-        Some(&validate_pipeline),
+        ShaderVariantPrewarmExecutionBudget::default(),
+        validate_module,
+        validate_pipeline,
     )
 }
 
-fn prewarm_shader_variants_to_disk_inner(
+pub(crate) fn prewarm_shader_variants_to_disk_with_module_and_pipeline_validation_and_budget(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
-    validate_module: Option<&dyn Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>>,
-    validate_pipeline: Option<&dyn Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>>,
+    budget: ShaderVariantPrewarmExecutionBudget,
+    validate_module: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
+    validate_pipeline: impl Fn(
+        &ShaderVariantPrewarmRequest,
+        &ShaderVariantPrewarmSource,
+    ) -> Result<(), String>,
 ) -> ShaderVariantPrewarmReport {
-    let mut report = ShaderVariantPrewarmReport::default();
-    let wgpu_module_validation_enabled = validate_module.is_some();
-    let wgpu_pipeline_validation_enabled = validate_pipeline.is_some();
-    if wgpu_module_validation_enabled {
-        report.enable_wgpu_module_validation(manifest.variants.len());
-    }
-    if wgpu_pipeline_validation_enabled {
-        report.enable_wgpu_pipeline_validation(manifest.variants.len());
-    }
-    if manifest.schema_version != ShaderVariantPrewarmManifest::SCHEMA_VERSION {
-        report.record_failure(
-            0,
-            format!(
-                "shader variant prewarm manifest schema {} is not supported; expected {}",
-                manifest.schema_version,
-                ShaderVariantPrewarmManifest::SCHEMA_VERSION
-            ),
-        );
-        return report;
-    }
-
-    let cache = ShaderVariantCacheDisk::new(cache_root.as_ref());
-    for (variant_index, request) in manifest.variants.iter().enumerate() {
-        if let Err(error) = validate_shader_variant_prewarm_wgsl(&request.wgsl_source) {
-            report.record_failure_request(
-                variant_index,
-                request,
-                format!("shader variant WGSL validation failed: {error:?}"),
-            );
-            if wgpu_module_validation_enabled {
-                report.record_wgpu_module_validation_skipped();
-            }
-            if wgpu_pipeline_validation_enabled {
-                report.record_wgpu_pipeline_validation_skipped();
-            }
-            continue;
-        }
-
-        if let Some(validate_module) = validate_module {
-            if let Err(error) = validate_module(request) {
-                report.record_failure_request(
-                    variant_index,
-                    request,
-                    format!("WGPU shader module validation failed: {error}"),
-                );
-                report.record_wgpu_module_validation_failed();
-                if wgpu_pipeline_validation_enabled {
-                    report.record_wgpu_pipeline_validation_skipped();
-                }
-                continue;
-            }
-            report.record_wgpu_module_validation_passed();
-        }
-
-        if let Some(validate_pipeline) = validate_pipeline {
-            if let Err(error) = validate_pipeline(request) {
-                report.record_failure_request(
-                    variant_index,
-                    request,
-                    format!("WGPU render pipeline validation failed: {error}"),
-                );
-                report.record_wgpu_pipeline_validation_failed();
-                continue;
-            }
-            report.record_wgpu_pipeline_validation_passed();
-        }
-
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
-        );
-        match cache.write(
-            &disk_key,
-            &request.wgsl_source,
-            &request.template_revision,
-            &request.naga_version,
-            &request.wgpu_version,
-        ) {
-            Ok(_) => {
-                report.record_written_cache_entry(request, disk_key.hash, disk_key.canonical_string)
-            }
-            Err(error) => {
-                report.record_failure_request(variant_index, request, format!("{error:?}"))
-            }
-        }
-    }
-    report
+    worker::prewarm_shader_variants_to_disk_inner(
+        manifest,
+        cache_root,
+        budget,
+        Some(&validate_module),
+        Some(&validate_pipeline),
+    )
 }
 
 #[cfg(test)]
@@ -144,22 +142,55 @@ mod tests {
     use std::fs;
 
     use crate::core::framework::render::{
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId,
-        SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType, ShaderQualityTier,
-        ShaderVariantKey, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
-        ShadingModelId,
+        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+        ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmManifest,
+        ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource, ShadingModelId,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+        SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::core::resource::ResourceId;
     use crate::graphics::shader::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey};
 
     use super::{
-        prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_module_validation,
+        prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_budget,
+        prewarm_shader_variants_to_disk_with_module_validation,
         prewarm_shader_variants_to_disk_with_pipeline_validation,
     };
 
     mod combined_validation_tests;
 
     const VALID_WGSL: &str = "fn main() {}";
+
+    fn test_manifest(
+        key: ShaderVariantKey,
+        source_label: &str,
+        wgsl_source: &str,
+        include_content_hashes: Vec<String>,
+    ) -> ShaderVariantPrewarmManifest {
+        let source = ShaderVariantPrewarmSource::new(
+            source_label,
+            wgsl_source,
+            include_content_hashes,
+            "template-r1",
+            "naga-test",
+            "wgpu-test",
+        );
+        let request = ShaderVariantPrewarmRequest {
+            key,
+            pipeline_state: None,
+            source_id: source.id.clone(),
+        };
+        ShaderVariantPrewarmManifest::new(vec![source], vec![request])
+    }
+
+    fn test_disk_key(manifest: &ShaderVariantPrewarmManifest) -> ShaderVariantCacheDiskKey {
+        let request = manifest.variants.first().expect("prewarm test request");
+        let source = manifest.source_for(request).expect("prewarm test source");
+        ShaderVariantCacheDiskKey::from_variant_key(
+            &request.key,
+            source.include_content_hashes.iter().map(String::as_str),
+        )
+    }
 
     #[test]
     fn render_shader_variant_prewarm_writes_disk_entries() {
@@ -168,20 +199,13 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key(),
-            source_label: "res://materials/prewarm-test.wgsl".to_string(),
-            wgsl_source: "fn main() {}".to_string(),
-            include_content_hashes: vec!["include-a".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/prewarm-test.wgsl",
+            VALID_WGSL,
+            vec!["include-a".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report = prewarm_shader_variants_to_disk(&manifest, &root);
 
@@ -224,26 +248,119 @@ mod tests {
     }
 
     #[test]
+    fn render_shader_variant_prewarm_shares_one_source_artifact_across_variants() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_variant_prewarm_source_table_test_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let source = ShaderVariantPrewarmSource::new(
+            "res://materials/source-table.wgsl",
+            VALID_WGSL,
+            vec!["include-source-table".to_string()],
+            "template-r1",
+            "naga-test",
+            "wgpu-test",
+        );
+        let resident_source_bytes = source.resident_bytes();
+        let manifest = ShaderVariantPrewarmManifest::new(
+            vec![source.clone()],
+            vec![
+                ShaderVariantPrewarmRequest {
+                    key: variant_key(),
+                    pipeline_state: None,
+                    source_id: source.id.clone(),
+                },
+                ShaderVariantPrewarmRequest {
+                    key: variant_key_for(
+                        GEOMETRY_SOURCE_ID_SKINNED_MESH,
+                        ShaderPassType::Forward,
+                        ShaderQualityTier::High,
+                    ),
+                    pipeline_state: None,
+                    source_id: source.id.clone(),
+                },
+            ],
+        );
+
+        let report = prewarm_shader_variants_to_disk_with_budget(
+            &manifest,
+            &root,
+            ShaderVariantPrewarmExecutionBudget {
+                max_in_flight_variants: 1,
+                max_in_flight_source_bytes: resident_source_bytes,
+                max_resident_source_bytes: resident_source_bytes,
+            },
+        );
+
+        assert_eq!(report.requested_count, 2);
+        assert_eq!(report.written_count, 2);
+        assert_eq!(report.failed_count, 0);
+        assert_eq!(report.source_provenance.source_count, 1);
+        assert_eq!(report.source_provenance.variant_count, 2);
+        assert_eq!(
+            report.execution_budget.resident_source_bytes,
+            resident_source_bytes
+        );
+        assert_eq!(report.execution_budget.peak_in_flight_variants, 1);
+        assert_eq!(
+            report.execution_budget.peak_in_flight_source_bytes,
+            resident_source_bytes
+        );
+        assert_eq!(report.execution_budget.rejected_count, 0);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn render_shader_variant_prewarm_rejects_source_table_over_resident_budget() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_variant_prewarm_budget_test_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/budget-test.wgsl",
+            VALID_WGSL,
+            vec!["include-budget".to_string()],
+        );
+        let resident_source_bytes = manifest.sources[0].resident_bytes();
+
+        let report = prewarm_shader_variants_to_disk_with_budget(
+            &manifest,
+            &root,
+            ShaderVariantPrewarmExecutionBudget {
+                max_in_flight_variants: 1,
+                max_in_flight_source_bytes: resident_source_bytes,
+                max_resident_source_bytes: resident_source_bytes - 1,
+            },
+        );
+
+        assert_eq!(report.written_count, 0);
+        assert_eq!(report.failed_count, 1);
+        assert_eq!(report.execution_budget.rejected_count, 1);
+        assert_eq!(
+            report.execution_budget.resident_source_bytes,
+            resident_source_bytes
+        );
+        assert_eq!(report.execution_budget.peak_in_flight_variants, 0);
+        assert!(!root.exists());
+    }
+
+    #[test]
     fn render_shader_variant_prewarm_custom_ids_survive_disk_lookup() {
         let root = std::env::temp_dir().join(format!(
             "zircon_shader_variant_prewarm_custom_id_test_{}",
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key_for_custom_ids(4, 16),
-            source_label: "res://materials/prewarm-custom-id.wgsl".to_string(),
-            wgsl_source: VALID_WGSL.to_string(),
-            include_content_hashes: vec!["include-custom-id".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key_for_custom_ids(4, 16),
+            "res://materials/prewarm-custom-id.wgsl",
+            VALID_WGSL,
+            vec!["include-custom-id".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report = prewarm_shader_variants_to_disk(&manifest, &root);
 
@@ -251,16 +368,12 @@ mod tests {
         assert_eq!(report.written_count, 1);
         assert_eq!(report.failed_count, 0);
         assert_eq!(report.written_variants.len(), 1);
-        assert!(
-            report.written_variants[0]
-                .canonical_string
-                .contains("|geometry=4|")
-        );
-        assert!(
-            report.written_variants[0]
-                .canonical_string
-                .contains("|shading=16|")
-        );
+        assert!(report.written_variants[0]
+            .canonical_string
+            .contains("|geometry=4|"));
+        assert!(report.written_variants[0]
+            .canonical_string
+            .contains("|shading=16|"));
         assert_eq!(
             report
                 .dimension_summary
@@ -300,20 +413,13 @@ mod tests {
         let runtime_root = root.join("runtime").join("shader_variants");
         let staged_root = root.join("staged").join("cache").join("shader_variants");
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key_for_custom_ids(4, 16),
-            source_label: "res://materials/prewarm-custom-id-fallback.wgsl".to_string(),
-            wgsl_source: VALID_WGSL.to_string(),
-            include_content_hashes: vec!["include-custom-id-fallback".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key_for_custom_ids(4, 16),
+            "res://materials/prewarm-custom-id-fallback.wgsl",
+            VALID_WGSL,
+            vec!["include-custom-id-fallback".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report = prewarm_shader_variants_to_disk(&manifest, &staged_root);
 
@@ -348,20 +454,13 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key(),
-            source_label: "res://materials/prewarm-invalid.wgsl".to_string(),
-            wgsl_source: "fn main(".to_string(),
-            include_content_hashes: vec!["include-invalid".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/prewarm-invalid.wgsl",
+            "fn main(",
+            vec!["include-invalid".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report = prewarm_shader_variants_to_disk(&manifest, &root);
 
@@ -388,11 +487,9 @@ mod tests {
             1
         );
         assert_eq!(report.failures[0].variant_index, 0);
-        assert!(
-            report.failures[0]
-                .error
-                .contains("shader variant WGSL validation failed")
-        );
+        assert!(report.failures[0]
+            .error
+            .contains("shader variant WGSL validation failed"));
         assert!(matches!(
             ShaderVariantCacheDisk::new(&root).lookup(&disk_key),
             super::super::disk::ShaderVariantCacheDiskLookup::Miss
@@ -407,23 +504,16 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key(),
-            source_label: "res://materials/prewarm-wgpu-failure.wgsl".to_string(),
-            wgsl_source: VALID_WGSL.to_string(),
-            include_content_hashes: vec!["include-wgpu-validation".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/prewarm-wgpu-failure.wgsl",
+            VALID_WGSL,
+            vec!["include-wgpu-validation".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report =
-            prewarm_shader_variants_to_disk_with_module_validation(&manifest, &root, |_| {
+            prewarm_shader_variants_to_disk_with_module_validation(&manifest, &root, |_, _| {
                 Err("mock WGPU module failure".to_string())
             });
 
@@ -436,11 +526,9 @@ mod tests {
         assert_eq!(report.wgpu_module_validation.validated_count, 0);
         assert_eq!(report.wgpu_module_validation.failed_count, 1);
         assert_eq!(report.wgpu_module_validation.skipped_count, 0);
-        assert!(
-            report.failures[0]
-                .error
-                .contains("WGPU shader module validation failed")
-        );
+        assert!(report.failures[0]
+            .error
+            .contains("WGPU shader module validation failed"));
         assert_eq!(
             report
                 .dimension_summary
@@ -464,23 +552,16 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key(),
-            source_label: "res://materials/prewarm-wgpu-success.wgsl".to_string(),
-            wgsl_source: VALID_WGSL.to_string(),
-            include_content_hashes: vec!["include-wgpu-validation-success".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/prewarm-wgpu-success.wgsl",
+            VALID_WGSL,
+            vec!["include-wgpu-validation-success".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report =
-            prewarm_shader_variants_to_disk_with_module_validation(&manifest, &root, |_| Ok(()));
+            prewarm_shader_variants_to_disk_with_module_validation(&manifest, &root, |_, _| Ok(()));
 
         assert_eq!(report.requested_count, 1);
         assert_eq!(report.written_count, 1);
@@ -510,23 +591,16 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key(),
-            source_label: "res://materials/prewarm-wgpu-pipeline-failure.wgsl".to_string(),
-            wgsl_source: VALID_WGSL.to_string(),
-            include_content_hashes: vec!["include-wgpu-pipeline-validation".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/prewarm-wgpu-pipeline-failure.wgsl",
+            VALID_WGSL,
+            vec!["include-wgpu-pipeline-validation".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report =
-            prewarm_shader_variants_to_disk_with_pipeline_validation(&manifest, &root, |_| {
+            prewarm_shader_variants_to_disk_with_pipeline_validation(&manifest, &root, |_, _| {
                 Err("mock WGPU pipeline failure".to_string())
             });
 
@@ -539,11 +613,9 @@ mod tests {
         assert_eq!(report.wgpu_pipeline_validation.validated_count, 0);
         assert_eq!(report.wgpu_pipeline_validation.failed_count, 1);
         assert_eq!(report.wgpu_pipeline_validation.skipped_count, 0);
-        assert!(
-            report.failures[0]
-                .error
-                .contains("WGPU render pipeline validation failed")
-        );
+        assert!(report.failures[0]
+            .error
+            .contains("WGPU render pipeline validation failed"));
         assert!(matches!(
             ShaderVariantCacheDisk::new(&root).lookup(&disk_key),
             super::super::disk::ShaderVariantCacheDiskLookup::Miss
@@ -558,23 +630,18 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let request = ShaderVariantPrewarmRequest {
-            key: variant_key(),
-            source_label: "res://materials/prewarm-wgpu-pipeline-success.wgsl".to_string(),
-            wgsl_source: VALID_WGSL.to_string(),
-            include_content_hashes: vec!["include-wgpu-pipeline-validation-success".to_string()],
-            template_revision: "template-r1".to_string(),
-            naga_version: "naga-test".to_string(),
-            wgpu_version: "wgpu-test".to_string(),
-        };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            &request.key,
-            request.include_content_hashes.iter().map(String::as_str),
+        let manifest = test_manifest(
+            variant_key(),
+            "res://materials/prewarm-wgpu-pipeline-success.wgsl",
+            VALID_WGSL,
+            vec!["include-wgpu-pipeline-validation-success".to_string()],
         );
-        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+        let disk_key = test_disk_key(&manifest);
 
         let report =
-            prewarm_shader_variants_to_disk_with_pipeline_validation(&manifest, &root, |_| Ok(()));
+            prewarm_shader_variants_to_disk_with_pipeline_validation(&manifest, &root, |_, _| {
+                Ok(())
+            });
 
         assert_eq!(report.requested_count, 1);
         assert_eq!(report.written_count, 1);
@@ -600,30 +667,41 @@ mod tests {
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&root);
-        let manifest = ShaderVariantPrewarmManifest::new(vec![
-            ShaderVariantPrewarmRequest {
-                key: variant_key(),
-                source_label: "res://materials/prewarm-valid.wgsl".to_string(),
-                wgsl_source: "fn main() {}".to_string(),
-                include_content_hashes: vec!["include-valid".to_string()],
-                template_revision: "template-r1".to_string(),
-                naga_version: "naga-test".to_string(),
-                wgpu_version: "wgpu-test".to_string(),
-            },
-            ShaderVariantPrewarmRequest {
-                key: variant_key_for(
-                    GEOMETRY_SOURCE_ID_SKINNED_MESH,
-                    ShaderPassType::Shadow,
-                    ShaderQualityTier::High,
-                ),
-                source_label: "res://materials/prewarm-invalid.wgsl".to_string(),
-                wgsl_source: "fn main(".to_string(),
-                include_content_hashes: vec!["include-invalid".to_string()],
-                template_revision: "template-r1".to_string(),
-                naga_version: "naga-test".to_string(),
-                wgpu_version: "wgpu-test".to_string(),
-            },
-        ]);
+        let valid_source = ShaderVariantPrewarmSource::new(
+            "res://materials/prewarm-valid.wgsl",
+            VALID_WGSL,
+            vec!["include-valid".to_string()],
+            "template-r1",
+            "naga-test",
+            "wgpu-test",
+        );
+        let invalid_source = ShaderVariantPrewarmSource::new(
+            "res://materials/prewarm-invalid.wgsl",
+            "fn main(",
+            vec!["include-invalid".to_string()],
+            "template-r1",
+            "naga-test",
+            "wgpu-test",
+        );
+        let manifest = ShaderVariantPrewarmManifest::new(
+            vec![valid_source.clone(), invalid_source.clone()],
+            vec![
+                ShaderVariantPrewarmRequest {
+                    key: variant_key(),
+                    pipeline_state: None,
+                    source_id: valid_source.id,
+                },
+                ShaderVariantPrewarmRequest {
+                    key: variant_key_for(
+                        GEOMETRY_SOURCE_ID_SKINNED_MESH,
+                        ShaderPassType::Shadow,
+                        ShaderQualityTier::High,
+                    ),
+                    pipeline_state: None,
+                    source_id: invalid_source.id,
+                },
+            ],
+        );
 
         let report = prewarm_shader_variants_to_disk(&manifest, &root);
 

@@ -57,6 +57,9 @@ counter's owner type. The contract is a collection cardinality and therefore mus
 
 ## 修复结果与回传
 
-Open state: `待验证`; the owner type is repaired, but no pass is claimed until the
-focused Text04 gate and the original Plugins09 upward gate both complete on current
-source.
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / managed_validation_pending`.
+
+- `NativeBitmapAtlasRetrySourceSelection::discarded_stale_retry_glyph_count` is declared as `usize` at its owner and is accumulated with `saturating_add`; the frame report keeps the same cardinality type end to end.
+- The retry-frame owner keeps stale-glyph selection, face invalidation, deduplicated source selection, per-frame source/byte caps, and retry reporting in the native bitmap atlas domain. No consumer-side cast, compatibility alias, or fallback bypass was added.
+- Current source inspection confirms the retry counter declaration and the native bitmap retry-frame test owner both use `usize`. This records the implemented type repair and static contract review only.
+- The focused Text04 and original Plugins09 upward commands remain coordinator-owned. Keep this failure `open` until fresh current-source receipts show both gates executed; do not treat the prior compile-stop as a pass.

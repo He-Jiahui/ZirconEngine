@@ -281,6 +281,31 @@ fn replaced_provider_lives_until_in_flight_call_and_cached_snapshot_finish() {
 }
 
 #[test]
+fn pinned_provider_lives_until_guard_drops_after_reload_and_deactivate() {
+    let drops = Arc::new(AtomicUsize::new(0));
+    let (bridge, table, slot) = finalized_drop_tracked_import(37, Arc::clone(&drops));
+    let guard = bridge.pin().expect("initial provider pin");
+
+    table
+        .replace_provider::<dyn WeatherQueryInterface>(
+            slot,
+            Arc::new(WeatherQueryProvider { temperature: 43 }),
+        )
+        .expect("replace provider");
+    table.set_enabled(slot, false).expect("deactivate provider");
+
+    assert_eq!(
+        bridge.call(|provider| provider.sample_temperature()),
+        Err(BridgeError::NotEnabled)
+    );
+    assert_eq!(guard.sample_temperature(), 37);
+    assert_eq!(drops.load(Ordering::SeqCst), 0);
+
+    drop(guard);
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+}
+
+#[test]
 fn cached_snapshot_does_not_retain_provider_after_reload_without_another_call() {
     let drops = Arc::new(AtomicUsize::new(0));
     let (bridge, table, slot) = finalized_drop_tracked_import(11, Arc::clone(&drops));

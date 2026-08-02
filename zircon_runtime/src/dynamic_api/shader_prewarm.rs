@@ -1,29 +1,35 @@
-use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
-    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
-    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShadingModelDescriptor,
+    ShaderFeatureBits, ShaderPassType, ShaderPipelinePrewarmState, ShaderQualityTier,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShadingModelDescriptor,
     ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::{
-    create_mesh_prewarm_validation_pipeline_layout, default_pipeline_key,
-    mesh_pipeline_standard_material_template_source_for_shader_pass,
+    default_pipeline_key, mesh_pipeline_standard_material_template_source_for_shader_pass,
     mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
-    validate_mesh_prewarm_request_render_pipeline, MeshPipelineShaderSource, PipelineKey,
+    MeshPipelineShaderSource, PipelineKey,
 };
 use crate::graphics::shader::{
     assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
     assemble_taa_reactive_mask_shader_template, prewarm_shader_variants_to_disk,
-    prewarm_shader_variants_to_disk_with_module_and_pipeline_validation,
-    prewarm_shader_variants_to_disk_with_module_validation,
-    prewarm_shader_variants_to_disk_with_pipeline_validation,
     standard_material_surface_source_for_features, DeferredGBufferShaderTemplateRequest,
     MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
     ShaderVariantCacheDisk, TaaReactiveMaskShaderTemplateRequest,
+};
+
+mod execution_budget;
+mod module_validation_cache;
+mod wgpu_validation;
+
+pub use wgpu_validation::{
+    prewarm_shader_variants_with_execution_budget,
+    prewarm_shader_variants_with_wgpu_module_and_pipeline_validation,
+    prewarm_shader_variants_with_wgpu_module_validation,
+    prewarm_shader_variants_with_wgpu_pipeline_validation,
 };
 
 const MESH_SHADER_NAGA_VERSION: &str = "naga-29.0.1";
@@ -44,139 +50,6 @@ pub fn prewarm_shader_variants(
     cache_dir: impl AsRef<Path>,
 ) -> ShaderVariantPrewarmReport {
     prewarm_shader_variants_to_disk(manifest, cache_dir)
-}
-
-pub fn prewarm_shader_variants_with_wgpu_module_validation(
-    manifest: &ShaderVariantPrewarmManifest,
-    cache_dir: impl AsRef<Path>,
-) -> ShaderVariantPrewarmReport {
-    let backend = match crate::graphics::backend::RenderBackend::new_offscreen() {
-        Ok(backend) => backend,
-        Err(error) => {
-            return wgpu_module_validation_setup_failure_report(
-                manifest,
-                format!("failed to create offscreen WGPU backend: {error:?}"),
-            );
-        }
-    };
-    let device = &backend.device;
-    prewarm_shader_variants_to_disk_with_module_validation(manifest, cache_dir, |request| {
-        validate_mesh_prewarm_request_shader_module(device, request)
-    })
-}
-
-pub fn prewarm_shader_variants_with_wgpu_pipeline_validation(
-    manifest: &ShaderVariantPrewarmManifest,
-    cache_dir: impl AsRef<Path>,
-) -> ShaderVariantPrewarmReport {
-    let backend = match crate::graphics::backend::RenderBackend::new_offscreen() {
-        Ok(backend) => backend,
-        Err(error) => {
-            return wgpu_pipeline_validation_setup_failure_report(
-                manifest,
-                format!("failed to create offscreen WGPU backend: {error:?}"),
-            );
-        }
-    };
-    let device = &backend.device;
-    let pipeline_layout = create_mesh_prewarm_validation_pipeline_layout(device);
-    prewarm_shader_variants_to_disk_with_pipeline_validation(manifest, cache_dir, |request| {
-        validate_mesh_prewarm_request_render_pipeline(device, &pipeline_layout, request)
-    })
-}
-
-pub fn prewarm_shader_variants_with_wgpu_module_and_pipeline_validation(
-    manifest: &ShaderVariantPrewarmManifest,
-    cache_dir: impl AsRef<Path>,
-) -> ShaderVariantPrewarmReport {
-    let backend = match crate::graphics::backend::RenderBackend::new_offscreen() {
-        Ok(backend) => backend,
-        Err(error) => {
-            return wgpu_module_and_pipeline_validation_setup_failure_report(
-                manifest,
-                format!("failed to create offscreen WGPU backend: {error:?}"),
-            );
-        }
-    };
-    let device = &backend.device;
-    let pipeline_layout = create_mesh_prewarm_validation_pipeline_layout(device);
-    prewarm_shader_variants_to_disk_with_module_and_pipeline_validation(
-        manifest,
-        cache_dir,
-        |request| validate_mesh_prewarm_request_shader_module(device, request),
-        |request| validate_mesh_prewarm_request_render_pipeline(device, &pipeline_layout, request),
-    )
-}
-
-fn validate_mesh_prewarm_request_shader_module(
-    device: &wgpu::Device,
-    request: &ShaderVariantPrewarmRequest,
-) -> Result<(), String> {
-    let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-    let _shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("zircon-shader-prewarm-validation-module"),
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(request.wgsl_source.as_str())),
-    });
-    match pollster::block_on(error_scope.pop()) {
-        Some(error) => Err(error.to_string()),
-        None => Ok(()),
-    }
-}
-
-fn wgpu_module_validation_setup_failure_report(
-    manifest: &ShaderVariantPrewarmManifest,
-    error: impl Into<String>,
-) -> ShaderVariantPrewarmReport {
-    let error = error.into();
-    let mut report = ShaderVariantPrewarmReport::default();
-    report.enable_wgpu_module_validation(manifest.variants.len());
-    for (variant_index, request) in manifest.variants.iter().enumerate() {
-        report.record_failure_request(
-            variant_index,
-            request,
-            format!("WGPU shader module validation setup failed: {error}"),
-        );
-        report.record_wgpu_module_validation_failed();
-    }
-    report
-}
-
-fn wgpu_pipeline_validation_setup_failure_report(
-    manifest: &ShaderVariantPrewarmManifest,
-    error: impl Into<String>,
-) -> ShaderVariantPrewarmReport {
-    let error = error.into();
-    let mut report = ShaderVariantPrewarmReport::default();
-    report.enable_wgpu_pipeline_validation(manifest.variants.len());
-    for (variant_index, request) in manifest.variants.iter().enumerate() {
-        report.record_failure_request(
-            variant_index,
-            request,
-            format!("WGPU render pipeline validation setup failed: {error}"),
-        );
-        report.record_wgpu_pipeline_validation_failed();
-    }
-    report
-}
-
-fn wgpu_module_and_pipeline_validation_setup_failure_report(
-    manifest: &ShaderVariantPrewarmManifest,
-    error: impl Into<String>,
-) -> ShaderVariantPrewarmReport {
-    let error = error.into();
-    let mut report = ShaderVariantPrewarmReport::default();
-    report.enable_wgpu_module_validation(manifest.variants.len());
-    report.enable_wgpu_pipeline_validation(manifest.variants.len());
-    for (variant_index, request) in manifest.variants.iter().enumerate() {
-        report.record_failure_request(
-            variant_index,
-            request,
-            format!("WGPU shader module and render pipeline validation setup failed: {error}"),
-        );
-        report.record_wgpu_module_validation_failed();
-        report.record_wgpu_pipeline_validation_failed();
-    }
-    report
 }
 
 pub fn builtin_fallback_shader_prewarm_manifest() -> ShaderVariantPrewarmManifest {
@@ -425,6 +298,7 @@ fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_wit
     })?;
 
     let quality_tiers = normalized_quality_tiers(quality_tiers);
+    let mut sources = Vec::new();
     let mut requests = Vec::new();
     for pass_type in BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES {
         let source = builtin_standard_material_template_source_for_plugin_shading_model_and_pass(
@@ -434,6 +308,14 @@ fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_wit
             plugin_shading_models,
             &source_set,
         )?;
+        let source = ShaderVariantPrewarmSource::new(
+            BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL,
+            source.wgsl_source,
+            source.cache_content_hashes,
+            source.template_revision,
+            MESH_SHADER_NAGA_VERSION,
+            MESH_SHADER_WGPU_VERSION,
+        );
         requests.extend(quality_tiers.iter().copied().map(|quality| {
             let mut key = pipeline_key.shader_variant_key_for_geometry(
                 pass_type,
@@ -443,17 +325,14 @@ fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_wit
             key.quality = quality;
             ShaderVariantPrewarmRequest {
                 key,
-                source_label: BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL.to_string(),
-                wgsl_source: source.wgsl_source.clone(),
-                include_content_hashes: source.cache_content_hashes.clone(),
-                template_revision: source.template_revision.clone(),
-                naga_version: MESH_SHADER_NAGA_VERSION.to_string(),
-                wgpu_version: MESH_SHADER_WGPU_VERSION.to_string(),
+                pipeline_state: Some(prewarm_pipeline_state(&pipeline_key)),
+                source_id: source.id.clone(),
             }
         }));
+        sources.push(source);
     }
 
-    Ok(ShaderVariantPrewarmManifest::new(requests))
+    Ok(ShaderVariantPrewarmManifest::new(sources, requests))
 }
 
 fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
@@ -463,6 +342,7 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
     quality_tiers: &[ShaderQualityTier],
 ) -> ShaderVariantPrewarmManifest {
     let quality_tiers = normalized_quality_tiers(quality_tiers);
+    let mut sources = Vec::new();
     let mut requests = Vec::new();
     for pass_type in BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES {
         let MeshPipelineShaderSource {
@@ -477,8 +357,16 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
             pass_type,
         ) {
             Ok(source) => source,
-            Err(_) => return ShaderVariantPrewarmManifest::new(Vec::new()),
+            Err(_) => return ShaderVariantPrewarmManifest::empty(),
         };
+        let source = ShaderVariantPrewarmSource::new(
+            BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL,
+            wgsl_source,
+            cache_content_hashes,
+            template_revision,
+            MESH_SHADER_NAGA_VERSION,
+            MESH_SHADER_WGPU_VERSION,
+        );
 
         requests.extend(quality_tiers.iter().copied().map(|quality| {
             let mut key = pipeline_key.shader_variant_key_for_geometry(
@@ -489,17 +377,14 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
             key.quality = quality;
             ShaderVariantPrewarmRequest {
                 key,
-                source_label: BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL.to_string(),
-                wgsl_source: wgsl_source.clone(),
-                include_content_hashes: cache_content_hashes.clone(),
-                template_revision: template_revision.clone(),
-                naga_version: MESH_SHADER_NAGA_VERSION.to_string(),
-                wgpu_version: MESH_SHADER_WGPU_VERSION.to_string(),
+                pipeline_state: Some(prewarm_pipeline_state(&pipeline_key)),
+                source_id: source.id.clone(),
             }
         }));
+        sources.push(source);
     }
 
-    ShaderVariantPrewarmManifest::new(requests)
+    ShaderVariantPrewarmManifest::new(sources, requests)
 }
 
 fn builtin_standard_material_template_source_for_geometry_and_pass(
@@ -675,6 +560,18 @@ fn prewarm_alpha_cutoff(key: &PipelineKey) -> f32 {
         key.alpha_cutoff_bits.map(f32::from_bits).unwrap_or(0.0)
     } else {
         0.0
+    }
+}
+
+fn prewarm_pipeline_state(key: &PipelineKey) -> ShaderPipelinePrewarmState {
+    ShaderPipelinePrewarmState {
+        alpha_blend: key.alpha_blend,
+        alpha_cutoff_bits: key.alpha_cutoff_bits,
+        unlit: key.unlit,
+        has_base_color_texture: key.has_base_color_texture,
+        has_metallic_roughness_texture: key.has_metallic_roughness_texture,
+        has_occlusion_texture: key.has_occlusion_texture,
+        has_emissive_texture: key.has_emissive_texture,
     }
 }
 

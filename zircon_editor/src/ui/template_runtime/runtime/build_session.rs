@@ -40,7 +40,7 @@ fn load_builtin_host_templates_for_documents(
         return Ok(());
     }
 
-    for descriptor in builtin_component_descriptors() {
+    for descriptor in builtin_component_descriptors()? {
         runtime.register_component(descriptor)?;
     }
 

@@ -4,10 +4,11 @@ use std::time::Instant;
 
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
-use crate::graphics::backend::{DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer};
+use crate::graphics::backend::{GpuPassTimer, DEFAULT_GPU_TIMER_MAX_PASSES};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
+use crate::plugin::PluginShaderModuleSource;
 
 use crate::graphics::types::GraphicsError;
 
@@ -46,6 +47,7 @@ impl SceneRenderer {
             Vec::new(),
             Vec::new(),
             Vec::new(),
+            Vec::new(),
             startup_options,
         )
     }
@@ -78,6 +80,7 @@ impl SceneRenderer {
             runtime_prepare_collectors,
             Vec::new(),
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -89,6 +92,7 @@ impl SceneRenderer {
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_icon_source_and_plugin_render_features_and_shading_models_with_startup_report(
             asset_manager,
@@ -98,6 +102,7 @@ impl SceneRenderer {
             runtime_prepare_collectors,
             plugin_geometry_sources,
             plugin_shading_models,
+            plugin_shader_module_sources,
             SceneRendererStartupOptions::default(),
         )
         .map(|(renderer, _)| renderer)
@@ -111,6 +116,7 @@ impl SceneRenderer {
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
         startup_options: SceneRendererStartupOptions,
     ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
@@ -118,9 +124,12 @@ impl SceneRenderer {
         let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
         let plugin_geometry_sources = plugin_geometry_sources.into_iter().collect::<Vec<_>>();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
+        let plugin_shader_module_sources =
+            plugin_shader_module_sources.into_iter().collect::<Vec<_>>();
         let backend_started = Instant::now();
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
         let backend_initialization = backend_started.elapsed();
+        let adapter_info = backend.adapter.get_info();
         let core_started = Instant::now();
         let (mut core, core_startup) = SceneRendererCore::new_with_icon_source(
             asset_manager.clone(),
@@ -128,6 +137,7 @@ impl SceneRenderer {
             &backend.queue,
             FINAL_COLOR_FORMAT,
             backend.backend_name(),
+            &adapter_info,
             icon_source,
             &render_features,
             plugin_geometry_sources,
@@ -137,37 +147,42 @@ impl SceneRenderer {
         )?;
         let core_initialization = core_started.elapsed();
         let resource_streamer_started = Instant::now();
-        let mut streamer = ResourceStreamer::new_with_plugin_shading_models(
+        let mut streamer = ResourceStreamer::new_with_plugin_shading_models_and_shader_modules(
             asset_manager,
             &backend.device,
             &backend.queue,
             &core.texture_bind_group_layout,
             plugin_shading_models,
+            plugin_shader_module_sources,
         )?;
         let resource_streamer_initialization = resource_streamer_started.elapsed();
-        let environment_only_pbr_base_prewarm = if startup_options
-            .requires_environment_only_pbr_base_prewarm()
-        {
-            Some(
-                core.mesh_pipelines
-                    .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
-                    .into(),
-            )
-        } else {
-            None
-        };
-        let gpu_pass_timer = GpuPassTimer::try_new(
-            &backend.device,
-            &backend.queue,
-            DEFAULT_GPU_TIMER_MAX_PASSES,
-        );
-
+        let environment_only_pbr_base_prewarm =
+            if startup_options.requires_environment_only_pbr_base_prewarm() {
+                Some(
+                    core.mesh_pipelines
+                        .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
+                        .into(),
+                )
+            } else {
+                None
+            };
+        let gpu_pass_timer = startup_options
+            .allow_gpu_timing()
+            .then(|| {
+                GpuPassTimer::try_new(
+                    &backend.device,
+                    &backend.queue,
+                    DEFAULT_GPU_TIMER_MAX_PASSES,
+                )
+            })
+            .flatten();
         Ok((
             Self {
                 backend,
                 core,
                 streamer,
                 target: None,
+                last_capture_target: None,
                 history_targets: HashMap::new(),
                 generation: 0,
                 gpu_pass_timer,
@@ -182,6 +197,8 @@ impl SceneRenderer {
                 last_prepared_mesh_queue_stats: Default::default(),
                 last_prepared_sprite_queue_stats: Default::default(),
                 frame_timing_report_requested: false,
+                parallel_record_min_passes_per_bucket: None,
+                hzb_indirect_args_readback_enabled: false,
                 last_frame_timing_report: SceneRendererFrameTimingReport::default(),
                 advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),
             },

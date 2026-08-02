@@ -4,14 +4,14 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/Cargo.toml
-  - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_plugin_sdk/examples.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
+  - zircon_editor/src/core/plugin/sdk/examples.rs
 implementation_files:
   - zircon_plugins/plugin_sdk_examples/plugin.toml
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/Cargo.toml
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
 plan_sources:
   - user: 2026-05-02 continue independent plugin gap implementation
   - .codex/plans/ZirconEngine 独立插件补齐计划.md

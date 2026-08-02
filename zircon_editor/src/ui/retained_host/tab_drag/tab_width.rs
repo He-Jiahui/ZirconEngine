@@ -1,6 +1,6 @@
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::document_tabs::{
-    document_tab_preferred_width_from_title_width, DOCUMENT_TAB_TITLE_FONT_SIZE,
+    DOCUMENT_TAB_TITLE_FONT_SIZE, document_tab_preferred_width_from_title_width,
 };
 
 const DOCK_TAB_TITLE_FONT_SIZE: f32 = 12.0;

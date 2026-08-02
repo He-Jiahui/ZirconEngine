@@ -6,8 +6,8 @@ use super::{
     skinned_gpu_source_candidate_available,
 };
 use crate::asset::{
-    AssetUri, MESH_ATTRIBUTE_POSITION, MeshAsset, MeshAttributeValues, MeshIndices,
-    MeshMorphTargetAsset,
+    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+    MESH_ATTRIBUTE_POSITION,
 };
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::Vec3;
@@ -26,10 +26,8 @@ fn morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh(
 
     let primitive = morphed_mesh_asset_primitive(&mesh, &[0.5]).expect("morphed primitive");
 
-    assert!(
-        Vec3::from_array(primitive.vertices[0].position)
-            .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6)
-    );
+    assert!(Vec3::from_array(primitive.vertices[0].position)
+        .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6));
     assert_eq!(primitive.indices, vec![0, 1, 2]);
 }
 

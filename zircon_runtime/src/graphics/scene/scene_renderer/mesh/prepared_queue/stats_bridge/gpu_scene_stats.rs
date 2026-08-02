@@ -23,5 +23,6 @@ impl PreparedMeshQueueStats {
 fn render_gpu_scene_upload_path(path: GpuSceneUploadPath) -> RenderGpuSceneUploadPath {
     match path {
         GpuSceneUploadPath::DirectQueueWrite => RenderGpuSceneUploadPath::DirectQueueWrite,
+        GpuSceneUploadPath::StagingCopy => RenderGpuSceneUploadPath::StagingCopy,
     }
 }

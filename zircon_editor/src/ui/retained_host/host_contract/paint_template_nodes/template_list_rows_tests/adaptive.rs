@@ -54,6 +54,32 @@ fn selection_indicator_stays_within_a_narrow_list_row() {
 }
 
 #[test]
+fn narrow_list_row_surface_radius_stays_within_the_row_extent() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 0.5,
+        height: 24.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_list_row_commands(
+        &mut commands,
+        &list_node(true, false),
+        &rect,
+        &rect,
+        4,
+        1.0,
+    ));
+
+    let surface = commands
+        .iter()
+        .find(|command| command.background_color == Some(PALETTE.surface_pressed))
+        .expect("selected list rows should retain their surface");
+    assert!(surface.corner_radius <= rect.width * 0.5);
+}
+
+#[test]
 fn collapsed_list_row_text_slot_does_not_emit_a_one_pixel_text_command() {
     let metrics = workbench_row_metrics();
     let rect = FrameRect {
@@ -96,9 +122,11 @@ fn narrow_list_row_elides_an_adornment_that_would_escape_its_frame() {
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| command.image_pixels.is_none()));
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.image_pixels.is_none())
+    );
 }
 
 #[test]
@@ -121,7 +149,9 @@ fn short_list_row_elides_an_adornment_that_would_escape_its_frame() {
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| command.image_pixels.is_none()));
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.image_pixels.is_none())
+    );
 }

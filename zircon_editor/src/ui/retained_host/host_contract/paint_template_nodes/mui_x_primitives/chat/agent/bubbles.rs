@@ -1,5 +1,5 @@
 use super::super::super::super::super::data::FrameRect;
-use super::super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::metrics::{MUI_X_CHAT_BUBBLE_HEIGHT_FRACTION, MUI_X_CHAT_INSET};
 

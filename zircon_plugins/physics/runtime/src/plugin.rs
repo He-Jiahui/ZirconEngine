@@ -1,24 +1,24 @@
 use std::sync::Arc;
 
 use crate::capability::{
-    PHYSICS_CONSTRAINTS_CAPABILITY, PHYSICS_OVERLAP_CAPABILITY, PHYSICS_RAYCAST_CAPABILITY,
-    PHYSICS_RUNTIME_CAPABILITY, PHYSICS_SHAPE_CAST_CAPABILITY, PHYSICS_SKELETAL_JOINTS_CAPABILITY,
-    PHYSICS_TRIGGER_EVENTS_CAPABILITY, RUNTIME_CAPABILITIES,
+    PHYSICS_CONSTRAINTS_CAPABILITY, PHYSICS_DECLARATION, PHYSICS_OVERLAP_CAPABILITY,
+    PHYSICS_RAYCAST_CAPABILITY, PHYSICS_RUNTIME_CAPABILITY, PHYSICS_SHAPE_CAST_CAPABILITY,
+    PHYSICS_SKELETAL_JOINTS_CAPABILITY, PHYSICS_TRIGGER_EVENTS_CAPABILITY, RUNTIME_CAPABILITIES,
+    RUNTIME_CRATE_NAME,
 };
 use crate::manager::DefaultPhysicsManager;
 use crate::module::module_descriptor_with_manager;
 use crate::runtime_system::{
-    register_runtime_systems, PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET,
+    PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET, register_runtime_systems,
 };
-use crate::PLUGIN_ID;
-use zircon_runtime::core::framework::physics::{PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID};
+use zircon_runtime::core::framework::physics::{PHYSICS_QUERY_INTERFACE_ID, PhysicsQueryInterface};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "physics.runtime";
 pub const PHYSICS_DIST_CRATE_NAME: &str = "zircon_plugin_physics_dist";
@@ -56,9 +56,6 @@ impl RuntimePlugin for PhysicsRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("physics.dist", PHYSICS_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -99,59 +96,41 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
 fn runtime_plugin_descriptor_with_manager(
     manager: Arc<DefaultPhysicsManager>,
 ) -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Physics",
-        RuntimePluginId::Physics,
-        "zircon_plugin_physics_runtime",
-    )
-    .with_module_descriptor(module_descriptor_with_manager(Some(manager)))
-    .with_category("runtime")
-    .with_maturity(PluginMaturity::Experimental)
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::ServerRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(PHYSICS_RUNTIME_CAPABILITY)
-    .with_capability(PHYSICS_RAYCAST_CAPABILITY)
-    .with_capability(PHYSICS_OVERLAP_CAPABILITY)
-    .with_capability(PHYSICS_SHAPE_CAST_CAPABILITY)
-    .with_capability(PHYSICS_TRIGGER_EVENTS_CAPABILITY)
-    .with_capability(PHYSICS_CONSTRAINTS_CAPABILITY)
-    .with_capability(PHYSICS_SKELETAL_JOINTS_CAPABILITY)
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_RUNTIME_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_RAYCAST_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_OVERLAP_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_SHAPE_CAST_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_TRIGGER_EVENTS_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_CONSTRAINTS_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        PHYSICS_SKELETAL_JOINTS_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_provided_interface_id(PHYSICS_QUERY_INTERFACE_ID)
-    .with_system_sets([PHYSICS_SYSTEM_SET])
-    .with_system_anchors([PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM])
-    .build()
+    PHYSICS_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor_with_manager(Some(manager)))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_RUNTIME_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_RAYCAST_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_OVERLAP_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_SHAPE_CAST_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_TRIGGER_EVENTS_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_CONSTRAINTS_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            PHYSICS_SKELETAL_JOINTS_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_provided_interface_id(PHYSICS_QUERY_INTERFACE_ID)
+        .with_system_sets([PHYSICS_SYSTEM_SET])
+        .with_system_anchors([PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM])
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(PhysicsRuntimePlugin);

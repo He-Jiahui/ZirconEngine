@@ -3,7 +3,6 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-STATUS_ID = "editor_ui_11_m5_global_material_surface_zui_view_inventory_guard_passed"
 
 
 def _section(text: str, start: str, end: str) -> str:
@@ -66,37 +65,6 @@ class ZuiDocsGlobalMaterialSurfaceGuardTests(unittest.TestCase):
                 "Current global Material surface docs must describe .zui view inventory:\n"
                 + "\n".join(failures)
             )
-
-    def test_plan_and_review_status_record_global_material_surface_zui_guard(self):
-        plan_text = (
-            REPO_ROOT
-            / "docs/plans/zircon_editor/editor_ui/11-zui-suffix-convergence-and-ui-toml-retirement.md"
-        ).read_text(encoding="utf-8")
-        review_text = (
-            REPO_ROOT / "docs/plans/engine-code-review-findings-2026-06.md"
-        ).read_text(encoding="utf-8")
-
-        required_phrases = [
-            STATUS_ID,
-            "global Material surface guard now collects `.zui` view documents",
-            "41-file global `.zui` view surface inventory",
-        ]
-
-        failures: list[str] = []
-        for document_name, text in {
-            "Plan 11": plan_text,
-            "engine-code-review-findings": review_text,
-        }.items():
-            for phrase in required_phrases:
-                if phrase not in text:
-                    failures.append(f"{document_name}: missing {phrase}")
-
-        if failures:
-            self.fail(
-                "Plan/review status must record the global Material surface .zui guard:\n"
-                + "\n".join(failures)
-            )
-
 
 if __name__ == "__main__":
     unittest.main()

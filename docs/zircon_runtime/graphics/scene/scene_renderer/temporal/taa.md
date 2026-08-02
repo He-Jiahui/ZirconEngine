@@ -52,7 +52,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/taa_resolve.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/taa_resolve_params_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/taa_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
@@ -111,7 +112,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/taa_resolve.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/taa_resolve_params_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/taa_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs

@@ -17,16 +17,14 @@ pub(super) struct HybridGiPrepareScenePrepareResources {
     pub(super) probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
     pub(super) probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
     pub(super) probe_trace_tile_buffer: Option<wgpu::Buffer>,
-    pub(super) probe_trace_tile_readback: Option<wgpu::Buffer>,
     pub(super) probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
-    pub(super) probe_trace_indirect_args_readback: Option<wgpu::Buffer>,
     pub(super) probe_trace_tile_word_count: usize,
     pub(super) probe_trace_tile_record_count: usize,
     pub(super) probe_trace_indirect_arg_word_count: usize,
 }
 
 pub(super) struct HybridGiPrepareExecutionBuffers {
-    pub(super) cache_readback: wgpu::Buffer,
+    pub(super) cache_buffer: wgpu::Buffer,
     pub(super) resident_probe_buffer: wgpu::Buffer,
     pub(super) pending_probe_buffer: wgpu::Buffer,
     pub(super) trace_region_buffer: wgpu::Buffer,
@@ -34,11 +32,7 @@ pub(super) struct HybridGiPrepareExecutionBuffers {
     pub(super) scene_prepare_descriptor_count: usize,
     pub(super) completed_probe_buffer: wgpu::Buffer,
     pub(super) completed_trace_buffer: wgpu::Buffer,
-    pub(super) completed_probe_readback: wgpu::Buffer,
-    pub(super) completed_trace_readback: wgpu::Buffer,
     pub(super) irradiance_buffer: wgpu::Buffer,
-    pub(super) irradiance_readback: wgpu::Buffer,
     pub(super) trace_lighting_buffer: wgpu::Buffer,
-    pub(super) trace_lighting_readback: wgpu::Buffer,
     pub(super) scene_prepare_resources: Option<HybridGiPrepareScenePrepareResources>,
 }

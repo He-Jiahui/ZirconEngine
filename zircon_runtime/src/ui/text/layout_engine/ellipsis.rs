@@ -1,15 +1,16 @@
-use crate::text::layout::{
-    measure_line_width_with_provider, measured_grapheme_widths_with_provider,
-    retained_grapheme_counts, trim_end_ellipsis_trailing_graphemes, EllipsisPlacement, ELLIPSIS,
-};
 use crate::text::SharedTextLayoutSession;
+use crate::text::layout::{
+    ELLIPSIS, EllipsisPlacement, measure_line_width_with_provider,
+    measured_grapheme_widths_with_provider, retained_grapheme_counts,
+    trim_end_ellipsis_trailing_graphemes,
+};
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextRun, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRunKind,
 };
 
-use super::super::adapter::text_style;
-use super::candidate_line::{append_segment, CandidateLine};
+use crate::text::text_style;
+use super::candidate_line::{CandidateLine, append_segment};
 use super::direction::resolve_direction;
 use super::range_mapping::source_subrange;
 use super::wrapping::line_text_fits_with_provider;

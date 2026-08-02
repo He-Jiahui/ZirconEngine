@@ -12,7 +12,7 @@ pub(super) fn hierarchy_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Hierarchy",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::LeftTop)
+    .with_workbench_slot(WorkbenchSlot::LeftTopDrawer)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Hierarchy))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
         "res://ui/editor/host/hierarchy_body.zui",

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from .plugin_validate_distribution_zui_assets import (
@@ -11,6 +11,27 @@ from .plugin_validate_distribution_zui_assets import (
 
 
 PLUGIN_VALIDATE_RETIRED_UI_ASSET_SUFFIXES = (".v2.ui.toml", ".ui.toml")
+
+
+def _portable_distribution_asset_glob(pattern: str) -> str:
+    pattern_path = Path(pattern)
+    if pattern_path.name == "**":
+        # Python 3.12 yields only the directory for a terminal `**`, while
+        # newer versions also yield its contents. The manifest contract is recursive.
+        return str(pattern_path / "*")
+    return pattern
+
+
+def _is_plugin_relative_asset_glob(pattern: str) -> bool:
+    pattern_path = Path(pattern)
+    windows_pattern_path = PureWindowsPath(pattern)
+    return not (
+        pattern_path.is_absolute()
+        or pattern_path.anchor
+        or windows_pattern_path.anchor
+        or ".." in pattern_path.parts
+        or ".." in windows_pattern_path.parts
+    )
 
 
 def plugin_validate_retired_ui_asset_pattern_suffix(pattern: str) -> str | None:
@@ -55,7 +76,7 @@ def plugin_validate_distribution_assets(
             diagnostics.append(f"{item_label} must be trimmed")
             continue
         pattern_path = Path(raw_pattern)
-        if pattern_path.is_absolute() or ".." in pattern_path.parts:
+        if not _is_plugin_relative_asset_glob(raw_pattern):
             diagnostics.append(f"{item_label} must be a plugin-relative glob")
             continue
         if plugin_validate_retired_ui_asset_pattern_suffix(raw_pattern) is not None:
@@ -67,8 +88,12 @@ def plugin_validate_distribution_assets(
         if plugin_root is None or resolved_plugin_root is None:
             continue
         try:
-            matches = sorted(path for path in plugin_root.glob(raw_pattern) if path.is_file())
-        except OSError as error:
+            matches = sorted(
+                path
+                for path in plugin_root.glob(_portable_distribution_asset_glob(raw_pattern))
+                if path.is_file()
+            )
+        except (OSError, ValueError, NotImplementedError) as error:
             diagnostics.append(f"{item_label} could not be matched: {error}")
             continue
         if not matches:

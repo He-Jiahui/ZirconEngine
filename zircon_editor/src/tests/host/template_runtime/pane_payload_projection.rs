@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::diagnostics::{
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
     RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
@@ -8,9 +9,8 @@ use zircon_runtime::core::diagnostics::{
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
 use zircon_runtime::core::framework::render::{RenderCapabilitySummary, RenderStats};
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
@@ -28,23 +28,23 @@ use zircon_runtime_interface::ui::{
 
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
-use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME, module_descriptor};
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, BuildExportPaneViewData, ModulePluginsPaneViewData,
-    PanePayloadBuildContext,
+    BuildExportPaneViewData, ModulePluginsPaneViewData, PanePayloadBuildContext,
+    build_pane_body_presentation,
 };
 use crate::ui::template_runtime::{
+    EditorUiHostRuntime,
     builtin::{
         PANE_CONSOLE_BODY_DOCUMENT_ID, PANE_INSPECTOR_BODY_DOCUMENT_ID,
         PANE_PERFORMANCE_TIMELINE_BODY_DOCUMENT_ID, PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
     },
-    EditorUiHostRuntime,
 };
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, InspectorSnapshot, ProjectOverviewSnapshot,
-    SceneEntry, WelcomePaneSnapshot, WorkbenchSnapshot,
+    SceneEntries, SceneEntry, WelcomePaneSnapshot, WorkbenchSnapshot,
 };
 use crate::ui::workbench::startup::EditorSessionMode;
 use crate::ui::workbench::view::PaneBodySpec;
@@ -102,20 +102,21 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             drawers: BTreeMap::new(),
             floating_windows: Vec::new(),
         },
-        scene_entries: vec![
-            SceneEntry {
-                id: 7,
-                name: "Root".to_string(),
-                depth: 0,
-                selected: true,
-            },
-            SceneEntry {
-                id: 8,
-                name: "Camera".to_string(),
-                depth: 1,
-                selected: false,
-            },
-        ],
+        scene_entries: SceneEntries::from_entries(
+            vec![
+                SceneEntry {
+                    id: 7,
+                    name: "Root".to_string(),
+                    depth: 0,
+                },
+                SceneEntry {
+                    id: 8,
+                    name: "Camera".to_string(),
+                    depth: 1,
+                },
+            ],
+            [7],
+        ),
         inspector: Some(InspectorSnapshot {
             id: 7,
             name: "Root".to_string(),
@@ -124,6 +125,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),
+        console_output: "Console ready".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
@@ -370,6 +372,34 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             .get("payload_status_text"),
         Some(&Value::String("Console ready".to_string()))
     );
+    assert_eq!(
+        console_projection
+            .root
+            .attributes
+            .get("payload_console_info_count"),
+        Some(&Value::Integer(1))
+    );
+    assert_eq!(
+        console_projection
+            .root
+            .attributes
+            .get("payload_console_warning_count"),
+        Some(&Value::Integer(0))
+    );
+    assert_eq!(
+        console_projection
+            .root
+            .attributes
+            .get("payload_console_error_count"),
+        Some(&Value::Integer(0))
+    );
+    assert_eq!(
+        console_projection
+            .root
+            .attributes
+            .get("payload_console_filter"),
+        Some(&Value::String("all".to_string()))
+    );
 
     let inspector = build_pane_body_presentation(&pane_body_spec("editor.inspector"), &context);
     let inspector_projection = runtime.project_pane_body(&inspector).unwrap();
@@ -427,61 +457,73 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             "UI Debug Reflector: 2 nodes, 2 commands, schema v1".to_string()
         ))
     );
-    assert!(diagnostics_projection
-        .root
-        .attributes
-        .get("payload_ui_debug_reflector_export_status")
-        .and_then(Value::as_str)
-        .is_some_and(|text| text.contains("JSON export ready")));
-    assert!(diagnostics_projection
-        .root
-        .attributes
-        .get("payload_ui_debug_reflector_details")
-        .and_then(Value::as_array)
-        .is_some_and(|details| details.iter().any(|detail| {
-            detail
-                .as_str()
-                .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
-        })));
-    assert!(diagnostics_projection
-        .root
-        .attributes
-        .get("payload_ui_debug_reflector_sections")
-        .and_then(Value::as_array)
-        .is_some_and(|sections| sections.iter().any(|line| {
-            line.as_str()
-                .is_some_and(|text| text == "  selected: taffy=1 zircon=1")
-        })));
-    assert!(diagnostics_projection
-        .root
-        .attributes
-        .get("payload_ui_debug_reflector_sections")
-        .and_then(Value::as_array)
-        .is_some_and(|sections| sections
-            .iter()
-            .any(|line| { line.as_str().is_some_and(|text| text == "Canvas Layers:") })));
-    assert!(diagnostics_projection
-        .root
-        .attributes
-        .get("payload_ui_debug_reflector_sections")
-        .and_then(Value::as_array)
-        .is_some_and(|sections| sections.iter().any(|line| {
-            line.as_str()
-                .is_some_and(|text| text == "  parent=1 layer=0 z=1 children=[2]")
-        })));
-    assert!(diagnostics_projection
-        .root
-        .attributes
-        .get("payload_ui_debug_reflector_sections")
-        .and_then(Value::as_array)
-        .is_some_and(|sections| sections.iter().any(|line| {
-            line.as_str().is_some_and(|text| {
-                text.contains("node=2")
-                    && text.contains("family=Overlay")
-                    && text.contains("selected=Zircon")
-                    && text.contains("reason=ZirconOwnedSemantics")
-            })
-        })));
+    assert!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_export_status")
+            .and_then(Value::as_str)
+            .is_some_and(|text| text.contains("JSON export ready"))
+    );
+    assert!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_details")
+            .and_then(Value::as_array)
+            .is_some_and(|details| details.iter().any(|detail| {
+                detail
+                    .as_str()
+                    .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
+            }))
+    );
+    assert!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_sections")
+            .and_then(Value::as_array)
+            .is_some_and(|sections| sections.iter().any(|line| {
+                line.as_str()
+                    .is_some_and(|text| text == "  selected: taffy=1 zircon=1")
+            }))
+    );
+    assert!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_sections")
+            .and_then(Value::as_array)
+            .is_some_and(|sections| sections
+                .iter()
+                .any(|line| { line.as_str().is_some_and(|text| text == "Canvas Layers:") }))
+    );
+    assert!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_sections")
+            .and_then(Value::as_array)
+            .is_some_and(|sections| sections.iter().any(|line| {
+                line.as_str()
+                    .is_some_and(|text| text == "  parent=1 layer=0 z=1 children=[2]")
+            }))
+    );
+    assert!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_sections")
+            .and_then(Value::as_array)
+            .is_some_and(|sections| sections.iter().any(|line| {
+                line.as_str().is_some_and(|text| {
+                    text.contains("node=2")
+                        && text.contains("family=Overlay")
+                        && text.contains("selected=Zircon")
+                        && text.contains("reason=ZirconOwnedSemantics")
+                })
+            }))
+    );
 
     let timeline =
         build_pane_body_presentation(&pane_body_spec("editor.performance_timeline"), &context);
@@ -496,26 +538,30 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             "Profiling active: 1 frame, 1 span, 0 counters".to_string()
         ))
     );
-    assert!(timeline_projection
-        .root
-        .attributes
-        .get("payload_frame_rows")
-        .and_then(Value::as_array)
-        .is_some_and(|rows| rows.iter().any(|row| {
-            row.get("name")
-                .and_then(Value::as_str)
-                .is_some_and(|name| name == "retained_host_tick")
-        })));
-    assert!(timeline_projection
-        .root
-        .attributes
-        .get("payload_hotspot_rows")
-        .and_then(Value::as_array)
-        .is_some_and(|rows| rows.iter().any(|row| {
-            row.get("name")
-                .and_then(Value::as_str)
-                .is_some_and(|name| name == "present_frame")
-        })));
+    assert!(
+        timeline_projection
+            .root
+            .attributes
+            .get("payload_frame_rows")
+            .and_then(Value::as_array)
+            .is_some_and(|rows| rows.iter().any(|row| {
+                row.get("name")
+                    .and_then(Value::as_str)
+                    .is_some_and(|name| name == "retained_host_tick")
+            }))
+    );
+    assert!(
+        timeline_projection
+            .root
+            .attributes
+            .get("payload_hotspot_rows")
+            .and_then(Value::as_array)
+            .is_some_and(|rows| rows.iter().any(|row| {
+                row.get("name")
+                    .and_then(Value::as_str)
+                    .is_some_and(|name| name == "present_frame")
+            }))
+    );
 }
 
 #[test]

@@ -1,8 +1,8 @@
+use crate::scene::World;
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     Changed, Component, Mut, QueryEntityError, QueryState, SystemState, UniqueEntityArray,
 };
-use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);

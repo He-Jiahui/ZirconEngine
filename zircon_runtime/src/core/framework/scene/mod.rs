@@ -1,3 +1,7 @@
+use std::fmt;
+use std::sync::Arc;
+use std::time::Instant;
+
 use crate::core::CoreError;
 
 mod component_type_descriptor;
@@ -13,6 +17,28 @@ mod world_handle;
 
 pub type EntityId = u64;
 pub type NodeId = EntityId;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SceneArtifactTerminal {
+    Succeeded,
+    Failed { code: &'static str },
+    DeadlineBeforeStart,
+    CancelledBeforeStart,
+    Superseded { successor: u64 },
+    Shutdown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SceneArtifactWaitResult {
+    Terminal(SceneArtifactTerminal),
+    ObserverTimedOut,
+}
+
+pub trait SceneArtifactTicket: Send + Sync + fmt::Debug + 'static {
+    fn generation(&self) -> u64;
+    fn terminal(&self) -> Option<SceneArtifactTerminal>;
+    fn wait_until(&self, deadline: Instant) -> SceneArtifactWaitResult;
+}
 
 pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 pub use entity_path::{ComponentPropertyPath, EntityPath, PathParseError};
@@ -35,5 +61,5 @@ pub trait LevelManager: Send + Sync {
         handle: WorldHandle,
         project_root: &str,
         uri: &str,
-    ) -> Result<(), CoreError>;
+    ) -> Result<Arc<dyn SceneArtifactTicket>, CoreError>;
 }

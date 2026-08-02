@@ -150,10 +150,11 @@ fn editor_command_registry_rejects_invalid_menu_paths() {
 #[test]
 fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operations() {
     use crate::core::editor_extension::{
-        ComponentDrawerDescriptor, DrawerDescriptor, EditorExtensionRegistry,
-        EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
+        DrawerDescriptor, EditorExtensionRegistry, EditorMenuItemDescriptor,
+        EditorUiTemplateDescriptor, ViewDescriptor,
     };
     use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let operation =
@@ -190,7 +191,7 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
         )
         .unwrap();
     registry
-        .register_component_drawer(ComponentDrawerDescriptor::new(
+        .register_inspector_customization(InspectorCustomizationDescriptor::new(
             "weather.Component.CloudLayer",
             "asset://weather/editor/cloud_layer.inspector.zui",
             "weather.editor.CloudLayerInspectorController",
@@ -215,15 +216,17 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
         &["editor.extension.weather_authoring".to_string()]
     );
     assert_eq!(
-        registry.component_drawers()[0].component_type(),
+        registry.inspector_customizations()[0].target_type(),
         "weather.Component.CloudLayer"
     );
     assert_eq!(registry.pending_command(&operation_path), Some(&operation));
 
     let duplicate = registry.register_command(operation).unwrap_err();
-    assert!(duplicate
-        .to_string()
-        .contains("editor command weather.cloud_layer.refresh already registered"));
+    assert!(
+        duplicate
+            .to_string()
+            .contains("editor command weather.cloud_layer.refresh already registered")
+    );
 }
 
 #[test]
@@ -485,7 +488,7 @@ fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
     runtime.runtime.refresh_reflection();
 
@@ -560,7 +563,7 @@ fn operation_control_request_lists_registered_operations_for_remote_discovery() 
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register editor extension");
 
     let response = runtime

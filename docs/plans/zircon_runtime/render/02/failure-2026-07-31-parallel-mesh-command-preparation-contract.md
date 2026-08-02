@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
 tests:
   - managed current-source zircon_runtime mesh command tests
-  - serial and TaskPool preparation command-order and cache-stat parity test
+  - render_perf_parallel_prepare_deterministic_sort
   - Render17 PF-M2 current-source runtime validation
 ---
 
@@ -50,4 +50,10 @@ Render02 尚未提供“owner-thread variant/cache transaction + immutable prepa
 
 ## 修复结果与回传
 
-Open state: `待修复`; Render17 的 bounded submission 已可独立继续，但 prepare/queue rayon 与 pass encoder 并行均不能在该契约未返回时声称完成。
+Open state: `实现已落地，待 current-source managed validation`；尚未执行 `failure return`，不声称该 gate 已通过。
+
+- 当前工作树由 owner thread 依 `source_draw_index` 预排序，并在 `prepare_batch_plan` 内完成 variant id 解析、cache lookup 与统计归属；worker 仅消费不可变 `PreparedBatchPlan`，不持有 variant/cache mutex。
+- worker 通过调用方传入的 `TaskPool::install` 并行生成独立 `PreparedBatchChunk`；`IndexedParallelIterator` 的收集顺序和 owner thread 的单点 merge 保持 graph/source 顺序，cache store 与统计也只在 owner thread 提交。
+- 重复 cache key 会在进入 worker 前回退既有串行 owner 路径，避免同帧重复 identity 产生错误的并行 miss/store 事务。
+- `render_perf_parallel_prepare_deterministic_sort` 连续覆盖 generation 1 miss/rebuild 与 generation 2 hit，逐元素比较 serial/TaskPool command signature，并比较完整 cache stats。
+- 待证据：当前源码 focused mesh command tests、原始 reproduction 与 Render17 PF-M2 runtime gate。只有这些 managed Cargo 结果完成后才可改为 `fixed` 并回传来源计划。

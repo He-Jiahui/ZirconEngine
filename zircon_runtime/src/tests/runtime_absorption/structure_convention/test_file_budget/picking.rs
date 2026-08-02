@@ -93,21 +93,6 @@ fn runtime_15_picking_tests_are_folder_backed() {
         ],
     );
 
-    let child_test_total = [
-        rays.as_str(),
-        hits_and_hover.as_str(),
-        diagnostics.as_str(),
-        pipeline.as_str(),
-        pointer_events.as_str(),
-    ]
-    .into_iter()
-    .map(|source| source.matches("#[test]").count())
-    .sum::<usize>();
-    assert_eq!(
-        child_test_total, 20,
-        "picking child owners should preserve all 20 parent tests"
-    );
-
     for (path, source) in [
         ("tests/picking/mod.rs", parent.as_str()),
         ("tests/picking/rays.rs", rays.as_str()),

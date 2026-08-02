@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use woc_protocol::{
     command_descriptor, command_payload_descriptor, talent_option_code,
     talent_option_matches_class_row, talent_spec_code, validate_command_payload,
@@ -5,58 +7,72 @@ use woc_protocol::{
     ArenaAugmentCommandPayload, ArenaFormat, ArenaQueueCommandPayload, BankAction,
     BankSlotCommandPayload, CancelAuraCommandPayload, CardPlayCommandPayload,
     CastAbilityCommandPayload, CastAtCommandPayload, CastSlotCommandPayload,
-    ChangeSkinCommandPayload, Command, CommandKind, CommandPayloadKind,
-    DeleteLoadoutCommandPayload, DelveRiteChoosePayload, DelveRiteIntensity,
-    DiscardItemCommandPayload, DuelRequestCommandPayload, DungeonDifficulty,
-    DungeonDifficultyPayload, DungeonFinderActivitiesPayload,
-    DungeonFinderApplicationResponsePayload, DungeonFinderListingIdPayload,
-    DungeonFinderListingPayload, DungeonFinderListingTag, DungeonFinderRole,
-    DungeonFinderRolesPayload, EntityRef, EquipBagCommandPayload, EquipItemPayload, EquipmentSlot,
-    EventSkinPayload, GroundTargetPoint, GuildEventCreateCommandPayload,
-    GuildEventRemoveCommandPayload, LinkedQuestAcceptancePayload, LockpickAbortCommandPayload,
-    LockpickAction, LockpickActionCommandPayload, LockpickEngageCommandPayload, LootRollChoice,
-    LootRollPayload, MailAction, MailIdCommandPayload, MarketAction, MarketListingIdPayload,
+    ChallengeResponseCommandPayload, ChangeSkinCommandPayload, ChangeWeaponSkinCommandPayload,
+    ChatCommandPayload, Command, CommandKind, CommandPayloadKind, CompanionUpgradeCommandPayload,
+    CraftItemCommandPayload, DeedSetTitleCommandPayload, DeleteLoadoutCommandPayload,
+    DelveBuyCommandPayload, DelveRiteChoosePayload, DelveRiteIntensity, DiscardItemCommandPayload,
+    DuelRequestCommandPayload, DungeonDifficulty, DungeonDifficultyPayload,
+    DungeonFinderActivitiesPayload, DungeonFinderApplicationResponsePayload,
+    DungeonFinderListingIdPayload, DungeonFinderListingPayload, DungeonFinderListingTag,
+    DungeonFinderRole, DungeonFinderRolesPayload, EmoteCommandPayload, EmoteId,
+    EnterDelveCommandPayload, EnterDungeonCommandPayload, EntityRef, EquipBagCommandPayload,
+    EquipItemPayload, EquipmentSlot, EventSkinPayload, GroundTargetPoint,
+    GuildEventCreateCommandPayload, GuildEventRemoveCommandPayload, HarvestCorpseCommandPayload,
+    HarvestNodeCommandPayload, HeroicBuyCommandPayload, InventoryMovePayload,
+    LinkedQuestAcceptancePayload, LockpickAbortCommandPayload, LockpickAction,
+    LockpickActionCommandPayload, LockpickEngageCommandPayload, LootRollChoice, LootRollPayload,
+    MailAction, MailIdCommandPayload, MailSendAttachment, MailSendCommandPayload, MarketAction,
+    MarketListCommandPayload, MarketListingIdPayload, MarketSearchCommandPayload,
     MasterLootAssignmentPayload, MasterLootThreshold, PartyLootMasterCommandPayload,
     PartyMarkerClearCommandPayload, PartyMarkerCommandPayload, PartyMoveRaidCommandPayload,
     PetAutoTauntCommandPayload, PetAutoWaterJetCommandPayload, PetFeedCommandPayload,
     PetModeCommandPayload, PetRenameCommandPayload, ProtocolError, ReadyCheckRespondCommandPayload,
-    ReleaseEmpoweredCommandPayload, ResurrectRespondCommandPayload, SelectTalentRowCommandPayload,
-    SetSpecCommandPayload, SkinCatalog, SocialNameCommandPayload, SwitchLoadoutCommandPayload,
-    TargetCommandPayload, TradeRequestCommandPayload, TurnInQuestCommandPayload,
-    UnequipBagCommandPayload, UnequipItemPayload, UseItemCommandPayload, ValeCupBetCommandPayload,
+    ReleaseEmpoweredCommandPayload, ResurrectRespondCommandPayload, SaveLoadoutCommandPayload,
+    SelectTalentRowCommandPayload, SetSpecCommandPayload, SkinCatalog, SocialNameCommandPayload,
+    SwitchLoadoutCommandPayload, TargetCommandPayload, TelemetryPayload, TownFocusAllocationEntry,
+    TownFocusCommandPayload, TradeOfferCommandPayload, TradeOfferItem, TradeRequestCommandPayload,
+    TurnInQuestCommandPayload, UnequipBagCommandPayload, UnequipItemPayload,
+    UnequipMechChromaCommandPayload, UseItemCommandPayload, ValeCupBetCommandPayload,
     ValeCupBracket, ValeCupNation, ValeCupPracticeCommandPayload, ValeCupQueueCommandPayload,
-    ValeCupRole, ValeCupRoleCommandPayload, ValeCupSide, WorldObjectAction, WorldObjectIdPayload,
-    ABANDON_QUEST_COMMAND_ID, ACCEPT_QUEST_COMMAND_ID, APPLY_TALENTS_COMMAND_ID,
-    ARENA_AUGMENT_COMMAND_ID, ARENA_QUEUE_COMMAND_ID, ATTACK_COMMAND_ID, AUTO_LOOT_COMMAND_ID,
-    BANK_DEPOSIT_COMMAND_ID, BANK_WITHDRAW_COMMAND_ID, BLOCK_ADD_COMMAND_ID,
+    ValeCupRole, ValeCupRoleCommandPayload, ValeCupSide, WeaponSkinChange, WorldObjectAction,
+    WorldObjectIdPayload, ABANDON_QUEST_COMMAND_ID, ACCEPT_QUEST_COMMAND_ID,
+    APPLY_TALENTS_COMMAND_ID, ARENA_AUGMENT_COMMAND_ID, ARENA_QUEUE_COMMAND_ID, ATTACK_COMMAND_ID,
+    AUTO_LOOT_COMMAND_ID, BANK_DEPOSIT_COMMAND_ID, BANK_WITHDRAW_COMMAND_ID, BLOCK_ADD_COMMAND_ID,
     BLOCK_REMOVE_COMMAND_ID, CANCEL_AURA_COMMAND_ID, CARD_FORFEIT_COMMAND_ID, CARD_PLAY_COMMAND_ID,
     CARD_QUEUE_JOIN_COMMAND_ID, CARD_QUEUE_LEAVE_COMMAND_ID, CAST_AT_COMMAND_ID, CAST_COMMAND_ID,
-    CAST_SLOT_COMMAND_ID, CHANGE_SKIN_COMMAND_ID, CLAIM_EVENT_SKIN_COMMAND_ID,
-    COLLECT_DELVE_CHEST_LOOT_COMMAND_ID, COMMAND_PAYLOAD_CATALOG, DELETE_LOADOUT_COMMAND_ID,
-    DELVE_INTERACT_COMMAND_ID, DELVE_RITE_CHOOSE_COMMAND_ID, DISCARD_ITEM_COMMAND_ID,
-    DUEL_REQUEST_COMMAND_ID, DUNGEON_FINDER_APPLICATION_RESPONSE_COMMAND_ID,
-    DUNGEON_FINDER_APPLY_COMMAND_ID, DUNGEON_FINDER_LIST_CREATE_COMMAND_ID,
-    DUNGEON_FINDER_PROPOSAL_COMMAND_ID, DUNGEON_FINDER_QUEUE_COMMAND_ID,
-    DUNGEON_FINDER_ROLES_COMMAND_ID, EQUIP_BAG_COMMAND_ID, EQUIP_ITEM_COMMAND_ID,
+    CAST_SLOT_COMMAND_ID, CHALLENGE_RESPONSE_COMMAND_ID, CHANGE_SKIN_COMMAND_ID,
+    CHANGE_WEAPON_SKIN_COMMAND_ID, CHAT_COMMAND_ID, CLAIM_EVENT_SKIN_COMMAND_ID,
+    COLLECT_DELVE_CHEST_LOOT_COMMAND_ID, COMMAND_PAYLOAD_CATALOG, COMPANION_UPGRADE_COMMAND_ID,
+    CRAFT_ITEM_COMMAND_ID, DEED_SET_TITLE_COMMAND_ID, DELETE_LOADOUT_COMMAND_ID,
+    DELVE_BUY_COMMAND_ID, DELVE_INTERACT_COMMAND_ID, DELVE_RITE_CHOOSE_COMMAND_ID,
+    DISCARD_ITEM_COMMAND_ID, DUEL_REQUEST_COMMAND_ID,
+    DUNGEON_FINDER_APPLICATION_RESPONSE_COMMAND_ID, DUNGEON_FINDER_APPLY_COMMAND_ID,
+    DUNGEON_FINDER_LIST_CREATE_COMMAND_ID, DUNGEON_FINDER_PROPOSAL_COMMAND_ID,
+    DUNGEON_FINDER_QUEUE_COMMAND_ID, DUNGEON_FINDER_ROLES_COMMAND_ID, EMOTE_COMMAND_ID,
+    ENTER_DELVE_COMMAND_ID, ENTER_DUNGEON_COMMAND_ID, EQUIP_BAG_COMMAND_ID, EQUIP_ITEM_COMMAND_ID,
     FRIEND_ADD_COMMAND_ID, FRIEND_REMOVE_COMMAND_ID, GUILD_CREATE_COMMAND_ID,
     GUILD_DEMOTE_COMMAND_ID, GUILD_EVENT_CREATE_COMMAND_ID, GUILD_EVENT_REMOVE_COMMAND_ID,
     GUILD_INVITE_COMMAND_ID, GUILD_KICK_COMMAND_ID, GUILD_PROMOTE_COMMAND_ID,
-    GUILD_TRANSFER_COMMAND_ID, IGNORE_ADD_COMMAND_ID, IGNORE_REMOVE_COMMAND_ID,
-    INTERACT_COMMAND_ID, LINKED_QUEST_ACCEPT_COMMAND_ID, LOCKPICK_ABORT_COMMAND_ID,
+    GUILD_TRANSFER_COMMAND_ID, HARVEST_CORPSE_COMMAND_ID, HARVEST_NODE_COMMAND_ID,
+    HEROIC_BUY_COMMAND_ID, IGNORE_ADD_COMMAND_ID, IGNORE_REMOVE_COMMAND_ID, INTERACT_COMMAND_ID,
+    INVENTORY_MOVE_COMMAND_ID, LINKED_QUEST_ACCEPT_COMMAND_ID, LOCKPICK_ABORT_COMMAND_ID,
     LOCKPICK_ACTION_COMMAND_ID, LOCKPICK_ENGAGE_COMMAND_ID, LOOT_COMMAND_ID, LOOT_ROLL_COMMAND_ID,
-    MAIL_DELETE_COMMAND_ID, MAIL_READ_COMMAND_ID, MAIL_TAKE_COMMAND_ID, MARKET_BUY_COMMAND_ID,
-    MARKET_CANCEL_COMMAND_ID, MASTER_ASSIGN_COMMAND_ID, PARTY_CLEAR_MARKER_COMMAND_ID,
-    PARTY_INVITE_COMMAND_ID, PARTY_KICK_COMMAND_ID, PARTY_MOVE_RAID_COMMAND_ID,
-    PARTY_PROMOTE_COMMAND_ID, PARTY_READY_RESPOND_COMMAND_ID, PARTY_SET_LOOT_MASTER_COMMAND_ID,
-    PARTY_SET_MARKER_COMMAND_ID, PET_ABANDON_COMMAND_ID, PET_ATTACK_COMMAND_ID,
-    PET_AUTO_TAUNT_COMMAND_ID, PET_AUTO_WATER_JET_COMMAND_ID, PET_FEED_COMMAND_ID,
-    PET_HEAL_COMMAND_ID, PET_MODE_COMMAND_ID, PET_RENAME_COMMAND_ID, PET_REVIVE_COMMAND_ID,
-    PET_TAUNT_COMMAND_ID, PET_WATER_JET_COMMAND_ID, PICKUP_COMMAND_ID,
-    RELEASE_EMPOWERED_COMMAND_ID, RESURRECT_RESPOND_COMMAND_ID, SELECT_TALENT_ROW_COMMAND_ID,
-    SET_DUNGEON_DIFFICULTY_COMMAND_ID, SET_SPEC_COMMAND_ID, STOP_ATTACK_COMMAND_ID,
+    MAIL_DELETE_COMMAND_ID, MAIL_READ_COMMAND_ID, MAIL_SEND_COMMAND_ID, MAIL_TAKE_COMMAND_ID,
+    MARKET_BUY_COMMAND_ID, MARKET_CANCEL_COMMAND_ID, MARKET_LIST_COMMAND_ID,
+    MARKET_SEARCH_COMMAND_ID, MASTER_ASSIGN_COMMAND_ID, MAX_LOADOUT_ACTION_BAR_SLOTS,
+    MAX_LOADOUT_NAME_UTF16_CODE_UNITS, PARTY_CLEAR_MARKER_COMMAND_ID, PARTY_INVITE_COMMAND_ID,
+    PARTY_KICK_COMMAND_ID, PARTY_MOVE_RAID_COMMAND_ID, PARTY_PROMOTE_COMMAND_ID,
+    PARTY_READY_RESPOND_COMMAND_ID, PARTY_SET_LOOT_MASTER_COMMAND_ID, PARTY_SET_MARKER_COMMAND_ID,
+    PET_ABANDON_COMMAND_ID, PET_ATTACK_COMMAND_ID, PET_AUTO_TAUNT_COMMAND_ID,
+    PET_AUTO_WATER_JET_COMMAND_ID, PET_FEED_COMMAND_ID, PET_HEAL_COMMAND_ID, PET_MODE_COMMAND_ID,
+    PET_RENAME_COMMAND_ID, PET_REVIVE_COMMAND_ID, PET_TAUNT_COMMAND_ID, PET_WATER_JET_COMMAND_ID,
+    PICKUP_COMMAND_ID, RELEASE_EMPOWERED_COMMAND_ID, RESURRECT_RESPOND_COMMAND_ID,
+    SAVE_LOADOUT_COMMAND_ID, SELECT_TALENT_ROW_COMMAND_ID, SET_DUNGEON_DIFFICULTY_COMMAND_ID,
+    SET_SPEC_COMMAND_ID, SET_TOWN_FOCUS_COMMAND_ID, STOP_ATTACK_COMMAND_ID,
     SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID, TARGET_NEAREST_FRIENDLY_COMMAND_ID,
-    TRADE_REQUEST_COMMAND_ID, TURN_IN_QUEST_COMMAND_ID, UNEQUIP_BAG_COMMAND_ID,
-    UNEQUIP_ITEM_COMMAND_ID, USE_ITEM_COMMAND_ID, VALE_CUP_BET_COMMAND_ID,
+    TELEMETRY_COMMAND_ID, TRADE_OFFER_COMMAND_ID, TRADE_REQUEST_COMMAND_ID,
+    TURN_IN_QUEST_COMMAND_ID, UNEQUIP_BAG_COMMAND_ID, UNEQUIP_ITEM_COMMAND_ID,
+    UNEQUIP_MECH_CHROMA_COMMAND_ID, USE_ITEM_COMMAND_ID, VALE_CUP_BET_COMMAND_ID,
     VALE_CUP_PRACTICE_COMMAND_ID, VALE_CUP_QUEUE_COMMAND_ID, VALE_CUP_ROLE_COMMAND_ID,
     WEAPON_STOW_COMMAND_ID,
 };
@@ -68,8 +84,19 @@ pub enum ClientInputDevice {
     Touch,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClientTalentAllocation {
+    pub spec_id: Option<String>,
+    pub row_option_ids: [Option<String>; 6],
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ClientGameplayIntent {
+    SendChallengeResponse {
+        nonce: String,
+        response: String,
+        signature: String,
+    },
     CastAbilityAt {
         ability_id: String,
         aim: GroundTargetPoint,
@@ -84,6 +111,16 @@ pub enum ClientGameplayIntent {
     ChangeSkin {
         catalog: SkinCatalog,
         skin_index: u8,
+    },
+    UnequipMechChroma {
+        chroma_id: String,
+    },
+    ChangeWeaponSkin {
+        change: WeaponSkinChange,
+    },
+    HarvestCorpse {
+        target_id: u64,
+        components: Vec<String>,
     },
     ClaimEventSkin {
         skin: f64,
@@ -199,11 +236,51 @@ pub enum ClientGameplayIntent {
         item_id: String,
         slot: Option<EquipmentSlot>,
     },
+    MoveInventoryItem {
+        from: i32,
+        to: i32,
+    },
+    PlayEmote {
+        emote: EmoteId,
+    },
     UnequipItem {
         slot: EquipmentSlot,
     },
+    ReportTelemetry {
+        kind: String,
+        data: BTreeMap<String, f64>,
+    },
     UseItem {
         item_id: String,
+    },
+    HarvestNode {
+        node_id: String,
+    },
+    CraftItem {
+        recipe_id: String,
+    },
+    BuyHeroicVendorItem {
+        item_id: String,
+    },
+    BuyDelveShopItem {
+        delve_id: String,
+        item_id: String,
+    },
+    EnterDelve {
+        delve_id: String,
+        tier_id: String,
+    },
+    UpgradeDelveCompanion {
+        companion_id: String,
+    },
+    Chat {
+        text: String,
+    },
+    SetActiveDeedTitle {
+        deed_id: Option<String>,
+    },
+    SetTownFocus {
+        allocation: Vec<TownFocusAllocationEntry>,
     },
     DiscardItem {
         item_id: String,
@@ -241,6 +318,12 @@ pub enum ClientGameplayIntent {
     SetTalentSpec {
         player_class_id: String,
         spec_id: Option<String>,
+    },
+    SaveTalentLoadout {
+        name: String,
+        action_bar: Vec<Option<String>>,
+        player_class_id: String,
+        allocation: Option<ClientTalentAllocation>,
     },
     SwitchTalentLoadout {
         index: u32,
@@ -306,6 +389,10 @@ pub enum ClientGameplayIntent {
     RequestTrade {
         target_id: f64,
     },
+    SetTradeOffer {
+        items: Vec<TradeOfferItem>,
+        copper: f64,
+    },
     AcceptTrade,
     ConfirmTrade,
     CancelTrade,
@@ -335,6 +422,13 @@ pub enum ClientGameplayIntent {
     },
     MarkMailRead {
         mail_id: f64,
+    },
+    SendMail {
+        to: String,
+        subject: String,
+        body: String,
+        copper: f64,
+        items: Vec<MailSendAttachment>,
     },
     DepositBank {
         slot: f64,
@@ -389,8 +483,23 @@ pub enum ClientGameplayIntent {
     },
     SellAllJunk,
     CollectMarketProceeds,
+    EnterDungeon {
+        dungeon_id: String,
+    },
     LeaveDungeon,
     LeaveDelve,
+    SearchMarket {
+        search: String,
+        item_type: String,
+        subtype: String,
+        rarity: String,
+        page: f64,
+    },
+    ListMarketItem {
+        item_id: String,
+        count: f64,
+        price: f64,
+    },
     BuyMarketListing {
         listing_id: f64,
     },
@@ -481,6 +590,18 @@ impl ClientCommandMapper {
 
 fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientInputMappingError> {
     match intent {
+        ClientGameplayIntent::SendChallengeResponse {
+            nonce,
+            response,
+            signature,
+        } => ChallengeResponseCommandPayload {
+            nonce,
+            response,
+            signature,
+        }
+        .encode()
+        .map(|payload| (CHALLENGE_RESPONSE_COMMAND_ID, payload))
+        .map_err(ClientInputMappingError::Protocol),
         ClientGameplayIntent::CastAbilityAt { ability_id, aim } => {
             CastAtCommandPayload { ability_id, aim }
                 .encode()
@@ -511,6 +632,38 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
         .encode()
         .map(|payload| (CHANGE_SKIN_COMMAND_ID, payload.to_vec()))
         .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::UnequipMechChroma { chroma_id } => {
+            UnequipMechChromaCommandPayload { chroma_id }
+                .encode()
+                .map(|payload| (UNEQUIP_MECH_CHROMA_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::ChangeWeaponSkin { change } => {
+            ChangeWeaponSkinCommandPayload { change }
+                .encode()
+                .map(|payload| (CHANGE_WEAPON_SKIN_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::HarvestCorpse {
+            target_id,
+            components,
+        } => {
+            let component_codes = if components.len() >= 3 {
+                vec![0, 0, 0]
+            } else {
+                components
+                    .iter()
+                    .map(|component| woc_protocol::corpse_harvest_component_code(component))
+                    .collect()
+            };
+            HarvestCorpseCommandPayload {
+                target_id,
+                component_codes,
+            }
+            .encode()
+            .map(|payload| (HARVEST_CORPSE_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol)
+        }
         ClientGameplayIntent::ClaimEventSkin { skin } => EventSkinPayload { skin }
             .encode()
             .map(|payload| (CLAIM_EVENT_SKIN_COMMAND_ID, payload.to_vec()))
@@ -667,13 +820,71 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
             .encode()
             .map(|payload| (EQUIP_ITEM_COMMAND_ID, payload))
             .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::MoveInventoryItem { from, to } => Ok((
+            INVENTORY_MOVE_COMMAND_ID,
+            InventoryMovePayload { from, to }.encode().to_vec(),
+        )),
+        ClientGameplayIntent::PlayEmote { emote } => Ok((
+            EMOTE_COMMAND_ID,
+            EmoteCommandPayload { emote }.encode().to_vec(),
+        )),
         ClientGameplayIntent::UnequipItem { slot } => UnequipItemPayload { slot }
             .encode()
             .map(|payload| (UNEQUIP_ITEM_COMMAND_ID, payload.to_vec()))
             .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::ReportTelemetry { kind, data } => TelemetryPayload { kind, data }
+            .encode()
+            .map(|payload| (TELEMETRY_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol),
         ClientGameplayIntent::UseItem { item_id } => UseItemCommandPayload { item_id }
             .encode()
             .map(|payload| (USE_ITEM_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::HarvestNode { node_id } => HarvestNodeCommandPayload { node_id }
+            .encode()
+            .map(|payload| (HARVEST_NODE_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::CraftItem { recipe_id } => CraftItemCommandPayload { recipe_id }
+            .encode()
+            .map(|payload| (CRAFT_ITEM_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::BuyHeroicVendorItem { item_id } => {
+            HeroicBuyCommandPayload { item_id }
+                .encode()
+                .map(|payload| (HEROIC_BUY_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::BuyDelveShopItem { delve_id, item_id } => {
+            DelveBuyCommandPayload { delve_id, item_id }
+                .encode()
+                .map(|payload| (DELVE_BUY_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::EnterDelve { delve_id, tier_id } => {
+            EnterDelveCommandPayload { delve_id, tier_id }
+                .encode()
+                .map(|payload| (ENTER_DELVE_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::UpgradeDelveCompanion { companion_id } => {
+            CompanionUpgradeCommandPayload { companion_id }
+                .encode()
+                .map(|payload| (COMPANION_UPGRADE_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::Chat { text } => ChatCommandPayload { text }
+            .encode()
+            .map(|payload| (CHAT_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::SetActiveDeedTitle { deed_id } => {
+            DeedSetTitleCommandPayload { deed_id }
+                .encode()
+                .map(|payload| (DEED_SET_TITLE_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
+        ClientGameplayIntent::SetTownFocus { allocation } => TownFocusCommandPayload { allocation }
+            .encode()
+            .map(|payload| (SET_TOWN_FOCUS_COMMAND_ID, payload))
             .map_err(ClientInputMappingError::Protocol),
         ClientGameplayIntent::DiscardItem { item_id, count } => {
             DiscardItemCommandPayload { item_id, count }
@@ -691,6 +902,27 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
             UNEQUIP_BAG_COMMAND_ID,
             UnequipBagCommandPayload { socket }.encode().to_vec(),
         )),
+        ClientGameplayIntent::SaveTalentLoadout {
+            name,
+            action_bar,
+            player_class_id,
+            allocation,
+        } => {
+            let allocation = allocation
+                .map(|allocation| encode_talent_allocation(&player_class_id, allocation))
+                .transpose()?;
+            SaveLoadoutCommandPayload {
+                name: truncate_utf16_code_units(name, MAX_LOADOUT_NAME_UTF16_CODE_UNITS),
+                allocation,
+                action_bar: action_bar
+                    .into_iter()
+                    .take(MAX_LOADOUT_ACTION_BAR_SLOTS)
+                    .collect(),
+            }
+            .encode()
+            .map(|payload| (SAVE_LOADOUT_COMMAND_ID, payload))
+            .map_err(ClientInputMappingError::Protocol)
+        }
         ClientGameplayIntent::SwitchTalentLoadout { index } => {
             SwitchLoadoutCommandPayload { index }
                 .encode()
@@ -799,6 +1031,12 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
                 .map(|payload| (TRADE_REQUEST_COMMAND_ID, payload.to_vec()))
                 .map_err(ClientInputMappingError::Protocol)
         }
+        ClientGameplayIntent::SetTradeOffer { items, copper } => {
+            TradeOfferCommandPayload { items, copper }
+                .encode()
+                .map(|payload| (TRADE_OFFER_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
         ClientGameplayIntent::AcceptTrade => empty_client_command("trade_accept"),
         ClientGameplayIntent::ConfirmTrade => empty_client_command("trade_confirm"),
         ClientGameplayIntent::CancelTrade => empty_client_command("trade_cancel"),
@@ -846,6 +1084,22 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
             .encode(MailAction::MarkRead)
             .map(|payload| (MAIL_READ_COMMAND_ID, payload.to_vec()))
             .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::SendMail {
+            to,
+            subject,
+            body,
+            copper,
+            items,
+        } => MailSendCommandPayload {
+            to,
+            subject,
+            body,
+            copper,
+            items,
+        }
+        .encode()
+        .map(|payload| (MAIL_SEND_COMMAND_ID, payload))
+        .map_err(ClientInputMappingError::Protocol),
         ClientGameplayIntent::DepositBank { slot, count } => BankSlotCommandPayload { slot, count }
             .encode(BankAction::Deposit)
             .map(|payload| (BANK_DEPOSIT_COMMAND_ID, payload))
@@ -939,8 +1193,42 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
         }
         ClientGameplayIntent::SellAllJunk => empty_client_command("sell_all_junk"),
         ClientGameplayIntent::CollectMarketProceeds => empty_client_command("market_collect"),
+        ClientGameplayIntent::EnterDungeon { dungeon_id } => {
+            EnterDungeonCommandPayload { dungeon_id }
+                .encode()
+                .map(|payload| (ENTER_DUNGEON_COMMAND_ID, payload))
+                .map_err(ClientInputMappingError::Protocol)
+        }
         ClientGameplayIntent::LeaveDungeon => empty_client_command("leave_dungeon"),
         ClientGameplayIntent::LeaveDelve => empty_client_command("leave_delve"),
+        ClientGameplayIntent::SearchMarket {
+            search,
+            item_type,
+            subtype,
+            rarity,
+            page,
+        } => MarketSearchCommandPayload {
+            search,
+            item_type,
+            subtype,
+            rarity,
+            page,
+        }
+        .encode()
+        .map(|payload| (MARKET_SEARCH_COMMAND_ID, payload))
+        .map_err(ClientInputMappingError::Protocol),
+        ClientGameplayIntent::ListMarketItem {
+            item_id,
+            count,
+            price,
+        } => MarketListCommandPayload {
+            item_id,
+            count,
+            price,
+        }
+        .encode()
+        .map(|payload| (MARKET_LIST_COMMAND_ID, payload))
+        .map_err(ClientInputMappingError::Protocol),
         ClientGameplayIntent::BuyMarketListing { listing_id } => {
             MarketListingIdPayload { listing_id }
                 .encode(MarketAction::Buy)
@@ -986,42 +1274,17 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
             spec_id,
             row_option_ids,
         } => {
-            let spec_code = match spec_id {
-                None => 0,
-                Some(spec_id) => talent_spec_code(&player_class_id, &spec_id).ok_or_else(|| {
-                    ClientInputMappingError::InvalidTalentSpecId {
-                        player_class_id: player_class_id.clone(),
-                        spec_id,
-                    }
-                })?,
-            };
-            let row_levels = [5, 8, 11, 14, 17, 20];
-            let mut row_option_codes = [0; 6];
-            for (index, option_id) in row_option_ids.into_iter().enumerate() {
-                let Some(option_id) = option_id else {
-                    continue;
-                };
-                let option_code = talent_option_code(&option_id).ok_or_else(|| {
-                    ClientInputMappingError::InvalidTalentOptionId {
-                        option_id: option_id.clone(),
-                    }
-                })?;
-                if !talent_option_matches_class_row(
-                    &player_class_id,
-                    row_levels[index],
-                    option_code,
-                ) {
-                    return Err(ClientInputMappingError::InvalidTalentOptionId { option_id });
-                }
-                row_option_codes[index] = option_code;
-            }
-            ApplyTalentsCommandPayload {
-                spec_code,
-                row_option_codes,
-            }
-            .encode()
-            .map(|payload| (APPLY_TALENTS_COMMAND_ID, payload.to_vec()))
-            .map_err(ClientInputMappingError::Protocol)
+            let allocation = encode_talent_allocation(
+                &player_class_id,
+                ClientTalentAllocation {
+                    spec_id,
+                    row_option_ids,
+                },
+            )?;
+            allocation
+                .encode()
+                .map(|payload| (APPLY_TALENTS_COMMAND_ID, payload.to_vec()))
+                .map_err(ClientInputMappingError::Protocol)
         }
         ClientGameplayIntent::Prestige => empty_client_command("prestige"),
         ClientGameplayIntent::Respec => empty_client_command("respec"),
@@ -1055,6 +1318,58 @@ fn encode_intent(intent: ClientGameplayIntent) -> Result<(u16, Vec<u8>), ClientI
                 .map_err(ClientInputMappingError::Protocol)
         }
     }
+}
+
+fn encode_talent_allocation(
+    player_class_id: &str,
+    allocation: ClientTalentAllocation,
+) -> Result<ApplyTalentsCommandPayload, ClientInputMappingError> {
+    let spec_code = match allocation.spec_id {
+        None => 0,
+        Some(spec_id) => talent_spec_code(player_class_id, &spec_id).ok_or_else(|| {
+            ClientInputMappingError::InvalidTalentSpecId {
+                player_class_id: player_class_id.to_owned(),
+                spec_id,
+            }
+        })?,
+    };
+    let row_levels = [5, 8, 11, 14, 17, 20];
+    let mut row_option_codes = [0; 6];
+    for (index, option_id) in allocation.row_option_ids.into_iter().enumerate() {
+        let Some(option_id) = option_id else {
+            continue;
+        };
+        let option_code = talent_option_code(&option_id).ok_or_else(|| {
+            ClientInputMappingError::InvalidTalentOptionId {
+                option_id: option_id.clone(),
+            }
+        })?;
+        if !talent_option_matches_class_row(player_class_id, row_levels[index], option_code) {
+            return Err(ClientInputMappingError::InvalidTalentOptionId { option_id });
+        }
+        row_option_codes[index] = option_code;
+    }
+    Ok(ApplyTalentsCommandPayload {
+        spec_code,
+        row_option_codes,
+    })
+}
+
+fn truncate_utf16_code_units(mut value: String, maximum: usize) -> String {
+    let mut code_units = 0;
+    let mut byte_boundary = 0;
+    for (byte_index, character) in value.char_indices() {
+        let next_code_units = code_units + character.len_utf16();
+        if next_code_units > maximum {
+            break;
+        }
+        code_units = next_code_units;
+        byte_boundary = byte_index + character.len_utf8();
+    }
+    if byte_boundary < value.len() {
+        value.truncate(byte_boundary);
+    }
+    value
 }
 
 fn target_party_command(

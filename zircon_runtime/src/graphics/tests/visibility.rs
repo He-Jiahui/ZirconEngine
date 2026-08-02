@@ -1,5 +1,7 @@
 use crate::core::framework::render::{
-    RenderLayerSet, RenderVirtualGeometryCluster, RenderVirtualGeometryPage,
+    render_mesh_stable_instance_key, RenderLayerSet, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    VisibilityRenderableInput,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -101,6 +103,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
                 model_id: ResourceId::from_stable_label("res://models/statue.obj"),
                 mobility: Mobility::Dynamic,
             },
+            stable_instance_keys: vec![stable_key(statue)],
             entities: vec![statue],
         },
         VisibilityBatch {
@@ -110,6 +113,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
                 model_id: ResourceId::from_stable_label("res://models/tree.obj"),
                 mobility: Mobility::Static,
             },
+            stable_instance_keys: vec![stable_key(tree)],
             entities: vec![tree],
         },
     ];
@@ -118,7 +122,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
     assert_eq!(context.batches, expected_batches);
     let expected_visible_instances = expected_batches
         .iter()
-        .flat_map(|batch| batch.entities.iter().copied())
+        .flat_map(|batch| batch.stable_instance_keys.iter().copied())
         .collect::<Vec<_>>();
     let expected_draw_commands = draw_commands_for_batches(&expected_batches);
 
@@ -161,7 +165,7 @@ fn visibility_context_filters_visible_batches_through_camera_frustum() {
         context.main_view_visible_batches(),
         vec![crate_batch(vec![visible])]
     );
-    assert_eq!(context.visible_instances, vec![visible]);
+    assert_eq!(context.visible_instances, vec![stable_key(visible)]);
     assert_eq!(
         context.draw_commands,
         vec![draw_command(crate_batch_key(), 0, 1)]
@@ -196,24 +200,34 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
         VisibilityBvhUpdateStrategy::FullRebuild
     );
     assert_eq!(
-        context.bvh_update_plan.inserted_entities,
-        vec![crate_entity, tree_entity]
+        context.bvh_update_plan.inserted_stable_instance_keys,
+        vec![stable_key(crate_entity), stable_key(tree_entity)]
     );
-    assert!(context.bvh_update_plan.updated_entities.is_empty());
-    assert!(context.bvh_update_plan.removed_entities.is_empty());
+    assert!(
+        context
+            .bvh_update_plan
+            .updated_stable_instance_keys
+            .is_empty()
+    );
+    assert!(
+        context
+            .bvh_update_plan
+            .removed_stable_instance_keys
+            .is_empty()
+    );
     assert_eq!(context.bvh_instances.len(), 2);
     assert_eq!(context.history_snapshot.instances.len(), 2);
     assert_eq!(
-        context.instance_upload_plan.static_instance_entities,
-        vec![tree_entity]
+        context.instance_upload_plan.static_instance_keys,
+        vec![stable_key(tree_entity)]
     );
     assert_eq!(
-        context.instance_upload_plan.dynamic_instance_entities,
-        vec![crate_entity]
+        context.instance_upload_plan.dynamic_instance_keys,
+        vec![stable_key(crate_entity)]
     );
     assert_eq!(
-        context.instance_upload_plan.dirty_dynamic_entities,
-        vec![crate_entity]
+        context.instance_upload_plan.dirty_dynamic_instance_keys,
+        vec![stable_key(crate_entity)]
     );
 }
 
@@ -253,20 +267,29 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
         context.bvh_update_plan.strategy,
         VisibilityBvhUpdateStrategy::Incremental
     );
-    assert_eq!(context.bvh_update_plan.inserted_entities, vec![inserted]);
-    assert_eq!(context.bvh_update_plan.updated_entities, vec![moving]);
-    assert_eq!(context.bvh_update_plan.removed_entities, vec![removed]);
     assert_eq!(
-        context.instance_upload_plan.static_instance_entities,
+        context.bvh_update_plan.inserted_stable_instance_keys,
+        vec![stable_key(inserted)]
+    );
+    assert_eq!(
+        context.bvh_update_plan.updated_stable_instance_keys,
+        vec![stable_key(moving)]
+    );
+    assert_eq!(
+        context.bvh_update_plan.removed_stable_instance_keys,
+        vec![stable_key(removed)]
+    );
+    assert_eq!(
+        context.instance_upload_plan.static_instance_keys,
         Vec::<u64>::new()
     );
     assert_eq!(
-        context.instance_upload_plan.dynamic_instance_entities,
-        vec![moving, inserted]
+        context.instance_upload_plan.dynamic_instance_keys,
+        vec![stable_key(moving), stable_key(inserted)]
     );
     assert_eq!(
-        context.instance_upload_plan.dirty_dynamic_entities,
-        vec![moving, inserted]
+        context.instance_upload_plan.dirty_dynamic_instance_keys,
+        vec![stable_key(moving), stable_key(inserted)]
     );
 }
 
@@ -349,6 +372,7 @@ mod virtual_geometry_priority;
 fn crate_batch(entities: Vec<u64>) -> VisibilityBatch {
     VisibilityBatch {
         key: crate_batch_key(),
+        stable_instance_keys: entities.iter().copied().map(stable_key).collect(),
         entities,
     }
 }
@@ -378,11 +402,167 @@ fn draw_commands_for_batches(batches: &[VisibilityBatch]) -> Vec<VisibilityDrawC
     let mut offset = 0_u32;
     let mut commands = Vec::with_capacity(batches.len());
     for batch in batches {
-        let count = u32::try_from(batch.entities.len()).expect("batch size should fit into u32");
+        let count = u32::try_from(batch.stable_instance_keys.len())
+            .expect("batch size should fit into u32");
         commands.push(draw_command(batch.key.clone(), offset, count));
         offset += count;
     }
     commands
+}
+
+#[test]
+fn visibility_context_preserves_multi_primitive_stable_instance_keys() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let entity = world.spawn_mesh_node(
+        model_handle("res://models/crate.obj"),
+        material_handle("res://materials/crate.zmaterial"),
+    );
+    world
+        .update_transform(entity, Transform::from_translation(Vec3::ZERO))
+        .expect("visible primitive transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    let mut hidden_primitive = extract.geometry.meshes[0].clone();
+    hidden_primitive.stable_instance_key = render_mesh_stable_instance_key(entity, 1);
+    hidden_primitive.model = model_handle("res://models/tree.obj");
+    hidden_primitive.material = material_handle("res://materials/tree.zmaterial");
+    hidden_primitive.transform = Transform::from_translation(Vec3::new(100.0, 0.0, 0.0));
+    extract.geometry.meshes.push(hidden_primitive.clone());
+    extract
+        .visibility
+        .renderables
+        .push(VisibilityRenderableInput {
+            entity,
+            stable_instance_key: hidden_primitive.stable_instance_key,
+            mobility: hidden_primitive.mobility,
+            render_layer_mask: hidden_primitive.common.layer_mask.clone(),
+        });
+
+    let context = VisibilityContext::from(&extract);
+    let visible_key = stable_key(entity);
+    let hidden_key = hidden_primitive.stable_instance_key;
+
+    assert_eq!(context.renderable_entities, vec![entity]);
+    assert_eq!(context.bvh_instances.len(), 2);
+    assert_eq!(context.history_snapshot.instances.len(), 2);
+    assert_eq!(
+        context.bvh_update_plan.inserted_stable_instance_keys,
+        vec![visible_key, hidden_key]
+    );
+    assert_eq!(
+        context.instance_upload_plan.dynamic_instance_keys,
+        vec![visible_key, hidden_key]
+    );
+    assert_eq!(context.frame_visibility.entities, vec![entity, entity]);
+    assert_eq!(
+        context.frame_visibility.stable_instance_keys,
+        vec![visible_key, hidden_key]
+    );
+    assert_eq!(context.main_view_visible_entities(), vec![entity]);
+    assert_eq!(
+        context.main_view_visible_stable_instance_keys(),
+        vec![visible_key]
+    );
+    assert_eq!(
+        context.main_view_culled_stable_instance_keys(),
+        vec![hidden_key]
+    );
+    assert_eq!(context.visible_instances, vec![visible_key]);
+    assert_eq!(context.main_view_visible_batches().len(), 1);
+    assert_eq!(
+        context.main_view_visible_batches()[0].stable_instance_keys,
+        vec![visible_key]
+    );
+}
+
+#[test]
+fn virtual_geometry_visibility_keeps_same_entity_primitives_separate_by_stable_instance_key() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let entity = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
+    );
+    world
+        .update_transform(entity, Transform::from_translation(Vec3::ZERO))
+        .expect("visible primitive transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    let visible_key = extract.geometry.meshes[0].stable_instance_key;
+    let mut hidden_primitive = extract.geometry.meshes[0].clone();
+    hidden_primitive.stable_instance_key = render_mesh_stable_instance_key(entity, 1);
+    hidden_primitive.transform = Transform::from_translation(Vec3::new(100.0, 0.0, 0.0));
+    extract.geometry.meshes.push(hidden_primitive.clone());
+    extract
+        .visibility
+        .renderables
+        .push(VisibilityRenderableInput {
+            entity,
+            stable_instance_key: hidden_primitive.stable_instance_key,
+            mobility: hidden_primitive.mobility,
+            render_layer_mask: hidden_primitive.common.layer_mask.clone(),
+        });
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: vec![
+            virtual_cluster(entity, 10, 100, 0, None, Vec3::ZERO, 2.0),
+            virtual_cluster(entity, 20, 200, 0, None, Vec3::new(100.0, 0.0, 0.0), 2.0),
+        ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: vec![virtual_page(100, true), virtual_page(200, true)],
+        page_dependencies: Vec::new(),
+        instances: vec![
+            RenderVirtualGeometryInstance {
+                entity,
+                stable_instance_key: visible_key,
+                source_model: None,
+                transform: Transform::default(),
+                cluster_offset: 0,
+                cluster_count: 1,
+                page_offset: 0,
+                page_count: 1,
+                mesh_name: None,
+                source_hint: None,
+            },
+            RenderVirtualGeometryInstance {
+                entity,
+                stable_instance_key: hidden_primitive.stable_instance_key,
+                source_model: None,
+                transform: Transform::default(),
+                cluster_offset: 1,
+                cluster_count: 1,
+                page_offset: 1,
+                page_count: 1,
+                mesh_name: None,
+                source_hint: None,
+            },
+        ],
+        debug: Default::default(),
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(context.virtual_geometry_visible_clusters.len(), 1);
+    assert_eq!(context.virtual_geometry_visible_clusters[0].cluster_id, 10);
+    assert_eq!(
+        context.virtual_geometry_visible_clusters[0].stable_instance_key,
+        visible_key
+    );
+    assert_eq!(context.virtual_geometry_draw_segments.len(), 1);
+    assert_eq!(
+        context.virtual_geometry_draw_segments[0].stable_instance_key,
+        visible_key
+    );
+    assert_eq!(context.virtual_geometry_draw_segments[0].cluster_count, 1);
+}
+
+fn stable_key(entity: u64) -> u64 {
+    render_mesh_stable_instance_key(entity, 0)
 }
 
 fn remove_default_meshes(world: &mut World) {

@@ -8,4 +8,5 @@ description = "Runtime diagnostics editor plugin package for Zircon."
 [dependencies]
 zircon_editor = { workspace = true }
 zircon_plugin_editor_support = { path = "../../editor_support" }
+zircon_plugin_sdk = { workspace = true }
 zircon_runtime = { workspace = true }

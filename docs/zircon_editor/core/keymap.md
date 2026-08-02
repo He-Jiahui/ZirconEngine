@@ -1,54 +1,48 @@
 ---
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/persistence.rs
   - zircon_editor/src/core/commands/keymap/tests.rs
-  - tests/fixtures/serialization/editor-keymap-user-layer/v0/keymap-user-layer.json
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
+  - zircon_editor/src/core/settings/keymap_overrides.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
   - docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 tests:
   - zircon_editor/src/core/commands/keymap/tests.rs
-  - tools/tests/test_editor11_keymap_version_shell_contract.py
+  - zircon_editor/src/core/settings/tests.rs
 doc_type: module-detail
 ---
 
-# Editor Keymap Persistence
+# Editor Keymap Settings
 
 ## Purpose
 
-`EditorKeymap` combines an immutable built-in keymap with a persisted user delta. The built-in TOML
-asset remains the default owner. The user file stores only changed command bindings and explicit
-unbinds, so new built-in commands remain inherited after an upgrade.
+The built-in TOML asset remains the immutable default keymap. `EditorKeymap` parses that asset,
+builds the chord signature index, and applies a typed `EditorKeymapOverrides` delta. It does not
+own a private persistence format.
 
-## Wire Contract
+## Settings Authority
 
-The user layer uses the shared `$zircon` canonical JSON envelope with schema id
-`zircon.editor.keymap-user-layer` and schema version 1. Its payload is a sorted `bindings` map:
+`EDITOR_KEYMAP_OVERRIDES_KEY` is registered in `SettingsRegistry` with
+`SettingSchema::KeymapOverrides` and User scope. The shared registry resolves Session, Project,
+User, then default precedence before `editor_keymap_overrides()` returns the effective typed delta.
 
-- a chord string adds or replaces one command binding;
-- `null` explicitly unbinds a command inherited from the built-in layer;
-- an omitted command continues to inherit the built-in value.
+`SettingsStore` is the only disk owner. It writes the strict `zircon.editor.settings` versioned
+envelope at the configured User or Project path and rejects unwrapped or migrated legacy payloads
+atomically. The retired `zircon.editor.keymap-user-layer` document, its v0 fixture, and
+`commands/keymap/persistence.rs` are not compatibility inputs.
 
-The payload never carries a second `version` field. An unwrapped payload with the same `bindings`
-shape is version 0 and migrates through the explicit `MigrationChain`; the historical shape is
-locked by a repository fixture. A future envelope version is rejected rather than interpreted as
-the current format.
+## Override Semantics
 
-## Load And Save
+`EditorKeymapOverrides` is a sorted map from validated `EditorOperationPath` to an optional
+`EditorKeyChord`. `Some(chord)` adds or replaces a binding; `None` is an explicit tombstone.
+Omitted commands continue to inherit the built-in preset. `EditorKeymap::with_overrides()`
+materializes the effective sorted bindings and rebuilds the lookup index without reconstructing a
+second persistence document.
 
-`EditorKeymap` owns typed base bindings and a separate typed user delta. Effective bindings are a
-sorted derived projection; serialization reads the delta owner directly instead of reconstructing
-intent from the effective map. This preserves an explicit `null` tombstone while a plugin command
-is absent, so the command remains unbound if a later plugin version restores its default.
-
-`apply_user_layer` validates every command id through `EditorOperationPath` and parses every chord
-before constructing a replacement keymap. One invalid id or chord rejects the complete layer and
-leaves the base keymap unchanged. Path save always emits the latest canonical envelope; path load
-returns the effective keymap and `migrated_from` so the future settings owner can request a
-canonical resave after migration. Load, write, and I/O errors retain their typed sources, allowing
-the settings owner to distinguish a missing user file from corruption or a future schema.
-
-The current slice owns persistence and layering only. Conflict diagnostics and when-domain routing
-remain Editor08 M2.2 work; the future Editor17 settings registry owns the user path and change event.
+The Rust tests cover registry precedence, current settings round-trip, rejection of the retired
+private document, tombstone behavior, conflicts, keyboard fallback, and the indexed hot path.
+Editor08 still owns when-domain routing and product conflict presentation; Editor17 owns settings
+page contribution and hot application.

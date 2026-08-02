@@ -5,12 +5,12 @@ use serde_json::{Map, Number, Value};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::scene::{reflect::RuntimeTypeRegistration, EntityId};
+use crate::scene::{EntityId, reflect::RuntimeTypeRegistration};
 use zircon_runtime_interface::reflect::ReflectError;
 use zircon_runtime_interface::reflect::ReflectTypeRegistration;
 
-use super::error::{SceneError, SceneResult};
 use super::World;
+use super::error::{SceneError, SceneResult};
 use crate::scene::reflect::VmTypeBacking;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -97,6 +97,18 @@ impl World {
         self.component_types.descriptor(type_id)
     }
 
+    /// Returns the dynamic schema revision for one component type.
+    ///
+    /// This changes when that type's descriptor changes, not when an instance
+    /// value changes, so compiled field writers can rebind precisely.
+    pub fn component_type_schema_generation(&self, type_id: &str) -> u64 {
+        self.component_types.schema_generation(type_id)
+    }
+
+    pub(in crate::scene::world) fn component_type_schema_catalog_generation(&self) -> u64 {
+        self.component_types.schema_catalog_generation()
+    }
+
     pub fn component_type_descriptors(&self) -> Vec<&ComponentTypeDescriptor> {
         let descriptors = self.component_types.descriptors();
         let mut result = Vec::with_capacity(descriptors.size_hint().0);
@@ -130,6 +142,7 @@ impl World {
         components.insert(component_id.clone(), value);
         self.insert_dynamic_component_presence(entity, &component_id)?;
         self.inspection_artifact_cache.mark_fields_dirty(entity);
+        self.advance_dynamic_component_generation(&component_id);
         self.advance_world_generation();
         Ok(true)
     }
@@ -212,6 +225,7 @@ impl World {
         if removed {
             self.remove_dynamic_component_presence(entity, component_id)?;
             self.inspection_artifact_cache.mark_fields_dirty(entity);
+            self.advance_dynamic_component_generation(component_id);
             self.advance_world_generation();
         }
         Ok(removed)
@@ -259,6 +273,15 @@ impl World {
         property_path: &ComponentPropertyPath,
     ) -> Option<ScenePropertyValue> {
         let (component_id, property) = split_dynamic_property_path(property_path)?;
+        self.compiled_dynamic_component_property(entity, component_id, property)
+    }
+
+    pub(super) fn compiled_dynamic_component_property(
+        &self,
+        entity: EntityId,
+        component_id: &str,
+        property: &str,
+    ) -> Option<ScenePropertyValue> {
         let value = self.dynamic_component(entity, component_id)?;
         let value = json_property(value, property)?;
         scene_value_from_json(value)
@@ -270,12 +293,28 @@ impl World {
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
-        let Some(json_value) = json_from_scene_value(value) else {
+        let Some(json_value) = json_from_scene_property_value(value) else {
             return Err(SceneError::DynamicComponentPropertyUnsupportedValue {
                 property_path: property_path.to_string(),
             });
         };
         self.set_dynamic_component_json_property(entity, property_path, json_value)
+    }
+
+    pub(super) fn set_compiled_dynamic_component_property(
+        &mut self,
+        entity: EntityId,
+        component_id: &str,
+        property: &str,
+        property_path: &ComponentPropertyPath,
+        value: ScenePropertyValue,
+    ) -> SceneResult<bool> {
+        let Some(json_value) = json_from_scene_property_value(value) else {
+            return Err(SceneError::DynamicComponentPropertyUnsupportedValue {
+                property_path: property_path.to_string(),
+            });
+        };
+        self.set_dynamic_component_json_field(entity, component_id, property, json_value)
     }
 
     pub(crate) fn set_dynamic_component_json_property(
@@ -284,14 +323,24 @@ impl World {
         property_path: &ComponentPropertyPath,
         json_value: Value,
     ) -> SceneResult<bool> {
-        if !self.contains_entity(entity) {
-            return Err(SceneError::missing_entity("update", entity));
-        }
         let Some((component_id, property)) = split_dynamic_property_path(property_path) else {
             return Err(SceneError::UnknownDynamicComponentProperty {
                 property_path: property_path.to_string(),
             });
         };
+        self.set_dynamic_component_json_field(entity, component_id, property, json_value)
+    }
+
+    fn set_dynamic_component_json_field(
+        &mut self,
+        entity: EntityId,
+        component_id: &str,
+        property: &str,
+        json_value: Value,
+    ) -> SceneResult<bool> {
+        if !self.contains_entity(entity) {
+            return Err(SceneError::missing_entity("update", entity));
+        }
         self.validate_dynamic_component_type(component_id)?;
         self.validate_dynamic_component_property_write(component_id, property)?;
         if self.vm_dynamic_type_paths.contains(component_id) {
@@ -331,6 +380,7 @@ impl World {
             };
             *component = candidate;
             self.inspection_artifact_cache.mark_fields_dirty(entity);
+            self.advance_dynamic_component_generation(component_id);
             self.advance_world_generation();
             return Ok(true);
         }
@@ -349,6 +399,7 @@ impl World {
         object.insert(property.to_string(), json_value);
         self.insert_dynamic_component_presence(entity, component_id)?;
         self.inspection_artifact_cache.mark_fields_dirty(entity);
+        self.advance_dynamic_component_generation(component_id);
         self.advance_world_generation();
         Ok(true)
     }
@@ -594,7 +645,7 @@ fn scene_value_from_json(value: &Value) -> Option<ScenePropertyValue> {
     }
 }
 
-fn json_from_scene_value(value: ScenePropertyValue) -> Option<Value> {
+pub(in crate::scene) fn json_from_scene_property_value(value: ScenePropertyValue) -> Option<Value> {
     match value {
         ScenePropertyValue::Bool(value) => Some(Value::Bool(value)),
         ScenePropertyValue::Integer(value) => Some(Value::Number(value.into())),

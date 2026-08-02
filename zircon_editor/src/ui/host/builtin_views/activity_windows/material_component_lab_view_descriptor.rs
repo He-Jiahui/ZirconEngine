@@ -2,8 +2,8 @@ use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
     ActivityWindowTemplateSpec, PaneBodySpec, PaneInteractionMode, PanePayloadKind,
-    PaneRouteNamespace, PaneTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId,
-    ViewKind,
+    PaneRouteNamespace, PaneTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewKind,
+    WorkbenchSlot,
 };
 
 pub(super) fn material_component_lab_view_descriptor() -> ViewDescriptor {
@@ -12,7 +12,7 @@ pub(super) fn material_component_lab_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "Material Component Lab",
     )
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::UiComponentShowcase,
     ))

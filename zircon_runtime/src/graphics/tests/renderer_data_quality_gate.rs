@@ -64,10 +64,8 @@ fn renderer_asset_projection_preserves_cross_feature_quality_gate() {
     let renderer = RendererAsset {
         name: "quality-gate-projection".to_string(),
         stages: vec![RenderPassStage::PostProcess],
-        features: vec![
-            RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom)
-                .with_quality_gate(BuiltinRenderFeature::PostProcess),
-        ],
+        features: vec![RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom)
+            .with_quality_gate(BuiltinRenderFeature::PostProcess)],
     };
 
     let document = RendererDataDocument::from_renderer_asset(&renderer).unwrap();

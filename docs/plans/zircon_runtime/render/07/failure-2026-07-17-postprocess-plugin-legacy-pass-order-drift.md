@@ -57,4 +57,8 @@ Frameworks02 source-bound broad job `42d5707f448d4589ae3ac390c0a19a1c` / run `c9
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `current-source contract repair present; managed validation pending`.
+
+- The default plugin feature regression now fixes the canonical forward-plus and deferred pass vectors, including Bloom before reflection/baked-lighting composites and the full three-stage motion-vector reduction chain.
+- The no-stack plugin filtering path preserves that default post-process motion-vector chain, while stack-driven filtering still owns optional effect removal. This keeps descriptor, filtering, and behavior coverage on one canonical contract rather than replacing the expected vector with incidental output.
+- The two original focused tests and the focused resource/order assertions are present in current source. No current-source Cargo result is claimed; the handoff remains `open` until the managed plugin gate returns.

@@ -2,7 +2,7 @@ use crate::ui::layout::{
     UiContainerKind, UiLayoutEngineBackend, UiLayoutEngineCapability, UiLayoutEngineFallbackReason,
     UiLayoutEngineFamily, UiLayoutEngineRequest, UiLayoutEngineSelection,
     UiLayoutEngineSelectionReport, UiLayoutEngineSupport, UiLayoutEngineTaffyTreeBuildStats,
-    UiLinearBoxConfig, UiMasonryBoxConfig, UiScrollableBoxConfig, UiSizeBoxConfig,
+    UiLinearBoxConfig, UiMasonryBoxConfig, UiScrollableBoxConfig, UiSizeBoxConfig, UiSlotKind,
     UiVirtualListConfig,
 };
 
@@ -115,6 +115,98 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
         round_trip(&UiLayoutEngineFallbackReason::InvalidLayoutValue),
         UiLayoutEngineFallbackReason::InvalidLayoutValue
     );
+}
+
+#[test]
+fn ui_container_slot_defaults_and_engine_families_share_one_contract() {
+    let virtual_scroll = UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+        virtualization: Some(UiVirtualListConfig {
+            item_extent: 24.0,
+            overscan: 2,
+        }),
+        ..UiScrollableBoxConfig::default()
+    });
+    let cases = [
+        (
+            UiContainerKind::Free,
+            Some(UiSlotKind::Free),
+            UiLayoutEngineFamily::Free,
+        ),
+        (
+            UiContainerKind::Canvas,
+            Some(UiSlotKind::Canvas),
+            UiLayoutEngineFamily::Canvas,
+        ),
+        (
+            UiContainerKind::Container,
+            Some(UiSlotKind::Container),
+            UiLayoutEngineFamily::Container,
+        ),
+        (
+            UiContainerKind::BlockBox,
+            Some(UiSlotKind::Container),
+            UiLayoutEngineFamily::Block,
+        ),
+        (
+            UiContainerKind::Overlay,
+            Some(UiSlotKind::Overlay),
+            UiLayoutEngineFamily::Overlay,
+        ),
+        (
+            UiContainerKind::Space,
+            None,
+            UiLayoutEngineFamily::Container,
+        ),
+        (
+            UiContainerKind::SizeBox(UiSizeBoxConfig { aspect_ratio: 1.0 }),
+            Some(UiSlotKind::Container),
+            UiLayoutEngineFamily::Container,
+        ),
+        (
+            UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 8.0 }),
+            Some(UiSlotKind::Linear),
+            UiLayoutEngineFamily::Flex,
+        ),
+        (
+            UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 8.0 }),
+            Some(UiSlotKind::Linear),
+            UiLayoutEngineFamily::Flex,
+        ),
+        (
+            UiContainerKind::ScrollableBox(UiScrollableBoxConfig::default()),
+            Some(UiSlotKind::Scrollable),
+            UiLayoutEngineFamily::Scrollable,
+        ),
+        (
+            virtual_scroll,
+            Some(UiSlotKind::Scrollable),
+            UiLayoutEngineFamily::VirtualizedList,
+        ),
+        (
+            UiContainerKind::WrapBox(Default::default()),
+            Some(UiSlotKind::Flow),
+            UiLayoutEngineFamily::Wrap,
+        ),
+        (
+            UiContainerKind::GridBox(Default::default()),
+            Some(UiSlotKind::Grid),
+            UiLayoutEngineFamily::Grid,
+        ),
+        (
+            UiContainerKind::MasonryBox(Default::default()),
+            Some(UiSlotKind::Flow),
+            UiLayoutEngineFamily::Masonry,
+        ),
+    ];
+
+    for (container, expected_slot, expected_family) in cases {
+        assert_eq!(container.child_slot_kind(), expected_slot);
+        assert_eq!(container.layout_engine_family(), expected_family);
+        assert_eq!(
+            UiLayoutEngineRequest::from_container_kind(container).family,
+            expected_family
+        );
+    }
 }
 
 #[test]

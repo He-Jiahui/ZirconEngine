@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::template_styl
     is_primary_contained_button, resolved_style_color,
 };
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 

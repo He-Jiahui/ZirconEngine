@@ -140,7 +140,7 @@ impl ParticleGpuRuntimeOwner {
                 queue,
                 encoder,
                 &aggregate_frame,
-                ParticleGpuReadbackRequest::Counters,
+                ParticleGpuReadbackRequest::None,
             )?;
         self.aggregate_executed = true;
 

@@ -13,7 +13,14 @@ related_code:
   - zircon_runtime/src/text/parallel/raster_pool.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/raster/policy.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches/auto_route.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/rendering.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
 ---
 
 # Swash face cache identity失效与Auto路由未接线
@@ -65,4 +72,10 @@ worker request只携临时font bytes、face index和owned variations，没有稳
 
 2026-07-31 Auto route current-source 复核：`resolved_auto_text_render_mode(...)` 已成为 screen-space UI Auto batch 的单一产品 owner；它保留 font asset 的显式 Native/Sdf/Msdf/Mtsdf，只有未指定或 asset=Auto 时才把字号与 outline/shadow/glow effects 投影到 `GlyphRasterPolicyRequest`。现有产品回归固定 small→Native、24px→SDF、outline/shadow→SDF、glow true-distance→MTSDF。当前 batch DTO 没有稳定 command/layout identity，故不能用数组位置或 text hash 实现正确跨帧 hysteresis；该前置接口与 physical scale/residency 输入尚未完成。
 
-Open state: `稳定 Swash identity、同 face/size/instance batch 与 single Auto route owner 已实现；等待外部 lib-test 编译门、稳定 command/layout identity 驱动的 hysteresis/residency、规模 counter、current-source Cargo 与产品 RenderDoc/像素证据`。
+2026-08-01 Auto route 前向收敛：产品 owner 已从 stateless helper 硬切到 `AutoTextRasterRouter`。render planning 在每条 command 只读取一次既有 `UiRenderCommand::cache_generation()`，并把单次 `Arc<str>` tree identity、`UiNodeId` 与 layout `source_range` 投影为稳定 fragment key；不同 tree、同 node 的多 line/rich/inline fragment 不会串状态，也没有使用数组位置或 text hash。相同 generation 直接命中 route state；generation 变化才进入 `GlyphRasterPolicy`。screen-space `font_size` 作为实际渲染 px 输入，font asset 的显式 Native/Sdf/Msdf/Mtsdf 保持作者语义，outline/shadow/glow 仍强制现有距离场策略。
+
+`GlyphRasterPolicy` 现在单源持有 24px benchmark threshold 与上下各 2px hysteresis：warm Native 直到 26px 才切 SDF，warm SDF 低于 22px 才回 Native；effects/显式格式不被 hysteresis 改写。router 以 2048 entry hard cap、300 idle-frame 回收和 tokenized recency queue 保持有界，稳态 generation hit 只做 O(1) HashMap/queue 操作，超过四倍 recency cap 才按 live entry 稀疏压缩。prepare report 新增 capacity/entries/generation hits/policy evaluations/warm retain/switch/capacity eviction/idle eviction；1/100/1k exact scale 与 ignored 31-sample p50/p95 exporter 已写入。
+
+2026-08-01 二次静态审查前向修复五项 actionable 缺口：补入 tree domain 防止跨树 node-id 碰撞；移除 `Arc<str>` identity 的错误 `Copy` 并修正 move；把 child visibility 精确开放到 `ui::text`；收敛 stateless/product effects projection；取消未使用 Auto 场景的 eager 2048-entry 预分配。current-source owners 为 auto-route 265 行、resolved-batches 180、render 771、rich-render 278、text-system 579、policy 275、interface command 523，均低于 800 行 production warning；测试 owner 453 行。scoped rustfmt、tracked/untracked whitespace 与 diff check 通过，production panic/unwrap/expect/dead-code allow 扫描为 0，未发现 remaining actionable P0/P1/P2。
+
+Open state: `stable Swash/scaler batching + Auto identity/hysteresis/warm-route residency implementation complete / resolving_failure / managed_validation_pending`。仍需 coordinator receipt 后运行 focused/upward Cargo、1/100/1k 与 ignored p50/p95、真实 WGPU/RenderDoc 像素和 stable-route raster-miss 证据；成功前保持 open，不写 blocked/accepted，不生成或登记新 PNG。

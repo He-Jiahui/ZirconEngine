@@ -12,7 +12,7 @@ const market = readFileSync(join(projectRoot, 'native', 'crates', 'woc_protocol'
 const input = readFileSync(join(projectRoot, 'native', 'apps', 'woc_client', 'src', 'input', 'intent.rs'), 'utf8');
 const coverage = JSON.parse(readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'));
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 for (const [id, name, method, zrFunction, constant, intent] of [
   [103, 'market_buy', 'marketBuy', 'marketBuy', 'MARKET_BUY_COMMAND_ID', 'BuyMarketListing'],
   [104, 'market_cancel', 'marketCancel', 'marketCancel', 'MARKET_CANCEL_COMMAND_ID', 'CancelMarketListing'],
@@ -25,8 +25,8 @@ for (const [id, name, method, zrFunction, constant, intent] of [
 }
 assert.match(market, /MarketListingIdPayload/);
 assert.match(protocol, /CommandPayloadKind::MarketListingId/);
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 process.stdout.write('market command payload contracts are complete\n');

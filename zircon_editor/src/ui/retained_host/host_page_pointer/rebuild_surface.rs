@@ -12,7 +12,9 @@ use super::host_page_pointer_bridge::HostPagePointerBridge;
 use super::host_page_pointer_route::HostPagePointerRoute;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::root_frame::root_frame;
-use super::tab_node_id::{overflow_route_id, tab_node_id, tab_route_id};
+use super::tab_node_id::{
+    close_node_id, close_route_id, overflow_route_id, tab_node_id, tab_route_id,
+};
 
 impl HostPagePointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
@@ -63,6 +65,38 @@ impl HostPagePointerBridge {
                     page_id: tab.page_id.clone(),
                 }),
             );
+
+            let close_target = self
+                .layout
+                .items
+                .get(item_index)
+                .and_then(|item| item.close_instance_id.as_ref());
+            if let (Some(close_frame), Some(instance_id)) = (tab.close_frame, close_target) {
+                let close_node_id = close_node_id(item_index);
+                surface
+                    .tree
+                    .insert_child(
+                        STRIP_NODE_ID,
+                        UiTreeNode::new(
+                            close_node_id,
+                            UiNodePath::new(format!("editor.host_page/tab_{item_index}/close")),
+                        )
+                        .with_frame(close_frame)
+                        .with_z_index(40 + item_index as i32)
+                        .with_input_policy(UiInputPolicy::Receive)
+                        .with_state_flags(base_state(true)),
+                    )
+                    .expect("host page strip must exist");
+                register_handled_pointer_node(&mut dispatcher, close_node_id);
+                route_intents.bind_node(
+                    close_node_id,
+                    close_route_id(item_index),
+                    EditorRouteIntent::HostPage(HostPagePointerRoute::Close {
+                        item_index,
+                        instance_id: instance_id.clone(),
+                    }),
+                );
+            }
         }
 
         if let Some(overflow) = &self.layout.overflow {

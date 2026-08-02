@@ -12,7 +12,7 @@ pub(super) fn performance_timeline_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Performance Timeline",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::Bottom)
+    .with_workbench_slot(WorkbenchSlot::BottomDrawer)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::PerformanceTimeline,
     ))

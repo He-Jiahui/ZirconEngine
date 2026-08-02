@@ -669,28 +669,27 @@ fn test_host_context_with_lifecycle(
 ) -> VmPluginHostContext {
     let runtime = CoreRuntime::new();
     let package_root = PathBuf::from("policy-package");
-    VmPluginHostContext {
-        plugin: PluginContext {
+    VmPluginHostContext::new(
+        PluginContext {
             plugin_name: "VmPluginRuntime".to_string(),
             core: runtime.handle().downgrade(),
             package_root: Some(package_root.clone()),
             source_root: Some(package_root.clone()),
             data_root: Some(package_root.join("data")),
         },
-        capabilities: CapabilitySet::default(),
-        backend_selector: "policy-recording".to_string(),
-        package_source: VmPluginPackageSource {
+        CapabilitySet::default(),
+        "policy-recording".to_string(),
+        VmPluginPackageSource {
             package_root: Some(package_root),
             manifest_path: None,
             bytecode_path: None,
             zr_vm_project_path: None,
         },
-        host_registry: HostRegistry::default(),
-        host_exports: HostExportRegistry::default(),
-        host_interfaces: VmHostInterfaceRegistry::default(),
-        reflection_catalog: crate::script::VmReflectionCatalog::default(),
-        reflection_schema_installer: Default::default(),
+        HostRegistry::default(),
+        HostExportRegistry::default(),
+        VmHostInterfaceRegistry::default(),
+        crate::script::VmReflectionCatalog::default(),
+        Default::default(),
         slot_lifecycle,
-        vm_owner: None,
-    }
+    )
 }

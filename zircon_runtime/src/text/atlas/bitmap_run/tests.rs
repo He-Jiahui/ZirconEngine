@@ -47,11 +47,10 @@ fn render_text_atlas_bitmap_run_allocates_bitmap_formats_to_distinct_pages() {
         plan.glyphs[2].page_key,
         GlyphAtlasPageKey::new(GlyphAtlasFormat::Color, 0)
     );
-    assert!(
-        plan.glyphs
-            .iter()
-            .all(|glyph| glyph.atlas_rect.x == 0 && glyph.atlas_rect.y == 0)
-    );
+    assert!(plan
+        .glyphs
+        .iter()
+        .all(|glyph| glyph.atlas_rect.x == 0 && glyph.atlas_rect.y == 0));
 }
 
 #[test]
@@ -239,9 +238,7 @@ fn render_text_atlas_bitmap_upload_staging_plan_copies_sources_into_page_rows() 
     assert_eq!(staging.pages[0].bytes_per_row, 8);
     assert_eq!(
         staging.pages[0].bytes,
-        vec![
-            1, 2, 3, 4, 101, 102, 103, 104, 5, 6, 7, 8, 105, 106, 107, 108,
-        ]
+        vec![1, 2, 3, 4, 101, 102, 103, 104, 5, 6, 7, 8, 105, 106, 107, 108,]
     );
 }
 

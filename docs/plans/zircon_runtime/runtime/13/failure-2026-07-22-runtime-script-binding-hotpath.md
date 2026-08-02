@@ -56,4 +56,41 @@ Runtime13已定义清册、capability与ScriptCallTable，但没有把scene bind
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `源码修复已完成，等待当前源码的受管验证`; this handoff is not fixed or
+returned yet.
+
+Implemented, not yet accepted:
+
+- Scene bindings now build one active dense projection keyed by world handle
+  and the `script.bindings` dynamic-component generation. Stable generations
+  reuse callbacks rather than rescanning nodes, decoding JSON, formatting keys,
+  or resolving packages per frame.
+- Each active binding retains its generation-aware callback handle. Replacing a
+  deserialized world, including a replacement that removes bindings, advances
+  the relevant dynamic-component generations so stale projections cannot be
+  reused. Focused coverage exercises direct and staged world replacement.
+- Host exports use borrowed `ScriptHostCallFrame` arguments; the hot path no
+  longer maintains a second owned host-call-context bridge. Runtime reflection
+  access is issued by `VmPluginHostContext`, with cross-crate fixtures limited
+  to the explicit non-default `test-support` feature.
+- Production `ScriptRuntimeCallContext` construction and TLS installation are
+  crate-private. Cross-crate ZrVM fixtures now use only
+  `ScriptRuntimeTestContext` and `with_script_runtime_test_context` under that
+  same feature, so a production backend cannot replace the active runtime
+  context.
+- `VmReflectionWorldAccess` no longer lends a raw `World` from its persistent
+  token. It issues an HRTB-bound `VmReflectionWorldOperation` only while a
+  runtime script scope is active; the ZrVM reflection dispatcher performs its
+  dense-token read/write inside that non-retainable operation ticket.
+
+Static evidence: the script-binding boundary audit and selected `rustfmt
+--check` scopes pass; `cargo metadata --no-deps --locked --format-version 1`
+succeeds. A second source review identified the call-frame clone, private test
+construction, production-context, and persistent-world-borrow findings; the
+current source addresses them, while final re-review and Cargo evidence remain
+pending. These checks do not establish runtime performance or behavior.
+
+Required before `failure return`: run the declared current-source Runtime13
+managed Cargo gate and the originating performance acceptance/trace gates. The
+1/100/10k binding and 1/100/1M host-call measurements remain acceptance
+evidence, not a claim made by this record.

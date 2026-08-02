@@ -221,14 +221,14 @@ fn normalize_include_token(value: &str) -> String {
 mod tests {
     use crate::asset::{ProjectAssetManager, ShaderAsset, ShaderSourceLanguage};
     use crate::core::framework::render::{
-        GBufferChannelMask, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
-        ShaderAssetKind, ShaderPassType, ShadingModelDescriptor, ShadingModelId,
-        builtin_geometry_source_descriptor,
+        builtin_geometry_source_descriptor, GBufferChannelMask, ShaderAssetKind, ShaderPassType,
+        ShadingModelDescriptor, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+        SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
     use crate::graphics::shader::{
-        DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateRequest,
         assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
+        DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateRequest,
     };
 
     use super::*;
@@ -331,16 +331,12 @@ mod tests {
         )
         .expect("deferred GBuffer template should consume exported include source set");
 
-        assert!(
-            forward
-                .wgsl_source
-                .contains("// include: zr_shading_toon.wgsl")
-        );
-        assert!(
-            gbuffer
-                .wgsl_source
-                .contains("// include: zr_gbuffer_encode_toon.wgsl")
-        );
+        assert!(forward
+            .wgsl_source
+            .contains("// include: zr_shading_toon.wgsl"));
+        assert!(gbuffer
+            .wgsl_source
+            .contains("// include: zr_gbuffer_encode_toon.wgsl"));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use std::{fs, sync::Arc, time::Instant};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::asset::{AssetUri, RGBA8_UNORM_FORMAT, TextureAsset, TextureAssetDescriptor};
+use crate::asset::{AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT};
 use crate::core::framework::render::{
     CookieProjection, EnvironmentExtract, IrradianceVolumeData, LightCookieData, RenderFramework,
     RenderImageColorSpace, RenderImageDimension, RenderLayerSet, RenderViewportDescriptor,
@@ -9,19 +9,19 @@ use crate::core::framework::render::{
 use crate::core::math::{Mat4, Vec2, Vec3};
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord};
 use crate::graphics::{
-    IRRADIANCE_VOLUME_BIND_EXECUTOR_ID, IRRADIANCE_VOLUME_RESOURCE,
-    LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID, LIGHT_COOKIE_ATLAS_RESOURCE, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderPassStage, WgpuRenderFramework,
     irradiance_volume_render_pass_executor_registrations,
-    light_cookie_render_pass_executor_registrations,
+    light_cookie_render_pass_executor_registrations, RenderFeatureDescriptor,
+    RenderFeaturePassDescriptor, RenderPassStage, WgpuRenderFramework,
+    IRRADIANCE_VOLUME_BIND_EXECUTOR_ID, IRRADIANCE_VOLUME_RESOURCE,
+    LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID, LIGHT_COOKIE_ATLAS_RESOURCE,
 };
 use crate::render_graph::QueueLane;
 
 use super::advanced_pbr::{
-    PRODUCT_SIZE, ProductMaterialMode, ProductMaterials, product_quality_profile,
-    register_sphere_model, three_sphere_extract,
+    product_quality_profile, register_sphere_model, three_sphere_extract, ProductMaterialMode,
+    ProductMaterials, PRODUCT_SIZE,
 };
-use super::{FrameDifference, ProductRender, render_product_output_dir, write_side_by_side_png};
+use super::{render_product_output_dir, write_side_by_side_png, FrameDifference, ProductRender};
 
 const PRODUCT_IMAGE_NAME: &str = "plan18_af_m2_light_cookie_irradiance_volume_wgpu_20260715.png";
 
@@ -61,13 +61,11 @@ fn render_product_af_m2_feature_off_matches_graph_baseline_exactly() {
         LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID,
         IRRADIANCE_VOLUME_BIND_EXECUTOR_ID,
     ] {
-        assert!(
-            !registered_but_empty
-                .stats
-                .last_graph_executed_passes
-                .iter()
-                .any(|executed| executed == pass)
-        );
+        assert!(!registered_but_empty
+            .stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|executed| executed == pass));
     }
 }
 
@@ -121,13 +119,11 @@ fn render_product_af_m2_frame_without_volume_clears_previous_volume_state() {
         "active={active_difference:?}, cleared={cleared_difference:?}"
     );
     for render in &renders[4..] {
-        assert!(
-            !render
-                .stats
-                .last_graph_executed_passes
-                .iter()
-                .any(|pass| pass == IRRADIANCE_VOLUME_BIND_EXECUTOR_ID)
-        );
+        assert!(!render
+            .stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| pass == IRRADIANCE_VOLUME_BIND_EXECUTOR_ID));
     }
 }
 
@@ -242,15 +238,13 @@ fn cookie_descriptor() -> RenderFeatureDescriptor {
         "light_cookies",
         vec!["view".into(), "lighting".into(), "advanced_lighting".into()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
-                LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID,
-                QueueLane::Graphics,
-            )
-            .with_side_effects()
-            .write_external_texture(LIGHT_COOKIE_ATLAS_RESOURCE),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::DepthPrepass,
+            LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID,
+            QueueLane::Graphics,
+        )
+        .with_side_effects()
+        .write_external_texture(LIGHT_COOKIE_ATLAS_RESOURCE)],
     )
     .when_advanced_lighting_cookies_enabled()
     .with_pass_read_external_texture("deferred-lighting", LIGHT_COOKIE_ATLAS_RESOURCE)
@@ -261,15 +255,13 @@ fn irradiance_volume_descriptor() -> RenderFeatureDescriptor {
         "irradiance_volumes",
         vec!["view".into(), "lighting".into(), "advanced_lighting".into()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
-                IRRADIANCE_VOLUME_BIND_EXECUTOR_ID,
-                QueueLane::Graphics,
-            )
-            .with_side_effects()
-            .write_external_texture(IRRADIANCE_VOLUME_RESOURCE),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::DepthPrepass,
+            IRRADIANCE_VOLUME_BIND_EXECUTOR_ID,
+            QueueLane::Graphics,
+        )
+        .with_side_effects()
+        .write_external_texture(IRRADIANCE_VOLUME_RESOURCE)],
     )
     .when_advanced_lighting_irradiance_volumes_enabled()
     .with_pass_read_external_texture("deferred-gbuffer", IRRADIANCE_VOLUME_RESOURCE)

@@ -15,6 +15,7 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
+use crate::plugin::PluginShaderModuleSource;
 
 use super::super::capability_summary::{capability_summary, render_device_diagnostics};
 use super::super::graphics_debugger_capture::{
@@ -136,6 +137,7 @@ impl WgpuRenderFramework {
             virtual_geometry_runtime_providers,
             plugin_geometry_sources,
             plugin_shading_models,
+            Vec::new(),
         )
     }
 
@@ -202,6 +204,7 @@ impl WgpuRenderFramework {
         >,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
     ) -> Result<Self, GraphicsError> {
         let compute_task_pool = TaskPool::new(TaskPoolDescriptor::compute());
         Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
@@ -214,6 +217,7 @@ impl WgpuRenderFramework {
             virtual_geometry_runtime_providers,
             plugin_geometry_sources,
             plugin_shading_models,
+            plugin_shader_module_sources,
             compute_task_pool,
         )
     }
@@ -242,6 +246,7 @@ impl WgpuRenderFramework {
             virtual_geometry_runtime_providers,
             plugin_geometry_sources,
             plugin_shading_models,
+            Vec::new(),
         )
     }
 
@@ -257,6 +262,7 @@ impl WgpuRenderFramework {
         >,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
         compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
@@ -270,6 +276,8 @@ impl WgpuRenderFramework {
             .collect::<Vec<_>>();
         let plugin_geometry_sources = plugin_geometry_sources.into_iter().collect::<Vec<_>>();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
+        let plugin_shader_module_sources =
+            plugin_shader_module_sources.into_iter().collect::<Vec<_>>();
         let selected_hybrid_gi_runtime_provider =
             select_hybrid_gi_runtime_provider(hybrid_gi_runtime_providers)?;
         let selected_solari_runtime_provider =
@@ -287,6 +295,7 @@ impl WgpuRenderFramework {
             runtime_prepare_collectors,
             plugin_geometry_sources,
             plugin_shading_models,
+            plugin_shader_module_sources,
         )?;
         let backend_caps = renderer.backend_caps();
         let render_capabilities = capability_summary(&backend_caps);
@@ -319,6 +328,8 @@ impl WgpuRenderFramework {
                         ..crate::core::framework::render::RenderStats::default()
                     },
                     frame_profiler: Default::default(),
+                    memory_budget: Default::default(),
+                    degrade_ladder: Default::default(),
                     graphics_debugger,
                 }),
             }),

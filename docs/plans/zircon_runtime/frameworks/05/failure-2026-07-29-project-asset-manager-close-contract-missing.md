@@ -11,6 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/close_project.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
 tests:
   - cargo test -p zircon_runtime --lib --locked project_asset_manager
@@ -53,11 +55,26 @@ Current source contains the manager-owned `close_project` contract, the concrete
 and focused no-active-project/resource/source-index removal coverage. The contract does not restore
 an Editor-local close path or a legacy manager facade.
 
-Independent architecture review found one remaining generation-order defect: the concrete close
-owner drops the project-generation write guard before broadcasting its `Removed` changes. A
-concurrent open may therefore commit and publish the next generation's `Added` changes first. The
-successor must keep close publication inside the same generation fence, release retired watcher
-join handles outside that fence, and add a regression that fixes the ordering contract.
+The generation-order repair is now implemented in current source through one manager-owned
+`publish_project_generation` linearization owner. `close_project`, targeted import, full reimport,
+and watcher commits release the project snapshot lock but retain the project-generation write fence
+through their complete asset-change broadcast. Only that owner releases the generation fence;
+`close_project` then drops retired watcher join handles outside the fence. A no-active-project close
+also returns without advancing the preparation epoch, so it cannot supersede an in-flight open.
 
-Open state: `implementation_recovered_generation_publication_repair_pending`。未执行 fresh managed
-Runtime/Editor upward gates，未生成 fixed return，也未声明 Editor01 close lifecycle 已验收。
+Focused regressions block the subscriber broadcast and prove both generation try-locks remain
+unavailable until publication completes, verify the no-active close epoch invariant, and guard all
+four publication call sites against reintroducing call-site-local early drops. The watcher commit
+path also now handles targeted-generation commit failure explicitly instead of applying `?` in the
+non-`Result` callback owner.
+
+Rust 1.94.1 scoped formatting, `git diff --check`, and the four-caller generation-publication
+source guard are GREEN. Independent current-source review is Critical 0 / Important 0 / Minor 0.
+Fresh managed Runtime manager and Editor01 document/Editor12 bridge upward validation requests were
+accepted as queued tickets `76d3629d1ec24342b3ab5188002aa208` and
+`ac0d8e0a2e484123bab869e05a871681`. Their terminal state was deliberately not queried; these
+receipts prove submission only and are not GREEN validation evidence.
+Open state: `generation_publication_repair_review_green_validation_pending`。
+fresh managed Runtime/Editor upward gates、fixed return 与 milestone commit 尚未完成，
+因此本 artifact 继续保持 `handoff_kind: failure` / `status: open`，不声明 Editor01 close lifecycle
+已验收。

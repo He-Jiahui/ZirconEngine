@@ -81,3 +81,10 @@ Open state: `共享 registration replay context 源实现、current-source focus
 shared replay context已把单次replay的manifest/binding/method lookup/scope build降为每plugin一次；但live-host所有查询仍先`format!("runtime:{plugin_id}")`分配String key，公开bridge scope/single-method辅助路径还会clone完整package manifest与installed binding Vec。registration manifest source也在每次replay从loaded entry clone全文并重新parse TOML。PERF-MVP-543要求把typed plugin key、parsed registration manifest、validated bindings和dense method slots纳入同一native load generation；replay继续借用一个context，其他查询不得绕过它。
 
 补充验收：1M stable lookups key allocation=0，单generation manifest parse=1、package/binding full clone=0、method lookup O(1)；reload只重建受影响plugin generation，旧system/scope由in-flight Arc延寿。既有5+1 focused/scale证据不失效，但broad parity、typed generation验收、独立复审与fixed return完成前保持open。
+
+### 2026-08-02 current-source 静态恢复审计
+
+- `NativePluginLiveKey` / `NativePluginLiveRegistry` 已取代热路径 `format!("runtime:{plugin_id}")` 键；`NativePluginRegistrationReplayGeneration` 把 manifest、组件 stable-id、capability、预解析 system 与 `Arc<NativePluginRegistrationReplayBridgeContext>` 固定在同一 plugin generation。每个已注册 system 只接收 dense interface/method slot、`Arc<NativeHostBridgeCallScope>` 与 `Arc<NativeSystemAccessPlan>`。
+- `build_runtime_registration_replay_generation` 在同一 loaded-generation guard 内读取 manifest source 与 bridge generation，缓存发布以 revision 和冻结 bridge table identity 校验；reload 的 invalidate/cache 两个交错次序都有当前源码测试，避免旧 manifest 与新 callback 混配。
+- 不启动 Cargo 的当前源码守护复核覆盖 `native_live_host_uses_typed_borrowed_plugin_keys`、`native_registration_replay_generation_uses_one_validated_bridge_binding_authority`、`native_registration_replay_reads_manifest_and_callbacks_under_one_loaded_guard`，并确认 `native_registration_replay_and_reload_publish_both_consistent_generation_orders` 与 1/100/1000 × 1/100 scale benchmark 仍在本地 test owner。此项只证明结构和测试覆盖仍存在，不替代运行结果。
+- 外部 session 持有 validation-copy `5945e3ef29d74bd69602adca02e243b5` 与当前 Cargo FIFO 预留；本 session 未重建、重试或清理该副本，也未执行 Cargo。须取得明确的受管授权后，以 current source 跑 focused、broad 和独立复核；在此之前本 handoff 继续为 `open`，不得创建 `fixed-*` return。

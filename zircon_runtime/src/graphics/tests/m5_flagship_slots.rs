@@ -23,13 +23,11 @@ fn scene_render_frame_extract_populates_m5_flagship_slots_as_empty_sidebands() {
     let extract = World::new().to_render_frame_extract();
 
     assert!(extract.geometry.virtual_geometry.is_some());
-    assert!(
-        extract
-            .lighting
-            .hybrid_global_illumination
-            .as_ref()
-            .is_some_and(|hybrid_gi| !hybrid_gi.enabled)
-    );
+    assert!(extract
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .is_some_and(|hybrid_gi| !hybrid_gi.enabled));
 }
 
 #[test]
@@ -46,13 +44,11 @@ fn default_forward_plus_pipeline_keeps_m5_flagship_features_opted_out() {
 
     assert!(!pass_names.contains(&"virtual-geometry-prepare"));
     assert!(!pass_names.contains(&"hybrid-gi-resolve"));
-    assert!(
-        !compiled
-            .history_bindings
-            .contains(&FrameHistoryBinding::read_write(
-                FrameHistorySlot::GlobalIllumination,
-            ))
-    );
+    assert!(!compiled
+        .history_bindings
+        .contains(&FrameHistoryBinding::read_write(
+            FrameHistorySlot::GlobalIllumination,
+        )));
 }
 
 #[test]
@@ -81,23 +77,19 @@ fn compile_options_can_opt_in_linked_virtual_geometry_and_hybrid_gi_features() {
 
     assert!(pass_names.contains(&"virtual-geometry-prepare"));
     assert!(pass_names.contains(&"hybrid-gi-resolve"));
-    assert!(
-        compiled
-            .history_bindings
-            .contains(&FrameHistoryBinding::read_write(
-                FrameHistorySlot::GlobalIllumination,
-            ))
-    );
+    assert!(compiled
+        .history_bindings
+        .contains(&FrameHistoryBinding::read_write(
+            FrameHistorySlot::GlobalIllumination,
+        )));
     assert!(compiled.graph().passes().iter().any(|pass| {
         pass.name == "virtual-geometry-prepare" && pass.queue == QueueLane::Graphics
     }));
-    assert!(
-        compiled
-            .graph()
-            .passes()
-            .iter()
-            .any(|pass| pass.name == "hybrid-gi-resolve" && pass.queue == QueueLane::Graphics)
-    );
+    assert!(compiled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "hybrid-gi-resolve" && pass.queue == QueueLane::Graphics));
 }
 
 fn test_extract() -> RenderFrameExtract {

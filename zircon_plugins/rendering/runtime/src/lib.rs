@@ -1,10 +1,13 @@
-pub const PLUGIN_ID: &str = "rendering";
 pub const RENDERING_MODULE_NAME: &str = "rendering.runtime";
 
 mod capability;
 mod plugin;
 
-pub use capability::{RENDERING_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+pub use capability::{
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, RENDERING_DECLARATION,
+    RENDERING_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+};
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, RenderingRuntimePlugin, RENDERING_DIST_CRATE_NAME,

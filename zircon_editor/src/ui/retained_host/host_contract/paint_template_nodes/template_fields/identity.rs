@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
-    is_component_family, uses_workbench_visual_language, TemplateComponentFamily,
+    TemplateComponentFamily, is_component_family, uses_workbench_visual_language,
 };
 use super::search::is_search_field;
 

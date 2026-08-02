@@ -18,10 +18,6 @@ class PluginDocsCurrentStatusPluginValidateOwnerSplitsTests(unittest.TestCase):
         export_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         target_sections = {
             "standalone current contract": section(
@@ -33,11 +29,6 @@ class PluginDocsCurrentStatusPluginValidateOwnerSplitsTests(unittest.TestCase):
                 export_text,
                 "Distribution contract behavior tests live in",
                 "Dist crate workspace-member resolution and Cargo-manifest preflight",
-            ),
-            "active session distribution owner notes": section(
-                session_text,
-                "- `test_plugin_validate_distribution_contract.py` now owns",
-                "- `tools/zircon_build.py` now treats",
             ),
         }
         sections.update(target_sections)
@@ -65,12 +56,6 @@ class PluginDocsCurrentStatusPluginValidateOwnerSplitsTests(unittest.TestCase):
                     "test_plugin_validate_distribution_modules.py",
                     "root and feature-provider module cases",
                     "root/general validation, dist crate Cargo preflight",
-                ],
-                "active session distribution owner notes": [
-                    "test_plugin_validate_distribution_modules.py",
-                    "distribution module behavior tests",
-                    "`test_plugin_validate.py` is now 284 lines",
-                    "`test_plugin_validate_feature_provider.py` is 333 lines",
                 ],
             },
             "Current plugin docs do not reflect distribution modules test ownership",

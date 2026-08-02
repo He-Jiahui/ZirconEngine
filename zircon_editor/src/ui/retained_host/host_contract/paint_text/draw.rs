@@ -17,11 +17,11 @@ use self::layout::layout_text_run;
 use self::metrics::clamped_text_metrics;
 use self::recording::record_text_run;
 
+#[cfg(test)]
+pub(super) use entry::{DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT};
 pub(in crate::ui::retained_host::host_contract) use entry::{
     draw_text, draw_text_with_size_and_style,
 };
-#[cfg(test)]
-pub(super) use entry::{DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT};
 
 fn draw_text_with_size_and_style_impl(
     frame: &mut HostRgbaFrame,

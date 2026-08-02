@@ -10,8 +10,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::popup_position::{
-    PopupPlacement, anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame,
-    popup_layout_bounds,
+    anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame, popup_layout_bounds,
+    PopupPlacement,
 };
 
 #[derive(Clone, Debug)]

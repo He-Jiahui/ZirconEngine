@@ -1,5 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::template_dropdown_metrics::WorkbenchDropdownMetrics;
+use crate::ui::retained_host::host_contract::paint_geometry::{
+    corner_radius_for_frame, inward_pixel_aligned_rect,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_paint_rect(
     node: &TemplatePaneNodeData,
@@ -14,12 +17,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdow
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    FrameRect {
-        x: rect.x.round(),
-        y: rect.y.round(),
-        width: rect.width.round(),
-        height: rect.height,
-    }
+    inward_pixel_aligned_rect(rect)
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_surface_radius(
+    rect: &FrameRect,
+    metrics: &WorkbenchDropdownMetrics,
+) -> f32 {
+    corner_radius_for_frame(rect, metrics.radius)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_dropdown_extent(

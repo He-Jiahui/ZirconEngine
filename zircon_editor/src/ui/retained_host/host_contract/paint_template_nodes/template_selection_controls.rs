@@ -9,7 +9,7 @@ mod toggle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_selection_control_commands;
 #[cfg(test)]
-use identity::{selection_control_kind, SelectionControlKind};
+use identity::{SelectionControlKind, selection_control_kind};
 
 #[cfg(test)]
 use super::super::paint_theme::PALETTE;
@@ -24,9 +24,9 @@ use super::style_selector::{
 };
 #[cfg(test)]
 use super::template_selection_control_geometry::{
-    centered_square, label_rect_after_mark, leading_mark_rect, radio_dot_size, selection_label_gap,
-    toggle_thumb_rect, toggle_track_rect, workbench_selection_control_metrics_from_host,
-    RADIO_DOT_SIZE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH,
+    RADIO_DOT_SIZE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH, centered_square, label_rect_after_mark,
+    leading_mark_rect, radio_dot_size, selection_label_gap, toggle_thumb_rect, toggle_track_rect,
+    workbench_selection_control_metrics_from_host,
 };
 #[cfg(test)]
 use style::{

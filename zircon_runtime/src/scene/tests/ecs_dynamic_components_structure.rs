@@ -34,8 +34,9 @@ fn dynamic_component_descriptor_projections_use_pre_sized_vectors() {
             && entity_projection.contains("instances.push(DynamicComponentInstance")
             && entity_projection
                 .contains("descriptor: self.component_types.descriptor(component_id).cloned()")
-            && entity_projection
-                .contains("instances.sort_by(|left, right| left.component_id.cmp(&right.component_id));")
+            && entity_projection.contains(
+                "instances.sort_by(|left, right| left.component_id.cmp(&right.component_id));"
+            )
             && !entity_projection.contains(".map(|(component_id, value)|")
             && !entity_projection.contains(".collect::<Vec<_>>()"),
         "dynamic_components_for_entity must pre-size and push instance snapshots directly while retaining descriptor projection and final component-id ordering"
@@ -63,8 +64,9 @@ fn dynamic_component_registration_moves_descriptor_after_reflection_setup() {
     );
 
     assert!(
-        register.contains("crate::scene::reflect::registration_from_component_descriptor(&descriptor)?")
-            && register.contains("return Err(ReflectError::DuplicateTypePath")
+        register.contains(
+            "crate::scene::reflect::registration_from_component_descriptor(&descriptor)?"
+        ) && register.contains("return Err(ReflectError::DuplicateTypePath")
             && register.contains(".into());")
             && register.contains("let component =")
             && register.contains(
@@ -131,8 +133,9 @@ fn dynamic_component_property_writes_split_and_insert_only_at_map_boundaries() {
             "let Some((component_id, property)) = split_dynamic_property_path(property_path) else"
         ) && write_property.contains("SceneError::UnknownDynamicComponentProperty")
             && write_property.contains("self.validate_dynamic_component_type(component_id)?;")
-            && write_property
-                .contains("self.validate_dynamic_component_property_write(component_id, property)?;")
+            && write_property.contains(
+                "self.validate_dynamic_component_property_write(component_id, property)?;"
+            )
             && write_property.contains(".entry(component_id.to_string())")
             && write_property.contains("if object.get(property) == Some(&json_value)")
             && write_property.contains("object.insert(property.to_string(), json_value);")
@@ -238,7 +241,8 @@ fn dynamic_component_plugin_count_and_unload_scan_maps_directly() {
             && unload_body.contains("let mut has_active_components = false;")
             && unload_body.contains("for (entity, components) in &self.dynamic_components")
             && unload_body.contains("for component_id in components.keys()")
-            && unload_body.contains("if !dynamic_component_belongs_to_plugin(component_id, plugin_id)")
+            && unload_body
+                .contains("if !dynamic_component_belongs_to_plugin(component_id, plugin_id)")
             && unload_body.contains("continue;")
             && unload_body.contains("active_components.push_str(\", \");")
             && unload_body.contains("has_active_components = true;")
@@ -373,7 +377,8 @@ fn dynamic_component_json_property_conversions_use_direct_branches() {
         object_read.contains("if let Some(value) = object.get(\"resource\")")
             && object_read.contains("if let Some(value) = value.as_str()")
             && object_read.contains("Value::Number(number) => match number.as_u64()")
-            && object_read.contains("Some(entity) => Some(ScenePropertyValue::Entity(Some(entity)))")
+            && object_read
+                .contains("Some(entity) => Some(ScenePropertyValue::Entity(Some(entity)))")
             && !object_read.contains(".and_then(Value::as_str)")
             && !object_read.contains(".map(|entity| ScenePropertyValue::Entity"),
         "dynamic component JSON object reads must branch directly for resource and entity wrapper objects"

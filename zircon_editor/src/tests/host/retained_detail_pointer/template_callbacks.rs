@@ -32,3 +32,21 @@ fn inspector_surface_controls_use_pane_surface_host_callbacks() {
     assert!(inspector.contains("dispatch_inspector_control_changed"));
     assert!(inspector.contains("dispatch_inspector_control_clicked"));
 }
+
+#[test]
+fn inspector_surface_controls_use_the_shared_compact_control_radius() {
+    let controls = source("assets/ui/editor/host/inspector_surface_controls.zui");
+
+    assert!(
+        controls.contains("corner_radius = \"$editor.control.radius.control\""),
+        "inspector fields and actions must consume the shared control radius"
+    );
+    assert!(
+        !controls.contains("corner_radius = 10.0") && !controls.contains("corner_radius = 999.0"),
+        "inspector controls must not override the compact control shape"
+    );
+    assert!(
+        controls.contains("gap = \"$editor.density.gap.small\""),
+        "inspector controls must use the shared dense spacing rhythm"
+    );
+}

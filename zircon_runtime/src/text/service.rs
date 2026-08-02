@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::core::framework::text::{
     TextDirection, TextFontRequest, TextGlyph, TextGlyphFlags, TextGlyphRotation, TextLayoutError,
@@ -7,13 +7,13 @@ use crate::core::framework::text::{
     TextShapeRun, TextWritingMode,
 };
 
-use super::font::{register_font_handle_batch, shared_font_database_generation, FontDatabase};
+use super::font::{FontDatabase, register_font_handle_batch, shared_font_database_generation};
 use super::shaping::{
-    fallback_text_spans, resolve_bidi_base_direction, shape_text, FallbackTextSpan,
+    FallbackTextSpan, fallback_text_spans, resolve_bidi_base_direction, shape_text,
 };
 use super::{
-    BackendShapeRequest, ShapedGlyph, ShapedGlyphRotation, ShapedGlyphRun, TextRange, TextStyle,
-    VerticalMode,
+    BackendShapeRequest, OpenTypeFeature, ShapedGlyph, ShapedGlyphRotation, ShapedGlyphRun,
+    TextRange, TextStyle, VerticalMode,
 };
 
 // Bound caller-thread shaping during font reload storms; the next frame retries.
@@ -22,6 +22,9 @@ const MAX_FONT_GENERATION_SHAPE_ATTEMPTS: usize = 2;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct TextLayoutGenerationRetryReport {
     pub canonical_shape_count: u64,
+    pub neutral_projection_count: u64,
+    pub neutral_projection_glyph_count: u64,
+    pub neutral_projection_bytes: u64,
     pub restart_count: u64,
     pub deferred_count: u64,
 }
@@ -29,6 +32,9 @@ pub(crate) struct TextLayoutGenerationRetryReport {
 #[derive(Default)]
 struct TextLayoutGenerationRetryMetrics {
     canonical_shape_count: AtomicU64,
+    neutral_projection_count: AtomicU64,
+    neutral_projection_glyph_count: AtomicU64,
+    neutral_projection_bytes: AtomicU64,
     restart_count: AtomicU64,
     deferred_count: AtomicU64,
 }
@@ -37,6 +43,11 @@ impl TextLayoutGenerationRetryMetrics {
     fn report(&self) -> TextLayoutGenerationRetryReport {
         TextLayoutGenerationRetryReport {
             canonical_shape_count: self.canonical_shape_count.load(Ordering::Relaxed),
+            neutral_projection_count: self.neutral_projection_count.load(Ordering::Relaxed),
+            neutral_projection_glyph_count: self
+                .neutral_projection_glyph_count
+                .load(Ordering::Relaxed),
+            neutral_projection_bytes: self.neutral_projection_bytes.load(Ordering::Relaxed),
             restart_count: self.restart_count.load(Ordering::Relaxed),
             deferred_count: self.deferred_count.load(Ordering::Relaxed),
         }
@@ -65,21 +76,30 @@ pub(crate) fn fallback_spans_for_request(
     font_database: &FontDatabase,
 ) -> Vec<FallbackTextSpan> {
     let style = backend_style(&request);
-    let direction = resolve_bidi_base_direction(request.text, request.direction);
+    let features = backend_features(&request);
     fallback_text_spans(
         request.text,
-        BackendShapeRequest::horizontal(
-            request.text,
-            &style,
-            direction,
-            TextRange {
-                start: 0,
-                end: request.text.len(),
-            },
-        )
-        .with_language(request.language),
+        fallback_backend_request(&request, &style, features.as_slice()),
         font_database,
     )
+}
+
+fn fallback_backend_request<'a>(
+    request: &'a TextShapeRequest<'a>,
+    style: &'a TextStyle,
+    features: &'a [OpenTypeFeature],
+) -> BackendShapeRequest<'a> {
+    BackendShapeRequest::horizontal(
+        request.text,
+        style,
+        request.direction,
+        TextRange {
+            start: 0,
+            end: request.text.len(),
+        },
+    )
+    .with_features(features)
+    .with_language(request.language)
 }
 
 impl TextLayoutService for SharedTextLayoutService {
@@ -96,30 +116,32 @@ impl TextLayoutService for SharedTextLayoutService {
 
     fn shape(&self, request: TextShapeRequest<'_>) -> Result<TextShapeResult, TextLayoutError> {
         let style = backend_style(&request);
+        let features = backend_features(&request);
         let source_range = TextRange {
             start: 0,
             end: request.text.len(),
         };
-        let resolved_direction = self.resolve_direction(request.text, request.direction);
         let backend_request = match request.writing_mode {
             TextWritingMode::HorizontalTopToBottom => BackendShapeRequest::horizontal(
                 request.text,
                 &style,
-                resolved_direction,
+                request.direction,
                 source_range,
             )
             .with_kerning(request.include_kerning),
             TextWritingMode::VerticalRightToLeft => BackendShapeRequest::vertical(
                 request.text,
                 &style,
-                resolved_direction,
+                request.direction,
                 source_range,
                 VerticalMode::Mixed,
             )
             .with_kerning(request.include_kerning),
         }
+        .with_features(features.as_slice())
         .with_language(request.language);
         shape_backend_request_at_stable_generation(backend_request, |shaped, generation| {
+            let resolved_direction = shaped.direction;
             project_shape_result(shaped, resolved_direction, generation)
         })
     }
@@ -129,6 +151,8 @@ pub(super) fn shape_backend_request_at_stable_generation<Projected>(
     request: BackendShapeRequest<'_>,
     project: impl FnMut(ShapedGlyphRun, u64) -> Projected,
 ) -> Result<Projected, TextLayoutError> {
+    let canonical_request = request.canonicalized();
+    let request = canonical_request.request();
     validate_backend_shape_request(&request)?;
     shape_for_stable_font_generation(
         shared_font_database_generation,
@@ -178,6 +202,15 @@ fn validate_backend_shape_request(
     Ok(())
 }
 
+fn backend_features(request: &TextShapeRequest<'_>) -> Vec<OpenTypeFeature> {
+    // Keep framework DTOs independent from the implementation-owned, normalized cache key type.
+    request
+        .features
+        .iter()
+        .map(|feature| OpenTypeFeature::new(feature.tag, feature.value))
+        .collect()
+}
+
 fn backend_style(request: &TextShapeRequest<'_>) -> TextStyle {
     TextStyle {
         font: request.font.asset.map(str::to_string),
@@ -200,6 +233,7 @@ fn project_shape_result(
     resolved_direction: TextDirection,
     font_database_generation: u64,
 ) -> TextShapeResult {
+    record_neutral_projection(&shaped);
     let metrics = TextLayoutMetrics {
         width: shaped.measured_width,
         height: shaped.measured_height,
@@ -251,6 +285,39 @@ fn project_shape_result(
     }
 }
 
+pub(crate) fn project_shaped_glyph_run_for_runtime(
+    shaped: &ShapedGlyphRun,
+) -> TextShapeResult {
+    project_shape_result(
+        shaped.clone(),
+        shaped.direction,
+        shared_font_database_generation(),
+    )
+}
+
+fn record_neutral_projection(shaped: &ShapedGlyphRun) {
+    let glyph_count = shaped
+        .lines
+        .iter()
+        .map(|line| line.glyphs.len())
+        .sum::<usize>();
+    let projected_bytes = shaped
+        .lines
+        .len()
+        .saturating_mul(std::mem::size_of::<TextShapeRun>())
+        .saturating_add(glyph_count.saturating_mul(std::mem::size_of::<TextGlyph>()));
+    let metrics = generation_retry_metrics();
+    metrics
+        .neutral_projection_count
+        .fetch_add(1, Ordering::Relaxed);
+    metrics
+        .neutral_projection_glyph_count
+        .fetch_add(glyph_count as u64, Ordering::Relaxed);
+    metrics
+        .neutral_projection_bytes
+        .fetch_add(projected_bytes as u64, Ordering::Relaxed);
+}
+
 fn project_glyph(
     glyph: ShapedGlyph,
     (font_face, font_instance): (
@@ -291,11 +358,26 @@ fn project_glyph(
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
-    use crate::text::font::{font_handle_registry_report, shared_font_database_test_serial_guard};
+    use crate::core::framework::text::TextOpenTypeFeature;
+    use crate::text::font::{
+        FontDatabase, font_handle_registry_report, force_publish_shared_font_database,
+        shared_font_database_snapshot, shared_font_database_test_serial_guard,
+    };
+
+    struct SharedFontDatabaseRestore(FontDatabase);
+
+    impl Drop for SharedFontDatabaseRestore {
+        fn drop(&mut self) {
+            force_publish_shared_font_database(&self.0);
+        }
+    }
 
     #[test]
     fn production_text_layout_service_shapes_through_neutral_contract() {
+        let before = shared_text_layout_generation_retry_report();
         let font = TextFontRequest {
             size: 16.0,
             ..TextFontRequest::default()
@@ -307,6 +389,104 @@ mod tests {
         assert!(!result.runs.is_empty());
         assert!(result.metrics.width > 0.0);
         assert!(result.runs.iter().any(|run| !run.glyphs.is_empty()));
+        let after = shared_text_layout_generation_retry_report();
+        let glyph_count = result
+            .runs
+            .iter()
+            .map(|run| run.glyphs.len())
+            .sum::<usize>() as u64;
+        assert!(after.neutral_projection_count > before.neutral_projection_count);
+        assert!(
+            after.neutral_projection_glyph_count
+                >= before.neutral_projection_glyph_count + glyph_count
+        );
+        assert!(after.neutral_projection_bytes > before.neutral_projection_bytes);
+    }
+
+    #[test]
+    fn production_shape_resolves_auto_direction_from_the_canonical_run() {
+        let font = TextFontRequest {
+            size: 16.0,
+            ..TextFontRequest::default()
+        };
+
+        let result = shared_text_layout_service()
+            .shape(TextShapeRequest::new("مرحبا", font))
+            .expect("automatic RTL request shapes");
+
+        assert_eq!(result.resolved_direction, TextDirection::RightToLeft);
+    }
+
+    #[test]
+    fn native_fallback_request_defers_auto_direction_to_canonical_shaping() {
+        let request = TextShapeRequest::new("مرحبا", TextFontRequest::default());
+        let style = backend_style(&request);
+        let features = backend_features(&request);
+
+        let backend = fallback_backend_request(&request, &style, features.as_slice());
+
+        assert_eq!(backend.base_direction, TextDirection::Auto);
+    }
+
+    #[test]
+    fn neutral_request_features_map_to_backend_shape_features() {
+        let requested = [
+            TextOpenTypeFeature::new(*b"liga", 0),
+            TextOpenTypeFeature::new(*b"tnum", 1),
+        ];
+        let request =
+            TextShapeRequest::new("0123", TextFontRequest::default()).with_features(&requested);
+
+        assert_eq!(
+            backend_features(&request),
+            vec![
+                OpenTypeFeature::new(*b"liga", 0),
+                OpenTypeFeature::new(*b"tnum", 1),
+            ]
+        );
+    }
+
+    #[test]
+    fn neutral_service_features_change_final_ligature_glyph_count() {
+        let _shared_font_database = shared_font_database_test_serial_guard();
+        let (_, original_database) = shared_font_database_snapshot();
+        let _restore_database = SharedFontDatabaseRestore(original_database);
+        let mut feature_database = FontDatabase::with_default_fallbacks();
+        let font_source =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+        feature_database
+            .register_font_file(&font_source, Some("Fira Sans"), 0)
+            .expect("register deterministic ligature fixture");
+        force_publish_shared_font_database(&feature_database);
+
+        let families = ["Fira Sans"];
+        let font = TextFontRequest {
+            families: &families,
+            size: 24.0,
+            ..TextFontRequest::default()
+        };
+        let requested = [TextOpenTypeFeature::new(*b"liga", 0)];
+        let default_shape = shared_text_layout_service()
+            .shape(TextShapeRequest::new("fi", font))
+            .expect("default ligature request should shape");
+        let disabled_ligature_shape = shared_text_layout_service()
+            .shape(TextShapeRequest::new("fi", font).with_features(&requested))
+            .expect("feature-bearing ligature request should shape");
+        let default_glyph_count = default_shape
+            .runs
+            .iter()
+            .map(|run| run.glyphs.len())
+            .sum::<usize>();
+        let disabled_ligature_glyph_count = disabled_ligature_shape
+            .runs
+            .iter()
+            .map(|run| run.glyphs.len())
+            .sum::<usize>();
+
+        assert!(
+            disabled_ligature_glyph_count > default_glyph_count,
+            "liga=0 must reach SharedTextLayoutService::shape and suppress the Fira Sans fi ligature: default={default_glyph_count}, disabled={disabled_ligature_glyph_count}"
+        );
     }
 
     #[test]

@@ -222,3 +222,33 @@ Remaining acceptance is deliberately open: managed focused Cargo evidence,
 interrupted-write and benchmark matrices, lazy requested-chunk residency, and
 the Runtime11/IBL shared I/O and ownership work remain separate required plan
 layers.
+
+### 2026-08-01 requested-chunk residency and structure convergence
+
+- `ArtifactStore` is now a cloneable shared-residency owner rather than a unit
+  value. `open_chunk_inventory(...)` validates and exposes immutable generation
+  metadata without payload I/O; `read_compressed_chunk(...)` admits one
+  inventory index and returns a shared `Arc<[u8]>`. Full artifact decoding uses
+  the same reader/cache path. The default residency is a bounded 64 MiB LRU and
+  publishes resident bytes/chunks, cache hits, successful disk reads/bytes, and
+  evictions. Corrupt chunks are rejected before residency publication.
+- The API deliberately calls these compressed chunks: schema v3 stores ordered
+  pieces of one zstd frame, not independently uploadable mip/face sections.
+  Runtime11/Render13 sectioning must build on this inventory rather than create
+  a second index. The last-good fixture prepares and publishes immutable chunks
+  for revision 2, drops before manifest replacement, and proves revision 1
+  remains readable.
+- `store.rs`/`chunk_residency.rs` are 710/437 lines. Runtime04 structure mirrors
+  now agree on 25 source owners, 22 guard owners, 28 test anchors, and 24
+  behavior anchors. `python -B -m unittest
+  tools.tests.test_runtime_asset_pipeline_audit` passed 2/2; direct boundary
+  audit reports all missing lists empty and `risks = []`.
+- Fresh source-bound focused Cargo receipt: ticket
+  `7b90f810f9354ebfa906b247829a8397`, request
+  `runtime04-artifact-chunk-residency-20260801-3e7f9bab5f68`, manifest
+  `e485e4e5a8916f2a905b1aaea99242528038d79c88dbd1b30762602ead6b1ab0`.
+  Its receipt is `queued`; no terminal result or pass is inferred.
+
+Remaining acceptance stays open for that managed terminal evidence, quantitative
+4 KiB/256 MiB/1 GiB cold/warm/1% matrices, and the Runtime11/IBL/Render13 shared
+I/O and semantic-section ownership layer.

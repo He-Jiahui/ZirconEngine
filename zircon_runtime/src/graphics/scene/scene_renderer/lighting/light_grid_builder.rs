@@ -3,7 +3,7 @@ use bytemuck::{Pod, Zeroable};
 use crate::core::framework::render::{
     GpuLightData, GpuLightType, ProjectionMode, ViewportCameraSnapshot,
 };
-use crate::core::math::{Mat4, UVec2, Vec3, view_matrix};
+use crate::core::math::{view_matrix, Mat4, UVec2, Vec3};
 
 pub(crate) const LIGHT_GRID_INITIAL_TILE_SIZE_PX: u32 = 8;
 pub(crate) const LIGHT_GRID_MAX_ZBIN_WORDS: u32 = 4096;

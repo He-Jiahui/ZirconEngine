@@ -1,6 +1,6 @@
 use super::{
-    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,
+    CubemapFace, cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
+    cubemap_texel_direction, cubemap_texel_solid_angle,
 };
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;

@@ -13,8 +13,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    PendingMeshCommandCacheExtractItem, PendingMeshCommandCacheExtractionStats,
-    commands_for_extract_item_with_stats,
+    commands_for_extract_item_with_stats, PendingMeshCommandCacheExtractItem,
+    PendingMeshCommandCacheExtractionStats,
 };
 
 #[test]
@@ -88,6 +88,7 @@ fn pending_command_cache_extract_records_rebuild_rejected_fallback() {
 fn item(phase: MeshDrawQueuePhase) -> PendingMeshCommandCacheExtractItem {
     PendingMeshCommandCacheExtractItem {
         entity: 7,
+        stable_instance_key: (7 << 16) | 1,
         draw_ordinal: 1,
         source_draw_index: 0,
         queue_profile: MeshDrawQueueProfile::new(
@@ -127,7 +128,7 @@ fn batch(
         MeshGeometryHandle::test(1),
         MeshDrawArgs::direct_indexed(0, 3),
     )
-    .with_cache_identity(item.entity, item.draw_ordinal)
+    .with_cache_identity(item.entity, item.stable_instance_key, item.draw_ordinal)
     .with_static_state(item.static_state)
     .with_casts_shadow(item.casts_shadow)
     .with_visibility(relevance, main_view_visible, shadow_view_visible)

@@ -42,8 +42,21 @@ pub(crate) struct ParallelEncoderSet {
 
 impl ParallelEncoderSet {
     pub(crate) fn partition(compiled: &CompiledRenderGraph, min_passes_per_bucket: usize) -> Self {
+        Self::partition_filtered(compiled, min_passes_per_bucket, |_, _| true)
+    }
+
+    pub(crate) fn partition_filtered(
+        compiled: &CompiledRenderGraph,
+        min_passes_per_bucket: usize,
+        mut include_pass: impl FnMut(usize, &crate::render_graph::CompiledRenderPass) -> bool,
+    ) -> Self {
         Self {
-            buckets: topology_buckets(executable_topology_layers(compiled), min_passes_per_bucket),
+            buckets: topology_buckets(
+                executable_topology_layers(compiled, |pass_index, pass| {
+                    include_pass(pass_index, pass)
+                }),
+                min_passes_per_bucket,
+            ),
         }
     }
 
@@ -83,6 +96,40 @@ impl ParallelEncoderSet {
             encoder.finish()
         })
     }
+
+    pub(crate) fn record_parallel_with_outputs<T, E, F>(
+        &self,
+        device: &wgpu::Device,
+        pool: &TaskPool,
+        record_bucket: F,
+    ) -> Result<Vec<RecordedEncoderBucket<T>>, E>
+    where
+        T: Send,
+        E: Send,
+        F: Fn(&EncoderBucket, &mut wgpu::CommandEncoder) -> Result<Vec<T>, E> + Send + Sync,
+    {
+        record_buckets_ordered(&self.buckets, pool, |bucket| {
+            let mut encoder = create_bucket_encoder(device);
+            let outputs = record_bucket(bucket, &mut encoder)?;
+            Ok(RecordedEncoderBucket {
+                command_buffer: encoder.finish(),
+                outputs,
+            })
+        })
+        .into_iter()
+        .collect()
+    }
+}
+
+pub(crate) struct RecordedEncoderBucket<T> {
+    command_buffer: wgpu::CommandBuffer,
+    outputs: Vec<T>,
+}
+
+impl<T> RecordedEncoderBucket<T> {
+    pub(crate) fn into_parts(self) -> (wgpu::CommandBuffer, Vec<T>) {
+        (self.command_buffer, self.outputs)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -91,7 +138,10 @@ struct TopologyLayer {
     pass_indices: Vec<usize>,
 }
 
-fn executable_topology_layers(compiled: &CompiledRenderGraph) -> Vec<TopologyLayer> {
+fn executable_topology_layers(
+    compiled: &CompiledRenderGraph,
+    mut include_pass: impl FnMut(usize, &crate::render_graph::CompiledRenderPass) -> bool,
+) -> Vec<TopologyLayer> {
     let passes = compiled.passes();
     let mut layer_by_pass_id = HashMap::with_capacity(passes.len());
     let mut pass_indices_by_layer = Vec::<Vec<usize>>::new();
@@ -104,7 +154,7 @@ fn executable_topology_layers(compiled: &CompiledRenderGraph) -> Vec<TopologyLay
             .max()
             .unwrap_or(0);
         layer_by_pass_id.insert(pass.id, layer);
-        if pass.culled {
+        if pass.culled || !include_pass(pass_index, pass) {
             continue;
         }
         while pass_indices_by_layer.len() <= layer {
@@ -182,7 +232,7 @@ mod tests {
     use crate::core::{TaskPool, TaskPoolDescriptor};
     use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 
-    use super::{record_buckets_ordered, ParallelEncoderSet};
+    use super::{ParallelEncoderSet, record_buckets_ordered};
 
     #[test]
     fn parallel_encoder_partition_respects_topology_layers_and_skips_culled_passes() {
@@ -220,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn parallel_bucket_results_preserve_topology_order() {
+    fn render_perf_parallel_record_submission_order() {
         let graph = compiled_graph_with_executable_chain(8);
         let encoder_set = ParallelEncoderSet::partition(&graph, 2);
         let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
@@ -266,6 +316,56 @@ mod tests {
 
         assert_eq!(encoder_set.buckets().len(), 1);
         assert!(!encoder_set.should_record_parallel(true, &pool));
+    }
+
+    #[test]
+    fn parallel_encoder_partition_filters_passes_without_losing_graph_layer_order() {
+        let graph = compiled_graph_with_executable_chain(5);
+
+        let encoder_set = ParallelEncoderSet::partition_filtered(&graph, 1, |_, pass| {
+            matches!(pass.name.as_str(), "pass-1" | "pass-3")
+        });
+
+        assert_eq!(
+            encoder_set
+                .buckets()
+                .iter()
+                .map(|bucket| bucket.topology_layer_range())
+                .collect::<Vec<_>>(),
+            vec![1..=1, 3..=3]
+        );
+        assert_eq!(
+            encoder_set
+                .buckets()
+                .iter()
+                .flat_map(|bucket| bucket.pass_indices())
+                .map(|pass_index| graph.passes()[*pass_index].name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["pass-1", "pass-3"]
+        );
+    }
+
+    #[test]
+    fn render_perf_parallel_encoder_outputs_return_in_topology_order() {
+        let graph = compiled_graph_with_executable_chain(6);
+        let encoder_set = ParallelEncoderSet::partition(&graph, 2);
+        let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
+        let backend = crate::graphics::backend::RenderBackend::new_offscreen()
+            .expect("parallel encoder output test backend");
+
+        let recorded = encoder_set
+            .record_parallel_with_outputs(&backend.device, &pool, |bucket, encoder| {
+                encoder.insert_debug_marker("parallel-output-order");
+                Ok::<_, ()>(vec![bucket.topology_order()])
+            })
+            .expect("parallel bucket recording");
+        let (command_buffers, outputs): (Vec<_>, Vec<_>) = recorded
+            .into_iter()
+            .map(|bucket| bucket.into_parts())
+            .unzip();
+
+        assert_eq!(outputs, vec![vec![0], vec![1], vec![2]]);
+        backend.queue.submit(command_buffers);
     }
 
     fn compiled_graph_with_executable_chain(

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 use super::super::TemplatePaneNodeData;
@@ -17,7 +19,7 @@ pub(crate) struct ProjectOverviewData {
 #[derive(Clone, Default)]
 pub(crate) struct ConsolePaneData {
     pub nodes: ModelRc<TemplatePaneNodeData>,
-    pub status_text: SharedString,
+    pub status_text: Arc<str>,
 }
 
 #[derive(Clone, Default)]

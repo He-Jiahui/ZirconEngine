@@ -11,7 +11,7 @@ use field::push_heatmap_field;
 use geometry::WeightHeatmapGeometry;
 use identity::is_weight_heatmap;
 use markers::push_heat_source_markers;
-use text::push_heatmap_legend_text;
+use text::{legend_label_width, push_heatmap_legend_text};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_weight_heatmap_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -25,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_we
         return false;
     }
 
-    let geometry = WeightHeatmapGeometry::from_frame(rect);
+    let geometry = WeightHeatmapGeometry::from_frame(rect, legend_label_width(node));
     let sources = heatmap_sources(node);
     push_heatmap_field(commands, node, &sources, &geometry, clip, order, opacity);
     push_heat_source_markers(commands, &sources, &geometry, clip, order, opacity);

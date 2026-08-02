@@ -9,7 +9,8 @@ use crate::core::framework::render::{
 use crate::graphics::scene::resources::default_pipeline_key;
 
 use super::{
-    MESH_SHADER_TEMPLATE_REVISION, mesh_pipeline_deferred_gbuffer_template_source_for_geometry,
+    MESH_SHADER_TEMPLATE_REVISION, MeshPipelineShaderSource,
+    mesh_pipeline_deferred_gbuffer_template_source_for_geometry,
     mesh_pipeline_depth_prepass_template_source_for_geometry,
     mesh_pipeline_shadow_template_source_for_geometry,
     mesh_pipeline_standard_material_template_source,
@@ -93,6 +94,20 @@ fn mesh_pipeline_standard_material_template_source_assembles_forward_base_source
         key.shader_feature_bits()
             .contains(ShaderFeatureBits::ALPHA_TEST)
     );
+    assert!(!source.segments.is_empty());
+    assert_ne!(source.validation_cache_key(), source.source_hash);
+}
+
+#[test]
+fn mesh_pipeline_shader_source_remaps_invalid_wgsl_for_background_diagnostics() {
+    let source = MeshPipelineShaderSource::from_raw_wgsl("fn invalid_wgsl(");
+
+    let error = source
+        .validate_wgsl(&source.wgsl_source)
+        .expect_err("invalid WGSL must retain its remapped diagnostic for the validation worker");
+
+    assert!(!error.is_empty());
+    assert_eq!(source.validation_cache_key(), source.source_hash);
 }
 
 #[test]
@@ -101,6 +116,7 @@ fn mesh_pipeline_oit_source_is_a_dedicated_fragment_store_variant() {
     let base = mesh_pipeline_standard_material_template_source(&key)
         .expect("standard material template assembly");
     let base_hash = base.source_hash.clone();
+    let base_segment_count = base.segments.len();
     let oit = base
         .into_oit_fragment_store_source()
         .expect("template forward source should support OIT specialization");
@@ -115,6 +131,17 @@ fn mesh_pipeline_oit_source_is_a_dedicated_fragment_store_variant() {
     assert!(
         oit.wgsl_source
             .contains("@group(4) @binding(0) var<storage, read_write> oit_layers")
+    );
+    assert_eq!(oit.segments.len(), base_segment_count + 2);
+    assert!(
+        oit.segments
+            .iter()
+            .any(|segment| segment.module_id == "zircon::oit::draw")
+    );
+    assert!(
+        oit.segments
+            .iter()
+            .any(|segment| segment.module_id == "zircon::oit::fragment_store_entry")
     );
 }
 
@@ -547,6 +574,27 @@ fn mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bi
             .wgsl_source
             .contains("@group(3) @binding(10) var<storage, read> zr_virtual_geometry_clusters")
     );
+    assert!(
+        source
+            .wgsl_source
+            .contains("fn zr_gpu_scene_virtual_geometry_page_count()")
+    );
+    assert!(
+        source
+            .wgsl_source
+            .contains("fn zr_gpu_scene_virtual_geometry_cluster_word_count()")
+    );
+    assert!(source.wgsl_source.contains(
+        "zr_gpu_scene_valid_payload_slot(payload_slot, zr_gpu_scene_virtual_geometry_page_count())"
+    ));
+    assert!(
+        source.wgsl_source.contains(
+            "let cluster_word_count = zr_gpu_scene_virtual_geometry_cluster_word_count()"
+        )
+    );
+    assert!(!source.wgsl_source.contains(
+        "zr_gpu_scene_valid_payload_slot(payload_slot, arrayLength(&zr_virtual_geometry_pages))"
+    ));
     assert!(
         source
             .wgsl_source

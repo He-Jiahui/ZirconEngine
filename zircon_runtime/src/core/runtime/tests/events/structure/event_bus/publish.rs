@@ -1,4 +1,4 @@
-use super::fixture::{EventBusSources, assert_absent, assert_contains, assert_ordered};
+use super::fixture::{assert_absent, assert_contains, assert_ordered, EventBusSources};
 
 #[test]
 fn event_bus_publish_shares_one_immutable_payload_under_a_per_topic_delivery_lock() {

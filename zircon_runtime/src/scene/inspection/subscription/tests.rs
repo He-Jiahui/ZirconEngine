@@ -5,10 +5,10 @@ use zircon_runtime_interface::world_sync::{
     AssetReloadFrameApplyReportDto, WatchKey, WatchRegistration, WorldFact,
 };
 
-use crate::scene::components::NodeKind;
 use crate::scene::World;
+use crate::scene::components::NodeKind;
 
-use super::{ancestor_chain_contains, SubscriptionTable, SubscriptionTableLimits};
+use super::{SubscriptionTable, SubscriptionTableLimits, ancestor_chain_contains};
 
 #[test]
 fn watch_allocates_distinct_tokens_and_unwatch_revokes_pending_dirty() {

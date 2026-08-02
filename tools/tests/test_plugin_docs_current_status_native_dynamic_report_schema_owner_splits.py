@@ -42,11 +42,6 @@ class PluginDocsCurrentStatusNativeDynamicReportSchemaOwnerSplitTests(
                     "NativeDynamic package report schema helper owner",
                     "package report reusable field diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_package_report_schema_helper_owner_split",
-                    "pipeline_report_native_dynamic_package_report_schema_helpers.py",
-                    "NativeDynamic package report schema helper owner",
-                ],
             },
             "Current export/plugin docs do not reflect NativeDynamic package report schema helper owner split",
         )
@@ -77,11 +72,6 @@ class PluginDocsCurrentStatusNativeDynamicReportSchemaOwnerSplitTests(
                     "pipeline_report_native_dynamic_build_execution_packages_schema.py",
                     "NativeDynamic build execution packages schema owner",
                     "BuildExecution packages row schema diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_build_execution_packages_schema_owner_split",
-                    "pipeline_report_native_dynamic_build_execution_packages_schema.py",
-                    "NativeDynamic build execution packages schema owner",
                 ],
             },
             "Current export/plugin docs do not reflect NativeDynamic build execution packages schema owner split",
@@ -114,11 +104,6 @@ class PluginDocsCurrentStatusNativeDynamicReportSchemaOwnerSplitTests(
                     "NativeDynamic build plan schema helper owner",
                     "BuildPlan packages row and reusable field diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_build_plan_schema_helper_owner_split",
-                    "pipeline_report_native_dynamic_build_plan_schema_helpers.py",
-                    "NativeDynamic build plan schema helper owner",
-                ],
             },
             "Current export/plugin docs do not reflect NativeDynamic build plan schema helper owner split",
         )
@@ -150,11 +135,6 @@ class PluginDocsCurrentStatusNativeDynamicReportSchemaOwnerSplitTests(
                     "NativeDynamic operation audit stage packages owner",
                     "packages[].artifacts[] schema diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_operation_audit_stage_packages_owner_split",
-                    "pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py",
-                    "NativeDynamic operation audit stage packages owner",
-                ],
             },
             "Current export/plugin docs do not reflect NativeDynamic operation audit stage packages owner split",
         )
@@ -185,11 +165,6 @@ class PluginDocsCurrentStatusNativeDynamicReportSchemaOwnerSplitTests(
                     "pipeline_report_native_dynamic_build_plan_package_details.py",
                     "NativeDynamic build-plan package details owner",
                     "header match and expected artifact diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_build_plan_package_details_owner_split",
-                    "pipeline_report_native_dynamic_build_plan_package_details.py",
-                    "NativeDynamic build-plan package details owner",
                 ],
             },
             "Current export/plugin docs do not reflect NativeDynamic build-plan package details owner split",

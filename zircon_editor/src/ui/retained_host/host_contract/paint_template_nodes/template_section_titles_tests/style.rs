@@ -1,9 +1,9 @@
 use crate::ui::retained_host::primitives::Color;
 
-use super::super::super::super::paint_theme::{current_host_palette, METRICS};
+use super::super::super::super::paint_theme::{METRICS, current_host_palette};
 use super::super::super::template_section_title_glyphs::{
-    section_icon_color, section_title_glyph_metrics_from_host,
-    section_title_glyph_palette_from_host, SectionTitleIcon,
+    SectionTitleIcon, section_icon_color, section_title_glyph_metrics_from_host,
+    section_title_glyph_palette_from_host,
 };
 use super::super::style::{
     section_text_color, section_title_metrics_from_host, section_title_palette_from_host,

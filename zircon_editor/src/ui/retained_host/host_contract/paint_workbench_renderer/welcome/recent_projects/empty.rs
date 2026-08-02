@@ -3,7 +3,7 @@ use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
 };
-use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 use super::super::style::WELCOME_MUTED_TEXT;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 

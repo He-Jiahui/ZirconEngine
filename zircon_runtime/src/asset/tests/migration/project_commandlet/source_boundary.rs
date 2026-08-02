@@ -137,6 +137,28 @@ fn migration_inventory_skips_missing_roots_without_rescanning_existing_roots() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[test]
+fn migration_inventory_rejects_reparse_asset_roots_without_visiting_their_target() {
+    let root = fixture_root("migration-reparse-asset-root");
+    let outside = fixture_root("migration-reparse-asset-root-outside");
+    let linked_assets = root.join("assets");
+    let outside_source = outside.join("must-not-scan.scene.toml");
+    fs::write(&outside_source, "outside = true\n").unwrap();
+    if !create_directory_link(&outside, &linked_assets) {
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
+        return;
+    }
+
+    let error = scan_migration_inventory_for_test(&[linked_assets.clone()]).unwrap_err();
+
+    assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+    assert_eq!(fs::read_to_string(&outside_source).unwrap(), "outside = true\n");
+    remove_directory_link(&linked_assets);
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(outside).unwrap();
+}
+
 #[cfg(windows)]
 fn nested_root_with_distinct_lexical_case(
     root: &std::path::Path,

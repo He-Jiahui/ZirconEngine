@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::{ResourceRecord, ResourceState, RuntimeResourceState};
+use crate::core::resource::{
+    ResourceReadinessState, ResourceRecord, ResourceState, RuntimeResourceState,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -61,6 +63,18 @@ impl AssetLoadState {
         }
 
         Self::NotLoaded
+    }
+}
+
+impl From<ResourceReadinessState> for AssetLoadState {
+    fn from(value: ResourceReadinessState) -> Self {
+        match value {
+            ResourceReadinessState::NotLoaded => Self::NotLoaded,
+            ResourceReadinessState::Loading => Self::Loading,
+            ResourceReadinessState::Loaded => Self::Loaded,
+            ResourceReadinessState::Failed => Self::Failed,
+            ResourceReadinessState::Reloading => Self::Reloading,
+        }
     }
 }
 
@@ -310,5 +324,17 @@ impl From<AssetLoadState> for DependencyLoadState {
             AssetLoadState::Failed => Self::Failed,
             AssetLoadState::Reloading => Self::Reloading,
         }
+    }
+}
+
+impl From<ResourceReadinessState> for DependencyLoadState {
+    fn from(value: ResourceReadinessState) -> Self {
+        AssetLoadState::from(value).into()
+    }
+}
+
+impl From<ResourceReadinessState> for RecursiveDependencyLoadState {
+    fn from(value: ResourceReadinessState) -> Self {
+        AssetLoadState::from(value).into()
     }
 }

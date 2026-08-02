@@ -74,7 +74,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
   - zircon_runtime/src/core/framework/render/post_process/validation.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
@@ -158,7 +158,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
@@ -687,7 +687,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
   - zircon_runtime/src/core/framework/render/post_process/validation.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
@@ -830,7 +830,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs

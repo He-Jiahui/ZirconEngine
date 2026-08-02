@@ -189,10 +189,12 @@ fn project_manager_records_failed_imports_and_continues_scanning() {
     assert_eq!(failed.kind, crate::asset::AssetKind::Model);
     assert_eq!(failed.state, ResourceState::Error);
     assert!(failed.artifact_locator().is_none());
-    assert!(failed
-        .diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.message.contains("backend is not installed")));
+    assert!(
+        failed
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("backend is not installed"))
+    );
 
     let failed_meta = AssetMetaDocument::load(
         paths

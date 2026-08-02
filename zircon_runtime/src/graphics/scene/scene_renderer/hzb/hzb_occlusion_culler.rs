@@ -1,12 +1,18 @@
-use std::sync::mpsc;
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
 use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshCommandLists;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshIndirectDrawExecution;
-use crate::graphics::visibility::{HzbOcclusionCullReadbackStats, HzbOcclusionCullReport};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    MeshIndirectArgsReadback, MeshIndirectDrawExecution, MeshPassIndirectDrawExecutions,
+};
+use crate::graphics::visibility::{
+    HzbOcclusionCullReadbackStats, HzbOcclusionCullReport, HzbOcclusionIndirectArgsReadbackSummary,
+};
+use crate::rhi_wgpu::gpu_readback_queue::{GpuReadbackQueue, ReadbackError};
 
 use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
 
@@ -28,6 +34,8 @@ const HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE: u64 =
     std::mem::size_of::<HzbOcclusionCullParams>() as u64;
 pub(crate) const HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE: u64 =
     std::mem::size_of::<HzbOcclusionCullGpuStats>() as u64;
+const MAX_PENDING_HZB_STATS_READBACKS: usize = 4;
+const MAX_PENDING_HZB_INDIRECT_ARGS_READBACKS: usize = 4;
 const HZB_OCCLUSION_CULL_SHADER: &str = concat!(
     include_str!("../mesh/shaders/zr_gpu_scene.wgsl"),
     "\n",
@@ -82,7 +90,100 @@ pub(crate) struct HzbOcclusionCuller {
     pipeline: wgpu::ComputePipeline,
     params_buffer: wgpu::Buffer,
     stats_buffer: wgpu::Buffer,
-    stats_readback_buffer: wgpu::Buffer,
+    stats_readbacks: Arc<Mutex<HzbStatsReadbackQueue>>,
+    pending_indirect_args: Mutex<VecDeque<PendingHzbIndirectArgs>>,
+}
+
+struct HzbStatsReadbackSlot {
+    source_frame_index: u64,
+    stats: Option<HzbOcclusionCullReadbackStats>,
+}
+
+#[derive(Default)]
+struct HzbStatsReadbackQueue {
+    slots: VecDeque<HzbStatsReadbackSlot>,
+    dropped_count: u32,
+}
+
+struct PendingHzbIndirectArgs {
+    source_frame_index: u64,
+    readbacks: Vec<MeshIndirectArgsReadback>,
+}
+
+impl HzbStatsReadbackQueue {
+    fn reserve(&mut self, source_frame_index: u64) -> bool {
+        if self.slots.len() >= MAX_PENDING_HZB_STATS_READBACKS {
+            self.dropped_count = self.dropped_count.saturating_add(1);
+            return false;
+        }
+        self.slots.push_back(HzbStatsReadbackSlot {
+            source_frame_index,
+            stats: None,
+        });
+        true
+    }
+
+    fn cancel(&mut self, source_frame_index: u64) {
+        if let Some(index) = self
+            .slots
+            .iter()
+            .position(|slot| slot.source_frame_index == source_frame_index && slot.stats.is_none())
+        {
+            self.slots.remove(index);
+        }
+    }
+
+    fn complete(&mut self, source_frame_index: u64, stats: HzbOcclusionCullReadbackStats) {
+        if let Some(slot) = self
+            .slots
+            .iter_mut()
+            .find(|slot| slot.source_frame_index == source_frame_index && slot.stats.is_none())
+        {
+            slot.stats = Some(stats);
+        }
+    }
+
+    fn fail(&mut self, source_frame_index: u64) {
+        if self
+            .slots
+            .iter()
+            .any(|slot| slot.source_frame_index == source_frame_index && slot.stats.is_none())
+        {
+            self.cancel(source_frame_index);
+            self.dropped_count = self.dropped_count.saturating_add(1);
+        }
+    }
+
+    fn record_drop(&mut self) {
+        self.dropped_count = self.dropped_count.saturating_add(1);
+    }
+
+    fn pop_ready(&mut self) -> Option<(u64, HzbOcclusionCullReadbackStats)> {
+        let ready = self.slots.front()?.stats?;
+        let source_frame_index = self
+            .slots
+            .pop_front()
+            .expect("ready HZB stats slot must remain queued")
+            .source_frame_index;
+        Some((source_frame_index, ready))
+    }
+
+    fn diagnostics(&self, current_frame_index: Option<u64>) -> (u32, u32, Option<u64>) {
+        let pending_count = self
+            .slots
+            .iter()
+            .filter(|slot| slot.stats.is_none())
+            .count()
+            .try_into()
+            .unwrap_or(u32::MAX);
+        let oldest_pending_age_frames = current_frame_index.and_then(|current_frame_index| {
+            self.slots
+                .iter()
+                .find(|slot| slot.stats.is_none())
+                .map(|slot| current_frame_index.saturating_sub(slot.source_frame_index))
+        });
+        (pending_count, self.dropped_count, oldest_pending_age_frames)
+    }
 }
 
 pub(crate) fn hzb_occlusion_supported_by_limits(limits: &wgpu::Limits) -> bool {
@@ -133,19 +234,13 @@ impl HzbOcclusionCuller {
                 | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        let stats_readback_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-hzb-occlusion-cull-stats-readback"),
-            size: HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-
         Self {
             bind_group_layout,
             pipeline,
             params_buffer,
             stats_buffer,
-            stats_readback_buffer,
+            stats_readbacks: Arc::new(Mutex::new(HzbStatsReadbackQueue::default())),
+            pending_indirect_args: Mutex::new(VecDeque::new()),
         }
     }
 
@@ -191,10 +286,6 @@ impl HzbOcclusionCuller {
             execution.mark_compaction_ready_for_replay();
             dispatch_summary.record_phase(&phase_dispatch);
         }
-        if dispatch_summary.dispatched_phase_count() > 0 {
-            self.copy_stats_to_readback(encoder);
-        }
-
         HzbOcclusionCullReport::single_frame_reproject(
             candidate_arg_count,
             candidate_instance_count,
@@ -255,35 +346,134 @@ impl HzbOcclusionCuller {
         );
     }
 
-    fn copy_stats_to_readback(&self, encoder: &mut wgpu::CommandEncoder) {
-        encoder.copy_buffer_to_buffer(
-            &self.stats_buffer,
-            0,
-            &self.stats_readback_buffer,
-            0,
-            HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
-        );
+    pub(crate) fn request_frame_readbacks(
+        &self,
+        queue: &mut GpuReadbackQueue,
+        indirect_draws: &MeshPassIndirectDrawExecutions,
+        source_frame_index: u64,
+        capture_indirect_args: bool,
+    ) -> Result<(), ReadbackError> {
+        let stats_readbacks = Arc::clone(&self.stats_readbacks);
+        if stats_readbacks
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .reserve(source_frame_index)
+        {
+            if let Err(error) = queue.request_readback_external(
+                "hzb-occlusion.stats",
+                &self.stats_buffer,
+                0..HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
+                Box::new(move |result| {
+                    let mut readbacks = stats_readbacks
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    let Some(stats) = result
+                        .ok()
+                        .and_then(|bytes| decode_gpu_stats(&bytes))
+                        .map(HzbOcclusionCullGpuStats::readback_stats)
+                    else {
+                        readbacks.fail(source_frame_index);
+                        return;
+                    };
+                    readbacks.complete(source_frame_index, stats);
+                }),
+            ) {
+                self.stats_readbacks
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .cancel(source_frame_index);
+                return Err(error);
+            }
+        }
+        if capture_indirect_args {
+            let can_request_indirect_args = {
+                let pending = self
+                    .pending_indirect_args
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                pending.len() < MAX_PENDING_HZB_INDIRECT_ARGS_READBACKS
+            };
+            if !can_request_indirect_args {
+                self.stats_readbacks
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .record_drop();
+                return Ok(());
+            }
+            let indirect_args = indirect_draws
+                .request_hzb_occlusion_args_readbacks(queue, "hzb-occlusion.indirect-args")?;
+            self.pending_indirect_args
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .push_back(PendingHzbIndirectArgs {
+                    source_frame_index,
+                    readbacks: indirect_args,
+                });
+        }
+        Ok(())
+    }
+
+    pub(crate) fn record_skipped_readback(&self) {
+        self.stats_readbacks
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_drop();
     }
 
     pub(crate) fn collect_last_readback_stats(
         &self,
-        device: &wgpu::Device,
-    ) -> Option<HzbOcclusionCullReadbackStats> {
-        let slice = self.stats_readback_buffer.slice(..);
-        let (sender, receiver) = mpsc::channel();
-        slice.map_async(wgpu::MapMode::Read, move |result| {
-            let _ = sender.send(result);
-        });
-        device.poll(wgpu::PollType::wait_indefinitely()).ok()?;
-        receiver.recv().ok()?.ok()?;
+    ) -> Option<(u64, HzbOcclusionCullReadbackStats)> {
+        self.stats_readbacks
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pop_ready()
+    }
 
-        let mapped = slice.get_mapped_range();
-        let gpu_stats = *bytemuck::from_bytes::<HzbOcclusionCullGpuStats>(
-            &mapped[..HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE as usize],
-        );
-        drop(mapped);
-        self.stats_readback_buffer.unmap();
-        Some(gpu_stats.readback_stats())
+    pub(crate) fn with_readback_queue_diagnostics(
+        &self,
+        report: HzbOcclusionCullReport,
+        current_frame_index: Option<u64>,
+    ) -> HzbOcclusionCullReport {
+        let readbacks = self
+            .stats_readbacks
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let (pending_count, dropped_count, oldest_pending_age_frames) =
+            readbacks.diagnostics(current_frame_index);
+        report.with_readback_queue_diagnostics(
+            pending_count,
+            dropped_count,
+            oldest_pending_age_frames,
+        )
+    }
+
+    pub(crate) fn collect_last_indirect_args_summary(
+        &self,
+    ) -> Option<(u64, HzbOcclusionIndirectArgsReadbackSummary)> {
+        let mut pending = self
+            .pending_indirect_args
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if !pending.front().is_some_and(|pending| {
+            pending
+                .readbacks
+                .iter()
+                .all(MeshIndirectArgsReadback::is_ready)
+        }) {
+            return None;
+        }
+        let mut summary = HzbOcclusionIndirectArgsReadbackSummary::default();
+        let pending = pending.pop_front()?;
+        for readback in pending.readbacks {
+            let snapshot = readback.collect()?;
+            summary.add_assign(HzbOcclusionIndirectArgsReadbackSummary::new(
+                snapshot.args_count(),
+                snapshot.compacted_draw_count(),
+                snapshot.zero_instance_arg_count(),
+                snapshot.remaining_instance_count(),
+            ));
+        }
+        Some((pending.source_frame_index, summary))
     }
 
     pub(crate) fn stats_buffer(&self) -> &wgpu::Buffer {
@@ -340,6 +530,25 @@ impl HzbOcclusionCuller {
             ],
         })
     }
+}
+
+fn decode_gpu_stats(bytes: &[u8]) -> Option<HzbOcclusionCullGpuStats> {
+    let bytes = bytes.get(..HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE as usize)?;
+    Some(HzbOcclusionCullGpuStats {
+        tested_arg_count: decode_u32(bytes, 0),
+        tested_instance_count: decode_u32(bytes, 4),
+        culled_arg_count: decode_u32(bytes, 8),
+        culled_instance_count: decode_u32(bytes, 12),
+    })
+}
+
+fn decode_u32(bytes: &[u8], offset: usize) -> u32 {
+    u32::from_le_bytes([
+        bytes[offset],
+        bytes[offset + 1],
+        bytes[offset + 2],
+        bytes[offset + 3],
+    ])
 }
 
 fn create_hzb_occlusion_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

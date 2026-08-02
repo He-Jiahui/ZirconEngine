@@ -8,35 +8,52 @@ use super::{
     profile::{StoredBindingSlot, StoredKeybindProfile, StoredKeybindValue},
     registry::{keybind_action, KEYBIND_ACTIONS},
 };
-use crate::preferences::PreferenceStorage;
+use crate::preferences::{read_preference_text, submit_preference_text, PreferenceRead};
+use zircon_runtime::core::framework::platform::{PreferenceMutationSubmission, PreferenceStorage};
 
 pub struct StoredKeybinds<S> {
     storage: S,
     storage_key: String,
+    use_legacy_fallback: bool,
     bindings: Keybinds,
+    last_persistence_submission: Option<PreferenceMutationSubmission>,
 }
 
 impl<S> StoredKeybinds<S>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
     pub fn new(scope: &str, storage: S) -> Self {
         let storage_key = keybind_storage_key(scope);
-        let profile = read_profile(&storage, &storage_key).or_else(|| {
-            (!scope.is_empty())
-                .then(|| read_profile(&storage, LEGACY_KEYBIND_STORAGE_KEY))
-                .flatten()
-        });
-        let bindings = profile.map_or_else(Keybinds::default, Keybinds::from_stored_profile);
+        let use_legacy_fallback = !scope.is_empty();
+        let bindings = read_bindings(&storage, &storage_key, use_legacy_fallback)
+            .into_ready()
+            .unwrap_or_default();
         Self {
             storage,
             storage_key,
+            use_legacy_fallback,
             bindings,
+            last_persistence_submission: None,
         }
     }
 
     pub fn storage_key(&self) -> &str {
         &self.storage_key
+    }
+
+    pub fn refresh_from_storage(&mut self) -> bool {
+        let Some(bindings) =
+            read_bindings(&self.storage, &self.storage_key, self.use_legacy_fallback).into_ready()
+        else {
+            return false;
+        };
+        self.bindings = bindings;
+        true
+    }
+
+    pub fn take_persistence_submission(&mut self) -> Option<PreferenceMutationSubmission> {
+        self.last_persistence_submission.take()
     }
 
     pub fn bind(&mut self, id: &str, slot: usize, combo: &str) -> bool {
@@ -64,9 +81,10 @@ where
         self.storage
     }
 
-    fn save(&self) {
+    fn save(&mut self) {
         let encoded = encode_stored_keybinds(&self.bindings);
-        let _ = self.storage.write(&self.storage_key, &encoded);
+        self.last_persistence_submission =
+            submit_preference_text(self.storage.as_ref(), &self.storage_key, &encoded);
     }
 }
 
@@ -104,12 +122,34 @@ pub fn encode_stored_keybinds(bindings: &Keybinds) -> String {
     Value::Object(entries).to_string()
 }
 
-fn read_profile<S>(storage: &S, key: &str) -> Option<StoredKeybindProfile>
+fn read_bindings<S>(
+    storage: &S,
+    storage_key: &str,
+    use_legacy_fallback: bool,
+) -> PreferenceRead<Keybinds>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
-    let raw = storage.read(key).ok()??;
-    decode_stored_keybind_profile(&raw)
+    match read_profile(storage, storage_key) {
+        PreferenceRead::Pending => PreferenceRead::Pending,
+        PreferenceRead::Ready(Some(profile)) => {
+            PreferenceRead::Ready(Keybinds::from_stored_profile(profile))
+        }
+        PreferenceRead::Ready(None) if use_legacy_fallback => {
+            read_profile(storage, LEGACY_KEYBIND_STORAGE_KEY).map(|profile| {
+                profile.map_or_else(Keybinds::default, Keybinds::from_stored_profile)
+            })
+        }
+        PreferenceRead::Ready(None) => PreferenceRead::Ready(Keybinds::default()),
+    }
+}
+
+fn read_profile<S>(storage: &S, key: &str) -> PreferenceRead<Option<StoredKeybindProfile>>
+where
+    S: AsRef<dyn PreferenceStorage>,
+{
+    read_preference_text(storage.as_ref(), key)
+        .map(|raw| raw.as_deref().and_then(decode_stored_keybind_profile))
 }
 
 fn decode_stored_value(value: Value) -> StoredKeybindValue {

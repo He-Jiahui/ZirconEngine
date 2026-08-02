@@ -4,6 +4,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use serde::de::DeserializeOwned;
+use serde_json::value::RawValue;
 use zircon_runtime::plugin::PluginEventConsumerManifest;
 
 use super::{EditorRuntimeEventConsumerApplyError, EditorRuntimeEventConsumerError};
@@ -25,7 +26,7 @@ pub trait EditorRuntimeEventConsumerState: Send + 'static {
 }
 
 type BeginConsumer = dyn Fn(u64) + Send + Sync;
-type ApplyConsumer = dyn Fn(u64, u64, serde_json::Value) -> Result<(), EditorRuntimeEventConsumerApplyError>
+type ApplyConsumer = dyn Fn(u64, u64, Box<RawValue>) -> Result<(), EditorRuntimeEventConsumerApplyError>
     + Send
     + Sync;
 type EndConsumer = dyn Fn(u64) + Send + Sync;
@@ -58,7 +59,7 @@ impl EditorRuntimeEventConsumerRegistration {
                     .begin_session(play_session_id);
             }),
             apply: Arc::new(move |play_session_id, sequence, payload| {
-                let payload = serde_json::from_value::<S::Payload>(payload)
+                let payload = serde_json::from_str::<S::Payload>(payload.get())
                     .map_err(|source| EditorRuntimeEventConsumerApplyError::Decode { source })?;
                 apply_state
                     .lock()
@@ -94,7 +95,7 @@ impl EditorRuntimeEventConsumerRegistration {
         &self,
         play_session_id: u64,
         sequence: u64,
-        payload: serde_json::Value,
+        payload: Box<RawValue>,
     ) -> Result<(), EditorRuntimeEventConsumerApplyError> {
         (self.apply)(play_session_id, sequence, payload)
     }

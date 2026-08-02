@@ -61,6 +61,15 @@ const WOC_RETAINED_ABILITY_IDS = [
   // WOS109 closes the source-positioned Warlock channel through the existing
   // castAt payload ABI and retained channel lifecycle.
   'rain_of_fire',
+  // WOS175 starts the Fire Mage cast surface with the three source shapes
+  // already expressible by the generic M4 projection. Dragon's Breath stays
+  // on its specialized empowered-cone contract.
+  'pyroblast',
+  'flamestrike',
+  'combustion',
+  // WOS188 retains the Mage's off-GCD Overload self-buff so the generated
+  // catalog can resolve the source-owned level-14 choice grant.
+  'overload',
   // WOS110 retains the source-owned Immolate consumption and delayed Fire
   // projectile resolution through the existing hostile-spell envelope.
   'conflagrate',
@@ -132,8 +141,36 @@ const WOC_RETAINED_ABILITY_IDS = [
   'hurricane',
   // WOS138 retains the Druid's target interrupt and school lockout.
   'skull_bash',
+  // WOS193 retains the source Mage Arcane Chronomancy direct-heal pair.
+  'temporal_mend',
+  'temporal_echo',
+  // WOS202 retains the source Chronomancy five-target group Echo cast. The
+  // durable per-mark group distinction remains world-owned.
+  'temporal_cascade',
+  // WOS203 retains Chronomancy's instant group recovery. Its damage-history
+  // tail and resolved group healing stay world-owned; source cast and effect
+  // tuning remain in the generated M4 catalog.
+  'temporal_rewind',
+  // WOS196 retains Chronomancy's source-owned targeted absorb shield through
+  // the shared generated absorb-profile projection.
+  'temporal_barrier',
+  // WOS197 retains the source Chronomancy damage spender. Its charge lifecycle
+  // remains world-owned, while base cast/range/cost/damage stay generated.
+  'arcane_surge',
+  // WOS198 retains Chronomancy's charge-dump channel. Its per-channel state
+  // remains world-owned while ranks, ticks, and direct-damage rows stay generated.
+  'arcane_missiles',
+  // WOS199 retains Chronomancy's off-GCD Arcane self window. Its coupled
+  // charge lifecycle is world-owned, while source flags and cooldown stay generated.
+  'perfect_moment',
+  // WOS201 retains Chronomancy's positioned rescue/control tool. Spatial
+  // selection and retained aura rows stay world-owned; source tuning is generated.
+  'temporal_hourglass',
+  // WOS200 retains Chronomancy's group/raid full-haste cooldown through the
+  // shared group-haste and Sated source contracts.
+  'temporal_acceleration',
 ];
-const EXPECTED_ABILITY_COUNT = 79;
+const EXPECTED_ABILITY_COUNT = 93;
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, '..');

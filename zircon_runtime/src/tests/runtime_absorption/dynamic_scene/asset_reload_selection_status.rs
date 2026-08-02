@@ -4,7 +4,7 @@ use super::sources::*;
 fn runtime_05_dynamic_scene_asset_reload_selection_and_status_anchors_stay_visible() {
     for anchor in [
         "dynamic_scene_asset_reload_supersedes_older_pending_scene_revision",
-        "DynamicSceneAssetReloadQueue::new(fixture.project.clone(), events)",
+        "fixture.resources.clone(),",
         "fixture.register_ready_revision(\"scene-v1\")",
         "fixture.register_ready_revision(\"scene-v2\")",
         "drain_until_events(&mut queue, &scheduler, 2)",

@@ -4,8 +4,8 @@ use crate::core::framework::render::{
 use crate::render_graph::QueueLane;
 
 use crate::graphics::feature::{
-    BuiltinRenderFeature, RenderFeatureCapabilityRequirement,
-    descriptor_only_advanced_slot_requires_capability_opt_in,
+    descriptor_only_advanced_slot_requires_capability_opt_in, BuiltinRenderFeature,
+    RenderFeatureCapabilityRequirement,
 };
 use crate::graphics::pipeline::declarations::{RenderPipelineCompileOptions, RendererFeatureAsset};
 

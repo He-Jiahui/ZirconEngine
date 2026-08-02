@@ -1,5 +1,8 @@
 use super::editor_state::EditorState;
-use crate::ui::workbench::snapshot::StatusTaskProgressSnapshot;
+use crate::core::editor_event::ConsoleMessageFilter;
+use crate::ui::workbench::snapshot::{
+    ConsoleOutputSnapshot, EditorConsoleMessageLevel, StatusTaskProgressSnapshot,
+};
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest};
 
 impl EditorState {
@@ -59,7 +62,32 @@ impl EditorState {
     }
 
     pub fn set_status_line(&mut self, value: impl Into<String>) {
-        self.status_line = value.into();
+        self.set_status_line_with_level(value, EditorConsoleMessageLevel::Info);
+    }
+
+    pub fn set_status_line_with_level(
+        &mut self,
+        value: impl Into<String>,
+        level: EditorConsoleMessageLevel,
+    ) {
+        let value = value.into();
+        if self.status_line != value {
+            self.status_line = value;
+        }
+        self.console_history
+            .push_with_level(&self.status_line, level);
+    }
+
+    pub(crate) fn console_output(&self) -> ConsoleOutputSnapshot {
+        self.console_history.output()
+    }
+
+    pub fn clear_console_history(&mut self) -> bool {
+        self.console_history.clear()
+    }
+
+    pub fn set_console_message_filter(&mut self, filter: ConsoleMessageFilter) -> bool {
+        self.console_history.set_filter(filter)
     }
 
     pub fn set_status_task_progress(&mut self, value: Option<StatusTaskProgressSnapshot>) {

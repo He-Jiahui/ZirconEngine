@@ -66,7 +66,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
   - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/
   - zircon_editor/src/tests/host/template_runtime/mod.rs
   - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
   - zircon_editor/src/core/editor_event/service/state.rs
@@ -134,11 +134,11 @@ editor 是结构债最重的 crate（探索报告评分最低）：`ui/` 臃肿�
 | S3 | 超大投影 / 转换文件、职责过载 | R1.3 / R1.4 | `template_bridge/workbench_projection.rs`(3619)、`workbench_host_window/chrome_template_projection.rs`(1741)、`retained_host/ui/pane_data_conversion/`（mod 1559 + projection 1126 + tests 1288） |
 | S4 | 重复测试树（无单一 source of truth） | R4.3 | `src/tests/host/retained_callback_dispatch/**`(23 文件) ↔ `src/ui/retained_host/callback_dispatch/**` |
 | S5 | 层级不清 / 无主名 | R2.3 | `core/editor_event/runtime/editor_event_runtime_state.rs` 已完成 `_inner` 禁名硬切；`editor_runtime_play_mode_backend.rs` 仍需继续评估 runtime 目录职责 |
-| S6 | 巨型测试文件 | R4.3 | `src/tests/.../workbench_projection.rs`(3619)、`src/tests/editor_event/runtime.rs`(3591)；`retained_host/ui/tests.rs` 已拆为 `retained_host/ui/tests/{mod,support,host_scene_projection,apply_presentation_shell,workbench_layout_frames,welcome_presentation,scene_document_pane,floating_windows,component_showcase}.rs` |
+| S6 | 巨型测试文件 | R4.3 | `src/tests/.../workbench_projection/` 已按布局、文档、场景、交互、弹窗和 surface contract 拆为 12 个 <800 行 owner，并由该测试根模块的 source guard 防止回流；`src/tests/editor_event/runtime.rs`(3591) 仍待拆分；`retained_host/ui/tests.rs` 已拆为 `retained_host/ui/tests/{mod,support,host_scene_projection,apply_presentation_shell,workbench_layout_frames,welcome_presentation,scene_document_pane,floating_windows,component_showcase}.rs` |
 | S7 | **投影函数样板复制 + 超长函数**（`to_host_contract_pane` ~228 行、`animation_template_projection` ~326 行共用 view→映射→model_rc 骨架） | R1.3 / 规范 E5 | `retained_host/ui/pane_data_conversion/mod.rs:74,245,316,468,760,1082` |
 | S8 | **死代码抑制聚集，疑半成品**（component_adapter 注册 5 处 `#[allow(dead_code)]`、workbench world slot 4 处） | 规范 E6 | `ui/template_runtime/component_adapter/registry.rs:14,50,83,116,198`、`ui/workbench/state/editor_world_slot.rs:10,23,35,47` |
 
-> S7-S8 来自 [`engine-code-review-findings-2026-06.md`](../../../engine-code-review-findings-2026-06.md)（F15/F12）。
+> S7-S8 来自 [`engine-code-review-findings-2026-06.md`](../../engine-code-review-findings-2026-06.md)（F15/F12）。
 
 ## 3. 目标结构（收敛后形态）
 

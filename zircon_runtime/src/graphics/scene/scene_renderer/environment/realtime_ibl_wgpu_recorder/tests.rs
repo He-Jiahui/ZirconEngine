@@ -24,6 +24,22 @@ fn invalid_pmrem_slice_reports_its_exact_bounds() {
 }
 
 #[test]
+fn realtime_ibl_timestamp_encoding_requires_explicit_gpu_timing() {
+    let source = include_str!("../realtime_ibl_wgpu_recorder.rs");
+    let normalized = source.split_whitespace().collect::<String>();
+    let start = source
+        .find("pub(in crate::graphics) fn record_graph_plan")
+        .expect("realtime IBL recorder entrypoint");
+    let record_graph_plan = &source[start..];
+
+    assert!(record_graph_plan.contains("gpu_timing_enabled: bool"));
+    assert!(record_graph_plan.contains("Self::timestamp_recorder("));
+    assert!(record_graph_plan.contains("timestamp_recorder.map("));
+    assert!(source.contains("timestamps: None"));
+    assert!(normalized.contains("gpu_timing_enabled&&timestamps.is_none()"));
+}
+
+#[test]
 #[ignore = "full PMREM+SH9 WGPU product validation"]
 fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() {
     let Ok(RenderBackend { device, queue, .. }) = RenderBackend::new_offscreen() else {
@@ -41,7 +57,7 @@ fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() 
     let plan = append_realtime_ibl_graph_plan(&mut builder, &request, &batch)
         .expect("realtime graph plan");
     let resources = RealtimeIblGpuResources::new(&device, &request);
-    let recorder = RealtimeIblWgpuRecorder::new(&device);
+    let mut recorder = RealtimeIblWgpuRecorder::new(&device);
     let mut pipeline_cache = IblBakeWgpuPipelineCache::new(&device);
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-realtime-ibl-wgpu-product"),
@@ -52,6 +68,7 @@ fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() 
         .record_graph_plan(
             &device,
             &mut encoder,
+            true,
             &request,
             &sky,
             &plan,

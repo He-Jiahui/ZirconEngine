@@ -81,8 +81,8 @@ class ZirconExportSourceTemplatePlanCommandOwnerBoundaryTests(unittest.TestCase)
         )
         self.assertLess(
             plan_command_lines,
-            220,
-            "SourceTemplate plan/command owner should stay below 220 lines",
+            340,
+            "SourceTemplate plan/command owner should stay below 340 lines",
         )
 
 

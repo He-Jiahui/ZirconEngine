@@ -3,15 +3,15 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use zircon_runtime_interface::{
-    ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV3,
-    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
-    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1,
+    ProfileControlCommand, ProfileControlRequest, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
+    ZrRuntimeApiV3, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeFrameV1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
+    ZrRuntimeOperationSubmitRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
+    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
 };
 
 use crate::core::gateway::{
@@ -304,19 +304,16 @@ unsafe extern "C" fn fake_submit_operation(
 unsafe extern "C" fn fake_poll_operation(
     _session: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    write_json_output(
-        &ZrRuntimeOperationProgressV1::new(
-            zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1,
-            operation,
-            ZrRuntimeOperationPhase::Running,
-            1,
-            2,
-            "baking",
-        ),
-        output,
-    );
+    output.write(ZrRuntimeOperationStatusV2::new(
+        operation,
+        ZrRuntimeOperationPhase::ReadyToApply,
+        1,
+        2,
+        ZrRuntimeOperationDetailKindV2::None,
+        0,
+    ));
     ZrStatus::ok()
 }
 
@@ -340,19 +337,16 @@ unsafe extern "C" fn fake_harvest_operation(
 unsafe extern "C" fn fake_poll_crossed_operation(
     _session: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    write_json_output(
-        &ZrRuntimeOperationProgressV1::new(
-            zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1,
-            ZrRuntimeOperationHandle::new(operation.raw() + 1),
-            ZrRuntimeOperationPhase::Running,
-            1,
-            2,
-            "crossed",
-        ),
-        output,
-    );
+    output.write(ZrRuntimeOperationStatusV2::new(
+        ZrRuntimeOperationHandle::new(operation.raw() + 1),
+        ZrRuntimeOperationPhase::ReadyToApply,
+        1,
+        2,
+        ZrRuntimeOperationDetailKindV2::None,
+        0,
+    ));
     ZrStatus::ok()
 }
 
@@ -373,58 +367,65 @@ unsafe extern "C" fn fake_harvest_crossed_operation(
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn fake_poll_invalid_json(
+unsafe extern "C" fn fake_poll_foreign_abi(
     _session: ZrRuntimeSessionHandle,
-    _operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    operation: ZrRuntimeOperationHandle,
+    output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    write_owned_bytes(b"{".to_vec(), output);
+    let mut status = ZrRuntimeOperationStatusV2::new(
+        operation,
+        ZrRuntimeOperationPhase::Queued,
+        0,
+        1,
+        ZrRuntimeOperationDetailKindV2::None,
+        0,
+    );
+    status.abi_version = zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1;
+    output.write(status);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn fake_poll_malformed_buffer(
+unsafe extern "C" fn fake_poll_unknown_phase(
     _session: ZrRuntimeSessionHandle,
-    _operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    operation: ZrRuntimeOperationHandle,
+    output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    output.write(ZrOwnedByteBuffer {
-        data: std::ptr::null_mut(),
-        len: 2,
-        capacity: 1,
-        owner_token: 0,
-        free: Some(record_output_release),
-    });
+    let mut status = ZrRuntimeOperationStatusV2::new(
+        operation,
+        ZrRuntimeOperationPhase::Queued,
+        0,
+        1,
+        ZrRuntimeOperationDetailKindV2::None,
+        0,
+    );
+    status.phase = 99;
+    output.write(status);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn fake_poll_oversized_buffer(
+unsafe extern "C" fn fake_poll_unknown_detail(
     _session: ZrRuntimeSessionHandle,
-    _operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    operation: ZrRuntimeOperationHandle,
+    output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    let oversized = (isize::MAX as usize).saturating_add(1);
-    output.write(ZrOwnedByteBuffer {
-        data: std::ptr::NonNull::<u8>::dangling().as_ptr(),
-        len: oversized,
-        capacity: oversized,
-        owner_token: 0,
-        free: Some(record_output_release),
-    });
+    let mut status = ZrRuntimeOperationStatusV2::new(
+        operation,
+        ZrRuntimeOperationPhase::Queued,
+        0,
+        1,
+        ZrRuntimeOperationDetailKindV2::None,
+        0,
+    );
+    status.detail_kind = 99;
+    output.write(status);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn fake_poll_error_with_callbackless_output(
+unsafe extern "C" fn fake_poll_error_without_output(
     _session: ZrRuntimeSessionHandle,
     _operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    _output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    output.write(ZrOwnedByteBuffer {
-        data: std::ptr::NonNull::<u8>::dangling().as_ptr(),
-        len: 1,
-        capacity: 1,
-        owner_token: 0,
-        free: None,
-    });
     ZrStatus::new(
         ZrStatusCode::NotFound,
         ZrByteSlice::from_static(b"operation handle was not found"),
@@ -434,19 +435,16 @@ unsafe extern "C" fn fake_poll_error_with_callbackless_output(
 unsafe extern "C" fn fake_poll_error_with_output(
     _session: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    write_json_output(
-        &ZrRuntimeOperationProgressV1::new(
-            zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1,
-            operation,
-            ZrRuntimeOperationPhase::Running,
-            0,
-            1,
-            "queued",
-        ),
-        output,
-    );
+    output.write(ZrRuntimeOperationStatusV2::new(
+        operation,
+        ZrRuntimeOperationPhase::Queued,
+        0,
+        1,
+        ZrRuntimeOperationDetailKindV2::None,
+        0,
+    ));
     ZrStatus::new(
         ZrStatusCode::NotFound,
         ZrByteSlice::from_static(b"operation handle was not found"),
@@ -608,10 +606,12 @@ fn session_gateway_forwards_abi_tick_event_and_frame_calls() {
     assert_eq!(TICK_CALLS.load(Ordering::SeqCst), 1);
     assert_eq!(EVENT_CALLS.load(Ordering::SeqCst), 1);
     assert_eq!((frame.width(), frame.height()), (640, 360));
-    assert!(frame
-        .rgba()
-        .expect("read the empty runtime frame bytes")
-        .is_empty());
+    assert!(
+        frame
+            .rgba()
+            .expect("read the empty runtime frame bytes")
+            .is_empty()
+    );
 }
 
 #[test]
@@ -717,9 +717,11 @@ fn session_gateway_forwards_plugin_events_and_operations_and_frees_outputs() {
     assert!(page.encoded_bytes() <= ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1);
     assert_eq!(page.runtime_remaining_deliveries(), 9);
     assert_eq!(page.runtime_oldest_pending_age_millis(), 17);
-    assert!(gateway
-        .unsubscribe_plugin_event(subscription)
-        .expect("unsubscribe plugin event"));
+    assert!(
+        gateway
+            .unsubscribe_plugin_event(subscription)
+            .expect("unsubscribe plugin event")
+    );
 
     let operation = gateway
         .submit_operation(ZrRuntimeOperationSubmitRequestV1::new(
@@ -728,8 +730,8 @@ fn session_gateway_forwards_plugin_events_and_operations_and_frees_outputs() {
             serde_json::Value::Null,
         ))
         .expect("submit operation");
-    let progress = gateway.poll_operation(operation).expect("poll operation");
-    assert_eq!(progress.phase, ZrRuntimeOperationPhase::Running);
+    let status = gateway.poll_operation(operation).expect("poll operation");
+    assert_eq!(status.phase(), Some(ZrRuntimeOperationPhase::ReadyToApply));
     let result = gateway
         .harvest_operation(operation)
         .expect("harvest operation");
@@ -737,7 +739,7 @@ fn session_gateway_forwards_plugin_events_and_operations_and_frees_outputs() {
         result.succeeded_output(),
         Some(&serde_json::json!({"meshCount": 4}))
     );
-    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 3);
+    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 2);
 }
 
 #[test]
@@ -751,47 +753,47 @@ fn session_gateway_maps_runtime_not_found_to_runtime_error() {
 }
 
 #[test]
-fn session_gateway_releases_invalid_json_and_malformed_owned_outputs() {
+fn session_gateway_rejects_foreign_abi_and_unknown_fixed_status_phase() {
     let _output_test_guard = OUTPUT_TEST_LOCK.lock().expect("lock output test fixture");
     FREED_OUTPUTS.store(0, Ordering::SeqCst);
     let operation = ZrRuntimeOperationHandle::new(29);
 
-    let mut invalid_json_api = api_table();
-    invalid_json_api.poll_operation = Some(fake_poll_invalid_json);
+    let mut foreign_abi_api = api_table();
+    foreign_abi_api.poll_operation = Some(fake_poll_foreign_abi);
     assert!(matches!(
-        gateway(invalid_json_api).poll_operation(operation),
+        gateway(foreign_abi_api).poll_operation(operation),
         Err(GatewayError::Protocol { .. })
     ));
 
-    let mut malformed_api = api_table();
-    malformed_api.poll_operation = Some(fake_poll_malformed_buffer);
+    let mut unknown_phase_api = api_table();
+    unknown_phase_api.poll_operation = Some(fake_poll_unknown_phase);
     assert!(matches!(
-        gateway(malformed_api).poll_operation(operation),
+        gateway(unknown_phase_api).poll_operation(operation),
         Err(GatewayError::Protocol { .. })
     ));
-    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 2);
+    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 0);
 }
 
 #[test]
-fn session_gateway_rejects_oversized_and_callbackless_error_outputs_before_decoding() {
+fn session_gateway_rejects_unknown_detail_and_error_status_without_output() {
     let _output_test_guard = OUTPUT_TEST_LOCK.lock().expect("lock output test fixture");
     FREED_OUTPUTS.store(0, Ordering::SeqCst);
     let operation = ZrRuntimeOperationHandle::new(29);
 
-    let mut oversized_api = api_table();
-    oversized_api.poll_operation = Some(fake_poll_oversized_buffer);
+    let mut unknown_detail_api = api_table();
+    unknown_detail_api.poll_operation = Some(fake_poll_unknown_detail);
     assert!(matches!(
-        gateway(oversized_api).poll_operation(operation),
+        gateway(unknown_detail_api).poll_operation(operation),
         Err(GatewayError::Protocol { .. })
     ));
 
-    let mut callbackless_api = api_table();
-    callbackless_api.poll_operation = Some(fake_poll_error_with_callbackless_output);
+    let mut error_status_api = api_table();
+    error_status_api.poll_operation = Some(fake_poll_error_without_output);
     assert!(matches!(
-        gateway(callbackless_api).poll_operation(operation),
+        gateway(error_status_api).poll_operation(operation),
         Err(GatewayError::Protocol { .. })
     ));
-    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 1);
+    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 0);
 }
 
 #[test]
@@ -831,11 +833,11 @@ fn session_gateway_rejects_crossed_response_identity_and_truncated_frame_payload
         gateway(harvest_api).harvest_operation(operation),
         Err(GatewayError::Protocol { .. })
     ));
-    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 4);
+    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 3);
 }
 
 #[test]
-fn session_gateway_releases_output_when_runtime_returns_an_error_status() {
+fn session_gateway_ignores_fixed_status_output_when_runtime_returns_an_error() {
     let _output_test_guard = OUTPUT_TEST_LOCK.lock().expect("lock output test fixture");
     FREED_OUTPUTS.store(0, Ordering::SeqCst);
     let mut api = api_table();
@@ -846,7 +848,7 @@ fn session_gateway_releases_output_when_runtime_returns_an_error_status() {
         .unwrap_err();
 
     assert!(matches!(error, GatewayError::Runtime { .. }));
-    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 1);
+    assert_eq!(FREED_OUTPUTS.load(Ordering::SeqCst), 0);
 }
 
 #[test]

@@ -14,7 +14,6 @@ mod input_stack;
 mod job_system;
 mod naming_boundary;
 mod performance_hotspots;
-mod plan_status;
 mod plugin_surface_lifecycle;
 mod rayon_boundary;
 mod resource_foundation;

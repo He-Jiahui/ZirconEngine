@@ -1,28 +1,50 @@
 use std::{marker::PhantomData, time::Duration, time::Instant};
 
-use crossbeam_channel::{RecvError, RecvTimeoutError, TryRecvError};
 use serde::{Deserialize, Serialize};
 
 use super::{Asset, Handle};
-use crate::core::framework::channel::ChannelReceiver;
 use crate::core::resource::{
-    ResourceEvent, ResourceEventKind, ResourceKind, ResourceLocator, ResourceMarker,
+    ResourceEvent, ResourceEventKind, ResourceEventReceiver, ResourceEventRecvError,
+    ResourceEventRecvTimeoutError, ResourceEventTryRecvError, ResourceKind, ResourceLocator,
+    ResourceMarker, approximate_event_bytes,
 };
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum AssetEventPoll<TAsset: Asset> {
+    Relevant {
+        event: AssetEvent<TAsset>,
+        approximate_bytes: usize,
+    },
+    Filtered {
+        approximate_bytes: usize,
+    },
+}
+
+impl<TAsset: Asset> AssetEventPoll<TAsset> {
+    pub(crate) fn approximate_bytes(&self) -> usize {
+        match self {
+            Self::Relevant {
+                approximate_bytes, ..
+            }
+            | Self::Filtered { approximate_bytes } => *approximate_bytes,
+        }
+    }
+}
+
 pub struct AssetEventReceiver<TAsset: Asset> {
-    receiver: ChannelReceiver<ResourceEvent>,
+    receiver: ResourceEventReceiver,
     _asset: PhantomData<fn() -> TAsset>,
 }
 
 impl<TAsset: Asset> AssetEventReceiver<TAsset> {
-    fn new(receiver: ChannelReceiver<ResourceEvent>) -> Self {
+    fn new(receiver: ResourceEventReceiver) -> Self {
         Self {
             receiver,
             _asset: PhantomData,
         }
     }
 
-    pub fn recv(&self) -> Result<AssetEvent<TAsset>, RecvError> {
+    pub fn recv(&self) -> Result<AssetEvent<TAsset>, ResourceEventRecvError> {
         loop {
             let event = self.receiver.recv()?;
             if let Some(event) = AssetEvent::from_resource_event(event) {
@@ -31,7 +53,10 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
         }
     }
 
-    pub fn recv_timeout(&self, timeout: Duration) -> Result<AssetEvent<TAsset>, RecvTimeoutError> {
+    pub fn recv_timeout(
+        &self,
+        timeout: Duration,
+    ) -> Result<AssetEvent<TAsset>, ResourceEventRecvTimeoutError> {
         let started = Instant::now();
         loop {
             let remaining = timeout.saturating_sub(started.elapsed());
@@ -40,18 +65,30 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
                 return Ok(event);
             }
             if started.elapsed() >= timeout {
-                return Err(RecvTimeoutError::Timeout);
+                return Err(ResourceEventRecvTimeoutError::Timeout);
             }
         }
     }
 
-    pub fn try_recv(&self) -> Result<AssetEvent<TAsset>, TryRecvError> {
+    pub fn try_recv(&self) -> Result<AssetEvent<TAsset>, ResourceEventTryRecvError> {
         loop {
             let event = self.receiver.try_recv()?;
             if let Some(event) = AssetEvent::from_resource_event(event) {
                 return Ok(event);
             }
         }
+    }
+
+    pub(crate) fn try_recv_one(&self) -> Result<AssetEventPoll<TAsset>, ResourceEventTryRecvError> {
+        let resource_event = self.receiver.try_recv()?;
+        let approximate_bytes = approximate_event_bytes(&resource_event);
+        Ok(match AssetEvent::from_resource_event(resource_event) {
+            Some(event) => AssetEventPoll::Relevant {
+                event,
+                approximate_bytes,
+            },
+            None => AssetEventPoll::Filtered { approximate_bytes },
+        })
     }
 }
 
@@ -163,30 +200,20 @@ mod tests {
 
     #[test]
     fn typed_asset_receiver_skips_other_resource_kinds_without_a_filter_thread() {
-        let (sender, receiver) = crossbeam_channel::unbounded();
-        let typed = typed_event_receiver::<TextureAsset>(receiver);
+        let resources = crate::core::resource::ResourceManager::new();
+        let typed = typed_event_receiver::<TextureAsset>(resources.subscribe());
         let shader_id = ResourceId::from_stable_label("typed event unrelated shader");
         let texture_id = ResourceId::from_stable_label("typed event target texture");
-        sender
-            .send(ResourceEvent {
-                kind: ResourceEventKind::Added,
-                resource_kind: ResourceKind::Shader,
-                id: shader_id,
-                locator: None,
-                previous_locator: None,
-                revision: 1,
-            })
-            .unwrap();
-        sender
-            .send(ResourceEvent {
-                kind: ResourceEventKind::Added,
-                resource_kind: ResourceKind::Texture,
-                id: texture_id,
-                locator: None,
-                previous_locator: None,
-                revision: 2,
-            })
-            .unwrap();
+        resources.register_record(crate::core::resource::ResourceRecord::new(
+            shader_id,
+            ResourceKind::Shader,
+            locator("res://shaders/unrelated.wgsl"),
+        ));
+        resources.register_record(crate::core::resource::ResourceRecord::new(
+            texture_id,
+            ResourceKind::Texture,
+            locator("res://textures/target.png"),
+        ));
 
         let event = typed.try_recv().expect("typed texture event");
 
@@ -288,7 +315,7 @@ impl<TAsset: Asset> AssetEvent<TAsset> {
 }
 
 pub(crate) fn typed_event_receiver<TAsset: Asset>(
-    resource_events: ChannelReceiver<ResourceEvent>,
+    resource_events: ResourceEventReceiver,
 ) -> AssetEventReceiver<TAsset> {
     AssetEventReceiver::new(resource_events)
 }

@@ -6,10 +6,10 @@ use std::cell::Cell;
 use crate::asset::pack::{ZrPackError, ZrPackReader};
 
 use super::{
+    ZrPackDeltaInstallError, ZrPackPromotionMethod, ZrPackPromotionReport,
     file_io::{
         copy_pack_file, optional_backup_path, read_pack_file, remove_pack_file, rename_pack_file,
     },
-    ZrPackDeltaInstallError, ZrPackPromotionMethod, ZrPackPromotionReport,
 };
 
 pub(super) fn promote_staged_pack(

@@ -1885,7 +1885,7 @@
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
 |------|------|---------|------|---------|
-| M6-T1 | 导出向导（布局 `ai-build-export-layout.png`）+ 阶段进度（CLI 进程输出流式解析）+ 报告视图 | editor_build_export_desktop | M2、[10 规范](10-editor-integration.md) | editor 契约测试；`docs/zircon_plugins/editor-build-export-desktop.md` 更新 |
+| M6-T1 | 导出向导（布局 `ai-build-export-layout.png`）+ 阶段进度（CLI 进程输出流式解析）+ 报告视图 | editor_build_export_desktop | M2、[10 规范](../../../zircon_plugins/10-editor-integration.md) | editor 契约测试；`docs/zircon_plugins/editor-build-export-desktop.md` 更新 |
 
 ## 6. 验收命令
 

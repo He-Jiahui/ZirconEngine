@@ -623,8 +623,7 @@ fn apply_scene_composite(uv: vec2<f32>, coord: vec2<u32>, viewport_size: vec2<u3
     let coord_i32 = vec2<i32>(coord);
     let resolved_reflection =
         load_resolved_screen_space_reflection(coord_i32, viewport_size);
-    let reflection_weight =
-        resolved_reflection.a * clamp(params.effect_dither_ssr.z, 0.0, 1.0);
+    let reflection_weight = resolved_reflection.a;
     var composited = mix(color, resolved_reflection.rgb, reflection_weight);
     composited = apply_effect_fog(uv, coord, viewport_size, composited);
     return composited;

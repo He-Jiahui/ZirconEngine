@@ -3,8 +3,8 @@ use std::path::Path;
 
 use super::AssetImporter;
 use crate::asset::{
-    asset_kind_for_imported_asset, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetUri, ImportedAsset,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetUri,
+    ImportedAsset, asset_kind_for_imported_asset,
 };
 
 impl AssetImporter {

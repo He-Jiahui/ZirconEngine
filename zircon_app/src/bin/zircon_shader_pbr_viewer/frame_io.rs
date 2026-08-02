@@ -1,7 +1,40 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
+
+const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v2";
+// This reports only reuse inside the viewer's MeshPipelineCache, never a persisted driver PSO.
+const ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE: &str = "process_local_mesh_pipeline_cache";
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ReadyFrameEvidenceMetadata {
+    pub(crate) backend: String,
+    pub(crate) interactive_direct_present_enabled: bool,
+    pub(crate) hdri_path: String,
+    pub(crate) requested_source_face_size: Option<u32>,
+    pub(crate) requested_pmrem_face_size: Option<u32>,
+    pub(crate) active_source_cubemap_face_size: u32,
+    pub(crate) active_source_cubemap_mip_count: u32,
+    pub(crate) active_pmrem_face_size: u32,
+    pub(crate) active_pmrem_mip_count: u32,
+    pub(crate) render_profile: String,
+    pub(crate) environment_only_base_prewarm_cache_hit: bool,
+    pub(crate) environment_only_base_prewarm_shader_source_resolution: Duration,
+    pub(crate) environment_only_base_prewarm_pipeline_creation: Duration,
+    pub(crate) environment_only_base_prewarm_elapsed: Duration,
+    pub(crate) camera_yaw_degrees: f32,
+    pub(crate) camera_pitch_degrees: f32,
+    pub(crate) ibl_bake_algorithm_version: u64,
+    pub(crate) ibl_staging_status: String,
+    pub(crate) ibl_staging_elapsed: Duration,
+    pub(crate) ibl_total_elapsed: Duration,
+    pub(crate) ready_frame_render_elapsed: Duration,
+    pub(crate) ready_frame_render_extract: Duration,
+    pub(crate) ready_frame_renderer_call: Duration,
+    pub(crate) ready_frame_readback_and_completion: Duration,
+}
 
 pub(crate) fn startup_frame(size: UVec2) -> ViewportFrame {
     status_frame(size, [10, 15, 21], [35, 59, 80])
@@ -49,6 +82,129 @@ pub(crate) fn write_ready_frame_png(
     .map_err(|error| format!("encode screenshot {}: {error}", path.display()))
 }
 
+/// Writes the CPU-readback PNG and a matching provenance sidecar as one evidence unit.
+pub(crate) fn write_ready_frame_evidence(
+    path: &Path,
+    width: u32,
+    height: u32,
+    rgba: &[u8],
+    metadata: &ReadyFrameEvidenceMetadata,
+) -> Result<PathBuf, String> {
+    write_ready_frame_png(path, width, height, rgba)?;
+    let metadata_path = match ready_frame_evidence_metadata_path(path) {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = std::fs::remove_file(path);
+            return Err(error);
+        }
+    };
+    if let Err(error) = write_ready_frame_metadata(&metadata_path, path, width, height, metadata) {
+        let _ = std::fs::remove_file(path);
+        let _ = std::fs::remove_file(&metadata_path);
+        return Err(error);
+    }
+    Ok(metadata_path)
+}
+
+fn ready_frame_evidence_metadata_path(path: &Path) -> Result<PathBuf, String> {
+    let mut name = path
+        .file_name()
+        .ok_or_else(|| format!("screenshot path has no file name: {}", path.display()))?
+        .to_os_string();
+    name.push(".txt");
+    Ok(path.with_file_name(name))
+}
+
+fn write_ready_frame_metadata(
+    metadata_path: &Path,
+    screenshot_path: &Path,
+    width: u32,
+    height: u32,
+    metadata: &ReadyFrameEvidenceMetadata,
+) -> Result<(), String> {
+    let screenshot_name = screenshot_path
+        .file_name()
+        .ok_or_else(|| {
+            format!(
+                "screenshot path has no file name: {}",
+                screenshot_path.display()
+            )
+        })?
+        .to_string_lossy();
+    let contents = format!(
+        "schema={READY_FRAME_EVIDENCE_SCHEMA}\n\
+         screenshot={screenshot_name}\n\
+         screenshot_presentation=cpu_readback\n\
+         interactive_direct_present_enabled={}\n\
+         backend={}\n\
+         hdri_path={}\n\
+         requested_source_face_size={}\n\
+         requested_pmrem_face_size={}\n\
+         active_source_cubemap_face_size={}\n\
+         active_source_cubemap_mip_count={}\n\
+         active_pmrem_face_size={}\n\
+         active_pmrem_mip_count={}\n\
+         render_profile={}\n\
+         environment_only_base_prewarm_cache_hit={}\n\
+         environment_only_base_prewarm_cache_scope={}\n\
+         environment_only_base_prewarm_shader_source_resolution_ns={}\n\
+         environment_only_base_prewarm_pipeline_creation_ns={}\n\
+         environment_only_base_prewarm_elapsed_ns={}\n\
+         viewport={}x{}\n\
+         camera_yaw_degrees={:.3}\n\
+         camera_pitch_degrees={:.3}\n\
+         ibl_bake_algorithm_version={}\n\
+         ibl_staging_status={}\n\
+         ibl_staging_elapsed_ns={}\n\
+         ibl_total_elapsed_ns={}\n\
+         ready_frame_render_elapsed_ns={}\n\
+         ready_frame_extract_ns={}\n\
+         ready_frame_renderer_call_ns={}\n\
+         ready_frame_readback_and_completion_ns={}\n",
+        metadata.interactive_direct_present_enabled,
+        metadata.backend,
+        metadata.hdri_path,
+        face_size_label(metadata.requested_source_face_size),
+        face_size_label(metadata.requested_pmrem_face_size),
+        metadata.active_source_cubemap_face_size,
+        metadata.active_source_cubemap_mip_count,
+        metadata.active_pmrem_face_size,
+        metadata.active_pmrem_mip_count,
+        metadata.render_profile,
+        metadata.environment_only_base_prewarm_cache_hit,
+        ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE,
+        metadata
+            .environment_only_base_prewarm_shader_source_resolution
+            .as_nanos(),
+        metadata
+            .environment_only_base_prewarm_pipeline_creation
+            .as_nanos(),
+        metadata.environment_only_base_prewarm_elapsed.as_nanos(),
+        width,
+        height,
+        metadata.camera_yaw_degrees,
+        metadata.camera_pitch_degrees,
+        metadata.ibl_bake_algorithm_version,
+        metadata.ibl_staging_status,
+        metadata.ibl_staging_elapsed.as_nanos(),
+        metadata.ibl_total_elapsed.as_nanos(),
+        metadata.ready_frame_render_elapsed.as_nanos(),
+        metadata.ready_frame_render_extract.as_nanos(),
+        metadata.ready_frame_renderer_call.as_nanos(),
+        metadata.ready_frame_readback_and_completion.as_nanos(),
+    );
+    std::fs::write(metadata_path, contents).map_err(|error| {
+        format!(
+            "write screenshot metadata {}: {error}",
+            metadata_path.display()
+        )
+    })
+}
+
+fn face_size_label(face_size: Option<u32>) -> String {
+    face_size.map_or_else(|| "automatic".to_owned(), |size| size.to_string())
+}
+
 fn status_frame(size: UVec2, top: [u8; 3], bottom: [u8; 3]) -> ViewportFrame {
     let width = size.x.max(1);
     let height = size.y.max(1);
@@ -78,7 +234,11 @@ fn lerp_u8(a: u8, b: u8, t: f32) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use super::{error_frame, startup_frame, write_ready_frame_png};
+    use super::{
+        error_frame, ready_frame_evidence_metadata_path, startup_frame, write_ready_frame_evidence,
+        write_ready_frame_png, ReadyFrameEvidenceMetadata,
+    };
+    use std::time::Duration;
 
     #[test]
     fn status_frames_clamp_zero_dimensions_and_remain_opaque() {
@@ -135,6 +295,179 @@ mod tests {
             .expect_err("a truncated RGBA frame must not produce evidence");
 
         assert!(error.contains("does not match 2x1 output"));
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn ready_frame_evidence_writes_png_with_provenance_sidecar() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system time after Unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "zircon_shader_pbr_viewer_ready_evidence_{}_{}.png",
+            std::process::id(),
+            unique
+        ));
+        let metadata = ReadyFrameEvidenceMetadata {
+            backend: "Dx12".to_owned(),
+            interactive_direct_present_enabled: true,
+            hdri_path: "polyhaven_lakes_2k.hdr".to_owned(),
+            requested_source_face_size: None,
+            requested_pmrem_face_size: Some(256),
+            active_source_cubemap_face_size: 512,
+            active_source_cubemap_mip_count: 10,
+            active_pmrem_face_size: 256,
+            active_pmrem_mip_count: 9,
+            render_profile: "environment_only_pbr_preview".to_owned(),
+            environment_only_base_prewarm_cache_hit: false,
+            environment_only_base_prewarm_shader_source_resolution: Duration::from_millis(2),
+            environment_only_base_prewarm_pipeline_creation: Duration::from_millis(11),
+            environment_only_base_prewarm_elapsed: Duration::from_millis(13),
+            camera_yaw_degrees: 12.5,
+            camera_pitch_degrees: -7.0,
+            ibl_bake_algorithm_version: 2026_08_02_0005,
+            ibl_staging_status: "Reused".to_owned(),
+            ibl_staging_elapsed: Duration::from_millis(8),
+            ibl_total_elapsed: Duration::from_millis(12),
+            ready_frame_render_elapsed: Duration::from_millis(16),
+            ready_frame_render_extract: Duration::from_millis(2),
+            ready_frame_renderer_call: Duration::from_millis(11),
+            ready_frame_readback_and_completion: Duration::from_millis(3),
+        };
+
+        let metadata_path = write_ready_frame_evidence(&path, 1, 1, &[128, 64, 32, 255], &metadata)
+            .expect("Ready-frame evidence should write");
+        let metadata_text =
+            std::fs::read_to_string(&metadata_path).expect("evidence metadata should be readable");
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&metadata_path);
+
+        assert_eq!(
+            metadata_path,
+            ready_frame_evidence_metadata_path(&path).unwrap()
+        );
+        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v2"));
+        assert!(metadata_text.contains("screenshot_presentation=cpu_readback"));
+        assert!(metadata_text.contains("backend=Dx12"));
+        assert!(metadata_text.contains("hdri_path=polyhaven_lakes_2k.hdr"));
+        assert!(metadata_text.contains("requested_source_face_size=automatic"));
+        assert!(metadata_text.contains("requested_pmrem_face_size=256"));
+        assert!(metadata_text.contains("active_source_cubemap_face_size=512"));
+        assert!(metadata_text.contains("active_source_cubemap_mip_count=10"));
+        assert!(metadata_text.contains("active_pmrem_face_size=256"));
+        assert!(metadata_text.contains("active_pmrem_mip_count=9"));
+        assert!(metadata_text.contains("render_profile=environment_only_pbr_preview"));
+        assert!(metadata_text.contains("environment_only_base_prewarm_cache_hit=false"));
+        assert!(metadata_text.contains(
+            "environment_only_base_prewarm_cache_scope=process_local_mesh_pipeline_cache"
+        ));
+        assert!(metadata_text
+            .contains("environment_only_base_prewarm_shader_source_resolution_ns=2000000"));
+        assert!(
+            metadata_text.contains("environment_only_base_prewarm_pipeline_creation_ns=11000000")
+        );
+        assert!(metadata_text.contains("environment_only_base_prewarm_elapsed_ns=13000000"));
+        assert!(metadata_text.contains("interactive_direct_present_enabled=true"));
+        assert!(metadata_text.contains("ibl_bake_algorithm_version=202608020005"));
+        assert!(metadata_text.contains("ibl_staging_status=Reused"));
+    }
+
+    #[test]
+    fn ready_frame_evidence_rejects_invalid_pixels_without_leaving_a_sidecar() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system time after Unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "zircon_shader_pbr_viewer_invalid_evidence_{}_{}.png",
+            std::process::id(),
+            unique
+        ));
+        let metadata = ReadyFrameEvidenceMetadata {
+            backend: "Dx12".to_owned(),
+            interactive_direct_present_enabled: false,
+            hdri_path: "test.hdr".to_owned(),
+            requested_source_face_size: Some(64),
+            requested_pmrem_face_size: Some(64),
+            active_source_cubemap_face_size: 64,
+            active_source_cubemap_mip_count: 7,
+            active_pmrem_face_size: 64,
+            active_pmrem_mip_count: 7,
+            render_profile: "environment_only_pbr_preview".to_owned(),
+            environment_only_base_prewarm_cache_hit: true,
+            environment_only_base_prewarm_shader_source_resolution: Duration::ZERO,
+            environment_only_base_prewarm_pipeline_creation: Duration::ZERO,
+            environment_only_base_prewarm_elapsed: Duration::ZERO,
+            camera_yaw_degrees: 0.0,
+            camera_pitch_degrees: 0.0,
+            ibl_bake_algorithm_version: 2026_08_02_0005,
+            ibl_staging_status: "Written".to_owned(),
+            ibl_staging_elapsed: Duration::ZERO,
+            ibl_total_elapsed: Duration::ZERO,
+            ready_frame_render_elapsed: Duration::ZERO,
+            ready_frame_render_extract: Duration::ZERO,
+            ready_frame_renderer_call: Duration::ZERO,
+            ready_frame_readback_and_completion: Duration::ZERO,
+        };
+
+        let error = write_ready_frame_evidence(&path, 2, 1, &[0, 0, 0, 255], &metadata)
+            .expect_err("invalid pixels must not create screenshot evidence");
+
+        assert!(error.contains("does not match 2x1 output"));
+        assert!(!path.exists());
+        assert!(!ready_frame_evidence_metadata_path(&path).unwrap().exists());
+    }
+
+    #[test]
+    fn ready_frame_evidence_removes_png_when_sidecar_write_fails() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system time after Unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "zircon_shader_pbr_viewer_sidecar_failure_{}_{}.png",
+            std::process::id(),
+            unique
+        ));
+        let metadata_path = ready_frame_evidence_metadata_path(&path).unwrap();
+        let metadata = ReadyFrameEvidenceMetadata {
+            backend: "Dx12".to_owned(),
+            interactive_direct_present_enabled: false,
+            hdri_path: "test.hdr".to_owned(),
+            requested_source_face_size: Some(64),
+            requested_pmrem_face_size: Some(64),
+            active_source_cubemap_face_size: 64,
+            active_source_cubemap_mip_count: 7,
+            active_pmrem_face_size: 64,
+            active_pmrem_mip_count: 7,
+            render_profile: "environment_only_pbr_preview".to_owned(),
+            environment_only_base_prewarm_cache_hit: true,
+            environment_only_base_prewarm_shader_source_resolution: Duration::ZERO,
+            environment_only_base_prewarm_pipeline_creation: Duration::ZERO,
+            environment_only_base_prewarm_elapsed: Duration::ZERO,
+            camera_yaw_degrees: 0.0,
+            camera_pitch_degrees: 0.0,
+            ibl_bake_algorithm_version: 2026_08_02_0005,
+            ibl_staging_status: "Written".to_owned(),
+            ibl_staging_elapsed: Duration::ZERO,
+            ibl_total_elapsed: Duration::ZERO,
+            ready_frame_render_elapsed: Duration::ZERO,
+            ready_frame_render_extract: Duration::ZERO,
+            ready_frame_renderer_call: Duration::ZERO,
+            ready_frame_readback_and_completion: Duration::ZERO,
+        };
+        std::fs::create_dir(&metadata_path).expect("sidecar path directory should be created");
+
+        let error = write_ready_frame_evidence(&path, 1, 1, &[0, 0, 0, 255], &metadata)
+            .expect_err("a sidecar directory must reject metadata output");
+
+        assert!(metadata_path.is_dir());
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&metadata_path);
+
+        assert!(error.contains("write screenshot metadata"));
         assert!(!path.exists());
     }
 }

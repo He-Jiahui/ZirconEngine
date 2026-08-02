@@ -14,11 +14,12 @@ pub use crate::core::editing::operation::{
     OperationCommandFactoryRegistration,
 };
 pub use crate::core::editor_extension::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor,
-    EditorExtensionRegistration, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
+    AssetImporterDescriptor, DrawerDescriptor, EditorExtensionRegistration,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorUiTemplateDescriptor, ViewDescriptor,
 };
 pub use crate::core::editor_operation::EditorOperationPath;
+pub use crate::core::extension::{InspectorCustomizationDescriptor, InspectorCustomizationSurface};
 pub use crate::core::plugin::{
     EditorExtensionCatalogReport, EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor,
     EditorPluginRegistrationReport,

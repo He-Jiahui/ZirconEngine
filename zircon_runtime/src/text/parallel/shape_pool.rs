@@ -1,15 +1,18 @@
 //! Parallel paragraph shaping batch helpers.
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::{parallel_for, TaskPool};
 use crate::text::cache::{ShapedRunCache, ShapedRunCacheKey, ShapedRunCacheLookupKey};
+use crate::text::font::shared_font_database_generation;
 use crate::text::layout_session::{
     shape_fallback_for_error, try_shape_request_through_canonical_service,
 };
-use crate::text::{BackendShapeRequest, ShapedGlyphRun, TextOrientation, VerticalMode};
+use crate::text::{BackendShapeRequest, ShapedGlyphRun};
 use crate::text::{TextRange, TextStyle};
+
+const TEXT_SHAPE_PARALLEL_MIN_JOBS: usize = 8;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextShapeParagraph {
@@ -17,8 +20,6 @@ pub(crate) struct TextShapeParagraph {
     style: TextStyle,
     base_direction: TextDirection,
     source_range: TextRange,
-    orientation: TextOrientation,
-    vertical_mode: VerticalMode,
     include_kerning: bool,
 }
 
@@ -31,7 +32,11 @@ pub(crate) struct TextParallelShapeBatchReport {
     pub(crate) pending_lookup_candidate_count: usize,
     pub(crate) shaped_count: usize,
     pub(crate) inserted_count: usize,
+    pub(crate) invalid_request_count: usize,
     pub(crate) generation_deferred_count: usize,
+    pub(crate) inline_batch_count: usize,
+    pub(crate) parallel_join_count: usize,
+    pub(crate) caller_wait_nanos: u64,
     pub(crate) chunk_size: usize,
     pub(crate) worker_parallelism: usize,
 }
@@ -73,37 +78,30 @@ impl TextShapeParagraph {
             style,
             base_direction,
             source_range,
-            orientation: TextOrientation::Horizontal,
-            vertical_mode: VerticalMode::Mixed,
             include_kerning,
         }
     }
 
     fn request(&self) -> BackendShapeRequest<'_> {
-        BackendShapeRequest {
-            text: self.text.as_ref(),
-            style: &self.style,
-            base_direction: self.base_direction,
-            source_range: self.source_range,
-            orientation: self.orientation,
-            vertical_mode: self.vertical_mode,
-            include_kerning: self.include_kerning,
-            language: self
-                .style
+        BackendShapeRequest::horizontal_with_kerning(
+            self.text.as_ref(),
+            &self.style,
+            self.base_direction,
+            self.source_range,
+            self.include_kerning,
+        )
+        .with_language(
+            self.style
                 .language
                 .as_deref()
                 .map(str::trim)
                 .filter(|language| !language.is_empty()),
-            features: &[],
-        }
+        )
+        .with_source_owner(&self.text)
     }
 
     fn text(&self) -> &str {
         self.text.as_ref()
-    }
-
-    fn text_arc(&self) -> Arc<str> {
-        Arc::clone(&self.text)
     }
 }
 
@@ -136,7 +134,11 @@ impl PendingShapeJob {
     fn shape(&mut self) {
         let request = self.request.request();
         match try_shape_request_through_canonical_service(request) {
-            Ok(run) => self.run = Some(run),
+            Ok(run) => {
+                self.cacheable =
+                    self.key.font_database_generation() == shared_font_database_generation();
+                self.run = Some(run);
+            }
             Err(error) => {
                 self.cacheable = !matches!(&error, TextLayoutError::FontGenerationChanged);
                 self.run = Some(shape_fallback_for_error(request, &error));
@@ -160,6 +162,14 @@ pub(crate) fn shape_paragraphs_with_cache(
 
     for (index, request) in requests.iter().enumerate() {
         let borrowed = request.request();
+        if !borrowed.style.font_size.is_finite() || borrowed.style.font_size <= 0.0 {
+            runs[index] = Some(Arc::new(shape_fallback_for_error(
+                borrowed,
+                &TextLayoutError::InvalidFontSize,
+            )));
+            report.invalid_request_count = report.invalid_request_count.saturating_add(1);
+            continue;
+        }
         let lookup = ShapedRunCacheLookupKey::from_request(&borrowed);
         let pending_lookup_fingerprint = if pending.is_empty() {
             None
@@ -201,12 +211,22 @@ pub(crate) fn shape_paragraphs_with_cache(
     }
 
     report.shaped_count = pending.len();
-    if !pending.is_empty() {
+    if pending.len() < TEXT_SHAPE_PARALLEL_MIN_JOBS || pool.parallelism() == 1 {
+        if !pending.is_empty() {
+            report.inline_batch_count = 1;
+        }
+        for job in &mut pending {
+            job.shape();
+        }
+    } else {
+        report.parallel_join_count = 1;
+        let wait_started = Instant::now();
         parallel_for(pool, pending.as_mut_slice(), chunk_size, |jobs| {
             for job in jobs {
                 job.shape();
             }
         });
+        report.caller_wait_nanos = wait_started.elapsed().as_nanos().min(u64::MAX as u128) as u64;
     }
 
     for job in pending {
@@ -233,7 +253,7 @@ fn finish_pending_shape_job(
     };
     let run = if job.cacheable {
         report.inserted_count = report.inserted_count.saturating_add(1);
-        cache.insert(job.key, job.request.text_arc(), run)
+        cache.insert(job.key, run)
     } else {
         report.generation_deferred_count = report.generation_deferred_count.saturating_add(1);
         Arc::new(run)
@@ -337,6 +357,24 @@ mod tests {
     }
 
     #[test]
+    fn parallel_shape_run_reuses_the_request_source_allocation() {
+        let source: Arc<str> = Arc::from("one shared paragraph source");
+        let paragraph = TextShapeParagraph::horizontal(
+            Arc::clone(&source),
+            compact_editor_label_style(),
+            TextDirection::LeftToRight,
+            TextRange {
+                start: 0,
+                end: source.len(),
+            },
+        );
+
+        let run = shape_request_through_canonical_service(paragraph.request());
+
+        assert!(Arc::ptr_eq(&source, &run.source_text));
+    }
+
+    #[test]
     fn text_parallel_shape_batch_indexes_unique_pending_misses() {
         const UNIQUE_REQUEST_COUNT: usize = 32;
 
@@ -359,6 +397,25 @@ mod tests {
             batch.report.pending_lookup_candidate_count <= UNIQUE_REQUEST_COUNT,
             "unique misses must only compare same-fingerprint candidates"
         );
+        assert_eq!(batch.report.parallel_join_count, 1);
+        assert_eq!(batch.report.inline_batch_count, 0);
+    }
+
+    #[test]
+    fn small_shape_batches_stay_inline_without_a_pool_join() {
+        let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(4));
+        let mut cache = ShapedRunCache::with_capacity(16);
+        let requests = paragraphs(&["one", "two", "three"]);
+
+        cache.begin_frame(1);
+        let batch = shape_paragraphs_with_cache(&pool, &mut cache, &requests, 1);
+
+        assert_eq!(batch.runs.len(), requests.len());
+        assert_eq!(batch.report.inline_batch_count, 1);
+        assert_eq!(batch.report.parallel_join_count, 0);
+        assert_eq!(batch.report.caller_wait_nanos, 0);
+        assert_eq!(batch.report.worker_parallelism, 4);
+        assert_eq!(batch.runs[0].source_text.as_ref(), "one");
     }
 
     #[test]
@@ -382,9 +439,34 @@ mod tests {
         assert_eq!(report.generation_deferred_count, 1);
         assert_eq!(cache.report().insert_count, 0);
         assert_eq!(
-            runs[0].as_deref().map(|run| run.source_text.as_str()),
+            runs[0].as_deref().map(|run| run.source_text.as_ref()),
             Some("retry next frame")
         );
+    }
+
+    #[test]
+    fn invalid_prewarm_does_not_poison_the_valid_one_pixel_cache_key() {
+        let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
+        let mut cache = ShapedRunCache::with_capacity(16);
+        let mut invalid_style = compact_editor_label_style();
+        invalid_style.font_size = 0.0;
+        let invalid = paragraph("one pixel", &invalid_style);
+
+        let invalid_batch = shape_paragraphs_with_cache(&pool, &mut cache, &[invalid], 1);
+
+        assert_eq!(invalid_batch.report.invalid_request_count, 1);
+        assert_eq!(invalid_batch.report.inserted_count, 0);
+        assert_eq!(cache.report().insert_count, 0);
+
+        let mut valid_style = invalid_style;
+        valid_style.font_size = 1.0;
+        let valid = paragraph("one pixel", &valid_style);
+        let valid_batch = shape_paragraphs_with_cache(&pool, &mut cache, &[valid], 1);
+
+        assert_eq!(valid_batch.report.invalid_request_count, 0);
+        assert_eq!(valid_batch.report.cache_hit_count, 0);
+        assert_eq!(valid_batch.report.cache_miss_count, 1);
+        assert_eq!(valid_batch.report.inserted_count, 1);
     }
 
     fn paragraphs(texts: &[&str]) -> Vec<TextShapeParagraph> {

@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::AssetUri;
-use crate::foundation::persistence::atomic_file::AtomicWriteFault;
+use crate::asset::watch::{AssetChange, AssetChangeKind};
+use crate::core::resource::io::atomic_file::AtomicWriteFault;
 
 use super::rebuild::{
     identity_owners_for_changes, normalize_duplicate_guids, refresh_dependency_edges,

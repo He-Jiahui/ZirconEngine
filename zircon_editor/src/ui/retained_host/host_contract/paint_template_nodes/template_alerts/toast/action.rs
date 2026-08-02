@@ -1,6 +1,6 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_alert_glyphs::push_close_mark;
-use super::super::layout::{frame_is_within, toast_action_rect, WorkbenchToastMetrics};
+use super::super::layout::{WorkbenchToastMetrics, frame_is_within, toast_action_rect};
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 

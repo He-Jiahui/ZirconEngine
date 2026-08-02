@@ -7,6 +7,32 @@ const classes = await import('wocgit:///src/sim/content/classes.ts');
 const talents = await import('wocgit:///src/sim/content/talents.ts');
 const types = await import('wocgit:///src/sim/types.ts');
 const bank = await import('wocgit:///src/sim/bank.ts');
+const heroicVendor = await import('wocgit:///src/sim/content/heroic_vendor.ts');
+const dungeonDifficulty = await import('wocgit:///src/sim/content/dungeon_difficulty.ts');
+const skins = await import('wocgit:///src/sim/content/skins.ts');
+
+const delveShops = Object.entries(data.DELVE_SHOPS).map(([delveId, stock]) => ({
+  id: delveId,
+  auto_companion_id: data.DELVES[delveId].autoCompanionId,
+  door_pos: {
+    x: data.DELVES[delveId].doorPos.x,
+    z: data.DELVES[delveId].doorPos.z,
+  },
+  stock: stock.map((entry) => ({
+    item_id: entry.itemId,
+    marks: entry.marks,
+    gate: entry.gate,
+  })),
+}));
+const delveShopItemIds = delveShops.flatMap((shop) =>
+  shop.stock.map((entry) => entry.item_id));
+const mechChromas = skins.MECH_CHROMAS.map((chroma, skinIndex) => ({
+  id: chroma.id,
+  rank: chroma.rank,
+  skin_index: skinIndex,
+  item_id: skins.mechChromaItemId(chroma.id),
+}));
+const mechChromaItemIds = mechChromas.map((chroma) => chroma.item_id);
 
 const quests = selectDefinitions(data.QUESTS, scope.quest_ids, 'quest');
 const mobs = selectDefinitions(data.MOBS, scope.mob_ids, 'mob');
@@ -58,6 +84,8 @@ const result = {
       ...mobItemIds,
       ...classStartingEquipmentItemIds,
       ...vendorItemIds,
+      ...delveShopItemIds,
+      ...mechChromaItemIds,
     ])].sort(),
     'item',
   ),
@@ -76,6 +104,16 @@ const result = {
   quest_item_ids: [...new Set(questItemIds)].sort(),
   mob_item_ids: [...new Set(mobItemIds)].sort(),
   vendor_item_ids: vendorItemIds,
+  heroic_vendor: {
+    npc_id: heroicVendor.HEROIC_VENDOR_NPC_ID,
+    currency_item_id: dungeonDifficulty.HEROIC_MARK_ITEM_ID,
+    stock: heroicVendor.HEROIC_VENDOR_STOCK.map((entry) => ({
+      item_id: entry.itemId,
+      marks: entry.marks,
+    })),
+  },
+  delve_shops: delveShops,
+  mech_chromas: mechChromas,
   constants: {
     max_level: types.MAX_LEVEL,
     prestige_xp_per_rank: types.PRESTIGE_XP_PER_RANK,

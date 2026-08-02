@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
-use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_row_geometry;
+use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_row_geometry_with_metrics;
 
 use super::constants::{ROOT_NODE_ID, VIEWPORT_NODE_ID};
 use super::helper::{
@@ -39,7 +39,7 @@ impl WelcomeRecentPointerBridge {
                 .with_state_flags(base_state(false)),
         );
 
-        let viewport = viewport_frame(&self.layout);
+        let viewport = viewport_frame(&self.layout, self.layout_metrics);
         surface
             .tree
             .insert_child(
@@ -61,7 +61,10 @@ impl WelcomeRecentPointerBridge {
                 .with_scroll_state(UiScrollState {
                     offset: self.state.scroll_offset,
                     viewport_extent: viewport.height.max(0.0),
-                    content_extent: content_height(self.layout.recent_project_paths.len()),
+                    content_extent: content_height(
+                        self.layout.recent_project_paths.len(),
+                        self.layout_metrics,
+                    ),
                 })
                 .with_state_flags(base_state(true)),
             )
@@ -75,8 +78,12 @@ impl WelcomeRecentPointerBridge {
 
         for (item_index, path) in self.layout.recent_project_paths.iter().enumerate() {
             let item_node_id = item_node_id(item_index);
-            let geometry =
-                welcome_recent_row_geometry(viewport, item_index, self.state.scroll_offset);
+            let geometry = welcome_recent_row_geometry_with_metrics(
+                viewport,
+                item_index,
+                self.state.scroll_offset,
+                self.layout_metrics,
+            );
             let item_frame = geometry.row;
             surface
                 .tree

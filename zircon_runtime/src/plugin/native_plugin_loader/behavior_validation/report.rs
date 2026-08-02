@@ -46,6 +46,9 @@ impl NativePluginBehaviorValidationReport {
         let Some(behavior) = behavior else {
             return Self::missing_behavior(plugin_id, module_kind, abi_version);
         };
+        if behavior.is_legacy_v2_metadata() {
+            return Self::legacy_v2_metadata(plugin_id, module_kind, abi_version, behavior);
+        }
 
         let mut diagnostics = Vec::new();
         validate_v3_schema(
@@ -127,6 +130,36 @@ impl NativePluginBehaviorValidationReport {
                 module_kind_label(module_kind)
             )],
             health: NativePluginBehaviorHealth::Invalid,
+        }
+    }
+
+    fn legacy_v2_metadata(
+        plugin_id: &str,
+        module_kind: PluginModuleKind,
+        abi_version: u32,
+        behavior: &NativePluginBehavior,
+    ) -> Self {
+        Self {
+            abi_version,
+            module_kind,
+            plugin_id: plugin_id.to_string(),
+            is_stateless: Some(behavior.is_stateless),
+            state_schema_version: Some(behavior.state_schema_version),
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            registration_manifest_schema: None,
+            has_command_manifest: false,
+            has_event_manifest: false,
+            has_registration_manifest: false,
+            has_invoke_command: false,
+            has_save_state: false,
+            has_restore_state: false,
+            has_unload: false,
+            diagnostics: vec![format!(
+                "native plugin {plugin_id} {} legacy ABI v2 behavior is metadata-only; upgrade to NativePluginBehaviorV4",
+                module_kind_label(module_kind)
+            )],
+            health: NativePluginBehaviorHealth::Degraded,
         }
     }
 }

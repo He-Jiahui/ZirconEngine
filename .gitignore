@@ -91,8 +91,15 @@ __pycache__/
 
 # Zircon Hub Tauri/React frontend output
 /zircon_hub/node_modules/
+/tools/editor-workbench-preview/node_modules/
 /zircon_hub/web/dist/
 /zircon_hub/web/.vite/
+# Hub frontend sources are TypeScript-only (`allowJs = false`, `noEmit = true`).
+/zircon_hub/web/src/**/*.js
+/zircon_hub/web/src/**/*.js.map
+/zircon_hub/vite.config.js
+/zircon_hub/vite.config.d.ts
+/zircon_hub/*.tsbuildinfo
 
 # Regenerable per-project state. Versioned project templates retain only their
 # explicit placeholder ignore files through the negations below.
@@ -112,3 +119,7 @@ __pycache__/
 *.log
 *.exit
 *.txt
+
+examples/
+
+worktrees/

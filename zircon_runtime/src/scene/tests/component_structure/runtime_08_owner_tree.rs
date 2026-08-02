@@ -156,7 +156,10 @@ fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
         "Runtime 08 ECS component storage owner should stay folder-backed"
     );
     assert!(
-        !ecs_root.join("storage").join("component_storage.rs").exists(),
+        !ecs_root
+            .join("storage")
+            .join("component_storage.rs")
+            .exists(),
         "retired flat Runtime 08 ECS storage owner `storage/component_storage.rs` should not be restored"
     );
     for child in [

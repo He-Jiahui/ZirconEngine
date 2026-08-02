@@ -23,9 +23,11 @@ fn play_mode_restores_edit_world_and_history_on_exit() {
         .with_world(|scene| scene.find_node(cube).unwrap().name.clone());
 
     assert!(state.apply_intent(EditorIntent::SelectNode(cube)).unwrap());
-    assert!(state
-        .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
-        .unwrap());
+    assert!(
+        state
+            .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
+            .unwrap()
+    );
     let edit_world = state.world.with_world(|scene| scene.clone());
     assert!(state.snapshot().can_undo);
 
@@ -76,9 +78,11 @@ fn import_is_rejected_during_play_without_poisoning_edit_history() {
     let original_name = state
         .world
         .with_world(|scene| scene.find_node(cube).unwrap().name.clone());
-    assert!(state
-        .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
-        .unwrap());
+    assert!(
+        state
+            .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
+            .unwrap()
+    );
     let edit_node_count = state.world.snapshot().node_records().len();
 
     assert!(state.enter_play_mode().unwrap());
@@ -120,10 +124,12 @@ fn play_mode_restores_the_complete_dual_domain_selection_model() {
         [camera, cube],
         Some(cube)
     ));
-    assert!(state
-        .viewport_controller
-        .selection_mut()
-        .select_only(WorldDomain::Play, camera));
+    assert!(
+        state
+            .viewport_controller
+            .selection_mut()
+            .select_only(WorldDomain::Play, camera)
+    );
     let selection_before_play = state.viewport_controller.selection().clone();
 
     assert!(state.enter_play_mode().unwrap());
@@ -141,14 +147,18 @@ fn play_mode_restores_the_complete_dual_domain_selection_model() {
             .collect::<Vec<_>>(),
         [camera, cube]
     );
-    assert!(state
-        .viewport_controller
-        .selection_mut()
-        .select_only(WorldDomain::Edit, camera));
-    assert!(state
-        .viewport_controller
-        .selection_mut()
-        .select_only(WorldDomain::Play, cube));
+    assert!(
+        state
+            .viewport_controller
+            .selection_mut()
+            .select_only(WorldDomain::Edit, camera)
+    );
+    assert!(
+        state
+            .viewport_controller
+            .selection_mut()
+            .select_only(WorldDomain::Play, cube)
+    );
 
     assert!(state.exit_play_mode().unwrap());
     assert_eq!(

@@ -1,53 +1,51 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::BTreeMap,
-    rc::Rc,
-};
-
 use serde_json::Value;
 use woc_client::{
-    KeyModifiers, KeybindCaptureOutcome, KeybindOptionsModel, PreferenceStorage, StoredKeybinds,
+    KeyModifiers, KeybindCaptureOutcome, KeybindOptionsModel, StoredKeybinds,
     LEGACY_KEYBIND_STORAGE_KEY,
 };
 
-#[derive(Clone, Default)]
-struct MemoryStorage {
-    values: Rc<RefCell<BTreeMap<String, String>>>,
-    fail_reads: Rc<Cell<bool>>,
-    fail_writes: Rc<Cell<bool>>,
+use crate::preference_storage_support::MemoryPreferenceStorage as MemoryStorage;
+
+#[test]
+fn fresh_backend_keybinds_load_after_the_cold_read_completes() {
+    let storage = MemoryStorage::default();
+    let storage_key = "woc_keybinds:char:alice";
+    storage.seed_persisted(storage_key, r#"{"jump":["KeyK",null]}"#);
+    storage.block_read(storage_key);
+
+    let mut bindings = StoredKeybinds::new("char:alice", storage.clone());
+    storage.wait_until_read_started(storage_key);
+    assert_eq!(bindings.code_at("jump", 0), Some("Space"));
+    assert!(!bindings.refresh_from_storage());
+    storage.release_read(storage_key);
+    storage.wait_until_loaded(storage_key);
+
+    assert!(bindings.refresh_from_storage());
+    assert_eq!(bindings.action_for_combo("KeyK"), Some("jump"));
 }
 
-impl MemoryStorage {
-    fn insert(&self, key: &str, value: &str) {
-        self.values
-            .borrow_mut()
-            .insert(key.to_string(), value.to_string());
-    }
+#[test]
+fn fresh_backend_legacy_keybinds_load_after_both_cold_reads_complete() {
+    let storage = MemoryStorage::default();
+    let storage_key = "woc_keybinds:char:alice";
+    storage.seed_persisted(LEGACY_KEYBIND_STORAGE_KEY, r#"{"jump":["KeyZ",null]}"#);
+    storage.block_read(storage_key);
+    storage.block_read(LEGACY_KEYBIND_STORAGE_KEY);
 
-    fn get(&self, key: &str) -> Option<String> {
-        self.values.borrow().get(key).cloned()
-    }
-}
+    let mut bindings = StoredKeybinds::new("char:alice", storage.clone());
+    storage.wait_until_read_started(storage_key);
+    assert_eq!(bindings.code_at("jump", 0), Some("Space"));
+    assert!(!bindings.refresh_from_storage());
+    storage.release_read(storage_key);
+    storage.wait_until_loaded(storage_key);
+    assert!(!bindings.refresh_from_storage());
+    storage.wait_until_read_started(LEGACY_KEYBIND_STORAGE_KEY);
+    assert!(!bindings.refresh_from_storage());
+    storage.release_read(LEGACY_KEYBIND_STORAGE_KEY);
+    storage.wait_until_loaded(LEGACY_KEYBIND_STORAGE_KEY);
 
-impl PreferenceStorage for MemoryStorage {
-    type Error = ();
-
-    fn read(&self, key: &str) -> Result<Option<String>, Self::Error> {
-        if self.fail_reads.get() {
-            Err(())
-        } else {
-            Ok(self.get(key))
-        }
-    }
-
-    fn write(&self, key: &str, value: &str) -> Result<(), Self::Error> {
-        if self.fail_writes.get() {
-            Err(())
-        } else {
-            self.insert(key, value);
-            Ok(())
-        }
-    }
+    assert!(bindings.refresh_from_storage());
+    assert_eq!(bindings.action_for_combo("KeyZ"), Some("jump"));
 }
 
 #[test]
@@ -192,14 +190,14 @@ fn character_scopes_remain_independent() {
 #[test]
 fn unavailable_storage_degrades_to_defaults_and_keeps_mutations_in_memory() {
     let storage = MemoryStorage::default();
-    storage.fail_reads.set(true);
-    storage.fail_writes.set(true);
+    storage.set_fail_reads(true);
+    storage.set_fail_writes(true);
     let mut bindings = StoredKeybinds::new("char:alice", storage.clone());
 
     assert_eq!(bindings.code_at("jump", 0), Some("Space"));
     assert!(bindings.bind("jump", 0, "F1"));
     assert_eq!(bindings.action_for_combo("F1"), Some("jump"));
-    assert!(storage.get("woc_keybinds:char:alice").is_none());
+    assert!(storage.persisted("woc_keybinds:char:alice").is_none());
 }
 
 #[test]

@@ -3,24 +3,23 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use super::{
-    decode_texture_source_image_rgba32f, AssetImportContext, AssetImportError,
-    DecodedTextureImageRgba32F,
+    AssetImportContext, AssetImportError, DecodedTextureImageRgba32F,
+    decode_texture_source_image_rgba32f,
 };
+use crate::asset::AssetUri;
 use crate::asset::artifact::{
     IblBakeArtifactAssetDerivedError, IblBakeArtifactAssetDerivedRead,
     IblSourceCubemapStagingError, IblSourceCubemapStagingRead, IblSourceCubemapStagingStore,
 };
 use crate::asset::assets::{
-    decode_external_source_cubemap, external_source_cubemap_container_info,
     ExternalSourceCubemapContainerError, ExternalSourceCubemapDecodeError, TextureAsset,
-    TexturePayload,
+    TexturePayload, decode_external_source_cubemap, external_source_cubemap_container_info,
 };
-use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    build_source_cubemap_irradiance_cube, source_cubemap_face_size_from_equirect_height,
-    source_cubemap_mip_count, IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey,
-    SourceCubemapMipChain, SourceCubemapPrefilterQuality, SOURCE_CUBEMAP_MAX_FACE_SIZE,
+    IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey, SOURCE_CUBEMAP_MAX_FACE_SIZE,
     SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    SourceCubemapMipChain, SourceCubemapPrefilterQuality, build_source_cubemap_irradiance_cube,
+    source_cubemap_face_size_from_equirect_height, source_cubemap_mip_count,
 };
 use crate::core::framework::tasks::ParallelSliceExecutor;
 
@@ -476,14 +475,16 @@ fn sample_equirect_bilinear(image: &DecodedTextureImageRgba32F, u: f32, v: f32) 
     let width = image.width.max(1);
     let height = image.height.max(1);
     let texel_x = u.rem_euclid(1.0) * width as f32 - 0.5;
-    let texel_y = v.clamp(0.0, 1.0) * height as f32 - 0.5;
+    // Clamp the pole before deriving interpolation weights, matching a
+    // clamp-to-edge sampler instead of blending the first two HDR rows.
+    let texel_y = (v * height as f32 - 0.5).clamp(0.0, height.saturating_sub(1) as f32);
     let x0 = texel_x.floor() as i32;
     let y0 = texel_y.floor() as i32;
     let tx = texel_x - texel_x.floor();
     let ty = texel_y - texel_y.floor();
     let x0 = x0.rem_euclid(width as i32) as u32;
     let x1 = (x0 + 1) % width;
-    let y0 = y0.clamp(0, height.saturating_sub(1) as i32) as u32;
+    let y0 = y0 as u32;
     let y1 = (y0 + 1).min(height - 1);
     let c00 = image.rgba[image_index(width, x0, y0)];
     let c10 = image.rgba[image_index(width, x1, y0)];
@@ -546,7 +547,48 @@ fn source_revision(bytes: &[u8]) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::source_hash_words;
+    use super::{sample_equirect_bilinear, source_hash_words, DecodedTextureImageRgba32F};
+
+    #[test]
+    fn environment_equirect_bilinear_sampling_clamps_poles_to_edge_rows() {
+        let image = DecodedTextureImageRgba32F {
+            width: 2,
+            height: 2,
+            rgba: vec![
+                [1.0, 0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0, 1.0],
+            ],
+        };
+
+        assert_eq!(
+            sample_equirect_bilinear(&image, 0.25, 0.0),
+            [1.0, 0.0, 0.0, 1.0]
+        );
+        assert_eq!(
+            sample_equirect_bilinear(&image, 0.25, 1.0),
+            [0.0, 1.0, 0.0, 1.0]
+        );
+    }
+
+    #[test]
+    fn environment_equirect_bilinear_sampling_wraps_the_horizontal_seam() {
+        let image = DecodedTextureImageRgba32F {
+            width: 2,
+            height: 1,
+            rgba: vec![[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]],
+        };
+
+        assert_eq!(
+            sample_equirect_bilinear(&image, 0.0, 0.5),
+            [0.5, 0.5, 0.0, 1.0]
+        );
+        assert_eq!(
+            sample_equirect_bilinear(&image, 1.0, 0.5),
+            [0.5, 0.5, 0.0, 1.0]
+        );
+    }
 
     #[test]
     fn environment_source_hash_tracks_imported_cubemap_layout() {

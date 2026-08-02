@@ -221,7 +221,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/chevron.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/segments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/geometry.rs
@@ -1417,7 +1417,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/chevron.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/segments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/geometry.rs
@@ -2729,7 +2729,7 @@ Current dropdown ownership is folder-backed: `template_dropdowns.rs` owns only m
 
 Current dropdown test ownership is folder-backed: `template_dropdowns.rs` points test builds at `template_dropdowns_tests/mod.rs`; `identity.rs` owns Workbench dropdown classification regressions, `paint.rs` owns closed/open/offset/brightness pixel coverage, `geometry.rs` owns half-pixel height alignment, `style.rs` owns declared-style and shared-state priority regressions, and `support.rs` owns dropdown fixtures, popup option fixtures, resolved-style builders, color scaling, and pixel probes.
 
-Current dropdown glyph ownership is folder-backed: `template_dropdown_glyphs.rs` owns only structural exports; `template_dropdown_glyphs/metrics.rs` owns chevron reserve, size, and right inset constants; `chevron.rs` owns chevron rect placement and style-color dispatch; `segments.rs` owns 14px segment scaling and quad emission.
+Current dropdown glyph ownership is folder-backed: `template_dropdown_glyphs.rs` owns only structural exports; the shared `template_dropdown_metrics.rs` owner supplies chevron reserve, size, and right inset through `WorkbenchDropdownMetrics`; `chevron.rs` owns chevron rect placement, semantic icon dispatch, and typed fallback segments; `segments.rs` owns 14px segment scaling and quad emission. The former glyph-local `metrics.rs` leaf is retired.
 
 Current status glyph signal ownership is folder-backed: `template_status_glyphs/signals.rs` owns only Ready/Success/Warning/Info dispatch, while `template_status_glyphs/signals/base.rs` owns signal circle fill, `success.rs` owns the success check mark, `info.rs` owns the info mark, and `warning.rs` owns warning triangle and mark command emission.
 

@@ -12,12 +12,8 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_search_does_not_allocate_normalized_ids
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_matches_short_and_qualified_ids_without_normalizing
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs::tests::feature_namespace_validation_does_not_collect_split_segments
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_identity_validation_does_not_allocate_scan_helpers
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_owner_matching_preserves_the_dot_boundary
-  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs::tests::native_package_archive_entries_are_streamed_from_disk
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs
@@ -40,12 +36,6 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_search_does_not_allocate_normalized_ids
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_matches_short_and_qualified_ids_without_normalizing
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs::tests::feature_namespace_validation_does_not_collect_split_segments
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_identity_validation_does_not_allocate_scan_helpers
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_owner_matching_preserves_the_dot_boundary
-  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs::tests::native_package_archive_entries_are_streamed_from_disk
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/release_adapters.rs
@@ -67,6 +57,8 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs

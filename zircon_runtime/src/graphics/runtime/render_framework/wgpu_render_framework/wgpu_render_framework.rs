@@ -1,9 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::framework::render::{PlanarReflectionUpdateState, RenderSubmissionConfig};
+use crate::core::TaskPool;
+use crate::core::framework::render::{
+    PlanarReflectionUpdateState, RenderSubmissionConfig, ShaderVariantPrewarmManifest,
+};
 #[cfg(test)]
 use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkError};
-use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 #[cfg(test)]
@@ -105,6 +107,25 @@ impl WgpuRenderFrameworkAccess for WgpuRenderFramework {
 }
 
 impl WgpuRenderFramework {
+    /// Compiles an existing Plan08 manifest into the renderer-owned PSO caches.
+    ///
+    /// The caller owns inventory and dependency scanning. This hook only consumes
+    /// the supplied immutable manifest during a loading or startup phase.
+    pub fn prewarm_shader_pipelines(
+        &self,
+        manifest: &ShaderVariantPrewarmManifest,
+    ) -> Result<
+        crate::graphics::scene::RuntimeShaderPipelinePrewarmReport,
+        crate::core::framework::render::RenderFrameworkError,
+    > {
+        self.finish_submission()?;
+        let _operation_guard = self.lock_operation();
+        Ok(self
+            .lock_state()
+            .renderer
+            .prewarm_shader_pipelines(manifest))
+    }
+
     pub(in crate::graphics::runtime::render_framework) fn lock_operation(
         &self,
     ) -> MutexGuard<'_, ()> {
@@ -127,10 +148,28 @@ impl WgpuRenderFramework {
         &self,
         config: RenderSubmissionConfig,
     ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
-        self.submission_scheduler
+        let mut scheduler = self
+            .submission_scheduler
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .set_config(Arc::clone(&self.core), config)
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        // Drain before taking the operation lock: an active worker owns that lock until completion.
+        scheduler.finish_pending()?;
+        let _operation_guard = self.lock_operation();
+        scheduler.set_config(Arc::clone(&self.core), config)?;
+        let mut state = self.lock_state();
+        state
+            .renderer
+            .set_gpu_pass_timing_enabled(config.allow_gpu_timing);
+        state
+            .renderer
+            .set_async_pipeline_compile_enabled(config.async_pipeline_compile);
+        state
+            .renderer
+            .set_parallel_recording(config.parallel_record, config.min_passes_per_bucket);
+        state
+            .renderer
+            .set_hzb_indirect_args_readback_enabled(config.hzb_indirect_args_readback);
+        Ok(())
     }
 
     pub fn submission_config(&self) -> RenderSubmissionConfig {
@@ -254,7 +293,7 @@ impl WgpuRenderFramework {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::sync::Arc;
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
@@ -289,6 +328,47 @@ mod tests {
             framework.submission_config(),
             RenderSubmissionConfig::synchronous()
         );
+        assert!(!framework.lock_state().renderer.gpu_pass_timing_enabled());
+        assert!(
+            !framework
+                .lock_state()
+                .renderer
+                .hzb_indirect_args_readback_enabled()
+        );
+        assert_eq!(
+            framework
+                .lock_state()
+                .renderer
+                .parallel_record_min_passes_per_bucket(),
+            None
+        );
+        let parallel_config = RenderSubmissionConfig::synchronous().with_parallel_recording(3);
+        framework
+            .set_submission_config(parallel_config)
+            .expect("parallel recording configuration should reach the scene renderer");
+        assert_eq!(framework.submission_config(), parallel_config);
+        assert_eq!(
+            framework
+                .lock_state()
+                .renderer
+                .parallel_record_min_passes_per_bucket(),
+            Some(3)
+        );
+        let timing_config = RenderSubmissionConfig::synchronous().with_gpu_timing();
+        framework
+            .set_submission_config(timing_config)
+            .expect("GPU timing configuration should lazily create the timer when supported");
+        assert_eq!(framework.submission_config(), timing_config);
+        let state = framework.lock_state();
+        assert_eq!(
+            state.renderer.gpu_pass_timing_enabled(),
+            state.stats.capabilities.supports_gpu_timestamp
+        );
+        drop(state);
+        framework
+            .set_submission_config(RenderSubmissionConfig::synchronous())
+            .expect("disabling GPU timing should release the timer");
+        assert!(!framework.lock_state().renderer.gpu_pass_timing_enabled());
         framework
             .set_submission_config(RenderSubmissionConfig::pipelined())
             .expect("pipelined configuration should initialize the worker");
@@ -299,5 +379,27 @@ mod tests {
         framework
             .set_submission_config(RenderSubmissionConfig::synchronous())
             .expect("synchronous configuration should drain and close the worker");
+
+        let async_config = RenderSubmissionConfig::synchronous().with_async_pipeline_compile();
+        framework
+            .set_submission_config(async_config)
+            .expect("async pipeline configuration should be accepted");
+        assert!(
+            framework
+                .lock_state()
+                .renderer
+                .async_pipeline_compile_enabled()
+        );
+        let hzb_readback_config =
+            RenderSubmissionConfig::synchronous().with_hzb_indirect_args_readback();
+        framework
+            .set_submission_config(hzb_readback_config)
+            .expect("HZB indirect readback configuration should be accepted");
+        assert!(
+            framework
+                .lock_state()
+                .renderer
+                .hzb_indirect_args_readback_enabled()
+        );
     }
 }

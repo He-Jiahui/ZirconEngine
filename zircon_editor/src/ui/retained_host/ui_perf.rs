@@ -44,14 +44,19 @@ pub(crate) enum UiPerfCounter {
     GpuDrawCalls,
     GpuCompiledDrawCalls,
     GpuRenderPasses,
+    GpuTimeUs,
+    GpuProfileLatencyFrames,
     GpuVisibleCommands,
     GpuVisibleCommandPayloadBytes,
+    GpuVisibleCommandStyles,
     GpuVisibleDrawItems,
     GpuCompiledDrawItems,
     GpuCommandVisibilityScans,
     GpuCommandStatsCacheHits,
     GpuSolidVertices,
     GpuCompiledSolidVertices,
+    GpuSolidInstances,
+    GpuCompiledSolidInstances,
     GpuImageVertices,
     GpuCompiledImageVertices,
     GpuBatchLayers,
@@ -224,9 +229,16 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::GpuDrawCalls => concat!($prefix, ".gpu_draw_calls"),
             UiPerfCounter::GpuCompiledDrawCalls => concat!($prefix, ".gpu_compiled_draw_calls"),
             UiPerfCounter::GpuRenderPasses => concat!($prefix, ".gpu_render_passes"),
+            UiPerfCounter::GpuTimeUs => concat!($prefix, ".gpu_time_us"),
+            UiPerfCounter::GpuProfileLatencyFrames => {
+                concat!($prefix, ".gpu_profile_latency_frames")
+            }
             UiPerfCounter::GpuVisibleCommands => concat!($prefix, ".gpu_visible_commands"),
             UiPerfCounter::GpuVisibleCommandPayloadBytes => {
                 concat!($prefix, ".gpu_visible_command_payload_bytes")
+            }
+            UiPerfCounter::GpuVisibleCommandStyles => {
+                concat!($prefix, ".gpu_visible_command_styles")
             }
             UiPerfCounter::GpuVisibleDrawItems => concat!($prefix, ".gpu_visible_draw_items"),
             UiPerfCounter::GpuCompiledDrawItems => concat!($prefix, ".gpu_compiled_draw_items"),
@@ -239,6 +251,10 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::GpuSolidVertices => concat!($prefix, ".gpu_solid_vertices"),
             UiPerfCounter::GpuCompiledSolidVertices => {
                 concat!($prefix, ".gpu_compiled_solid_vertices")
+            }
+            UiPerfCounter::GpuSolidInstances => concat!($prefix, ".gpu_solid_instances"),
+            UiPerfCounter::GpuCompiledSolidInstances => {
+                concat!($prefix, ".gpu_compiled_solid_instances")
             }
             UiPerfCounter::GpuImageVertices => concat!($prefix, ".gpu_image_vertices"),
             UiPerfCounter::GpuCompiledImageVertices => {
@@ -321,6 +337,10 @@ mod tests {
         assert_eq!(
             counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuSolidVertices),
             "ui.startup.gpu_solid_vertices"
+        );
+        assert_eq!(
+            counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuSolidInstances),
+            "ui.startup.gpu_solid_instances"
         );
         assert_eq!(
             counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuBatchMerges),

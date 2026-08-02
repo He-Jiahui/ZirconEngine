@@ -1,7 +1,7 @@
 use zircon_runtime_interface::{
     ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
     ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestV1,
-    ZrRuntimeImeSurroundingTextV1,
+    ZrRuntimeImeSurroundingTextV1, ZrRuntimeViewportHandle,
 };
 
 use crate::core::framework::input::{
@@ -10,8 +10,9 @@ use crate::core::framework::input::{
 
 pub(in crate::dynamic_api) fn runtime_ime_host_request(
     request: ImeHostRequest,
+    target_viewport: ZrRuntimeViewportHandle,
 ) -> ZrRuntimeImeHostRequestV1 {
-    match request {
+    let request = match request {
         ImeHostRequest::Enable => ZrRuntimeImeHostRequestV1::enable(),
         ImeHostRequest::Disable => ZrRuntimeImeHostRequestV1::disable(),
         ImeHostRequest::SetCursorArea(area) => ZrRuntimeImeHostRequestV1::set_cursor_area(
@@ -24,7 +25,8 @@ pub(in crate::dynamic_api) fn runtime_ime_host_request(
                 text.anchor,
             ))
         }
-    }
+    };
+    request.with_target_viewport(target_viewport)
 }
 
 pub(in crate::dynamic_api) fn runtime_gamepad_rumble_request(
@@ -72,5 +74,22 @@ fn runtime_cursor_grab_mode(grab_mode: CursorGrabMode) -> ZrRuntimeCursorGrabMod
         CursorGrabMode::None => ZrRuntimeCursorGrabModeV1::None,
         CursorGrabMode::Confined => ZrRuntimeCursorGrabModeV1::Confined,
         CursorGrabMode::Locked => ZrRuntimeCursorGrabModeV1::Locked,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::{ZrRuntimeImeHostRequestKindV1, ZrRuntimeViewportHandle};
+
+    use super::runtime_ime_host_request;
+    use crate::core::framework::input::ImeHostRequest;
+
+    #[test]
+    fn runtime_ime_host_request_preserves_its_viewport_target() {
+        let viewport = ZrRuntimeViewportHandle::new(7);
+        let request = runtime_ime_host_request(ImeHostRequest::Enable, viewport);
+
+        assert_eq!(request.kind, ZrRuntimeImeHostRequestKindV1::Enable);
+        assert_eq!(request.target_viewport, Some(viewport));
     }
 }

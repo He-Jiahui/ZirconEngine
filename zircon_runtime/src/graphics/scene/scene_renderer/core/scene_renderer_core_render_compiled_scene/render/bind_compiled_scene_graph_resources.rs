@@ -1,4 +1,3 @@
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
@@ -10,15 +9,16 @@ use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 
 use super::bind_environment_ibl_graph_resources::bind_environment_ibl_graph_resources;
 use super::bind_execution_owned_graph_resources::bind_execution_owned_graph_resources;
 use super::bind_frame_graph_resources::bind_frame_graph_resources;
 use super::bind_history_graph_resources::{
-    HistoryGraphResourceBindingFlags, bind_history_graph_resources,
+    bind_history_graph_resources, HistoryGraphResourceBindingFlags,
 };
 use super::bind_plugin_graph_resources::bind_plugin_graph_resources;
-use super::final_target_output::{FinalTargetOutputSelection, select_final_target_output};
+use super::final_target_output::{select_final_target_output, FinalTargetOutputSelection};
 
 pub(super) struct CompiledSceneGraphResourceBindingFlags {
     pub(super) taa_history_enabled: bool,

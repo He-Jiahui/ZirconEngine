@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::template::{
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UiAssetFingerprint, UiAssetHeader, UiCompileCacheKey,
+    UiAssetFingerprint, UiAssetHeader, UiCompileCacheKey, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 
 pub const UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION: u32 = 1;

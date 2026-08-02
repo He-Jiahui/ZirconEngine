@@ -1,18 +1,14 @@
-use crate::capability::{
-    RUNTIME_CAPABILITIES, VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY,
-    VIRTUAL_GEOMETRY_RUNTIME_CAPABILITY,
-};
+use crate::capability::{RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME, VIRTUAL_GEOMETRY_DECLARATION};
 use crate::{
     module_descriptor, render_feature_descriptor, render_pass_executor_registrations,
     runtime_prepare_collector_registration, virtual_geometry_runtime_provider_registration,
-    PLUGIN_ID,
 };
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::render::{
-    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
-    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderDefinitionValue,
-    GEOMETRY_SOURCE_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    RenderShaderDefinitionValue,
 };
 use zircon_runtime::plugin::{
     PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
@@ -56,9 +52,6 @@ impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("virtual_geometry.dist", VIRTUAL_GEOMETRY_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -100,22 +93,10 @@ impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Virtual Geometry",
-        zircon_runtime::builtin::RuntimePluginId::VirtualGeometry,
-        "zircon_plugin_virtual_geometry_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("rendering")
-    .with_target_modes([
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
-    ])
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
-    .with_capability(VIRTUAL_GEOMETRY_RUNTIME_CAPABILITY)
-    .with_capability(VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY)
-    .build()
+    VIRTUAL_GEOMETRY_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(VirtualGeometryRuntimePlugin);

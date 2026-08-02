@@ -5,7 +5,7 @@ mod identity;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_viewport_scene_commands;
-use identity::{viewport_scene_kind, ViewportSceneKind};
+use identity::{ViewportSceneKind, viewport_scene_kind};
 
 pub(in crate::ui::retained_host::host_contract) fn is_viewport_fallback_scene_node(
     node: &TemplatePaneNodeData,

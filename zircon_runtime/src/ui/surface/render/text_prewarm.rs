@@ -1,73 +1,11 @@
-use std::sync::OnceLock;
-
-use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
-use crate::ui::surface::{
-    component_state::UiSurfaceComponentStateStore, is_arranged_render_visible,
-};
+use crate::core::runtime::tasks::{TaskPool, TaskPools};
 use crate::ui::text::{
     resolve_text_layout, UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest,
 };
+use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRichTextFormat};
-use zircon_runtime_interface::ui::{layout::UiFrame, surface::UiArrangedTree, tree::UiTree};
-
-use super::{
-    buttons::button_suppresses_owner_text, chrome::chrome_suppresses_owner_text,
-    collection_rows::collection_row_suppresses_owner_text,
-    command_palette::command_palette_suppresses_owner_text, dialog::dialog_suppresses_owner_text,
-    drag_overlay::drag_overlay_suppresses_owner_text, dropdowns::dropdown_suppresses_owner_text,
-    feedback::feedback_suppresses_owner_text, node_visual_data::UiNodeVisualData,
-    notification_center::notification_center_suppresses_owner_text,
-    segmented_controls::segmented_control_suppresses_owner_text,
-    selection_controls::selection_control_suppresses_owner_text,
-    sliders::slider_suppresses_owner_text, text_fields::text_field_suppresses_owner_text,
-};
 
 const UI_TEXT_SHAPE_PREWARM_CHUNK_SIZE: usize = 8;
-const UI_TEXT_SHAPE_PREWARM_THREADS: usize = 2;
-
-pub(super) fn prewarm_visible_owner_text(
-    tree: &UiTree,
-    arranged_tree: &UiArrangedTree,
-    component_states: Option<&UiSurfaceComponentStateStore>,
-    text_measure_cache: &mut UiTextMeasureCache,
-) {
-    let requests = arranged_tree
-        .draw_order
-        .iter()
-        .copied()
-        .filter_map(|node_id| {
-            let node = tree.nodes.get(&node_id)?;
-            if !is_arranged_render_visible(arranged_tree, node_id).unwrap_or(false) {
-                return None;
-            }
-            if suppresses_owner_text(node.template_metadata.as_ref()) {
-                return None;
-            }
-
-            let component_state = component_states.and_then(|states| states.get(node_id));
-            let visual = UiNodeVisualData::resolve(
-                node.template_metadata.as_ref(),
-                &node.state_flags,
-                component_state,
-            );
-            let text = visual.text?;
-            if text.is_empty() {
-                return None;
-            }
-            UiTextShapePrewarmRequest::from_layout_source(&text, visual.style)
-        })
-        .collect::<Vec<_>>();
-
-    if requests.is_empty() {
-        return;
-    }
-
-    text_measure_cache.prewarm_horizontal_paragraphs(
-        ui_text_shape_prewarm_pool(),
-        &requests,
-        UI_TEXT_SHAPE_PREWARM_CHUNK_SIZE,
-    );
-}
 
 pub(super) fn prewarm_render_command_text(
     commands: &[UiRenderCommand],
@@ -90,8 +28,9 @@ pub(super) fn prewarm_render_command_text(
         return;
     }
 
+    let pool = ui_text_shape_prewarm_pool();
     text_measure_cache.prewarm_horizontal_paragraphs(
-        ui_text_shape_prewarm_pool(),
+        &pool,
         &requests,
         UI_TEXT_SHAPE_PREWARM_CHUNK_SIZE,
     );
@@ -118,24 +57,6 @@ pub(super) fn resolve_missing_render_command_text_layouts(
     }
 }
 
-fn suppresses_owner_text(
-    metadata: Option<&zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata>,
-) -> bool {
-    selection_control_suppresses_owner_text(metadata)
-        || slider_suppresses_owner_text(metadata)
-        || dropdown_suppresses_owner_text(metadata)
-        || text_field_suppresses_owner_text(metadata)
-        || button_suppresses_owner_text(metadata)
-        || segmented_control_suppresses_owner_text(metadata)
-        || collection_row_suppresses_owner_text(metadata)
-        || feedback_suppresses_owner_text(metadata)
-        || dialog_suppresses_owner_text(metadata)
-        || command_palette_suppresses_owner_text(metadata)
-        || notification_center_suppresses_owner_text(metadata)
-        || drag_overlay_suppresses_owner_text(metadata)
-        || chrome_suppresses_owner_text(metadata)
-}
-
 fn command_text_can_use_shape_prewarm(command: &UiRenderCommand) -> bool {
     command_text_needs_layout(command)
 }
@@ -153,20 +74,14 @@ fn valid_text_frame(frame: UiFrame) -> bool {
     frame.width.is_finite() && frame.height.is_finite() && frame.width > 0.0 && frame.height > 0.0
 }
 
-fn ui_text_shape_prewarm_pool() -> &'static TaskPool {
-    static POOL: OnceLock<TaskPool> = OnceLock::new();
-    POOL.get_or_init(|| {
-        TaskPool::new(
-            TaskPoolDescriptor::compute()
-                .with_thread_name("ui-text-shape-prewarm")
-                .with_worker_threads(UI_TEXT_SHAPE_PREWARM_THREADS),
-        )
-    })
+fn ui_text_shape_prewarm_pool() -> TaskPool {
+    TaskPools::process_default().compute().clone()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::prewarm_render_command_text;
+    use super::{prewarm_render_command_text, ui_text_shape_prewarm_pool};
+    use crate::core::runtime::tasks::TaskPools;
     use crate::ui::text::UiTextMeasureCache;
     use zircon_runtime_interface::ui::{
         event_ui::UiNodeId,
@@ -178,7 +93,7 @@ mod tests {
     };
 
     #[test]
-    fn prewarm_render_command_text_accepts_rich_and_vertical_commands() {
+    fn prewarm_render_command_text_skips_rich_and_vertical_contract_mismatches() {
         let mut cache = UiTextMeasureCache::default();
         cache.begin_frame();
 
@@ -216,11 +131,25 @@ mod tests {
         );
 
         let report = cache.frame_shape_prewarm_report();
-        assert_eq!(report.requested_count, 3);
-        assert_eq!(report.cache_miss_count, 2);
-        assert_eq!(report.batch_duplicate_count, 1);
-        assert_eq!(report.shaped_count, 2);
-        assert_eq!(report.inserted_count, 2);
+        assert_eq!(report.requested_count, 0);
+        assert_eq!(report.cache_miss_count, 0);
+        assert_eq!(report.shaped_count, 0);
+    }
+
+    #[test]
+    fn text_prewarm_uses_one_shared_compute_pool_join_after_command_collection() {
+        let prewarm_pool = ui_text_shape_prewarm_pool();
+        let process_pools = TaskPools::process_default();
+        let extract_source = include_str!("extract.rs");
+
+        assert!(prewarm_pool.shares_execution_owner_with(process_pools.compute()));
+        assert_eq!(
+            extract_source
+                .matches("prewarm_render_command_text(&commands, cache)")
+                .count(),
+            1
+        );
+        assert!(!extract_source.contains("prewarm_visible_owner_text"));
     }
 
     fn text_command(text: &str, style: UiResolvedStyle) -> UiRenderCommand {

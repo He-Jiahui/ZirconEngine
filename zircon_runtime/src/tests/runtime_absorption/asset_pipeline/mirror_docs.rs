@@ -33,8 +33,13 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/facade/failure_reason.rs"),
         include_str!("../../../asset/tests/facade/hot_reload.rs"),
         include_str!("../../../asset/tests/pipeline/worker_pool.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/diagnostics.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/single_flight.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/task_pool.rs"),
         include_str!("../../../asset/tests/watcher.rs"),
         include_str!("../../../asset/tests/assets/artifact_store.rs"),
+        include_str!("../../../asset/tests/assets/artifact_store/bounded_read.rs"),
+        include_str!("../../../asset/tests/assets/artifact_store/lazy_residency.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
         include_str!("../../../core/resource/tests.rs"),
@@ -53,8 +58,13 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/facade/failure_reason.rs"),
         include_str!("../../../asset/tests/facade/hot_reload.rs"),
         include_str!("../../../asset/tests/pipeline/worker_pool.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/diagnostics.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/single_flight.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/task_pool.rs"),
         include_str!("../../../asset/tests/watcher.rs"),
         include_str!("../../../asset/tests/assets/artifact_store.rs"),
+        include_str!("../../../asset/tests/assets/artifact_store/bounded_read.rs"),
+        include_str!("../../../asset/tests/assets/artifact_store/lazy_residency.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
         include_str!("../../../core/resource/tests.rs"),
@@ -69,7 +79,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
     );
     assert_eq!(
         EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS.len(),
-        20,
+        24,
         "Runtime 04 behavior-test anchor count should mirror asset_pipeline_boundary"
     );
     assert_contains_all(

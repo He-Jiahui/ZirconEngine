@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId, ShaderFeatureBits, ShaderPassType,
-    ShaderQualityTier, ShaderVariantKey, ShadingModelId,
+    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+    ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::core::resource::ResourceId;
 
@@ -112,7 +112,7 @@ impl PipelineKey {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
+        ShaderFeatureBits, ShaderPassType, SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::core::resource::ResourceId;
     use crate::graphics::scene::resources::default_pipeline_key;
@@ -143,16 +143,12 @@ mod tests {
         assert_eq!(variant.platform_token, "wgpu-test");
         assert!(variant.features.contains(ShaderFeatureBits::ALPHA_TEST));
         assert!(variant.features.contains(ShaderFeatureBits::DOUBLE_SIDED));
-        assert!(
-            variant
-                .features
-                .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-        );
-        assert!(
-            !variant
-                .features
-                .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
-        );
+        assert!(variant
+            .features
+            .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+        assert!(!variant
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
     }
 
     #[test]
@@ -162,11 +158,9 @@ mod tests {
 
         let variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
 
-        assert!(
-            variant
-                .features
-                .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
-        );
+        assert!(variant
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
     }
 
     #[test]
@@ -176,11 +170,9 @@ mod tests {
 
         let variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
 
-        assert!(
-            !variant
-                .features
-                .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-        );
+        assert!(!variant
+            .features
+            .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
     }
 
     #[test]
@@ -188,41 +180,29 @@ mod tests {
         let mut key = default_pipeline_key();
 
         let default_variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
-        assert!(
-            !default_variant
-                .features
-                .contains(ShaderFeatureBits::PBR_CLEARCOAT)
-        );
-        assert!(
-            !default_variant
-                .features
-                .contains(ShaderFeatureBits::PBR_ANISOTROPY)
-        );
-        assert!(
-            !default_variant
-                .features
-                .contains(ShaderFeatureBits::PBR_TRANSMISSION)
-        );
+        assert!(!default_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+        assert!(!default_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY));
+        assert!(!default_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_TRANSMISSION));
 
         key.pbr_clearcoat = true;
         key.pbr_anisotropy = true;
         key.pbr_transmission = true;
         let advanced_variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
 
-        assert!(
-            advanced_variant
-                .features
-                .contains(ShaderFeatureBits::PBR_CLEARCOAT)
-        );
-        assert!(
-            advanced_variant
-                .features
-                .contains(ShaderFeatureBits::PBR_ANISOTROPY)
-        );
-        assert!(
-            advanced_variant
-                .features
-                .contains(ShaderFeatureBits::PBR_TRANSMISSION)
-        );
+        assert!(advanced_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+        assert!(advanced_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY));
+        assert!(advanced_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_TRANSMISSION));
     }
 }

@@ -1,8 +1,7 @@
-use super::super::super::super::paint_theme::{current_host_palette, METRICS, PALETTE};
+use super::super::super::super::paint_theme::{METRICS, PALETTE, current_host_palette};
 use super::super::super::style_selector::{
-    add_component_glyph_color_from_host, add_component_text_color_from_host,
+    WorkbenchButtonKind, add_component_glyph_color_from_host, add_component_text_color_from_host,
     workbench_button_border_width_from_host, workbench_button_transparent_surface,
-    WorkbenchButtonKind,
 };
 use super::super::super::template_button_glyphs::ButtonGlyph;
 use super::super::{
@@ -11,8 +10,8 @@ use super::super::{
     button_opacity, button_paint_rect, button_radius, button_style,
 };
 use super::support::{
-    positioned_button_node, resolved_background, resolved_background_and_border, resolved_border,
-    resolved_button_style, resolved_foreground, TemplatePaneNodeDataTestExt,
+    TemplatePaneNodeDataTestExt, positioned_button_node, resolved_background,
+    resolved_background_and_border, resolved_border, resolved_button_style, resolved_foreground,
 };
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 

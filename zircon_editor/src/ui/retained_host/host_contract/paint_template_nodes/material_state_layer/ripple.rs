@@ -5,5 +5,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use comman
     push_ripple_commands, ripple_is_visible,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use geometry::{
-    ripple_diameter, ripple_rect, RIPPLE_DIAMETER_EXPANSION,
+    RIPPLE_DIAMETER_EXPANSION, ripple_diameter, ripple_rect,
 };

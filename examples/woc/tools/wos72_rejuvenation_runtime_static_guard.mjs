@@ -29,7 +29,7 @@ if (!rejuvenation || rejuvenation.class !== "druid" || rejuvenation.learnLevel !
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(
   world,
-  /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?entitySunderArmorValues[\s\S]*?offlineHotStateIsValid[\s\S]*?offlineHotTargetIds[\s\S]*?offlineHotTickTimers/,
+  /entitySunderArmorValues[\s\S]*?offlineHotStateIsValid[\s\S]*?offlineHotTargetIds[\s\S]*?offlineHotTickTimers/,
   "WOS60 must retain the durable Rejuvenation HoT tail after Sunder Armor",
 );
 requireText(
@@ -49,8 +49,13 @@ requireText(
 );
 requireText(
   world,
-  /startOfflineRejuvenationCast[\s\S]*?catalogAdmission\(state, casterIndex, abilityCode, "", false\)[\s\S]*?rejuvenationResolvedTargetIndex[\s\S]*?pureHotProfiles\.resolvePureHotProfile[\s\S]*?entityResources\[casterIndex\] = <int>state\.entityResources\[casterIndex\] - cost[\s\S]*?applyOfflinePureHot/,
+  /startOfflineRejuvenationCast[\s\S]*?catalogAdmission\(state, casterIndex, abilityCode, "", false\)[\s\S]*?rejuvenationResolvedTargetIndex[\s\S]*?pureHotProfiles\.resolvePureHotProfile[\s\S]*?spendOfflineAbilityResource\(state, casterIndex, cost\)[\s\S]*?applyOfflinePureHot/,
   "Rejuvenation must validate a friendly target, freeze its pure-HoT spell scaling, bill, and apply",
+);
+requireText(
+  world,
+  /applyOfflinePureHot[\s\S]*?offlineResolvedHotTotal[\s\S]*?resolvePureHotProfileWithResolvedTotal/,
+  "Rejuvenation must resolve talent-adjusted total before capturing its Aura snapshot",
 );
 requireText(
   world,
@@ -89,8 +94,8 @@ requireText(
 );
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS71/g) ?? []).length !== 2) {
-  throw new Error("main schema metadata must publish WOS71 in both runtime paths");
+if ((main.match(/world_state[^\r\n]*WOS83/g) ?? []).length !== 2) {
+  throw new Error("main schema metadata must publish WOS72 in both runtime paths");
 }
 
 const contract = read("contracts", "world-state.md");

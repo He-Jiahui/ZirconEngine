@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::super::{DiagnosticStore, record_bytes, record_count};
+use super::super::{record_bytes, record_count, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = stats.last_graph_execution_resource_report;

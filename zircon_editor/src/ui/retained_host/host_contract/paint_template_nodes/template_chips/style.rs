@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchChipPalette {
@@ -17,8 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub focus_ring: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_palette(
-) -> WorkbenchChipPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_palette()
+-> WorkbenchChipPalette {
     workbench_chip_palette_from_host(current_host_palette())
 }
 

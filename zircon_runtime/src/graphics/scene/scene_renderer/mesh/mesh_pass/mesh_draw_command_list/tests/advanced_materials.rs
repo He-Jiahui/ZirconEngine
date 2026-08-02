@@ -5,7 +5,7 @@ fn render_advanced_static_material_bypasses_opaque_cache_and_keeps_late_forward_
     let mut variants = MeshPipelineVariantRegistry::default();
     let mut cache = CachedMeshDrawCommands::default();
     let mut batch = static_batch(MeshDrawQueuePhase::Opaque, 10)
-        .with_cache_identity(7, 0)
+        .with_cache_identity(7, 7 << 16, 0)
         .with_static_state(RenderMeshStaticState::new(true, 11, 17));
     batch.pipeline_key.pbr_clearcoat = true;
 

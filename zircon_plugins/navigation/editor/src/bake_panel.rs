@@ -1,10 +1,10 @@
 use std::fmt;
 
 use zircon_editor::core::editor_operation::{EditorOperationInvocation, EditorOperationPath};
+use zircon_runtime::core::framework::navigation::{NavMeshBakeReport, NavMeshBakeRequest};
 use zircon_runtime::core::framework::navigation::{
     NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
 };
-use zircon_runtime::core::framework::navigation::{NavMeshBakeReport, NavMeshBakeRequest};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NavigationBakeSurfaceRow {

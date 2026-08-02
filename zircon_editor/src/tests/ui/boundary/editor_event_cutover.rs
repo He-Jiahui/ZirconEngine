@@ -14,6 +14,7 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
         core_event_root.join("runtime.rs"),
         core_event_root.join("runtime"),
         core_root.join("editing").join("operation_state.rs"),
+        core_root.join("play").join("bridge.rs"),
         ui_host_root.join("editor_event_runtime_bootstrap.rs"),
         ui_host_root.join("editor_event_listener_control.rs"),
     ] {
@@ -39,7 +40,14 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
             .join("editing")
             .join("engine")
             .join("transaction.rs"),
-        core_root.join("play").join("bridge.rs"),
+        core_root
+            .join("play")
+            .join("plugin_activation")
+            .join("mod.rs"),
+        core_root
+            .join("play")
+            .join("plugin_activation")
+            .join("contract.rs"),
         ui_host_root.join("editor_host_event_controller.rs"),
         workbench_root.join("shell_state.rs"),
     ] {

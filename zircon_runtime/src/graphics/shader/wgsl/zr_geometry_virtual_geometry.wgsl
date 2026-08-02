@@ -7,7 +7,7 @@ fn zr_virtual_geometry_payload_slot(instance_index: u32) -> u32 {
 
 fn zr_virtual_geometry_vertex_word_index(instance_index: u32, vertex_ordinal: u32) -> u32 {
     let payload_slot = zr_virtual_geometry_payload_slot(instance_index);
-    if (!zr_gpu_scene_valid_payload_slot(payload_slot, arrayLength(&zr_virtual_geometry_pages))) {
+    if (!zr_gpu_scene_valid_payload_slot(payload_slot, zr_gpu_scene_virtual_geometry_page_count())) {
         return 0xffffffffu;
     }
     let page = zr_virtual_geometry_pages[payload_slot];
@@ -21,7 +21,7 @@ fn zr_virtual_geometry_vertex_word_index(instance_index: u32, vertex_ordinal: u3
 
 fn zr_virtual_geometry_has_vertex(instance_index: u32, vertex_ordinal: u32) -> bool {
     let word_index = zr_virtual_geometry_vertex_word_index(instance_index, vertex_ordinal);
-    let cluster_word_count = arrayLength(&zr_virtual_geometry_clusters);
+    let cluster_word_count = zr_gpu_scene_virtual_geometry_cluster_word_count();
     return word_index != 0xffffffffu
         && cluster_word_count >= ZR_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX
         && word_index <= cluster_word_count - ZR_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX;

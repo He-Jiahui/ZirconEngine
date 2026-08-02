@@ -18,8 +18,7 @@ impl RuntimeEntryApp {
                 self.viewport,
                 byte_slice(path_text.as_ref()),
             );
-            if self.session.handle_event(event).is_err() {
-                event_loop.exit();
+            if !self.dispatch_runtime_event(event_loop, event) {
                 return;
             }
         }

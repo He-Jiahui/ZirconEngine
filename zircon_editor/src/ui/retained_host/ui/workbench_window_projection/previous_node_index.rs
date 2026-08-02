@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ui::retained_host::{primitives::ModelRc, TemplatePaneNodeData};
+use crate::ui::retained_host::{TemplatePaneNodeData, primitives::ModelRc};
 
 #[derive(Debug, PartialEq, Eq)]
 struct WorkbenchProjectionIdentity {

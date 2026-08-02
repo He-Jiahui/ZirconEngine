@@ -228,10 +228,14 @@ fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
                         .unwrap()
                         .push(format!("runtime-delta={:.3}", context.delta_seconds));
                 });
-                assert!(context
-                    .core
-                    .resolve_driver::<crate::scene::WorldDriver>(crate::scene::WORLD_DRIVER_NAME)
-                    .is_ok());
+                assert!(
+                    context
+                        .core
+                        .resolve_driver::<crate::scene::WorldDriver>(
+                            crate::scene::WORLD_DRIVER_NAME
+                        )
+                        .is_ok()
+                );
                 Ok(())
             },
         );

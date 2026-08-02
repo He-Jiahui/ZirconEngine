@@ -23,13 +23,24 @@ resolved_at: 2026-07-26
 
 # Editor05: Project 吸附步进尚未迁入 SettingsRegistry
 
-## 来源与现象
+## 来源执行者
+
+- 来源计划：`docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md`
+- 来源执行切片：Editor17 M1.1 Project SettingsRegistry 落地后的 snap-step migration handoff
+- 修复责任计划：`docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md`
+- 交接原因：viewport snap-step 的事实源与场景交互接线属于 Editor05；Editor17 只提供 Project/User/Session SettingsRegistry 基础设施。
+
+## 失败现象与复现证据
 
 `SceneViewportSettings` 仍在 `scene/viewport/settings.rs:41-54` 直接持有 `translate_step`、`rotate_step_deg`、`scale_step`；默认值在 :67-82，retained viewport route 在 `route_mapping.rs:56-75` 直接循环这些字段。Editor05 计划已指定这些字段保持事实源，待 Editor17 落地后迁入 Project 域。
 
 Editor17 的 Project 路径现为 `<root>/.zircon/settings.toml`，但 Editor05 尚未把吸附步进定义、加载和变更应用接到该层，因此工程间仍不能获得计划要求的持久化边界。
 
-## 修复责任与验收
+## 最低共享层根因
+
+`SceneViewportSettings` 仍直接持有并向 route 暴露三个 snap-step 字段，尚未接入 SettingsRegistry 的 Project 层，形成平行持久化事实源。
+
+## 架构修复验收
 
 - Editor05 注册三个有限 Float Settings 项，Project 为持久层，User 为允许回退层，Session 仅作易失覆盖。
 - 打开工程时从 `SettingsStore` Project 层应用解析值；编辑步进后仅更新该层，不把值写入场景源文件或 UI 私有文件。

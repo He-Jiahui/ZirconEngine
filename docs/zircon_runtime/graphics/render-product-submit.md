@@ -24,7 +24,7 @@ related_code:
   - dev/bevy/crates/bevy_pbr/src/pbr_material.rs
   - dev/bevy/crates/bevy_pbr/src/material.rs
   - dev/bevy/crates/bevy_pbr/src/mesh_material.rs
-  - dev/bevy/crates/bevy_pbr/src/material_bind_groups.rs
+  - dev/bevy/crates/bevy_render/src/material_bind_groups.rs
   - dev/bevy/crates/bevy_pbr/src/render/light.rs
   - dev/bevy/crates/bevy_pbr/src/render/pbr.wgsl
   - dev/bevy/crates/bevy_pbr/src/render/pbr_lighting.wgsl
@@ -68,7 +68,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
@@ -373,7 +373,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/depth_of_field_prepare.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_tile_max.wgsl
@@ -514,7 +516,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
@@ -704,7 +706,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/depth_of_field_prepare.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_tile_max.wgsl
@@ -1632,7 +1636,7 @@ Bevy's PBR baseline is a product family, not just a shader. `dev/bevy/crates/bev
 
 Bevy's `StandardMaterial` carries a broad authored and GPU-facing contract. `dev/bevy/crates/bevy_pbr/src/pbr_material.rs:26-57` starts the material with base color, UV channel, and texture dependency bindings, while later fields cover emissive, metallic/roughness, normal/occlusion, alpha, transmission, clearcoat, anisotropy, and parallax families. The shader-visible flags at `pbr_material.rs:967-1003` distinguish texture slots, double-sided, unlit, normal-map options, fog, parallax, transmission, clearcoat, anisotropy, specular, and alpha modes. `pbr_material.rs:1010-1056` packs the GPU uniform with base color, emissive, roughness, metallic, transmission, thickness, IOR, clearcoat, anisotropy, flags, alpha cutoff, and parallax parameters.
 
-The Bevy material pipeline is asset-driven and render-phase aware. `dev/bevy/crates/bevy_pbr/src/material.rs:74-144` defines `Material` as an `Asset + AsBindGroup` abstraction used with `Mesh3d` and `MeshMaterial3d`; `material.rs:289-342` initializes specialized material pipeline caches, material instances, bind group allocators, draw commands for shadow/transparent/opaque/alpha-mask phases, material mesh specialization, queueing, bind group preparation, shadow specialization, and shadow queueing. `mesh_material.rs:8-41` makes the mesh-to-material handle component explicit, while `material_bind_groups.rs:36-115` shows the bindless/non-bindless allocator and slab resource tracking surface that backs material bind groups.
+The Bevy material pipeline is asset-driven and render-phase aware. `dev/bevy/crates/bevy_pbr/src/material.rs:74-144` defines `Material` as an `Asset + AsBindGroup` abstraction used with `Mesh3d` and `MeshMaterial3d`; `material.rs:289-342` initializes specialized material pipeline caches, material instances, bind group allocators, draw commands for shadow/transparent/opaque/alpha-mask phases, material mesh specialization, queueing, bind group preparation, shadow specialization, and shadow queueing. `mesh_material.rs:8-41` makes the mesh-to-material handle component explicit, while `dev/bevy/crates/bevy_render/src/material_bind_groups.rs:52-115` owns the shared bindless/non-bindless allocator and slab resource tracking surface that backs 2D and 3D material bind groups.
 
 The shader side confirms why PBR parity must include both forward and deferred lighting. `dev/bevy/crates/bevy_pbr/src/render/pbr.wgsl:65-89` creates `PbrInput` from StandardMaterial bindings, handles alpha discard, writes deferred/prepass output when configured, or applies PBR lighting plus in-shader post-lighting in forward mode. `deferred/deferred_lighting.wgsl:59-86` reconstructs `PbrInput` from the deferred G-buffer, folds in SSAO when available, and applies the same PBR lighting path. `render/pbr_lighting.wgsl:34-122` defines the BRDF and lighting input model for point, spot, and directional lights, including clearcoat and anisotropy variants. Cluster data is its own GPU surface: `cluster/cluster.wgsl:4-24` defines point/spot/probe/decal clusterable object kinds and cluster metadata, and `render/light.rs:1316-1343` writes point/spot lights into `GpuClusteredLight`; `render/light.rs:1519-1624` builds per-view `GpuLights` with ambient, directional, clusters, and rect-light storage.
 
@@ -1755,6 +1759,8 @@ The 2026-06-05 SSR coarse-pyramid follow-up adds `postprocess.screen-space-refle
 Graphics debugger capture is a submit-scoped request, not a persistent rendering mode. The live triggers are `RenderFramework::request_graphics_debugger_capture(viewport)`, the compatible one-shot `ZR_RENDERDOC_CAPTURE_NEXT=1`, and bounded `ZR_RENDERDOC_CAPTURE_FRAME_COUNT=<0..8>` sequences; editor UI and dynamic API commands do not currently expose a separate RenderDoc button. An explicit frame count takes precedence over the one-shot switch, with larger values clamped to eight. The trait method stores a pending viewport in `WgpuRenderFramework`; non-matching viewport submits leave it pending. The environment variables arm the first viewport created by the framework so desktop debug launches can capture the first rendered frame without editor code calling the trait method. A sequence re-arms that same viewport after each successful capture, which permits current-process cold/stable comparisons without rebuilding renderer state. On the matching submit, capture begins before runtime prepare/render command recording and finishes after the frame is produced. The blocking wgpu stop/poll step runs after the framework state mutex is released, while an operation lock remains held so no second frame or viewport/pipeline mutation can enter the active capture window. Destroying the sequence viewport or encountering a submit/stop error cancels its remaining automatic captures; destroying a viewport with pending or queued debugger capture also records a destroyed-viewport error instead of leaving `capture_pending` true forever. The status query reports wgpu capture-hook availability, the selected wgpu backend as `wgpu(dx12)` / `wgpu(vulkan)` / equivalent, pending/active flags, the last captured frame generation, and any submit or stop error. `available` means the backend exposes the wgpu debugger capture hook; it does not prove RenderDoc is attached. If the matching submit fails during preflight before capture starts, the pending request is consumed and `last_error` records the preflight error. If a submit fails while capture is active, cleanup still stops the capture and clears active/pending state before returning the original error.
 
 `RenderSubmissionConfig` also carries the off-by-default `parallel_record` switch and `min_passes_per_bucket` threshold, whose compatibility default is two passes. `ParallelEncoderSet` derives topology layers from compiled pass dependencies, keeps each layer indivisible while coalescing adjacent layers to meet the threshold, records profitable buckets on the framework's shared compute `TaskPool`, preserves topology order in the resulting command-buffer vector, and collapses disabled or undersized work into one encoder. This is an infrastructure contract, not a claim that the live product stage executor is already parallel: current compiled-scene recording still mutably shares graph resources, execution/profile records, screen UI state, and renderer caches. Live submission remains single-encoder until Render01/02 provide independently owned immutable prepared inputs; wrapping those mutable owners in a mutex is not an accepted parallel path.
+
+WGPU timestamp-query ownership is shared below scene and retained-UI rendering in `rhi_wgpu::gpu_pass_timer`; `graphics::backend` keeps its crate-private facade by re-exporting that single implementation. Native UI presentation requests timestamp-query features only when the adapter exposes the required query and encoder-write pair, records one `ui.surface` scope around the complete retained-UI submission, and consumes three-slot asynchronous readback without a caller-thread wait. `UiSurfacePresentStats` separates native submitted item/vertex/layer counts from `compiled_*` full-plan counts, reports unavailable GPU samples as `None`, and exposes the sample latency instead of presenting a missing result as zero. The stats contract is `#[non_exhaustive]`; callers construct draw lists through `new`/`with_generation` and consume stats by field or `Default`, not exhaustive public struct literals.
 
 RenderDoc-readable markers are centralized in `zircon_runtime/src/graphics/debug_markers.rs`. The compiled-scene command encoder emits markers for `FrameExtract`, `Clear`, `Prepass`, `MainScene`, `Lighting`, `DeferredLighting`, `PostProcess`, `HistoryCopy`, `Overlay`, and `UI`; the readback path emits `Readback` before the GPU-to-CPU copy. Graph-stage execution maps `RenderPassStage::Lighting` to the generic `zircon::Lighting` marker so Forward+ lighting stages are not mislabeled as deferred, while the fixed deferred lighting pass still uses `zircon::DeferredLighting`. Each executed graph pass now also emits and records `zircon::RenderGraphPass::<pass-name>`, so compute-declared passes that fall back to the graphics queue still leave pass-level capture evidence and `RenderStats.last_graph_executed_debug_markers` can prove marker coverage without exposing WGPU encoder internals.
 

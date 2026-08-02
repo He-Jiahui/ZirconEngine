@@ -90,15 +90,28 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             && runtime_failure_source.contains("if recorded_failure.is_none()"),
         "runtime entry failures should remain actionable and retain the first terminal callback failure"
     );
-    assert!(
-        runtime_runner_source
-            .matches("runtime_startup_execution_error(")
-            .count()
-            >= 4
-            && runtime_runner_source.contains("\"runtime_event_loop\"")
-            && runtime_runner_source.contains("\"runtime_session\"")
-            && runtime_runner_source.contains("runtime_session_startup_request("),
-        "runtime startup should wrap event-loop and runtime-session initialization failures in the same typed product diagnostic boundary"
+    let session_create_start = runtime_runner_source
+        .find("let session = RuntimeSession::create_with_profile_and_project(")
+        .expect("runtime runner should create a dynamic runtime session");
+    let session_create_done = runtime_runner_source[session_create_start..]
+        .find("\"runtime_session_create_done\"")
+        .map(|offset| session_create_start + offset)
+        .expect("runtime runner should log completed dynamic runtime session creation");
+    let session_create = &runtime_runner_source[session_create_start..session_create_done];
+    assert_source_order(
+        session_create,
+        &[
+            "RuntimeSession::create_with_profile_and_project(",
+            "runtime_session_args.profile.as_bytes(),",
+            "runtime_session_args.project_root.as_deref(),",
+            ".map_err(|error|",
+            "\"runtime_session\"",
+            "runtime_session_startup_request(",
+            "runtime_session_args.profile,",
+            "runtime_session_args.project_root.as_deref(),",
+            "format!(\"runtime session creation failed: {error}\")",
+        ],
+        "runtime session creation should retain the selected request and original failure through the typed product diagnostic boundary",
     );
     assert!(
         runtime_window_creation_source.contains("self.window_descriptor.primary_window.is_none()"),
@@ -116,10 +129,15 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "RuntimeEntryAppFailureState::default()",
             "RuntimeEntryApp::new(session, host_config, failure_state.clone())",
             "event_loop.run_app(app)",
-            "failure_state.take()",
-            "return Err(failure.into())",
+            "let event_loop_failure = result.err().map",
+            "let runtime_app_failure = failure_state",
+            ".take()",
+            "let runtime_session_failure = session_teardown_failure.take().map",
+            "finish_runtime_process(",
+            ")?;",
+            "runtime_process_teardown_complete_diagnostic()",
         ],
-        "runtime runner should derive the app host config from the parsed session profile and return terminal callback failures after the event loop ends",
+        "runtime runner should derive the app host config from the parsed session profile and aggregate terminal failures after the event loop ends",
     );
     assert!(
         runtime_runner_source.contains("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME"),

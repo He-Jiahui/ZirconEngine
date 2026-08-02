@@ -40,16 +40,12 @@ mod tests {
             &AdvancedProviderAvailability::new(),
         );
 
-        assert!(
-            !options
-                .enabled_capabilities
-                .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry)
-        );
-        assert!(
-            !options
-                .enabled_capabilities
-                .contains(&RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
-        );
+        assert!(!options
+            .enabled_capabilities
+            .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry));
+        assert!(!options
+            .enabled_capabilities
+            .contains(&RenderFeatureCapabilityRequirement::HybridGlobalIllumination));
     }
 
     #[test]
@@ -63,16 +59,12 @@ mod tests {
             &AdvancedProviderAvailability::new().with_virtual_geometry_provider("vg"),
         );
 
-        assert!(
-            options
-                .enabled_capabilities
-                .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry)
-        );
-        assert!(
-            !options
-                .enabled_capabilities
-                .contains(&RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
-        );
+        assert!(options
+            .enabled_capabilities
+            .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry));
+        assert!(!options
+            .enabled_capabilities
+            .contains(&RenderFeatureCapabilityRequirement::HybridGlobalIllumination));
     }
 
     #[test]
@@ -86,16 +78,12 @@ mod tests {
             &AdvancedProviderAvailability::new().with_hybrid_gi_provider("hgi"),
         );
 
-        assert!(
-            options
-                .enabled_features
-                .contains(&BuiltinRenderFeature::Temporal)
-        );
-        assert!(
-            !options
-                .disabled_features
-                .contains(&BuiltinRenderFeature::Temporal)
-        );
+        assert!(options
+            .enabled_features
+            .contains(&BuiltinRenderFeature::Temporal));
+        assert!(!options
+            .disabled_features
+            .contains(&BuiltinRenderFeature::Temporal));
     }
 
     #[test]

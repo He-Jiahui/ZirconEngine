@@ -173,7 +173,11 @@ impl EditorHostEventController {
                     };
                 }
             };
-            return match self.invoke_operation(EditorOperationSource::UiBinding, invocation) {
+            return match self.invoke_operation_with_binding_path(
+                EditorOperationSource::UiBinding,
+                invocation,
+                Some(binding.path().native_prefix()),
+            ) {
                 Ok(record) => UiInvocationResult {
                     route_id,
                     binding: Some(ui_binding),

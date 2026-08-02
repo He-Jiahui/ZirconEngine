@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/material/*.rs
+  - zircon_runtime/src/core/framework/render/material/
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs

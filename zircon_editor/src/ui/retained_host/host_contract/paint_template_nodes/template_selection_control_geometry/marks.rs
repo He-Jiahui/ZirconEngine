@@ -1,5 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::{workbench_selection_control_metrics, WorkbenchSelectionControlMetrics};
+use super::metrics::{WorkbenchSelectionControlMetrics, workbench_selection_control_metrics};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_selection_control_extent(
     rect: &FrameRect,

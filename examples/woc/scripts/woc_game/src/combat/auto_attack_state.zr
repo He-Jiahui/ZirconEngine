@@ -31,6 +31,8 @@ pub class AutoActor {
     pub var queuedAbility: string;
     pub var queuedFree: bool;
     pub var queuedCostMultiplier: float;
+    pub var queuedTalentBonusResolved: bool;
+    pub var queuedTalentBonus: float;
     pub var resolvedQueuedAbility: string;
     pub var cooldowns: container.Array<float>;
     pub var weaponMinimum: float;
@@ -99,6 +101,8 @@ pub class AutoActor {
         this.queuedAbility = "";
         this.queuedFree = false;
         this.queuedCostMultiplier = 1.0;
+        this.queuedTalentBonusResolved = false;
+        this.queuedTalentBonus = 0.0;
         this.resolvedQueuedAbility = "";
         this.cooldowns = new container.Array<float>();
         var cooldown = 0;
@@ -412,7 +416,8 @@ consumeQueuedSwing(actor: AutoActor, events: AutoEvents): float {
                         actor.cooldowns[abilityIndex] =
                             catalog.metric(abilityIndex, actor.level, "cooldown");
                         actor.resolvedQueuedAbility = actor.queuedAbility;
-                        bonus = effects.metric(abilityIndex, rank, effectIndex, "bonus");
+                        bonus = actor.queuedTalentBonusResolved ? actor.queuedTalentBonus :
+                            effects.metric(abilityIndex, rank, effectIndex, "bonus");
                         events.lastAbility = catalog.text(abilityIndex, "name");
                         events.lastThreatFlat =
                             catalog.metric(abilityIndex, actor.level, "threatFlat");
@@ -429,6 +434,8 @@ consumeQueuedSwing(actor: AutoActor, events: AutoEvents): float {
     actor.queuedAbility = "";
     actor.queuedFree = false;
     actor.queuedCostMultiplier = 1.0;
+    actor.queuedTalentBonusResolved = false;
+    actor.queuedTalentBonus = 0.0;
     return bonus;
 }
 

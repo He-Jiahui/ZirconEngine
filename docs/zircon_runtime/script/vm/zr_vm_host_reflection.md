@@ -268,7 +268,7 @@ doc_type: module-detail
 The VM host surface is split into three ownership layers:
 
 - `zircon_runtime_interface::reflect` owns the authoritative type path, ordered field schema, visibility, and documentation in `ReflectTypeRegistration`.
-- `zircon_runtime::core::framework::script` owns neutral host ABI descriptors and values. `ScriptHostTypeDescriptor` is a fallible projection of the unified registration plus ABI-only value/prototype/construction options; it is not a second field schema. VM backends can read `ScriptHostModuleDescriptor`, `ScriptHostFunctionDescriptor`, `ScriptHostTypeDescriptor`, `ScriptHostValueKind`, `ScriptHostCallContext`, and `ScriptHostResult` without depending on concrete runtime managers.
+- `zircon_runtime::core::framework::script` owns neutral host ABI descriptors and values. `ScriptHostTypeDescriptor` is a fallible projection of the unified registration plus ABI-only value/prototype/construction options; it is not a second field schema. VM backends can read `ScriptHostModuleDescriptor`, `ScriptHostFunctionDescriptor`, `ScriptHostTypeDescriptor`, `ScriptHostValueKind`, `ScriptHostCallFrame`, and `ScriptHostResult` without depending on concrete runtime managers.
 - `zircon_runtime::script::vm::host` owns registration, handle allocation, validation, capability checks, and callback dispatch.
 
 VM code never receives Rust object pointers. Host objects are represented as `HostHandle` values, and framework-level values carry those handles as `u64` so the neutral contract does not depend on the VM subsystem.
@@ -333,6 +333,8 @@ Plugin `ScriptCallTable` tokens are monotonic opaque identifiers, not packed typ
 
 The concrete ZrVM implementation is plugin-owned. `zircon_runtime` retains only backend-neutral contracts, lifecycle coordination, the canonical reflection catalog, and host registries; it no longer declares a `backend-zr-vm` feature or a duplicate concrete backend module.
 
+The plugin reflection host receives `VmReflectionWorldAccess`, not the full active script call context. `VmPluginHostContext` creates that non-constructable token inside `zircon_runtime` and injects it while the concrete reflection backend is installed; ordinary host exports cannot synthesize it. Production context construction and TLS installation are crate-private; cross-crate fixtures must explicitly opt into the non-default `test-support` feature and use `ScriptRuntimeTestContext` with `with_script_runtime_test_context`. A persistent access token cannot borrow `World`: it can only issue a `VmReflectionWorldOperation` to one HRTB-bound synchronous reflection-dispatch closure while a runtime script scope is active. That ticket cannot be retained beyond the closure, and it cannot expose `Core`, `LevelSystem`, script entity metadata, or a world handle. Consequently, plugin reflection keeps its runtime dependency to the exact world operation required by `ReflectionHostModule` while normal host exports continue to receive their borrowed `ScriptHostCallFrame`.
+
 Private VM types are intentionally absent from this catalog even when they participate in state migration. Script visibility is an authorization boundary, not an editor-only presentation hint.
 
 `HostExportRegistry` validates a module before it becomes visible:
@@ -350,7 +352,7 @@ Private VM types are intentionally absent from this catalog even when they parti
 
 Each registered module receives a `HostHandle` through the shared `HostRegistry`, using a `host.module.<module>` capability label. This keeps script-visible handles stable and lets existing handle validation continue to work.
 
-Direct `HostExportRegistry` callers go through `call_with_capabilities`: the registry checks arity and required capabilities before building a `ScriptHostCallContext` and dispatching the callback, and such callers pass the package capability set from `VmPluginHostContext`. The production ZrVM reflection backend follows a different hot path: `real_backend/host_modules.rs` installs a prepared `ScriptCallTable`, resolves names once while loading, and dispatches reflected scene fields only through opaque tokens and dense callbacks guarded by the committed catalog epoch.
+Direct `HostExportRegistry` callers go through `call_with_capabilities`: the registry checks arity and required capabilities before building a borrowed `ScriptHostCallFrame` and dispatching the callback, so module/function names, arguments, and package capabilities remain owned by the call site. Frame borrows end when the synchronous callback returns; a callback that must retain a value beyond that return must copy it at its explicit persistence boundary. `ScriptBridgeCall` follows the same rule, so bridge adapters receive an argument slice instead of a cloned payload. The production ZrVM reflection backend follows a different hot path: `real_backend/host_modules.rs` installs a prepared `ScriptCallTable`, resolves names once while loading, and dispatches reflected scene fields only through opaque tokens and dense callbacks guarded by the committed catalog epoch.
 
 Runtime 15 M3 script VM registry lock poison recovery status: `runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred`.
 
@@ -467,3 +469,18 @@ execution_mode = "binary"
 Project packages store no bytecode in `VmPluginPackage::bytecode`; instead they populate `VmPluginPackage::zr_vm_project` and `VmPluginPackageSource::zr_vm_project_path`.
 
 The checked-in minimal example lives at `docs/zircon_runtime/script/vm/examples/zr_vm_minimal`. It uses the same package protocol, imports `zr.zircon.foundation`, calls `foundation.time_unix_millis()` and `foundation.log_info()` from `activate()`, and demonstrates hot-reload state through optional `saveState(): string` and `restoreState(state: string)` exports. The real ZrVM plugin tests copy that example to a temporary package root before loading it so validation does not leave compiled artifacts under `docs/`.
+# Scalar math ABI
+
+`zr.zircon.math` version `0.2.0` is the sole scalar math module for ZrVM packages. The
+`math.scalar` capability grants `abs`, `atan2`, `ceil`, `cos`, `exp`, `floor`, `sin`, `sqrt`,
+and `pow`; all parameters and returned values are `float` values.
+
+The implementation uses `libm` 0.2.16 on every supported runtime target. Inputs and results
+must be finite: `NaN`, infinities, domain errors such as `sqrt(-1)`, and overflowed results are
+reported as host-call errors rather than being forwarded into script state. This leaves signed
+zero, negative rounding boundaries, quadrant-aware `atan2`, and finite exponent cases in the
+same deterministic ABI.
+
+Each successful call returns the `libm` binary64 result directly: the host does not dispatch to
+platform C math, narrow to `f32`, or apply a second rounding step. Script-visible precision and
+rounding are therefore the `f64` result of `libm` 0.2.16 for the exact input bit pattern.

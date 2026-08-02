@@ -1,5 +1,5 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 
 pub(super) fn tree_view_surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     tree_view_surface_color_from_host(node, current_host_palette())

@@ -14,6 +14,7 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
+use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
 use serde_json::{Number, Value};
 use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
@@ -89,7 +90,10 @@ impl EditorHostEventController {
         let execution = match execute_event(self, &event) {
             Ok(outcome) => outcome,
             Err(error) => {
-                self.shell().lock().state.set_status_line(error.clone());
+                self.shell()
+                    .lock()
+                    .state
+                    .set_status_line_with_level(error.clone(), EditorConsoleMessageLevel::Error);
                 let effects = failure_effects_for_event(&event);
                 let record = EditorEventRecord {
                     event_id: stamp.event_id,

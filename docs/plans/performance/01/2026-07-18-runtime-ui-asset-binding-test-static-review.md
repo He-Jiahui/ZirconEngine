@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/ui/tests/asset_binding.rs
-  - zircon_runtime/src/ui/template/asset/validator
+  - zircon_runtime/src/ui/template/asset/binding/validation.rs
   - zircon_runtime/src/ui/component/catalog
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

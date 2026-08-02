@@ -1,3 +1,5 @@
+#[cfg(test)]
+use std::cell::Cell;
 use std::collections::BTreeMap;
 
 use crate::core::math::Real;
@@ -43,6 +45,9 @@ pub fn sorted_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> V
 pub(super) fn sorted_hits_by_pointer(
     outputs: &[PointerHits],
 ) -> BTreeMap<PointerId, Vec<HitRecord>> {
+    #[cfg(test)]
+    SORTED_HIT_PROJECTION_BUILDS.with(|count| count.set(count.get() + 1));
+
     let mut indexed_by_pointer = BTreeMap::<PointerId, Vec<IndexedHit>>::new();
     for (output_index, output) in outputs.iter().enumerate() {
         indexed_by_pointer
@@ -71,6 +76,9 @@ pub(super) fn sorted_hits_by_pointer(
 type IndexedHit = (usize, usize, Real, HitRecord);
 
 fn sort_indexed_hits(indexed: &mut [IndexedHit]) {
+    #[cfg(test)]
+    SORTED_HIT_POINTER_GROUP_SORTS.with(|count| count.set(count.get() + 1));
+
     indexed.sort_by(|left, right| {
         left.3
             .target
@@ -84,7 +92,8 @@ fn sort_indexed_hits(indexed: &mut [IndexedHit]) {
 }
 
 pub fn hovered_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> Vec<HitRecord> {
-    hovered_hits_from_sorted(sorted_hits_for_pointer(outputs, pointer))
+    let sorted_hits = sorted_hits_for_pointer(outputs, pointer);
+    hovered_hits_from_sorted(sorted_hits)
 }
 
 pub(super) fn hovered_hits_from_sorted(sorted_hits: Vec<HitRecord>) -> Vec<HitRecord> {
@@ -99,4 +108,23 @@ pub(super) fn hovered_hits_from_sorted(sorted_hits: Vec<HitRecord>) -> Vec<HitRe
         }
     }
     hovered
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static SORTED_HIT_PROJECTION_BUILDS: Cell<usize> = const { Cell::new(0) };
+    static SORTED_HIT_POINTER_GROUP_SORTS: Cell<usize> = const { Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn reset_sorted_hit_projection_metrics() {
+    SORTED_HIT_PROJECTION_BUILDS.with(|count| count.set(0));
+    SORTED_HIT_POINTER_GROUP_SORTS.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(crate) fn sorted_hit_projection_metrics() -> (usize, usize) {
+    let builds = SORTED_HIT_PROJECTION_BUILDS.with(Cell::get);
+    let pointer_group_sorts = SORTED_HIT_POINTER_GROUP_SORTS.with(Cell::get);
+    (builds, pointer_group_sorts)
 }

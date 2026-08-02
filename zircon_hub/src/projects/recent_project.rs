@@ -1,5 +1,4 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -7,8 +6,6 @@ use zircon_runtime_interface::project::ProjectManifestSummary;
 
 #[cfg(test)]
 use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
-
-use crate::error::HubError;
 
 pub const RECENT_PROJECT_LIMIT: usize = 8;
 
@@ -81,11 +78,4 @@ pub fn now_unix_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis().min(u128::from(u64::MAX)) as u64)
         .unwrap_or_default()
-}
-
-pub fn load_project_summary(path: impl AsRef<Path>) -> Result<ProjectManifestSummary, HubError> {
-    Ok(ProjectManifestSummary::parse_toml_bytes(&fs::read(
-        path.as_ref().join("zircon-project.toml"),
-    )?)?
-    .value)
 }

@@ -3,15 +3,18 @@ use crate::generated::{
     offline_session_bootstrap_field_id, rl_action_batch_field_id, rl_observation_batch_field_id,
     save_state_field_id, world_snapshot_field_id,
 };
+use crate::weapon_skin_contract::weapon_skin_code_matches_loadout_type;
 use crate::{
     command_descriptor, Command, EntityRef, Event, FixedTickInput, MessageKind, MovementFrame,
     MovementFrameBatch, MovementInputFlags, NetworkEnvelope, OfflineSessionBootstrap,
-    ProtocolError, RlActionBatch, RlObservationBatch, SaveState, WorldSnapshot,
-    OFFLINE_SESSION_BOOTSTRAP_VERSION, SCHEMA_FINGERPRINT_BYTES, STANDARD_OFFLINE_WORLD_SEED,
+    OfflineWeaponSkinAccount, ProtocolError, RlActionBatch, RlObservationBatch, SaveState,
+    WorldSnapshot, OFFLINE_SESSION_BOOTSTRAP_VERSION, OFFLINE_WEAPON_SKIN_COUNT,
+    OFFLINE_WEAPON_SKIN_TYPE_COUNT, SCHEMA_FINGERPRINT_BYTES, STANDARD_OFFLINE_WORLD_SEED,
 };
 
 const FIXED_TICK_BASE_BYTES: usize = 8 + 4 + 1 + 4 + 4 + 8 + 4 + 4;
-const OFFLINE_BOOTSTRAP_BASE_BYTES: usize = 2 + 4 + 1 + 4 + 2;
+const OFFLINE_BOOTSTRAP_BASE_BYTES: usize =
+    2 + 4 + 1 + 4 + 2 + OFFLINE_WEAPON_SKIN_COUNT + OFFLINE_WEAPON_SKIN_TYPE_COUNT;
 const COMMAND_BASE_BYTES: usize = 2 + 8 + 4 + 4 + 4;
 const MOVEMENT_FRAME_BYTES: usize = 8 + 4 + 4 + 7 + 1 + 8;
 const WORLD_SNAPSHOT_BASE_BYTES: usize = 8 + 4 + 4 + 4 + 4;
@@ -174,6 +177,10 @@ impl OfflineSessionBootstrap {
             player_name,
         )?;
         push_u16(&mut output, self.skin_variant);
+        for owned in &self.weapon_skin_account.owned {
+            output.push(u8::from(*owned));
+        }
+        output.extend_from_slice(&self.weapon_skin_account.loadout_codes);
         Ok(output)
     }
 
@@ -191,6 +198,14 @@ impl OfflineSessionBootstrap {
                 context: "OfflineSessionBootstrap.player_name",
             })?;
         let skin_variant = reader.read_u16("OfflineSessionBootstrap.skin_variant")?;
+        let mut weapon_skin_owned = [false; OFFLINE_WEAPON_SKIN_COUNT];
+        for owned in &mut weapon_skin_owned {
+            *owned = reader.read_bool("OfflineSessionBootstrap.weapon_skin_owned")?;
+        }
+        let mut weapon_skin_loadout_codes = [0; OFFLINE_WEAPON_SKIN_TYPE_COUNT];
+        for code in &mut weapon_skin_loadout_codes {
+            *code = reader.read_u8("OfflineSessionBootstrap.weapon_skin_loadout_codes")?;
+        }
         reader.finish()?;
         let bootstrap = Self {
             launch_version,
@@ -198,6 +213,10 @@ impl OfflineSessionBootstrap {
             player_class,
             player_name,
             skin_variant,
+            weapon_skin_account: OfflineWeaponSkinAccount {
+                owned: weapon_skin_owned,
+                loadout_codes: weapon_skin_loadout_codes,
+            },
         };
         bootstrap.validate()?;
         Ok(bootstrap)
@@ -247,6 +266,32 @@ impl OfflineSessionBootstrap {
                 "skin variant {} is outside the {}-skin source class catalog",
                 self.skin_variant, CLASS_SKIN_VARIANT_LIMIT
             )));
+        }
+        self.weapon_skin_account.validate()?;
+        Ok(())
+    }
+}
+
+impl OfflineWeaponSkinAccount {
+    pub fn validate(&self) -> Result<(), ProtocolError> {
+        for (loadout_type_index, code) in self.loadout_codes.iter().enumerate() {
+            let code = *code;
+            if usize::from(code) > OFFLINE_WEAPON_SKIN_COUNT {
+                return Err(ProtocolError::InvalidOfflineBootstrap(format!(
+                    "weapon skin loadout code {code} is outside the source catalog"
+                )));
+            }
+            if code != 0 && !self.owned[usize::from(code) - 1] {
+                return Err(ProtocolError::InvalidOfflineBootstrap(format!(
+                    "weapon skin loadout code {code} is not owned"
+                )));
+            }
+            if code != 0 && !weapon_skin_code_matches_loadout_type(code, loadout_type_index) {
+                return Err(ProtocolError::InvalidOfflineBootstrap(format!(
+                    "weapon skin loadout code {code} does not match loadout type {}",
+                    loadout_type_index + 1
+                )));
+            }
         }
         Ok(())
     }

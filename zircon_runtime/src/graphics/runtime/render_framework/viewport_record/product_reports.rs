@@ -2,7 +2,7 @@ use crate::core::framework::render::RenderVirtualGeometryDebugSnapshot;
 use crate::graphics::scene::RenderGraphLightGridReport;
 use std::sync::Arc;
 
-use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
+use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn record_camera_product_reports(

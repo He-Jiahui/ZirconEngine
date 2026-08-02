@@ -1,6 +1,6 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::template_component_family::{
-    template_component_family, TemplateComponentFamily,
+    TemplateComponentFamily, template_component_family,
 };
 
 pub(super) fn is_dispatchable(node: &TemplatePaneNodeData) -> bool {

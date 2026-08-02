@@ -1,6 +1,6 @@
 use crate::core::framework::render::{RenderHybridGiPayloadSource, RenderStats};
 
-use super::{DiagnosticStore, record_bool, record_count};
+use super::{record_bool, record_count, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_probe_and_cache(store, stats);

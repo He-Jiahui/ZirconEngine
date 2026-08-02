@@ -1,4 +1,4 @@
-use crate::diagnostic_log::{diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel};
+use crate::diagnostic_log::{DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log};
 
 const DIAGNOSTIC_SCOPE: &str = "runtime_asset_path";
 

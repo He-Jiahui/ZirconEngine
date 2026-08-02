@@ -5,12 +5,12 @@ use crate::ui::retained_host::{
 };
 
 use super::chrome_template_projection::{
-    activity_rail_active_control_id, activity_rail_button_frames, activity_rail_nodes,
-    bottom_dock_header_nodes, dock_header_frame, dock_subtitle_frame, dock_tab_frames,
-    document_dock_header_nodes, floating_window_header_nodes, menu_chrome_nodes,
+    MENU_SLOT_COUNT, activity_rail_active_control_id, activity_rail_button_frames,
+    activity_rail_nodes, bottom_dock_header_nodes, dock_header_frame, dock_subtitle_frame,
+    dock_tab_frames, document_dock_header_nodes, floating_window_header_nodes, menu_chrome_nodes,
     menu_control_frames, page_chrome_nodes, page_overflow_frame, page_overflow_hidden_tab_indices,
     page_project_path_frame, page_tab_frames, page_tab_row_frame, side_dock_header_nodes,
-    status_bar_nodes, surface_metrics_from_chrome_assets, MENU_SLOT_COUNT,
+    status_bar_nodes, surface_metrics_from_chrome_assets,
 };
 use super::*;
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
@@ -20,7 +20,6 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::animation_editor_pane_nodes;
 use crate::ui::layouts::views::asset_browser_pane_nodes;
 use crate::ui::layouts::views::assets_activity_pane_data;
-use crate::ui::layouts::views::console_pane_nodes;
 use crate::ui::layouts::views::hierarchy_pane_nodes;
 use crate::ui::layouts::views::inspector_pane_nodes;
 use crate::ui::layouts::views::project_overview_pane_data;
@@ -619,7 +618,6 @@ fn pane_with_host_owned_shell_layouts(
     pane = pane_with_ui_asset_nodes(pane, width, height);
     pane = pane_with_hierarchy_projection(pane, width, height, chrome);
     pane = pane_with_inspector_projection(pane, width, height, chrome);
-    pane = pane_with_console_projection(pane, width, height, chrome);
     pane = pane_with_assets_activity_projection(pane, width, height, &chrome.asset_activity);
     pane = pane_with_asset_browser_projection(pane, width, height, &chrome.asset_browser);
     pane = pane_with_project_overview_projection(pane, width, height, project_overview);
@@ -655,22 +653,6 @@ fn pane_with_inspector_projection(
     zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_inspector");
     let size = UiSize::new(width.max(0.0), height.max(0.0));
     pane.native_body.inspector.nodes = inspector_pane_nodes(chrome.inspector.as_ref(), size);
-    pane
-}
-
-fn pane_with_console_projection(
-    mut pane: PaneData,
-    width: f32,
-    height: f32,
-    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
-) -> PaneData {
-    if pane.kind.as_str() != "Console" {
-        return pane;
-    }
-
-    zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_console");
-    let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.console.nodes = console_pane_nodes(&chrome.status_line, size);
     pane
 }
 

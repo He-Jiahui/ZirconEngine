@@ -15,9 +15,9 @@ use crate::scene::components::{
     RigidBodyType,
 };
 use crate::scene::{
-    json_from_reflected, reflected_from_json, reflected_from_scene_value,
-    scene_value_from_reflected, EntityId, NodeKind, ReflectComponent, ReflectResource,
-    RuntimeTypeRegistration, TypeRegistry, World,
+    EntityId, NodeKind, ReflectComponent, ReflectResource, RuntimeTypeRegistration, TypeRegistry,
+    World, json_from_reflected, reflected_from_json, reflected_from_scene_value,
+    scene_value_from_reflected,
 };
 
 mod address_routing;
@@ -120,6 +120,8 @@ fn dummy_component_remove(
 
 fn dummy_resource_adapter() -> ReflectResource {
     ReflectResource {
+        estimate_stage_clone_bytes: None,
+        stage_clone: None,
         ensure: None,
         contains: dummy_resource_contains,
         read_field: dummy_resource_read_field,

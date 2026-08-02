@@ -8,13 +8,13 @@ use crate::text::raster::{GlyphBitmap, SwashRasterRequest};
 use swash::FontRef;
 
 use super::raster_pool::{
+    TextRasterCompletionDrainBudget, TextRasterThreadBudgetSource, TextRasterWorkId,
+    TextRasterWorkItem, TextRasterWorkResult, TextRasterWorkerPool,
+    TextRasterWorkerPoolFrameSampler, TextRasterWorkerPoolOptions, TextRasterWorkerRequestError,
     TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC, TEXT_RASTER_WORKER_COMPLETED_DIAGNOSTIC,
     TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC, TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC,
     TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC, TEXT_RASTER_WORKER_QUEUED_DIAGNOSTIC,
-    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC, TextRasterCompletionDrainBudget,
-    TextRasterThreadBudgetSource, TextRasterWorkId, TextRasterWorkItem, TextRasterWorkResult,
-    TextRasterWorkerPool, TextRasterWorkerPoolFrameSampler, TextRasterWorkerPoolOptions,
-    TextRasterWorkerRequestError,
+    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC,
 };
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
@@ -104,6 +104,43 @@ fn text_raster_worker_pool_bounded_queue_rejects_overflow_without_workers() {
     );
     assert_eq!(pool.diagnostics().in_flight, 0);
     assert_eq!(pool.diagnostics().queue_peak, 0);
+}
+
+#[test]
+fn text_raster_worker_pool_rejects_request_input_bytes_before_queue_capacity() {
+    let pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(1)
+            .with_queue_depth(4)
+            .with_request_byte_budget(std::mem::size_of::<TextRasterWorkItem>()),
+    );
+    pool.request(TextRasterWorkItem::new(
+        TextRasterWorkId::new(60),
+        1,
+        Arc::<[u8]>::from(TEST_FONT_BYTES),
+        SwashRasterRequest::alpha_outline(0, 1, 16.0, true),
+    ))
+    .expect("the first fixed-size request fits the input byte budget");
+
+    let error = pool
+        .try_request(TextRasterWorkItem::new(
+            TextRasterWorkId::new(61),
+            1,
+            Arc::<[u8]>::from(TEST_FONT_BYTES),
+            SwashRasterRequest::alpha_outline(0, 1, 16.0, true),
+        ))
+        .expect_err("the byte budget must reject before the count queue is full");
+
+    assert_eq!(
+        error,
+        TextRasterWorkerRequestError::QueueBytesFull(TextRasterWorkId::new(61))
+    );
+    let diagnostics = pool.diagnostics();
+    assert_eq!(
+        diagnostics.queued_input_bytes,
+        std::mem::size_of::<TextRasterWorkItem>()
+    );
+    assert_eq!(diagnostics.request_backpressured, 1);
+    assert_eq!(diagnostics.queued, 1);
 }
 
 #[test]
@@ -269,6 +306,48 @@ fn text_raster_worker_pool_bounds_completion_backlog_and_releases_drain_bytes() 
     let after_drain = pool.diagnostics();
     assert_eq!(after_drain.completion_backlog, 1);
     assert_eq!(after_drain.completion_backlog_bytes, 1);
+}
+
+#[test]
+fn text_raster_worker_pool_defers_the_next_completion_before_exceeding_frame_bytes() {
+    let pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(1)
+            .with_completion_queue_depth(3)
+            .with_completion_byte_budget(8),
+    );
+    let bitmap = GlyphBitmap::alpha_mask(UVec2::new(3, 1), Vec2::new(0.0, 1.0), 16.0, vec![64; 3])
+        .expect("test bitmap should be valid");
+    assert!(pool.try_publish_completion_for_test(result(40, 1, Ok(bitmap.clone()))));
+    assert!(pool.try_publish_completion_for_test(result(41, 1, Ok(bitmap))));
+
+    let first = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(3, 4));
+    assert_eq!(first.accepted.len(), 1);
+    assert_eq!(first.drained_bytes, 3);
+    assert_eq!(first.byte_budget_deferred_count, 1);
+    assert_eq!(pool.diagnostics().completion_backlog_bytes, 3);
+
+    let second = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(3, 4));
+    assert_eq!(second.accepted.len(), 1);
+    assert_eq!(second.drained_bytes, 3);
+    assert_eq!(pool.diagnostics().completion_backlog_bytes, 0);
+}
+
+#[test]
+fn text_raster_worker_pool_reports_a_single_oversized_progress_exception() {
+    let pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(1)
+            .with_completion_queue_depth(1)
+            .with_completion_byte_budget(4),
+    );
+    let bitmap = GlyphBitmap::alpha_mask(UVec2::new(5, 1), Vec2::new(0.0, 1.0), 16.0, vec![64; 5])
+        .expect("test bitmap should be valid");
+    assert!(pool.try_publish_completion_for_test(result(42, 1, Ok(bitmap))));
+
+    let drain = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(1, 4));
+
+    assert_eq!(drain.accepted.len(), 1);
+    assert_eq!(drain.drained_bytes, 5);
+    assert_eq!(drain.oversized_accepted_count, 1);
 }
 
 #[test]

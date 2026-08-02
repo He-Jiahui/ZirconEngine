@@ -104,7 +104,23 @@ fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: 
         PanePayload::ConsoleV1(payload) => {
             attributes.insert(
                 "payload_status_text".to_string(),
-                Value::String(payload.status_text.clone()),
+                Value::String(payload.status_text.to_string()),
+            );
+            attributes.insert(
+                "payload_console_info_count".to_string(),
+                Value::Integer(i64::try_from(payload.counts.info).unwrap_or(i64::MAX)),
+            );
+            attributes.insert(
+                "payload_console_warning_count".to_string(),
+                Value::Integer(i64::try_from(payload.counts.warning).unwrap_or(i64::MAX)),
+            );
+            attributes.insert(
+                "payload_console_error_count".to_string(),
+                Value::Integer(i64::try_from(payload.counts.error).unwrap_or(i64::MAX)),
+            );
+            attributes.insert(
+                "payload_console_filter".to_string(),
+                Value::String(payload.filter.as_str().to_string()),
             );
         }
         PanePayload::InspectorV1(payload) => {

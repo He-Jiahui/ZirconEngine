@@ -4,11 +4,11 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/registry/batch.rs
   - zircon_editor/src/core/asset/type_registry/contribution.rs
   - zircon_editor/src/core/asset/type_registry/definition.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/extension_materialization.rs
 implementation_files:
   - zircon_editor/src/core/asset/type_registry/registry.rs
   - zircon_editor/src/core/asset/type_registry/registry/batch.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/extension_materialization.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md
   - docs/plans/zircon_editor/editor/09/failure-2026-07-17-asset-type-registry-clone-on-augment.md

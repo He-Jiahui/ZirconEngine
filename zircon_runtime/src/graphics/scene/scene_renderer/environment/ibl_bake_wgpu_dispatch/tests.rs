@@ -1,28 +1,29 @@
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactContents, IblBakeArtifactRequest,
-    ProceduralSkyParams, RenderFrameExtract, RenderPluginRendererOutputs,
-    RenderWorldSnapshotHandle, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    IblBakeArtifactContents, IblBakeArtifactRequest, ProceduralSkyParams, RenderFrameExtract,
+    RenderPluginRendererOutputs, RenderWorldSnapshotHandle, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 use crate::core::math::UVec2;
-use crate::graphics::ViewportRenderFrame;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassExecutorId, TransientResourcePool,
 };
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
+use crate::graphics::ViewportRenderFrame;
 use crate::render_graph::{QueueLane, RenderGraphBuilder};
 use crate::scene::world::World;
 
 use super::super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
 use super::super::ibl_bake_wgpu_binding::{
-    IblBakeWgpuBindGroupLayouts, IblBakeWgpuOutputBindingResource, create_ibl_bake_wgpu_bind_group,
-    create_ibl_bake_wgpu_params_buffer, create_ibl_bake_wgpu_source_sampler,
+    create_ibl_bake_wgpu_bind_group, create_ibl_bake_wgpu_params_buffer,
+    create_ibl_bake_wgpu_source_sampler, IblBakeWgpuBindGroupLayouts,
+    IblBakeWgpuOutputBindingResource,
 };
 use super::super::ibl_bake_wgpu_command_plan::{
-    IblBakeWgpuCommandPlan, IblBakeWgpuOutputPlan, ibl_bake_wgpu_command_plan_for_request,
+    ibl_bake_wgpu_command_plan_for_request, IblBakeWgpuCommandPlan, IblBakeWgpuOutputPlan,
 };
 use super::super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
 use super::*;
@@ -201,12 +202,10 @@ fn dispatch_encoder_rejects_zero_dispatch_groups_before_wgpu_pass() {
     let result = validate_dispatch_groups(&command);
 
     assert!(result.is_err());
-    assert!(
-        result
-            .err()
-            .unwrap()
-            .contains("invalid zero dispatch groups")
-    );
+    assert!(result
+        .err()
+        .unwrap()
+        .contains("invalid zero dispatch groups"));
 }
 
 #[test]

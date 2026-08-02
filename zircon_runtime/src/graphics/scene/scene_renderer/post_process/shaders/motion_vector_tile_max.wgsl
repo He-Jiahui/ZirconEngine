@@ -1,5 +1,11 @@
 @group(1) @binding(0) var motion_vector_source_tex: texture_2d<f32>;
 
+struct MotionVectorTileMaxParameters {
+    tile_span: vec4<f32>,
+}
+
+@group(2) @binding(0) var<uniform> motion_vector_tile_max_parameters: MotionVectorTileMaxParameters;
+
 fn motion_vector_source_texture_size() -> vec2<u32> {
     return max(textureDimensions(motion_vector_source_tex), vec2<u32>(1u, 1u));
 }
@@ -30,7 +36,8 @@ fn choose_motion_vector_tile_max(current: vec2<f32>, candidate: vec2<f32>) -> ve
 }
 
 fn motion_vector_tile_max(tile_coord: vec2<u32>, source_size: vec2<u32>) -> vec2<f32> {
-    let base_coord = vec2<i32>(tile_coord * vec2<u32>(2u, 2u));
+    let tile_span = max(vec2<u32>(motion_vector_tile_max_parameters.tile_span.xy), vec2<u32>(1u, 1u));
+    let base_coord = vec2<i32>(tile_coord * tile_span);
     var tile_max = load_motion_vector_source_tile_candidate(base_coord, source_size);
     tile_max = choose_motion_vector_tile_max(
         tile_max,

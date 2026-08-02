@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/tests/asset_schema_migration.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/ui/tests/asset/fixture_migration.rs
   - zircon_runtime/src/ui/tests/template_pipeline.rs
 implementation_files:
   - zircon_runtime/src/ui/template/pipeline.rs
@@ -26,8 +26,7 @@ plan_sources:
   - docs/engine-architecture/generated-code-boundary.md
 tests:
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_template_pipeline_boundary_records_compile_instance_validate_authority
-  - zircon_runtime::tests::runtime_absorption::naming_boundary::runtime_15_m2::ui::runtime_15_ui_template_schema_uses_source_fixture_names
-  - zircon_runtime::ui::tests::asset_schema_migration::source_template_fixture_converts_through_schema_migrator
+  - zircon_runtime::ui::tests::asset::fixture_migration::ui_asset_loader_rejects_source_template_documents_without_asset_header
   - zircon_runtime::ui::tests::template_pipeline::template_validate_rejects_unknown_component_contract
   - zircon_runtime::ui::tests::template_pipeline::template_instance_failure_surfaces_loader_error
   - zircon_runtime::ui::tests::template_pipeline::compiled_template_artifact_stays_binary_leaf_dto_not_generated_source
@@ -67,10 +66,10 @@ Generated output policy is also explicit. `UiRuntimeCompiledAssetArtifact` recor
 
 Generated source remains limited to leaf DTO/table/adaptor material. Runtime behavior, validation rules, loader policy, instantiation, and surface mutation stay handwritten in `zircon_runtime::ui::template`.
 
-## Runtime 15 M2 UI template schema source fixture naming hard cutover
+## Runtime 09 source-template production migration hard cutover
 
-runtime_15_ui_template_schema_source_fixture_naming_hard_cutover_static_passed_cargo_deferred
+runtime_09_source_template_fixture_production_migration_path_removed_static_passed_cargo_pending
 
-`UiAssetSchemaMigrator` still accepts source-template fixture TOML and converts it into the current tree asset document, but the migration report no longer exposes the retired legacy fixture vocabulary. `zircon_runtime_interface::ui::template::asset::schema::UiAssetSchemaSourceKind` now reports `SourceTemplateFixture`, and `UiAssetMigrationStep` now records `SourceTemplateFixtureConverted`.
+`UiAssetSchemaMigrator` accepts only sources with an explicit `[asset]` header. Current/older recursive tree assets and supported flat node-table assets still converge on the current tree authority; historical source-template documents without `[asset]` are rejected with `UiAssetError::ParseToml("ui asset source is missing [asset]")`.
 
-`zircon_runtime/src/ui/template/asset/schema/migrator.rs` is the runtime behavior owner for the conversion; `zircon_runtime_interface/src/ui/template/asset/schema/report.rs` owns the report DTO names. `runtime_15_ui_template_schema_uses_source_fixture_names` locks both sides plus the status rows so `LegacyTemplateFixture` / `LegacyTemplateConverted` cannot return as aliases or compatibility shims.
+The retired `source_template_fixture.rs` conversion module, public fixture migration helpers, report variants and source-string naming guard were deleted together. `ui_asset_loader_rejects_source_template_documents_without_asset_header` is the behavior guard; no test-only converter, alias or compatibility report vocabulary remains on the live path. Historical Runtime15 output records remain archived evidence of the earlier naming cut and are not current API contracts.

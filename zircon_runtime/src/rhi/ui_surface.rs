@@ -1,4 +1,14 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
+
+mod compact_styles;
+mod image_resources;
+
+use compact_styles::{compact_commands, resolved_kind};
+pub use compact_styles::{
+    UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload,
+};
+use image_resources::compact_image_resources;
+pub use image_resources::UiSurfaceImageResource;
 
 use crate::core::framework::render::RenderNativeSurfaceTarget;
 
@@ -36,7 +46,7 @@ impl UiSurfaceRect {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum UiSurfaceTextStyle {
     Regular,
     Strong,
@@ -53,6 +63,8 @@ impl Default for UiSurfaceTextStyle {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiSurfaceImagePayload {
     pub resource_key: String,
+    /// Revision of the resource addressed by `resource_key`.
+    pub resource_generation: u64,
     pub width: u32,
     pub height: u32,
     pub upload_bytes: u64,
@@ -104,6 +116,10 @@ pub enum UiSurfaceCommandKind {
     Image {
         payload: UiSurfaceImagePayload,
     },
+    Styled {
+        style: UiSurfaceStyleHandle,
+        payload: UiSurfaceStyledPayload,
+    },
     Clip,
 }
 
@@ -121,6 +137,8 @@ pub struct UiSurfaceDescriptor {
     pub width: u32,
     pub height: u32,
     pub target: Option<RenderNativeSurfaceTarget>,
+    /// Creates timestamp-query resources only for an explicit profiling surface.
+    pub allow_gpu_timing: bool,
 }
 
 impl UiSurfaceDescriptor {
@@ -130,6 +148,7 @@ impl UiSurfaceDescriptor {
             width,
             height,
             target: None,
+            allow_gpu_timing: false,
         }
     }
 
@@ -144,7 +163,13 @@ impl UiSurfaceDescriptor {
             width,
             height,
             target: Some(target),
+            allow_gpu_timing: false,
         }
+    }
+
+    pub const fn with_gpu_timing(mut self) -> Self {
+        self.allow_gpu_timing = true;
+        self
     }
 
     pub fn validate(&self) -> Result<(), RhiError> {
@@ -196,6 +221,8 @@ pub struct UiSurfaceDrawList {
     pub damage: Option<UiSurfaceRect>,
     pub commands: Vec<UiSurfaceCommand>,
     generation: Option<u64>,
+    styles: Vec<UiSurfaceStyle>,
+    image_resources: HashMap<String, UiSurfaceImageResource>,
 }
 
 impl UiSurfaceDrawList {
@@ -209,6 +236,8 @@ impl UiSurfaceDrawList {
             damage,
             commands,
             generation: None,
+            styles: Vec::new(),
+            image_resources: HashMap::new(),
         }
     }
 
@@ -216,7 +245,7 @@ impl UiSurfaceDrawList {
     ///
     /// The revision must advance whenever the commands or their payloads change. A list made
     /// with [`Self::new`] deliberately has no revision and is never eligible for a compiled
-    /// WGPU batch-plan cache, which preserves correctness for legacy callers.
+    /// WGPU batch-plan cache, which preserves correctness for callers without a producer revision.
     pub fn with_generation(
         surface_size: (u32, u32),
         damage: Option<UiSurfaceRect>,
@@ -228,7 +257,112 @@ impl UiSurfaceDrawList {
             damage,
             commands,
             generation: Some(generation),
+            styles: Vec::new(),
+            image_resources: HashMap::new(),
         }
+    }
+
+    pub fn with_compact_styles(
+        surface_size: (u32, u32),
+        damage: Option<UiSurfaceRect>,
+        commands: Vec<UiSurfaceCommand>,
+    ) -> Self {
+        Self::compact(surface_size, damage, commands, None)
+    }
+
+    pub fn with_generation_and_compact_styles(
+        surface_size: (u32, u32),
+        damage: Option<UiSurfaceRect>,
+        commands: Vec<UiSurfaceCommand>,
+        generation: u64,
+    ) -> Self {
+        Self::compact(surface_size, damage, commands, Some(generation))
+    }
+
+    pub fn with_compact_styles_and_image_resources(
+        surface_size: (u32, u32),
+        damage: Option<UiSurfaceRect>,
+        commands: Vec<UiSurfaceCommand>,
+        image_resources: HashMap<String, UiSurfaceImageResource>,
+    ) -> Self {
+        Self::compact_with_image_resources(surface_size, damage, commands, None, image_resources)
+    }
+
+    pub fn with_generation_and_compact_styles_and_image_resources(
+        surface_size: (u32, u32),
+        damage: Option<UiSurfaceRect>,
+        commands: Vec<UiSurfaceCommand>,
+        generation: u64,
+        image_resources: HashMap<String, UiSurfaceImageResource>,
+    ) -> Self {
+        Self::compact_with_image_resources(
+            surface_size,
+            damage,
+            commands,
+            Some(generation),
+            image_resources,
+        )
+    }
+
+    fn compact(
+        surface_size: (u32, u32),
+        damage: Option<UiSurfaceRect>,
+        commands: Vec<UiSurfaceCommand>,
+        generation: Option<u64>,
+    ) -> Self {
+        Self::compact_with_image_resources(
+            surface_size,
+            damage,
+            commands,
+            generation,
+            HashMap::new(),
+        )
+    }
+
+    fn compact_with_image_resources(
+        surface_size: (u32, u32),
+        damage: Option<UiSurfaceRect>,
+        commands: Vec<UiSurfaceCommand>,
+        generation: Option<u64>,
+        mut image_resources: HashMap<String, UiSurfaceImageResource>,
+    ) -> Self {
+        let (commands, compacted_image_resources) = compact_image_resources(commands);
+        for (resource_key, resource) in compacted_image_resources {
+            let replace = image_resources
+                .get(&resource_key)
+                .map_or(true, |existing| existing.generation < resource.generation);
+            if replace {
+                image_resources.insert(resource_key, resource);
+            }
+        }
+        let (commands, styles) = compact_commands(commands);
+        Self {
+            surface_size: (surface_size.0.max(1), surface_size.1.max(1)),
+            damage,
+            commands,
+            generation,
+            styles,
+            image_resources,
+        }
+    }
+
+    pub fn style_count(&self) -> usize {
+        self.styles.len()
+    }
+
+    pub fn image_resource(&self, resource_key: &str) -> Option<&UiSurfaceImageResource> {
+        self.image_resources.get(resource_key)
+    }
+
+    pub(crate) fn take_image_resources(&mut self) -> HashMap<String, UiSurfaceImageResource> {
+        std::mem::take(&mut self.image_resources)
+    }
+
+    pub fn resolved_kind<'a>(
+        &'a self,
+        command: &'a UiSurfaceCommand,
+    ) -> Option<UiSurfaceResolvedCommandKind<'a>> {
+        resolved_kind(self, command)
     }
 
     pub const fn generation(&self) -> Option<u64> {
@@ -236,12 +370,12 @@ impl UiSurfaceDrawList {
     }
 
     pub fn stats(&self) -> UiSurfacePresentStats {
-        let mut stats = UiSurfacePresentStatsAccumulator::new(self.surface_size);
+        let mut stats = UiSurfacePresentStatsAccumulator::new(self);
         for command in &self.commands {
             if !self.command_visible_with_damage(command, self.damage) {
                 continue;
             }
-            stats.record_visible(command);
+            stats.record_visible(command, self);
         }
         stats.finish()
     }
@@ -279,61 +413,104 @@ fn command_effective_rect(
 /// Aggregates one ordered command projection without requiring a second stats-only walk.
 pub(crate) struct UiSurfacePresentStatsAccumulator<'a> {
     uploaded_image_keys: BTreeSet<&'a str>,
+    recorded_style_handles: BTreeSet<UiSurfaceStyleHandle>,
     stats: UiSurfacePresentStats,
 }
 
 impl<'a> UiSurfacePresentStatsAccumulator<'a> {
-    pub(crate) fn new(surface_size: (u32, u32)) -> Self {
+    pub(crate) fn new(draw_list: &UiSurfaceDrawList) -> Self {
         Self {
             uploaded_image_keys: BTreeSet::new(),
+            recorded_style_handles: BTreeSet::new(),
             stats: UiSurfacePresentStats {
-                surface_size,
+                surface_size: draw_list.surface_size,
                 command_visibility_scan_count: 1,
                 ..UiSurfacePresentStats::default()
             },
         }
     }
 
-    pub(crate) fn record_visible(&mut self, command: &'a UiSurfaceCommand) {
+    pub(crate) fn record_visible(
+        &mut self,
+        command: &'a UiSurfaceCommand,
+        draw_list: &'a UiSurfaceDrawList,
+    ) {
+        let payload_bytes = self.command_dynamic_payload_bytes(command, draw_list);
         self.stats.visible_command_payload_bytes = self
             .stats
             .visible_command_payload_bytes
-            .saturating_add(command_dynamic_payload_bytes(&command.kind));
-        match &command.kind {
-            UiSurfaceCommandKind::Quad { .. }
-            | UiSurfaceCommandKind::Border { .. }
-            | UiSurfaceCommandKind::Text { .. } => {
+            .saturating_add(payload_bytes);
+        let Some(kind) = draw_list.resolved_kind(command) else {
+            return;
+        };
+        match kind {
+            UiSurfaceResolvedCommandKind::Quad { .. }
+            | UiSurfaceResolvedCommandKind::Border { .. }
+            | UiSurfaceResolvedCommandKind::Text { .. } => {
                 self.stats.visible_command_count =
                     self.stats.visible_command_count.saturating_add(1);
                 self.stats.visible_draw_item_count =
                     self.stats.visible_draw_item_count.saturating_add(1);
                 self.stats.draw_calls = self.stats.draw_calls.saturating_add(1);
             }
-            UiSurfaceCommandKind::Image { payload } => {
+            UiSurfaceResolvedCommandKind::Image { payload } => {
                 self.stats.visible_command_count =
                     self.stats.visible_command_count.saturating_add(1);
                 self.stats.visible_draw_item_count =
                     self.stats.visible_draw_item_count.saturating_add(1);
                 self.stats.draw_calls = self.stats.draw_calls.saturating_add(1);
                 self.stats.image_count = self.stats.image_count.saturating_add(1);
-                if payload.rgba.is_some()
-                    && self
-                        .uploaded_image_keys
+                let upload_bytes = draw_list
+                    .image_resource(&payload.resource_key)
+                    .map(|resource| resource.upload_bytes)
+                    .or_else(|| payload.rgba.as_ref().map(|_| payload.upload_bytes));
+                if let Some(upload_bytes) = upload_bytes.filter(|_| {
+                    self.uploaded_image_keys
                         .insert(payload.resource_key.as_str())
-                {
-                    self.stats.image_upload_bytes = self
-                        .stats
-                        .image_upload_bytes
-                        .saturating_add(payload.upload_bytes);
+                }) {
+                    self.stats.image_upload_bytes =
+                        self.stats.image_upload_bytes.saturating_add(upload_bytes);
                 }
             }
-            UiSurfaceCommandKind::Clip => {
+            UiSurfaceResolvedCommandKind::Clip => {
                 self.stats.clip_count = self.stats.clip_count.saturating_add(1);
             }
         }
     }
 
-    pub(crate) fn finish(self) -> UiSurfacePresentStats {
+    fn command_dynamic_payload_bytes(
+        &mut self,
+        command: &UiSurfaceCommand,
+        draw_list: &UiSurfaceDrawList,
+    ) -> u64 {
+        match &command.kind {
+            UiSurfaceCommandKind::Styled { style, payload } => {
+                let payload_bytes = match payload {
+                    UiSurfaceStyledPayload::None => 0,
+                    UiSurfaceStyledPayload::Text(text) => text.len() as u64,
+                };
+                let style_bytes = if self.recorded_style_handles.insert(*style) {
+                    draw_list
+                        .styles
+                        .get(style.index())
+                        .and_then(|style| match style {
+                            UiSurfaceStyle::Text { font_family, .. } => {
+                                Some(font_family.as_ref().map_or(0, String::len) as u64)
+                            }
+                            UiSurfaceStyle::Quad { .. } | UiSurfaceStyle::Border { .. } => None,
+                        })
+                        .unwrap_or(0)
+                } else {
+                    0
+                };
+                payload_bytes.saturating_add(style_bytes)
+            }
+            kind => command_dynamic_payload_bytes(kind),
+        }
+    }
+
+    pub(crate) fn finish(mut self) -> UiSurfacePresentStats {
+        self.stats.visible_command_style_count = self.recorded_style_handles.len() as u64;
         self.stats
     }
 }
@@ -363,11 +540,13 @@ fn command_dynamic_payload_bytes(kind: &UiSurfaceCommandKind) -> u64 {
             as u64,
         UiSurfaceCommandKind::Quad { .. }
         | UiSurfaceCommandKind::Border { .. }
+        | UiSurfaceCommandKind::Styled { .. }
         | UiSurfaceCommandKind::Clip => 0,
     }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct UiSurfacePresentStats {
     pub surface_size: (u32, u32),
     pub draw_calls: u64,
@@ -378,6 +557,8 @@ pub struct UiSurfacePresentStats {
     pub visible_command_count: u64,
     /// Dynamic string and RGBA bytes referenced by visible commands.
     pub visible_command_payload_bytes: u64,
+    /// Distinct interned command styles referenced by visible commands.
+    pub visible_command_style_count: u64,
     pub visible_draw_item_count: u64,
     /// Draw items in the full compiled plan before native damage-scissor culling.
     pub compiled_visible_draw_item_count: u64,
@@ -387,8 +568,12 @@ pub struct UiSurfacePresentStats {
     pub command_stats_cache_hit_count: u64,
     /// Solid vertices actually submitted for the current native present.
     pub solid_vertex_count: u64,
+    /// Ordinary solid rectangle instances actually submitted for this present.
+    pub solid_instance_count: u64,
     /// Solid vertices in the full compiled plan.
     pub compiled_solid_vertex_count: u64,
+    /// Ordinary solid rectangle instances in the full compiled plan.
+    pub compiled_solid_instance_count: u64,
     /// Image vertices actually submitted for the current native present.
     pub image_vertex_count: u64,
     /// Image vertices in the full compiled plan.
@@ -413,6 +598,12 @@ pub struct UiSurfacePresentStats {
     pub vertex_upload_bytes: u64,
     /// Bytes copied from the retained UI cache into a COPY_DST swapchain texture.
     pub retained_cache_copy_bytes: u64,
+    /// Whether the active native UI device supports non-blocking timestamp queries.
+    pub gpu_timestamp_supported: bool,
+    /// Most recently completed whole-UI GPU sample, reported after asynchronous readback.
+    pub gpu_time_us: Option<u64>,
+    /// Frames between the sampled present and the present that consumed its result.
+    pub gpu_profile_latency_frames: u32,
     pub text_shape_count: u64,
     pub text_renderer_build_count: u64,
     pub text_renderer_cache_hit_count: u64,
@@ -425,7 +616,7 @@ pub struct UiSurfacePresentStats {
     pub image_upload_bytes: u64,
     /// Native image texture writes performed for the current present.
     pub image_upload_write_count: u64,
-    /// Owned image-cache keys allocated while creating or replacing resources.
+    /// Owned image-cache keys allocated for insertion or admission-time eviction planning.
     pub image_cache_key_allocation_count: u64,
     /// Image-cache entries visited by bounded admission-time LRU planning.
     pub image_cache_prune_visit_count: u64,
@@ -435,6 +626,8 @@ pub struct UiSurfacePresentStats {
     pub image_invalid_payload_count: u64,
     /// Resident RGBA texture bytes after the current present.
     pub image_cache_resident_bytes: u64,
+    /// CPU decoded RGBA bytes retained by the bounded native image cache.
+    pub image_cache_cpu_resident_bytes: u64,
     pub image_count: u64,
     pub clip_count: u64,
     pub presented_frame_count: u64,
@@ -442,8 +635,19 @@ pub struct UiSurfacePresentStats {
 
 pub trait UiSurfacePresenter: Send {
     fn resize(&mut self, width: u32, height: u32) -> Result<(), RhiError>;
+    /// Returns whether the runtime-owned UI registry can render this exact resource revision
+    /// without another producer-side pixel payload.
+    fn is_image_resource_resident(&self, _resource_key: &str, _generation: u64) -> bool {
+        false
+    }
     fn present(&mut self, draw_list: &UiSurfaceDrawList)
         -> Result<UiSurfacePresentStats, RhiError>;
+    fn present_owned(
+        &mut self,
+        draw_list: UiSurfaceDrawList,
+    ) -> Result<UiSurfacePresentStats, RhiError> {
+        self.present(&draw_list)
+    }
     fn last_present_stats(&self) -> UiSurfacePresentStats;
 }
 
@@ -459,310 +663,23 @@ impl<T: UiSurfacePresenter + ?Sized> UiSurfacePresenter for Box<T> {
         self.as_mut().present(draw_list)
     }
 
+    fn is_image_resource_resident(&self, resource_key: &str, generation: u64) -> bool {
+        self.as_ref()
+            .is_image_resource_resident(resource_key, generation)
+    }
+
+    fn present_owned(
+        &mut self,
+        draw_list: UiSurfaceDrawList,
+    ) -> Result<UiSurfacePresentStats, RhiError> {
+        self.as_mut().present_owned(draw_list)
+    }
+
     fn last_present_stats(&self) -> UiSurfacePresentStats {
         self.as_ref().last_present_stats()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn draw_list_stats_count_draw_upload_and_clip_commands() {
-        let draw_list = UiSurfaceDrawList::new(
-            (64, 32),
-            Some(UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0)),
-            vec![
-                UiSurfaceCommand {
-                    z_index: 0,
-                    frame: UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Clip,
-                },
-                UiSurfaceCommand {
-                    z_index: 1,
-                    frame: UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Quad {
-                        color: [1, 2, 3, 255],
-                        corner_radius: 6.0,
-                    },
-                },
-                UiSurfaceCommand {
-                    z_index: 2,
-                    frame: UiSurfaceRect::new(1.0, 1.0, 8.0, 8.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Border {
-                        color: [4, 5, 6, 255],
-                        width: 1.0,
-                        corner_radius: 6.0,
-                    },
-                },
-                UiSurfaceCommand {
-                    z_index: 3,
-                    frame: UiSurfaceRect::new(0.0, 0.0, 2.0, 2.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Image {
-                        payload: UiSurfaceImagePayload {
-                            resource_key: "viewport".to_string(),
-                            width: 2,
-                            height: 2,
-                            upload_bytes: 16,
-                            rgba: Some(vec![255; 16]),
-                            atlas_uv: None,
-                        },
-                    },
-                },
-            ],
-        );
-
-        let stats = draw_list.stats();
-        assert_eq!(stats.surface_size, (64, 32));
-        assert_eq!(stats.draw_calls, 3);
-        assert_eq!(stats.render_pass_count, 0);
-        assert_eq!(stats.retained_cache_copy_bytes, 0);
-        assert_eq!(stats.visible_command_count, 3);
-        assert_eq!(stats.visible_draw_item_count, 3);
-        assert_eq!(stats.image_count, 1);
-        assert_eq!(stats.image_upload_bytes, 16);
-        assert_eq!(stats.clip_count, 1);
-    }
-
-    #[test]
-    fn draw_list_stats_skip_commands_outside_damage() {
-        let draw_list = UiSurfaceDrawList::new(
-            (64, 32),
-            Some(UiSurfaceRect::new(40.0, 20.0, 8.0, 8.0)),
-            vec![
-                UiSurfaceCommand {
-                    z_index: 0,
-                    frame: UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Quad {
-                        color: [1, 2, 3, 255],
-                        corner_radius: 0.0,
-                    },
-                },
-                UiSurfaceCommand {
-                    z_index: 1,
-                    frame: UiSurfaceRect::new(42.0, 22.0, 2.0, 2.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Image {
-                        payload: UiSurfaceImagePayload {
-                            resource_key: "viewport".to_string(),
-                            width: 2,
-                            height: 2,
-                            upload_bytes: 16,
-                            rgba: Some(vec![255; 16]),
-                            atlas_uv: None,
-                        },
-                    },
-                },
-            ],
-        );
-
-        let stats = draw_list.stats();
-
-        assert_eq!(stats.draw_calls, 1);
-        assert_eq!(stats.visible_command_count, 1);
-        assert_eq!(stats.visible_draw_item_count, 1);
-        assert_eq!(stats.image_count, 1);
-        assert_eq!(stats.image_upload_bytes, 16);
-    }
-
-    #[test]
-    fn draw_list_stats_skip_commands_with_non_finite_or_non_positive_rects() {
-        let commands = [
-            UiSurfaceRect::new(f32::NAN, 0.0, 10.0, 10.0),
-            UiSurfaceRect::new(0.0, 0.0, f32::INFINITY, 10.0),
-            UiSurfaceRect::new(0.0, 0.0, 10.0, -1.0),
-            UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
-        ]
-        .into_iter()
-        .enumerate()
-        .map(|(z_index, frame)| UiSurfaceCommand {
-            z_index: z_index as i32,
-            frame,
-            clip: None,
-            kind: UiSurfaceCommandKind::Quad {
-                color: [255, 255, 255, 255],
-                corner_radius: 0.0,
-            },
-        })
-        .collect();
-        let draw_list = UiSurfaceDrawList::new((64, 32), None, commands);
-
-        let stats = draw_list.stats();
-
-        assert_eq!(stats.visible_command_count, 1);
-        assert_eq!(stats.visible_draw_item_count, 1);
-    }
-
-    #[test]
-    fn draw_list_generation_is_opt_in_for_compiled_presenters() {
-        let legacy = UiSurfaceDrawList::new((64, 32), None, Vec::new());
-        let versioned = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 9);
-
-        assert_eq!(legacy.generation(), None);
-        assert_eq!(versioned.generation(), Some(9));
-    }
-
-    #[test]
-    fn draw_list_stats_do_not_count_cached_images_as_uploads() {
-        let draw_list = UiSurfaceDrawList::new(
-            (64, 32),
-            None,
-            vec![UiSurfaceCommand {
-                z_index: 0,
-                frame: UiSurfaceRect::new(0.0, 0.0, 2.0, 2.0),
-                clip: None,
-                kind: UiSurfaceCommandKind::Image {
-                    payload: UiSurfaceImagePayload {
-                        resource_key: "cached".to_string(),
-                        width: 2,
-                        height: 2,
-                        upload_bytes: 16,
-                        rgba: None,
-                        atlas_uv: None,
-                    },
-                },
-            }],
-        );
-
-        let stats = draw_list.stats();
-
-        assert_eq!(stats.draw_calls, 1);
-        assert_eq!(stats.visible_command_count, 1);
-        assert_eq!(stats.visible_draw_item_count, 1);
-        assert_eq!(stats.image_count, 1);
-        assert_eq!(stats.image_upload_bytes, 0);
-    }
-
-    #[test]
-    fn draw_list_stats_count_same_resource_image_upload_once() {
-        let draw_list = UiSurfaceDrawList::new(
-            (64, 32),
-            None,
-            vec![
-                UiSurfaceCommand {
-                    z_index: 0,
-                    frame: UiSurfaceRect::new(0.0, 0.0, 2.0, 2.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Image {
-                        payload: UiSurfaceImagePayload {
-                            resource_key: "atlas://editor/icons".to_string(),
-                            width: 4,
-                            height: 4,
-                            upload_bytes: 64,
-                            rgba: Some(vec![255; 64]),
-                            atlas_uv: Some(UiSurfaceImageUvRect {
-                                min: [0.0, 0.0],
-                                max: [0.5, 0.5],
-                            }),
-                        },
-                    },
-                },
-                UiSurfaceCommand {
-                    z_index: 1,
-                    frame: UiSurfaceRect::new(4.0, 0.0, 2.0, 2.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Image {
-                        payload: UiSurfaceImagePayload {
-                            resource_key: "atlas://editor/icons".to_string(),
-                            width: 4,
-                            height: 4,
-                            upload_bytes: 64,
-                            rgba: Some(vec![255; 64]),
-                            atlas_uv: Some(UiSurfaceImageUvRect {
-                                min: [0.5, 0.0],
-                                max: [1.0, 0.5],
-                            }),
-                        },
-                    },
-                },
-            ],
-        );
-
-        let stats = draw_list.stats();
-
-        assert_eq!(stats.visible_command_count, 2);
-        assert_eq!(stats.image_count, 2);
-        assert_eq!(stats.image_upload_bytes, 64);
-    }
-
-    #[test]
-    fn draw_list_stats_measure_visible_dynamic_command_payloads() {
-        let draw_list = UiSurfaceDrawList::new(
-            (64, 32),
-            None,
-            vec![
-                UiSurfaceCommand {
-                    z_index: 0,
-                    frame: UiSurfaceRect::new(0.0, 0.0, 16.0, 8.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Text {
-                        text: "text".to_string(),
-                        color: [255, 255, 255, 255],
-                        font_family: Some("ui".to_string()),
-                        font_weight: 400,
-                        font_size: 12.0,
-                        line_height: 14.0,
-                        style: UiSurfaceTextStyle::Regular,
-                    },
-                },
-                UiSurfaceCommand {
-                    z_index: 1,
-                    frame: UiSurfaceRect::new(20.0, 0.0, 8.0, 8.0),
-                    clip: None,
-                    kind: UiSurfaceCommandKind::Image {
-                        payload: UiSurfaceImagePayload {
-                            resource_key: "icon".to_string(),
-                            width: 2,
-                            height: 2,
-                            upload_bytes: 16,
-                            rgba: Some(vec![255; 16]),
-                            atlas_uv: None,
-                        },
-                    },
-                },
-            ],
-        );
-
-        let stats = draw_list.stats();
-
-        assert_eq!(stats.visible_command_payload_bytes, 26);
-    }
-
-    #[test]
-    fn atlas_uv_rect_validates_normalized_finite_bounds() {
-        assert!(UiSurfaceImageUvRect {
-            min: [0.25, 0.25],
-            max: [0.75, 0.75],
-        }
-        .is_valid());
-        assert!(!UiSurfaceImageUvRect {
-            min: [0.75, 0.25],
-            max: [0.75, 0.75],
-        }
-        .is_valid());
-        assert!(!UiSurfaceImageUvRect {
-            min: [0.0, f32::NAN],
-            max: [1.0, 1.0],
-        }
-        .is_valid());
-    }
-
-    #[test]
-    fn surface_descriptor_rejects_zero_size() {
-        assert_eq!(
-            UiSurfaceDescriptor::headless("bad", 0, 1)
-                .validate()
-                .unwrap_err(),
-            RhiError::InvalidSurfaceDescriptor {
-                label: Some("bad".to_string()),
-                reason: "width and height must be greater than zero".to_string(),
-            }
-        );
-    }
-}
+#[path = "ui_surface/tests.rs"]
+mod tests;

@@ -8,16 +8,17 @@ use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, PipelineKey,
 };
 
-use super::MeshCommandSortInput;
 use super::geometry_source::MeshDrawGeometrySource;
 use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
+use super::MeshCommandSortInput;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
     pub(super) geometry_source: MeshDrawGeometrySource,
     pub(super) mobility: Mobility,
     pub(super) source_entity: EntityId,
+    pub(super) stable_instance_key: u64,
     pub(super) source_draw_ordinal: u32,
     pub(super) static_state: RenderMeshStaticState,
     pub(super) first_index: u32,
@@ -61,6 +62,7 @@ impl MeshDraw {
         geometry_source: MeshDrawGeometrySource,
         mobility: Mobility,
         source_entity: EntityId,
+        stable_instance_key: u64,
         source_draw_ordinal: u32,
         static_state: RenderMeshStaticState,
         first_index: u32,
@@ -93,6 +95,7 @@ impl MeshDraw {
             geometry_source,
             mobility,
             source_entity,
+            stable_instance_key,
             source_draw_ordinal,
             static_state,
             first_index,
@@ -135,6 +138,10 @@ impl MeshDraw {
 
     pub(crate) fn source_entity(&self) -> EntityId {
         self.source_entity
+    }
+
+    pub(crate) fn stable_instance_key(&self) -> u64 {
+        self.stable_instance_key
     }
 
     pub(crate) fn source_draw_ordinal(&self) -> u32 {

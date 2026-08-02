@@ -11,13 +11,13 @@ use crate::ui::retained_host::menu_popup_contract::content_measured_menu_popup_w
 use crate::ui::retained_host::{measure_runtime_text_width, menu_popup_text_width};
 use crate::ui::workbench::event::menu_item_binding;
 use crate::ui::workbench::menu_bar::{
-    workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
+    WORKBENCH_MENU_SLOT_FONT_SIZE, workbench_menu_slot_width_from_label_width,
 };
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
+use super::HostMenuPointerLayout;
 use super::constants::WINDOW_MENU_INDEX;
 use super::menu_item_spec::MenuItemSpec;
-use super::HostMenuPointerLayout;
 
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
 const MENU_SLOT_PREFIX: &str = "MenuSlot";

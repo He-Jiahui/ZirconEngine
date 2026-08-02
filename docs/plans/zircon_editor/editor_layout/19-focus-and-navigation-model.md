@@ -1,6 +1,9 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/ui/event_ui/mod.rs
+  - zircon_runtime_interface/src/ui/focus.rs
+  - zircon_runtime_interface/src/ui/navigation.rs
+  - zircon_runtime/src/ui/tree/node/focus.rs
+  - zircon_runtime/src/ui/surface/focus.rs
   - zircon_runtime/src/ui/surface/input
   - zircon_editor/src/ui/retained_host/host_contract
 plan_sources:
@@ -8,7 +11,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/18-input-response-and-hit-testing.md
   - docs/plans/zircon_editor/editor_layout/13-taffy-css-constraint-language.md
   - docs/plans/zircon_editor/editor_layout/20-style-cascade-and-computed-style.md
-status: planned
+status: in_progress
 ---
 # 19 焦点与导航模型(焦点作用域 / Tab 顺序 / 方向导航 / 焦点环)
 
@@ -20,8 +23,8 @@ status: planned
 
 ## 2. 现状(按代码核实)
 
-- `editor_ui/01` 路由参数里有 `navigation_dispatcher`,但无 `EUINavigation` 式方向枚举、无 `FNavigationReply` 式边界规则、无方向几何求解、无焦点作用域/Tab 链。
-- `event_ui.rs` 无 `focusable`/`tab-index`/焦点态字段;焦点态目前只在个别 retained 控件局部表达。
+- runtime tree 已通过 `UiRuntimeTreeFocusExt::next_navigation_target` 实现 Tab、显式邻居、空间方向候选与 modal scope 过滤，相关契约由 interface 的 focus/navigation 模块持有；当前计划不再以“能力全缺”为前提。
+- interface 已在 `ui/focus.rs` 落 `UiFocusContract`、`UiFocusMode`、`UiFocusCause`、`focus_chain`，在 `ui/navigation.rs` 落 `UiTabIndex`、`UiNavigationContract` 与 `UiNavigationBoundary`；runtime `ui/surface/focus.rs` 也已实现 autofocus、MUI modal restore stack、focus-visible 状态与 dirty 标记。当前缺口收窄为非 MUI 通用 scope 的一致语义、focus-visible token/组件视觉接线，以及编辑器端完整键盘/手柄可达性验收。
 - 18 产出 hover/press,但**focus 是独立维度**(键盘焦点 ≠ 指针 hover),需本计划补。
 
 ## 3. 设计
@@ -85,17 +88,25 @@ IME 收尾交接条款(2026-07-02 评审收口):字形级 hit-test、caret/选�
 
 ```rust
 pub enum UiFocusMode { None, Click, All }
-pub enum UiNavDirection { Left, Right, Up, Down, Next, Previous }
-pub enum UiNavBoundary { Escape, Wrap, Stop, Explicit(UiNodeId), Trap }
 pub enum UiFocusCause { Pointer, Navigation, Programmatic, Restore }
+pub struct UiFocusContract { pub focusable: bool, pub mode: UiFocusMode, /* … */ }
 
-pub struct UiFocusable { pub mode: UiFocusMode, pub tab_index: i32,
-    pub neighbors: [Option<UiNodeId>; 4], pub boundary: UiNavBoundary }
+pub enum UiNavigationBoundary { Escape, Wrap, Stop, Explicit(UiNodeId), Trap }
+pub struct UiNavigationContract {
+    pub tab_index: Option<UiTabIndex>,
+    pub group: Option<UiNavigationGroup>,
+    pub directional: Option<UiDirectionalNavigation>,
+    pub boundary: UiNavigationBoundary,
+}
 
-// 方向导航几何求解(单源)
-pub fn find_next_focus(arranged: &ArrangedTree, from: UiNodeId, dir: UiNavDirection) -> Option<UiNodeId>;
-// Tab 链
-pub fn focus_chain(tree: &UiTree) -> Vec<UiNodeId>;
+// 当前 runtime 单源（zircon_runtime/src/ui/tree/node/focus.rs）
+pub trait UiRuntimeTreeFocusExt {
+    fn next_navigation_target(
+        &self,
+        current: Option<UiNodeId>,
+        kind: UiNavigationEventKind,
+    ) -> Result<Option<UiNodeId>, UiTreeError>;
+}
 ```
 
 ## 5. 模块与文件落点
@@ -103,16 +114,16 @@ pub fn focus_chain(tree: &UiTree) -> Vec<UiNodeId>;
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
 | 新增(契约) | `docs/ui-and-layout/focus-navigation-contract.md` | 可聚焦/Tab/方向/边界/作用域/焦点环 |
-| DTO | `event_ui.rs` | `UiFocusable`/方向/边界/cause + `:focus(-within/-visible)` 态 |
-| 运行时 | `editor_ui/01` navigation dispatcher | Tab 链 + 方向几何求解 + 焦点作用域 + 还原(不在本计划) |
+| DTO | `zircon_runtime_interface/src/ui/focus.rs`、`ui/navigation.rs` | `UiFocusContract`/方向/`UiNavigationBoundary`/cause + `:focus(-within/-visible)` 态 |
+| 运行时 | `zircon_runtime/src/ui/tree/node/focus.rs` 与 `editor_ui/01` navigation dispatcher | 维护 Tab 链、方向几何求解和 modal scope；补齐焦点还原与编辑器接线 |
 
 ## 6. 里程碑切片化
 
 | # | 切片 | 验证命令 |
 | -- | --- | --- |
-| S1 | focusable/tab-index/边界 DTO + Tab 链遍历 + focus 态 | `cargo test -p zircon_runtime_interface --lib focus_nav --locked` |
-| S2 | 方向导航几何求解(显式邻居 + 几何打分) | `cargo test -p zircon_editor --lib directional_nav --locked` |
-| S3 | 焦点作用域 trap/还原 + focus-visible 焦点环(接 20) | `cargo test -p zircon_editor --lib focus_scope --locked` |
+| S1 | focusable/tab-index/边界 DTO + Tab 链遍历 + focus 态 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests -TestFilter focus_nav` |
+| S2 | 方向导航几何求解(显式邻居 + 几何打分) | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter directional_nav` |
+| S3 | 复核/推广焦点作用域 trap/还原 + focus-visible 焦点环(接 20)，覆盖非 MUI 通用 scope 与编辑器组件 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter focus_scope` |
 
 ## 7. 测试矩阵
 
@@ -149,4 +160,4 @@ pub fn focus_chain(tree: &UiTree) -> Vec<UiNodeId>;
 
 ## 12. 状态与产出记录
 
-planned。后续项:S1 focusable/tab-index/边界 DTO + Tab 链 + focus 态。
+in_progress。S1 的 focus/tab-index/边界 DTO、Tab 链，S2 的显式/空间方向求解，以及 MUI modal restore/focus-visible runtime 状态已有当前源码 owner；后续继续统一非 MUI scope、组件视觉和编辑器端键盘/手柄可达性验收，不据此宣称里程碑完成。

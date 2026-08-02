@@ -13,7 +13,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/gateway/session.rs
-  - zircon_editor/src/ui/workbench/state/editor_world_slot.rs
+  - zircon_editor/src/core/editing/authoring_world.rs
   - zircon_editor/src/ui/retained_host/app.rs
 tests:
   - attach a SessionGateway while the edit domain remains readable and mutable through its authoring facade
@@ -35,9 +35,11 @@ tests:
 
 1. `EditorHostEventController::set_runtime_gateway` 将传入的 runtime transport 直接 `replace` 到 `EditorContext.gateway()`。
 2. `EditorRuntimeGateway` 对 `with_world` 与 `with_world_mut` 的默认定型行为是 `RequiresSerializedAccess`；`SessionGateway` 不应获得 local-world 借用旁路。
-3. Workbench 仍经 `EditorWorldSlot` 直接持有 `LevelSystem`，用于 edit-domain selection、scene command、save 与 viewport input。
+3. 原始审计时 Workbench 仍经 `EditorWorldSlot` 直接持有 `LevelSystem`，用于 edit-domain selection、scene command、save 与 viewport input。
 
 因此，若 M2.4 将 UI 的 authoring world 调用机械改为 `EditorContext.gateway()`，在 runtime session attach 后该 facade 会变成 `SessionGateway`，所有 edit-domain borrowed-world 操作都会被拒绝。保留 `EditorWorldSlot` 作为第二条 UI 私有 world 路径又违反 Editor01 的 hard cutover 目标。
+
+当前源码已删除 `EditorWorldSlot`，并由 `core/editing/authoring_world.rs` 的 `EditorAuthoringWorld` 持有稳定 edit-domain facade；play attach/detach 回归也覆盖 authoring access 保持可用。该事实只收敛了原始旁路，不替代本记录要求的 managed validation、独立复审和 fixed return，因此状态仍为 open。
 
 ## 最低共享层根因
 

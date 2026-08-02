@@ -12,7 +12,7 @@ pub(super) fn inspector_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Inspector",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::RightTop)
+    .with_workbench_slot(WorkbenchSlot::RightTopDrawer)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Inspector))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
         "res://ui/editor/host/inspector_body.zui",

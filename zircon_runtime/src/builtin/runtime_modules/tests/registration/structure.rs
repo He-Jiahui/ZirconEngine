@@ -12,7 +12,9 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let ids_source = include_str!("../../ids.rs");
     let manifest_source = include_str!("../../manifest.rs");
     let plugin_id_source = include_str!("../../ids/plugin_id.rs");
+    let module_id_source = include_str!("../../ids/module_id.rs");
     let profile_modules_source = include_str!("../../assembly/profile_modules.rs");
+    let profile_selection_source = include_str!("../../assembly/profile_selection.rs");
     let plugin_modules_source = include_str!("../../plugin_modules.rs");
     let plugin_module_loader_source = include_str!("../../plugin_modules/loader.rs");
     let registration_inputs_source = include_str!("../../assembly/registration_inputs.rs");
@@ -51,6 +53,7 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(assembly_source.contains("mod extension_inputs;"));
     assert!(assembly_source.contains("mod feature_reports;"));
     assert!(assembly_source.contains("mod profile_modules;"));
+    assert!(assembly_source.contains("pub(super) mod profile_selection;"));
     assert!(assembly_source.contains("mod registration_inputs;"));
     assert!(assembly_source.contains("mod registration_reports;"));
     assert!(assembly_source.contains("mod target_modules;"));
@@ -90,6 +93,8 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
         "use super::super::load_report::{RuntimeModuleLoadDiagnostic, RuntimeModuleLoadReport};"
     ));
     assert!(ids_source.contains("mod plugin_id;"));
+    assert!(ids_source.contains("mod module_id;"));
+    assert!(ids_source.contains("pub use module_id::BuiltinRuntimeModuleId;"));
     assert!(ids_source.contains("pub use plugin_id::RuntimePluginId;"));
     assert!(!ids_source.contains("target_mode"));
     assert!(plugin_id_source.contains("pub struct RuntimePluginId"));
@@ -99,13 +104,31 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(plugin_id_source.contains("pub fn parse_key"));
     assert!(plugin_id_source.contains("Static(&'static str)"));
     assert!(plugin_id_source.contains("Dynamic(Arc<str>)"));
+    assert!(module_id_source.contains("pub enum BuiltinRuntimeModuleId"));
+    assert!(module_id_source.contains("pub fn for_module_name"));
     assert!(!plugin_id_source.contains(concat!("Box", "::leak")));
     assert!(!plugin_id_source.contains(concat!("static INTERNED", "_KEYS")));
     assert!(target_mode_source.contains("pub enum RuntimeTargetMode"));
     assert!(profile_modules_source.contains("pub(super) fn runtime_modules_for_runtime_profile"));
-    assert!(profile_modules_source.contains("minimal_profile_runtime_modules"));
+    assert!(!profile_modules_source.contains("minimal_profile_runtime_modules"));
+    assert!(!core_modules_source.contains("minimal_profile_runtime_modules"));
+    assert!(!profile_modules_source.contains("profile_id == RuntimeProfileId::Minimal"));
+    assert!(profile_modules_source.contains(
+        "runtime_modules_for_profile_with_registration_inputs_for_manifest_and_availability"
+    ));
+    assert!(profile_selection_source.contains("struct BuiltinModuleCandidateRegistry"));
+    assert!(profile_selection_source.contains("dependency closure"));
+    assert!(!profile_selection_source.contains("sort_runtime_modules_by_descriptor_order"));
+    assert!(
+        !profile_selection_source.contains(".expect("),
+        "profile selection must propagate typed CoreError values instead of panicking"
+    );
+    assert!(target_modules_source.contains("select_runtime_profile_builtin_module_descriptors"));
+    assert!(target_modules_source.contains("sort_runtime_modules_by_descriptor_order"));
     assert!(profile_modules_source.contains("runtime_profile_availability"));
-    assert!(profile_modules_source.contains("runtime_profile_manifest_availability"));
+    assert!(!profile_modules_source.contains("runtime_profile_manifest_availability"));
+    assert!(availability_source.contains("pub(super) fn runtime_profile_manifest_availability"));
+    assert!(registration_reports_source.contains("runtime_profile_manifest_availability"));
     assert!(profile_modules_source.contains("RuntimeProfileDescriptor"));
     assert!(profile_modules_source.contains("RuntimeModuleRegistrationInputs::empty"));
     assert!(

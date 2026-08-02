@@ -3,6 +3,7 @@ mod config;
 mod construct;
 mod converters;
 mod device_events;
+mod event_dispatch;
 mod event_loop_policy;
 mod failure;
 mod file_drag_drop;

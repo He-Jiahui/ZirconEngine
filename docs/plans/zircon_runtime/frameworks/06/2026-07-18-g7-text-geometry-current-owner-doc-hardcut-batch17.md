@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs

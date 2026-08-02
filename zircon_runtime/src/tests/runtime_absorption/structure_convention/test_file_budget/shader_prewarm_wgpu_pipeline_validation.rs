@@ -11,6 +11,7 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs");
     let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
+    let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let dynamic_api_mod = read_runtime_src("dynamic_api/mod.rs");
     let resource_limits = read_runtime_src("graphics/resource_limits.rs");
     let request_device = read_runtime_src("graphics/backend/render_backend/request_device.rs");
@@ -78,10 +79,17 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         ],
     );
     assert_contains_all(
-        "dynamic API owns the offscreen WGPU handoff for strict pipeline prewarm",
+        "dynamic API re-exports strict WGPU pipeline prewarm",
         &dynamic_api,
         &[
             "prewarm_shader_variants_with_wgpu_pipeline_validation",
+            "pub use wgpu_validation::{",
+        ],
+    );
+    assert_contains_all(
+        "WGPU validation owner creates the offscreen handoff for strict pipeline prewarm",
+        &wgpu_validation,
+        &[
             "RenderBackend::new_offscreen",
             "create_mesh_prewarm_validation_pipeline_layout",
             "validate_mesh_prewarm_request_render_pipeline",
@@ -209,6 +217,10 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         (
             "zircon_runtime/src/dynamic_api/shader_prewarm.rs",
             dynamic_api.as_str(),
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/shader_prewarm/wgpu_validation.rs",
+            wgpu_validation.as_str(),
         ),
         (
             "tools/zircon_build_shader_prewarm_report_contract.py",

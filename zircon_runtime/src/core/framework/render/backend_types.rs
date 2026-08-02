@@ -56,12 +56,14 @@ use super::{
 pub enum RenderGpuSceneUploadPath {
     #[default]
     DirectQueueWrite,
+    StagingCopy,
 }
 
 impl RenderGpuSceneUploadPath {
     pub const fn label(self) -> &'static str {
         match self {
             Self::DirectQueueWrite => "direct_queue_write",
+            Self::StagingCopy => "staging_copy",
         }
     }
 }
@@ -90,6 +92,11 @@ pub struct RenderStats {
     pub last_store_lint_count: u32,
     pub last_pipeline_async_pending_count: u32,
     pub last_variant_first_frame_miss_count: u32,
+    pub last_readback_in_flight_count: usize,
+    pub last_readback_bytes: u64,
+    pub last_readback_completed_count: usize,
+    pub last_readback_completed_bytes: u64,
+    pub last_readback_slot_reuse_rejection_count: u32,
     pub last_camera_loop_submission_count: usize,
     pub last_scene_camera_scheduled_count: usize,
     pub last_scene_camera_order_ambiguity_count: usize,
@@ -118,11 +125,21 @@ pub struct RenderStats {
     pub last_hzb_occlusion_dispatched_phase_count: usize,
     pub last_hzb_occlusion_history_available: bool,
     pub last_hzb_occlusion_readback_available: bool,
+    /// Source frame for the asynchronously completed HZB stats readback.
+    pub last_hzb_occlusion_readback_source_frame_index: Option<u64>,
+    /// Number of HZB stats requests that remain pending in the bounded async queue.
+    pub last_hzb_occlusion_readback_pending_count: usize,
+    /// Lifetime count of HZB stats requests dropped by the bounded async queue.
+    pub last_hzb_occlusion_readback_dropped_count: usize,
+    /// Age of the oldest pending HZB stats request when the current frame is known.
+    pub last_hzb_occlusion_readback_oldest_pending_age_frames: Option<u64>,
     pub last_hzb_occlusion_tested_arg_count: usize,
     pub last_hzb_occlusion_tested_instance_count: usize,
     pub last_hzb_occlusion_culled_arg_count: usize,
     pub last_hzb_occlusion_culled_instance_count: usize,
     pub last_hzb_occlusion_indirect_args_readback_available: bool,
+    /// Source frame for the asynchronously completed HZB indirect-args diagnostic.
+    pub last_hzb_occlusion_indirect_args_readback_source_frame_index: Option<u64>,
     pub last_hzb_occlusion_readback_arg_count: usize,
     pub last_hzb_occlusion_compacted_draw_count: usize,
     pub last_hzb_occlusion_zero_instance_arg_count: usize,
@@ -218,8 +235,12 @@ pub struct RenderStats {
     pub last_ui_text_unmapped_glyph_count: usize,
     pub last_ui_text_visible_raster_glyph_count: usize,
     pub last_ui_text_raster_source_image_count: usize,
+    pub last_ui_text_missing_raster_image_count: usize,
+    pub last_ui_text_visible_raster_placeholder_count: usize,
     pub last_ui_text_raster_worker_pending_count: usize,
     pub last_ui_text_raster_worker_failed_count: usize,
+    pub last_ui_text_raster_renderer_upload_requeued_count: usize,
+    pub last_ui_text_raster_renderer_upload_failure_count: usize,
     pub last_ui_text_layout_fallback_count: u64,
     pub last_ui_text_invalid_font_size_count: u64,
     pub last_ui_text_invalid_language_count: u64,

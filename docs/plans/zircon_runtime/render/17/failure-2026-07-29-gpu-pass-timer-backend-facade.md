@@ -10,6 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/backend/mod.rs
+  - zircon_runtime/src/graphics/backend/render_backend/gpu_pass_timer/mod.rs
+  - zircon_runtime/src/rhi_wgpu/gpu_pass_timer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo +1.94.1 test -p zircon_runtime --test plugins09_export_validate_report --bin zircon_export_validate --locked --jobs 1 --color never -- --nocapture --test-threads=1
@@ -63,5 +66,12 @@ grow parallel aliases.
 
 ## 修复结果与回传
 
-Open state: the crate-private backend projection is implemented; managed current-source
-compile evidence remains pending behind the independent Text04 owner repair.
+Open state: the timer implementation now has one lower-level owner at
+`rhi_wgpu::gpu_pass_timer`; `graphics::backend` preserves the crate-private scene-renderer facade
+through a direct re-export, and retained-UI presentation consumes the same timer without a second
+query/readback state machine. Scene and retained-UI timer resources now default off and require an
+explicit profiling option; UI device negotiation also omits timestamp features while that option is
+off. Completed three-slot readbacks are inserted by frame generation before drain, and scene
+rendering now keeps the frame-profiler generation distinct from its mesh-command cache generation.
+Managed current-source compile evidence remains pending, so this handoff is not yet promoted to
+fixed.

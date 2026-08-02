@@ -10,9 +10,9 @@ use crossbeam_channel::SendTimeoutError;
 
 use super::super::completion_queue::CompletionByteBudget;
 use super::{
-    TEXT_RASTER_WORKER_MAX_SCALER_BATCH_SIZE, TextRasterWorkId, TextRasterWorkItem,
-    TextRasterWorkResult, TextRasterWorkerPool, TextRasterWorkerPoolDiagnostics,
-    TextRasterWorkerPoolOptions, TextRasterWorkerWorkState, request_channel,
+    request_channel, TextRasterWorkId, TextRasterWorkItem, TextRasterWorkResult,
+    TextRasterWorkerPool, TextRasterWorkerPoolDiagnostics, TextRasterWorkerPoolOptions,
+    TextRasterWorkerWorkState, TEXT_RASTER_WORKER_MAX_SCALER_BATCH_SIZE,
 };
 
 const TEXT_RASTER_WORKER_COMPLETION_SEND_TIMEOUT: Duration = Duration::from_millis(1);
@@ -140,6 +140,9 @@ fn begin_worker_work(
     diagnostics.in_flight = in_flight_count;
     diagnostics.running = running_count;
     diagnostics.queued = in_flight_count.saturating_sub(running_count);
+    diagnostics.queued_input_bytes = in_flight_count
+        .saturating_sub(running_count)
+        .saturating_mul(std::mem::size_of::<TextRasterWorkItem>());
     true
 }
 
@@ -200,6 +203,10 @@ fn finish_cancelled_work(
     diagnostics.in_flight = remaining_work.0;
     diagnostics.running = remaining_work.1;
     diagnostics.queued = remaining_work.0.saturating_sub(remaining_work.1);
+    diagnostics.queued_input_bytes = remaining_work
+        .0
+        .saturating_sub(remaining_work.1)
+        .saturating_mul(std::mem::size_of::<TextRasterWorkItem>());
     diagnostics.cancelled = diagnostics.cancelled.saturating_add(1);
     true
 }
@@ -225,6 +232,9 @@ fn finish_worker_work(
     diagnostics.in_flight = remaining_work;
     diagnostics.running = running_work;
     diagnostics.queued = remaining_work.saturating_sub(running_work);
+    diagnostics.queued_input_bytes = remaining_work
+        .saturating_sub(running_work)
+        .saturating_mul(std::mem::size_of::<TextRasterWorkItem>());
     if was_cancelled {
         diagnostics.cancelled = diagnostics.cancelled.saturating_add(1);
         return false;
@@ -272,6 +282,7 @@ impl TextRasterWorkerPool {
             diagnostics,
             completion_tx,
             completion_rx: Some(completion_rx),
+            deferred_completion: Mutex::new(None),
             completion_byte_budget: Arc::new(CompletionByteBudget::new(completion_byte_budget)),
             shutdown: Arc::new(AtomicBool::new(false)),
             joins: Vec::new(),

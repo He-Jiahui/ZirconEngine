@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::{
     asset::{AssetEvent, SceneAsset},
     core::framework::tasks::{AsyncTaskDescriptor, AsyncTaskState, AsyncTaskStatus},
@@ -8,9 +10,24 @@ use crate::{
 pub struct DynamicSceneAssetReloadTask {
     pub(super) event: AssetEvent<SceneAsset>,
     pub(super) task: DynamicSceneSpawnTask,
+    pub(super) queued_at: Instant,
+    metadata_bytes: usize,
 }
 
 impl DynamicSceneAssetReloadTask {
+    pub(super) fn new(
+        event: AssetEvent<SceneAsset>,
+        task: DynamicSceneSpawnTask,
+        metadata_bytes: usize,
+    ) -> Self {
+        Self {
+            event,
+            task,
+            queued_at: Instant::now(),
+            metadata_bytes,
+        }
+    }
+
     pub fn event(&self) -> &AssetEvent<SceneAsset> {
         &self.event
     }
@@ -21,6 +38,14 @@ impl DynamicSceneAssetReloadTask {
 
     pub fn is_ready(&self) -> bool {
         self.task.is_ready()
+    }
+
+    pub fn age(&self) -> Duration {
+        self.queued_at.elapsed()
+    }
+
+    pub(super) fn estimated_metadata_bytes(&self) -> usize {
+        self.metadata_bytes
     }
 }
 

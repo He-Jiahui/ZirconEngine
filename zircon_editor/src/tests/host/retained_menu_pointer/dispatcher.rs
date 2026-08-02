@@ -145,7 +145,7 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
         .expect("test operation should register in extension");
     harness
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("test extension should register operation in runtime");
 
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
@@ -214,7 +214,7 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
         .expect("test operation should register in extension");
     harness
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("test extension should register operation in runtime");
 
     let menu_bar = MenuBarModel {
@@ -324,7 +324,7 @@ fn shared_menu_pointer_click_executes_registered_operation_factory_transaction()
         .unwrap();
     harness
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap();
 
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))

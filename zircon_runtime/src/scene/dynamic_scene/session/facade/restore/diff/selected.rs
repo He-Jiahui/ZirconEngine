@@ -1,8 +1,8 @@
 use crate::scene::{LevelSystem, World};
 
 use super::super::super::super::{
-    restore as session_restore, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionSlotDiffReport, RuntimeSessionSlotSelector,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotDiffReport,
+    RuntimeSessionSlotSelector, restore as session_restore,
 };
 
 impl RuntimeSessionArchive {

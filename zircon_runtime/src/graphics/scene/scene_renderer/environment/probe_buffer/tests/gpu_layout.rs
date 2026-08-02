@@ -4,10 +4,10 @@ use crate::core::framework::render::{ProbeInfluenceShape, ReflectionProbeData, R
 use crate::core::math::{Quat, Vec3};
 
 use super::super::gpu_layout::{
-    GpuPlanarReflection, GpuReflectionProbe, PLANAR_REFLECTION_PARAMS_BINDING,
-    PLANAR_REFLECTION_TEXTURE_BINDING, REFLECTION_PROBE_CUBEMAP_BINDING,
-    REFLECTION_PROBE_HEADER_BINDING, REFLECTION_PROBE_STORAGE_BINDING,
-    reflection_probe_bind_group_layout_entries,
+    reflection_probe_bind_group_layout_entries, GpuPlanarReflection, GpuReflectionProbe,
+    PLANAR_REFLECTION_PARAMS_BINDING, PLANAR_REFLECTION_TEXTURE_BINDING,
+    REFLECTION_PROBE_CUBEMAP_BINDING, REFLECTION_PROBE_HEADER_BINDING,
+    REFLECTION_PROBE_STORAGE_BINDING,
 };
 
 #[test]

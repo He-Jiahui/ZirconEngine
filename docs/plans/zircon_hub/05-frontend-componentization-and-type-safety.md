@@ -33,10 +33,12 @@ plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/zircon_hub/01-action-dispatch-and-typed-payload.md
   - docs/zircon_hub/ui/responsive-component-system.md
-status: planned
+status: in_progress
 ---
 
 # 05 前端组件化与类型安全
+
+> 2026-08-01 实仓复核：路由表、根级 ErrorBoundary、运行时 DTO 护栏、demo-mode 徽标，以及 Projects/Settings/Project Detail 的主要组件拆分均已落地。`web/src` 中与 TypeScript owner 重复的 4 个 CommonJS `.js` 编译产物已删除并由 `.gitignore` 禁止回流；本文状态改为 `in_progress`，剩余双重可空类型收敛与受管 frontend/Hub gate 尚未验收。
 
 > 2026-06-12 实仓复核注记：本文撰写期间，工作树中的并行进程已经落地了本计划的一部分目标——HubWindow 路由表、根级 HubErrorBoundary、`assertHubShellState` 运行时护栏、`hubData.ts` 收缩（995 行 → 661 行，空项目骨架 + `demoMode: true`）。下文「现状与证据」已按当前实仓修订（修订点见「风险与协调」末节），M1 与 M3 切片 1/2 转为盘点验收口径，本计划剩余的实施重心是 **M2 组件拆分**、**M3 的 demoMode 徽标** 与 **`?: X | null` 双重可空清理**。
 

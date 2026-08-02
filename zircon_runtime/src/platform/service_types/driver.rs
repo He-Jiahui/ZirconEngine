@@ -1,8 +1,10 @@
 use std::error::Error;
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Instant;
 
 use crate::core::framework::platform::PreferenceStorageBackendKind;
+use crate::core::runtime::BoundedKeyedIoShutdownReport;
 
 use super::super::preferences::{
     PreferencePersistenceAdapter, PreferencePersistenceLimits, PreferenceStorageBackend,
@@ -16,21 +18,31 @@ pub struct PlatformDriver {
 }
 
 impl PlatformDriver {
+    pub fn with_preference_storage_backend(
+        backend: Arc<dyn PreferenceStorageBackend>,
+    ) -> Result<Self, PreferenceStorageBackendInstallError> {
+        let driver = Self::default();
+        driver.install_preference_storage_backend(backend)?;
+        Ok(driver)
+    }
+
     pub fn install_preference_storage_backend(
         &self,
         backend: Arc<dyn PreferenceStorageBackend>,
     ) -> Result<(), PreferenceStorageBackendInstallError> {
         let requested = backend.backend_kind();
-        let mut state = self.lock_install_state();
-        let current = self.preference_storage.backend_kind();
         if requested == PreferenceStorageBackendKind::Unavailable {
+            let current = self.preference_storage.backend_kind();
             return Err(PreferenceStorageBackendInstallError::new(
                 PreferenceStorageBackendInstallErrorKind::UnavailableBackend,
                 current,
                 requested,
             ));
         }
+        let mut state = self.lock_install_state();
         if state.installed {
+            drop(state);
+            let current = self.preference_storage.backend_kind();
             return Err(PreferenceStorageBackendInstallError::new(
                 PreferenceStorageBackendInstallErrorKind::AlreadyInstalled,
                 current,
@@ -50,6 +62,13 @@ impl PlatformDriver {
         Arc::clone(&self.preference_storage)
     }
 
+    pub(crate) fn shutdown_preference_persistence_until(
+        &self,
+        deadline: Instant,
+    ) -> Result<BoundedKeyedIoShutdownReport, BoundedKeyedIoShutdownReport> {
+        self.preference_storage.shutdown_until(deadline)
+    }
+
     fn lock_install_state(&self) -> MutexGuard<'_, PreferenceStorageBackendInstallState> {
         self.install_state
             .lock()
@@ -60,10 +79,13 @@ impl PlatformDriver {
 impl Default for PlatformDriver {
     fn default() -> Self {
         Self {
-            preference_storage: Arc::new(PreferencePersistenceAdapter::new(
-                Arc::new(UnavailablePreferenceStorageBackend),
-                PreferencePersistenceLimits::default(),
-            )),
+            preference_storage: Arc::new(
+                PreferencePersistenceAdapter::new(
+                    Arc::new(UnavailablePreferenceStorageBackend),
+                    PreferencePersistenceLimits::default(),
+                )
+                .expect("default preference persistence limits must satisfy the hard maximum"),
+            ),
             install_state: Mutex::new(PreferenceStorageBackendInstallState::default()),
         }
     }

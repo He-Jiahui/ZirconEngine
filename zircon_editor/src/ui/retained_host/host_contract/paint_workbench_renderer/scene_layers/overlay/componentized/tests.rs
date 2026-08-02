@@ -9,9 +9,9 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodeP
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 
 use super::{
-    draw_componentized_extension_workspace, draw_componentized_workbench_window,
-    ComponentizedChromeFallbackTransform, ExtensionWorkspaceSubtree,
-    EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID,
+    ComponentizedChromeFallbackTransform, EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID,
+    ExtensionWorkspaceSubtree, draw_componentized_extension_workspace,
+    draw_componentized_workbench_window,
 };
 
 const SENTINEL: [u8; 4] = [241, 17, 193, 255];
@@ -96,9 +96,11 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
         height: 100.0,
     };
 
-    assert!(filter
-        .transform(template_node("WorkbenchViewportBackdrop"), clip.clone())
-        .is_none());
+    assert!(
+        filter
+            .transform(template_node("WorkbenchViewportBackdrop"), clip.clone())
+            .is_none()
+    );
     for control_id in [
         "WorkbenchViewportToolbar",
         "WorkbenchViewportSelectionTop",
@@ -106,9 +108,11 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
         "WorkbenchViewportGizmoCenter",
         "WorkbenchUnrelatedControl",
     ] {
-        assert!(filter
-            .transform(template_node(control_id), clip.clone())
-            .is_some());
+        assert!(
+            filter
+                .transform(template_node(control_id), clip.clone())
+                .is_some()
+        );
     }
 }
 
@@ -122,17 +126,19 @@ fn missing_or_invalid_viewport_image_keeps_the_fallback_scene() {
         },
     ] {
         let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
-        assert!(filter
-            .transform(
-                template_node("WorkbenchViewportBackdrop"),
-                FrameRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: 100.0,
-                    height: 100.0,
-                },
-            )
-            .is_some());
+        assert!(
+            filter
+                .transform(
+                    template_node("WorkbenchViewportBackdrop"),
+                    FrameRect {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 100.0,
+                        height: 100.0,
+                    },
+                )
+                .is_some()
+        );
     }
 }
 
@@ -201,12 +207,16 @@ fn active_extension_workspace_paints_only_inside_its_adaptive_host_frame() {
     };
     let subtree =
         ExtensionWorkspaceSubtree::from_presentation(&presentation, "root/extension_workspaces");
-    assert!(subtree
-        .included_node_ids
-        .contains("root/extension_workspaces"));
-    assert!(subtree
-        .included_node_ids
-        .contains("root/extension_workspaces/blend_host"));
+    assert!(
+        subtree
+            .included_node_ids
+            .contains("root/extension_workspaces")
+    );
+    assert!(
+        subtree
+            .included_node_ids
+            .contains("root/extension_workspaces/blend_host")
+    );
     assert!(subtree.included_node_ids.contains("component-instance-41"));
     assert!(subtree.included_node_ids.contains("generated-node-92"));
     let frame_bounds = FrameRect {
@@ -252,9 +262,11 @@ fn active_extension_workspace_paints_only_inside_its_adaptive_host_frame() {
         &presentation_with_overlapping_scene_sibling,
         "root/extension_workspaces",
     );
-    assert!(!filtered_subtree
-        .included_node_ids
-        .contains("root/scene_workspace"));
+    assert!(
+        !filtered_subtree
+            .included_node_ids
+            .contains("root/scene_workspace")
+    );
     let mut filtered = HostRgbaFrame::filled(80, 72, SENTINEL);
     assert!(draw_componentized_extension_workspace(
         &mut filtered,
@@ -298,10 +310,12 @@ fn scene_workspace_without_extension_host_keeps_legacy_dock_pixels_untouched() {
         &presentation,
         &frame_bounds,
     ));
-    assert!(frame
-        .as_bytes()
-        .chunks_exact(4)
-        .all(|pixel| pixel == SENTINEL));
+    assert!(
+        frame
+            .as_bytes()
+            .chunks_exact(4)
+            .all(|pixel| pixel == SENTINEL)
+    );
 }
 
 #[test]

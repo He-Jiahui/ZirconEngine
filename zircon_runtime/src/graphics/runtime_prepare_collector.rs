@@ -1,5 +1,6 @@
 use std::fmt;
-use std::sync::Arc;
+use std::ops::Range;
+use std::sync::{Arc, Mutex};
 
 #[cfg(test)]
 use crate::core::framework::render::{
@@ -12,10 +13,11 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::ResourceId;
-use crate::graphics::GraphicsError;
-use crate::graphics::ViewportRenderFrame;
 use crate::graphics::scene::resources::MaterialCaptureSeed;
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::GraphicsError;
+use crate::graphics::ViewportRenderFrame;
+use crate::rhi_wgpu::gpu_readback_queue::{GpuReadbackQueue, ReadbackError};
 
 pub trait RuntimePrepareCollector: Send + Sync {
     fn collect(
@@ -32,6 +34,7 @@ pub struct RuntimePrepareCollectorContext<'a> {
     frame: &'a ViewportRenderFrame,
     streamer: &'a ResourceStreamer,
     external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
+    gpu_readbacks: Option<&'a mut Vec<RuntimePrepareGpuReadbackRequest>>,
 }
 
 impl<'a> RuntimePrepareCollectorContext<'a> {
@@ -51,6 +54,28 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             frame,
             streamer,
             external_buffer_bindings,
+            gpu_readbacks: None,
+        }
+    }
+
+    pub(crate) fn new_with_gpu_readbacks(
+        device: &'a wgpu::Device,
+        queue: &'a wgpu::Queue,
+        encoder: &'a mut wgpu::CommandEncoder,
+        streamer: &'a ResourceStreamer,
+        frame: &'a ViewportRenderFrame,
+        external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
+        gpu_readbacks: &'a mut Vec<RuntimePrepareGpuReadbackRequest>,
+    ) -> Self {
+        Self {
+            device,
+            queue,
+            encoder,
+            frame_extract: &frame.extract,
+            frame,
+            streamer,
+            external_buffer_bindings,
+            gpu_readbacks: Some(gpu_readbacks),
         }
     }
 
@@ -131,6 +156,96 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
                 backing_name,
                 buffer,
             ));
+    }
+
+    pub fn request_gpu_readback(
+        &mut self,
+        name: impl Into<String>,
+        buffer: &wgpu::Buffer,
+        range: Range<u64>,
+    ) -> Result<RuntimeGpuReadback, GraphicsError> {
+        let requests = self.gpu_readbacks.as_deref_mut().ok_or_else(|| {
+            GraphicsError::BufferMap(
+                "runtime prepare collector has no GPU readback request sink".to_owned(),
+            )
+        })?;
+        let readback = RuntimeGpuReadback::pending();
+        requests.push(RuntimePrepareGpuReadbackRequest {
+            name: name.into(),
+            buffer: buffer.clone(),
+            range,
+            completion: Arc::clone(&readback.completion),
+        });
+        Ok(readback)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct RuntimeGpuReadback {
+    completion: Arc<Mutex<Option<Result<Vec<u8>, String>>>>,
+}
+
+impl RuntimeGpuReadback {
+    fn pending() -> Self {
+        Self {
+            completion: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.completion
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_some()
+    }
+
+    pub fn try_take(&self) -> Option<Result<Vec<u8>, GraphicsError>> {
+        self.completion
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+            .map(|result| result.map_err(GraphicsError::BufferMap))
+    }
+}
+
+pub(crate) struct RuntimePrepareGpuReadbackRequest {
+    name: String,
+    buffer: wgpu::Buffer,
+    range: Range<u64>,
+    completion: Arc<Mutex<Option<Result<Vec<u8>, String>>>>,
+}
+
+impl RuntimePrepareGpuReadbackRequest {
+    pub(crate) fn register(self, queue: &mut GpuReadbackQueue) -> Result<(), ReadbackError> {
+        let completion = Arc::clone(&self.completion);
+        let result = queue.request_readback_external(
+            self.name,
+            &self.buffer,
+            self.range,
+            Box::new(move |result| {
+                *completion
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(
+                    result
+                        .map(<[u8]>::to_vec)
+                        .map_err(|error| error.to_string()),
+                );
+            }),
+        );
+        if let Err(error) = &result {
+            *self
+                .completion
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Err(error.to_string()));
+        }
+        result.map(|_| ())
+    }
+
+    pub(crate) fn fail(self, error: impl Into<String>) {
+        *self
+            .completion
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Err(error.into()));
     }
 }
 
@@ -379,6 +494,44 @@ mod tests {
             external_buffer_bindings[0].backing_name(),
             "particles.gpu.counters:test-runtime-prepare"
         );
+    }
+
+    #[test]
+    fn collector_context_returns_nonblocking_shared_queue_readback_handles() {
+        let backend = RenderBackend::new_offscreen().unwrap();
+        let RenderBackend { device, queue, .. } = backend;
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-runtime-prepare-context-readback-test-encoder"),
+        });
+        let streamer = test_resource_streamer(&device, &queue);
+        let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(1, 1));
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-runtime-prepare-context-readback-source"),
+            size: 4,
+            usage: wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let mut external_buffer_bindings = Vec::new();
+        let mut gpu_readbacks = Vec::new();
+        let mut context = RuntimePrepareCollectorContext::new_with_gpu_readbacks(
+            &device,
+            &queue,
+            &mut encoder,
+            &streamer,
+            &frame,
+            &mut external_buffer_bindings,
+            &mut gpu_readbacks,
+        );
+
+        let readback = context
+            .request_gpu_readback("test.runtime-prepare", &buffer, 0..4)
+            .unwrap();
+
+        assert!(!readback.is_ready());
+        assert_eq!(gpu_readbacks.len(), 1);
+        gpu_readbacks.pop().unwrap().fail("test readback rejection");
+        assert!(readback.is_ready());
+        assert!(readback.try_take().unwrap().is_err());
     }
 
     #[test]

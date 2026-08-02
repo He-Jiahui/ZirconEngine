@@ -277,8 +277,8 @@ mod tests {
     use std::fs;
 
     use crate::core::framework::render::{
-        GeometrySourceId, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
-        ShaderQualityTier, ShaderVariantKey,
+        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+        SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::core::resource::ResourceId;
 

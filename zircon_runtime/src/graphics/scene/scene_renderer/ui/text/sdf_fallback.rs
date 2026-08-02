@@ -1,7 +1,8 @@
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasRun};
-use crate::text::sdf::SdfGlyphGenerationError;
+use crate::text::font::TextDecorationMetrics;
+use crate::text::sdf::{SdfGlyphGenerationError, SdfRunCpuPreparation};
 use crate::text::shaping::resolve_bidi_base_direction;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -75,8 +76,72 @@ pub(super) fn apply_sdf_atlas_fallbacks(
     atlas_runs: &[SdfAtlasRun],
     glyph_advances_by_run: &[Vec<f32>],
 ) -> ScreenSpaceUiTextSdfFallbackReport {
+    if !sdf_runs_need_fallback(sdf_texts, atlas_runs) {
+        return ScreenSpaceUiTextSdfFallbackReport::default();
+    }
+    apply_sdf_atlas_fallbacks_internal(native_texts, sdf_texts, atlas_runs, |index| {
+        glyph_advances_by_run.get(index).map(Vec::as_slice)
+    })
+    .report
+}
+
+pub(super) fn apply_sdf_atlas_fallbacks_with_cpu_runs(
+    native_texts: &mut Vec<ScreenSpaceUiTextBatch>,
+    sdf_texts: &mut Vec<ScreenSpaceUiTextBatch>,
+    atlas_runs: &[SdfAtlasRun],
+    cpu_runs: &mut Vec<SdfRunCpuPreparation>,
+    native_decoration_metrics: &mut Vec<TextDecorationMetrics>,
+) -> ScreenSpaceUiTextSdfFallbackReport {
+    if !sdf_runs_need_fallback(sdf_texts, atlas_runs) {
+        return ScreenSpaceUiTextSdfFallbackReport::default();
+    }
+    let result = apply_sdf_atlas_fallbacks_internal(native_texts, sdf_texts, atlas_runs, |index| {
+        cpu_runs.get(index).map(|run| run.glyph_advances.as_slice())
+    });
+    native_decoration_metrics.extend(result.native_fallback_run_indices.iter().map(|index| {
+        cpu_runs
+            .get(*index)
+            .map(|run| run.decoration_metrics)
+            .unwrap_or_default()
+    }));
+    let mut retained_indices = result.retained_sdf_run_indices.into_iter().peekable();
+    let pending_runs = std::mem::take(cpu_runs);
+    *cpu_runs = pending_runs
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, run)| {
+            (retained_indices.peek() == Some(&index)).then(|| {
+                let _ = retained_indices.next();
+                run
+            })
+        })
+        .collect();
+    result.report
+}
+
+fn sdf_runs_need_fallback(
+    sdf_texts: &[ScreenSpaceUiTextBatch],
+    atlas_runs: &[SdfAtlasRun],
+) -> bool {
+    sdf_texts.len() != atlas_runs.len() || atlas_runs.iter().any(SdfAtlasRun::has_failures)
+}
+
+struct SdfFallbackApplication {
+    report: ScreenSpaceUiTextSdfFallbackReport,
+    retained_sdf_run_indices: Vec<usize>,
+    native_fallback_run_indices: Vec<usize>,
+}
+
+fn apply_sdf_atlas_fallbacks_internal<'a>(
+    native_texts: &mut Vec<ScreenSpaceUiTextBatch>,
+    sdf_texts: &mut Vec<ScreenSpaceUiTextBatch>,
+    atlas_runs: &[SdfAtlasRun],
+    mut glyph_advances_for_run: impl FnMut(usize) -> Option<&'a [f32]>,
+) -> SdfFallbackApplication {
     let pending_sdf_texts = std::mem::take(sdf_texts);
     let mut retained_sdf_texts = Vec::with_capacity(pending_sdf_texts.len());
+    let mut retained_sdf_run_indices = Vec::with_capacity(pending_sdf_texts.len());
+    let mut native_fallback_run_indices = Vec::new();
     let mut report = ScreenSpaceUiTextSdfFallbackReport::default();
 
     for (index, text) in pending_sdf_texts.into_iter().enumerate() {
@@ -86,6 +151,7 @@ pub(super) fn apply_sdf_atlas_fallbacks(
                 .whole_batch_fallback_text_batch_count
                 .saturating_add(1);
             native_texts.push(text);
+            native_fallback_run_indices.push(index);
             continue;
         };
 
@@ -93,14 +159,18 @@ pub(super) fn apply_sdf_atlas_fallbacks(
             let fallback_spans = fallback_spans_for_text_run(text.text.as_str(), run);
             report.record_run_fallback(run, &fallback_spans);
 
-            let glyph_advances = glyph_advances_by_run.get(index).map(Vec::as_slice);
+            let glyph_advances = glyph_advances_for_run(index);
             match native_overlay_batches_for_failed_spans(&text, &fallback_spans, glyph_advances) {
                 Ok(overlay_batches) => {
+                    let overlay_count = overlay_batches.len();
                     report.fallback_native_overlay_batch_count = report
                         .fallback_native_overlay_batch_count
                         .saturating_add(overlay_batches.len());
                     native_texts.extend(overlay_batches);
+                    native_fallback_run_indices
+                        .extend(std::iter::repeat(index).take(overlay_count));
                     retained_sdf_texts.push(text);
+                    retained_sdf_run_indices.push(index);
                 }
                 Err(reason) => {
                     report.record_mixed_overlay_unsupported(reason);
@@ -108,15 +178,21 @@ pub(super) fn apply_sdf_atlas_fallbacks(
                         .whole_batch_fallback_text_batch_count
                         .saturating_add(1);
                     native_texts.push(text);
+                    native_fallback_run_indices.push(index);
                 }
             }
         } else {
             retained_sdf_texts.push(text);
+            retained_sdf_run_indices.push(index);
         }
     }
 
     *sdf_texts = retained_sdf_texts;
-    report
+    SdfFallbackApplication {
+        report,
+        retained_sdf_run_indices,
+        native_fallback_run_indices,
+    }
 }
 
 impl ScreenSpaceUiTextSdfFallbackReport {

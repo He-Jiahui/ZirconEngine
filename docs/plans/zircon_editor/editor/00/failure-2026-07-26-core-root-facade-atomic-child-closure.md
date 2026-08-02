@@ -4,7 +4,6 @@ status: open
 created_at: 2026-07-26
 summary_slug: core-root-facade-atomic-child-closure
 origin_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
-origin_workflow_node: M3.2 P0 Decision notification authority
 fixing_plan: docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
 origin_child_dir: docs/plans/zircon_editor/editor/17
 fixing_child_dir: docs/plans/zircon_editor/editor/00

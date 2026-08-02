@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::super::data::FrameRect;
-use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::kind::HostPaintCommandKind;
 

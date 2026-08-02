@@ -1,7 +1,9 @@
 mod asset_surface;
+mod build_export_visual_contract;
 mod component_showcase_category;
 mod component_showcase_selection;
 mod component_showcase_state;
+mod dense_host_action_visual_contract;
 mod dual_host_parity;
 mod host_model;
 mod host_window_document;

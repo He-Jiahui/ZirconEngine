@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::SolariRuntimeStatus;
 
-pub const PLUGIN_ID: &str = "solari";
 pub const SOLARI_MODULE_NAME: &str = "solari.runtime";
 pub const SOLARI_PROVIDER_ID: &str = "plugin.solari.runtime";
 pub const SOLARI_UNAVAILABLE_MESSAGE: &str =
@@ -11,7 +10,11 @@ pub const SOLARI_UNAVAILABLE_MESSAGE: &str =
 mod capability;
 mod plugin;
 
-pub use capability::{RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY, SOLARI_CAPABILITY};
+pub use capability::{
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY,
+    SOLARI_CAPABILITY, SOLARI_DECLARATION,
+};
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, SolariRuntimePlugin,

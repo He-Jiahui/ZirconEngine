@@ -236,9 +236,11 @@ fn mesh_asset_management_record_set_summarizes_valid_and_invalid_rows() {
     assert_eq!(record_set.records[0].mesh_id, valid_id);
     assert_eq!(record_set.failures.len(), 1);
     assert_eq!(record_set.failures[0].mesh_id, invalid_id);
-    assert!(record_set.failures[0]
-        .diagnostic
-        .contains("missing required position attribute"));
+    assert!(
+        record_set.failures[0]
+            .diagnostic
+            .contains("missing required position attribute")
+    );
     let summary = &record_set.summary;
     assert_eq!(summary.mesh_count, 2);
     assert_eq!(summary.valid_mesh_count, 1);

@@ -25,8 +25,6 @@ related_code:
   - tools/tests/test_runtime_script_binding_audit.py
   - tests/acceptance/runtime-script-binding-audit-owner-sync.md
   - zircon_runtime/src/tests/runtime_absorption/script_binding/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/gameplay_host.rs
   - zircon_runtime/src/tests/runtime_absorption/script_binding/support.rs
   - zircon_runtime/src/tests/runtime_absorption/script_binding/split_layout.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
@@ -38,12 +36,12 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/zircon_runtime/script/vm/host/function_ledger.md
 status: in_progress
-last_refined: 2026-07-14
+last_refined: 2026-07-23
 ---
 
 # 13 脚本绑定面与反射收束
 
-Runtime 13 current child-owner sync (2026-07-10): `script_binding_boundary` reports `expected_source_file_count = 19`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
+Runtime 13 current child-owner sync (2026-08-02): `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 61`, `type_descriptor_count = 2`, `builtin_callback_count = 20`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 12`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
 
 06 管 VM 插件生命周期（activate/空参数修复/热重载），10 管函数表 ABI 结构——本计划管两者之间的**语义层**：host function/module 注册面、`ZirconScriptType` 反射 marshalling、脚本对 ECS/资产/事件的能力面（capability）治理。
 

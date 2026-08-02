@@ -5,7 +5,7 @@ use super::selection::{
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, METRICS, PALETTE,
+    METRICS, PALETTE, current_host_palette,
 };
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::{

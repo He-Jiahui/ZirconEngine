@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn runtime_foreground_color(
     style: &UiResolvedStyle,

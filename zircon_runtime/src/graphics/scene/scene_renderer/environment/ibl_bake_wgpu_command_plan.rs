@@ -1,16 +1,15 @@
 use crate::core::framework::render::{
-    ComputePipelineCacheKey, CubemapFace, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactDescriptor,
-    IblBakeArtifactReadbackSectionKind, IblBakeArtifactRequest,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, ShaderDispatchExtent, ShaderParameterValue,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_face_mip_offset, source_cubemap_mip_size, ComputePipelineCacheKey, CubemapFace,
+    IblBakeArtifactDescriptor, IblBakeArtifactReadbackSectionKind, IblBakeArtifactRequest,
+    ShaderDispatchExtent, ShaderParameterValue, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
+    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 use super::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_RESOURCE, IBL_BAKE_IRRADIANCE_SH9_RESOURCE, IBL_BAKE_PMREM_RESOURCE,
 };
 use super::ibl_bake_shader_plan::{
-    IblBakeComputeKernelKind, IblBakeComputeKernelPlan, ibl_bake_compute_kernel_plans_for_request,
+    ibl_bake_compute_kernel_plans_for_request, IblBakeComputeKernelKind, IblBakeComputeKernelPlan,
 };
 mod realtime_slice;
 

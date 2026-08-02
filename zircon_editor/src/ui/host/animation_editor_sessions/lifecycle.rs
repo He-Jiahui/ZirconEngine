@@ -4,7 +4,10 @@ use crate::core::asset::AssetToolkitOpenRoute;
 use crate::ui::animation_editor::{AnimationEditorPanePresentation, AnimationEditorSession};
 use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 
-use super::AnimationEditorWorkspaceEntry;
+use super::{save::save_animation_document, AnimationEditorWorkspaceEntry};
+
+const ANIMATION_TOOLKIT_LAYOUT_ID: &str = "editor.animation.layout";
+const ANIMATION_TOOLKIT_TAB_ID: &str = "editor.animation.document";
 
 impl EditorUiHost {
     pub fn animation_editor_pane_presentation(
@@ -40,7 +43,9 @@ impl EditorUiHost {
             instance.instance_id.clone(),
             AnimationEditorWorkspaceEntry { route, session },
         );
-        self.sync_animation_editor_instance(&instance.instance_id)
+        self.sync_animation_editor_instance(&instance.instance_id)?;
+        self.register_animation_document_toolkit(&instance.instance_id)?;
+        Ok(())
     }
 
     pub(super) fn ensure_animation_editor_session(
@@ -51,6 +56,7 @@ impl EditorUiHost {
             .lock_animation_editor_sessions()
             .contains_key(instance_id)
         {
+            self.register_animation_document_toolkit(instance_id)?;
             return Ok(());
         }
         let instance = self
@@ -62,5 +68,18 @@ impl EditorUiHost {
                 EditorError::UiAsset(format!("missing animation editor view {}", instance_id.0))
             })?;
         self.restore_animation_editor_instance(&instance)
+    }
+
+    fn register_animation_document_toolkit(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<(), EditorError> {
+        self.register_document_toolkit(
+            instance_id,
+            ANIMATION_TOOLKIT_LAYOUT_ID,
+            ANIMATION_TOOLKIT_TAB_ID,
+            save_animation_document,
+        )?;
+        Ok(())
     }
 }

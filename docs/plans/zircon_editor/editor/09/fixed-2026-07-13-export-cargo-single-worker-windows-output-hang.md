@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor/15
 related_code:
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
 tests:
   - cargo test -p zircon_editor --lib --locked ui::host::export_cargo_process::tests::cargo_capture_and_poll_complete_on_a_single_runtime_worker -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib --locked --jobs 1 -- --test-threads=1

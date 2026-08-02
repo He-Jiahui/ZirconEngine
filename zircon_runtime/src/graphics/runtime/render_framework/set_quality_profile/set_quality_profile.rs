@@ -132,20 +132,16 @@ mod tests {
                 "profile-override-invalid-executor-feature",
                 Vec::new(),
                 Vec::new(),
-                vec![
-                    RenderFeaturePassDescriptor::new(
-                        RenderPassStage::PostProcess,
-                        "profile-override-invalid-executor-pass",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("custom.profile-override-missing-executor")
-                    .with_side_effects(),
-                ],
+                vec![RenderFeaturePassDescriptor::new(
+                    RenderPassStage::PostProcess,
+                    "profile-override-invalid-executor-pass",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("custom.profile-override-missing-executor")
+                .with_side_effects()],
             ));
         framework
-            .state
-            .lock()
-            .unwrap()
+            .lock_state()
             .pipelines
             .insert(pipeline.handle, pipeline);
 

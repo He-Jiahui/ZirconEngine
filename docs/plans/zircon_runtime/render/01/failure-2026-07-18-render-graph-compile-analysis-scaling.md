@@ -11,8 +11,10 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/graph.rs
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/cache.rs
 ---
 
 # RenderGraph compile analysis scaling
@@ -50,4 +52,16 @@ graph authoring/compile没有统一adjacency、resource access index和一次性
 
 ## 修复结果与回传
 
-Open state: `builder typed-handle O(1) validation已落地；待Render01回传indexed compile/culling、precomputed stats、realtime IBL topology cache及规模/RenderDoc证据`。
+Open state: `非验收源码实现已完成；待 Render01 受管 current-source 规模、GPU/RenderDoc 与产品像素证据`。
+
+- 依赖推导以单次 `latest_writer` access 扫描生成邻接；manual WAW 检查使用有界 bitset
+  closure，culling 反向遍历直接消费 pass access/dependency，且当前结构守卫禁止为每个
+  pass 收集临时 write list。
+- `CompiledRenderGraph` 在构造时预聚合 `CompiledRenderGraphStats`，稳态 `stats()` 仅返回
+  缓存值；瞬态 allocation 先按完整 descriptor bucket 分组，再以有序 active/free slot
+  集合分配，不做 bucket×resource 或 reservation×allocation 线性查找。
+- 主 submission pipeline 的 `CompiledGraphCache` 已按 revision、compile fingerprint、选项与
+  capability 摘要缓存；realtime IBL 另有固定上界的 topology variant cache，稳定 topology
+  命中不会重新构建或编译 graph，并有 compile-count source guard。
+- 尚未取得 16/64/256/1024 规模 p50/p95、current-source Cargo、真实 WGPU PNG 与 RenderDoc
+  marker/dump 对拍。以上均由协调器管理，不能由静态源码结果替代或标记为 `fixed`。

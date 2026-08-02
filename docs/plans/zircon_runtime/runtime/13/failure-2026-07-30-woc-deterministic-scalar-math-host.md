@@ -80,4 +80,27 @@ the Runtime13 host boundary.
 
 ## 修复结果与回传
 
-Open state: `待修复`; no scalar-math host API or WOC execution pass is claimed.
+Open state: `源码修复已完成，等待当前源码的受管验证`; this handoff is not fixed or
+returned yet.
+
+Implemented, not yet accepted:
+
+- Runtime13 publishes `zr.zircon.math` version `0.2.0` with the required
+  `math.scalar` capability and scalar exports `abs`, `atan2`, `ceil`, `cos`,
+  `exp`, `floor`, `sin`, `sqrt`, and `pow` alongside the existing vector
+  descriptors.
+- The scalar ABI uses the pinned `libm 0.2.16` implementation. Arguments and
+  results must be finite; domain errors and overflow are rejected rather than
+  leaking platform-specific non-finite values to a script.
+- Focused module-surface coverage now exercises signed zero, `atan2` quadrant
+  boundaries, rounding, finite exponentiation, and rejected non-finite inputs
+  and results. The host-function ledger documents the same ABI.
+
+Static evidence: the Runtime13 structure guard and selected `rustfmt --check`
+scope pass; `cargo metadata --no-deps --locked --format-version 1` succeeds.
+Neither is a source-bound test result.
+
+Required before `failure return`: run the declared Runtime13 script and
+module-surface managed Cargo gates against this source snapshot, then run the
+canonical WOC `zr_vm:project` scalar vectors after Plugins08 supplies its
+transactional project backend. No WOC execution pass is claimed.

@@ -52,7 +52,7 @@
         { "name": "committed_state_digest", "id": 5, "wire_type": "u32" },
         { "name": "generation", "id": 6, "wire_type": "u64" },
         { "name": "movement_frames", "id": 7, "wire_type": "vector", "element_type": "MovementFrame", "max_length": 65536 },
-        { "name": "offline_bootstrap", "id": 8, "wire_type": "bytes", "max_length": 64 }
+        { "name": "offline_bootstrap", "id": 8, "wire_type": "bytes", "max_length": 66 }
       ]
     },
     {
@@ -151,7 +151,9 @@
         { "name": "world_seed", "id": 2, "wire_type": "u32" },
         { "name": "player_class", "id": 3, "wire_type": "u8" },
         { "name": "player_name", "id": 4, "wire_type": "bytes", "max_length": 16 },
-        { "name": "skin_variant", "id": 5, "wire_type": "u16" }
+        { "name": "skin_variant", "id": 5, "wire_type": "u16" },
+        { "name": "weapon_skin_owned", "id": 6, "wire_type": "bytes", "max_length": 29 },
+        { "name": "weapon_skin_loadout_codes", "id": 7, "wire_type": "bytes", "max_length": 8 }
       ]
     }
   ]

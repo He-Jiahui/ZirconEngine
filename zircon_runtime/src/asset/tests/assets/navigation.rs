@@ -1,8 +1,8 @@
 use serde::Serialize;
 
 use crate::core::framework::navigation::{
-    NavLinkMotion, NavLinkTraversalMode, NavMeshAreaCostAsset, NavMeshAsset, NavMeshPolygonAsset,
-    NavMeshTileAsset, NavigationAssetError, AREA_JUMP,
+    AREA_JUMP, NavLinkMotion, NavLinkTraversalMode, NavMeshAreaCostAsset, NavMeshAsset,
+    NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError,
 };
 
 #[test]

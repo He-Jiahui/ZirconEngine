@@ -1,6 +1,6 @@
 use crate::rhi::UiSurfaceRect;
 
-use super::{quad_positions, SolidVertex};
+use super::{SolidVertex, quad_positions};
 
 const SOLID_VERTEX_POSITION_EPSILON: f32 = 1.0e-6;
 const MIN_SOLID_TRIANGLE_DOUBLE_AREA: f32 = 1.0e-10;

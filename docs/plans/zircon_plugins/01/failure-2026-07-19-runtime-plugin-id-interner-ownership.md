@@ -18,17 +18,28 @@ tests:
 
 # Plugins01：RuntimePluginId interner所有权
 
-## 现象与根因
+## 来源执行者
+
+- 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
+- 来源执行切片：PERF-MVP-436 dynamic plugin id load/unload churn 与内存所有权审阅。
+- 修复责任计划：`docs/plans/zircon_plugins/01-plugin-architecture-core.md`
+- 交接原因：`RuntimePluginId` 的 identity、catalog generation 与 unload 生命周期由 Plugins01 拥有，Performance01 只能定义预算和复现门，不能建立第二套 ID owner。
+
+## 失败现象与复现证据
 
 未知外部plugin key被`Box::leak`进全局`HashSet<&'static str>`以维持Copy ID，catalog unload/reload不会释放；持续新ID会永久抬升RSS并放大全局mutex表。本轮只消除了规范小写parse的临时String，不能解决owner缺失。
 
-## 修复验收
+## 最低共享层根因
+
+动态 plugin identity 依赖永久地址而不是 catalog generation 所拥有的稳定 handle；interner 没有 retire/unload 回收边界，因而把动态生命周期错误提升成进程级静态生命周期。
+
+## 架构修复验收
 
 - builtin static IDs与dynamic generation symbols分层；dynamic使用ref-counted arena handle/Arc或等价稳定owner，identity不依赖永久地址。
 - catalog generation retire/unload后释放dynamic strings；entries/string bytes≤static+active generation budget，无`Box::leak`。
 - 1/1k/1M IDs、1/1k/100k reload、1/64 threads记录lock/probe/bytes/RSS；serde/hash/equality/order及native reload等价，回传PERF-MVP-436。
 
-## 参考与禁止方案
+## 禁止临时方案
 
 参考Godot StringName的static/refcount/unref/cleanup所有权原则。不得只给全局HashSet加容量后随机拒绝有效插件，也不得把动态ID泄漏迁移到另一张全局表。
 

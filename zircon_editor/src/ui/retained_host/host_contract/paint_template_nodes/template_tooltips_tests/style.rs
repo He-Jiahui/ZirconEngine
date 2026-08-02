@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 use super::super::super::super::paint_theme::METRICS;
 use super::super::super::style_selector::{
-    select_workbench_tooltip_style, WORKBENCH_TOOLTIP_BORDER,
+    WORKBENCH_TOOLTIP_BORDER, select_workbench_tooltip_style,
 };
 use super::super::metrics::tooltip_metrics_from_host;
 use super::support::tooltip_node;
@@ -43,7 +43,8 @@ fn workbench_tooltip_metrics_project_from_host_control_metrics() {
 
     let metrics = tooltip_metrics_from_host(host);
 
-    assert_eq!(metrics.bubble_width, 120.0);
+    assert_eq!(metrics.bubble_min_width, 90.0);
+    assert_eq!(metrics.bubble_max_width, 300.0);
     assert_eq!(metrics.bubble_height, 56.0);
     assert_eq!(metrics.radius, 6.0);
     assert_eq!(metrics.border_width, 2.0);

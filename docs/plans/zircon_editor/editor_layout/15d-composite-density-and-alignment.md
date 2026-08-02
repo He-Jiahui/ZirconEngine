@@ -48,7 +48,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests/paint.rs
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
   - zircon_editor/assets/icons/zircon_editor_shell/activity/image.svg
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs/shapes.rs

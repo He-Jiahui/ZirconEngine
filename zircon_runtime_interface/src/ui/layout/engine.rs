@@ -132,29 +132,7 @@ impl UiLayoutEngineRequest {
     }
 
     pub const fn from_container_kind(container: UiContainerKind) -> Self {
-        let family = match container {
-            UiContainerKind::Free => UiLayoutEngineFamily::Free,
-            UiContainerKind::Canvas => UiLayoutEngineFamily::Canvas,
-            UiContainerKind::Container | UiContainerKind::Space | UiContainerKind::SizeBox(_) => {
-                UiLayoutEngineFamily::Container
-            }
-            UiContainerKind::BlockBox => UiLayoutEngineFamily::Block,
-            UiContainerKind::Overlay => UiLayoutEngineFamily::Overlay,
-            UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {
-                UiLayoutEngineFamily::Flex
-            }
-            UiContainerKind::ScrollableBox(config) => {
-                if config.virtualization.is_some() {
-                    UiLayoutEngineFamily::VirtualizedList
-                } else {
-                    UiLayoutEngineFamily::Scrollable
-                }
-            }
-            UiContainerKind::WrapBox(_) => UiLayoutEngineFamily::Wrap,
-            UiContainerKind::GridBox(_) => UiLayoutEngineFamily::Grid,
-            UiContainerKind::MasonryBox(_) => UiLayoutEngineFamily::Masonry,
-        };
-        Self::new(family)
+        Self::new(container.layout_engine_family())
     }
 }
 

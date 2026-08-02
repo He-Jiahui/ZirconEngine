@@ -1,9 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::script::{
-    ScriptHostCallContext, ScriptHostError, ScriptHostFunctionDescriptor,
-    ScriptHostModuleDescriptor, ScriptHostParameterDescriptor, ScriptHostValue,
-    ScriptHostValueKind,
+    ScriptHostCallFrame, ScriptHostError, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
+    ScriptHostParameterDescriptor, ScriptHostValue, ScriptHostValueKind,
 };
 
 use super::super::{CapabilitySet, HostHandle, VmError};
@@ -16,6 +15,8 @@ const SCENE_MODULE: &str = "zr.zircon.scene";
 const RENDER_MODULE: &str = "zr.zircon.render";
 const MATH_MODULE: &str = "zr.zircon.math";
 const HOST_MODULE_VERSION: &str = "0.1.0";
+const MATH_MODULE_VERSION: &str = "0.2.0";
+const MATH_SCALAR_CAPABILITY: &str = "math.scalar";
 
 pub fn register_builtin_host_modules(
     exports: &HostExportRegistry,
@@ -145,7 +146,9 @@ fn register_asset_module(exports: &HostExportRegistry) -> Result<HostHandle, VmE
         descriptor,
         [
             HostExportFunction::new("locator_identity", |context| {
-                Ok(ScriptHostValue::String(expect_string(context, 0)?))
+                Ok(ScriptHostValue::String(
+                    expect_string(context, 0)?.to_owned(),
+                ))
             }),
             HostExportFunction::new("status", |context| {
                 let _locator = expect_string(context, 0)?;
@@ -253,11 +256,6 @@ fn register_render_module(exports: &HostExportRegistry) -> Result<HostHandle, Vm
     )
 }
 
-#[crate::zircon_host_module(
-    name = "zr.zircon.math",
-    version = "0.1.0",
-    documentation = "Pure math value descriptors and deterministic helper functions."
-)]
 mod math {
     use super::*;
 
@@ -297,8 +295,8 @@ mod math {
         a: f64,
     }
 
-    // These descriptor-only structs are consumed by zircon_host_module!; keep
-    // their field layout visible without adding VM-visible host calls.
+    // These descriptor-only structs are reflected by the math module; keep their
+    // field layout visible without adding VM-visible host calls.
     const _: ((f64, f64, f64), (f64, f64, f64, f64)) = {
         let vec3 = Vec3 {
             x: 0.0,
@@ -334,11 +332,182 @@ mod math {
     fn vec3_dot(ax: f64, ay: f64, az: f64, bx: f64, by: f64, bz: f64) -> f64 {
         ax * bx + ay * by + az * bz
     }
+
+    pub fn math_host_module_descriptor() -> Result<ScriptHostModuleDescriptor, VmError> {
+        Ok(
+            ScriptHostModuleDescriptor::new(MATH_MODULE, MATH_MODULE_VERSION)
+                .with_capability(MATH_SCALAR_CAPABILITY)
+                .with_type(
+                    <Vec3 as crate::core::framework::script::ZirconScriptType>::script_host_type_descriptor()
+                        .map_err(|error| VmError::Operation(error.to_string()))?,
+                )
+                .with_type(
+                    <ColorRgba as crate::core::framework::script::ZirconScriptType>::script_host_type_descriptor()
+                        .map_err(|error| VmError::Operation(error.to_string()))?,
+                )
+                .with_function(__zircon_host_function_descriptor_vec3_length())
+                .with_function(__zircon_host_function_descriptor_vec3_dot())
+                .with_function(scalar_descriptor(
+                    "abs",
+                    &["value"],
+                    "Return the absolute value. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "atan2",
+                    &["y", "x"],
+                    "Return atan2(y, x) using libm. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "ceil",
+                    &["value"],
+                    "Round upward using libm. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "cos",
+                    &["value"],
+                    "Return cosine using libm. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "exp",
+                    &["value"],
+                    "Return e raised to value using libm. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "floor",
+                    &["value"],
+                    "Round downward using libm. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "sin",
+                    &["value"],
+                    "Return sine using libm. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "sqrt",
+                    &["value"],
+                    "Return the square root using libm. Negative and non-finite results are rejected.",
+                ))
+                .with_function(scalar_descriptor(
+                    "pow",
+                    &["base", "exponent"],
+                    "Return base raised to exponent using libm. Non-finite input or result is rejected.",
+                ))
+                .with_documentation(
+                    "Deterministic scalar ABI backed by libm 0.2.16. Every scalar argument and result must be finite on every supported target.",
+                ),
+        )
+    }
+
+    pub fn register_math_host_module(exports: &HostExportRegistry) -> Result<HostHandle, VmError> {
+        exports.register_module(
+            math_host_module_descriptor()?,
+            [
+                __zircon_host_export_function_vec3_length(),
+                __zircon_host_export_function_vec3_dot(),
+                HostExportFunction::new("abs", |context| scalar_unary(context, "abs", libm::fabs)),
+                HostExportFunction::new("atan2", scalar_atan2),
+                HostExportFunction::new("ceil", |context| {
+                    scalar_unary(context, "ceil", libm::ceil)
+                }),
+                HostExportFunction::new("cos", |context| scalar_unary(context, "cos", libm::cos)),
+                HostExportFunction::new("exp", |context| scalar_unary(context, "exp", libm::exp)),
+                HostExportFunction::new("floor", |context| {
+                    scalar_unary(context, "floor", libm::floor)
+                }),
+                HostExportFunction::new("sin", |context| scalar_unary(context, "sin", libm::sin)),
+                HostExportFunction::new("sqrt", |context| {
+                    scalar_unary(context, "sqrt", libm::sqrt)
+                }),
+                HostExportFunction::new("pow", scalar_pow),
+            ],
+        )
+    }
+
+    fn scalar_descriptor(
+        name: &str,
+        parameters: &[&str],
+        documentation: &str,
+    ) -> ScriptHostFunctionDescriptor {
+        let mut descriptor = ScriptHostFunctionDescriptor::new(
+            name,
+            parameters.len(),
+            parameters.len(),
+            ScriptHostValueKind::Float,
+        )
+        .with_required_capability(MATH_SCALAR_CAPABILITY)
+        .with_documentation(documentation);
+        for parameter in parameters {
+            descriptor = descriptor.with_parameter(ScriptHostParameterDescriptor::new(
+                *parameter,
+                ScriptHostValueKind::Float,
+            ));
+        }
+        descriptor
+    }
+
+    fn scalar_unary(
+        context: &ScriptHostCallFrame<'_>,
+        name: &str,
+        operation: impl FnOnce(f64) -> f64,
+    ) -> Result<ScriptHostValue, ScriptHostError> {
+        scalar_result(name, operation(scalar_argument(context, name, 0)?))
+    }
+
+    fn scalar_atan2(context: &ScriptHostCallFrame<'_>) -> Result<ScriptHostValue, ScriptHostError> {
+        let y = scalar_argument(context, "atan2", 0)?;
+        let x = scalar_argument(context, "atan2", 1)?;
+        scalar_result("atan2", libm::atan2(y, x))
+    }
+
+    fn scalar_pow(context: &ScriptHostCallFrame<'_>) -> Result<ScriptHostValue, ScriptHostError> {
+        let base = scalar_argument(context, "pow", 0)?;
+        let exponent = scalar_argument(context, "pow", 1)?;
+        scalar_result("pow", libm::pow(base, exponent))
+    }
+
+    fn scalar_argument(
+        context: &ScriptHostCallFrame<'_>,
+        function: &str,
+        index: usize,
+    ) -> Result<f64, ScriptHostError> {
+        let value = match context.arguments.get(index) {
+            Some(ScriptHostValue::Float(value)) => *value,
+            Some(ScriptHostValue::Int(value)) => *value as f64,
+            Some(value) => {
+                return Err(ScriptHostError::new(format!(
+                    "{function} argument {index} expected finite float, received {:?}",
+                    value.kind()
+                )));
+            }
+            None => {
+                return Err(ScriptHostError::new(format!(
+                    "{function} argument {index} was not provided"
+                )));
+            }
+        };
+        if value.is_finite() {
+            Ok(value)
+        } else {
+            Err(ScriptHostError::new(format!(
+                "{function} argument {index} must be finite"
+            )))
+        }
+    }
+
+    fn scalar_result(name: &str, value: f64) -> Result<ScriptHostValue, ScriptHostError> {
+        if value.is_finite() {
+            Ok(ScriptHostValue::Float(value))
+        } else {
+            Err(ScriptHostError::new(format!(
+                "{name} produced a non-finite result"
+            )))
+        }
+    }
 }
 
-fn expect_string(context: &ScriptHostCallContext, index: usize) -> Result<String, ScriptHostError> {
+fn expect_string(context: &ScriptHostCallFrame<'_>, index: usize) -> Result<&str, ScriptHostError> {
     match context.arguments.get(index) {
-        Some(ScriptHostValue::String(value)) => Ok(value.clone()),
+        Some(ScriptHostValue::String(value)) => Ok(value),
         Some(value) => Err(ScriptHostError::new(format!(
             "argument {index} expected string, received {:?}",
             value.kind()
@@ -349,7 +518,7 @@ fn expect_string(context: &ScriptHostCallContext, index: usize) -> Result<String
     }
 }
 
-fn expect_handle(context: &ScriptHostCallContext, index: usize) -> Result<u64, ScriptHostError> {
+fn expect_handle(context: &ScriptHostCallFrame<'_>, index: usize) -> Result<u64, ScriptHostError> {
     match context.arguments.get(index) {
         Some(ScriptHostValue::HostHandle(value)) => Ok(*value),
         // ZrVM carries the neutral u64 payload through i64 while preserving its bits.
@@ -373,6 +542,7 @@ pub fn builtin_host_capabilities() -> CapabilitySet {
         .with("scene.query")
         .with("scene.handle")
         .with("render.query")
+        .with(MATH_SCALAR_CAPABILITY)
         .with("gameplay.input")
         .with("gameplay.entity")
         .with("gameplay.navigation")

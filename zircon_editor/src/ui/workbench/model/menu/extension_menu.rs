@@ -1,62 +1,59 @@
 use crate::core::commands::{
     CommandEvalCtx, EditorCommandRegistry, MenuBarModel, MenuItemModel, MenuModel,
 };
-use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+use crate::core::editor_extension::EditorMenuItemDescriptor;
+use crate::core::extension::{CapabilitySet, ContributionSnapshot};
 
 pub(super) fn append_extension_menus(
     menu_bar: &mut MenuBarModel,
     command_registry: &EditorCommandRegistry,
-    extensions: &[EditorExtensionRegistry],
+    contributions: &ContributionSnapshot,
+    capabilities: &CapabilitySet,
     context: &CommandEvalCtx,
 ) {
-    let mut contributions = extensions
-        .iter()
-        .flat_map(EditorExtensionRegistry::menu_items)
-        .collect::<Vec<_>>();
-    contributions.sort_by(|left, right| {
+    let mut menu_items = contributions.menu_items(capabilities).collect::<Vec<_>>();
+    menu_items.sort_by(|left, right| {
         left.priority()
             .cmp(&right.priority())
             .then_with(|| left.path().cmp(right.path()))
     });
 
-    for descriptor in contributions {
+    for descriptor in menu_items {
         append_extension_menu_item(menu_bar, command_registry, descriptor, context);
     }
 
-    for extension in extensions {
-        for view in extension.views() {
-            let Ok(operation_path) = view.open_operation_path() else {
-                continue;
-            };
-            if menu_bar.menus.iter().any(|menu| {
-                menu.items
-                    .iter()
-                    .any(|item| item_contains_operation(item, &operation_path))
-            }) {
-                continue;
-            }
-            let enabled = command_registry
-                .command(operation_path.as_str())
-                .is_some_and(|descriptor| descriptor.is_enabled(context));
-            let item = MenuItemModel::leaf(
-                view.display_name(),
-                None,
-                Some(operation_path),
-                None,
-                enabled,
-            );
-            if let Some(menu) = menu_bar
-                .menus
-                .iter_mut()
-                .find(|menu| menu.label.eq_ignore_ascii_case("View"))
-            {
-                menu.items.push(item);
-            } else {
-                menu_bar.menus.push(MenuModel {
-                    label: "View".to_string(),
-                    items: vec![item],
-                });
-            }
+    for view in contributions.views(capabilities) {
+        let Ok(operation_path) = view.open_operation_path() else {
+            continue;
+        };
+        if menu_bar.menus.iter().any(|menu| {
+            menu.items
+                .iter()
+                .any(|item| item_contains_operation(item, &operation_path))
+        }) {
+            continue;
+        }
+        let enabled = command_registry
+            .command(operation_path.as_str())
+            .is_some_and(|descriptor| descriptor.is_enabled(context));
+        let item = MenuItemModel::leaf(
+            view.display_name(),
+            None,
+            Some(operation_path),
+            None,
+            enabled,
+        );
+        if let Some(menu) = menu_bar
+            .menus
+            .iter_mut()
+            .find(|menu| menu.label.eq_ignore_ascii_case("View"))
+        {
+            menu.items.push(item);
+        } else {
+            menu_bar.menus.push(MenuModel {
+                label: "View".to_string(),
+                items: vec![item],
+            });
         }
     }
 }

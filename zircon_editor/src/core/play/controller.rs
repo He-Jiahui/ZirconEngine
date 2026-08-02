@@ -11,8 +11,8 @@ use super::{
     PendingEditDecisionPrompt, PendingEditDiscardReport, PendingEditIntent, PendingEditPage,
     PendingEditPageCursor, PendingEditQueueSummary, PlayBackendPoll, PlayDomainLink,
     PlayDomainLinkError, PlayEditBeginError, PlayEditProtection, PlayEditResolutionError,
-    PlayEditRoute, PlayEditRouteError, PlayEditTarget, PlayInstanceId, PlayMode, PlayModeKind,
-    PlaySessionError, PlayStartRequest, PlayTransitionCause, PlayTransitionReport,
+    PlayEditRoute, PlayEditRouteError, PlayEditTarget, PlayInstanceId, PlayKind, PlayMode,
+    PlayModeKind, PlaySessionError, PlayStartRequest, PlayTransitionCause, PlayTransitionReport,
     PluginBridgeActivationReport, SharedPlayBackend, SharedPluginBridgeActivation, WorldDomain,
 };
 use crate::core::gateway::{EditorRuntimeGatewayHandle, SharedEditorRuntimeGateway};
@@ -20,6 +20,7 @@ use crate::core::gateway::{EditorRuntimeGatewayHandle, SharedEditorRuntimeGatewa
 pub struct PlaySessionController {
     transition_gate: Mutex<()>,
     mode: RwLock<PlayMode>,
+    preferred_kind: RwLock<PlayKind>,
     message_bus: SharedEditorMessageBus,
     plugin_activation: RwLock<SharedPluginBridgeActivation>,
     backend: RwLock<SharedPlayBackend>,
@@ -42,6 +43,7 @@ impl PlaySessionController {
         Self {
             transition_gate: Mutex::new(()),
             mode: RwLock::new(PlayMode::Edit),
+            preferred_kind: RwLock::new(PlayKind::Play),
             message_bus,
             plugin_activation: RwLock::new(Arc::new(NoopPluginBridgeActivation)),
             backend: RwLock::new(Arc::new(NoopPlayBackend)),
@@ -62,6 +64,25 @@ impl PlaySessionController {
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
+    }
+
+    pub fn preferred_kind(&self) -> PlayKind {
+        *self
+            .preferred_kind
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub fn set_preferred_kind(&self, kind: PlayKind) -> bool {
+        let mut preferred = self
+            .preferred_kind
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if *preferred == kind {
+            return false;
+        }
+        *preferred = kind;
+        true
     }
 
     pub fn set_plugin_activation(&self, activation: SharedPluginBridgeActivation) {

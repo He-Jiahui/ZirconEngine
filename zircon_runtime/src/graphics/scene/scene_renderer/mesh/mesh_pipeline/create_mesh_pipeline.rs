@@ -6,6 +6,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_mesh_pipeline(
     shader: &wgpu::ShaderModule,
     target_format: wgpu::TextureFormat,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-mesh-pipeline"),
@@ -43,6 +44,6 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_mesh_pipeline(
             })],
         }),
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }

@@ -53,10 +53,12 @@ fn project_manager_writes_zmeta_schema_and_ignores_old_meta_toml_sidecars() {
     assert_eq!(meta.entries[0].asset_kind, AssetKind::Data);
     assert_eq!(record.id(), AssetId::from_asset_uuid(meta.uuid));
     assert_eq!(record.state, ResourceState::Ready);
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://data/settings.json.meta.toml").unwrap())
-        .is_none());
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://data/settings.json.meta.toml").unwrap())
+            .is_none()
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -93,14 +95,18 @@ fn project_manager_watch_remove_commits_resource_and_asset_registries_together()
         .unwrap();
 
     assert!(manager.registry().get_by_locator(&uri).is_none());
-    assert!(manager
-        .asset_registry()
-        .resolve_asset_id_by_path(&uri)
-        .is_err());
-    assert!(manager
-        .asset_registry()
-        .resolve_asset_id_by_uuid(uuid)
-        .is_err());
+    assert!(
+        manager
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .is_err()
+    );
+    assert!(
+        manager
+            .asset_registry()
+            .resolve_asset_id_by_uuid(uuid)
+            .is_err()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -141,10 +147,12 @@ fn project_manager_watch_rename_preserves_guid_and_replaces_both_registry_paths(
     assert!(manager.registry().get_by_locator(&old_uri).is_none());
     let record = manager.registry().get_by_locator(&new_uri).unwrap();
     assert_eq!(record.id(), AssetId::from_asset_uuid(uuid));
-    assert!(manager
-        .asset_registry()
-        .resolve_asset_id_by_path(&old_uri)
-        .is_err());
+    assert!(
+        manager
+            .asset_registry()
+            .resolve_asset_id_by_path(&old_uri)
+            .is_err()
+    );
     assert_eq!(
         manager.asset_registry().resolve_asset_id_by_path(&new_uri),
         Ok(AssetId::from_asset_uuid(uuid))
@@ -182,7 +190,7 @@ fn project_manager_registry_commit_failure_keeps_both_live_registries_unchanged(
                 uri.clone(),
                 None,
             )],
-            crate::foundation::persistence::atomic_file::AtomicWriteFault::Replace,
+            crate::core::resource::io::atomic_file::AtomicWriteFault::Replace,
         )
         .unwrap_err();
 
@@ -325,23 +333,31 @@ fn project_manager_restore_refreshes_zmeta_entry_urls_after_source_rename() {
         .get_by_locator(&renamed_texture_uri)
         .expect("restored texture record should use renamed URL");
 
-    assert!(restarted
-        .registry()
-        .get_by_locator(&original_root_uri)
-        .is_none());
-    assert!(restarted
-        .registry()
-        .get_by_locator(&original_texture_uri)
-        .is_none());
+    assert!(
+        restarted
+            .registry()
+            .get_by_locator(&original_root_uri)
+            .is_none()
+    );
+    assert!(
+        restarted
+            .registry()
+            .get_by_locator(&original_texture_uri)
+            .is_none()
+    );
     assert_eq!(restored_meta.url, renamed_root_uri);
-    assert!(restored_meta
-        .entries
-        .iter()
-        .any(|entry| entry.uuid == restored_meta.uuid && entry.url == renamed_root_uri));
-    assert!(restored_meta
-        .entries
-        .iter()
-        .any(|entry| entry.uuid == original_texture_uuid && entry.url == renamed_texture_uri));
+    assert!(
+        restored_meta
+            .entries
+            .iter()
+            .any(|entry| entry.uuid == restored_meta.uuid && entry.url == renamed_root_uri)
+    );
+    assert!(
+        restored_meta
+            .entries
+            .iter()
+            .any(|entry| entry.uuid == original_texture_uuid && entry.url == renamed_texture_uri)
+    );
     assert_eq!(restored_texture.id(), original_texture_id);
     assert_eq!(
         restored_root.id(),
@@ -419,10 +435,12 @@ fn project_manager_preserves_zmeta_subasset_uuids_across_failed_reimport() {
         crate::asset::project::PreviewState::Error
     );
     assert!(manager.registry().get_by_locator(&texture_uri).is_none());
-    assert!(failed_meta
-        .entries
-        .iter()
-        .any(|entry| entry.uuid == ready_texture_uuid && entry.url == texture_uri));
+    assert!(
+        failed_meta
+            .entries
+            .iter()
+            .any(|entry| entry.uuid == ready_texture_uuid && entry.url == texture_uri)
+    );
 
     fs::write(&source_path, "atlas-fixed").unwrap();
     manager.scan_and_import().unwrap();

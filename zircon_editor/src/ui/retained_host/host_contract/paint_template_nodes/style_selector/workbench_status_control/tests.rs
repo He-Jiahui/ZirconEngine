@@ -1,6 +1,6 @@
 use super::*;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
+use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

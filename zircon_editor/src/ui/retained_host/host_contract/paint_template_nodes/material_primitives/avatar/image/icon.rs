@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::visual_assets::{
-    raster_size_from_frame, template_image_pixels, HostPaintImagePixels,
+    HostPaintImagePixels, raster_size_from_frame, template_image_pixels,
 };
 use super::super::geometry::avatar_fallback_child_frame;
 

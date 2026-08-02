@@ -294,6 +294,7 @@ impl AnimationEvaluationProjection {
             }
             scan.sequences.push(PendingSequenceSample {
                 sequence_id,
+                asset_revision: revision.asset_revision,
                 time_seconds,
                 looping: player.looping,
             });

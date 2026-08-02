@@ -1,66 +1,83 @@
+use std::collections::BTreeMap;
+
 use woc_client::{
     ClientCommandMapper, ClientGameplayIntent, ClientInputDevice, ClientInputEvent,
-    ClientInputMappingError,
+    ClientInputMappingError, ClientTalentAllocation,
 };
 use woc_protocol::{
     command_descriptor, talent_option_code, talent_spec_code, AbandonQuestCommandPayload,
     AcceptQuestCommandPayload, ApplyTalentsCommandPayload, ArenaAugmentCommandPayload, ArenaFormat,
     ArenaQueueCommandPayload, BankAction, BankSlotCommandPayload, CancelAuraCommandPayload,
     CardPlayCommandPayload, CastAbilityCommandPayload, CastAtCommandPayload,
-    CastSlotCommandPayload, ChangeSkinCommandPayload, CommandKind, DeleteLoadoutCommandPayload,
-    DiscardItemCommandPayload, DuelRequestCommandPayload, DungeonFinderActivitiesPayload,
+    CastSlotCommandPayload, ChallengeResponseCommandPayload, ChangeSkinCommandPayload,
+    ChangeWeaponSkinCommandPayload, ChatCommandPayload, CommandKind,
+    CompanionUpgradeCommandPayload, CraftItemCommandPayload, DeedSetTitleCommandPayload,
+    DeleteLoadoutCommandPayload, DelveBuyCommandPayload, DiscardItemCommandPayload,
+    DuelRequestCommandPayload, DungeonFinderActivitiesPayload,
     DungeonFinderApplicationResponsePayload, DungeonFinderListingIdPayload,
     DungeonFinderListingPayload, DungeonFinderListingTag, DungeonFinderRole,
-    DungeonFinderRolesPayload, EntityRef, EquipBagCommandPayload, EquipItemPayload, EquipmentSlot,
+    DungeonFinderRolesPayload, EmoteCommandPayload, EmoteId, EnterDelveCommandPayload,
+    EnterDungeonCommandPayload, EntityRef, EquipBagCommandPayload, EquipItemPayload, EquipmentSlot,
     GroundTargetPoint, GuildEventCreateCommandPayload, GuildEventRemoveCommandPayload,
-    LinkedQuestAcceptancePayload, LockpickAbortCommandPayload, LockpickAction,
-    LockpickActionCommandPayload, LockpickEngageCommandPayload, MailAction, MailIdCommandPayload,
-    MasterLootThreshold, PartyLootMasterCommandPayload, PartyMarkerClearCommandPayload,
-    PartyMarkerCommandPayload, PartyMoveRaidCommandPayload, PetAutoTauntCommandPayload,
-    PetAutoWaterJetCommandPayload, PetFeedCommandPayload, PetModeCommandPayload,
-    PetRenameCommandPayload, ProtocolError, ReleaseEmpoweredCommandPayload,
-    ResurrectRespondCommandPayload, SelectTalentRowCommandPayload, SetSpecCommandPayload,
-    SkinCatalog, SocialNameCommandPayload, SwitchLoadoutCommandPayload, TargetCommandPayload,
-    TradeRequestCommandPayload, TurnInQuestCommandPayload, UnequipBagCommandPayload,
-    UnequipItemPayload, UseItemCommandPayload, ValeCupBetCommandPayload, ValeCupBracket,
-    ValeCupNation, ValeCupPracticeCommandPayload, ValeCupQueueCommandPayload, ValeCupRole,
-    ValeCupRoleCommandPayload, ValeCupSide, WorldObjectAction, WorldObjectIdPayload,
-    ABANDON_QUEST_COMMAND_ID, ACCEPT_QUEST_COMMAND_ID, APPLY_TALENTS_COMMAND_ID,
-    ARENA_AUGMENT_COMMAND_ID, ARENA_LEAVE_COMMAND_ID, ARENA_QUEUE_COMMAND_ID, ATTACK_COMMAND_ID,
-    AUTO_LOOT_COMMAND_ID, BANK_BUY_SLOTS_COMMAND_ID, BANK_DEPOSIT_COMMAND_ID,
-    BANK_WITHDRAW_COMMAND_ID, BLOCK_ADD_COMMAND_ID, BLOCK_REMOVE_COMMAND_ID,
-    CANCEL_AURA_COMMAND_ID, CARD_FORFEIT_COMMAND_ID, CARD_PLAY_COMMAND_ID,
+    HarvestCorpseCommandPayload, HarvestNodeCommandPayload, HeroicBuyCommandPayload,
+    InventoryMovePayload, LinkedQuestAcceptancePayload, LockpickAbortCommandPayload,
+    LockpickAction, LockpickActionCommandPayload, LockpickEngageCommandPayload, MailAction,
+    MailIdCommandPayload, MailSendAttachment, MailSendCommandPayload, MarketListCommandPayload,
+    MarketSearchCommandPayload, MasterLootThreshold, PartyLootMasterCommandPayload,
+    PartyMarkerClearCommandPayload, PartyMarkerCommandPayload, PartyMoveRaidCommandPayload,
+    PetAutoTauntCommandPayload, PetAutoWaterJetCommandPayload, PetFeedCommandPayload,
+    PetModeCommandPayload, PetRenameCommandPayload, ProtocolError, ReleaseEmpoweredCommandPayload,
+    ResurrectRespondCommandPayload, SaveLoadoutCommandPayload, SelectTalentRowCommandPayload,
+    SetSpecCommandPayload, SkinCatalog, SocialNameCommandPayload, SwitchLoadoutCommandPayload,
+    TargetCommandPayload, TelemetryPayload, TownFocusAllocationEntry, TownFocusCommandPayload,
+    TradeOfferCommandPayload, TradeOfferItem, TradeRequestCommandPayload,
+    TurnInQuestCommandPayload, UnequipBagCommandPayload, UnequipItemPayload,
+    UnequipMechChromaCommandPayload, UseItemCommandPayload, ValeCupBetCommandPayload,
+    ValeCupBracket, ValeCupNation, ValeCupPracticeCommandPayload, ValeCupQueueCommandPayload,
+    ValeCupRole, ValeCupRoleCommandPayload, ValeCupSide, WeaponSkinChange, WeaponSkinType,
+    WorldObjectAction, WorldObjectIdPayload, ABANDON_QUEST_COMMAND_ID, ACCEPT_QUEST_COMMAND_ID,
+    APPLY_TALENTS_COMMAND_ID, ARENA_AUGMENT_COMMAND_ID, ARENA_LEAVE_COMMAND_ID,
+    ARENA_QUEUE_COMMAND_ID, ATTACK_COMMAND_ID, AUTO_LOOT_COMMAND_ID, BANK_BUY_SLOTS_COMMAND_ID,
+    BANK_DEPOSIT_COMMAND_ID, BANK_WITHDRAW_COMMAND_ID, BLOCK_ADD_COMMAND_ID,
+    BLOCK_REMOVE_COMMAND_ID, CANCEL_AURA_COMMAND_ID, CARD_FORFEIT_COMMAND_ID, CARD_PLAY_COMMAND_ID,
     CARD_QUEUE_JOIN_COMMAND_ID, CARD_QUEUE_LEAVE_COMMAND_ID, CAST_AT_COMMAND_ID, CAST_COMMAND_ID,
-    CAST_SLOT_COMMAND_ID, CHANGE_SKIN_COMMAND_ID, COLLECT_DELVE_CHEST_LOOT_COMMAND_ID,
-    DELETE_LOADOUT_COMMAND_ID, DELVE_INTERACT_COMMAND_ID, DISCARD_ITEM_COMMAND_ID,
-    DUEL_ACCEPT_COMMAND_ID, DUEL_DECLINE_COMMAND_ID, DUEL_REQUEST_COMMAND_ID,
-    DUNGEON_FINDER_APPLICATION_RESPONSE_COMMAND_ID, DUNGEON_FINDER_APPLY_CANCEL_COMMAND_ID,
-    DUNGEON_FINDER_APPLY_COMMAND_ID, DUNGEON_FINDER_LIST_CLOSE_COMMAND_ID,
-    DUNGEON_FINDER_LIST_CREATE_COMMAND_ID, DUNGEON_FINDER_PROPOSAL_COMMAND_ID,
-    DUNGEON_FINDER_QUEUE_COMMAND_ID, DUNGEON_FINDER_QUEUE_LEAVE_COMMAND_ID,
-    DUNGEON_FINDER_ROLES_COMMAND_ID, EQUIP_BAG_COMMAND_ID, EQUIP_ITEM_COMMAND_ID,
+    CAST_SLOT_COMMAND_ID, CHALLENGE_RESPONSE_COMMAND_ID, CHANGE_SKIN_COMMAND_ID,
+    CHANGE_WEAPON_SKIN_COMMAND_ID, CHAT_COMMAND_ID, COLLECT_DELVE_CHEST_LOOT_COMMAND_ID,
+    COMPANION_UPGRADE_COMMAND_ID, CRAFT_ITEM_COMMAND_ID, DEED_SET_TITLE_COMMAND_ID,
+    DELETE_LOADOUT_COMMAND_ID, DELVE_BUY_COMMAND_ID, DELVE_INTERACT_COMMAND_ID,
+    DISCARD_ITEM_COMMAND_ID, DUEL_ACCEPT_COMMAND_ID, DUEL_DECLINE_COMMAND_ID,
+    DUEL_REQUEST_COMMAND_ID, DUNGEON_FINDER_APPLICATION_RESPONSE_COMMAND_ID,
+    DUNGEON_FINDER_APPLY_CANCEL_COMMAND_ID, DUNGEON_FINDER_APPLY_COMMAND_ID,
+    DUNGEON_FINDER_LIST_CLOSE_COMMAND_ID, DUNGEON_FINDER_LIST_CREATE_COMMAND_ID,
+    DUNGEON_FINDER_PROPOSAL_COMMAND_ID, DUNGEON_FINDER_QUEUE_COMMAND_ID,
+    DUNGEON_FINDER_QUEUE_LEAVE_COMMAND_ID, DUNGEON_FINDER_ROLES_COMMAND_ID, EMOTE_COMMAND_ID,
+    ENTER_DELVE_COMMAND_ID, ENTER_DUNGEON_COMMAND_ID, EQUIP_BAG_COMMAND_ID, EQUIP_ITEM_COMMAND_ID,
     FRIEND_ADD_COMMAND_ID, FRIEND_REMOVE_COMMAND_ID, GUILD_CREATE_COMMAND_ID,
     GUILD_DEMOTE_COMMAND_ID, GUILD_EVENT_CREATE_COMMAND_ID, GUILD_EVENT_REMOVE_COMMAND_ID,
     GUILD_INVITE_COMMAND_ID, GUILD_KICK_COMMAND_ID, GUILD_PROMOTE_COMMAND_ID,
-    GUILD_TRANSFER_COMMAND_ID, IGNORE_ADD_COMMAND_ID, IGNORE_REMOVE_COMMAND_ID,
-    INTERACT_COMMAND_ID, LEAVE_DELVE_COMMAND_ID, LEAVE_DUNGEON_COMMAND_ID,
+    GUILD_TRANSFER_COMMAND_ID, HARVEST_CORPSE_COMMAND_ID, HARVEST_NODE_COMMAND_ID,
+    HEROIC_BUY_COMMAND_ID, IGNORE_ADD_COMMAND_ID, IGNORE_REMOVE_COMMAND_ID, INTERACT_COMMAND_ID,
+    INVENTORY_MOVE_COMMAND_ID, LEAVE_DELVE_COMMAND_ID, LEAVE_DUNGEON_COMMAND_ID,
     LINKED_QUEST_ACCEPT_COMMAND_ID, LOCKPICK_ABORT_COMMAND_ID, LOCKPICK_ACTION_COMMAND_ID,
     LOCKPICK_ENGAGE_COMMAND_ID, LOOT_COMMAND_ID, MAIL_DELETE_COMMAND_ID, MAIL_READ_COMMAND_ID,
-    MAIL_TAKE_COMMAND_ID, MARKET_COLLECT_COMMAND_ID, PARTY_ACCEPT_COMMAND_ID,
-    PARTY_CLEAR_MARKER_COMMAND_ID, PARTY_DECLINE_COMMAND_ID, PARTY_INVITE_COMMAND_ID,
-    PARTY_KICK_COMMAND_ID, PARTY_LEAVE_COMMAND_ID, PARTY_MOVE_RAID_COMMAND_ID,
-    PARTY_PROMOTE_COMMAND_ID, PARTY_RAID_COMMAND_ID, PARTY_READY_RESPOND_COMMAND_ID,
-    PARTY_SET_LOOT_MASTER_COMMAND_ID, PARTY_SET_MARKER_COMMAND_ID, PARTY_UNRAID_COMMAND_ID,
-    PET_ABANDON_COMMAND_ID, PET_ATTACK_COMMAND_ID, PET_AUTO_TAUNT_COMMAND_ID,
-    PET_AUTO_WATER_JET_COMMAND_ID, PET_FEED_COMMAND_ID, PET_HEAL_COMMAND_ID, PET_MODE_COMMAND_ID,
-    PET_RENAME_COMMAND_ID, PET_REVIVE_COMMAND_ID, PET_TAUNT_COMMAND_ID, PET_WATER_JET_COMMAND_ID,
-    PICKUP_COMMAND_ID, RELEASE_COMMAND_ID, RELEASE_EMPOWERED_COMMAND_ID, RESPEC_COMMAND_ID,
+    MAIL_SEND_COMMAND_ID, MAIL_TAKE_COMMAND_ID, MARKET_COLLECT_COMMAND_ID, MARKET_LIST_COMMAND_ID,
+    MARKET_SEARCH_COMMAND_ID, PARTY_ACCEPT_COMMAND_ID, PARTY_CLEAR_MARKER_COMMAND_ID,
+    PARTY_DECLINE_COMMAND_ID, PARTY_INVITE_COMMAND_ID, PARTY_KICK_COMMAND_ID,
+    PARTY_LEAVE_COMMAND_ID, PARTY_MOVE_RAID_COMMAND_ID, PARTY_PROMOTE_COMMAND_ID,
+    PARTY_RAID_COMMAND_ID, PARTY_READY_RESPOND_COMMAND_ID, PARTY_SET_LOOT_MASTER_COMMAND_ID,
+    PARTY_SET_MARKER_COMMAND_ID, PARTY_UNRAID_COMMAND_ID, PET_ABANDON_COMMAND_ID,
+    PET_ATTACK_COMMAND_ID, PET_AUTO_TAUNT_COMMAND_ID, PET_AUTO_WATER_JET_COMMAND_ID,
+    PET_FEED_COMMAND_ID, PET_HEAL_COMMAND_ID, PET_MODE_COMMAND_ID, PET_RENAME_COMMAND_ID,
+    PET_REVIVE_COMMAND_ID, PET_TAUNT_COMMAND_ID, PET_WATER_JET_COMMAND_ID, PICKUP_COMMAND_ID,
+    RELEASE_COMMAND_ID, RELEASE_EMPOWERED_COMMAND_ID, RESPEC_COMMAND_ID,
     RESURRECT_CORPSE_COMMAND_ID, RESURRECT_HEALER_COMMAND_ID, RESURRECT_RESPOND_COMMAND_ID,
-    SELECT_TALENT_ROW_COMMAND_ID, SELL_ALL_JUNK_COMMAND_ID, SET_SPEC_COMMAND_ID,
-    STOP_ATTACK_COMMAND_ID, SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID,
-    TARGET_NEAREST_FRIENDLY_COMMAND_ID, TRADE_ACCEPT_COMMAND_ID, TRADE_CANCEL_COMMAND_ID,
-    TRADE_CONFIRM_COMMAND_ID, TRADE_REQUEST_COMMAND_ID, TURN_IN_QUEST_COMMAND_ID,
-    UNEQUIP_BAG_COMMAND_ID, UNEQUIP_ITEM_COMMAND_ID, USE_ITEM_COMMAND_ID, VALE_CUP_BET_COMMAND_ID,
+    SAVE_LOADOUT_COMMAND_ID, SELECT_TALENT_ROW_COMMAND_ID, SELL_ALL_JUNK_COMMAND_ID,
+    SET_SPEC_COMMAND_ID, SET_TOWN_FOCUS_COMMAND_ID, STOP_ATTACK_COMMAND_ID,
+    SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID, TARGET_NEAREST_FRIENDLY_COMMAND_ID,
+    TELEMETRY_COMMAND_ID, TRADE_ACCEPT_COMMAND_ID, TRADE_CANCEL_COMMAND_ID,
+    TRADE_CONFIRM_COMMAND_ID, TRADE_OFFER_COMMAND_ID, TRADE_REQUEST_COMMAND_ID,
+    TURN_IN_QUEST_COMMAND_ID, UNEQUIP_BAG_COMMAND_ID, UNEQUIP_ITEM_COMMAND_ID,
+    UNEQUIP_MECH_CHROMA_COMMAND_ID, USE_ITEM_COMMAND_ID, VALE_CUP_BET_COMMAND_ID,
     VALE_CUP_LEAVE_COMMAND_ID, VALE_CUP_PRACTICE_COMMAND_ID, VALE_CUP_QUEUE_COMMAND_ID,
     VALE_CUP_READY_COMMAND_ID, VALE_CUP_ROLE_COMMAND_ID, WEAPON_STOW_COMMAND_ID,
 };
@@ -74,6 +91,543 @@ fn actor() -> EntityRef {
 
 fn event(device: ClientInputDevice, intent: ClientGameplayIntent) -> ClientInputEvent {
     ClientInputEvent { device, intent }
+}
+
+#[test]
+fn deed_title_intent_maps_select_and_clear() {
+    let mut mapper = ClientCommandMapper::new(actor(), 313).expect("valid actor");
+    for deed_id in [Some("prog_veteran".to_owned()), None] {
+        let command = mapper
+            .map_intent(ClientGameplayIntent::SetActiveDeedTitle {
+                deed_id: deed_id.clone(),
+            })
+            .expect("deed title command");
+        assert_eq!(command.command_id, DEED_SET_TITLE_COMMAND_ID);
+        assert_eq!(
+            DeedSetTitleCommandPayload::decode(&command.payload).expect("typed payload"),
+            DeedSetTitleCommandPayload { deed_id }
+        );
+    }
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn town_focus_intent_maps_the_source_allocation_record() {
+    let mut mapper = ClientCommandMapper::new(actor(), 315).expect("valid actor");
+    let allocation = vec![
+        TownFocusAllocationEntry {
+            component: "hide".to_owned(),
+            points: 6,
+        },
+        TownFocusAllocationEntry {
+            component: "fang".to_owned(),
+            points: 4,
+        },
+        TownFocusAllocationEntry {
+            component: "herb".to_owned(),
+            points: 0,
+        },
+    ];
+    let command = mapper
+        .map_intent(ClientGameplayIntent::SetTownFocus {
+            allocation: allocation.clone(),
+        })
+        .expect("town focus command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (SET_TOWN_FOCUS_COMMAND_ID, 315)
+    );
+    assert_eq!(
+        TownFocusCommandPayload::decode(&command.payload).expect("typed payload"),
+        TownFocusCommandPayload { allocation }
+    );
+    assert_eq!(mapper.next_sequence(), Some(316));
+}
+
+#[test]
+fn harvest_node_intent_maps_the_source_node_identity() {
+    let mut mapper = ClientCommandMapper::new(actor(), 312).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::HarvestNode {
+            node_id: "ore_eastbrook_1".to_owned(),
+        })
+        .expect("harvest node command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (HARVEST_NODE_COMMAND_ID, 312)
+    );
+    assert_eq!(
+        HarvestNodeCommandPayload::decode(&command.payload).expect("typed payload"),
+        HarvestNodeCommandPayload {
+            node_id: "ore_eastbrook_1".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(313));
+}
+
+#[test]
+fn corpse_harvest_intent_canonicalizes_source_component_selection() {
+    let mut mapper = ClientCommandMapper::new(actor(), 312).expect("valid actor");
+    let focused = mapper
+        .map_intent(ClientGameplayIntent::HarvestCorpse {
+            target_id: 99,
+            components: vec!["fang".to_owned(), "missing".to_owned()],
+        })
+        .expect("focused corpse harvest command");
+    let spread = mapper
+        .map_intent(ClientGameplayIntent::HarvestCorpse {
+            target_id: 100,
+            components: vec!["hide".to_owned(), "fang".to_owned(), "silk".to_owned()],
+        })
+        .expect("spread corpse harvest command");
+
+    assert_eq!(focused.command_id, HARVEST_CORPSE_COMMAND_ID);
+    assert_eq!(
+        HarvestCorpseCommandPayload::decode(&focused.payload).expect("typed focused payload"),
+        HarvestCorpseCommandPayload {
+            target_id: 99,
+            component_codes: vec![2, 0],
+        }
+    );
+    assert_eq!(spread.command_id, HARVEST_CORPSE_COMMAND_ID);
+    assert_eq!(
+        HarvestCorpseCommandPayload::decode(&spread.payload).expect("typed spread payload"),
+        HarvestCorpseCommandPayload {
+            target_id: 100,
+            component_codes: vec![0, 0, 0],
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(314));
+}
+
+#[test]
+fn enter_dungeon_intent_preserves_unknown_ids_for_the_authoritative_lifecycle() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::EnterDungeon {
+            dungeon_id: "unlisted_authoritative_dungeon".to_owned(),
+        })
+        .expect("enter dungeon command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (ENTER_DUNGEON_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        EnterDungeonCommandPayload::decode(&command.payload).expect("typed payload"),
+        EnterDungeonCommandPayload {
+            dungeon_id: "unlisted_authoritative_dungeon".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn craft_item_intent_maps_the_source_recipe_identity() {
+    let mut mapper = ClientCommandMapper::new(actor(), 313).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::CraftItem {
+            recipe_id: "recipe_minor_healing_potion".to_owned(),
+        })
+        .expect("craft item command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (CRAFT_ITEM_COMMAND_ID, 313)
+    );
+    assert_eq!(
+        CraftItemCommandPayload::decode(&command.payload).expect("typed payload"),
+        CraftItemCommandPayload {
+            recipe_id: "recipe_minor_healing_potion".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(314));
+}
+
+#[test]
+fn heroic_buy_intent_maps_the_source_offer_identity() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::BuyHeroicVendorItem {
+            item_id: "seal_of_the_nine_oaths".to_owned(),
+        })
+        .expect("heroic-buy command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (HEROIC_BUY_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        HeroicBuyCommandPayload::decode(&command.payload).expect("typed heroic-buy payload"),
+        HeroicBuyCommandPayload {
+            item_id: "seal_of_the_nine_oaths".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn delve_buy_intent_maps_both_source_identities() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::BuyDelveShopItem {
+            delve_id: "collapsed_reliquary".to_owned(),
+            item_id: "reliquary_legs".to_owned(),
+        })
+        .expect("Delve-buy command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (DELVE_BUY_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        DelveBuyCommandPayload::decode(&command.payload).expect("typed Delve-buy payload"),
+        DelveBuyCommandPayload {
+            delve_id: "collapsed_reliquary".to_owned(),
+            item_id: "reliquary_legs".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn challenge_response_intent_preserves_raw_strings_without_signature_policy() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::SendChallengeResponse {
+            nonce: " nonce ".to_owned(),
+            response: "42".to_owned(),
+            signature: "sig:unknown".to_owned(),
+        })
+        .expect("challenge-response command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (CHALLENGE_RESPONSE_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        ChallengeResponseCommandPayload::decode(&command.payload)
+            .expect("typed challenge-response payload"),
+        ChallengeResponseCommandPayload {
+            nonce: " nonce ".to_owned(),
+            response: "42".to_owned(),
+            signature: "sig:unknown".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn enter_delve_intent_preserves_source_identities_without_admission_policy() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::EnterDelve {
+            delve_id: "drowned_litany".to_owned(),
+            tier_id: "heroic".to_owned(),
+        })
+        .expect("enter-delve command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (ENTER_DELVE_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        EnterDelveCommandPayload::decode(&command.payload).expect("typed enter-delve payload"),
+        EnterDelveCommandPayload {
+            delve_id: "drowned_litany".to_owned(),
+            tier_id: "heroic".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn market_list_intent_preserves_source_values_without_market_policy() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::ListMarketItem {
+            item_id: " unknown reagent ".to_owned(),
+            count: 2.75,
+            price: -0.0,
+        })
+        .expect("market-list command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (MARKET_LIST_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        MarketListCommandPayload::decode(&command.payload).expect("typed market-list payload"),
+        MarketListCommandPayload {
+            item_id: " unknown reagent ".to_owned(),
+            count: 2.75,
+            price: 0.0,
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn market_search_intent_preserves_source_fields_without_normalization() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::SearchMarket {
+            search: "  Worn Blade  ".to_owned(),
+            item_type: "unknown-kind".to_owned(),
+            subtype: "?".to_owned(),
+            rarity: "legendary".to_owned(),
+            page: -2.75,
+        })
+        .expect("market-search command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (MARKET_SEARCH_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        MarketSearchCommandPayload::decode(&command.payload).expect("typed market-search payload"),
+        MarketSearchCommandPayload {
+            search: "  Worn Blade  ".to_owned(),
+            item_type: "unknown-kind".to_owned(),
+            subtype: "?".to_owned(),
+            rarity: "legendary".to_owned(),
+            page: -2.75,
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn trade_offer_intent_preserves_source_items_without_trade_policy() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::SetTradeOffer {
+            items: vec![
+                TradeOfferItem {
+                    item_id: " unknown ore ".to_owned(),
+                    count: 2.75,
+                },
+                TradeOfferItem {
+                    item_id: " unknown ore ".to_owned(),
+                    count: -1.5,
+                },
+            ],
+            copper: -10.25,
+        })
+        .expect("trade-offer command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (TRADE_OFFER_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        TradeOfferCommandPayload::decode(&command.payload).expect("typed trade-offer payload"),
+        TradeOfferCommandPayload {
+            items: vec![
+                TradeOfferItem {
+                    item_id: " unknown ore ".to_owned(),
+                    count: 2.75,
+                },
+                TradeOfferItem {
+                    item_id: " unknown ore ".to_owned(),
+                    count: -1.5,
+                },
+            ],
+            copper: -10.25,
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn companion_upgrade_intent_maps_the_source_identity() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::UpgradeDelveCompanion {
+            companion_id: "companion_tessa".to_owned(),
+        })
+        .expect("companion-upgrade command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (COMPANION_UPGRADE_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        CompanionUpgradeCommandPayload::decode(&command.payload)
+            .expect("typed companion-upgrade payload"),
+        CompanionUpgradeCommandPayload {
+            companion_id: "companion_tessa".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn unequip_mech_chroma_intent_maps_the_source_identity() {
+    let mut mapper = ClientCommandMapper::new(actor(), 315).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::UnequipMechChroma {
+            chroma_id: "vanguard_chrome".to_owned(),
+        })
+        .expect("unequip-mech-chroma command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (UNEQUIP_MECH_CHROMA_COMMAND_ID, 315)
+    );
+    assert_eq!(
+        UnequipMechChromaCommandPayload::decode(&command.payload)
+            .expect("typed unequip-mech-chroma payload"),
+        UnequipMechChromaCommandPayload {
+            chroma_id: "vanguard_chrome".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(316));
+}
+
+#[test]
+fn change_weapon_skin_intent_maps_apply_and_detach_without_rule_duplication() {
+    let mut mapper = ClientCommandMapper::new(actor(), 316).expect("valid actor");
+    let apply_change = WeaponSkinChange::Apply {
+        skin_id: "guildmark_arming_sword".to_owned(),
+    };
+    let apply = mapper
+        .map_intent(ClientGameplayIntent::ChangeWeaponSkin {
+            change: apply_change.clone(),
+        })
+        .expect("weapon-skin apply command");
+    let detach_change = WeaponSkinChange::Detach {
+        weapon_type: WeaponSkinType::Sword,
+    };
+    let detach = mapper
+        .map_intent(ClientGameplayIntent::ChangeWeaponSkin {
+            change: detach_change.clone(),
+        })
+        .expect("weapon-skin detach command");
+
+    assert_eq!(
+        (apply.command_id, apply.sequence),
+        (CHANGE_WEAPON_SKIN_COMMAND_ID, 316)
+    );
+    assert_eq!(
+        (detach.command_id, detach.sequence),
+        (CHANGE_WEAPON_SKIN_COMMAND_ID, 317)
+    );
+    assert_eq!(
+        ChangeWeaponSkinCommandPayload::decode(&apply.payload)
+            .expect("typed weapon-skin apply payload")
+            .change,
+        apply_change
+    );
+    assert_eq!(
+        ChangeWeaponSkinCommandPayload::decode(&detach.payload)
+            .expect("typed weapon-skin detach payload")
+            .change,
+        detach_change
+    );
+    assert_eq!(mapper.next_sequence(), Some(318));
+}
+
+#[test]
+fn chat_intent_preserves_text_for_authoritative_routing() {
+    let mut mapper = ClientCommandMapper::new(actor(), 314).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::Chat {
+            text: "  /READYcheck  ".to_owned(),
+        })
+        .expect("chat command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (CHAT_COMMAND_ID, 314)
+    );
+    assert_eq!(
+        ChatCommandPayload::decode(&command.payload).expect("typed chat payload"),
+        ChatCommandPayload {
+            text: "  /READYcheck  ".to_owned(),
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(315));
+}
+
+#[test]
+fn save_loadout_intent_maps_source_name_bar_and_staged_allocation() {
+    let mut mapper = ClientCommandMapper::new(actor(), 310).expect("valid actor");
+    let mut action_bar = vec![Some("charge".to_owned()), None, Some("rend".to_owned())];
+    action_bar.resize(23, None);
+    let command = mapper
+        .map_intent(ClientGameplayIntent::SaveTalentLoadout {
+            name: "R".repeat(25),
+            action_bar,
+            player_class_id: "warrior".to_owned(),
+            allocation: Some(ClientTalentAllocation {
+                spec_id: Some("arms".to_owned()),
+                row_option_ids: [
+                    Some("war_row_double_charge".to_owned()),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
+            }),
+        })
+        .expect("save loadout command");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (SAVE_LOADOUT_COMMAND_ID, 310)
+    );
+    let decoded = SaveLoadoutCommandPayload::decode(&command.payload).expect("typed payload");
+    assert_eq!(decoded.name, "R".repeat(24));
+    assert_eq!(decoded.action_bar.len(), 22);
+    assert_eq!(decoded.action_bar[0].as_deref(), Some("charge"));
+    assert_eq!(decoded.action_bar[1], None);
+    assert_eq!(decoded.action_bar[2].as_deref(), Some("rend"));
+    assert!(decoded.allocation.is_some());
+    assert_eq!(mapper.next_sequence(), Some(311));
+}
+
+#[test]
+fn inventory_move_maps_dense_index_and_manual_target_cell() {
+    let mut mapper = ClientCommandMapper::new(actor(), 950).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::MoveInventoryItem { from: 2, to: 17 })
+        .expect("inventory move");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (INVENTORY_MOVE_COMMAND_ID, 950)
+    );
+    assert_eq!(
+        InventoryMovePayload::decode(&command.payload).expect("typed inventory move payload"),
+        InventoryMovePayload { from: 2, to: 17 }
+    );
+    assert_eq!(mapper.next_sequence(), Some(951));
+}
+
+#[test]
+fn emote_intent_maps_the_closed_source_id() {
+    let mut mapper = ClientCommandMapper::new(actor(), 952).expect("valid actor");
+    let command = mapper
+        .map_intent(ClientGameplayIntent::PlayEmote {
+            emote: EmoteId::Salute,
+        })
+        .expect("emote");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (EMOTE_COMMAND_ID, 952)
+    );
+    assert_eq!(
+        EmoteCommandPayload::decode(&command.payload).expect("typed emote payload"),
+        EmoteCommandPayload {
+            emote: EmoteId::Salute,
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(953));
 }
 
 #[test]
@@ -654,6 +1208,46 @@ fn mail_intents_preserve_the_source_id_without_mail_policy() {
         ))
     ));
     assert_eq!(mapper.next_sequence(), Some(243));
+}
+
+#[test]
+fn mail_send_intent_preserves_source_values_without_local_escrow_policy() {
+    let mut mapper = ClientCommandMapper::new(actor(), 243).expect("valid actor");
+    let items = vec![
+        MailSendAttachment {
+            item_id: "wolf_fang".to_owned(),
+            count: 1.75,
+        },
+        MailSendAttachment {
+            item_id: "wolf_fang".to_owned(),
+            count: -3.0,
+        },
+    ];
+    let command = mapper
+        .map_intent(ClientGameplayIntent::SendMail {
+            to: "  Raven Receiver  ".to_owned(),
+            subject: " subject ".to_owned(),
+            body: " body ".to_owned(),
+            copper: -2.75,
+            items: items.clone(),
+        })
+        .expect("send mail");
+
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (MAIL_SEND_COMMAND_ID, 243)
+    );
+    assert_eq!(
+        MailSendCommandPayload::decode(&command.payload).expect("decode send mail"),
+        MailSendCommandPayload {
+            to: "  Raven Receiver  ".to_owned(),
+            subject: " subject ".to_owned(),
+            body: " body ".to_owned(),
+            copper: -2.75,
+            items,
+        }
+    );
+    assert_eq!(mapper.next_sequence(), Some(244));
 }
 
 #[test]
@@ -1492,6 +2086,40 @@ fn equipment_intents_map_optional_slots_and_preserve_sequence_on_rejection() {
         })
     );
     assert_eq!(mapper.next_sequence(), Some(29));
+}
+
+#[test]
+fn telemetry_intent_maps_numeric_fields_and_preserves_sequence_on_rejection() {
+    let mut mapper = ClientCommandMapper::new(actor(), 29).expect("valid actor");
+    let data = BTreeMap::from([("fps".to_owned(), 60.0), ("ping".to_owned(), 24.0)]);
+    let command = mapper
+        .map_intent(ClientGameplayIntent::ReportTelemetry {
+            kind: "render".to_owned(),
+            data: data.clone(),
+        })
+        .expect("telemetry command");
+    assert_eq!(
+        (command.command_id, command.sequence),
+        (TELEMETRY_COMMAND_ID, 29)
+    );
+    assert_eq!(
+        TelemetryPayload::decode(&command.payload).expect("typed telemetry payload"),
+        TelemetryPayload {
+            kind: "render".to_owned(),
+            data,
+        }
+    );
+
+    assert!(matches!(
+        mapper.map_intent(ClientGameplayIntent::ReportTelemetry {
+            kind: "render".to_owned(),
+            data: BTreeMap::from([("fps".to_owned(), f64::INFINITY)]),
+        }),
+        Err(ClientInputMappingError::Protocol(
+            ProtocolError::NonFinite { .. }
+        ))
+    ));
+    assert_eq!(mapper.next_sequence(), Some(30));
 }
 
 #[test]

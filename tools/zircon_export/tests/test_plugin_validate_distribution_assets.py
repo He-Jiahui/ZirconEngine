@@ -9,6 +9,7 @@ from pathlib import Path
 
 from tools.zircon_export.cli import main
 from tools.zircon_export.plugin_validate_distribution_assets import (
+    _is_plugin_relative_asset_glob,
     plugin_validate_distribution_assets,
 )
 from tools.zircon_export.tests.plugin_validate_support import (
@@ -19,6 +20,49 @@ from tools.zircon_export.tests.test_plugin_build import _write_dist_plugin_works
 
 
 class PluginValidateDistributionAssetTests(unittest.TestCase):
+    def test_distribution_asset_glob_rejects_windows_root_relative_form(self) -> None:
+        self.assertFalse(_is_plugin_relative_asset_glob(r"\outside\**"))
+
+    def test_distribution_assets_rejects_windows_drive_relative_glob(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plugin_root = Path(temp_dir) / "plugin"
+            plugin_root.mkdir()
+            diagnostics: list[str] = []
+
+            plugin_validate_distribution_assets(
+                {"assets": ["C:outside/**"]},
+                "native_dynamic_fixture",
+                diagnostics,
+                plugin_manifest_path=plugin_root / "plugin.toml",
+            )
+
+            self.assertEqual(
+                diagnostics,
+                [
+                    "plugin native_dynamic_fixture distribution.assets[0] "
+                    "must be a plugin-relative glob"
+                ],
+            )
+
+    def test_distribution_assets_terminal_recursive_glob_matches_nested_files(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plugin_root = Path(temp_dir) / "plugin"
+            shader_root = plugin_root / "assets" / "shaders"
+            shader_root.mkdir(parents=True)
+            (shader_root / "surface.wgsl").write_text("// fixture\n", encoding="utf-8")
+
+            diagnostics: list[str] = []
+            plugin_validate_distribution_assets(
+                {"assets": ["assets/**"]},
+                "native_dynamic_fixture",
+                diagnostics,
+                plugin_manifest_path=plugin_root / "plugin.toml",
+            )
+
+            self.assertEqual(diagnostics, [])
+
     def test_distribution_assets_rejects_malformed_zui_documents(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             plugin_root = Path(temp_dir) / "plugin"

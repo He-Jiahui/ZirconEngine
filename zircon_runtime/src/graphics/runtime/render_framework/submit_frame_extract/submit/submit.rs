@@ -14,20 +14,18 @@ use super::super::super::graphics_debugger_capture::{
 };
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::render_framework_state::RenderFrameworkState;
-use super::super::super::wgpu_render_framework::{
-    WgpuRenderFramework, WgpuRenderFrameworkAccess,
-};
+use super::super::super::wgpu_render_framework::{WgpuRenderFramework, WgpuRenderFrameworkAccess};
 use super::super::build_frame_submission_context::{
-    FrameSubmissionSourcePayloads, build_frame_submission_context_from_runtime_frame_extract,
+    build_frame_submission_context_from_runtime_frame_extract, FrameSubmissionSourcePayloads,
 };
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_submission;
-use super::super::update_stats::{SharedViewportProductReports, update_stats};
+use super::super::update_stats::{update_stats, SharedViewportProductReports};
 use super::super::viewport_generation_guard::{
     validate_viewport_generation, viewport_record_mut_after_generation_check,
 };
 use super::build_runtime_frame::build_runtime_frame;
-use super::camera_loop::{CameraLoopOutputPolicy, submit_camera_loop};
+use super::camera_loop::{submit_camera_loop, CameraLoopOutputPolicy};
 use super::collect_runtime_feedback::collect_runtime_feedback;
 use super::record_camera_history::record_non_viewport_camera_state_after_success;
 use super::release_previous_history::release_previous_history;
@@ -50,12 +48,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     ui: Option<UiRenderExtract>,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "submit_frame_extract");
-    framework.dispatch_submission(
-        submit_frame_extract_with_ui_on_core,
-        viewport,
-        extract,
-        ui,
-    )
+    framework.dispatch_submission(submit_frame_extract_with_ui_on_core, viewport, extract, ui)
 }
 
 fn submit_frame_extract_with_ui_on_core(
@@ -137,15 +130,31 @@ fn submit_selected_camera_frame(
         state.last_virtual_geometry_debug_snapshot =
             runtime_frame.virtual_geometry_debug_snapshot.clone();
     }
+    state
+        .renderer
+        .set_global_material_mip_bias(context.global_material_mip_bias());
+    let viewport_capture = owns_viewport_submission
+        .then(|| {
+            let generation = state.renderer.next_frame_generation();
+            state
+                .viewports
+                .get(&viewport)
+                .map(|record| record.async_capture_request(generation))
+        })
+        .flatten();
     let frame = {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
-        match state.renderer.render_frame_with_pipeline(
-            &runtime_frame,
-            context.compiled_pipeline(),
-            context.capabilities(),
-            resolved_history.current_history_handle(),
-            resolved_history.previous_history_available(),
-        ) {
+        match state
+            .renderer
+            .render_frame_with_pipeline_async_capture_task_pool(
+                &runtime_frame,
+                context.compiled_pipeline(),
+                context.capabilities(),
+                resolved_history.current_history_handle(),
+                resolved_history.previous_history_available(),
+                framework.compute_task_pool(),
+                viewport_capture,
+            ) {
             Ok(frame) => frame,
             Err(error) => {
                 let error = render_framework_backend_error(error);
@@ -204,6 +213,7 @@ fn submit_selected_camera_frame(
     );
     let record_update = record_submission(
         record,
+        viewport,
         &context,
         resolved_history.allocated_history(),
         frame,

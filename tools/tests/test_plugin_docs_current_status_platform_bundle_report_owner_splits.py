@@ -40,11 +40,6 @@ class PluginDocsCurrentStatusPlatformBundleReportOwnerTests(unittest.TestCase):
                     "PlatformBundle stage handoff report owner",
                     "Host/Pack/Delta cross-stage handoff diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_platform_bundle_stage_handoff_report_owner_split",
-                    "pipeline_report_platform_bundle_stage_handoff.py",
-                    "PlatformBundle stage handoff report owner",
-                ],
             },
             "Current export/plugin docs do not reflect PlatformBundle stage handoff report owner split",
         )
@@ -73,11 +68,6 @@ class PluginDocsCurrentStatusPlatformBundleReportOwnerTests(unittest.TestCase):
                     "pipeline_report_platform_bundle_file_evidence.py",
                     "PlatformBundle file evidence owner",
                     "manifest/path/hash/output file diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_platform_bundle_file_evidence_owner_split",
-                    "pipeline_report_platform_bundle_file_evidence.py",
-                    "PlatformBundle file evidence owner",
                 ],
             },
             "Current export/plugin docs do not reflect PlatformBundle file evidence owner split",
@@ -109,11 +99,6 @@ class PluginDocsCurrentStatusPlatformBundleReportOwnerTests(unittest.TestCase):
                     owner_file,
                     "PlatformBundle report payload owner",
                     "bundle manifest and stage report payload assembly",
-                ],
-                "active session notes": [
-                    slug,
-                    owner_file,
-                    "PlatformBundle report payload owner",
                 ],
             },
             "Current plugin docs do not reflect PlatformBundle report payload owner split",

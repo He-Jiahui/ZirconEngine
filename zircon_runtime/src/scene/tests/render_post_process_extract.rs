@@ -10,15 +10,15 @@ use crate::core::framework::render::{
     RenderFrameExtract, RenderLayerSet, RenderPostProcessEffectStackSettings,
     RenderPostProcessVolumeProfile, RenderResolvedPostProcessSettings, RenderTonemapOperator,
     RenderTonemapSettings, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
-    ViewportCameraSnapshot, VolumeShapeExtract, VolumetricFogSettings, VOLUMETRIC_FOG_COMPONENT_ID,
+    VOLUMETRIC_FOG_COMPONENT_ID, ViewportCameraSnapshot, VolumeShapeExtract, VolumetricFogSettings,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{AssetReference, ResourceLocator};
+use crate::scene::World;
 use crate::scene::components::{
     CameraComponent, ColliderComponent, ColliderShape, DirectionalLight, MeshRenderer, NodeKind,
     PostProcessSettingsComponent, PostProcessVolumeComponent,
 };
-use crate::scene::World;
 
 #[test]
 fn scene_asset_post_process_settings_feed_render_extract() {
@@ -335,10 +335,12 @@ fn local_sphere_post_process_volume_uses_camera_distance_for_full_influence() {
             blend_distance: 2.0,
         }
     );
-    assert!(extract.post_process.volumes[0]
-        .overrides
-        .iter()
-        .any(|override_entry| override_entry.component_id == "post.bloom"));
+    assert!(
+        extract.post_process.volumes[0]
+            .overrides
+            .iter()
+            .any(|override_entry| override_entry.component_id == "post.bloom")
+    );
     assert_eq!(extract.post_process.volumes[0].priority, 2.0);
     assert_near(
         resolved_post_process_settings(&extract).bloom.intensity,
@@ -519,10 +521,12 @@ fn render_volumetric_scene_local_profile_and_light_marker_feed_advanced_extract(
     assert_eq!(fog.bounds_max, Vec3::new(3.0, 5.0, 7.0));
     assert_near(fog.density, 0.1);
     assert_eq!(fog.albedo, Vec3::new(0.4, 0.6, 0.8));
-    assert!(extract.post_process.volumes[0]
-        .overrides
-        .iter()
-        .all(|entry| entry.component_id != VOLUMETRIC_FOG_COMPONENT_ID));
+    assert!(
+        extract.post_process.volumes[0]
+            .overrides
+            .iter()
+            .all(|entry| entry.component_id != VOLUMETRIC_FOG_COMPONENT_ID)
+    );
     assert_eq!(
         resolved_post_process_settings(&extract).volumetric_fog,
         VolumetricFogSettings::default()

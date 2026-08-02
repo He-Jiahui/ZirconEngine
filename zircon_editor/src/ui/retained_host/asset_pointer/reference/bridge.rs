@@ -14,11 +14,11 @@ use zircon_runtime_interface::ui::{
 
 use super::dispatch::AssetReferenceListPointerDispatch;
 use super::layout::AssetReferenceListPointerLayout;
-use super::metrics::{list_height, row_width, viewport_frame, viewport_y, ROW_GAP, ROW_HEIGHT};
-use super::target::{hovered_row_from_target, to_public_route, AssetReferenceListPointerTarget};
+use super::metrics::{ROW_GAP, ROW_HEIGHT, list_height, row_width, viewport_frame, viewport_y};
+use super::target::{AssetReferenceListPointerTarget, hovered_row_from_target, to_public_route};
 use crate::ui::retained_host::asset_pointer::asset_list_pointer_state::AssetListPointerState;
 use crate::ui::retained_host::asset_pointer::common::{
-    base_state, item_node_id, register_handled_pointer_node, ROOT_NODE_ID, VIEWPORT_NODE_ID,
+    ROOT_NODE_ID, VIEWPORT_NODE_ID, base_state, item_node_id, register_handled_pointer_node,
 };
 
 #[derive(Default)]

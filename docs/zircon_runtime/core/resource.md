@@ -1,6 +1,10 @@
 ---
 related_code:
   - zircon_runtime/src/core/resource/mod.rs
+  - zircon_runtime/src/core/resource/io/mod.rs
+  - zircon_runtime/src/core/resource/io/resource_io.rs
+  - zircon_runtime/src/core/resource/io/error.rs
+  - zircon_runtime/src/core/resource/io/atomic_file.rs
   - zircon_runtime/src/core/resource/error.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
@@ -28,6 +32,10 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 implementation_files:
+  - zircon_runtime/src/core/resource/io/mod.rs
+  - zircon_runtime/src/core/resource/io/resource_io.rs
+  - zircon_runtime/src/core/resource/io/error.rs
+  - zircon_runtime/src/core/resource/io/atomic_file.rs
   - zircon_runtime/src/core/resource/error.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
@@ -77,9 +85,15 @@ doc_type: module-detail
 
 # Runtime Core Resource
 
-Current Runtime 04 owner sync (2026-07-10): `expected_source_file_count = 22`, `expected_guard_file_count = 17`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. This current child-owner count supersedes the earlier 11-owner historical mirror; core resource state behavior is unchanged.
+Current Runtime 04 owner sync (2026-07-10): `expected_source_file_count = 25`, `expected_guard_file_count = 22`, `test_anchor_count = 28`, `behavior_test_anchor_count = 24`, `missing_behavior_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. This current child-owner count supersedes the earlier 11-owner historical mirror; core resource state behavior is unchanged.
 
 `zircon_runtime::core::resource` owns resource identity, records, runtime residency, payload storage, revision events, and the state machine used by asset facade queries. Asset, editor, and render callers should treat typed asset state as a projection over this owner rather than a second source of truth.
+
+## Shared Atomic File I/O
+
+`core::resource::io::atomic_file` is the sole concrete crash-safe replacement owner. It owns sibling staging, write and file synchronization, replacement or rollback recovery, platform-specific durability, fault injection, and staging cleanup. Asset artifacts and registry persistence, Platform preference persistence, Scene project serialization, Foundation configuration, and pipeline/meta cache writers import this owner directly.
+
+`foundation::persistence` has no compatibility module or re-export. `foundation` remains a consumer for configuration persistence; it does not own generic filesystem commit behavior. The `ResourceIo` contract and `ResourceIoError` retain their existing `core::resource` projections while their declarations live in focused `io` children. Source status is `runtime04_atomic_file_owner_hardcut_static_passed_cargo_pending`: the old runtime source path is absent, while focused behavior gates and managed package validation remain pending.
 
 ## State Ownership
 
@@ -117,7 +131,7 @@ F6 core resource registry typed errors are owned entirely by the resource domain
 
 The rename path resolves the source locator and record before mutating locator indexes, so the missing-record error path does not remove the original locator mapping as a side effect. `registry_rename_reports_missing_locator_with_resource_error` covers the missing locator branch, while `review_f6_core_resource_registry_rename_uses_resource_error` locks the source signature and documentation anchors. `CoreError` no longer contains resource-record variants, and `core` root exposes no compatibility alias. Status is `frameworks_01_m1_resource_error_owner_hardcut_static_passed_cargo_pending`; broader Runtime 02/Frameworks01 gates remain pending.
 
-The Runtime 04 structural mirror is split so resource/asset source-count ownership lives in `asset_pipeline_source_inventory.py`, resource reload and facade anchors live in `asset_pipeline_anchor_inventory.py`, audit reading/risk aggregation lives in the 328-line `asset_pipeline_boundary.py`, and Markdown rendering lives in the 117-line `asset_pipeline_markdown.py`. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 17`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
+The Runtime 04 structural mirror is split so resource/asset source-count ownership lives in `asset_pipeline_source_inventory.py`, resource reload and facade anchors live in `asset_pipeline_anchor_inventory.py`, audit reading/risk aggregation lives in the 328-line `asset_pipeline_boundary.py`, and Markdown rendering lives in the 117-line `asset_pipeline_markdown.py`. Current mirror evidence reports `expected_source_file_count = 25`, `expected_guard_file_count = 22`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 28`, `behavior_test_anchor_count = 24`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
 
 ## Live Ready Record Export
 

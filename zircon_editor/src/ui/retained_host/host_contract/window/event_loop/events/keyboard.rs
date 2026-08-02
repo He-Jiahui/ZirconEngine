@@ -1,8 +1,8 @@
 use winit::event::KeyEvent;
 use zircon_runtime_interface::ui::window::UiWindowInputPumpEvent;
 
-use super::super::platform_input::{platform_keyboard_input, platform_text_input};
 use super::super::UiHostWindowEventLoop;
+use super::super::platform_input::{platform_keyboard_input, platform_text_input};
 
 impl UiHostWindowEventLoop {
     pub(super) fn handle_keyboard_input(

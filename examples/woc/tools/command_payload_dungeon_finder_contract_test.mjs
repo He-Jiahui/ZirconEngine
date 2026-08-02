@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 const expected = [
   [150, 'df_roles', 'dungeonFinderSetRoles', 'dungeonFinderRoles', 'DUNGEON_FINDER_ROLES_COMMAND_ID', 'dungeon_finder_roles', 1, 4, 'u8_count_0_to_3+u8_finder_role', ['roles']],
   [151, 'df_queue', 'dungeonFinderQueueJoin', 'dungeonFinderQueue', 'DUNGEON_FINDER_QUEUE_COMMAND_ID', 'dungeon_finder_activities', 1, 3089, 'u8_count_0_to_16+u8_utf8_activity_id_max_64_utf16', ['activities']],
@@ -90,9 +90,9 @@ for (const intent of [
   assert.match(input, new RegExp(`\\b${intent}\\b`));
 }
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('Dungeon Finder command payload contracts are complete\n');

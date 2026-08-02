@@ -21,8 +21,9 @@ impl FontShapingFaceResolver<'_> {
         self.primary
     }
 
-    pub(crate) fn primary_covers_all(&self, codepoints: &[char]) -> bool {
-        self.database.face_covers_all(self.primary, codepoints)
+    pub(crate) fn primary_covers_text(&self, text: &str) -> bool {
+        text.chars()
+            .all(|codepoint| self.database.face_covers_codepoint(self.primary, codepoint))
     }
 
     pub(crate) fn resolve(&mut self, script: FontScript, codepoints: &[char]) -> FontFaceId {

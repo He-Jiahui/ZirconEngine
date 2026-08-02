@@ -1,5 +1,7 @@
+#[cfg(feature = "animation")]
 use std::collections::BTreeMap;
 
+#[cfg(feature = "animation")]
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
 };
@@ -13,12 +15,14 @@ use crate::core::framework::render::{
     ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
-use crate::core::resource::{
-    AnimationSkeletonMarker, MeshMarker, ResourceHandle, ResourceId, TextureMarker,
-};
+#[cfg(feature = "animation")]
+use crate::core::resource::AnimationSkeletonMarker;
+use crate::core::resource::{MeshMarker, ResourceHandle, ResourceId, TextureMarker};
+#[cfg(feature = "animation")]
+use crate::scene::components::AnimationSkeletonComponent;
 use crate::scene::components::{
-    AmbientLight, AnimationSkeletonComponent, CameraComponent, MeshRenderer, MeshRendererLodLevel,
-    Mobility, NodeKind, PostProcessVolumeComponent, Sprite2dComponent,
+    AmbientLight, CameraComponent, MeshRenderer, MeshRendererLodLevel, Mobility, NodeKind,
+    PostProcessVolumeComponent, Sprite2dComponent,
 };
 use crate::scene::{DefaultLevelManager, World};
 
@@ -26,7 +30,6 @@ use super::support::{material_handle, model_handle};
 
 mod camera_order;
 mod direct_sections;
-#[cfg(feature = "animation")]
 mod level_source_guards;
 mod lighting_postprocess;
 mod particles;
@@ -127,6 +130,7 @@ fn spawn_post_process_volume_on_layer(
     entity
 }
 
+#[cfg(feature = "animation")]
 fn test_pose(bone: &str) -> AnimationPoseOutput {
     AnimationPoseOutput {
         source: AnimationPoseSource::Clip,
@@ -160,7 +164,10 @@ fn assert_runtime_submit_tree_excludes_snapshot_adapters(root: &std::path::Path)
         assert_source_excludes(
             &path,
             production_source,
-            &["RenderFrameExtract::from_snapshot", "ViewportRenderFrame::from_snapshot"],
+            &[
+                "RenderFrameExtract::from_snapshot",
+                "ViewportRenderFrame::from_snapshot",
+            ],
             "runtime submit_frame_extract production code must consume RenderFrameExtract through ViewportRenderFrame::from_extract; snapshot adapters are limited to tests/preview/synthetic validation",
         );
     }

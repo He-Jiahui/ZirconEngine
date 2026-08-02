@@ -22,10 +22,10 @@ tests:
 
 ## 来源执行者
 
-- 来源计划: `docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md`
-- 来源执行切片: WorldDriver immutable runtime-extension generation and callback lock release
-- 修复责任计划: `docs/plans/zircon_plugins/01-plugin-architecture-core.md`
-- 交接原因: extension registry owns the registration build contract that determines whether each World receives private callback state.
+- 来源计划：`docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md`
+- 来源执行切片：WorldDriver immutable runtime-extension generation and callback lock release
+- 修复责任计划：`docs/plans/zircon_plugins/01-plugin-architecture-core.md`
+- 交接原因：extension registry owns the registration build contract that determines whether each World receives private callback state.
 
 ## 失败现象与复现证据
 

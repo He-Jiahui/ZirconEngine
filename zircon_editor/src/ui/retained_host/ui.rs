@@ -1,5 +1,8 @@
 #[path = "ui/apply_presentation.rs"]
 mod apply_presentation_impl;
+#[cfg(test)]
+#[path = "ui/asset_browser_icon_button_painter_tests.rs"]
+mod asset_browser_icon_button_painter_tests;
 #[path = "ui/component_contract_metadata.rs"]
 mod component_contract_metadata;
 mod pane_data_conversion;

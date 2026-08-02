@@ -36,6 +36,18 @@ FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS = [
     "navigation",
 ]
 
+DIST_ABI_PROJECTION_BINDINGS = (
+    "PLUGIN_ID",
+    "RUNTIME_ENTRY",
+    "EDITOR_ENTRY",
+    "REQUESTED_CAPABILITIES",
+    "RUNTIME_REGISTRATION_MANIFEST",
+    "EDITOR_REGISTRATION_MANIFEST",
+)
+DIST_ABI_PROJECTION_PATTERN = re.compile(
+    rf"\bconst\s+({'|'.join(DIST_ABI_PROJECTION_BINDINGS)})\s*:"
+)
+
 
 @dataclass(frozen=True)
 class PluginCapabilityAudit:
@@ -45,6 +57,7 @@ class PluginCapabilityAudit:
     missing_runtime_capability_exports: list[str]
     root_capability_mismatches: list[str]
     module_capability_mismatches: list[str]
+    dist_abi_projection_violations: list[str]
     lib_capability_literal_sites: list[str]
     sdk_builder_mirror_violations: list[str]
     editor_runtime_mirror_violations: list[str]
@@ -55,6 +68,7 @@ class PluginCapabilityAudit:
             *self.missing_runtime_capability_exports,
             *self.root_capability_mismatches,
             *self.module_capability_mismatches,
+            *self.dist_abi_projection_violations,
             *self.lib_capability_literal_sites,
             *self.sdk_builder_mirror_violations,
         ]
@@ -81,6 +95,12 @@ class PluginCapabilityAudit:
             "root_capability_mismatch_details": self.root_capability_mismatches,
             "module_capability_mismatches": len(self.module_capability_mismatches),
             "module_capability_mismatch_details": self.module_capability_mismatches,
+            "dist_abi_projection_violations": len(
+                self.dist_abi_projection_violations
+            ),
+            "dist_abi_projection_violation_details": (
+                self.dist_abi_projection_violations
+            ),
             "lib_capability_literal_sites": len(self.lib_capability_literal_sites),
             "lib_capability_literal_site_details": self.lib_capability_literal_sites,
             "sdk_builder_mirror_violations": len(self.sdk_builder_mirror_violations),
@@ -93,6 +113,11 @@ class PluginCapabilityAudit:
             ),
             "capability_source_mismatches": len(mismatch_details),
             "capability_source_mismatch_details": mismatch_details,
+            "m1_dist_abi_projection_gate_status": (
+                "dist-abi-projection-clean"
+                if not self.dist_abi_projection_violations
+                else "dist-abi-projection-debt-present"
+            ),
             "m4_runtime_capability_gate_status": (
                 "runtime-capability-single-source-clean"
                 if not self.runtime_capability_mismatch_details()
@@ -177,6 +202,9 @@ def audit_plugin_capability_conformance(repo_root: Path) -> PluginCapabilityAudi
         missing_runtime_capability_exports=missing_runtime_capability_exports,
         root_capability_mismatches=root_capability_mismatches,
         module_capability_mismatches=module_capability_mismatches,
+        dist_abi_projection_violations=collect_native_abi_projection_violations(
+            repo_root
+        ),
         lib_capability_literal_sites=lib_capability_literal_sites,
         sdk_builder_mirror_violations=collect_sdk_builder_mirror_violations(
             repo_root
@@ -185,6 +213,37 @@ def audit_plugin_capability_conformance(repo_root: Path) -> PluginCapabilityAudi
             repo_root
         ),
     )
+
+
+def collect_native_abi_projection_violations(repo_root: Path) -> list[str]:
+    violations: list[str] = []
+    plugin_workspace = repo_root / "zircon_plugins"
+    abi_crates = [
+        lib_path
+        for lib_path in plugin_workspace.rglob("src/lib.rs")
+        if lib_path.parent.parent.name in {"dist", "native"}
+    ]
+    for lib_path in sorted(abi_crates):
+        text = lib_path.read_text(encoding="utf-8")
+        code_mask = rust_code_mask(text)
+        bindings = {
+            match.group(1)
+            for match in DIST_ABI_PROJECTION_PATTERN.finditer(text)
+            if code_mask[match.start()]
+        }
+        if not bindings:
+            continue
+        ordered_bindings = [
+            binding
+            for binding in DIST_ABI_PROJECTION_BINDINGS
+            if binding in bindings
+        ]
+        violations.append(
+            f"{lib_path.relative_to(repo_root).as_posix()}: hand-written native ABI "
+            f"projections [{', '.join(ordered_bindings)}] must be generated from the "
+            "plugin declaration"
+        )
+    return violations
 
 
 def skip_rust_non_code(text: str, index: int) -> int | None:
@@ -330,7 +389,7 @@ def parse_capability_string_constants(capability_path: Path) -> dict[str, str]:
     for declaration in declare_plugin_bodies(text):
         code_mask = rust_code_mask(declaration)
         for capabilities in re.finditer(
-            r"\bcapabilities\s*:\s*\[(?P<body>(?:\s*[A-Z0-9_]*CAPABILITY\s*=\s*\"[^\"]+\"\s*,?)+\s*)\]\s*,\s*maturity\s*:\s*(?:core|stable|beta|experimental|externalized|stub|deprecated)\s*,",
+            r"\bcapabilities\s*:\s*\[(?P<body>(?:\s*[A-Z0-9_]*CAPABILITY\s*=\s*\"[^\"]+\"\s*=>\s*(?:runtime_registration|editor_registration|runtime_editor_registration|requested_only)\s*,?)+\s*)\]\s*,\s*maturity\s*:\s*(?:core|stable|beta|experimental|externalized|stub|deprecated)\s*,",
             declaration,
             re.DOTALL,
         ):

@@ -36,7 +36,7 @@ pub(crate) use nanite::{
     build_virtual_geometry_automatic_extract, build_virtual_geometry_automatic_extract_from_meshes,
     resolve_virtual_geometry_extract, VirtualGeometryAutomaticExtractInstance,
     VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
-    VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
+    VirtualGeometryDebugConfig,
 };
 #[allow(unused_imports)]
 pub(crate) use nanite::{

@@ -22,6 +22,8 @@ pub struct SceneRenderer {
     pub(in crate::graphics::scene::scene_renderer::core) core: SceneRendererCore,
     pub(in crate::graphics::scene::scene_renderer::core) streamer: ResourceStreamer,
     pub(in crate::graphics::scene::scene_renderer::core) target: Option<OffscreenTarget>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_capture_target:
+        Option<SceneRendererCaptureTarget>,
     pub(in crate::graphics::scene::scene_renderer::core) history_targets:
         HashMap<FrameHistoryHandle, SceneFrameHistoryTextures>,
     pub(in crate::graphics::scene::scene_renderer::core) generation: u64,
@@ -37,10 +39,20 @@ pub struct SceneRenderer {
     pub(in crate::graphics::scene::scene_renderer::core) last_prepared_sprite_queue_stats:
         PreparedSpriteQueueStats,
     pub(in crate::graphics::scene::scene_renderer::core) frame_timing_report_requested: bool,
+    pub(in crate::graphics::scene::scene_renderer::core) parallel_record_min_passes_per_bucket:
+        Option<usize>,
+    pub(in crate::graphics::scene::scene_renderer::core) hzb_indirect_args_readback_enabled: bool,
     pub(in crate::graphics::scene::scene_renderer::core) last_frame_timing_report:
         SceneRendererFrameTimingReport,
     pub(in crate::graphics::scene::scene_renderer::core) advanced_plugin_outputs:
         SceneRendererAdvancedPluginOutputs,
+}
+
+#[derive(Clone, Copy)]
+pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCaptureTarget {
+    pub(in crate::graphics::scene::scene_renderer::core) output_target:
+        crate::graphics::types::ViewportRenderOutputTarget,
+    pub(in crate::graphics::scene::scene_renderer::core) owns_final_target_output: bool,
 }
 
 /// Selects the built-in deferred-material set compiled during renderer startup.
@@ -56,6 +68,12 @@ pub enum SceneRendererDeferredLightingProfile {
     EnvironmentOnlyPbrPreview,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::graphics::scene::scene_renderer::core) enum ScenePostProcessStartupMode {
+    Full,
+    OutputTransferOnly,
+}
+
 impl SceneRendererDeferredLightingProfile {
     pub(in crate::graphics::scene::scene_renderer) const fn uses_gpu_scene(self) -> bool {
         !matches!(self, Self::EnvironmentOnlyPbrPreview)
@@ -66,18 +84,72 @@ impl SceneRendererDeferredLightingProfile {
     ) -> bool {
         !matches!(self, Self::EnvironmentOnlyPbrPreview)
     }
+
+    /// Particle, sprite and HZB resources are irrelevant to the fixed PBR viewer scene.
+    pub(in crate::graphics::scene::scene_renderer) const fn uses_auxiliary_scene_effects(
+        self,
+    ) -> bool {
+        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+    }
+
+    /// A compiled scene graph can schedule arbitrary effects, while the fixed PBR viewer
+    /// requires only the terminal HDR-to-output transfer.
+    pub(in crate::graphics::scene::scene_renderer) const fn uses_full_post_process_resources(
+        self,
+    ) -> bool {
+        self.supports_compiled_scene_graph()
+    }
+
+    /// Direct environment-preview rendering never builds a compiled scene graph.
+    pub(in crate::graphics::scene::scene_renderer::core) const fn supports_compiled_scene_graph(
+        self,
+    ) -> bool {
+        matches!(
+            self.post_process_startup_mode(),
+            ScenePostProcessStartupMode::Full
+        )
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn post_process_startup_mode(
+        self,
+    ) -> ScenePostProcessStartupMode {
+        match self {
+            Self::FullScene | Self::StandardPbrPreview => ScenePostProcessStartupMode::Full,
+            Self::EnvironmentOnlyPbrPreview => ScenePostProcessStartupMode::OutputTransferOnly,
+        }
+    }
+
+    /// The PBR viewer submits no screen-space UI extract, so it does not need font or image UI
+    /// systems during startup.
+    pub(in crate::graphics::scene::scene_renderer) const fn uses_screen_space_ui(self) -> bool {
+        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn defers_local_reflection_provider_resources(
+        self,
+    ) -> bool {
+        matches!(self, Self::EnvironmentOnlyPbrPreview)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn uses_full_shadow_atlas_resources(
+        self,
+    ) -> bool {
+        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+    }
 }
 
 /// Startup-only renderer options. The default preserves the full scene renderer.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SceneRendererStartupOptions {
     deferred_lighting_profile: SceneRendererDeferredLightingProfile,
+    allow_gpu_timing: bool,
 }
 
 impl SceneRendererStartupOptions {
     pub const fn standard_pbr_preview() -> Self {
         Self {
             deferred_lighting_profile: SceneRendererDeferredLightingProfile::StandardPbrPreview,
+            allow_gpu_timing: false,
         }
     }
 
@@ -86,7 +158,18 @@ impl SceneRendererStartupOptions {
         Self {
             deferred_lighting_profile:
                 SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+            allow_gpu_timing: false,
         }
+    }
+
+    /// Opts startup into timestamp-query resources; the default allocates none.
+    pub const fn with_gpu_timing(mut self) -> Self {
+        self.allow_gpu_timing = true;
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn allow_gpu_timing(self) -> bool {
+        self.allow_gpu_timing
     }
 
     pub const fn deferred_lighting_profile(self) -> SceneRendererDeferredLightingProfile {
@@ -282,30 +365,135 @@ impl SceneRendererCoreStartupReport {
 
 #[cfg(test)]
 mod tests {
-    use super::SceneRendererStartupOptions;
+    use super::{
+        ScenePostProcessStartupMode, SceneRendererDeferredLightingProfile,
+        SceneRendererStartupOptions,
+    };
 
     #[test]
     fn environment_only_pbr_profile_is_the_only_startup_profile_that_prewarm_base() {
         assert!(
             !SceneRendererStartupOptions::default().requires_environment_only_pbr_base_prewarm()
         );
+        assert!(!SceneRendererStartupOptions::standard_pbr_preview()
+            .requires_environment_only_pbr_base_prewarm());
+        assert!(SceneRendererStartupOptions::environment_only_pbr_preview()
+            .requires_environment_only_pbr_base_prewarm());
+    }
+
+    #[test]
+    fn environment_only_pbr_preview_omits_auxiliary_scene_effects() {
+        assert!(SceneRendererDeferredLightingProfile::FullScene.uses_auxiliary_scene_effects());
         assert!(
-            !SceneRendererStartupOptions::standard_pbr_preview()
-                .requires_environment_only_pbr_base_prewarm()
+            SceneRendererDeferredLightingProfile::StandardPbrPreview.uses_auxiliary_scene_effects()
         );
         assert!(
-            SceneRendererStartupOptions::environment_only_pbr_preview()
-                .requires_environment_only_pbr_base_prewarm()
+            !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                .uses_auxiliary_scene_effects()
         );
+        assert!(SceneRendererDeferredLightingProfile::FullScene.uses_full_post_process_resources());
+        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
+            .uses_full_post_process_resources());
+        assert!(
+            !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                .uses_full_post_process_resources()
+        );
+        assert!(SceneRendererDeferredLightingProfile::FullScene.supports_compiled_scene_graph());
+        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
+            .supports_compiled_scene_graph());
+        assert!(
+            !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                .supports_compiled_scene_graph()
+        );
+        assert!(!SceneRendererDeferredLightingProfile::FullScene
+            .defers_local_reflection_provider_resources());
+        assert!(!SceneRendererDeferredLightingProfile::StandardPbrPreview
+            .defers_local_reflection_provider_resources());
+        assert!(
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                .defers_local_reflection_provider_resources()
+        );
+        assert!(SceneRendererDeferredLightingProfile::FullScene.uses_screen_space_ui());
+        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview.uses_screen_space_ui());
+        assert!(
+            !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview.uses_screen_space_ui()
+        );
+    }
+
+    #[test]
+    fn environment_only_pbr_preview_uses_a_shadow_atlas_placeholder() {
+        assert!(SceneRendererDeferredLightingProfile::FullScene.uses_full_shadow_atlas_resources());
+        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
+            .uses_full_shadow_atlas_resources());
+        assert!(
+            !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                .uses_full_shadow_atlas_resources()
+        );
+    }
+
+    #[test]
+    fn post_process_startup_mode_preserves_full_graphs_and_selects_viewer_transfer_only() {
+        assert_eq!(
+            SceneRendererDeferredLightingProfile::FullScene.post_process_startup_mode(),
+            ScenePostProcessStartupMode::Full
+        );
+        assert_eq!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview.post_process_startup_mode(),
+            ScenePostProcessStartupMode::Full
+        );
+        assert_eq!(
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                .post_process_startup_mode(),
+            ScenePostProcessStartupMode::OutputTransferOnly
+        );
+    }
+
+    #[test]
+    fn gpu_timing_resources_require_an_explicit_startup_option() {
+        assert!(!SceneRendererStartupOptions::default().allow_gpu_timing());
+        assert!(SceneRendererStartupOptions::default()
+            .with_gpu_timing()
+            .allow_gpu_timing());
     }
 }
 
 impl SceneRenderer {
+    pub(crate) fn next_frame_generation(&self) -> u64 {
+        self.generation.wrapping_add(1)
+    }
+
+    pub(crate) fn set_global_material_mip_bias(&mut self, mip_bias: f32) {
+        self.core.global_material_mip_bias = mip_bias;
+    }
+
     pub fn request_next_frame_timing_report(&mut self) {
         self.frame_timing_report_requested = true;
     }
 
     pub fn last_frame_timing_report(&self) -> SceneRendererFrameTimingReport {
         self.last_frame_timing_report
+    }
+
+    pub(in crate::graphics) fn set_parallel_recording(
+        &mut self,
+        enabled: bool,
+        min_passes_per_bucket: usize,
+    ) {
+        self.parallel_record_min_passes_per_bucket =
+            enabled.then_some(min_passes_per_bucket.max(1));
+    }
+
+    pub(in crate::graphics) fn set_hzb_indirect_args_readback_enabled(&mut self, enabled: bool) {
+        self.hzb_indirect_args_readback_enabled = enabled;
+    }
+
+    #[cfg(test)]
+    pub(in crate::graphics) const fn hzb_indirect_args_readback_enabled(&self) -> bool {
+        self.hzb_indirect_args_readback_enabled
+    }
+
+    #[cfg(test)]
+    pub(in crate::graphics) fn parallel_record_min_passes_per_bucket(&self) -> Option<usize> {
+        self.parallel_record_min_passes_per_bucket
     }
 }

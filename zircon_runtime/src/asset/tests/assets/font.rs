@@ -5,9 +5,8 @@ use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
     AssetImportError, AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError,
-    FontAssetRenderStrategy, ImportedAsset,
+    FontAssetRenderStrategy, FontScript, ImportedAsset,
 };
-use crate::text::FontScript;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 const FONT_TOML: &str = r#"

@@ -5,11 +5,15 @@ fn runtime_15_f12_production_dead_code_current_state_is_zero_hit() {
     let runtime_15_plan = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = runtime_15_plan.clone();
+    let runtime_index = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = runtime_15_plan.clone();
+    let structure_convention = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",

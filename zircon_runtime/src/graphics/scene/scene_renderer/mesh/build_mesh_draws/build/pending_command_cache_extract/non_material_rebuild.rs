@@ -77,14 +77,12 @@ mod tests {
             crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassBuildContext::with_default_quality(
                 &mut variants,
             );
-        assert!(
-            rebuild_non_material_command(
-                &batch(MeshDrawQueuePhase::AlphaMask, true),
-                RenderPhase::Shadow,
-                &mut context,
-            )
-            .is_none()
-        );
+        assert!(rebuild_non_material_command(
+            &batch(MeshDrawQueuePhase::AlphaMask, true),
+            RenderPhase::Shadow,
+            &mut context,
+        )
+        .is_none());
     }
 
     #[test]
@@ -100,22 +98,18 @@ mod tests {
         assert!(!can_rebuild_non_material_command_phase(
             RenderPhase::Opaque3d
         ));
-        assert!(
-            rebuild_non_material_command(
-                &batch(MeshDrawQueuePhase::Opaque, true),
-                RenderPhase::Prepass,
-                &mut context,
-            )
-            .is_none()
-        );
-        assert!(
-            rebuild_non_material_command(
-                &batch(MeshDrawQueuePhase::Opaque, true),
-                RenderPhase::Opaque3d,
-                &mut context,
-            )
-            .is_none()
-        );
+        assert!(rebuild_non_material_command(
+            &batch(MeshDrawQueuePhase::Opaque, true),
+            RenderPhase::Prepass,
+            &mut context,
+        )
+        .is_none());
+        assert!(rebuild_non_material_command(
+            &batch(MeshDrawQueuePhase::Opaque, true),
+            RenderPhase::Opaque3d,
+            &mut context,
+        )
+        .is_none());
     }
 
     fn batch(phase: MeshDrawQueuePhase, casts_shadow: bool) -> MeshBatchRef {
@@ -133,7 +127,7 @@ mod tests {
             MeshGeometryHandle::test(1),
             MeshDrawArgs::direct_indexed(0, 3),
         )
-        .with_cache_identity(7, 1)
+        .with_cache_identity(7, (7 << 16) | 1, 1)
         .with_casts_shadow(casts_shadow)
         .with_gpu_scene_instance_span(4, 2)
     }

@@ -8,7 +8,7 @@ mod virtual_geometry_render_frame;
 
 pub(crate) use gpu_readback::{
     VirtualGeometryGpuPendingReadback, VirtualGeometryGpuReadback,
-    VirtualGeometryGpuReadbackCompletionParts,
+    VirtualGeometryGpuReadbackCompletionParts, VirtualGeometryGpuReadbackFuture,
 };
 pub(crate) use gpu_resources::VirtualGeometryGpuResources;
 pub(crate) use root_output_sources::runtime_prepare_renderer_outputs;

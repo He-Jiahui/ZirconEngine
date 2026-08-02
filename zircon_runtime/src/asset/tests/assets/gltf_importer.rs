@@ -11,9 +11,9 @@ use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
 use crate::asset::{
     AssetImportOutcome, AssetImporter, AssetImporterCapabilityStatus, AssetUri, DataAssetFormat,
-    ImportedAsset, ImportedAssetEntry, MaterialAsset, MeshAttributeValues, ModelPrimitiveAsset,
-    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
-    MESH_ATTRIBUTE_UV1,
+    ImportedAsset, ImportedAssetEntry, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1, MaterialAsset,
+    MeshAttributeValues, ModelPrimitiveAsset,
 };
 use crate::core::framework::animation::{AnimationChannelValueAsset, AnimationInterpolationAsset};
 
@@ -25,6 +25,16 @@ mod multi_primitive;
 mod multi_scene;
 mod vertex_channels;
 mod woc_required_extensions;
+
+fn virtual_geometry_import_settings() -> toml::Table {
+    toml::from_str(
+        r#"
+            [virtual_geometry]
+            enabled = true
+        "#,
+    )
+    .unwrap()
+}
 
 fn entry_for_label<'a>(
     outcome: &'a AssetImportOutcome,

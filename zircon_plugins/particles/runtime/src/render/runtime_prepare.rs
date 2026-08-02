@@ -1,17 +1,18 @@
-use std::sync::Arc;
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::{
     RenderParticleGpuFrameExtract, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
 };
 use zircon_runtime::graphics::{
-    GraphicsError, RuntimePrepareCollector, RuntimePrepareCollectorContext,
+    GraphicsError, RuntimeGpuReadback, RuntimePrepareCollector, RuntimePrepareCollectorContext,
     RuntimePrepareCollectorRegistration,
 };
 
 use crate::ParticlesManager;
 
 use super::gpu::{
-    ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeOwnerHandle,
+    ParticleGpuCounterReadback, ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeOwnerHandle,
     PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS,
 };
 
@@ -52,6 +53,7 @@ pub fn particle_runtime_prepare_collector_registration_with_manager_and_owner(
 struct ParticleRuntimePrepareCollector {
     manager: ParticlesManager,
     runtime_owner: ParticleGpuRuntimeOwnerHandle,
+    pending_readbacks: Mutex<VecDeque<ParticleGpuSharedReadback>>,
 }
 
 impl ParticleRuntimePrepareCollector {
@@ -59,6 +61,7 @@ impl ParticleRuntimePrepareCollector {
         Self {
             manager,
             runtime_owner,
+            pending_readbacks: Mutex::new(VecDeque::new()),
         }
     }
 }
@@ -68,7 +71,12 @@ impl RuntimePrepareCollector for ParticleRuntimePrepareCollector {
         &self,
         context: &mut RuntimePrepareCollectorContext<'_>,
     ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
-        collect_real_particle_gpu_runtime_prepare(context, &self.manager, &self.runtime_owner)
+        collect_real_particle_gpu_runtime_prepare(
+            context,
+            &self.manager,
+            &self.runtime_owner,
+            &self.pending_readbacks,
+        )
     }
 }
 
@@ -97,12 +105,18 @@ fn collect_real_particle_gpu_runtime_prepare(
     context: &mut RuntimePrepareCollectorContext<'_>,
     manager: &ParticlesManager,
     runtime_owner: &ParticleGpuRuntimeOwnerHandle,
+    pending_readbacks: &Mutex<VecDeque<ParticleGpuSharedReadback>>,
 ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
     let instances = manager.gpu_runtime_instances();
     if instances.is_empty() {
+        pending_readbacks
+            .lock()
+            .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?
+            .clear();
         return particle_runtime_prepare_collector(context);
     }
 
+    let completed_outputs = take_completed_particle_readback(pending_readbacks)?;
     let mut owner = runtime_owner
         .lock()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;
@@ -113,15 +127,115 @@ fn collect_real_particle_gpu_runtime_prepare(
         return Ok(RenderPluginRendererOutputs::default());
     };
 
+    let fallback_outputs = frame.outputs;
     let bindings = owner
         .active_bindings()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+    enqueue_particle_readback(
+        context,
+        &bindings,
+        fallback_outputs.per_emitter_spawned.len() as u32,
+        pending_readbacks,
+    )?;
     register_real_particle_external_buffers(context, bindings);
 
     Ok(RenderPluginRendererOutputs {
-        particles: frame.outputs,
+        particles: completed_outputs.unwrap_or(fallback_outputs),
         ..RenderPluginRendererOutputs::default()
     })
+}
+
+struct ParticleGpuSharedReadback {
+    emitter_count: u32,
+    counters: RuntimeGpuReadback,
+    indirect_draw_args: RuntimeGpuReadback,
+}
+
+impl ParticleGpuSharedReadback {
+    fn is_ready(&self) -> bool {
+        self.counters.is_ready() && self.indirect_draw_args.is_ready()
+    }
+
+    fn collect_ready(self) -> Result<RenderParticleGpuReadbackOutputs, GraphicsError> {
+        let counter_bytes = self
+            .counters
+            .try_take()
+            .expect("ready particle counter readback remains available")?;
+        let indirect_bytes = self
+            .indirect_draw_args
+            .try_take()
+            .expect("ready particle indirect readback remains available")?;
+        let counters = bytes_as_u32s(&counter_bytes)?;
+        let indirect = bytes_as_u32s(&indirect_bytes)?;
+        let indirect_draw_args: [u32; 4] = indirect.try_into().map_err(|words: Vec<u32>| {
+            GraphicsError::BufferMap(format!(
+                "particle indirect readback returned {} words instead of four",
+                words.len()
+            ))
+        })?;
+        let counters = ParticleGpuCounterReadback::from_words(&counters, self.emitter_count)
+            .map_err(|error| GraphicsError::BufferMap(error.to_string()))?;
+        Ok(counters.to_render_outputs(indirect_draw_args))
+    }
+}
+
+fn enqueue_particle_readback(
+    context: &mut RuntimePrepareCollectorContext<'_>,
+    bindings: &ParticleGpuRuntimeBufferBindings<'_>,
+    emitter_count: u32,
+    pending_readbacks: &Mutex<VecDeque<ParticleGpuSharedReadback>>,
+) -> Result<(), GraphicsError> {
+    let counter_words = PARTICLE_GPU_COUNTER_WORDS_BASE + emitter_count;
+    let counters = context.request_gpu_readback(
+        "particles.counters",
+        bindings.counters,
+        0..u64::from(counter_words) * std::mem::size_of::<u32>() as u64,
+    )?;
+    let indirect_draw_args = context.request_gpu_readback(
+        "particles.indirect-draw-args",
+        bindings.indirect_draw_args,
+        0..u64::from(PARTICLE_GPU_INDIRECT_DRAW_WORDS) * std::mem::size_of::<u32>() as u64,
+    )?;
+    pending_readbacks
+        .lock()
+        .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?
+        .push_back(ParticleGpuSharedReadback {
+            emitter_count,
+            counters,
+            indirect_draw_args,
+        });
+    Ok(())
+}
+
+fn take_completed_particle_readback(
+    pending_readbacks: &Mutex<VecDeque<ParticleGpuSharedReadback>>,
+) -> Result<Option<RenderParticleGpuReadbackOutputs>, GraphicsError> {
+    let mut pending_readbacks = pending_readbacks
+        .lock()
+        .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?;
+    if !pending_readbacks
+        .front()
+        .is_some_and(ParticleGpuSharedReadback::is_ready)
+    {
+        return Ok(None);
+    }
+    pending_readbacks
+        .pop_front()
+        .map(ParticleGpuSharedReadback::collect_ready)
+        .transpose()
+}
+
+fn bytes_as_u32s(bytes: &[u8]) -> Result<Vec<u32>, GraphicsError> {
+    if bytes.len() % std::mem::size_of::<u32>() != 0 {
+        return Err(GraphicsError::BufferMap(format!(
+            "particle readback returned an unaligned {} byte payload",
+            bytes.len()
+        )));
+    }
+    Ok(bytes
+        .chunks_exact(4)
+        .map(|word| u32::from_le_bytes([word[0], word[1], word[2], word[3]]))
+        .collect())
 }
 
 fn register_real_particle_external_buffers(

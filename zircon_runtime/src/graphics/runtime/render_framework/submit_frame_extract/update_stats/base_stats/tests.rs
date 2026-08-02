@@ -182,18 +182,35 @@ fn update_hzb_occlusion_stats_records_readback_and_overrides_visibility_occlusio
     };
     let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 2, 1, true)
         .with_readback_stats(HzbOcclusionCullReadbackStats::new(6, 42, 2, 18))
+        .with_readback_stats_source_frame_index(12)
+        .with_readback_queue_diagnostics(3, 1, Some(4))
         .with_indirect_args_readback(
             crate::graphics::visibility::HzbOcclusionIndirectArgsReadbackSummary::new(6, 4, 2, 24),
-        );
+        )
+        .with_indirect_args_readback_source_frame_index(12);
 
     update_hzb_occlusion_stats(&mut stats, Some(report));
 
     assert!(stats.last_hzb_occlusion_readback_available);
+    assert_eq!(
+        stats.last_hzb_occlusion_readback_source_frame_index,
+        Some(12)
+    );
+    assert_eq!(stats.last_hzb_occlusion_readback_pending_count, 3);
+    assert_eq!(stats.last_hzb_occlusion_readback_dropped_count, 1);
+    assert_eq!(
+        stats.last_hzb_occlusion_readback_oldest_pending_age_frames,
+        Some(4)
+    );
     assert_eq!(stats.last_hzb_occlusion_tested_arg_count, 6);
     assert_eq!(stats.last_hzb_occlusion_tested_instance_count, 42);
     assert_eq!(stats.last_hzb_occlusion_culled_arg_count, 2);
     assert_eq!(stats.last_hzb_occlusion_culled_instance_count, 18);
     assert!(stats.last_hzb_occlusion_indirect_args_readback_available);
+    assert_eq!(
+        stats.last_hzb_occlusion_indirect_args_readback_source_frame_index,
+        Some(12)
+    );
     assert_eq!(stats.last_hzb_occlusion_readback_arg_count, 6);
     assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 4);
     assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 2);
@@ -211,11 +228,16 @@ fn update_hzb_occlusion_stats_resets_when_no_report() {
         last_hzb_occlusion_dispatched_phase_count: 1,
         last_hzb_occlusion_history_available: true,
         last_hzb_occlusion_readback_available: true,
+        last_hzb_occlusion_readback_source_frame_index: Some(6),
+        last_hzb_occlusion_readback_pending_count: 3,
+        last_hzb_occlusion_readback_dropped_count: 1,
+        last_hzb_occlusion_readback_oldest_pending_age_frames: Some(4),
         last_hzb_occlusion_tested_arg_count: 6,
         last_hzb_occlusion_tested_instance_count: 42,
         last_hzb_occlusion_culled_arg_count: 2,
         last_hzb_occlusion_culled_instance_count: 18,
         last_hzb_occlusion_indirect_args_readback_available: true,
+        last_hzb_occlusion_indirect_args_readback_source_frame_index: Some(6),
         last_hzb_occlusion_readback_arg_count: 6,
         last_hzb_occlusion_compacted_draw_count: 4,
         last_hzb_occlusion_zero_instance_arg_count: 2,
@@ -232,11 +254,22 @@ fn update_hzb_occlusion_stats_resets_when_no_report() {
     assert_eq!(stats.last_hzb_occlusion_dispatched_phase_count, 0);
     assert!(!stats.last_hzb_occlusion_history_available);
     assert!(!stats.last_hzb_occlusion_readback_available);
+    assert_eq!(stats.last_hzb_occlusion_readback_source_frame_index, None);
+    assert_eq!(stats.last_hzb_occlusion_readback_pending_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_readback_dropped_count, 0);
+    assert_eq!(
+        stats.last_hzb_occlusion_readback_oldest_pending_age_frames,
+        None
+    );
     assert_eq!(stats.last_hzb_occlusion_tested_arg_count, 0);
     assert_eq!(stats.last_hzb_occlusion_tested_instance_count, 0);
     assert_eq!(stats.last_hzb_occlusion_culled_arg_count, 0);
     assert_eq!(stats.last_hzb_occlusion_culled_instance_count, 0);
     assert!(!stats.last_hzb_occlusion_indirect_args_readback_available);
+    assert_eq!(
+        stats.last_hzb_occlusion_indirect_args_readback_source_frame_index,
+        None
+    );
     assert_eq!(stats.last_hzb_occlusion_readback_arg_count, 0);
     assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 0);
     assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 0);
@@ -246,7 +279,7 @@ fn update_hzb_occlusion_stats_resets_when_no_report() {
 #[test]
 fn effect_stack_resource_status_detects_graph_bound_ssr_normal() {
     let graph = effect_stack_graph(vec![
-        PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string(),
+        PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()
     ]);
 
     assert!(

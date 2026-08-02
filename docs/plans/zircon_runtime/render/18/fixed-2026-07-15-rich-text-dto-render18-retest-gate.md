@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/render/18
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/ui/text/adapter.rs
+  - zircon_runtime/src/graphics/text_transport/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime_interface/src/ui/surface
 tests:

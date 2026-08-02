@@ -55,9 +55,10 @@ default_height = 32.0
 compact_height = 30.0
 dense_height = 28.0
 small_radius = 4.0
-control_radius = 5.0
+control_radius = 4.0
 large_radius = 8.0
 panel_radius = 8.0
+pill_radius = 999.0
 border_width = 1.0
 
 [density]
@@ -68,6 +69,8 @@ gap_large = 12.0
 drawer_padding = 12.0
 panel_padding = 16.0
 activity_rail_width = 72.0
+toolbar_action_width = 76.0
+toolbar_wide_action_width = 96.0
 row_height = 28.0
 left_drawer_width = 332.0
 right_drawer_width = 404.0
@@ -162,6 +165,7 @@ small_radius = "editor.control.radius.small"
 control_radius = "editor.control.radius.control"
 large_radius = "editor.control.radius.large"
 panel_radius = "editor.control.radius.panel"
+pill_radius = "editor.control.radius.pill"
 border_width = "editor.control.border_width"
 
 [names.density]
@@ -172,6 +176,8 @@ gap_large = "editor.density.gap.large"
 drawer_padding = "editor.density.drawer_padding"
 panel_padding = "editor.density.panel_padding"
 activity_rail_width = "editor.density.activity_rail_width"
+toolbar_action_width = "editor.density.toolbar_action_width"
+toolbar_wide_action_width = "editor.density.toolbar_wide_action_width"
 row_height = "editor.density.row_height"
 left_drawer_width = "editor.density.left_drawer_width"
 right_drawer_width = "editor.density.right_drawer_width"

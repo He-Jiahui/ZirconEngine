@@ -4,16 +4,27 @@ use glyphon::TextBounds;
 use crate::rhi::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImageUvRect,
     UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfaceRect,
+    UiSurfaceResolvedCommandKind,
 };
 
 mod clipping;
 
 use clipping::clip_solid_triangles_to_rect;
 
+pub(super) const UI_QUAD_VERTEX_COUNT: u32 = 6;
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub(super) struct SolidVertex {
     pub(super) position: [f32; 2],
+    pub(super) color: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+pub(super) struct SolidInstance {
+    pub(super) min_position: [f32; 2],
+    pub(super) max_position: [f32; 2],
     pub(super) color: [f32; 4],
 }
 
@@ -35,7 +46,31 @@ pub(super) struct DrawItemOrder {
 pub(super) struct SolidItem {
     pub(super) order: DrawItemOrder,
     pub(super) rect: UiSurfaceRect,
-    pub(super) vertices: Vec<SolidVertex>,
+    pub(super) geometry: SolidGeometry,
+}
+
+#[derive(Clone, Debug)]
+pub(super) enum SolidGeometry {
+    Vertices(Vec<SolidVertex>),
+    Instance(SolidInstance),
+}
+
+impl SolidItem {
+    #[cfg(test)]
+    pub(super) fn vertices(&self) -> &[SolidVertex] {
+        match &self.geometry {
+            SolidGeometry::Vertices(vertices) => vertices,
+            SolidGeometry::Instance(_) => &[],
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn instance(&self) -> Option<SolidInstance> {
+        match self.geometry {
+            SolidGeometry::Instance(instance) => Some(instance),
+            SolidGeometry::Vertices(_) => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -85,7 +120,7 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
 pub(super) fn draw_items_with_stats(
     draw_list: &UiSurfaceDrawList,
 ) -> (Vec<DrawItem>, UiSurfacePresentStats) {
-    let mut stats = UiSurfacePresentStatsAccumulator::new(draw_list.surface_size);
+    let mut stats = UiSurfacePresentStatsAccumulator::new(draw_list);
     let items = draw_items_with_damage(draw_list, draw_list.damage, Some(&mut stats), None);
     (items, stats.finish())
 }
@@ -97,10 +132,10 @@ pub(super) fn full_projection_draw_items_with_stats(
     UiSurfacePresentStats,
     Option<UiSurfacePresentStats>,
 ) {
-    let mut full_stats = UiSurfacePresentStatsAccumulator::new(draw_list.surface_size);
+    let mut full_stats = UiSurfacePresentStatsAccumulator::new(draw_list);
     let mut damage_stats = draw_list
         .damage
-        .map(|_| UiSurfacePresentStatsAccumulator::new(draw_list.surface_size));
+        .map(|_| UiSurfacePresentStatsAccumulator::new(draw_list));
     let damage_projection = draw_list.damage.zip(damage_stats.as_mut());
     let items = draw_items_with_damage(draw_list, None, Some(&mut full_stats), damage_projection);
     (
@@ -120,16 +155,19 @@ fn draw_items_with_damage<'a>(
     for (command_index, command) in ordered_commands(draw_list) {
         if let Some(stats) = stats.as_deref_mut() {
             if draw_list.command_visible_with_damage(command, damage) {
-                stats.record_visible(command);
+                stats.record_visible(command, draw_list);
             }
         }
         if let Some((secondary_damage, secondary_stats)) = secondary_stats.as_mut() {
             if draw_list.command_visible_with_damage(command, Some(*secondary_damage)) {
-                secondary_stats.record_visible(command);
+                secondary_stats.record_visible(command, draw_list);
             }
         }
-        match &command.kind {
-            UiSurfaceCommandKind::Quad {
+        let Some(kind) = draw_list.resolved_kind(command) else {
+            continue;
+        };
+        match kind {
+            UiSurfaceResolvedCommandKind::Quad {
                 color,
                 corner_radius,
             } => {
@@ -141,19 +179,19 @@ fn draw_items_with_damage<'a>(
                         sub_index: 0,
                     },
                     command.frame,
-                    *color,
-                    *corner_radius,
+                    color,
+                    corner_radius,
                     command,
                     draw_list,
                     damage,
                 );
             }
-            UiSurfaceCommandKind::Border {
+            UiSurfaceResolvedCommandKind::Border {
                 color,
                 width,
                 corner_radius,
             } => {
-                if *corner_radius > 0.0 {
+                if corner_radius > 0.0 {
                     push_rounded_border_item(
                         &mut items,
                         DrawItemOrder {
@@ -161,16 +199,16 @@ fn draw_items_with_damage<'a>(
                             command_index,
                             sub_index: 0,
                         },
-                        *color,
-                        *width,
-                        *corner_radius,
+                        color,
+                        width,
+                        corner_radius,
                         command,
                         draw_list,
                         damage,
                     );
                 } else {
                     for (sub_index, rect) in
-                        border_rects(command.frame, *width).into_iter().enumerate()
+                        border_rects(command.frame, width).into_iter().enumerate()
                     {
                         push_solid_item(
                             &mut items,
@@ -180,7 +218,7 @@ fn draw_items_with_damage<'a>(
                                 sub_index,
                             },
                             rect,
-                            *color,
+                            color,
                             0.0,
                             command,
                             draw_list,
@@ -189,7 +227,7 @@ fn draw_items_with_damage<'a>(
                     }
                 }
             }
-            UiSurfaceCommandKind::Image { payload } => {
+            UiSurfaceResolvedCommandKind::Image { payload } => {
                 let Some(rect) = primitive_effective_rect(
                     command,
                     command.frame,
@@ -221,7 +259,7 @@ fn draw_items_with_damage<'a>(
                     ),
                 }));
             }
-            UiSurfaceCommandKind::Text { .. } => {
+            UiSurfaceResolvedCommandKind::Text { .. } => {
                 let Some(rect) =
                     effective_rect(command, command.frame, draw_list.surface_size, damage)
                 else {
@@ -237,7 +275,7 @@ fn draw_items_with_damage<'a>(
                     command_index,
                 }));
             }
-            _ => {}
+            UiSurfaceResolvedCommandKind::Clip => {}
         }
     }
     items
@@ -265,20 +303,21 @@ fn push_solid_item(
         return;
     };
     let rect = effective.rect;
-    let vertices = if corner_radius.is_finite() && corner_radius > 0.0 {
+    let geometry = if corner_radius.is_finite() && corner_radius > 0.0 {
         let vertices = solid_vertices(frame, color, draw_list.surface_size, corner_radius);
-        if effective.clipped {
+        let vertices = if effective.clipped {
             clip_solid_triangles_to_rect(vertices, rect, draw_list.surface_size)
         } else {
             vertices
-        }
+        };
+        SolidGeometry::Vertices(vertices)
     } else {
-        solid_vertices(rect, color, draw_list.surface_size, corner_radius)
+        SolidGeometry::Instance(solid_instance(rect, color, draw_list.surface_size))
     };
     items.push(DrawItem::Solid(SolidItem {
         order,
         rect,
-        vertices,
+        geometry,
     }));
 }
 
@@ -313,8 +352,17 @@ fn push_rounded_border_item(
     items.push(DrawItem::Solid(SolidItem {
         order,
         rect,
-        vertices,
+        geometry: SolidGeometry::Vertices(vertices),
     }));
+}
+
+fn solid_instance(frame: UiSurfaceRect, color: [u8; 4], size: (u32, u32)) -> SolidInstance {
+    let positions = quad_positions(frame, size);
+    SolidInstance {
+        min_position: positions[2],
+        max_position: positions[1],
+        color: normalized_color(color),
+    }
 }
 
 fn solid_vertices(

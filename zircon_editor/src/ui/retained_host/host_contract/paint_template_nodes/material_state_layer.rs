@@ -8,7 +8,7 @@ use ripple::{push_ripple_commands, ripple_is_visible};
 use state::{state_layer_color, state_layer_opacity};
 
 #[cfg(test)]
-use ripple::{ripple_diameter, ripple_rect, RIPPLE_DIAMETER_EXPANSION};
+use ripple::{RIPPLE_DIAMETER_EXPANSION, ripple_diameter, ripple_rect};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_state_layer_commands(
     commands: &mut Vec<HostPaintCommand>,

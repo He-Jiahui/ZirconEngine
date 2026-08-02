@@ -234,8 +234,8 @@ mod tests {
     use super::super::profile::RuntimeDynamicSessionProfile;
     use super::*;
     use crate::scene::{
-        RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS, RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-        RuntimeEventMirrorRegistration,
+        RuntimeEventMirrorRegistration, RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS,
+        RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
     };
 
     const SEQUENCE_WINDOW_EVENT_ID: &str = "dynamic_api.plugin_event.sequence_window";

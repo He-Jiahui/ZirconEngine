@@ -1,4 +1,4 @@
-use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
+use super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
 
 const COLLISION_PROXY_TAB_CONTROLS: &[&str] = &[
     "WorkbenchExtensionCollisionProxyProxyTab",

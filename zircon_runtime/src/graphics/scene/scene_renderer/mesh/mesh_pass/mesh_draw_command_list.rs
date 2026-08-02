@@ -8,7 +8,10 @@ mod builder;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use builder::{build_mesh_pass_command_buffers, build_mesh_pass_command_buffers_cached};
+pub(crate) use builder::{
+    build_mesh_pass_command_buffers, build_mesh_pass_command_buffers_cached,
+    build_mesh_pass_command_buffers_cached_parallel,
+};
 
 #[derive(Clone, Default)]
 pub(crate) struct MeshDrawCommandList {

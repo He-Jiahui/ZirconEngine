@@ -373,6 +373,15 @@ fn host_reflection_docs_include_macro_generated_builtin_math_module() {
     assert!(markdown.contains("#### Type `ColorRgba`"));
     assert!(markdown.contains("#### Function `vec3_length`"));
     assert!(markdown.contains("#### Function `vec3_dot`"));
+    for name in [
+        "abs", "atan2", "ceil", "cos", "exp", "floor", "sin", "sqrt", "pow",
+    ] {
+        assert!(
+            markdown.contains(&format!("#### Function `{name}`")),
+            "generated math reflection must publish {name}"
+        );
+    }
+    assert!(markdown.contains("Deterministic scalar ABI backed by libm 0.2.16"));
     assert!(markdown.contains("- Return: `float` (`float`)"));
     assert!(markdown.contains("- `x`: `float` (`float`)"));
 }

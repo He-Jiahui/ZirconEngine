@@ -61,12 +61,16 @@ Runtime06 的审计清单仍冻结在 native namespace 68 个导出和 7 个 App
 - M3 已重新打开：V2 byte DTO 物理类型与 V3 alias 必须删除，不得以 compatibility、冻结或长期别名名义保留。
 - 第二审查修复后的当前源证据：focused inventory 3/3、Runtime06 standalone boundary 1/1、完整 runtime tech-stack boundary 8/8，Python py_compile 通过；这些仍是静态证据，不替代 Rust/Cargo hard-cut 验收。
 
-## 尚未完成与后续动作
+## 架构修复验收
 
 - `zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/mirror_docs.rs` 仍钉住 source 14、namespace 68、groups 5、App 7 与旧日期；必须在 Runtime source quiet window 内原子更新为 2026-07-31 与 `17/74/6/8`，并通过 managed Rust 1.94.1 focused mirror gate。
 - M3 必须把 V2 byte-slice/buffer/callback-status 实体迁成唯一当前 V3 物理类型，删除 V2 public names 与 V3 aliases，并删除旧 `NativeHostApiV3RegistrationScope`；当前 `NativePluginHostFunctionTableV3` 仍是 entry ABI 的合法 callback table，不得误删。
 - M2/M3 新增的 world-runtime-extension 并发门和 native callback panic/global-hook 门仍需 managed current-source 证据。
 - 在上述 Runtime Rust 切片、二次审查和 managed gate 完成前，本 failure 保持 `open`，Runtime06 保持 `in_progress`。
+
+## 修复结果与回传
+
+Open state: `static_inventory_repair_green_runtime_rust_hard_cut_and_managed_acceptance_pending`; no fixed return or Runtime06 completion is claimed.
 
 ## 禁止临时方案
 

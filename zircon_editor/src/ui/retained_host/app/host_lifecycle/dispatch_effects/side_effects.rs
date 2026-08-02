@@ -4,6 +4,8 @@ use crate::ui::retained_host::workbench_notifications::{
     workbench_import_model_completed_notification, workbench_import_model_failed_notification,
 };
 
+use super::super::super::scene_picker_session::ScenePickerMode;
+
 impl RetainedEditorHost {
     pub(super) fn apply_dispatch_side_effects(&mut self, effects: &UiHostEventEffects) {
         if !effects.workbench_notifications.is_empty() {
@@ -38,6 +40,12 @@ impl RetainedEditorHost {
         }
         if effects.open_command_palette_requested {
             self.open_workbench_command_palette();
+        }
+        if effects.open_scene_picker_requested {
+            self.open_workbench_scene_picker(ScenePickerMode::Open);
+        }
+        if effects.create_scene_picker_requested {
+            self.open_workbench_scene_picker(ScenePickerMode::Create);
         }
         if effects.present_welcome_surface {
             if let Err(error) = self.present_welcome_surface(

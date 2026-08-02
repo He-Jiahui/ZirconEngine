@@ -2,7 +2,15 @@ use std::any::type_name;
 use std::fmt;
 use std::marker::PhantomData;
 
-pub trait Message: 'static + Send + Sync {}
+pub trait Message: 'static + Send + Sync {
+    /// Returns the retention budget charged by this message instance.
+    ///
+    /// Messages that own heap data should override the inline-size default so
+    /// the queue's byte ceiling remains an actual producer-visible limit.
+    fn retained_byte_size(&self) -> usize {
+        std::mem::size_of_val(self)
+    }
+}
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MessageId<T>

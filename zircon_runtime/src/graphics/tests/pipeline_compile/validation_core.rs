@@ -279,13 +279,11 @@ fn renderer_feature_asset_quality_gate_controls_compiled_passes() {
         .quality_gate = Some(BuiltinRenderFeature::RayTracing);
 
     let without_gate = pipeline.compile(&test_extract()).unwrap();
-    assert!(
-        !without_gate
-            .graph()
-            .passes()
-            .iter()
-            .any(|pass| pass.name == "bloom-extract")
-    );
+    assert!(!without_gate
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "bloom-extract"));
 
     let with_gate = pipeline
         .compile_with_options(
@@ -294,13 +292,11 @@ fn renderer_feature_asset_quality_gate_controls_compiled_passes() {
                 .with_feature_enabled(BuiltinRenderFeature::RayTracing),
         )
         .unwrap();
-    assert!(
-        with_gate
-            .graph()
-            .passes()
-            .iter()
-            .any(|pass| pass.name == "bloom-extract")
-    );
+    assert!(with_gate
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "bloom-extract"));
 }
 
 #[test]
@@ -319,14 +315,12 @@ fn pipeline_compile_validates_quality_gated_descriptor_overrides_even_when_gate_
             "bad-gated-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Opaque,
-                    "bad-gated-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::Opaque,
+                "bad-gated-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -362,11 +356,9 @@ fn renderer_feature_asset_local_config_and_capabilities_survive_compile() {
         compiled_color_grading.local_config.get("variant"),
         Some(&"cinematic".to_string())
     );
-    assert!(
-        compiled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::RayTracingPipeline)
-    );
+    assert!(compiled
+        .capability_requirements
+        .contains(&RenderFeatureCapabilityRequirement::RayTracingPipeline));
 }
 
 #[test]
@@ -384,16 +376,14 @@ fn renderer_feature_asset_descriptor_override_changes_compiled_graph() {
             "custom-bloom",
             vec!["custom_post".to_string()],
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "custom-bloom-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .read_texture("scene-color")
-                .write_external("viewport-output"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "custom-bloom-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .read_texture("scene-color")
+            .write_external("viewport-output")],
         ));
 
     let compiled = pipeline.compile(&test_extract()).unwrap();
@@ -406,19 +396,14 @@ fn renderer_feature_asset_descriptor_override_changes_compiled_graph() {
 
     assert!(!pass_names.contains(&"bloom-extract"));
     assert!(pass_names.contains(&"custom-bloom-pass"));
-    assert!(
-        compiled
-            .required_extract_sections
-            .contains(&"custom_post".to_string())
-    );
-    assert!(
-        compiled
-            .graph()
-            .resource_lifetimes()
-            .iter()
-            .any(|lifetime| {
-                lifetime.name == "viewport-output"
-                    && lifetime.kind == RenderGraphResourceKind::External
-            })
-    );
+    assert!(compiled
+        .required_extract_sections
+        .contains(&"custom_post".to_string()));
+    assert!(compiled
+        .graph()
+        .resource_lifetimes()
+        .iter()
+        .any(|lifetime| {
+            lifetime.name == "viewport-output" && lifetime.kind == RenderGraphResourceKind::External
+        }));
 }

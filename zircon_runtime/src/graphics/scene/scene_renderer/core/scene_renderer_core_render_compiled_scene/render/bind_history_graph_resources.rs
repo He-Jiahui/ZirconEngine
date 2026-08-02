@@ -173,10 +173,8 @@ mod tests {
         assert!(resources.has_texture_view(
             PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
         ));
-        assert!(
-            resources
-                .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
-        );
+        assert!(resources
+            .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
         assert!(
             resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
         );
@@ -236,10 +234,8 @@ mod tests {
         );
 
         assert!(!resources.has_texture_view(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS));
-        assert!(
-            !resources
-                .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
-        );
+        assert!(!resources
+            .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
         assert!(
             !resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
         );

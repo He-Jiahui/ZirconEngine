@@ -241,7 +241,7 @@ pub(crate) fn print_help() {
 
 #[cfg(test)]
 mod tests {
-    use super::{ViewerConfig, require_renderdoc_capture_support};
+    use super::{require_renderdoc_capture_support, ViewerConfig};
 
     #[test]
     fn default_face_size_uses_hdri_native_angular_resolution() {
@@ -344,11 +344,9 @@ mod tests {
         let error = ViewerConfig::from_args(["--screenshot".to_owned()])
             .expect_err("a screenshot option without a path must be rejected");
 
-        assert!(
-            error
-                .to_string()
-                .contains("--screenshot requires a file path")
-        );
+        assert!(error
+            .to_string()
+            .contains("--screenshot requires a file path"));
     }
 
     #[test]
@@ -385,11 +383,9 @@ mod tests {
         ])
         .expect_err("preloading RenderDoc must remain scoped to an explicit capture");
 
-        assert!(
-            error
-                .to_string()
-                .contains("requires --renderdoc-capture-once")
-        );
+        assert!(error
+            .to_string()
+            .contains("requires --renderdoc-capture-once"));
     }
 
     #[test]
@@ -401,10 +397,8 @@ mod tests {
         ])
         .expect_err("the capture file template depends on a directly loaded RenderDoc API");
 
-        assert!(
-            error
-                .to_string()
-                .contains("requires --renderdoc-capture-once and --renderdoc-dll")
-        );
+        assert!(error
+            .to_string()
+            .contains("requires --renderdoc-capture-once and --renderdoc-dll"));
     }
 }

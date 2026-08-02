@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_template_nodes::material_primitives::component_variant_contains;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_corner_radius(

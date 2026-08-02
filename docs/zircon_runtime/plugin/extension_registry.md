@@ -56,8 +56,8 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_plugin_catalog_gen.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
+  - zircon_editor/src/core/plugin/catalog_gen.rs
   - zircon_editor/build.rs
   - zircon_runtime_interface/src/plugin_diagnostics.rs
   - zircon_runtime_interface/src/plugin_api.rs
@@ -125,8 +125,8 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_plugin_catalog_gen.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
+  - zircon_editor/src/core/plugin/catalog_gen.rs
   - zircon_editor/build.rs
   - zircon_runtime_interface/src/plugin_diagnostics.rs
   - zircon_runtime_interface/src/plugin_api.rs

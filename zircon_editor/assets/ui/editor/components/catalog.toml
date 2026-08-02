@@ -1,0 +1,1093 @@
+# Typed editor component catalog manifest. The runtime embeds this metadata so built-in
+# components retain one versioned, author-visible source of truth for identity and composition.
+version = 1
+
+[[components]]
+component_id = "UiHostWindow"
+document_id = "res://ui/editor/host/workbench_shell.zui"
+binding_namespace = "UiHostWindow"
+tier = "region_panel"
+
+[[components]]
+component_id = "ActivityDrawerWindow"
+document_id = "res://ui/editor/components/workbench/shell/activity_drawer_window.zui"
+binding_namespace = "ActivityDrawerWindow"
+tier = "region_panel"
+
+[[components.slots]]
+name = "left_top_activity"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components.slots]]
+name = "left_bottom_activity"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components.slots]]
+name = "right_top_activity"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components.slots]]
+name = "right_bottom_activity"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components.slots]]
+name = "bottom_left_activity"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components.slots]]
+name = "bottom_right_activity"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components.slots]]
+name = "content"
+kind = "container"
+multiple = true
+accepts = ["Container"]
+
+[[components]]
+component_id = "WorkbenchPanelHeader"
+document_id = "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui"
+binding_namespace = "WorkbenchPanelHeader"
+tier = "composite"
+
+[[components.slots]]
+name = "title"
+kind = "linear"
+required = true
+accepts = ["WorkbenchCaption", "WorkbenchSectionTitle"]
+
+[[components.slots]]
+name = "actions"
+kind = "linear"
+multiple = true
+accepts = ["WorkbenchButton", "WorkbenchCaption", "WorkbenchChip", "WorkbenchDropdown", "WorkbenchIconButton", "WorkbenchToggle"]
+
+[[components]]
+component_id = "WorkbenchPropertyEditorRow"
+document_id = "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+binding_namespace = "WorkbenchPropertyEditorRow"
+tier = "composite"
+
+[[components.slots]]
+name = "value"
+kind = "linear"
+required = true
+accepts = ["WorkbenchCheckbox", "WorkbenchDropdown", "WorkbenchField", "WorkbenchNumberField", "WorkbenchRangeSlider", "WorkbenchSlider", "WorkbenchToggle"]
+
+[[components]]
+component_id = "WorkbenchDiagnosticRow"
+document_id = "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui"
+binding_namespace = "WorkbenchDiagnosticRow"
+tier = "composite"
+
+[[components.slots]]
+name = "severity"
+kind = "linear"
+required = true
+accepts = ["WorkbenchStatusItem"]
+
+[[components.slots]]
+name = "message"
+kind = "linear"
+required = true
+accepts = ["WorkbenchStatusItem"]
+
+[[components]]
+component_id = "MenuBar"
+document_id = "res://ui/editor/host/workbench_shell.zui"
+binding_namespace = "WorkbenchMenuBar"
+tier = "composite"
+
+[[components.slots]]
+name = "actions"
+kind = "linear"
+multiple = true
+accepts = ["WorkbenchIconButton"]
+
+[[components.props]]
+name = "height"
+value_type = "dimension"
+default = { token = "$editor.control.height.default" }
+
+[[components]]
+component_id = "ActivityRail"
+document_id = "res://ui/editor/host/workbench_shell.zui"
+binding_namespace = "ActivityRail"
+tier = "composite"
+
+[[components.slots]]
+name = "items"
+kind = "linear"
+multiple = true
+accepts = ["WorkbenchRailButton"]
+
+[[components.props]]
+name = "width"
+value_type = "dimension"
+default = { token = "$editor.density.activity_rail_width" }
+
+[[components]]
+component_id = "DocumentHost"
+document_id = "res://ui/editor/host/workbench_shell.zui"
+binding_namespace = "DocumentHost"
+tier = "region_panel"
+
+[[components.slots]]
+name = "tabs"
+kind = "linear"
+required = true
+accepts = ["DocumentTabs"]
+
+[[components.slots]]
+name = "content"
+kind = "linear"
+required = true
+accepts = ["PaneSurface"]
+
+[[components]]
+component_id = "StatusBar"
+document_id = "res://ui/editor/host/workbench_shell.zui"
+binding_namespace = "StatusBar"
+tier = "composite"
+
+[[components.slots]]
+name = "items"
+kind = "linear"
+multiple = true
+accepts = ["WorkbenchStatusItem"]
+
+[[components.props]]
+name = "height"
+value_type = "dimension"
+default = { token = "$editor.control.height.dense" }
+
+[[components]]
+component_id = "SceneViewportToolbar"
+document_id = "res://ui/editor/host/scene_viewport_toolbar.zui"
+binding_namespace = "ViewportToolbar"
+tier = "composite"
+
+[[components.slots]]
+name = "primary_actions"
+kind = "linear"
+multiple = true
+accepts = ["IconButton"]
+
+[[components.slots]]
+name = "secondary_actions"
+kind = "linear"
+multiple = true
+accepts = ["IconButton"]
+
+[[components.props]]
+name = "height"
+value_type = "dimension"
+default = { token = "$editor.control.height.default" }
+
+[[components]]
+component_id = "AssetSurfaceControls"
+document_id = "res://ui/editor/host/asset_surface_controls.zui"
+binding_namespace = "AssetSurface"
+tier = "region_panel"
+
+[[components.slots]]
+name = "controls"
+kind = "linear"
+multiple = true
+accepts = ["ComboBox", "IconButton", "InputField"]
+
+[[components.props]]
+name = "height"
+value_type = "dimension"
+default = { token = "$editor.control.height.default" }
+
+[[components]]
+component_id = "WelcomeSurfaceControls"
+document_id = "res://ui/editor/host/startup_welcome_controls.zui"
+binding_namespace = "WelcomeSurface"
+tier = "region_panel"
+
+[[components]]
+component_id = "InspectorSurfaceControls"
+document_id = "res://ui/editor/host/inspector_surface_controls.zui"
+binding_namespace = "InspectorView"
+tier = "region_panel"
+
+[[components]]
+component_id = "PaneSurfaceControls"
+document_id = "res://ui/editor/host/pane_surface_controls.zui"
+binding_namespace = "PaneSurface"
+tier = "region_panel"
+
+[[components]]
+component_id = "ConsolePaneBody"
+document_id = "res://ui/editor/host/console_body.zui"
+binding_namespace = "ConsolePaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "InspectorPaneBody"
+document_id = "res://ui/editor/host/inspector_body.zui"
+binding_namespace = "InspectorPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "HierarchyPaneBody"
+document_id = "res://ui/editor/host/hierarchy_body.zui"
+binding_namespace = "HierarchyPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "AnimationSequencePaneBody"
+document_id = "res://ui/editor/host/animation_sequence_body.zui"
+binding_namespace = "AnimationSequencePaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "AnimationGraphPaneBody"
+document_id = "res://ui/editor/host/animation_graph_body.zui"
+binding_namespace = "AnimationGraphPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "RuntimeDiagnosticsPaneBody"
+document_id = "res://ui/editor/host/runtime_diagnostics_body.zui"
+binding_namespace = "RuntimeDiagnosticsPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "PerformanceTimelinePaneBody"
+document_id = "res://ui/editor/host/performance_timeline_body.zui"
+binding_namespace = "PerformanceTimelinePaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "ModulePluginsPaneBody"
+document_id = "res://ui/editor/host/module_plugins_body.zui"
+binding_namespace = "ModulePluginsPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "BuildExportPaneBody"
+document_id = "res://ui/editor/host/build_export_desktop_body.zui"
+binding_namespace = "BuildExportPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "GeneratedBottomPaneBody"
+document_id = "res://ui/editor/host/generated_bottom_body.zui"
+binding_namespace = "GeneratedBottomPaneBody"
+tier = "region_panel"
+
+[[components]]
+component_id = "WorkbenchAxisValueField"
+document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_axis_value_field.zui"
+binding_namespace = "WorkbenchAxisValueField"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchChip"
+document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_chip.zui"
+binding_namespace = "WorkbenchChip"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Chip" }
+
+[[components]]
+component_id = "WorkbenchRailButton"
+document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui"
+binding_namespace = "WorkbenchRailButton"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchSectionTitle"
+document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui"
+binding_namespace = "WorkbenchSectionTitle"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Section" }
+
+[[components]]
+component_id = "WorkbenchCaption"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui"
+binding_namespace = "WorkbenchCaption"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Caption" }
+
+[[components]]
+component_id = "WorkbenchComponentPropertyRow"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui"
+binding_namespace = "WorkbenchComponentPropertyRow"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchDivider"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_divider.zui"
+binding_namespace = "WorkbenchDivider"
+tier = "primitive"
+
+[[components.props]]
+name = "orientation"
+value_type = "enum"
+default = { literal = "horizontal" }
+
+[[components.props]]
+name = "variant"
+value_type = "enum"
+default = { literal = "fullWidth" }
+
+[[components]]
+component_id = "WorkbenchIcon"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_icon.zui"
+binding_namespace = "WorkbenchIcon"
+tier = "primitive"
+
+[[components.props]]
+name = "icon"
+value_type = "icon_ref"
+default = { literal = "zircon_editor_shell/controls/add.svg" }
+
+[[components.props]]
+name = "label"
+value_type = "text"
+default = { literal = "Icon" }
+
+[[components]]
+component_id = "WorkbenchLabel"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_label.zui"
+binding_namespace = "WorkbenchLabel"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Label" }
+
+[[components]]
+component_id = "WorkbenchListRow"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui"
+binding_namespace = "WorkbenchListRow"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "List item" }
+
+[[components.props]]
+name = "value"
+value_type = "text"
+default = { literal = "item" }
+
+[[components.props]]
+name = "selected"
+value_type = "boolean"
+default = { literal = false }
+
+[[components]]
+component_id = "WorkbenchPreviewViewport"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui"
+binding_namespace = "WorkbenchPreviewViewport"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchPropertyRow"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui"
+binding_namespace = "WorkbenchPropertyRow"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Property" }
+
+[[components.props]]
+name = "value"
+value_type = "text"
+default = { literal = "Value" }
+
+[[components]]
+component_id = "WorkbenchSampleGrid"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_sample_grid.zui"
+binding_namespace = "WorkbenchSampleGrid"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchTableRow"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui"
+binding_namespace = "WorkbenchTableRow"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchTimelineStrip"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui"
+binding_namespace = "WorkbenchTimelineStrip"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchTreeRow"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui"
+binding_namespace = "WorkbenchTreeRow"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchWeightHeatmap"
+document_id = "res://ui/editor/components/workbench/primitives/data/workbench_weight_heatmap.zui"
+binding_namespace = "WorkbenchWeightHeatmap"
+tier = "primitive"
+
+[[components]]
+component_id = "WorkbenchAlert"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_alert.zui"
+binding_namespace = "WorkbenchAlert"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Unsaved scene changes" }
+
+[[components.props]]
+name = "severity"
+value_type = "enum"
+default = { literal = "warning" }
+
+[[components.props]]
+name = "variant"
+value_type = "enum"
+default = { literal = "outlined" }
+
+[[components]]
+component_id = "WorkbenchCommandPalette"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui"
+binding_namespace = "WorkbenchCommandPalette"
+tier = "primitive"
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "query"
+value_type = "text"
+default = { literal = "" }
+
+[[components.props]]
+name = "placeholder"
+value_type = "text"
+default = { literal = "Search commands" }
+
+[[components.props]]
+name = "commands"
+value_type = "text_list"
+default = { literal = ["open_scene|label=Open Scene|shortcut=Ctrl+O", "build_project|label=Build Project|shortcut=Ctrl+B", "toggle_console|label=Toggle Console|shortcut=Ctrl+`"] }
+
+[[components.props]]
+name = "selected_command_id"
+value_type = "text"
+default = { literal = "build_project" }
+
+[[components]]
+component_id = "WorkbenchConfirmDialog"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui"
+binding_namespace = "WorkbenchConfirmDialog"
+tier = "primitive"
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "title"
+value_type = "text"
+default = { literal = "Delete selected node?" }
+
+[[components.props]]
+name = "message"
+value_type = "text"
+default = { literal = "This removes the node from the scene hierarchy." }
+
+[[components.props]]
+name = "confirm_text"
+value_type = "text"
+default = { literal = "Delete" }
+
+[[components.props]]
+name = "cancel_text"
+value_type = "text"
+default = { literal = "Cancel" }
+
+[[components.props]]
+name = "severity"
+value_type = "enum"
+default = { literal = "warning" }
+
+[[components.props]]
+name = "destructive"
+value_type = "boolean"
+default = { literal = true }
+
+[[components]]
+component_id = "WorkbenchContextMenu"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui"
+binding_namespace = "WorkbenchContextMenu"
+tier = "primitive"
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "options"
+value_type = "text_list"
+default = { literal = ["Open", "Rename", "Duplicate", "Delete", "More Tools"] }
+
+[[components.props]]
+name = "context_target"
+value_type = "text"
+default = { literal = "SceneNode:Camera" }
+
+[[components]]
+component_id = "WorkbenchDialog"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui"
+binding_namespace = "WorkbenchDialog"
+tier = "primitive"
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "title"
+value_type = "text"
+default = { literal = "Scene Settings" }
+
+[[components.props]]
+name = "message"
+value_type = "text"
+default = { literal = "Review scene-level settings before applying changes." }
+
+[[components]]
+component_id = "WorkbenchDragOverlay"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui"
+binding_namespace = "WorkbenchDragOverlay"
+tier = "primitive"
+
+[[components.props]]
+name = "open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "dragging"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "drop_hovered"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "active_drag_target"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "payload_kind"
+value_type = "enum"
+default = { literal = "asset" }
+
+[[components.props]]
+name = "payload_label"
+value_type = "text"
+default = { literal = "StoneWall.mesh" }
+
+[[components.props]]
+name = "payload_reference"
+value_type = "text"
+default = { literal = "assets/stone_wall.mesh" }
+
+[[components.props]]
+name = "drop_allowed"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "drop_indicator_text"
+value_type = "text"
+default = { literal = "Drop into scene" }
+
+[[components]]
+component_id = "WorkbenchDropdownPopup"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui"
+binding_namespace = "WorkbenchDropdownPopup"
+tier = "primitive"
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "options"
+value_type = "text_list"
+default = { literal = ["Scene", "Assets", "Console", "Render"] }
+
+[[components.props]]
+name = "selected_options"
+value_type = "text_list"
+default = { literal = ["Assets"] }
+
+[[components]]
+component_id = "WorkbenchNotificationCenter"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui"
+binding_namespace = "WorkbenchNotificationCenter"
+tier = "primitive"
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "title"
+value_type = "text"
+default = { literal = "Notifications" }
+
+[[components.props]]
+name = "unread_count"
+value_type = "number"
+default = { literal = 2 }
+
+[[components.props]]
+name = "notifications"
+value_type = "text_list"
+default = { literal = ["build|title=Build failed|message=Shader compile error|severity=error|unread=true", "asset|title=Asset import complete|message=StoneWall.mesh ready|severity=success|unread=true", "source|title=Source control synced|message=No local conflicts|severity=info|unread=false"] }
+
+[[components.props]]
+name = "selected_notification_id"
+value_type = "text"
+default = { literal = "build" }
+
+[[components.props]]
+name = "empty_text"
+value_type = "text"
+default = { literal = "No notifications" }
+
+[[components]]
+component_id = "WorkbenchPopupMenu"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui"
+binding_namespace = "WorkbenchPopupMenu"
+tier = "primitive"
+
+[[components.props]]
+name = "value"
+value_type = "text"
+default = { literal = "Open" }
+
+[[components.props]]
+name = "menu_items"
+value_type = "text_list"
+default = { literal = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,icon=trash", "More Tools|submenu"] }
+
+[[components.props]]
+name = "popup_open"
+value_type = "boolean"
+default = { literal = true }
+
+[[components]]
+component_id = "WorkbenchProgressBar"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui"
+binding_namespace = "WorkbenchProgressBar"
+tier = "primitive"
+
+[[components.props]]
+name = "value"
+value_type = "number"
+default = { literal = 64.0 }
+
+[[components.props]]
+name = "min"
+value_type = "number"
+default = { literal = 0.0 }
+
+[[components.props]]
+name = "max"
+value_type = "number"
+default = { literal = 100.0 }
+
+[[components.props]]
+name = "variant"
+value_type = "enum"
+default = { literal = "linear" }
+
+[[components.props]]
+name = "label_text"
+value_type = "text"
+default = { literal = "Progress" }
+
+[[components.props]]
+name = "show_label"
+value_type = "boolean"
+default = { literal = false }
+
+[[components]]
+component_id = "WorkbenchSkeleton"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui"
+binding_namespace = "WorkbenchSkeleton"
+tier = "primitive"
+
+[[components.props]]
+name = "variant"
+value_type = "enum"
+default = { literal = "rounded" }
+
+[[components.props]]
+name = "animation"
+value_type = "enum"
+default = { literal = "pulse" }
+
+[[components.props]]
+name = "loading"
+value_type = "boolean"
+default = { literal = true }
+
+[[components]]
+component_id = "WorkbenchStatusItem"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui"
+binding_namespace = "WorkbenchStatusItem"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Status" }
+
+[[components]]
+component_id = "WorkbenchToast"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_toast.zui"
+binding_namespace = "WorkbenchToast"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Operation completed successfully" }
+
+[[components.props]]
+name = "severity"
+value_type = "enum"
+default = { literal = "info" }
+
+[[components.props]]
+name = "variant"
+value_type = "enum"
+default = { literal = "outlined" }
+
+[[components]]
+component_id = "WorkbenchTooltip"
+document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_tooltip.zui"
+binding_namespace = "WorkbenchTooltip"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Tooltip" }
+
+[[components.props]]
+name = "label_text"
+value_type = "text"
+default = { literal = "This is a tooltip" }
+
+[[components.props]]
+name = "icon"
+value_type = "icon_ref"
+default = { literal = "info" }
+
+[[components.props]]
+name = "show_icon"
+value_type = "boolean"
+default = { literal = false }
+
+[[components.props]]
+name = "surface_variant"
+value_type = "enum"
+default = { literal = "workbench-tooltip" }
+
+[[components]]
+component_id = "WorkbenchButton"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui"
+binding_namespace = "WorkbenchButton"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Button" }
+
+[[components.props]]
+name = "button_variant"
+value_type = "enum"
+default = { literal = "outlined" }
+
+[[components]]
+component_id = "WorkbenchCheckbox"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui"
+binding_namespace = "WorkbenchCheckbox"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Checkbox" }
+
+[[components.props]]
+name = "checked"
+value_type = "boolean"
+default = { literal = false }
+
+[[components]]
+component_id = "WorkbenchDropdown"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui"
+binding_namespace = "WorkbenchDropdown"
+tier = "primitive"
+
+[[components.props]]
+name = "value"
+value_type = "text"
+default = { literal = "default" }
+
+[[components.props]]
+name = "value_text"
+value_type = "text"
+default = { literal = "Default" }
+
+[[components]]
+component_id = "WorkbenchField"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui"
+binding_namespace = "WorkbenchField"
+tier = "primitive"
+
+[[components.props]]
+name = "value"
+value_type = "text"
+default = { literal = "" }
+
+[[components.props]]
+name = "placeholder"
+value_type = "text"
+default = { literal = "" }
+
+[[components]]
+component_id = "WorkbenchIconButton"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui"
+binding_namespace = "WorkbenchIconButton"
+tier = "primitive"
+
+[[components.props]]
+name = "icon"
+value_type = "icon_ref"
+default = { literal = "zircon_editor_shell/toolbar/select.svg" }
+
+[[components.props]]
+name = "label"
+value_type = "text"
+default = { literal = "Tool" }
+
+[[components]]
+component_id = "WorkbenchNumberField"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui"
+binding_namespace = "WorkbenchNumberField"
+tier = "primitive"
+
+[[components.props]]
+name = "value_text"
+value_type = "text"
+default = { literal = "42" }
+
+[[components.props]]
+name = "placeholder"
+value_type = "text"
+default = { literal = "0" }
+
+[[components]]
+component_id = "WorkbenchRadio"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_radio.zui"
+binding_namespace = "WorkbenchRadio"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Radio option" }
+
+[[components.props]]
+name = "checked"
+value_type = "boolean"
+default = { literal = false }
+
+[[components]]
+component_id = "WorkbenchRangeSlider"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui"
+binding_namespace = "WorkbenchRangeSlider"
+tier = "primitive"
+
+[[components.props]]
+name = "range_min"
+value_type = "number"
+default = { literal = 20.0 }
+
+[[components.props]]
+name = "value"
+value_type = "number"
+default = { literal = 80.0 }
+
+[[components.props]]
+name = "min"
+value_type = "number"
+default = { literal = 0.0 }
+
+[[components.props]]
+name = "max"
+value_type = "number"
+default = { literal = 100.0 }
+
+[[components.props]]
+name = "step"
+value_type = "number"
+default = { literal = 1.0 }
+
+[[components.props]]
+name = "large_step"
+value_type = "number"
+default = { literal = 10.0 }
+
+[[components]]
+component_id = "WorkbenchSearchInput"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui"
+binding_namespace = "WorkbenchSearchInput"
+tier = "primitive"
+
+[[components.props]]
+name = "query"
+value_type = "text"
+default = { literal = "" }
+
+[[components.props]]
+name = "placeholder"
+value_type = "text"
+default = { literal = "Search" }
+
+[[components]]
+component_id = "WorkbenchSegmentedControl"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui"
+binding_namespace = "WorkbenchSegmentedControl"
+tier = "primitive"
+
+[[components.props]]
+name = "value"
+value_type = "text"
+default = { literal = "center" }
+
+[[components.props]]
+name = "selection_state"
+value_type = "enum"
+default = { literal = "single" }
+
+[[components]]
+component_id = "WorkbenchSlider"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_slider.zui"
+binding_namespace = "WorkbenchSlider"
+tier = "primitive"
+
+[[components.props]]
+name = "value"
+value_type = "number"
+default = { literal = 50.0 }
+
+[[components.props]]
+name = "min"
+value_type = "number"
+default = { literal = 0.0 }
+
+[[components.props]]
+name = "max"
+value_type = "number"
+default = { literal = 100.0 }
+
+[[components.props]]
+name = "step"
+value_type = "number"
+default = { literal = 1.0 }
+
+[[components]]
+component_id = "WorkbenchTabStrip"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui"
+binding_namespace = "WorkbenchTabStrip"
+tier = "primitive"
+
+[[components.slots]]
+name = "default"
+kind = "linear"
+multiple = true
+accepts = ["WorkbenchTab"]
+
+[[components]]
+component_id = "WorkbenchTab"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui"
+binding_namespace = "WorkbenchTab"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Tab" }
+
+[[components.props]]
+name = "selected"
+value_type = "boolean"
+default = { literal = false }
+
+[[components]]
+component_id = "WorkbenchToggle"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui"
+binding_namespace = "WorkbenchToggle"
+tier = "primitive"
+
+[[components.props]]
+name = "text"
+value_type = "text"
+default = { literal = "Switch" }
+
+[[components.props]]
+name = "checked"
+value_type = "boolean"
+default = { literal = false }

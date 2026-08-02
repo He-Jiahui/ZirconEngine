@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::roles::material_role_color_from_host;
 use zircon_runtime_interface::ui::style::{ButtonColor, ButtonVariant};
 

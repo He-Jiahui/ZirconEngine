@@ -8,7 +8,7 @@ mod main_column;
 mod recent_projects;
 mod style;
 
-use layout::{inset_frame, welcome_node_frame, WELCOME_COLUMN_INSET};
+use layout::{WELCOME_COLUMN_INSET, inset_frame, welcome_node_frame};
 use main_column::draw_welcome_main_column;
 use recent_projects::draw_welcome_recent_projects;
 use style::{WELCOME_BACKGROUND, WELCOME_SURFACE};

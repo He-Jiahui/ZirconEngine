@@ -25,6 +25,17 @@ fn shared_viewport_toolbar_surface_uses_toml_controls_and_rust_callbacks() {
             "viewport toolbar asset missing `{required}`"
         );
     }
+    assert_eq!(
+        toolbar
+            .matches("gap = \"$editor.density.gap.small\"")
+            .count(),
+        3,
+        "viewport toolbar groups must consume the shared dense spacing token"
+    );
+    assert!(
+        !toolbar.contains("gap = 4.0"),
+        "viewport toolbar must not keep local spacing literals"
+    );
 }
 
 #[test]

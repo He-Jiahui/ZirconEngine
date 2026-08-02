@@ -340,10 +340,12 @@ fn event_listener_control_unregisters_listener_and_drops_deliveries() {
     let listeners = runtime
         .runtime
         .handle_event_listener_control_request(EditorEventListenerControlRequest::ListListeners);
-    assert!(listeners.value["listeners"]
-        .as_array()
-        .expect("listeners")
-        .is_empty());
+    assert!(
+        listeners.value["listeners"]
+            .as_array()
+            .expect("listeners")
+            .is_empty()
+    );
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
         EditorEventListenerControlRequest::QueryDeliveries { listener_id },

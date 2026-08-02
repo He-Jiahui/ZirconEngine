@@ -157,8 +157,10 @@ fn dynamic_component_reflection_read_fields_pre_sizes_result_vector() {
         read_fields.contains("let fields = &registration.type_info.fields;")
             && read_fields.contains("let mut values = Vec::with_capacity(fields.len());")
             && read_fields.contains("for field in fields")
-            && read_fields.contains("let value = read_field(world, entity, type_path, &field.name)?;")
-            && read_fields.contains("values.push(ReflectFieldValue::new(field.name.clone(), value));")
+            && read_fields
+                .contains("let value = read_field(world, entity, type_path, &field.name)?;")
+            && read_fields
+                .contains("values.push(ReflectFieldValue::new(field.name.clone(), value));")
             && read_fields.contains("Ok(values)")
             && !read_fields.contains(".collect()")
             && !read_fields.contains(".map(|field|"),
@@ -226,8 +228,7 @@ fn dynamic_component_reflection_read_helpers_use_direct_success_branches() {
     assert!(
         read_field.contains(
             "let Some(value) = world.dynamic_component_property(entity, &property_path) else"
-        )
-            && read_field.contains("return Err(ReflectError::UnsupportedConversion")
+        ) && read_field.contains("return Err(ReflectError::UnsupportedConversion")
             && ensure_dynamic_component
                 .contains("let Some(component) = world.dynamic_component(entity, type_path) else")
             && ensure_dynamic_component.contains("return Err(ReflectError::MissingComponent")
@@ -524,9 +525,11 @@ fn plugin_unload_guard_still_counts_reflected_dynamic_components() {
     assert!(blocked.contains("weather.Component.CloudLayer"));
     assert!(blocked.contains(&format!("entity {entity}")));
     assert_eq!(world.dynamic_component_count_for_plugin("weather"), 1);
-    assert!(world
-        .type_registry()
-        .contains_type_path("weather.Component.CloudLayer"));
+    assert!(
+        world
+            .type_registry()
+            .contains_type_path("weather.Component.CloudLayer")
+    );
 }
 
 #[test]

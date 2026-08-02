@@ -1,5 +1,5 @@
 use std::any::{Any, TypeId, type_name};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
 use crate::scene::ecs::events::{
@@ -13,6 +13,7 @@ trait ErasedEventQueue: Any + Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn update_erased(&mut self);
+    fn requires_maintenance_erased(&self) -> bool;
     fn capacity_metrics_erased(&self) -> EventCapacityMetrics;
 }
 
@@ -30,6 +31,10 @@ where
 
     fn update_erased(&mut self) {
         self.update();
+    }
+
+    fn requires_maintenance_erased(&self) -> bool {
+        self.requires_maintenance()
     }
 
     fn capacity_metrics_erased(&self) -> EventCapacityMetrics {
@@ -56,6 +61,8 @@ impl EventChannel {
 pub struct EventStore {
     channels: Vec<EventChannel>,
     type_ids: HashMap<TypeId, EventTypeId>,
+    active_channels: BTreeSet<EventTypeId>,
+    last_update_channel_visits: usize,
     next_observer_id: u64,
 }
 
@@ -143,6 +150,14 @@ impl EventStore {
         self.channels.len()
     }
 
+    pub fn active_channel_count(&self) -> usize {
+        self.active_channels.len()
+    }
+
+    pub fn last_update_channel_visits(&self) -> usize {
+        self.last_update_channel_visits
+    }
+
     pub fn reader_count(&self, event_type_id: EventTypeId) -> Option<u32> {
         self.channel(event_type_id)
             .map(|channel| channel.reader_count)
@@ -182,6 +197,7 @@ impl EventStore {
     }
 
     pub fn events_mut_by_id<T: Event>(&mut self, event_type_id: EventTypeId) -> &mut Events<T> {
+        self.active_channels.insert(event_type_id);
         let channel = self
             .channel_mut(event_type_id)
             .expect("registered event type id must resolve to a channel");
@@ -228,43 +244,62 @@ impl EventStore {
         if self.channel(event_type_id).is_none() {
             return 0;
         }
-        let channel = self
-            .channel_mut(event_type_id)
-            .expect("registered event type id must resolve to a channel");
-        assert_eq!(
-            channel.type_id,
-            TypeId::of::<T>(),
-            "event type id must match event queue type"
-        );
-        let observers = &channel.observers;
-        let event_queue = channel
-            .events
-            .as_any_mut()
-            .downcast_mut::<Events<T>>()
-            .expect("event store type id must match event queue type");
-        event_queue.send_batch(events.into_iter().inspect(|event| {
-            for observer in observers.values() {
-                let _ = observer.notify(event);
-            }
-        }))
+        let written = {
+            let channel = self
+                .channel_mut(event_type_id)
+                .expect("registered event type id must resolve to a channel");
+            assert_eq!(
+                channel.type_id,
+                TypeId::of::<T>(),
+                "event type id must match event queue type"
+            );
+            let observers = &channel.observers;
+            let event_queue = channel
+                .events
+                .as_any_mut()
+                .downcast_mut::<Events<T>>()
+                .expect("event store type id must match event queue type");
+            event_queue.send_batch(events.into_iter().inspect(|event| {
+                for observer in observers.values() {
+                    let _ = observer.notify(event);
+                }
+            }))
+        };
+        if written > 0 {
+            self.active_channels.insert(event_type_id);
+        }
+        written
     }
 
     pub fn update<T: Event>(&mut self) {
-        self.events_mut::<T>().update();
+        let event_type_id = self.register::<T>();
+        self.update_by_id::<T>(event_type_id);
     }
 
     pub fn update_by_id<T: Event>(&mut self, event_type_id: EventTypeId) {
         self.events_mut_by_id::<T>(event_type_id).update();
+        self.refresh_active_channel(event_type_id);
     }
 
     pub fn update_all(&mut self) {
-        for channel in &mut self.channels {
-            channel.events.update_erased();
+        let active_channels = std::mem::take(&mut self.active_channels);
+        self.last_update_channel_visits = active_channels.len();
+        for event_type_id in active_channels {
+            let keep_active = self.channel_mut(event_type_id).is_some_and(|channel| {
+                channel.events.update_erased();
+                channel.events.requires_maintenance_erased()
+            });
+            if keep_active {
+                self.active_channels.insert(event_type_id);
+            }
         }
     }
 
     pub fn drain<T: Event>(&mut self) -> Vec<T> {
-        self.events_mut::<T>().drain()
+        let event_type_id = self.register::<T>();
+        let drained = self.events_mut_by_id::<T>(event_type_id).drain();
+        self.refresh_active_channel(event_type_id);
+        drained
     }
 
     pub fn registered_type_names(&self) -> Vec<&'static str> {
@@ -282,6 +317,17 @@ impl EventStore {
 
     fn channel_mut(&mut self, event_type_id: EventTypeId) -> Option<&mut EventChannel> {
         self.channels.get_mut(event_type_id.index())
+    }
+
+    fn refresh_active_channel(&mut self, event_type_id: EventTypeId) {
+        let keep_active = self
+            .channel(event_type_id)
+            .is_some_and(|channel| channel.events.requires_maintenance_erased());
+        if keep_active {
+            self.active_channels.insert(event_type_id);
+        } else {
+            self.active_channels.remove(&event_type_id);
+        }
     }
 
     fn notify_event_observers<T: Event>(&self, event_type_id: EventTypeId, event: &T) -> bool {

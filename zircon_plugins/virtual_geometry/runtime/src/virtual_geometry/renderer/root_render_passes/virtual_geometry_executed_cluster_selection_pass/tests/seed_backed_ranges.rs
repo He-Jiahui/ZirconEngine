@@ -39,6 +39,7 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -158,6 +159,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -285,6 +287,7 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 1,
@@ -388,6 +391,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -482,6 +486,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_instance_work_it
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -546,6 +551,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_cluster_work_ite
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -619,6 +625,7 @@ fn seed_backed_execution_selection_respects_forced_mip() {
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

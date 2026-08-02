@@ -175,21 +175,27 @@ fn param_set_component_access_is_conservative_across_sibling_filters() {
     )>;
     let system = SystemState::<Params>::new(&mut world).unwrap();
 
-    assert!(system
-        .access()
-        .component_access()
-        .writes()
-        .contains(&health_component));
-    assert!(!system
-        .access()
-        .component_access()
-        .with()
-        .contains(&marker_component));
-    assert!(!system
-        .access()
-        .component_access()
-        .without()
-        .contains(&marker_component));
+    assert!(
+        system
+            .access()
+            .component_access()
+            .writes()
+            .contains(&health_component)
+    );
+    assert!(
+        !system
+            .access()
+            .component_access()
+            .with()
+            .contains(&marker_component)
+    );
+    assert!(
+        !system
+            .access()
+            .component_access()
+            .without()
+            .contains(&marker_component)
+    );
 }
 
 #[test]

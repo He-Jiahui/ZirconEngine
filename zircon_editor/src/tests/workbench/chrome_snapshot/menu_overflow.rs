@@ -29,14 +29,16 @@ fn chrome_builder_reads_active_window_menu_overflow_preference() {
 #[test]
 fn chrome_builder_carries_default_workbench_window_template() {
     let layout = WorkbenchLayout::default();
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.workbench_window"),
-        ViewKind::ActivityWindow,
-        "Workbench",
-    )
-    .with_activity_window_template(ActivityWindowTemplateSpec::new(
-        "res://ui/editor/windows/workbench_window.zui",
-    ))];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.workbench_window"),
+            ViewKind::ActivityWindow,
+            "Workbench",
+        )
+        .with_activity_window_template(ActivityWindowTemplateSpec::new(
+            "res://ui/editor/windows/workbench_window.zui",
+        )),
+    ];
 
     let chrome =
         EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), descriptors, None);
@@ -58,9 +60,10 @@ fn chrome_builder_carries_default_workbench_window_template() {
 
 fn empty_editor_data() -> EditorDataSnapshot {
     EditorDataSnapshot {
-        scene_entries: Vec::new(),
+        scene_entries: Default::default(),
         inspector: None,
         status_line: "Ready".to_string(),
+        console_output: "Ready".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),

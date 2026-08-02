@@ -94,7 +94,6 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/automatic_extract.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/cpu_reference.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/execution_mode.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
@@ -308,7 +307,6 @@ implementation_files:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/automatic_extract.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/cpu_reference.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/execution_mode.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
@@ -1137,15 +1135,11 @@ This is the key “gradual absorption” step:
 - but they still flow into the existing `RenderVirtualGeometryExtract` contract,
 - so the current M5 runtime can absorb the new data incrementally instead of being replaced wholesale.
 
-## Execution Modes
+## Execution Ownership
 
-`zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/execution_mode.rs` defines the first execution-mode contract:
+Virtual Geometry no longer exposes a standalone execution-mode enum. `PluginVirtualGeometryRuntimeProvider::build_extract_from_meshes` always builds the authoritative automatic extract, including the deterministic CPU-reference instances required by the neutral runtime contract. The compiled render graph, linked plugin capability, and renderer resources decide which GPU work is submitted; the CPU reference remains an extract/debug oracle rather than a second runtime mode selector.
 
-- `FlagshipGpu` when `RenderCapabilitySummary.virtual_geometry_supported` is true
-- `BaselineGpu` when the backend cannot claim flagship VG support but still exposes a usable render surface/offscreen path
-- `CpuDebug` when no GPU-backed VG path should be assumed
-
-This is only routing policy for now. The actual runtime still needs later work to switch behavior between these modes.
+Tests should therefore assert extract, residency, execution, and readback products. Reintroducing a test-only `FlagshipGpu` / `BaselineGpu` / `CpuDebug` selector would create routing policy with no production consumer.
 
 ## Validation
 

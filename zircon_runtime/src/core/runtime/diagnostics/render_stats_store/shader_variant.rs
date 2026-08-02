@@ -47,4 +47,11 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         report.disk_error_count,
         &["render", "shader", "variant", "cache", "disk", "error"],
     );
+    record_count(
+        store,
+        "render.shader_variant.pipeline_diagnostic_count",
+        frame_index,
+        report.pipeline_diagnostics().len(),
+        &["render", "shader", "variant", "pipeline", "diagnostic"],
+    );
 }

@@ -87,6 +87,7 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
         .expect("default world should contain a renderable mesh");
     let instance = RenderVirtualGeometryInstance {
         entity: mesh,
+        stable_instance_key: 0,
         source_model: None,
         transform: Transform::default(),
         cluster_offset: 1,
@@ -733,6 +734,7 @@ fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snap
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

@@ -27,12 +27,15 @@ mod render_particles;
 mod render_post_process;
 mod render_visibility;
 mod schedule;
+mod staging_snapshot;
+mod transaction;
+mod transform_validation;
 mod typed_api;
 mod world;
 
 pub use compiled_binding::{
     CompiledDescendantNameEntry, CompiledDescendantNameIndex, CompiledScenePropertyTarget,
-    CompiledTransformPropertyTarget, ComponentFieldId, PathId,
+    CompiledScenePropertyWriter, ComponentFieldId, PathId,
 };
 pub use component_type_registry::ComponentTypeRegistry;
 pub use dynamic_components::DynamicComponentInstance;

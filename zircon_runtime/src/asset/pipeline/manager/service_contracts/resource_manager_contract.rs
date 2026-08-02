@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use crate::core::framework::asset::{
-    ResourceCacheIdentity, ResourceManager as ResourceManagerContract,
+    ResourceCacheIdentity, ResourceManagementGeneration, ResourceManager as ResourceManagerContract,
 };
-use crate::core::framework::channel::ChannelReceiver;
-use crate::core::resource::{ResourceEvent, ResourceRecord};
+use crate::core::resource::{ResourceEventReceiver, ResourceRecord};
 
 use super::super::project_asset_manager::ProjectAssetManager;
 use crate::asset::AssetUri;
@@ -24,15 +25,8 @@ impl ResourceManagerContract for ProjectAssetManager {
             .cloned()
     }
 
-    fn list_resources(&self) -> Vec<ResourceRecord> {
-        let mut resources = self
-            .resource_manager()
-            .registry()
-            .values()
-            .cloned()
-            .collect::<Vec<_>>();
-        resources.sort_by_key(|record| record.primary_locator.to_string());
-        resources
+    fn resource_management_generation(&self) -> Arc<ResourceManagementGeneration> {
+        self.resource_manager().management_generation()
     }
 
     fn resource_revision(&self, locator: &str) -> Option<u64> {
@@ -57,7 +51,7 @@ impl ResourceManagerContract for ProjectAssetManager {
         identity
     }
 
-    fn subscribe_resource_changes(&self) -> ChannelReceiver<ResourceEvent> {
+    fn subscribe_resource_changes(&self) -> ResourceEventReceiver {
         self.resource_manager().subscribe()
     }
 }

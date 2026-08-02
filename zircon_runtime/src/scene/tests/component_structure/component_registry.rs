@@ -45,11 +45,15 @@ fn component_registry_dynamic_lookup_uses_borrowed_type_id_map() {
         .expect("registered_dynamic_component_id body should exist");
 
     assert!(registry_source.contains("dynamic_ids_by_type_id: HashMap<String, ComponentId>"));
-    assert!(dynamic_id_body.contains("self.dynamic_ids_by_type_id.get(component_type_id).copied()"));
+    assert!(
+        dynamic_id_body.contains("self.dynamic_ids_by_type_id.get(component_type_id).copied()")
+    );
     assert!(dynamic_id_body.contains("self.dynamic_ids_by_type_id"));
     assert!(dynamic_id_body.contains(".insert(component_type_id.to_string(), id);"));
-    assert!(registered_dynamic_body
-        .contains("self.dynamic_ids_by_type_id.get(component_type_id).copied()"));
+    assert!(
+        registered_dynamic_body
+            .contains("self.dynamic_ids_by_type_id.get(component_type_id).copied()")
+    );
     assert!(!registry_source.contains("pub enum ComponentKey"));
     assert!(!registry_source.contains("ids_by_key"));
     assert!(!registered_dynamic_body.contains("ComponentKey::Dynamic"));

@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use super::{
+    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION, ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
+    ZrPackInstallReceipt, ZrPackPromotionReport,
     file_io::{read_pack_file, write_pack_file},
-    ZrPackDeltaInstallError, ZrPackDeltaInstallReport, ZrPackInstallReceipt, ZrPackPromotionReport,
-    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
 };
 
 pub(super) fn write_install_receipt(

@@ -8,7 +8,7 @@ use crate::ui::layout::{UiFrame, UiPoint};
 use crate::ui::surface::UiNavigationEventKind;
 use crate::ui::tree::UiDirtyFlags;
 
-use super::{UiDragSessionId, UiPointerId, event::UiTextByteRange};
+use super::{event::UiTextByteRange, UiDragSessionId, UiPointerId};
 
 pub const UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT: usize = 4000;
 

@@ -52,3 +52,19 @@ root/direct/recursive状态只在查询时从三套锁与依赖图临时投影�
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+### 2026-08-01 current-source implementation
+
+- `core::resource` now publishes one immutable readiness generation containing
+  registry/runtime/payload observations and dependency projections. Stable
+  facade queries reuse the published root/direct/recursive state; full reports
+  traverse one consistent snapshot and fetch each node at most once.
+- Resource mutation paths invalidate and rebuild the affected readiness
+  projection at the generation boundary. Missing nodes, wrong kinds, shallowest
+  depth, direct markers, cycle termination and deterministic report order remain
+  represented by the canonical facade result.
+- The exact source was sealed as snapshot `1412`; managed ticket
+  `21c34d2bf640450fbe21258dd4ce2f95` was accepted. This is receipt evidence only,
+  not a terminal test claim.
+
+Open state: `实现完成，受管验证待回执`; accepted closeout remains deferred.

@@ -1,5 +1,6 @@
 use crate::core::math::UVec2;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
+use crate::text::sdf::SdfAtlasBakePage;
 
 use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
@@ -101,19 +102,37 @@ impl DistanceFieldAtlasResources {
         &self,
         queue: &wgpu::Queue,
         atlas_plan: &SdfAtlasPlan,
-        pixels: &[u8],
+        pages: &[SdfAtlasBakePage],
         upload: &SdfAtlasUploadReport,
     ) {
-        if pixels.is_empty() {
+        let source_byte_len = pages.iter().map(|page| page.byte_len).sum();
+        if source_byte_len == 0 {
             return;
         }
-        for command in sdf_atlas_upload_commands(atlas_plan, upload, pixels.len()) {
+        for mut command in sdf_atlas_upload_commands(atlas_plan, upload, source_byte_len) {
             let texture = match command.page_key.format {
                 GlyphAtlasFormat::Sdf => &self.sdf_texture,
                 GlyphAtlasFormat::Msdf => &self.msdf_texture,
                 _ => continue,
             };
-            write_glyph_atlas_texture_upload_command(queue, texture, pixels, command);
+            let Ok(page_index) =
+                pages.binary_search_by_key(&command.page_key, |page| page.page_key)
+            else {
+                continue;
+            };
+            let Some(page) = pages.get(page_index) else {
+                continue;
+            };
+            let Ok(page_source_offset) = u64::try_from(page.source_offset) else {
+                continue;
+            };
+            let Some(relative_source_offset) =
+                command.source_offset.checked_sub(page_source_offset)
+            else {
+                continue;
+            };
+            command.source_offset = relative_source_offset;
+            write_glyph_atlas_texture_upload_command(queue, texture, page.pixels.as_ref(), command);
         }
     }
 }

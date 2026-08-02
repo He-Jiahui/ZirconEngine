@@ -66,4 +66,8 @@ graphics::tests::pipeline_compile::feature_descriptors::compiled_pipeline_resour
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `current-source descriptor contract repair present; managed validation pending`.
+
+- `SCREEN_SPACE_REFLECTION_HISTORY` is a single-sample HDR intermediate with canonical `Rgba16Float` production descriptor, and the focused pipeline descriptor fixture asserts the same format.
+- The fixture reports the resource name, expected dimensions/format/sample count, and actual descriptor on mismatch, so a later resource cannot be mistaken for the original aggregate-loop failure.
+- No current-source `descriptor` Cargo gate is claimed. The handoff remains `open` until managed validation confirms this failure is absent from the broader filter.

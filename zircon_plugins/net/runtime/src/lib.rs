@@ -1,5 +1,3 @@
-pub const PLUGIN_ID: &str = "net";
-
 mod capability;
 mod config;
 mod http;
@@ -14,7 +12,11 @@ mod transport;
 mod websocket;
 mod worker;
 
-pub use capability::{NET_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+pub use capability::{
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, NET_DECLARATION, NET_RUNTIME_CAPABILITY, PLUGIN_ID,
+    RUNTIME_CAPABILITIES,
+};
 pub use config::NetConfig;
 pub use http::{HttpRouteHandler, HttpRuntimeBackend, ManagedHttpListener, ManagedHttpRoute};
 pub use module::{
@@ -34,7 +36,7 @@ pub use runtime_system::{
     NET_DIAGNOSTIC_LAST_LATENCY_MS, NET_DIAGNOSTIC_OPEN_TCP_CONNECTIONS,
     NET_DIAGNOSTIC_OPEN_WEBSOCKET_CONNECTIONS, NET_DIAGNOSTIC_OUTBOUND_BYTES, NET_DIAGNOSTIC_PATHS,
     NET_DIAGNOSTIC_QUEUED_EVENTS, NET_EVENT_ID, NET_EVENT_SCHEMA, NET_FLUSH_EGRESS_SYSTEM,
-    NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET,
+    NET_MAIN_SYSTEM_SET, NET_POLL_INGRESS_SYSTEM, NET_TRANSPORT_SYSTEM_SET,
 };
 pub use service_types::{DefaultNetManager, NetDriver, NetRuntimeManager};
 pub use transport::{

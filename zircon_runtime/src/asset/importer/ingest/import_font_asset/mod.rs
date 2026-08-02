@@ -2,7 +2,7 @@ mod parse_sfnt;
 
 use std::path::{Path, PathBuf};
 
-use crate::asset::assets::{decode_font_source, FontAsset, ImportedAsset};
+use crate::asset::assets::{FontAsset, ImportedAsset, decode_font_source};
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri};
 
 pub(crate) fn import_font_asset(

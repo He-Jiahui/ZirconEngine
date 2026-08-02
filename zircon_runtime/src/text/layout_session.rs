@@ -137,6 +137,24 @@ impl SharedTextLayoutSession {
         ))
     }
 
+    pub(crate) fn shape_vertical_line(
+        &mut self,
+        text: &str,
+        style: &TextStyle,
+        direction: TextDirection,
+        source_range: TextRange,
+        vertical_mode: VerticalMode,
+    ) -> Arc<ShapedGlyphRun> {
+        self.resolve_or_shape(BackendShapeRequest::vertical_with_kerning(
+            text,
+            style,
+            direction,
+            source_range,
+            vertical_mode,
+            true,
+        ))
+    }
+
     pub(crate) fn vertical_scope(
         &mut self,
         vertical_mode: VerticalMode,
@@ -149,21 +167,32 @@ impl SharedTextLayoutSession {
     }
 
     fn resolve_or_shape(&mut self, request: BackendShapeRequest<'_>) -> Arc<ShapedGlyphRun> {
+        let canonical_request = request.canonicalized();
+        let request = canonical_request.request();
+        if !request.style.font_size.is_finite() || request.style.font_size <= 0.0 {
+            return Arc::new(shape_fallback_for_error(
+                request,
+                &TextLayoutError::InvalidFontSize,
+            ));
+        }
         let lookup = ShapedRunCacheLookupKey::from_request(&request);
+        let lookup_generation = lookup.font_database_generation();
         if let Some(run) = self.shaped_runs.get_with_lookup(&lookup, request.text) {
             return run;
         }
         let key = self.shaped_runs.own_lookup_key(&lookup);
         match try_shape_request_through_canonical_service(request) {
-            Ok(shaped) => self.shaped_runs.insert(key, request.text, shaped),
+            Ok(shaped) if lookup_generation == shared_font_database_generation() => {
+                self.shaped_runs.insert(key, shaped)
+            }
+            Ok(shaped) => Arc::new(shaped),
             Err(error @ TextLayoutError::FontGenerationChanged) => {
                 Arc::new(shape_fallback_for_error(request, &error))
             }
-            Err(error) => self.shaped_runs.insert(
-                key,
-                request.text,
-                shape_fallback_for_error(request, &error),
-            ),
+            Err(error) if lookup_generation == shared_font_database_generation() => self
+                .shaped_runs
+                .insert(key, shape_fallback_for_error(request, &error)),
+            Err(error) => Arc::new(shape_fallback_for_error(request, &error)),
         }
     }
 }
@@ -275,7 +304,7 @@ impl Drop for VerticalTextLayoutScope<'_> {
 
 fn explicit_empty_fallback(request: BackendShapeRequest<'_>) -> ShapedGlyphRun {
     ShapedGlyphRun {
-        source_text: request.text.to_string(),
+        source_text: request.shared_source_text(),
         source_range: request.source_range,
         direction: request.base_direction,
         orientation: request.orientation,
@@ -369,6 +398,32 @@ mod tests {
     }
 
     #[test]
+    fn invalid_font_size_fallback_cannot_alias_a_valid_one_pixel_shape() {
+        let mut session = SharedTextLayoutSession::new();
+        let invalid_style = TextStyle {
+            font_size: 0.0,
+            ..TextStyle::default()
+        };
+        let valid_style = TextStyle {
+            font_size: 1.0,
+            ..TextStyle::default()
+        };
+        let range = TextRange { start: 0, end: 5 };
+
+        let invalid = session.shape_horizontal_line(
+            "alias",
+            &invalid_style,
+            TextDirection::LeftToRight,
+            range,
+        );
+        let valid =
+            session.shape_horizontal_line("alias", &valid_style, TextDirection::LeftToRight, range);
+
+        assert!(invalid.lines.is_empty());
+        assert!(valid.lines.iter().any(|line| !line.glyphs.is_empty()));
+    }
+
+    #[test]
     fn prewarm_routes_through_canonical_validation_and_records_typed_fallback() {
         let before = shared_text_layout_fallback_report();
         let mut session = SharedTextLayoutSession::new();
@@ -406,6 +461,7 @@ mod tests {
 
         assert!(!source.contains(concat!("TextShape", "Result")));
         assert!(!source.contains(concat!("resolve_font_handle", "_batch")));
+        assert!(!source.contains(concat!("project_shape", "_result")));
         assert!(source.contains("shape_backend_request_at_stable_generation"));
     }
 

@@ -6,6 +6,10 @@ use super::super::metrics::material_feedback_metrics;
 use super::super::state::{
     progress_fill_color, progress_is_indeterminate, progress_percent, progress_track_color,
 };
+use super::cache::{
+    cached_circular_progress_raster, store_circular_progress_raster, CachedCircularProgressRaster,
+    CircularProgressRasterKey,
+};
 use super::geometry::circular_progress_rect;
 use super::key::circular_progress_image_key;
 use super::pixels::{circular_progress_pixels, normalized_circular_progress_percent};
@@ -34,12 +38,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
     });
     let track = progress_track_color(node);
     let fill = progress_fill_color(node);
-    let rgba = circular_progress_pixels(size, progress, track, fill);
+    let cache_key = CircularProgressRasterKey::new(size, progress, track, fill);
+    let CachedCircularProgressRaster { resource_key, rgba } =
+        cached_circular_progress_raster(cache_key).unwrap_or_else(|| {
+            let rgba = circular_progress_pixels(size, progress, track, fill);
+            let resource_key = circular_progress_image_key(size, progress, track, fill);
+            store_circular_progress_raster(cache_key, resource_key.clone(), rgba.clone());
+            CachedCircularProgressRaster { resource_key, rgba }
+        });
     commands.push(HostPaintCommand::image_pixels(
         image_rect,
         Some(clip.clone()),
         order,
-        circular_progress_image_key(size, progress, track, fill),
+        resource_key,
         size,
         size,
         rgba,

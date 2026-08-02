@@ -25,6 +25,34 @@ pub fn compute_workbench_shell_geometry(
     metrics: &WorkbenchChromeMetrics,
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
 ) -> WorkbenchShellGeometry {
+    compute_workbench_shell_geometry_with_region_defaults(
+        model,
+        _chrome,
+        layout,
+        descriptors,
+        shell_size,
+        scale_factor,
+        metrics,
+        transient_region_preferred,
+        None,
+    )
+}
+
+/// Solves shell geometry with independent user-drag and token-default inputs.
+///
+/// Both maps use physical host extents at the public boundary. Tool drawers resolve
+/// active drag capture first, persisted runtime extent second, and token defaults last.
+pub fn compute_workbench_shell_geometry_with_region_defaults(
+    model: &WorkbenchViewModel,
+    _chrome: &EditorChromeSnapshot,
+    layout: &WorkbenchLayout,
+    descriptors: &[ViewDescriptor],
+    shell_size: ShellSizePx,
+    scale_factor: f32,
+    metrics: &WorkbenchChromeMetrics,
+    transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+) -> WorkbenchShellGeometry {
     let descriptor_map: HashMap<&str, &ViewDescriptor> = descriptors
         .iter()
         .map(|descriptor| (descriptor.descriptor_id.0.as_str(), descriptor))
@@ -41,7 +69,14 @@ pub fn compute_workbench_shell_geometry(
             .map(|(region, physical_extent)| (*region, resolution.to_logical(*physical_extent)))
             .collect::<BTreeMap<_, _>>()
     });
+    let logical_token_region_preferred = token_region_preferred.map(|preferred| {
+        preferred
+            .iter()
+            .map(|(region, physical_extent)| (*region, resolution.to_logical(*physical_extent)))
+            .collect::<BTreeMap<_, _>>()
+    });
     let transient_region_preferred = logical_transient_region_preferred.as_ref();
+    let token_region_preferred = logical_token_region_preferred.as_ref();
     let collapse_right_drawer =
         right_drawer_should_collapse_for_logical_width(resolution.logical_width());
 
@@ -52,6 +87,7 @@ pub fn compute_workbench_shell_geometry(
         ShellRegionId::Left,
         &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
         transient_region_preferred,
+        token_region_preferred,
         metrics,
         false,
     );
@@ -65,6 +101,7 @@ pub fn compute_workbench_shell_geometry(
             ActivityDrawerSlot::RightBottom,
         ],
         transient_region_preferred,
+        token_region_preferred,
         metrics,
         collapse_right_drawer,
     );
@@ -75,6 +112,7 @@ pub fn compute_workbench_shell_geometry(
         ShellRegionId::Bottom,
         &[ActivityDrawerSlot::Bottom],
         transient_region_preferred,
+        token_region_preferred,
         metrics,
         false,
     );

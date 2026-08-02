@@ -4,12 +4,11 @@ use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV3, ZrRuntimeEventV1,
-    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
+    ZrRuntimeApiV3, ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryBatchV1,
+    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
 };
 
 use crate::core::gateway::{
@@ -373,7 +372,7 @@ impl EditorRuntimeGateway for FakeGateway {
     fn poll_operation(
         &self,
         _handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
-    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })
@@ -794,3 +793,6 @@ fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
 fn percentile_index(sample_count: usize) -> usize {
     sample_count.saturating_mul(95).div_ceil(100) - 1
 }
+
+#[path = "runtime_event_consumer_bounded_pump/real_runtime_abi.rs"]
+mod real_runtime_abi;

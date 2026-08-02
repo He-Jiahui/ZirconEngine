@@ -71,9 +71,11 @@ fn narrow_status_controls_keep_every_command_inside_their_frame() {
             1.0,
         ));
 
-        assert!(commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame)));
+        assert!(
+            commands
+                .iter()
+                .all(|command| frame_is_within(&rect, &command.frame))
+        );
     }
 }
 

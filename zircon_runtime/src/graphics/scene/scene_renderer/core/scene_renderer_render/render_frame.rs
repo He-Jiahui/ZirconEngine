@@ -136,22 +136,16 @@ mod tests {
         let source = include_str!("render_frame.rs");
 
         assert!(source.contains("let capture_frame_timing = self.frame_timing_report_requested;"));
-        assert!(
-            source.contains(
-                "let render_submission_started = capture_frame_timing.then(Instant::now);"
-            )
-        );
+        assert!(source
+            .contains("let render_submission_started = capture_frame_timing.then(Instant::now);"));
         assert!(source.contains(
             "let readback_and_completion_started = capture_frame_timing.then(Instant::now);"
         ));
         assert!(source.contains(
             "let render_submission = render_submission_started.map(|started| started.elapsed());"
         ));
-        assert!(
-            source.contains(
-                "if let (Some(render_submission), Some(readback_and_completion_started))"
-            )
-        );
+        assert!(source
+            .contains("if let (Some(render_submission), Some(readback_and_completion_started))"));
         assert!(source.contains("self.frame_timing_report_requested = false;"));
 
         let submission_end = source

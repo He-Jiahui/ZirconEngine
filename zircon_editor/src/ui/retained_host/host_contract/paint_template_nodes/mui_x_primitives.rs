@@ -9,7 +9,7 @@ mod pickers;
 mod shared;
 mod tree_view;
 
-use self::kind::{mui_x_kind, MuiXKind};
+use self::kind::{MuiXKind, mui_x_kind};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use shared::{
     component_variant_contains, matches_any_role, node_background, node_radius, push_quad,
 };

@@ -160,7 +160,8 @@ impl NativePluginLiveHost {
                 match discovered_runtime_bridge_method_bindings_result(&plugin) {
                     Ok(Some(bindings)) => {
                         diagnostics.push(discovered_runtime_bridge_method_binding_diagnostics(
-                            &plugin_id, &bindings,
+                            &plugin_id,
+                            bindings.len(),
                         ));
                         Some((plugin_id.clone(), Some(bindings)))
                     }
@@ -181,7 +182,8 @@ impl NativePluginLiveHost {
                 let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
                 let Some(existing) = loaded.get(&key) else {
                     if let Some((binding_plugin_id, bindings)) = bridge_binding_update {
-                        self.replace_runtime_bridge_method_bindings_result(
+                        self.publish_runtime_bridge_method_bindings_under_loaded_lock_result(
+                            &loaded,
                             &binding_plugin_id,
                             bindings,
                         )
@@ -194,11 +196,9 @@ impl NativePluginLiveHost {
                     }
                     loaded.insert(key, plugin);
                     if module_kind == PluginModuleKind::Runtime {
-                        // Binding installation happens before the loaded entry is published. Bump
-                        // once more after publication so a concurrent replay cannot cache the
-                        // preceding library under the newly installed bindings.
                         self.invalidate_runtime_registration_replay_generation(&plugin_id);
                     }
+                    drop(loaded);
                     loaded_plugin_ids.push(plugin_id.clone());
                     continue;
                 };
@@ -225,9 +225,20 @@ impl NativePluginLiveHost {
                     });
                 }
             }
+            let mut loaded = match lock_loaded_native_plugins(&self.loaded) {
+                Ok(loaded) => loaded,
+                Err(error) => {
+                    existing.cancel_lifecycle_transition();
+                    return Err(error);
+                }
+            };
             if let Some((binding_plugin_id, bindings)) = bridge_binding_update {
-                if let Err(source) =
-                    self.replace_runtime_bridge_method_bindings_result(&binding_plugin_id, bindings)
+                if let Err(source) = self
+                    .publish_runtime_bridge_method_bindings_under_loaded_lock_result(
+                        &loaded,
+                        &binding_plugin_id,
+                        bindings,
+                    )
                 {
                     existing.cancel_lifecycle_transition();
                     return Err(
@@ -238,10 +249,11 @@ impl NativePluginLiveHost {
                     );
                 }
             }
-            lock_loaded_native_plugins(&self.loaded)?.insert(key, plugin);
+            loaded.insert(key, plugin);
             if module_kind == PluginModuleKind::Runtime {
                 self.invalidate_runtime_registration_replay_generation(&plugin_id);
             }
+            drop(loaded);
             loaded_plugin_ids.push(plugin_id);
         }
 

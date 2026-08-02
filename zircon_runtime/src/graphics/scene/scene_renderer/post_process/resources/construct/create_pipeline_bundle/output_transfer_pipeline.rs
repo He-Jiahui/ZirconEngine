@@ -1,6 +1,6 @@
 use super::super::super::shader_sources::OUTPUT_TRANSFER_SHADER;
 
-pub(super) fn output_transfer_pipeline(
+pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) fn output_transfer_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,
     output_transfer_bind_group_layout: &wgpu::BindGroupLayout,

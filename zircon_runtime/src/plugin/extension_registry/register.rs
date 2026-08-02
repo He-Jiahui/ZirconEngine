@@ -9,7 +9,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::native::LoadedNativePlugin;
-use crate::plugin::RuntimeExtensionRegistryError;
+use crate::plugin::{PluginShaderModuleSource, RuntimeExtensionRegistryError};
 use crate::scene::ecs::SystemSetId;
 use std::sync::Arc;
 
@@ -31,6 +31,48 @@ pub(in crate::plugin::extension_registry) use runtime_scene_system_registration:
 pub(in crate::plugin::extension_registry) use system_registration::SystemRegistration;
 
 impl RuntimeExtensionRegistry {
+    pub fn register_plugin_shader_module_source(
+        &mut self,
+        package_id: &str,
+        source: PluginShaderModuleSource,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self.is_finalized() {
+            return Err(RuntimeExtensionRegistryError::InvalidShaderModule(
+                "runtime extension registry is finalized".to_string(),
+            ));
+        }
+        if source.owner_id != package_id {
+            return Err(RuntimeExtensionRegistryError::InvalidShaderModule(format!(
+                "source package `{}` does not match registering package `{package_id}`",
+                source.owner_id
+            )));
+        }
+        if source.import_path.trim().is_empty() || source.source.trim().is_empty() {
+            return Err(RuntimeExtensionRegistryError::InvalidShaderModule(format!(
+                "{} must declare a non-empty import path and source body",
+                source.diagnostic_origin
+            )));
+        }
+        let actual_content_hash = blake3::hash(source.source.as_bytes()).to_hex().to_string();
+        if source.content_hash != actual_content_hash {
+            return Err(RuntimeExtensionRegistryError::InvalidShaderModule(format!(
+                "{} content hash does not match its source body",
+                source.diagnostic_origin
+            )));
+        }
+        if self
+            .shader_module_sources
+            .iter()
+            .any(|existing| existing.import_path == source.import_path)
+        {
+            return Err(RuntimeExtensionRegistryError::DuplicateShaderModule(
+                source.import_path,
+            ));
+        }
+        self.shader_module_sources.push(source);
+        Ok(())
+    }
+
     pub fn intern_plugin_module(
         &mut self,
         name: impl Into<String>,

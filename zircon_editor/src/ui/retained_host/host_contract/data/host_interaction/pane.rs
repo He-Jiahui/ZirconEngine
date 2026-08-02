@@ -7,6 +7,7 @@ use super::super::FrameRect;
 pub(crate) struct HostPaneInteractionStateData {
     pub hierarchy_scroll_px: f32,
     pub hovered_hierarchy_index: i32,
+    pub console_scroll_px: f32,
     pub activity_asset_tree_scroll_px: f32,
     pub activity_asset_tree_hovered_index: i32,
     pub activity_asset_content_scroll_px: f32,
@@ -27,6 +28,7 @@ impl Default for HostPaneInteractionStateData {
         Self {
             hierarchy_scroll_px: 0.0,
             hovered_hierarchy_index: -1,
+            console_scroll_px: 0.0,
             activity_asset_tree_scroll_px: 0.0,
             activity_asset_tree_hovered_index: -1,
             activity_asset_content_scroll_px: 0.0,

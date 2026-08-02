@@ -1,7 +1,7 @@
 use crate::asset::assets::SceneScriptBindingAsset;
 use crate::scene::world::World;
 
-use super::{SceneProjectError, SCRIPT_BINDINGS_COMPONENT};
+use super::{SCRIPT_BINDINGS_COMPONENT, SceneProjectError};
 pub(super) fn script_bindings_for_record(
     world: &World,
     entity: u64,

@@ -29,3 +29,7 @@ pub(super) fn projected_text(
         })
         .unwrap_or_default()
 }
+
+pub(super) fn projected_icon_placement(attributes: &BTreeMap<String, toml::Value>) -> String {
+    first_non_empty_string_attribute(attributes, &["icon_placement"]).unwrap_or_default()
+}

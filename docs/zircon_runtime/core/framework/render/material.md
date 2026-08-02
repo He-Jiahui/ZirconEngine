@@ -43,7 +43,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
@@ -161,7 +161,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs

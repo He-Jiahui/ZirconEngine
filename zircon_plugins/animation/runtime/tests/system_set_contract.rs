@@ -1,5 +1,5 @@
 use zircon_plugin_animation_runtime::{
-    ANIMATION_SYSTEM_SET, PLUGIN_RUNTIME_MODULE_NAME, package_manifest, plugin_registration,
+    package_manifest, plugin_registration, ANIMATION_SYSTEM_SET, PLUGIN_RUNTIME_MODULE_NAME,
 };
 
 const ANIMATION_MAIN_SYSTEM_SET: &str = "animation.main";

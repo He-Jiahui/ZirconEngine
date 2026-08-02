@@ -1,11 +1,13 @@
 use super::*;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::Duration;
 
 use super::super::super::abi_declarations::{
     NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOutputSinkV4,
+    NativePluginOwnedByteBufferV2,
 };
 use super::super::super::behavior_calls::NativePluginCommandTable;
 
@@ -67,6 +69,11 @@ fn reentrant_host_slot() -> &'static Mutex<Option<Arc<NativePluginLiveHost>>> {
 fn slow_callback_slot() -> &'static Mutex<Option<Arc<SlowCallbackProbe>>> {
     static PROBE: OnceLock<Mutex<Option<Arc<SlowCallbackProbe>>>> = OnceLock::new();
     PROBE.get_or_init(|| Mutex::new(None))
+}
+
+fn state_restore_count() -> &'static AtomicUsize {
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
+    &COUNT
 }
 
 unsafe extern "C" fn reentrant_descriptor_command(
@@ -134,6 +141,49 @@ unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
     successful_unload()
 }
 
+unsafe extern "C" fn stateful_save_state(
+    output: *mut NativePluginOwnedByteBufferV2,
+) -> NativePluginCallbackStatusV2 {
+    if output.is_null() {
+        return NativePluginCallbackStatusV2 {
+            code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            diagnostics: std::ptr::null(),
+        };
+    }
+    static STATE: &[u8] = b"state";
+    unsafe {
+        *output = NativePluginOwnedByteBufferV2 {
+            data: STATE.as_ptr().cast_mut(),
+            len: STATE.len(),
+            capacity: STATE.len(),
+            owner_token: 0,
+            free: None,
+        };
+    }
+    NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
+
+unsafe extern "C" fn stateful_restore_state(
+    state: NativePluginByteSliceV2,
+) -> NativePluginCallbackStatusV2 {
+    let restored = !state.data.is_null()
+        && unsafe { std::slice::from_raw_parts(state.data, state.len) } == b"state";
+    if restored {
+        state_restore_count().fetch_add(1, Ordering::SeqCst);
+    }
+    NativePluginCallbackStatusV2 {
+        code: if restored {
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK
+        } else {
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
+        },
+        diagnostics: std::ptr::null(),
+    }
+}
+
 pub(super) unsafe extern "C" fn successful_runtime_command(
     _command_slot: u32,
     _payload: NativePluginByteSliceV2,
@@ -173,6 +223,17 @@ pub(super) fn callback_test_behavior(
         restore_state: None,
         unload: Some(successful_unload),
     }
+}
+
+fn stateful_callback_test_behavior(
+    invoke_command: super::super::super::abi_declarations::NativePluginInvokeCommandFnV4,
+) -> NativePluginBehavior {
+    let mut behavior = callback_test_behavior(invoke_command);
+    behavior.is_stateless = false;
+    behavior.state_schema_version = 7;
+    behavior.save_state = Some(stateful_save_state);
+    behavior.restore_state = Some(stateful_restore_state);
+    behavior
 }
 
 #[test]
@@ -407,6 +468,194 @@ fn bulk_reload_unload_callback_runs_outside_live_host_lock() {
             .expect("replacement plugin should accept callbacks")
             .status_code,
         ZIRCON_NATIVE_PLUGIN_STATUS_OK
+    );
+}
+
+#[test]
+fn bulk_reload_reopens_the_old_generation_when_loaded_lock_reacquisition_fails() {
+    let _fixture = callback_concurrency_fixture_lock();
+    let host = Arc::new(NativePluginLiveHost::default());
+    let mut old_behavior = callback_test_behavior(successful_runtime_command);
+    old_behavior.unload = Some(slow_unload);
+    let old_plugin = native_live_host_test_plugin_with_behavior("physics", old_behavior);
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            old_plugin.clone(),
+        );
+    }
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let probe = Arc::new(SlowCallbackProbe::new(entered_tx));
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(probe.clone());
+
+    let load_host = Arc::clone(&host);
+    let reload = std::thread::spawn(move || {
+        let mut report = NativePluginLoadReport::default();
+        report.push_loaded(native_live_host_test_plugin_with_behavior(
+            "physics",
+            callback_test_behavior(successful_runtime_command),
+        ));
+        load_host.load_reported_plugins(report, PluginModuleKind::Runtime)
+    });
+    entered_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("reload should enter the old plugin unload callback");
+
+    let poison_host = Arc::clone(&host);
+    let poison = std::thread::spawn(move || {
+        let _guard = poison_host
+            .loaded
+            .entries
+            .lock()
+            .expect("test should lock the live host map");
+        panic!("poison the replacement loaded-lock reacquisition");
+    })
+    .join();
+    assert!(poison.is_err());
+
+    probe.release();
+    let error = reload
+        .join()
+        .expect("reload worker should not panic")
+        .expect_err("a poisoned replacement lock should produce a typed loading error");
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+
+    assert!(error.contains("native plugin live host lock is poisoned"));
+    assert!(
+        old_plugin.callback_owner_lease().is_ok(),
+        "the failed replacement must reopen callback admission for its retained generation"
+    );
+}
+
+#[test]
+fn unload_reopens_the_retained_generation_when_loaded_lock_reacquisition_fails() {
+    let _fixture = callback_concurrency_fixture_lock();
+    let host = Arc::new(NativePluginLiveHost::default());
+    let mut behavior = callback_test_behavior(successful_runtime_command);
+    behavior.unload = Some(slow_unload);
+    let plugin = native_live_host_test_plugin_with_behavior("physics", behavior);
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            plugin.clone(),
+        );
+    }
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let probe = Arc::new(SlowCallbackProbe::new(entered_tx));
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(probe.clone());
+
+    let unload_host = Arc::clone(&host);
+    let unload = std::thread::spawn(move || unload_host.unload_runtime_plugin("physics"));
+    entered_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("unload should enter the old plugin callback");
+
+    let poison_host = Arc::clone(&host);
+    let poison = std::thread::spawn(move || {
+        let _guard = poison_host
+            .loaded
+            .entries
+            .lock()
+            .expect("test should lock the live host map");
+        panic!("poison the unload loaded-lock reacquisition");
+    })
+    .join();
+    assert!(poison.is_err());
+
+    probe.release();
+    let error = unload
+        .join()
+        .expect("unload worker should not panic")
+        .expect_err("a poisoned unload lock should produce a typed lifecycle error");
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+
+    assert!(error.contains("native plugin live host lock is poisoned"));
+    assert!(
+        plugin.callback_owner_lease().is_ok(),
+        "the failed unload must reopen callback admission for its retained generation"
+    );
+}
+
+#[test]
+fn hot_reload_reopens_the_retained_generation_when_loaded_lock_reacquisition_fails() {
+    let _fixture = callback_concurrency_fixture_lock();
+    state_restore_count().store(0, Ordering::SeqCst);
+    let host = Arc::new(NativePluginLiveHost::default());
+    let mut old_behavior = stateful_callback_test_behavior(successful_runtime_command);
+    old_behavior.unload = Some(slow_unload);
+    let old_plugin = native_live_host_test_plugin_with_behavior("physics", old_behavior);
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            old_plugin.clone(),
+        );
+    }
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let probe = Arc::new(SlowCallbackProbe::new(entered_tx));
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(probe.clone());
+
+    let reload_host = Arc::clone(&host);
+    let reload = std::thread::spawn(move || {
+        reload_host.hot_reload_reported_plugin(
+            NativePluginLoadReport::from_loaded(vec![native_live_host_test_plugin_with_behavior(
+                "physics",
+                stateful_callback_test_behavior(successful_runtime_command),
+            )]),
+            std::path::Path::new("reload-root"),
+            "physics",
+            PluginModuleKind::Runtime,
+        )
+    });
+    entered_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("hot reload should enter the old plugin unload callback");
+
+    let poison_host = Arc::clone(&host);
+    let poison = std::thread::spawn(move || {
+        let _guard = poison_host
+            .loaded
+            .entries
+            .lock()
+            .expect("test should lock the live host map");
+        panic!("poison the hot-reload loaded-lock reacquisition");
+    })
+    .join();
+    assert!(poison.is_err());
+
+    probe.release();
+    let error = reload
+        .join()
+        .expect("hot-reload worker should not panic")
+        .expect_err("a poisoned hot-reload lock should produce a typed lifecycle error");
+    *slow_callback_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+
+    assert!(error.contains("native plugin live host lock is poisoned"));
+    assert!(
+        old_plugin.callback_owner_lease().is_ok(),
+        "the failed hot reload must reopen callback admission for its retained generation"
+    );
+    assert_eq!(
+        state_restore_count().load(Ordering::SeqCst),
+        2,
+        "a failed publication must restore the saved runtime state to both replacement and retained generations"
     );
 }
 

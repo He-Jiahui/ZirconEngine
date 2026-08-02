@@ -73,7 +73,7 @@ fn expand_activity_rail_button_nodes(
         ) {
             button_node.surface_variant = if tab.active { "inset" } else { "" }.into();
             button_node.selected = tab.active;
-            button_node.focused = tab.active;
+            button_node.focused = false;
             output_nodes.push(button_node);
         }
         if let Some(mut icon_node) = indexed_slot_node(
@@ -88,7 +88,7 @@ fn expand_activity_rail_button_nodes(
             icon_node.text = "".into();
             apply_template_icon(&mut icon_node, &icon_name);
             icon_node.selected = tab.active;
-            icon_node.focused = tab.active;
+            icon_node.focused = false;
             if tab.active {
                 icon_node.text_tone = "default".into();
                 icon_node.font_weight = 700;
@@ -142,7 +142,7 @@ fn fallback_activity_rail_nodes(
             surface_variant: if tab.active { "inset" } else { "" }.into(),
             button_variant: "ghost".into(),
             selected: tab.active,
-            focused: tab.active,
+            focused: false,
             frame: ViewTemplateFrameData {
                 x: 3.0,
                 y,
@@ -165,7 +165,7 @@ fn fallback_activity_rail_nodes(
             },
             font_weight: if tab.active { 700 } else { 600 },
             selected: tab.active,
-            focused: tab.active,
+            focused: false,
             frame: ViewTemplateFrameData {
                 x: (rail_width - 18.0) * 0.5,
                 y: y + (button_height - 18.0) * 0.5,

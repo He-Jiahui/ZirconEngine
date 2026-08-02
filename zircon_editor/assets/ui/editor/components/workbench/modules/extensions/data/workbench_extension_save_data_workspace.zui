@@ -140,7 +140,7 @@ events = [{ id = "WorkbenchExtension/SaveDataLoadSlot", event = "Click", route =
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSaveDataDiff"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "save_data_player_state_row" }, { node = "save_data_inventory_row" }, { node = "save_data_quest_log_row" }, { node = "save_data_debug_slot_row" }]
 

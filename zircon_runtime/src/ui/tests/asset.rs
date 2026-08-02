@@ -210,7 +210,7 @@ params = { label = "Open", icon = "folder-open-outline" }
 style_overrides = { self = { text = "Open Override" } }
 "##;
 
-const LEGACY_TEMPLATE_TOML: &str = r#"
+const SOURCE_TEMPLATE_WITHOUT_ASSET_HEADER_TOML: &str = r#"
 version = 1
 
 [root]

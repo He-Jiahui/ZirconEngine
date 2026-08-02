@@ -9,13 +9,17 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/text/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/text/atlas/bitmap_run/types.rs
-  - zircon_runtime/src/text/atlas/render_plan.rs
   - zircon_runtime/src/text/atlas/render_batch.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan/instance.rs
+  - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
+  - zircon_runtime/src/text/atlas/shaders/glyph_atlas_pipeline.wgsl
   - zircon_runtime/src/text/atlas/render_submission/plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
 ---
 
 # Glyph atlas draw双层六顶点物化
@@ -58,4 +62,11 @@ render plan把quad当成六个完整CPU顶点，GPU plan又把viewport transform
 
 ## 修复结果与回传
 
-Open state: `等待Text04联动Render17/PERF231回传single draw artifact、instance或indexed quad、shader viewport transform、generation buffer reuse、current-source Cargo与产品GPU/像素证据`。
+Open state: 非验收实现与二次静态审查已完成；仅等待 managed current-source Cargo、ignored 规模报告和真实 WGPU 产品像素验收。成功回执前保持 `open / implementation_complete / resolving_failure / managed_validation_pending`，不写成 blocked，也不以旧截图关闭。
+
+- 2026-08-01 已删除两层 `GlyphAtlasGpuVertex`/CPU NDC 路径。clipped draw occurrence 只投影为每 glyph 一个 68 B `GlyphAtlasGpuInstance`；固定六角点由 WGSL `vertex_index` 展开，viewport pixel 到 NDC 只读取 16 B vertex uniform，CPU viewport division 为 0。
+- WGPU owner 使用 `VertexStepMode::Instance` 与 `draw(0..6, instance_range)`；仅合并相邻且 page/render-contract 相同的 batch，Alpha/Color/Subpixel 的非相邻 painter order 不被重排。
+- instance buffer 以至少 4 KiB 的二次幂容量持久复用；稳定或缩小帧只写有效的 `68N` bytes，容量不足才重建，prepare report 显式记录 capacity/reallocation。显式 idle 释放历史 mixed-storage draw buffers。
+- 新增 1/100/1k/10k 规模门禁：严格锁定 `N` slot occurrences、`N` instances、`0` CPU quad vertices、相邻同合同场景 `1` draw、`68N` instance bytes，并锁定同容量稳态 reallocation 为 0。ignored `render_text_atlas_gpu_plan_reports_scale_p50_p95` 用 31 samples 输出 p50/p95，不以机器时间阈值伪造正确性 gate。
+- 2026-08-01 二次静态审查修正 p95 nearest-rank 下标与误导性的 batch helper 命名；当前 owner 拆分为 render-plan/instance/instance-buffer/state leaf，旧 vertex leaf 均已删除。scoped rustfmt 与 diff check 通过，未发现新的 actionable P0/P1/P2。
+- 待 coordinator wakeup：执行 Text04 focused scale/instance-buffer tests、ignored p50/p95 exporter、upward renderer tests与 exact ignored WGPU product framebuffer；验证图只允许成功后写入 `docs/tests/runtime/text`，不得写入任意 target。

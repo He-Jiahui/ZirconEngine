@@ -7,6 +7,7 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
     let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
     let shader_mod = read_runtime_src("graphics/shader/mod.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
+    let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let dynamic_api_mod = read_runtime_src("dynamic_api/mod.rs");
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
@@ -40,10 +41,17 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
         &["prewarm_shader_variants_to_disk_with_module_validation"],
     );
     assert_contains_all(
-        "dynamic API creates an offscreen WGPU shader module validation gate",
+        "dynamic API re-exports the WGPU shader module validation gate",
         &dynamic_api,
         &[
             "prewarm_shader_variants_with_wgpu_module_validation",
+            "pub use wgpu_validation::{",
+        ],
+    );
+    assert_contains_all(
+        "WGPU validation owner creates an offscreen shader module validation gate",
+        &wgpu_validation,
+        &[
             "RenderBackend::new_offscreen",
             "device.push_error_scope(wgpu::ErrorFilter::Validation)",
             "device.create_shader_module",
@@ -110,6 +118,10 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
         (
             "zircon_runtime/src/dynamic_api/shader_prewarm.rs",
             dynamic_api.as_str(),
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/shader_prewarm/wgpu_validation.rs",
+            wgpu_validation.as_str(),
         ),
         (
             "tools/zircon_build_shader_prewarm.py",

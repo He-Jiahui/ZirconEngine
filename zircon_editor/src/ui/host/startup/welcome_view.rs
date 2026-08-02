@@ -5,8 +5,8 @@ use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::startup::{WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID};
 use crate::ui::workbench::view::{
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
-    ViewKind,
+    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
+    WorkbenchSlot,
 };
 
 pub(crate) fn welcome_view_descriptor() -> ViewDescriptor {
@@ -15,7 +15,7 @@ pub(crate) fn welcome_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "Welcome",
     )
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Welcome))
     .with_icon_key("welcome")
 }

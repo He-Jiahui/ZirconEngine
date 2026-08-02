@@ -5,17 +5,17 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 #[cfg(feature = "profiling-chrome")]
 use crate::core::diagnostics::profiling::{
-    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
-    PROFILE_TIMELINE_PERFETTO_FILE, export_report, stop_capture,
+    export_report, stop_capture, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
+    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
 };
 use crate::core::diagnostics::profiling::{
-    ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
+    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
 };
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderViewportDescriptor, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
-use crate::graphics::{ViewportRenderFrame, runtime::WgpuRenderFramework};
+use crate::graphics::{runtime::WgpuRenderFramework, ViewportRenderFrame};
 use crate::scene::world::World;
 use zircon_runtime_interface::ProfileSnapshot;
 

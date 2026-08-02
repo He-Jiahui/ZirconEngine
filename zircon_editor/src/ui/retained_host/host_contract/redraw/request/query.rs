@@ -1,4 +1,4 @@
-use crate::ui::retained_host::ui_perf::{current_ui_perf_scenario, UiPerfScenario};
+use crate::ui::retained_host::ui_perf::{UiPerfScenario, current_ui_perf_scenario};
 
 use super::super::super::data::FrameRect;
 use super::HostRedrawRequest;

@@ -13,6 +13,8 @@ pub struct Ref<'world, T> {
 pub struct Mut<'world, T> {
     value: &'world mut T,
     ticks: ComponentTicks,
+    changed_tick: Option<&'world mut ComponentTicks>,
+    this_run: ChangeTick,
     window: ChangeTickWindow,
 }
 
@@ -53,18 +55,49 @@ impl<T> Deref for Ref<'_, T> {
 impl<'world, T> Mut<'world, T> {
     pub(crate) fn new(
         value: &'world mut T,
+        changed_tick: &'world mut ComponentTicks,
+        this_run: ChangeTick,
+        window: ChangeTickWindow,
+    ) -> Self {
+        Self {
+            value,
+            ticks: *changed_tick,
+            changed_tick: Some(changed_tick),
+            this_run,
+            window,
+        }
+    }
+
+    pub(crate) fn new_eager(
+        value: &'world mut T,
         ticks: ComponentTicks,
         window: ChangeTickWindow,
     ) -> Self {
         Self {
             value,
             ticks,
+            changed_tick: None,
+            this_run: window.this_run(),
             window,
         }
     }
 
-    pub fn into_inner(self) -> &'world mut T {
+    pub fn into_inner(mut self) -> &'world mut T {
+        self.set_changed();
         self.value
+    }
+
+    pub fn as_mut(&mut self) -> &mut T {
+        self.set_changed();
+        self.value
+    }
+
+    pub fn set_changed(&mut self) {
+        let Some(ticks) = self.changed_tick.as_deref_mut() else {
+            return;
+        };
+        ticks.set_changed(self.this_run);
+        self.ticks = *ticks;
     }
 
     pub fn is_added(&self) -> bool {
@@ -90,6 +123,6 @@ impl<T> Deref for Mut<'_, T> {
 
 impl<T> DerefMut for Mut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.value
+        self.as_mut()
     }
 }

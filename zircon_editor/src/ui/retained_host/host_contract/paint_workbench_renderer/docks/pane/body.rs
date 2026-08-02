@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, PaneData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_primitives::draw_rect;
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::viewport_toolbar;
 
 pub(super) fn draw_pane_shell_and_body(

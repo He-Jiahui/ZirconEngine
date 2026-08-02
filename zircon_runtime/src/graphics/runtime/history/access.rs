@@ -1,7 +1,7 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
-use crate::graphics::VisibilityHistorySnapshot;
 use crate::graphics::visibility::VisibilityStaticIndex;
+use crate::graphics::VisibilityHistorySnapshot;
 
 use super::viewport_frame_history::ViewportFrameHistory;
 
@@ -16,5 +16,9 @@ impl ViewportFrameHistory {
 
     pub(crate) fn static_index(&self) -> &VisibilityStaticIndex {
         &self.static_index
+    }
+
+    pub(crate) fn dynamic_index(&self) -> &VisibilityStaticIndex {
+        &self.dynamic_index
     }
 }

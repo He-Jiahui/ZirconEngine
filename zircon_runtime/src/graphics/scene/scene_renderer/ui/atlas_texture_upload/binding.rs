@@ -1,6 +1,6 @@
 use crate::text::atlas::{GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapTextureUploadRequest};
 
-use super::write::{GlyphAtlasTextureUploadWrite, write_glyph_atlas_texture_upload_bytes};
+use super::write::{write_glyph_atlas_texture_upload_bytes, GlyphAtlasTextureUploadWrite};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct GlyphAtlasBitmapTextureUploadBinding<'a> {

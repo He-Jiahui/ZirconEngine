@@ -221,15 +221,13 @@ mod tests {
             .install_world_runtime_extension_plan(
                 WorldRuntimeExtensionPlan::from_registrations([
                     WorldRuntimeExtensionRegistration::new("reentrant", move |_| {
-                        let guard =
-                            reentrant_driver
-                                .runtime_extensions
-                                .try_lock()
-                                .map_err(|_| {
-                                    WorldRuntimeExtensionError::new(
-                                "world extension callback ran while the driver lock was held",
-                            )
-                                })?;
+                        let guard = reentrant_driver.runtime_extensions.try_lock().map_err(
+                            |_| {
+                                WorldRuntimeExtensionError::new(
+                                    "world extension callback ran while the driver lock was held",
+                                )
+                            },
+                        )?;
                         drop(guard);
                         reentrant_driver
                             .install_world_runtime_extension_plan(extension_plan("during.apply"))

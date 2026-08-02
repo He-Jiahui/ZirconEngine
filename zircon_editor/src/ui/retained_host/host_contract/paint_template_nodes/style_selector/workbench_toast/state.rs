@@ -1,6 +1,6 @@
 use super::model::WorkbenchToastStyle;
 use super::palette::{
-    toast_normal_style_from_palette, workbench_toast_palette, WorkbenchToastPalette,
+    WorkbenchToastPalette, toast_normal_style_from_palette, workbench_toast_palette,
 };
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

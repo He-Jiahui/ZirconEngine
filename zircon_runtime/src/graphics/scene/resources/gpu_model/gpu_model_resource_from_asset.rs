@@ -53,9 +53,9 @@ mod tests {
 
     use super::model_primitives_preferring_mesh_assets;
     use crate::asset::{
-        AssetReference, AssetUri, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-        MESH_ATTRIBUTE_UV0, MeshAsset, MeshAttributeValues, MeshIndices, MeshVertex, ModelAsset,
-        ModelPrimitiveAsset,
+        AssetReference, AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshVertex,
+        ModelAsset, ModelPrimitiveAsset, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+        MESH_ATTRIBUTE_UV0,
     };
     use crate::core::framework::render::RenderMeshTopology;
 

@@ -1,28 +1,30 @@
 use super::labels::asset_state_label;
-use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
-use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
+use super::name_compaction::{RuntimeFileNameCompaction, compact_file_like_display_name};
+use super::name_lines::{RuntimeNameLineSplit, split_display_name_lines};
+use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorTypographyTokens};
+
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::{load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData, load_preview_image};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 
 const THUMBNAIL_NAME_MAX_WIDTH: f32 = 96.0;
-const THUMBNAIL_FILE_NAME_MAX_WIDTH: f32 = THUMBNAIL_NAME_MAX_WIDTH;
 const THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS: usize = 4;
 const THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
 const THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 4;
-const THUMBNAIL_NAME_PRIMARY_FONT_SIZE: f32 = 10.0;
-const THUMBNAIL_NAME_CONTINUATION_FONT_SIZE: f32 = 9.0;
+const THUMBNAIL_NAME_PRIMARY_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
+const THUMBNAIL_NAME_CONTINUATION_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const THUMBNAIL_NAME_PRIMARY_FONT_WEIGHT: i32 = 500;
 const THUMBNAIL_NAME_CONTINUATION_FONT_WEIGHT: i32 = 400;
-const THUMBNAIL_TYPE_FONT_SIZE: f32 = 8.5;
-const THUMBNAIL_META_FONT_SIZE: f32 = 8.5;
-const THUMBNAIL_CARD_RADIUS: f32 = 4.0;
-const THUMBNAIL_NAME_AREA_RADIUS: f32 = 4.0;
-const THUMBNAIL_TYPE_BADGE_RADIUS: f32 = 3.0;
+const THUMBNAIL_TYPE_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
+const THUMBNAIL_META_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const THUMBNAIL_CARD_SURFACE: &str = "asset-thumbnail-card";
 const THUMBNAIL_NAME_AREA_SURFACE: &str = "asset-thumbnail-name-area";
 const THUMBNAIL_NAME_AREA_TEXT_ROLE: &str = "asset-thumbnail-name-area-text";
+
+fn thumbnail_corner_radius() -> f32 {
+    EditorControlTokens::workbench_dense().small_radius
+}
 
 pub(super) fn append_asset_browser_thumbnail_nodes(
     nodes: &mut Vec<ViewTemplateNodeData>,
@@ -42,8 +44,15 @@ pub(super) fn append_asset_browser_thumbnail_nodes(
         if selected {
             nodes.push(thumbnail_selection_marker_node(index));
         }
+        let file_like_name =
+            is_file_like_thumbnail_name(asset.display_name.as_str(), asset.extension.as_str());
         let (name, name_continuation) = thumbnail_display_name_lines(asset);
-        nodes.push(thumbnail_name_node(index, name, selected));
+        nodes.push(thumbnail_name_node(
+            index,
+            name,
+            file_like_name.then(|| asset.display_name.clone()),
+            selected,
+        ));
         nodes.push(thumbnail_name_continuation_node(
             index,
             name_continuation,
@@ -72,7 +81,7 @@ fn thumbnail_card_node(index: usize, selected: bool) -> ViewTemplateNodeData {
         control_id: thumbnail_control_id("Card", index).into(),
         role: "Panel".into(),
         surface_variant: THUMBNAIL_CARD_SURFACE.into(),
-        corner_radius: THUMBNAIL_CARD_RADIUS,
+        corner_radius: thumbnail_corner_radius(),
         border_width: if selected { 1.0 } else { 0.0 },
         selected,
         frame: ViewTemplateFrameData::default(),
@@ -86,7 +95,7 @@ fn thumbnail_info_band_node(index: usize, selected: bool) -> ViewTemplateNodeDat
         control_id: thumbnail_control_id("InfoBand", index).into(),
         role: "Panel".into(),
         surface_variant: THUMBNAIL_NAME_AREA_SURFACE.into(),
-        corner_radius: THUMBNAIL_NAME_AREA_RADIUS,
+        corner_radius: thumbnail_corner_radius(),
         selected,
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
@@ -110,7 +119,7 @@ fn thumbnail_type_badge_node(index: usize) -> ViewTemplateNodeData {
         control_id: thumbnail_control_id("TypeBadge", index).into(),
         role: "Panel".into(),
         surface_variant: "asset-type-badge".into(),
-        corner_radius: THUMBNAIL_TYPE_BADGE_RADIUS,
+        corner_radius: thumbnail_corner_radius(),
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
     }
@@ -137,14 +146,19 @@ fn thumbnail_visual_node(
         media_source: asset.preview_artifact_path.clone().into(),
         has_preview_image: preview_size.width > 0 && preview_size.height > 0,
         preview_image,
-        corner_radius: THUMBNAIL_CARD_RADIUS,
+        corner_radius: thumbnail_corner_radius(),
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
     }
 }
 
-fn thumbnail_name_node(index: usize, text: String, selected: bool) -> ViewTemplateNodeData {
-    thumbnail_label_node(
+fn thumbnail_name_node(
+    index: usize,
+    text: String,
+    source_file_name: Option<String>,
+    selected: bool,
+) -> ViewTemplateNodeData {
+    let mut node = thumbnail_label_node(
         thumbnail_node_id("Name", index),
         thumbnail_control_id("Name", index),
         text,
@@ -152,7 +166,9 @@ fn thumbnail_name_node(index: usize, text: String, selected: bool) -> ViewTempla
         THUMBNAIL_NAME_PRIMARY_FONT_WEIGHT,
         "",
         selected,
-    )
+    );
+    node.value_text = source_file_name.unwrap_or_default().into();
+    node
 }
 
 fn thumbnail_name_continuation_node(
@@ -232,10 +248,7 @@ fn thumbnail_label_node(
 fn thumbnail_display_name_lines(asset: &AssetItemSnapshot) -> (String, String) {
     let name = asset.display_name.trim();
     if is_file_like_thumbnail_name(name, asset.extension.as_str()) {
-        return (
-            thumbnail_file_like_display_title(name, asset.extension.as_str()),
-            String::new(),
-        );
+        return (name.to_string(), String::new());
     }
 
     asset_display_name_lines(name)
@@ -252,12 +265,15 @@ fn is_file_like_thumbnail_name(display_name: &str, extension: &str) -> bool {
         .is_some_and(|(_, suffix)| suffix.eq_ignore_ascii_case(extension))
 }
 
-fn thumbnail_file_like_display_title(display_name: &str, extension: &str) -> String {
+pub(super) fn compact_thumbnail_file_name_to_width(display_name: &str, max_width: f32) -> String {
+    let Some((_, extension)) = display_name.rsplit_once('.') else {
+        return display_name.to_string();
+    };
     compact_file_like_display_name(
         display_name,
         extension,
         RuntimeFileNameCompaction {
-            max_width: THUMBNAIL_FILE_NAME_MAX_WIDTH,
+            max_width,
             font_size: THUMBNAIL_NAME_PRIMARY_FONT_SIZE,
             min_prefix_chars: THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS,
             min_tail_stem_chars: THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS,
@@ -304,6 +320,31 @@ mod tests {
     }
 
     #[test]
+    fn thumbnail_node_typography_and_corner_radius_follow_workbench_tokens() {
+        assert_eq!(
+            THUMBNAIL_NAME_PRIMARY_FONT_SIZE,
+            zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens::WORKBENCH_BODY_SIZE
+        );
+        assert_eq!(
+            THUMBNAIL_NAME_CONTINUATION_FONT_SIZE,
+            zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+        );
+        assert_eq!(
+            THUMBNAIL_TYPE_FONT_SIZE,
+            zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+        );
+        assert_eq!(
+            THUMBNAIL_META_FONT_SIZE,
+            zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+        );
+        assert_eq!(
+            thumbnail_corner_radius(),
+            zircon_runtime_interface::ui::design_tokens::EditorControlTokens::workbench_dense()
+                .small_radius
+        );
+    }
+
+    #[test]
     fn thumbnail_nodes_project_selected_asset_card_and_labels() {
         let mut snapshot = AssetWorkspaceSnapshot {
             view_mode: AssetViewMode::Thumbnail,
@@ -331,29 +372,36 @@ mod tests {
         let mut nodes = Vec::new();
         append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
 
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "AssetBrowserThumbCard01"
-                && node.selected
-                && !node.focused
-                && node.surface_variant == THUMBNAIL_CARD_SURFACE
-                && node.border_width == 1.0));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "AssetBrowserThumbInfoBand01"
-                && node.selected
-                && node.surface_variant == THUMBNAIL_NAME_AREA_SURFACE
-                && node.corner_radius == THUMBNAIL_NAME_AREA_RADIUS));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "AssetBrowserThumbCard01"
+                    && node.selected
+                    && !node.focused
+                    && node.surface_variant == THUMBNAIL_CARD_SURFACE
+                    && node.corner_radius == thumbnail_corner_radius()
+                    && node.border_width == 1.0)
+        );
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "AssetBrowserThumbInfoBand01"
+                    && node.selected
+                    && node.surface_variant == THUMBNAIL_NAME_AREA_SURFACE
+                    && node.corner_radius == thumbnail_corner_radius())
+        );
         assert!(nodes.iter().any(|node| {
             node.control_id == "AssetBrowserThumbSelectionMarker01"
                 && node.surface_variant == "accent"
         }));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "AssetBrowserThumbVisual01"
-                && node.surface_variant == "asset-preview-visual"
-                && node.component_role == "asset-thumbnail-visual"
-                && node.component_variant == "asset-texture"));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "AssetBrowserThumbVisual01"
+                    && node.surface_variant == "asset-preview-visual"
+                    && node.component_role == "asset-thumbnail-visual"
+                    && node.component_variant == "asset-texture")
+        );
         assert!(nodes.iter().any(|node| {
             node.control_id == "AssetBrowserThumbName01"
                 && node.role == "Label"
@@ -377,7 +425,7 @@ mod tests {
             node.control_id == "AssetBrowserThumbTypeBadge01"
                 && node.role == "Panel"
                 && node.surface_variant == "asset-type-badge"
-                && node.corner_radius == THUMBNAIL_TYPE_BADGE_RADIUS
+                && node.corner_radius == thumbnail_corner_radius()
         }));
         assert!(nodes.iter().any(|node| {
             node.control_id == "AssetBrowserThumbType01"
@@ -389,13 +437,15 @@ mod tests {
                 && node.font_size == THUMBNAIL_TYPE_FONT_SIZE
                 && node.font_weight == 700
         }));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "AssetBrowserThumbMeta01"
-                && node.component_role == THUMBNAIL_NAME_AREA_TEXT_ROLE
-                && node.selected
-                && node.text == "Ready"
-                && node.text_tone == "muted"));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "AssetBrowserThumbMeta01"
+                    && node.component_role == THUMBNAIL_NAME_AREA_TEXT_ROLE
+                    && node.selected
+                    && node.text == "Ready"
+                    && node.text_tone == "muted")
+        );
 
         snapshot.view_mode = AssetViewMode::List;
         nodes.clear();
@@ -439,13 +489,8 @@ mod tests {
             .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
             .expect("missing thumbnail continuation name");
 
-        assert!(name.text.as_str().ends_with(".zui"));
-        assert!(
-            measure_runtime_text_width(name.text.as_str(), THUMBNAIL_NAME_PRIMARY_FONT_SIZE)
-                <= THUMBNAIL_FILE_NAME_MAX_WIDTH + 0.01,
-            "thumbnail file-like name should fit measured width: {}",
-            name.text
-        );
+        assert_eq!(name.text.as_str(), "workbench_host_window.zui");
+        assert_eq!(name.value_text.as_str(), "workbench_host_window.zui");
         assert!(continuation.text.is_empty());
         assert_eq!(name.overflow.as_str(), "elide");
         assert_eq!(continuation.overflow.as_str(), "elide");
@@ -493,13 +538,8 @@ mod tests {
             .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
             .expect("missing thumbnail continuation name");
 
-        assert!(name.text.as_str().ends_with(".zscene"));
-        assert!(
-            measure_runtime_text_width(name.text.as_str(), THUMBNAIL_NAME_PRIMARY_FONT_SIZE)
-                <= THUMBNAIL_FILE_NAME_MAX_WIDTH + 0.01,
-            "thumbnail long-extension title should fit measured width: {}",
-            name.text
-        );
+        assert_eq!(name.text.as_str(), "editor_preview.zscene");
+        assert_eq!(name.value_text.as_str(), "editor_preview.zscene");
         assert!(continuation.text.is_empty());
     }
 
@@ -509,14 +549,17 @@ mod tests {
         let wide = format!("{}.zui", "W".repeat(24));
         assert_eq!(narrow.chars().count(), wide.chars().count());
 
-        assert_eq!(thumbnail_file_like_display_title(&narrow, "zui"), narrow);
-        let compact_wide = thumbnail_file_like_display_title(&wide, "zui");
+        assert_eq!(
+            compact_thumbnail_file_name_to_width(&narrow, THUMBNAIL_NAME_MAX_WIDTH),
+            narrow
+        );
+        let compact_wide = compact_thumbnail_file_name_to_width(&wide, THUMBNAIL_NAME_MAX_WIDTH);
 
         assert_ne!(compact_wide, wide);
         assert!(compact_wide.ends_with(".zui"));
         assert!(
             measure_runtime_text_width(&compact_wide, THUMBNAIL_NAME_PRIMARY_FONT_SIZE)
-                <= THUMBNAIL_FILE_NAME_MAX_WIDTH + 0.01,
+                <= THUMBNAIL_NAME_MAX_WIDTH + 0.01,
             "thumbnail file-like title should fit measured width: {compact_wide}"
         );
     }
@@ -614,9 +657,11 @@ mod tests {
 
         append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
 
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "AssetBrowserThumbCard12"));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "AssetBrowserThumbCard12")
+        );
         assert_eq!(
             nodes
                 .iter()

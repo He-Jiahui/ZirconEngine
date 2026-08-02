@@ -25,3 +25,4 @@ mod upscale_pipeline;
 mod velocity_camera_pipeline;
 
 pub(super) use build::create_pipeline_bundle;
+pub(super) use output_transfer_pipeline::output_transfer_pipeline;

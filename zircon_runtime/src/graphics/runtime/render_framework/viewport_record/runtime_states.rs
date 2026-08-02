@@ -1,6 +1,6 @@
 use crate::graphics::{HybridGiRuntimeState, VirtualGeometryRuntimeState};
 
-use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
+use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn ensure_hybrid_gi_runtime(
@@ -54,8 +54,8 @@ impl ViewportRecord {
 mod tests {
     use std::fmt;
     use std::sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
+        Arc,
     };
 
     use crate::core::framework::render::{

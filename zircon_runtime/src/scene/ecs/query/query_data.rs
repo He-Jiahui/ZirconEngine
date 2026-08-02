@@ -290,9 +290,14 @@ where
         entity: EntityId,
         ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let component_ticks = world.component_change_ticks::<T>(entity)?;
-        let value = world.get_mut::<T>(entity)?;
-        Some(Mut::new(value, component_ticks, ticks))
+        if world.has_fixed_component_owner::<T>() {
+            let component_ticks = world.component_change_ticks::<T>(entity)?;
+            let value = world.get_mut::<T>(entity)?;
+            return Some(Mut::new_eager(value, component_ticks, ticks));
+        }
+
+        let (value, component_ticks, this_run) = world.component_mut_with_ticks::<T>(entity)?;
+        Some(Mut::new(value, component_ticks, this_run, ticks))
     }
 }
 

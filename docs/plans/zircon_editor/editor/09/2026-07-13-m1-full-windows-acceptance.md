@@ -62,11 +62,11 @@ tests:
   [`fixed 回传`](fixed-2026-07-13-export-cargo-single-worker-windows-output-hang.md)，未修改生产 capture 路径。
 - 缺失完整自然 summary 继续归既有
   [`Runtime11 full-harness task budget/lifecycle`](../../../zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md)
-  与 [`Editor14 full-gate resource closeout`](../14/failure-2026-07-12-editor-full-gate-thread-exhaustion.md)。
+  与 [`Editor14 full-gate resource closeout`](../08/fixed-2026-07-14-editor-full-gate-thread-exhaustion.md)。
 - 停滞前跨功能失败已按既有 owner 去重补记：EditorUI05/06/08、Editor10、Editor12；新增交接为
   [`Editor07 动画索引夹具`](../07/failure-2026-07-13-animation-asset-open-index-fixture-cutover.md)、
-  [`Editor03 editing structure guard`](../03/failure-2026-07-13-editing-operation-owner-structure-guard-drift.md) 与
-  [`Render01 viewport resolver guard`](../../../zircon_runtime/render/01/failure-2026-07-13-editor-viewport-resolve-job-guard-drift.md)。
+  [`Editor03 editing structure guard`](fixed-2026-07-14-editing-operation-owner-structure-guard-drift.md) 与
+  [`Render01 viewport resolver guard`](fixed-2026-07-14-editor-viewport-resolve-job-guard-drift.md)。
 
 ### 结构与旧架构复核交接
 
@@ -74,7 +74,7 @@ tests:
   [`EditorUI05 UI Asset V2 projection failure`](../../editor_ui/05/failure-2026-07-11-ui-asset-v2-projection-drift.md)，
   明确要求删除 `*_legacy_projection_*` 与旧 kind 映射；不在 Editor09 建第二条重复 failure。
 - 聚合 plugin structure report fixture 因 descriptor 单源字段未同步产生 4 个 `KeyError`，已交接
-  [`Plugins12`](../../../zircon_plugins/12/failure-2026-07-13-plugin-structure-audit-report-fixture-drift.md)。
+  [`Plugins12`](fixed-2026-07-15-plugin-structure-audit-report-fixture-drift.md)。
 - extension registry finalize coverage guard 已跟随当前 plan/apply 边界修复并返回本计划：
   [`fixed`](fixed-2026-07-15-extension-registry-finalize-coverage-guard-drift.md)。
 - 两条结构守卫的失败日志：`.codex/tmp/editor09-m1-structure-static-tests-20260713.log`。这些失败不由

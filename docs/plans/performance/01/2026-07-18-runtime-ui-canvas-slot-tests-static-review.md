@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/ui/tests/canvas_slot_layout.rs
   - zircon_runtime/src/ui/tests/canvas_slot_template.rs
   - zircon_runtime/src/ui/layout/pass/arrange.rs
-  - zircon_runtime/src/ui/surface/arranged_tree.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/template
   - zircon_runtime/src/ui/v2
 plan_sources:

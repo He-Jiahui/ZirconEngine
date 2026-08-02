@@ -12,6 +12,7 @@ impl WelcomeRecentPointerBridge {
         &mut self,
         point: UiPoint,
     ) -> Result<WelcomeRecentPointerDispatch, String> {
+        self.refresh_layout_metrics();
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
         match route.as_ref() {
             Some(WelcomeRecentPointerRouteIntent::Action {

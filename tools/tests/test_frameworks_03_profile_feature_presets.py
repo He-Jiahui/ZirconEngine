@@ -20,6 +20,14 @@ RUNTIME_PROFILE_MODULE = (
     REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile" / "feature_presets.rs"
 )
 APP_ENTRY_RUNNER_MODULE = REPO_ROOT / "zircon_app" / "src" / "entry" / "entry_runner" / "mod.rs"
+SCENE_PROJECT_IO_MODULE = (
+    REPO_ROOT
+    / "zircon_runtime"
+    / "src"
+    / "scene"
+    / "module"
+    / "level_manager_project_io.rs"
+)
 EXPECTED_PROFILE_IDS = ("minimal", "client2d", "client3d", "editor", "dev", "server")
 
 
@@ -90,6 +98,14 @@ class Frameworks03ProfileFeaturePresetTests(unittest.TestCase):
 
         self.assertIn(
             '#[cfg(feature = "diagnostic-log")]\nmod diagnostic_log_args;',
+            source,
+        )
+
+    def test_scene_artifact_failure_logging_respects_diagnostic_log_feature(self) -> None:
+        source = SCENE_PROJECT_IO_MODULE.read_text(encoding="utf-8")
+
+        self.assertIn(
+            '#[cfg(feature = "diagnostic-log")]\n    crate::diagnostic_log::write_log(',
             source,
         )
 

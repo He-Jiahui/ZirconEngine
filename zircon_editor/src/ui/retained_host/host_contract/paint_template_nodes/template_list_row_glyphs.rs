@@ -9,7 +9,7 @@ mod selection;
 mod shapes;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::{
-    list_row_adornment_kind, ListRowAdornmentKind,
+    ListRowAdornmentKind, list_row_adornment_kind,
 };
 
 const LIST_ROW_CHECK_ICON: &str = "zircon_editor_shell/controls/check.svg";

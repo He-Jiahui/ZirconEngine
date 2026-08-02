@@ -1,6 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
+use super::geometry::field_surface_radius;
 use super::metrics::workbench_field_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_surface(
@@ -19,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         Some(style.surface),
         Some(style.border),
         metrics.border_width,
-        metrics.radius,
+        field_surface_radius(rect, metrics.radius),
         opacity,
     ));
 }

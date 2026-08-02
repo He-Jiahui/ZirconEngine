@@ -7,7 +7,8 @@ const COMPACT_SEARCH_PREFERRED_MIN_WIDTH: f32 = 240.0;
 const COMPACT_IMPORT_PATH_MIN_WIDTH: f32 = 180.0;
 const COMPACT_IMPORT_PATH_MAX_WIDTH: f32 = 260.0;
 const COMPACT_IMPORT_PATH_VISIBLE_WIDTH: f32 = 1040.0;
-const COMPACT_VIEW_GROUP_VISIBLE_WIDTH: f32 = 560.0;
+const COMPACT_VIEW_MODE_ICON_WIDTH: f32 = 30.0;
+const COMPACT_LOCATE_ICON_WIDTH: f32 = 30.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct AssetBrowserToolbarMetrics {
@@ -89,8 +90,10 @@ fn layout_single_toolbar_row(
     let row_y = y + metrics.control_offset_y;
     let row_width = (width - (row_x - x) * 2.0).max(0.0);
     let import = compact_import_group(nodes, row_width, metrics);
-    let view = compact_view_group(nodes, row_width, metrics);
-    let view_x = row_x + row_width - import.width - import.leading_gap - view.width;
+    let view = compact_view_group(nodes, metrics);
+    let locate_width = control_width(nodes, "LocateSelectedAsset", COMPACT_LOCATE_ICON_WIDTH);
+    let trailing_actions_width = view.width + metrics.group_gap + locate_width;
+    let view_x = row_x + row_width - import.width - import.leading_gap - trailing_actions_width;
     let leading_span_width = (view_x - metrics.group_gap - row_x).max(0.0);
     let all_chip_width = control_width(nodes, "AssetBrowserKindAllChip", 44.0);
     let preferred_search_width = (row_width * COMPACT_SEARCH_PREFERRED_RATIO)
@@ -117,31 +120,33 @@ fn layout_single_toolbar_row(
         search_width,
         metrics.control_height,
     );
-    let chips_width = layout_kind_chips(nodes, chip_x, row_y, chip_width_limit, metrics);
-    if view.visible {
-        set_node_frame(
-            nodes,
-            "AssetBrowserViewModeListButton",
-            view_x,
-            row_y,
-            view.list_width,
-            metrics.control_height,
-        );
-        set_node_frame(
-            nodes,
-            "AssetBrowserViewModeThumbButton",
-            view_x + view.list_width + metrics.view_button_gap,
-            row_y,
-            view.thumb_width,
-            metrics.control_height,
-        );
-    } else {
-        hide_node(nodes, "AssetBrowserViewModeListButton", view_x, row_y);
-        hide_node(nodes, "AssetBrowserViewModeThumbButton", view_x, row_y);
-    }
-    layout_filter_group_frame(nodes, chip_x, row_y, chips_width, view_x, view, metrics);
+    layout_kind_chips(nodes, chip_x, row_y, chip_width_limit, metrics);
+    set_node_frame(
+        nodes,
+        "AssetBrowserViewModeListButton",
+        view_x,
+        row_y,
+        view.list_width,
+        metrics.control_height,
+    );
+    set_node_frame(
+        nodes,
+        "AssetBrowserViewModeThumbButton",
+        view_x + view.list_width + metrics.view_button_gap,
+        row_y,
+        view.thumb_width,
+        metrics.control_height,
+    );
+    set_node_frame(
+        nodes,
+        "LocateSelectedAsset",
+        view_x + view.width + metrics.group_gap,
+        row_y,
+        locate_width,
+        metrics.control_height,
+    );
+    layout_filter_group_frame(nodes, chip_x, row_y, view_x, view, metrics);
 
-    hide_node(nodes, "LocateSelectedAsset", row_x + row_width, row_y);
     hide_node(nodes, "AssetBrowserImportLabel", import_x, row_y);
     layout_import_group(nodes, import_x, row_y, import, metrics);
 }
@@ -152,7 +157,7 @@ fn layout_kind_chips(
     y: f32,
     width_limit: f32,
     metrics: AssetBrowserToolbarMetrics,
-) -> f32 {
+) {
     let selected_chip = KIND_CHIPS
         .iter()
         .find(|(control_id, _)| is_selected(nodes, control_id))
@@ -209,7 +214,6 @@ fn layout_kind_chips(
         used_width += chip_width;
         has_visible_chip = true;
     }
-    used_width
 }
 
 fn chip_fits_in_width(
@@ -248,14 +252,18 @@ fn chip_stack_width(
 
 fn compact_view_group(
     nodes: &[ViewTemplateNodeData],
-    row_width: f32,
     metrics: AssetBrowserToolbarMetrics,
 ) -> CompactViewGroup {
-    if row_width < COMPACT_VIEW_GROUP_VISIBLE_WIDTH {
-        return CompactViewGroup::hidden();
-    }
-    let list_width = control_width(nodes, "AssetBrowserViewModeListButton", 64.0);
-    let thumb_width = control_width(nodes, "AssetBrowserViewModeThumbButton", 78.0);
+    let list_width = control_width(
+        nodes,
+        "AssetBrowserViewModeListButton",
+        COMPACT_VIEW_MODE_ICON_WIDTH,
+    );
+    let thumb_width = control_width(
+        nodes,
+        "AssetBrowserViewModeThumbButton",
+        COMPACT_VIEW_MODE_ICON_WIDTH,
+    );
     CompactViewGroup {
         visible: true,
         list_width,
@@ -336,16 +344,11 @@ fn layout_filter_group_frame(
     nodes: &mut [ViewTemplateNodeData],
     x: f32,
     y: f32,
-    chips_width: f32,
     view_x: f32,
     view: CompactViewGroup,
     metrics: AssetBrowserToolbarMetrics,
 ) {
-    let right_edge = if view.visible {
-        view_x + view.width
-    } else {
-        x + chips_width
-    };
+    let right_edge = view_x + view.width;
     let group_x = x - metrics.group_frame_pad;
     let group_y = y - metrics.control_offset_y;
     let group_width = (right_edge - x + metrics.group_frame_pad * 2.0).max(0.0);
@@ -386,21 +389,9 @@ fn asset_browser_toolbar_metrics_from_tokens(
 }
 
 struct CompactViewGroup {
-    visible: bool,
     list_width: f32,
     thumb_width: f32,
     width: f32,
-}
-
-impl CompactViewGroup {
-    fn hidden() -> Self {
-        Self {
-            visible: false,
-            list_width: 0.0,
-            thumb_width: 0.0,
-            width: 0.0,
-        }
-    }
 }
 
 #[derive(Clone, Copy)]

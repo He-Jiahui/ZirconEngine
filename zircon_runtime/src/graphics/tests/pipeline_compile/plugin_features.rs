@@ -224,21 +224,19 @@ fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
         "fixed-size-plugin-packet",
         vec!["view".to_string()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Lighting,
-                "fixed-size-plugin-packet-write",
-                QueueLane::AsyncCompute,
-            )
-            .with_executor_id("test.fixed-size-plugin-packet")
-            .with_compute_workload(RenderGraphComputeWorkload::fixed(
-                "test-fixed-size-plugin-packet",
-                [1, 1, 1],
-                [1, 1, 1],
-            ))
-            .with_side_effects()
-            .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "fixed-size-plugin-packet-write",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("test.fixed-size-plugin-packet")
+        .with_compute_workload(RenderGraphComputeWorkload::fixed(
+            "test-fixed-size-plugin-packet",
+            [1, 1, 1],
+            [1, 1, 1],
+        ))
+        .with_side_effects()
+        .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES)],
     );
 
     let compiled = RenderPipelineAsset::default_forward_plus()

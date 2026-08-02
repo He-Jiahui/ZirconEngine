@@ -56,9 +56,10 @@ fn inspector_pane_projects_editable_field_nodes_and_actions() {
 }
 
 #[test]
-fn inspector_pane_marks_plugin_component_drawer_fallback() {
-    let pane =
-        inspector_pane_fixture("plugin component drawer unavailable: particles plugin unloaded");
+fn inspector_pane_marks_plugin_inspector_customization_fallback() {
+    let pane = inspector_pane_fixture(
+        "plugin inspector customization unavailable: particles plugin unloaded",
+    );
     let data =
         to_host_contract_inspector_pane_from_host_pane(&pane, PaneContentSize::new(360.0, 240.0));
 
@@ -67,10 +68,12 @@ fn inspector_pane_marks_plugin_component_drawer_fallback() {
     assert_eq!(fallback.surface_variant.as_str(), "inset");
     assert_eq!(fallback.text_tone.as_str(), "warning");
     assert_eq!(fallback.validation_level.as_str(), "warning");
-    assert!(fallback
-        .validation_message
-        .as_str()
-        .contains("serialized component data stays protected"));
+    assert!(
+        fallback
+            .validation_message
+            .as_str()
+            .contains("serialized component data stays protected")
+    );
     assert!(fallback.disabled);
 }
 
@@ -120,15 +123,15 @@ fn inspector_pane_disables_fields_and_actions_when_selection_is_empty() {
 }
 
 #[test]
-fn inspector_pane_projects_plugin_component_drawer_fields_and_unload_degradation() {
+fn inspector_pane_projects_plugin_inspector_customization_fields_and_unload_degradation() {
     let mut pane = inspector_pane_fixture("scene entity selected");
     pane.native_body.inspector.plugin_components = vec![
         InspectorPluginComponentViewData {
             component_id: "weather.Component.CloudLayer".to_string(),
             display_name: "Cloud Layer".to_string(),
-            drawer_available: true,
-            drawer_ui_document: None,
-            drawer_template_id: None,
+            customization_available: true,
+            customization_ui_document: None,
+            customization_template_id: None,
             diagnostic: None,
             properties: vec![InspectorPluginComponentPropertyViewData {
                 field_id: "weather.Component.CloudLayer.coverage".to_string(),
@@ -141,11 +144,11 @@ fn inspector_pane_projects_plugin_component_drawer_fields_and_unload_degradation
         InspectorPluginComponentViewData {
             component_id: "particles.Component.Emitter".to_string(),
             display_name: "Emitter".to_string(),
-            drawer_available: false,
-            drawer_ui_document: None,
-            drawer_template_id: None,
+            customization_available: false,
+            customization_ui_document: None,
+            customization_template_id: None,
             diagnostic: Some(
-                "Plugin component drawer unavailable for `particles.Component.Emitter`; serialized data stays protected until the plugin reloads."
+                "Plugin inspector customization unavailable for `particles.Component.Emitter`; serialized data stays protected until the plugin reloads."
                     .to_string(),
             ),
             properties: vec![InspectorPluginComponentPropertyViewData {
@@ -207,10 +210,12 @@ fn inspector_pane_projects_plugin_component_drawer_fields_and_unload_degradation
     assert_eq!(degraded.surface_variant.as_str(), "inset");
     assert_eq!(degraded.text_tone.as_str(), "muted");
     assert_eq!(degraded.validation_level.as_str(), "warning");
-    assert!(degraded
-        .validation_message
-        .as_str()
-        .contains("serialized data stays protected"));
+    assert!(
+        degraded
+            .validation_message
+            .as_str()
+            .contains("serialized data stays protected")
+    );
 }
 
 fn find_node(

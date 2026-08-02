@@ -62,7 +62,7 @@ requireText(world, /if \(masterLootAssignmentCommandStateTest\(\) != 1\) \{[\s\S
   'world selfTest must execute master-assign coverage');
 
 const contract = read('contracts', 'world-state.md');
-requireText(contract, /WOS71[\s\S]*?Master Loot[\s\S]*?one target[\s\S]*?multiple targets[\s\S]*?Need\/Greed/i,
+requireText(contract, /WOS70[\s\S]*?Master Loot[\s\S]*?one target[\s\S]*?multiple targets[\s\S]*?Need\/Greed/i,
   'world-state contract must document master-loot assignment');
 
 process.stdout.write(`WOS146 master-loot assignment static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

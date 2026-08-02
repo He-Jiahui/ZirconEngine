@@ -5,8 +5,10 @@
   "source_blobs": {
     "src/sim/professions/gathering.ts": "e25b174f9b9d1b7e5e223795fbe345b20ccf6f56b34d2fdd2f2e5e04da62f67c",
     "src/sim/content/gather_nodes.ts": "f6d5969b2d489847dacab6645df315b198744e5e2f7d86c3b86c8c0a000dd89b",
-    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b"
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b",
+    "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
   },
+  "interact_range": 5,
   "profession_ids": [
     "mining",
     "logging",

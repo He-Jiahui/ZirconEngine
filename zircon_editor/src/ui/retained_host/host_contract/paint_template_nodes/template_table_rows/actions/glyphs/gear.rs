@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
-use super::segments::{push_segments, GlyphSegmentSpec};
+use super::segments::{GlyphSegmentSpec, push_segments};
 
 const GEAR_SEGMENTS: [GlyphSegmentSpec; 5] = [
     GlyphSegmentSpec::new(4, 2, 6, 1),

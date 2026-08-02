@@ -117,10 +117,10 @@ fn script_call_table_pre_resolves_host_export_callbacks() {
         .register_module(
             descriptor,
             [HostExportFunction::new("add", move |context| {
-                seen_context_for_add
-                    .lock()
-                    .unwrap()
-                    .push((context.module_name.clone(), context.function_name.clone()));
+                seen_context_for_add.lock().unwrap().push((
+                    context.module_name.to_owned(),
+                    context.function_name.to_owned(),
+                ));
                 let left = match context.arguments[0] {
                     ScriptHostValue::Int(value) => value,
                     _ => 0,
@@ -154,6 +154,84 @@ fn script_call_table_pre_resolves_host_export_callbacks() {
     assert_eq!(
         seen_context.lock().unwrap().as_slice(),
         &[("test.host".to_string(), "add".to_string())]
+    );
+}
+
+#[test]
+fn runtime13_host_call_frames_borrow_stable_call_site_and_capability_storage() {
+    let exports = HostExportRegistry::default();
+    let observed_storage = Arc::new(Mutex::new(None));
+    let observed_storage_for_callback = Arc::clone(&observed_storage);
+
+    exports
+        .register_module(
+            ScriptHostModuleDescriptor::new("test.borrowed", "0.1.0")
+                .with_capability("test.borrowed.call")
+                .with_function(
+                    ScriptHostFunctionDescriptor::new("inspect", 2, 2, ScriptHostValueKind::Null)
+                        .with_parameter(ScriptHostParameterDescriptor::new(
+                            "text",
+                            ScriptHostValueKind::String,
+                        ))
+                        .with_parameter(ScriptHostParameterDescriptor::new(
+                            "bytes",
+                            ScriptHostValueKind::Bytes,
+                        ))
+                        .with_required_capability("test.borrowed.call"),
+                ),
+            [HostExportFunction::new("inspect", move |context| {
+                let ScriptHostValue::String(text) = &context.arguments[0] else {
+                    panic!("host call frame must preserve the string argument");
+                };
+                let ScriptHostValue::Bytes(bytes) = &context.arguments[1] else {
+                    panic!("host call frame must preserve the bytes argument");
+                };
+                *observed_storage_for_callback.lock().unwrap() = Some((
+                    context.module_name.as_ptr() as usize,
+                    context.function_name.as_ptr() as usize,
+                    context.granted_capabilities.as_ptr() as usize,
+                    context.arguments.as_ptr() as usize,
+                    text.as_ptr() as usize,
+                    bytes.as_ptr() as usize,
+                ));
+                Ok(ScriptHostValue::Null)
+            })],
+        )
+        .expect("borrowed host export should register");
+
+    let call_table = exports.script_call_table();
+    let site = call_table
+        .resolve("test.borrowed", "inspect")
+        .expect("registered call site should resolve");
+    let granted = CapabilitySet::default().with("test.borrowed.call");
+    let arguments = vec![
+        ScriptHostValue::String("call-frame-text".to_string()),
+        ScriptHostValue::Bytes(vec![1, 2, 3, 4]),
+    ];
+    let expected_argument_storage = arguments.as_ptr() as usize;
+    let expected_text_storage = match &arguments[0] {
+        ScriptHostValue::String(text) => text.as_ptr() as usize,
+        _ => panic!("expected string fixture"),
+    };
+    let expected_bytes_storage = match &arguments[1] {
+        ScriptHostValue::Bytes(bytes) => bytes.as_ptr() as usize,
+        _ => panic!("expected bytes fixture"),
+    };
+
+    assert_eq!(
+        call_table.call(site.id(), arguments, &granted).unwrap(),
+        ScriptHostValue::Null
+    );
+    assert_eq!(
+        *observed_storage.lock().unwrap(),
+        Some((
+            site.module_name().as_ptr() as usize,
+            site.function_name().as_ptr() as usize,
+            granted.capabilities.as_ptr() as usize,
+            expected_argument_storage,
+            expected_text_storage,
+            expected_bytes_storage,
+        ))
     );
 }
 
@@ -211,7 +289,12 @@ fn runtime13_performance_script_call_table_uses_borrowed_name_index_and_direct_d
         .contains("by_name: Arc<HashMap<Arc<str>, HashMap<Arc<str>, ScriptCallSiteId>>>"));
     assert!(table_source.contains(".get(module_name)?"));
     assert!(table_source.contains(".get(function_name)?"));
-    assert!(!table_source.contains("module_name.to_string(), function_name.to_string()"));
+    assert!(table_source.contains("let frame = ScriptHostCallFrame::new("));
+    assert!(table_source.contains("&arguments,"));
+    assert!(table_source.contains("&granted_capabilities.capabilities,"));
+    assert!(table_source.contains("with_active_script_runtime_call_context"));
+    assert!(!table_source.contains(".to_string()"));
+    assert!(!table_source.contains("capabilities.clone()"));
 
     let registry_source = include_str!("../host/host_export_registry.rs");
     assert!(registry_source.contains("struct HostExportRegistryState"));

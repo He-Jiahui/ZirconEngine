@@ -1,4 +1,3 @@
-pub const PLUGIN_ID: &str = "animation";
 mod capability;
 mod channel_sampling;
 mod evaluation;
@@ -12,7 +11,9 @@ mod runtime_system;
 mod state_machine;
 
 pub use capability::{
-    ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY, RUNTIME_CAPABILITIES,
+    ANIMATION_DECLARATION, ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY,
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, RUNTIME_CAPABILITIES,
 };
 pub use evaluation::{
     AnimationAssetRevision, AnimationChannelDataRole, AnimationClipCompileError,

@@ -416,11 +416,13 @@ fn measured_button_width(
     density: EditorDensityTokens,
     controls: EditorControlTokens,
 ) -> f32 {
-    let text = nodes
-        .iter()
-        .find(|node| node.control_id == control_id)
-        .map(|node| node.text.as_str())
-        .unwrap_or("");
+    let Some(node) = nodes.iter().find(|node| node.control_id == control_id) else {
+        return controls.default_height;
+    };
+    if node.role.as_str() == "IconButton" {
+        return controls.dense_height;
+    }
+    let text = node.text.as_str();
     (measure_runtime_text_width(text, EditorTypographyTokens::WORKBENCH_BODY_SIZE)
         + density.gap_medium * 2.0)
         .max(controls.default_height)

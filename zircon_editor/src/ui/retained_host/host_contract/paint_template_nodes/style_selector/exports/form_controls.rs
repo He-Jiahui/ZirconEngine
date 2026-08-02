@@ -1,7 +1,8 @@
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_button::{
     is_asset_browser_tab_like_button, is_asset_browser_toolbar_chip_button,
-    is_asset_browser_utility_tab_button, is_tab_like_workbench_button,
-    select_workbench_button_style, WorkbenchButtonKind, WorkbenchButtonStyle,
+    is_asset_browser_utility_tab_button, is_compact_icon_text_workbench_button,
+    is_tab_like_workbench_button, select_workbench_button_style, WorkbenchButtonKind,
+    WorkbenchButtonStyle,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_button::{

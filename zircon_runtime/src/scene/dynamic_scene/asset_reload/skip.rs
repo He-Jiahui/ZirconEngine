@@ -6,6 +6,7 @@ pub enum DynamicSceneAssetReloadSkipReason {
     ReloadFailed,
     MissingLocator,
     StaleRevision,
+    CapacityExceeded,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -13,13 +13,51 @@ use super::*;
 mod assertions;
 mod transforms;
 
-use assertions::{FramebufferProof, assert_no_named_file_under};
+use assertions::{
+    FramebufferProof, assert_framebuffer_proof_is_outside_target,
+    framebuffer_proof_is_outside_target,
+};
 use transforms::{perspective_about_clip_center, rotation_about_clip_center};
 
 const PROOF_FILE_NAME: &str =
     "runtime_text_sdf_effects_transformed_product_framebuffer_20260713.png";
 const PROOF_WIDTH: u32 = 960;
 const PROOF_HEIGHT: u32 = 560;
+
+#[test]
+fn sdf_product_proof_path_is_workspace_docs_not_target() {
+    let workspace_root = workspace_root();
+    let output = proof_path();
+
+    assert_eq!(
+        output,
+        workspace_root
+            .join("docs")
+            .join("tests")
+            .join("runtime")
+            .join("text")
+            .join(PROOF_FILE_NAME),
+    );
+    assert!(framebuffer_proof_is_outside_target(
+        &output,
+        &workspace_root.join("target"),
+    ));
+    assert!(!framebuffer_proof_is_outside_target(
+        &output,
+        &workspace_root.join("docs"),
+    ));
+    #[cfg(windows)]
+    assert!(!framebuffer_proof_is_outside_target(
+        &output,
+        &workspace_root.join("DOCS"),
+    ));
+}
+
+#[test]
+#[should_panic(expected = "CARGO_TARGET_DIR must be an absolute coordinator path")]
+fn sdf_product_proof_rejects_relative_cargo_target_directory() {
+    let _ = require_absolute_cargo_target_dir(PathBuf::from("cargo-targets").join("sdf-proof"));
+}
 
 #[test]
 #[ignore = "exports an explicit runtime WGPU SDF effects and transformed-text framebuffer proof"]
@@ -47,17 +85,29 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
     let atlas_plan = plan_sdf_atlas(&texts);
     let mut text_state = TextRenderState::new(0);
     let asset_manager = ProjectAssetManager::default();
+    let atlas_bake =
+        text_state.build_sdf_atlas(atlas_plan.atlas_size, &atlas_plan.slots, &asset_manager);
+    let mut sdf_cpu_runs = Vec::new();
+    text_state.prepare_sdf_runs_cpu_into(&texts, &asset_manager, &mut sdf_cpu_runs);
+    assert_eq!(atlas_bake.glyphs.len(), atlas_plan.slots.len());
+    assert!(
+        atlas_bake.report.visible_glyph_count > 0,
+        "the product framebuffer must consume real generated distance-field glyphs"
+    );
+    assert_eq!(sdf_cpu_runs.len(), texts.len());
     let mut renderer = ScreenSpaceUiSdfRenderer::new(&backend.device, target_format);
     renderer.prepare(
         &backend.device,
         &backend.queue,
         viewport_size,
         &texts,
+        &sdf_cpu_runs,
+        &[],
         &[],
         &atlas_plan,
+        &atlas_bake,
         SdfAtlasCacheReport::default(),
-        &mut text_state,
-        &asset_manager,
+        false,
     );
 
     let report = renderer.prepare_report();
@@ -115,6 +165,12 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
     assert_product_pixels(&rgba);
 
     let output = proof_path();
+    let workspace_root = workspace_root();
+    assert_framebuffer_proof_is_outside_target(&output, &workspace_root.join("target"));
+    if let Some(target_dir) = std::env::var_os("CARGO_TARGET_DIR") {
+        let target_dir = require_absolute_cargo_target_dir(PathBuf::from(target_dir));
+        assert_framebuffer_proof_is_outside_target(&output, &target_dir);
+    }
     std::fs::create_dir_all(output.parent().expect("text proof output parent"))
         .expect("create text proof output directory");
     image::save_buffer(
@@ -126,14 +182,6 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
     )
     .expect("save SDF effects transformed product framebuffer");
     assert!(output.is_file());
-    assert!(output.components().all(|part| part.as_os_str() != "target"));
-    assert_no_named_file_under(
-        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target"),
-        PROOF_FILE_NAME,
-    );
-    if let Some(target_dir) = std::env::var_os("CARGO_TARGET_DIR") {
-        assert_no_named_file_under(&PathBuf::from(target_dir), PROOF_FILE_NAME);
-    }
     eprintln!("runtime SDF effects framebuffer={}", output.display());
 }
 
@@ -305,11 +353,27 @@ fn assert_product_pixels(rgba: &[u8]) {
 }
 
 fn proof_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
+    workspace_root()
         .join("docs")
         .join("tests")
         .join("runtime")
         .join("text")
         .join(PROOF_FILE_NAME)
+}
+
+fn workspace_root() -> PathBuf {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    crate_root
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or(crate_root)
+}
+
+fn require_absolute_cargo_target_dir(target_dir: PathBuf) -> PathBuf {
+    assert!(
+        target_dir.is_absolute(),
+        "CARGO_TARGET_DIR must be an absolute coordinator path before exporting a framebuffer proof: {}",
+        target_dir.display(),
+    );
+    target_dir
 }

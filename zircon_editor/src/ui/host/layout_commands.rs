@@ -9,6 +9,13 @@ const DEFAULT_LAYOUT_PERSISTENCE_USER_ID: &str = "default";
 
 impl EditorUiHost {
     pub(super) fn apply_layout_command(&self, cmd: LayoutCommand) -> Result<bool, EditorError> {
+        if let LayoutCommand::CloseView { instance_id } = &cmd {
+            return self.close_view(instance_id);
+        }
+        self.apply_layout_command_inner(cmd)
+    }
+
+    fn apply_layout_command_inner(&self, cmd: LayoutCommand) -> Result<bool, EditorError> {
         match cmd {
             LayoutCommand::SavePreset { name } => {
                 self.save_preset(&name)?;
@@ -44,6 +51,7 @@ impl EditorUiHost {
                 return Ok(diff.changed);
             }
             LayoutCommand::ResetToDefault => {
+                self.clear_document_toolkits()?;
                 let mut session = self.lock_session();
                 let mut registry = self.lock_view_registry();
                 let snapshot = self.lock_capability_snapshot().clone();
@@ -118,7 +126,8 @@ impl EditorUiHost {
         if self.non_closeable_instance(instance_id) {
             return Ok(false);
         }
-        let changed = self.apply_layout_command(LayoutCommand::CloseView {
+        let document_close = self.begin_document_close(instance_id)?;
+        let changed = self.apply_layout_command_inner(LayoutCommand::CloseView {
             instance_id: instance_id.clone(),
         })?;
         if changed {
@@ -128,6 +137,9 @@ impl EditorUiHost {
             self.lock_ui_asset_dependency_generation()
                 .remove(instance_id);
             self.lock_view_registry().remove_instance(instance_id);
+            if let Some(document_close) = document_close {
+                self.commit_document_close(document_close)?;
+            }
         }
         Ok(changed)
     }

@@ -1,4 +1,6 @@
-use super::super::super::style_selector::WorkbenchStatusSignalKind as StatusSignalKind;
+use super::super::super::style_selector::{
+    WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT, WorkbenchStatusSignalKind as StatusSignalKind,
+};
 use super::super::super::template_status_glyphs::centered_rect;
 use super::constants::status_signal_metrics;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
@@ -10,8 +12,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
 ) -> FrameRect {
     let metrics = status_signal_metrics();
     let size = metrics.signal_marker_size;
+    let left_inset = if node.component_variant.as_str() == WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT {
+        metrics.gap_s
+    } else {
+        metrics.signal_icon_left
+    };
     FrameRect {
-        x: rect.x + metrics.signal_icon_left + node.layout_offset_x,
+        x: rect.x + left_inset + node.layout_offset_x,
         y: rect.y + node.layout_offset_y + (rect.height - size).max(0.0) * 0.5,
         width: size,
         height: size,

@@ -141,14 +141,17 @@ Frameworks 02 显式子路径锚：`code_review_findings/plugin_importer_dx/d1_c
   `InitLevel::{Kernel,Services,Scene,Editor,Post}`、`ModuleLifecycle::{build,ready,finish,cleanup}`、
   `ModuleDescriptor` 的 level/dependencies/lifecycle、拓扑排序器以及依赖/超时/rollback 类型化错误均已存在。
 - `CoreHandle::wait_until_module_ready` 已使用有界 sleep 轮询并产生 `ModuleReadyTimeout`；测试 fixture
-  会真实返回 `false` 直至超时，并验证 cleanup 与已启动服务回滚。当前缺口不是内核分支测试，
-  而是尚无 production built-in module 通过 `with_lifecycle(...)` 接入真实 GPU/asset readiness 信号。
+  会真实返回 `false` 直至超时，并验证 cleanup 与已启动服务回滚。`AssetModule` 已通过
+  `with_lifecycle(...)` 接入 `ProjectAssetManager` 的 catalog generation publication gate；ready 采样使用
+  `try_read`，generation 写入期间返回 `false`，发布完成后返回 `true`，不引入阻塞 I/O 或 busy-loop。
 - `RuntimePluginDescriptor` 已只内嵌一份 `ModuleDescriptor`，builtin modules、runtime-plugin catalog
-  与 app plugin builder 已共用 `sort_module_activation_order`。M3 的 descriptor/sorter 主干已落地，
-  SDK/native ABI 同步与当前源码受管验收仍待关闭。
-- 内建模块顺序已经由 descriptor sorter 决定；剩余 M2 问题是 Minimal profile 仍通过
-  `minimal_profile_runtime_modules` 另造五个模块实例，形成与 profile 声明平行的成员集事实源。
-  该特殊构造路径必须退役，不能把“选择哪些模块”重新混同为手工顺序。
+  与 app plugin builder 已共用 `sort_module_activation_order`。M3 的 SDK package declaration、runtime
+  descriptor、native ABI v3 manifest/entry 与 feature capability grant 已统一投影；本切片二次审查已
+  C0/I0/M0，旧宏、direct builder 与手工 packaging 镜像均未保留。共享 native loader 中重新出现的
+  V2 descriptor/entry fallback 由 Runtime06 canonical failure 前向硬切；该下层 failure 返回前 M3 不完成。
+- 内建模块顺序已经由 descriptor sorter 决定；`minimal_profile_runtime_modules` 特殊构造路径已删除。
+  六个 profile 只声明类型化 `BuiltinRuntimeModuleId` 成员集，统一 candidate registry 负责实例构造，
+  selection 补齐 dependency closure 后交给同一 sorter；App 内建组也只保留 profile/feature 声明。
 
 ## 3. 设计决策
 
@@ -185,10 +188,10 @@ profile declaration 中出现一次，不在 assembly 里重复 `Arc::new(...)`�
 
 `EngineModule` 与 `RuntimePlugin` 共享同一钩子 trait（内核层定义于 zr_kernel/core/runtime），plugin 侧仅追加 capability/manifest 语义。热重载语义（save_state/restore_state，Fyrox prepare_to_reload→reload→on_loaded 对齐）挂在同一状态机上，实装归计划 04。
 
-当前 kernel fixture 已覆盖 `false→true` 与持续 `false→ModuleReadyTimeout`。M2 仍须选择至少一个
-已经拥有非阻塞 readiness 信号的 production built-in module（优先 asset index 或 graphics surface）
-接入该 lifecycle；不得为满足门禁新增 busy-loop、阻塞 I/O 或恒假 adapter。其 focused 集成测试必须
-证明真实信号驱动 `ready`，而不是只复用 `NoopModuleLifecycle`。
+当前 kernel fixture 已覆盖 `false→true` 与持续 `false→ModuleReadyTimeout`。M2 选择 Asset production
+built-in：`AssetModuleLifecycle` 解析真实 `ProjectAssetManager`，以 project generation gate 作为非阻塞
+readiness 信号。focused 集成测试持有同一 publication 写锁并验证 `false→true`，没有复用
+`NoopModuleLifecycle`，也没有新增 busy-loop、阻塞 I/O 或恒假 adapter。
 
 ### 3.3 描述符单源
 
@@ -220,8 +223,10 @@ profile declaration 中出现一次，不在 assembly 里重复 `Arc::new(...)`�
 
 ### M2 内建模块与 profile 组装切换
 
-状态（2026-07-31）：descriptor 排序及 builtin 调用已完成；Minimal profile 成员集单源化、
-production readiness 接线、app groups 收口和受管验证仍未完成，M2 不得标记完成。
+状态（2026-08-02）：Minimal profile 成员集单源、统一 candidate registry/dependency closure/sorter、
+Asset production readiness 与 App groups 收口均已实现；focused owner guard、scoped rustfmt、diff-check
+通过，二次独立审查 `C0/I0/M0`。受管 Cargo 测试阶段仍 pending，因此为
+`code-complete / validation-pending`，不声明 accepted。
 
 实现切片：
 - `builtin/runtime_modules/core_modules.rs` 已由 sorter 决定顺序；继续删除 Minimal 特殊构造路径，
@@ -239,8 +244,13 @@ production readiness 接线、app groups 收口和受管验证仍未完成，M2 
 
 ### M3 RuntimePlugin 生命周期并轨
 
-状态（2026-07-31）：`RuntimePluginDescriptor` 单份 module descriptor 与 catalog/app sorter wiring
-已经 code-complete；SDK/native ABI 同步、全插件工作区验证和交付文档仍 pending，M3 未完成。
+状态（2026-08-02）：`RuntimePluginDescriptor` 单份 module descriptor、catalog/app sorter、38 个 SDK
+package declaration、28 个 runtime descriptor roots、native ABI v3 declaration projection 与 loader feature
+grant 已完成本切片 hard cut；静态门为 28/28 descriptor roots、0 single-source violation、0 compatibility
+shim，fresh 二次审查为 C0/I0/M0。共享 native loader/fixture 中重新出现的 V2 fallback 归 canonical
+[Runtime06 V4 surface inventory failure](../runtime/06/failure-2026-07-31-native-plugin-v4-surface-inventory-drift.md)
+前向修复；全插件工作区/原生 smoke 受管 receipt 仍 pending。因此当前为
+`implementation-complete / second-review-complete / lower-failure-open / validation-pending`，不声明 accepted。
 
 实现切片：
 - `RuntimePluginDescriptor` 内嵌 ModuleDescriptor；插件注册进入统一排序器（默认 InitLevel::Post）；
@@ -273,9 +283,11 @@ production readiness 接线、app groups 收口和受管验证仍未完成，M2 
 - fixed 已修复：[runtime-module-lifecycle-observer-import-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-runtime-module-lifecycle-observer-import-cutover.md)
 - 插件结构硬切换：[`Plugins 05 Navigation registration hard cut`](../../zircon_plugins/05/2026-07-13-navigation-registration-hard-cut-output-records.md) 已关闭全仓最后两处 registration compatibility debt；静态门禁与 10 项审计回归通过，当前源包级 Cargo 复验正在等待受管通道。
 
-- 当前里程碑判定（2026-07-31）：M1 code-complete/validation-pending；M2 仅排序器切片完成；
-  M3 仅 descriptor/sorter 主干完成。未关闭 Minimal 单源、production readiness、SDK/native ABI
-  与受管门之前，本计划不声明完成。
+- 当前里程碑判定（2026-08-02）：M1 code-complete/validation-pending；M2 implementation-complete、
+  second-review-complete、managed-validation-pending；M3 implementation-complete、second-review-complete、
+  lower Runtime06 ABI failure open、managed-validation-pending。M3 不恢复旧声明宏、direct descriptor
+  builder、capability grant shim 或手工 packaging 镜像；Runtime06 hard cut 返回且 coordinator terminal
+  receipt 到达后才进入 accepted closeout。
 
 
 ## 2026-07-10 Runtime 15 M3 Review-Guard Row-Data Minimum Cross-Doc Anchors
@@ -301,3 +313,10 @@ Supplemental child-file anchors for focused row-data guard closure: `structure_c
   剩余缺口准确收敛为 production built-in readiness adoption。
 - 已把 Minimal profile 的平行构造清单提升为 M2 hard-cut：candidate registry、profile-owned typed
   selection、dependency closure 与统一 sorter 单源；删除特殊构造函数，不把 profile 语义下沉 kernel。
+- `AssetModuleLifecycle` 已读取 production `ProjectAssetManager` generation publication gate，focused
+  测试证明写锁占用时 not-ready、释放后 ready；App built-in groups 已收口为 profile/feature 声明。
+- 2026-08-02 二次独立审查为 `C0/I0/M0`；结构守卫同步到当前 registry/selector/availability owners，
+  focused owner guard 8/8、scoped rustfmt 与 diff-check 通过，受管 Cargo 测试阶段 pending。
+- 后续源码审计把 profile selection descriptor-cache 缺失分支的运行时 `expect` 改为
+  `CoreError::MissingModule`，并新增 structure source guard 禁止 panic 路径回流；scoped Rust 1.94.1
+  rustfmt、typed-error source guard 与 diff-check 通过，managed acceptance 仍 pending。

@@ -1,11 +1,11 @@
 use crate::ui::workbench::autolayout::{
     compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
-    workbench_layout_defaults, workbench_layout_tier_for_logical_width,
-    workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale, EditorRegion,
-    EditorRegionRole, RegionBinding, ShellFrame, ShellRegionId, ShellSizePx,
-    WorkbenchChromeMetrics, WorkbenchConstraintTokenName, WorkbenchLayoutTier,
-    WorkbenchShellRegionsAsset, WorkbenchShellRegionsAssetError, WorkbenchSkeleton,
-    WORKBENCH_SHELL_REGIONS_ASSET_ID, WORKBENCH_SHELL_REGIONS_ASSET_KIND,
+    compute_workbench_shell_geometry_with_region_defaults, workbench_layout_defaults,
+    workbench_layout_tier_for_logical_width, workbench_layout_tier_for_physical_width,
+    workbench_logical_width_for_scale, EditorRegion, EditorRegionRole, RegionBinding, ShellFrame,
+    ShellRegionId, ShellSizePx, WorkbenchChromeMetrics, WorkbenchConstraintTokenName,
+    WorkbenchLayoutTier, WorkbenchShellRegionsAsset, WorkbenchShellRegionsAssetError,
+    WorkbenchSkeleton, WORKBENCH_SHELL_REGIONS_ASSET_ID, WORKBENCH_SHELL_REGIONS_ASSET_KIND,
     WORKBENCH_SHELL_REGIONS_ASSET_VERSION,
 };
 use crate::ui::workbench::fixture::default_preview_fixture;
@@ -438,7 +438,7 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
         &metrics,
         None,
     );
-    let tokenized = compute_workbench_shell_geometry(
+    let token_default = compute_workbench_shell_geometry_with_region_defaults(
         &model,
         &chrome,
         &fixture.layout,
@@ -446,19 +446,79 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
         shell_size,
         1.0,
         &metrics,
+        None,
+        Some(&extents),
+    );
+
+    assert_eq!(
+        token_default.region_frame(ShellRegionId::Left).width,
+        baseline.region_frame(ShellRegionId::Left).width
+    );
+    assert_eq!(
+        token_default.region_frame(ShellRegionId::Right).width,
+        baseline.region_frame(ShellRegionId::Right).width
+    );
+    assert_eq!(
+        token_default.region_frame(ShellRegionId::Bottom).height,
+        baseline.region_frame(ShellRegionId::Bottom).height
+    );
+
+    let mut without_persisted_drawers = model.clone();
+    without_persisted_drawers.drawer_ring.drawers.clear();
+    let token_fallback = compute_workbench_shell_geometry_with_region_defaults(
+        &without_persisted_drawers,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        shell_size,
+        1.0,
+        &metrics,
+        None,
         Some(&extents),
     );
 
     assert!(
-        tokenized.region_frame(ShellRegionId::Left).width
+        token_fallback.region_frame(ShellRegionId::Left).width
             > baseline.region_frame(ShellRegionId::Left).width
     );
     assert!(
-        tokenized.region_frame(ShellRegionId::Right).width
+        token_fallback.region_frame(ShellRegionId::Right).width
             > baseline.region_frame(ShellRegionId::Right).width
     );
     assert!(
-        tokenized.region_frame(ShellRegionId::Bottom).height
+        token_fallback.region_frame(ShellRegionId::Bottom).height
+            > baseline.region_frame(ShellRegionId::Bottom).height
+    );
+
+    let transient = [
+        (ShellRegionId::Left, 640.0),
+        (ShellRegionId::Right, 680.0),
+        (ShellRegionId::Bottom, 360.0),
+    ]
+    .into_iter()
+    .collect();
+    let active_drag = compute_workbench_shell_geometry_with_region_defaults(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        shell_size,
+        1.0,
+        &metrics,
+        Some(&transient),
+        Some(&extents),
+    );
+
+    assert!(
+        active_drag.region_frame(ShellRegionId::Left).width
+            > baseline.region_frame(ShellRegionId::Left).width
+    );
+    assert!(
+        active_drag.region_frame(ShellRegionId::Right).width
+            > baseline.region_frame(ShellRegionId::Right).width
+    );
+    assert!(
+        active_drag.region_frame(ShellRegionId::Bottom).height
             > baseline.region_frame(ShellRegionId::Bottom).height
     );
 }

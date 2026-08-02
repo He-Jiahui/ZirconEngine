@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editing/operation/
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/scene/selection/
   - zircon_editor/src/core/gateway/
   - zircon_editor/src/core/editor_extension.rs
@@ -28,7 +28,7 @@ implementation_files:
   - zircon_editor/src/core/editing/operation/error.rs
   - zircon_editor/src/core/editing/operation/factory.rs
   - zircon_editor/src/core/editing/operation/registration.rs
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/commands/mod.rs
   - zircon_editor/src/core/commands/descriptor.rs

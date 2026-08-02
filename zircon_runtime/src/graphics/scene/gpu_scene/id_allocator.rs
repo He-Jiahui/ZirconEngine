@@ -19,8 +19,10 @@ impl GpuSceneIdSpan {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneIdAllocator {
+    // Kept sorted and coalesced after every frame-boundary merge.
     free_spans: Vec<GpuSceneIdSpan>,
     pending_free_spans: Vec<GpuSceneIdSpan>,
+    free_span_merge_scratch: Vec<GpuSceneIdSpan>,
     next: u32,
     live: u32,
     high_water: u32,
@@ -101,9 +103,39 @@ impl GpuSceneIdAllocator {
             return;
         }
 
-        self.free_spans.append(&mut self.pending_free_spans);
-        self.free_spans.sort_by_key(|span| span.start);
-        self.free_spans = coalesce_sorted_spans(self.free_spans.drain(..));
+        self.pending_free_spans
+            .sort_unstable_by_key(|span| span.start);
+        let required_capacity = self
+            .free_spans
+            .len()
+            .saturating_add(self.pending_free_spans.len());
+        if self.free_span_merge_scratch.capacity() < required_capacity {
+            self.free_span_merge_scratch
+                .reserve(required_capacity - self.free_span_merge_scratch.capacity());
+        }
+        self.free_span_merge_scratch.clear();
+
+        let mut free_index = 0;
+        let mut pending_index = 0;
+        while free_index < self.free_spans.len() || pending_index < self.pending_free_spans.len() {
+            let next_span = if pending_index == self.pending_free_spans.len()
+                || (free_index < self.free_spans.len()
+                    && self.free_spans[free_index].start
+                        <= self.pending_free_spans[pending_index].start)
+            {
+                let span = self.free_spans[free_index];
+                free_index += 1;
+                span
+            } else {
+                let span = self.pending_free_spans[pending_index];
+                pending_index += 1;
+                span
+            };
+            push_coalesced_span(&mut self.free_span_merge_scratch, next_span);
+        }
+
+        std::mem::swap(&mut self.free_spans, &mut self.free_span_merge_scratch);
+        self.pending_free_spans.clear();
     }
 
     pub(crate) fn live(&self) -> u32 {
@@ -128,23 +160,19 @@ impl GpuSceneIdAllocator {
     }
 }
 
-fn coalesce_sorted_spans(spans: impl IntoIterator<Item = GpuSceneIdSpan>) -> Vec<GpuSceneIdSpan> {
-    let mut coalesced: Vec<GpuSceneIdSpan> = Vec::new();
-    for span in spans {
-        if span.len == 0 {
-            continue;
-        }
-        if let Some(last) = coalesced.last_mut() {
-            let last_end = last.end_exclusive();
-            if span.start <= last_end {
-                let span_end = span.end_exclusive();
-                last.len = span_end.max(last_end) - last.start;
-                continue;
-            }
-        }
-        coalesced.push(span);
+fn push_coalesced_span(spans: &mut Vec<GpuSceneIdSpan>, span: GpuSceneIdSpan) {
+    if span.len == 0 {
+        return;
     }
-    coalesced
+    if let Some(last) = spans.last_mut() {
+        let last_end = last.end_exclusive();
+        if span.start <= last_end {
+            let span_end = span.end_exclusive();
+            last.len = span_end.max(last_end) - last.start;
+            return;
+        }
+    }
+    spans.push(span);
 }
 
 #[cfg(test)]
@@ -189,5 +217,34 @@ mod tests {
         let reused = allocator.allocate_span(4);
         assert_eq!(reused, GpuSceneIdSpan::new(0, 4));
         assert_eq!(allocator.high_water(), 6);
+    }
+
+    #[test]
+    fn render_gpu_scene_id_allocator_merges_unordered_pending_frees_without_resorting_history() {
+        let mut allocator = GpuSceneIdAllocator::new();
+        let allocated = allocator.allocate_span(12);
+        assert_eq!(allocated, GpuSceneIdSpan::new(0, 12));
+
+        allocator.free_span(6, 2);
+        allocator.free_span(0, 2);
+        allocator.free_span(2, 2);
+        allocator.free_span(10, 2);
+        allocator.commit_pending_frees();
+        assert_eq!(
+            allocator.free_spans(),
+            &[
+                GpuSceneIdSpan::new(0, 4),
+                GpuSceneIdSpan::new(6, 2),
+                GpuSceneIdSpan::new(10, 2),
+            ]
+        );
+
+        allocator.free_span(4, 2);
+        allocator.free_span(8, 2);
+        allocator.commit_pending_frees();
+        assert_eq!(allocator.free_spans(), &[GpuSceneIdSpan::new(0, 12)]);
+
+        assert_eq!(allocator.allocate_span(12), allocated);
+        assert_eq!(allocator.high_water(), 12);
     }
 }

@@ -273,7 +273,7 @@ pub count(index: int, rank: int): int {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 50) {
-        if (rank == 1) { return 1; }
+        if (rank == 1) { return 2; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 51) {
@@ -286,16 +286,10 @@ pub count(index: int, rank: int): int {
     }
     if (index == 53) {
         if (rank == 1) { return 1; }
-        if (rank == 2) { return 1; }
-        if (rank == 3) { return 1; }
-        if (rank == 4) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 54) {
         if (rank == 1) { return 1; }
-        if (rank == 2) { return 1; }
-        if (rank == 3) { return 1; }
-        if (rank == 4) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 55) {
@@ -304,39 +298,43 @@ pub count(index: int, rank: int): int {
     }
     if (index == 56) {
         if (rank == 1) { return 1; }
-        if (rank == 2) { return 2; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 57) {
         if (rank == 1) { return 1; }
         if (rank == 2) { return 1; }
+        if (rank == 3) { return 1; }
+        if (rank == 4) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 58) {
         if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
+        if (rank == 3) { return 1; }
+        if (rank == 4) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 59) {
         if (rank == 1) { return 1; }
-        if (rank == 2) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 60) {
         if (rank == 1) { return 1; }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 61) {
-        if (rank == 1) { return 2; }
         if (rank == 2) { return 2; }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 62) {
+    if (index == 61) {
         if (rank == 1) { return 1; }
         if (rank == 2) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
+    if (index == 62) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
     if (index == 63) {
         if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 64) {
@@ -345,10 +343,12 @@ pub count(index: int, rank: int): int {
     }
     if (index == 65) {
         if (rank == 1) { return 2; }
+        if (rank == 2) { return 2; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 66) {
         if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 67) {
@@ -360,7 +360,7 @@ pub count(index: int, rank: int): int {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 69) {
-        if (rank == 1) { return 1; }
+        if (rank == 1) { return 2; }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 70) {
@@ -396,6 +396,72 @@ pub count(index: int, rank: int): int {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 78) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 79) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 80) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 81) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 82) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
+        if (rank == 3) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) { return 2; }
+        if (rank == 2) { return 2; }
+        if (rank == 3) { return 2; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
+        if (rank == 3) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
+        if (rank == 3) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) { return 1; }
+        if (rank == 2) { return 1; }
+        if (rank == 3) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) { return 1; }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
         if (rank == 1) { return 1; }
         throw "unknown WOC M4 ability rank";
     }
@@ -1333,7 +1399,10 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 50) {
         if (rank == 1) {
             if (effect == 0) {
-                return "consumeAura";
+                return "directDamage";
+            }
+            if (effect == 1) {
+                return "dot";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1342,7 +1411,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 51) {
         if (rank == 1) {
             if (effect == 0) {
-                return "dot";
+                return "aoeDamage";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1351,7 +1420,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 52) {
         if (rank == 1) {
             if (effect == 0) {
-                return "consumeAura";
+                return "selfBuff";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1360,25 +1429,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 53) {
         if (rank == 1) {
             if (effect == 0) {
-                return "directDamage";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "directDamage";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return "directDamage";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
-                return "directDamage";
+                return "selfBuff";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1387,6 +1438,60 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 54) {
         if (rank == 1) {
             if (effect == 0) {
+                return "consumeAura";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 55) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "dot";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 56) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "consumeAura";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 57) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 58) {
+        if (rank == 1) {
+            if (effect == 0) {
                 return "heal";
             }
             throw "unknown WOC M4 effect index";
@@ -1411,7 +1516,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 55) {
+    if (index == 59) {
         if (rank == 1) {
             if (effect == 0) {
                 return "directDamage";
@@ -1420,7 +1525,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 56) {
+    if (index == 60) {
         if (rank == 1) {
             if (effect == 0) {
                 return "root";
@@ -1433,54 +1538,6 @@ pub typeAt(index: int, rank: int, effect: int): string {
             }
             if (effect == 1) {
                 return "dot";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 57) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "weaponDamage";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "weaponDamage";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 58) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "taunt";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 59) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "aoeAttackPower";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "aoeAttackPower";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 60) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "selfBuff";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1489,19 +1546,13 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 61) {
         if (rank == 1) {
             if (effect == 0) {
-                return "weaponStrike";
-            }
-            if (effect == 1) {
-                return "dot";
+                return "weaponDamage";
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
-                return "weaponStrike";
-            }
-            if (effect == 1) {
-                return "dot";
+                return "weaponDamage";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1510,6 +1561,60 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 62) {
         if (rank == 1) {
             if (effect == 0) {
+                return "taunt";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 63) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "aoeAttackPower";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "aoeAttackPower";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 64) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "selfBuff";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 65) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "weaponStrike";
+            }
+            if (effect == 1) {
+                return "dot";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "weaponStrike";
+            }
+            if (effect == 1) {
+                return "dot";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 66) {
+        if (rank == 1) {
+            if (effect == 0) {
                 return "weaponStrike";
             }
             throw "unknown WOC M4 effect index";
@@ -1522,7 +1627,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 63) {
+    if (index == 67) {
         if (rank == 1) {
             if (effect == 0) {
                 return "finisherDamage";
@@ -1531,7 +1636,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 64) {
+    if (index == 68) {
         if (rank == 1) {
             if (effect == 0) {
                 return "aoeDamage";
@@ -1540,7 +1645,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 65) {
+    if (index == 69) {
         if (rank == 1) {
             if (effect == 0) {
                 return "heal";
@@ -1552,46 +1657,10 @@ pub typeAt(index: int, rank: int, effect: int): string {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 66) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "selfBuff";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 67) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "selfBuff";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 68) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "gainResource";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 69) {
-        if (rank == 1) {
-            if (effect == 0) {
-                return "stun";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
     if (index == 70) {
         if (rank == 1) {
             if (effect == 0) {
-                return "faerieFire";
+                return "selfBuff";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1600,7 +1669,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 71) {
         if (rank == 1) {
             if (effect == 0) {
-                return "incapacitate";
+                return "selfBuff";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1609,7 +1678,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 72) {
         if (rank == 1) {
             if (effect == 0) {
-                return "selfBuff";
+                return "gainResource";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1627,7 +1696,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 74) {
         if (rank == 1) {
             if (effect == 0) {
-                return "dot";
+                return "faerieFire";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1636,7 +1705,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 75) {
         if (rank == 1) {
             if (effect == 0) {
-                return "selfBuff";
+                return "incapacitate";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1645,7 +1714,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 76) {
         if (rank == 1) {
             if (effect == 0) {
-                return "dot";
+                return "selfBuff";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1654,7 +1723,7 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 77) {
         if (rank == 1) {
             if (effect == 0) {
-                return "aoeDamage";
+                return "stun";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1663,7 +1732,202 @@ pub typeAt(index: int, rank: int, effect: int): string {
     if (index == 78) {
         if (rank == 1) {
             if (effect == 0) {
+                return "dot";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 79) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "selfBuff";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 80) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "dot";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 81) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "aoeDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 82) {
+        if (rank == 1) {
+            if (effect == 0) {
                 return "interrupt";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "heal";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "heal";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "heal";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "heal";
+            }
+            if (effect == 1) {
+                return "temporalEcho";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "heal";
+            }
+            if (effect == 1) {
+                return "temporalEcho";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "heal";
+            }
+            if (effect == 1) {
+                return "temporalEcho";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "massTemporalEcho";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "massTemporalEcho";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "massTemporalEcho";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "rewind";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "absorb";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "absorb";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "absorb";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "directDamage";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "perfectMoment";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "temporalHourglass";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "aoeAllyHaste";
             }
             throw "unknown WOC M4 effect index";
         }
@@ -1679,7 +1943,11 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         field != "base" &&
         field != "bonus" &&
         field != "duration" &&
+        field != "fraction" &&
         field != "healFrac" &&
+        field != "healMaxHpPct" &&
+        field != "hostilePveDuration" &&
+        field != "hostilePvpDuration" &&
         field != "hp" &&
         field != "interval" &&
         field != "judgeMax" &&
@@ -1687,15 +1955,23 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         field != "leechPct" &&
         field != "lockout" &&
         field != "max" &&
+        field != "maxHpFraction" &&
+        field != "maxTargets" &&
         field != "maxStacks" &&
         field != "mana" &&
         field != "min" &&
         field != "mult" &&
         field != "perCombo" &&
         field != "radius" &&
+        field != "selfRadius" &&
+        field != "captureRadius" &&
+        field != "groundDuration" &&
+        field != "selfCooldownRate" &&
+        field != "allyCooldownRate" &&
         field != "total" &&
         field != "value" &&
         field != "variance" &&
+        field != "windowSec" &&
         field != "weaponMult"
     ) { throw "unknown WOC M4 effect metric field"; }
     if (index == 0) {
@@ -2933,6 +3209,57 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
     if (index == 50) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "max") { return 225.0; }
+                if (field == "min") { return 170.0; }
+                return 0.0;
+            }
+            if (effect == 1) {
+                if (field == "duration") { return 12.0; }
+                if (field == "interval") { return 2.0; }
+                if (field == "total") { return 48.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 51) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "max") { return 44.0; }
+                if (field == "min") { return 34.0; }
+                if (field == "radius") { return 7.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 52) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 10.0; }
+                if (field == "value") { return 0.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 53) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 10.0; }
+                if (field == "value") { return 0.4; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 54) {
+        if (rank == 1) {
+            if (effect == 0) {
                 if (field == "max") { return 64.0; }
                 if (field == "min") { return 54.0; }
                 return 0.0;
@@ -2941,7 +3268,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 51) {
+    if (index == 55) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 30.0; }
@@ -2954,7 +3281,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 52) {
+    if (index == 56) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 125.0; }
@@ -2965,7 +3292,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 53) {
+    if (index == 57) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 16.0; }
@@ -3000,7 +3327,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 54) {
+    if (index == 58) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 51.0; }
@@ -3035,7 +3362,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 55) {
+    if (index == 59) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 112.0; }
@@ -3046,7 +3373,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 56) {
+    if (index == 60) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 12.0; }
@@ -3069,7 +3396,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 57) {
+    if (index == 61) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "bonus") { return 18.0; }
@@ -3086,7 +3413,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 58) {
+    if (index == 62) {
         if (rank == 1) {
             if (effect == 0) {
                 return 0.0;
@@ -3095,7 +3422,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 59) {
+    if (index == 63) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "amount") { return 20.0; }
@@ -3116,7 +3443,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 60) {
+    if (index == 64) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 3600.0; }
@@ -3127,7 +3454,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 61) {
+    if (index == 65) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "bonus") { return 8.0; }
@@ -3156,7 +3483,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 62) {
+    if (index == 66) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "bonus") { return 12.0; }
@@ -3173,7 +3500,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 63) {
+    if (index == 67) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "base") { return 10.0; }
@@ -3185,7 +3512,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 64) {
+    if (index == 68) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 15.0; }
@@ -3197,7 +3524,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 65) {
+    if (index == 69) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 62.0; }
@@ -3214,7 +3541,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 66) {
+    if (index == 70) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 15.0; }
@@ -3225,7 +3552,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 67) {
+    if (index == 71) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 6.0; }
@@ -3236,51 +3563,10 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 68) {
-        if (rank == 1) {
-            if (effect == 0) {
-                if (field == "amount") { return 20.0; }
-                return 0.0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 69) {
-        if (rank == 1) {
-            if (effect == 0) {
-                if (field == "duration") { return 2.0; }
-                return 0.0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 70) {
-        if (rank == 1) {
-            if (effect == 0) {
-                if (field == "duration") { return 40.0; }
-                return 0.0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 71) {
-        if (rank == 1) {
-            if (effect == 0) {
-                if (field == "duration") { return 8.0; }
-                return 0.0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        throw "unknown WOC M4 ability rank";
-    }
     if (index == 72) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "duration") { return 15.0; }
-                if (field == "value") { return 1.5; }
+                if (field == "amount") { return 20.0; }
                 return 0.0;
             }
             throw "unknown WOC M4 effect index";
@@ -3298,6 +3584,47 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 74) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 40.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 75) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 8.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 76) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 15.0; }
+                if (field == "value") { return 1.5; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 77) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 2.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 78) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 12.0; }
@@ -3309,7 +3636,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 75) {
+    if (index == 79) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 6.0; }
@@ -3320,7 +3647,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 76) {
+    if (index == 80) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "duration") { return 12.0; }
@@ -3332,7 +3659,7 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 77) {
+    if (index == 81) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "max") { return 16.0; }
@@ -3344,10 +3671,229 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
         }
         throw "unknown WOC M4 ability rank";
     }
-    if (index == 78) {
+    if (index == 82) {
         if (rank == 1) {
             if (effect == 0) {
                 if (field == "lockout") { return 4.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "max") { return 74.0; }
+                if (field == "min") { return 62.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "max") { return 125.0; }
+                if (field == "min") { return 105.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "max") { return 178.0; }
+                if (field == "min") { return 150.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "max") { return 30.0; }
+                if (field == "min") { return 24.0; }
+                return 0.0;
+            }
+            if (effect == 1) {
+                if (field == "duration") { return 15.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "max") { return 50.0; }
+                if (field == "min") { return 40.0; }
+                return 0.0;
+            }
+            if (effect == 1) {
+                if (field == "duration") { return 15.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "max") { return 70.0; }
+                if (field == "min") { return 58.0; }
+                return 0.0;
+            }
+            if (effect == 1) {
+                if (field == "duration") { return 15.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 10.0; }
+                if (field == "max") { return 18.0; }
+                if (field == "maxTargets") { return 5.0; }
+                if (field == "min") { return 14.0; }
+                if (field == "radius") { return 15.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "duration") { return 10.0; }
+                if (field == "max") { return 28.0; }
+                if (field == "maxTargets") { return 5.0; }
+                if (field == "min") { return 22.0; }
+                if (field == "radius") { return 15.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "duration") { return 10.0; }
+                if (field == "max") { return 36.0; }
+                if (field == "maxTargets") { return 5.0; }
+                if (field == "min") { return 28.0; }
+                if (field == "radius") { return 15.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "fraction") { return 0.3; }
+                if (field == "maxHpFraction") { return 0.35; }
+                if (field == "radius") { return 40.0; }
+                if (field == "windowSec") { return 5.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "amount") { return 55.0; }
+                if (field == "duration") { return 10.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "amount") { return 100.0; }
+                if (field == "duration") { return 10.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "amount") { return 160.0; }
+                if (field == "duration") { return 10.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "max") { return 13.0; }
+                if (field == "min") { return 10.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "max") { return 8.0; }
+                if (field == "min") { return 8.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "max") { return 14.0; }
+                if (field == "min") { return 14.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "max") { return 22.0; }
+                if (field == "min") { return 22.0; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 5.0; }
+                if (field == "healMaxHpPct") { return 0.3; }
+                if (field == "hostilePveDuration") { return 60.0; }
+                if (field == "hostilePvpDuration") { return 10.0; }
+                if (field == "selfRadius") { return 1.75; }
+                if (field == "captureRadius") { return 1.75; }
+                if (field == "groundDuration") { return 30.0; }
+                if (field == "selfCooldownRate") { return 2.0; }
+                if (field == "allyCooldownRate") { return 1.75; }
+                return 0.0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "duration") { return 15.0; }
+                if (field == "mult") { return 1.3; }
+                if (field == "radius") { return 40.0; }
                 return 0.0;
             }
             throw "unknown WOC M4 effect index";
@@ -3359,33 +3905,53 @@ pub metric(index: int, rank: int, effect: int, field: string): float {
 
 pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (
-        field != "requiresBehind"
+        field != "canCrit" &&
+        field != "requiresBehind" &&
+        field != "spell" &&
+        field != "exhaust" &&
+        field != "groupOnly"
     ) { throw "unknown WOC M4 effect flag field"; }
     if (index == 0) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3395,44 +3961,76 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 1) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3442,44 +4040,76 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 2) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3489,28 +4119,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 3) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3520,7 +4166,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 4) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3530,7 +4180,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 5) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3540,21 +4194,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 6) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3564,21 +4230,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 7) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3588,7 +4266,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 8) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3598,7 +4280,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 9) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3608,14 +4294,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 10) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3625,7 +4319,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 11) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3635,21 +4333,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 12) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3659,7 +4369,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 13) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3669,21 +4383,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 14) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3693,7 +4419,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 15) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3703,33 +4433,57 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 16) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3739,7 +4493,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 17) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3749,7 +4507,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 18) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3759,28 +4521,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 19) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3790,28 +4568,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 20) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3821,21 +4615,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 21) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return true; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return true; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return true; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3845,22 +4651,38 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 22) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3870,21 +4692,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 23) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3894,21 +4728,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 24) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3918,21 +4764,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 25) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3942,21 +4800,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 26) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3966,28 +4836,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 27) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -3997,21 +4883,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 28) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4021,14 +4919,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 29) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4038,7 +4944,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 30) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4048,7 +4958,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 31) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4058,28 +4972,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 32) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4089,28 +5019,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 33) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4120,21 +5066,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 34) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4144,11 +5102,19 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 35) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4158,22 +5124,38 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 36) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4183,14 +5165,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 37) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4200,14 +5190,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 38) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4217,7 +5215,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 39) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4227,7 +5229,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 40) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4237,28 +5243,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 41) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 4) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4268,33 +5290,57 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 42) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4304,21 +5350,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 43) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4328,21 +5386,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 44) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4352,21 +5422,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 45) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4376,7 +5458,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 46) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4386,7 +5472,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 47) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4396,21 +5486,33 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 48) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 3) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4420,7 +5522,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 49) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4430,7 +5536,19 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 50) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4440,7 +5558,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 51) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return true; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4450,7 +5572,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 52) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4460,28 +5586,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 53) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4491,28 +5600,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 54) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4522,7 +5614,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 55) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4532,18 +5628,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 56) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            if (effect == 1) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4553,14 +5642,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 57) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4570,7 +5689,44 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 58) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4580,14 +5736,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 59) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4597,7 +5750,30 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 60) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4607,22 +5783,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 61) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            if (effect == 1) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            if (effect == 1) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4632,14 +5808,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 62) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
-                return false;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4649,7 +5822,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 63) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4659,7 +5847,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 64) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4669,11 +5861,38 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 65) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             if (effect == 1) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4683,7 +5902,22 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 66) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4693,7 +5927,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 67) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4703,7 +5941,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 68) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4713,7 +5955,19 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 69) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4723,7 +5977,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 70) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4733,7 +5991,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 71) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4743,7 +6005,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 72) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4753,7 +6019,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 73) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4763,7 +6033,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 74) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4773,7 +6047,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 75) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4783,7 +6061,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 76) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4793,7 +6075,11 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 77) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -4803,7 +6089,341 @@ pub flag(index: int, rank: int, effect: int, field: string): bool {
     if (index == 78) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "canCrit") { return false; }
                 if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 79) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 80) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 81) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 82) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            if (effect == 1) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return false; }
+                if (field == "exhaust") { return false; }
+                if (field == "groupOnly") { return false; }
+                return false;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "canCrit") { return false; }
+                if (field == "requiresBehind") { return false; }
+                if (field == "spell") { return true; }
+                if (field == "exhaust") { return true; }
+                if (field == "groupOnly") { return true; }
                 return false;
             }
             throw "unknown WOC M4 effect index";
@@ -5744,7 +7364,10 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
     if (index == 50) {
         if (rank == 1) {
             if (effect == 0) {
-                return 1;
+                return 0;
+            }
+            if (effect == 1) {
+                return 0;
             }
             throw "unknown WOC M4 effect index";
         }
@@ -5775,48 +7398,12 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 54) {
         if (rank == 1) {
             if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
-                return 0;
+                return 1;
             }
             throw "unknown WOC M4 effect index";
         }
@@ -5838,15 +7425,6 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return 0;
-            }
-            if (effect == 1) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 57) {
@@ -5862,10 +7440,40 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 58) {
         if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
             if (effect == 0) {
                 return 0;
             }
@@ -5880,17 +7488,20 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return 0;
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 60) {
         if (rank == 1) {
             if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            if (effect == 1) {
                 return 0;
             }
             throw "unknown WOC M4 effect index";
@@ -5902,16 +7513,10 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             if (effect == 0) {
                 return 0;
             }
-            if (effect == 1) {
-                return 0;
-            }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
-                return 0;
-            }
-            if (effect == 1) {
                 return 0;
             }
             throw "unknown WOC M4 effect index";
@@ -5925,16 +7530,16 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 63) {
+        if (rank == 1) {
             if (effect == 0) {
                 return 0;
             }
             throw "unknown WOC M4 effect index";
         }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 63) {
-        if (rank == 1) {
+        if (rank == 2) {
             if (effect == 0) {
                 return 0;
             }
@@ -5961,10 +7566,25 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            if (effect == 1) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 66) {
         if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
             if (effect == 0) {
                 return 0;
             }
@@ -5993,6 +7613,9 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
     if (index == 69) {
         if (rank == 1) {
             if (effect == 0) {
+                return 0;
+            }
+            if (effect == 1) {
                 return 0;
             }
             throw "unknown WOC M4 effect index";
@@ -6072,6 +7695,201 @@ pub consumeAuraIdCount(index: int, rank: int, effect: int): int {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 78) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 79) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 80) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 81) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 82) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            if (effect == 1) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            if (effect == 1) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            if (effect == 1) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return 0;
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
         if (rank == 1) {
             if (effect == 0) {
                 return 0;
@@ -7014,7 +8832,9 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
     if (index == 50) {
         if (rank == 1) {
             if (effect == 0) {
-                if (slot == 0) { return "immolate"; }
+                return "";
+            }
+            if (effect == 1) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -7046,47 +8866,12 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 54) {
         if (rank == 1) {
             if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
+                if (slot == 0) { return "immolate"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -7109,15 +8894,6 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            if (effect == 1) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 57) {
@@ -7133,10 +8909,40 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 58) {
         if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
             if (effect == 0) {
                 return "";
             }
@@ -7151,17 +8957,20 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 60) {
         if (rank == 1) {
             if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -7173,16 +8982,10 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             if (effect == 0) {
                 return "";
             }
-            if (effect == 1) {
-                return "";
-            }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
-                return "";
-            }
-            if (effect == 1) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -7196,16 +8999,16 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 63) {
+        if (rank == 1) {
             if (effect == 0) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
         }
-        throw "unknown WOC M4 ability rank";
-    }
-    if (index == 63) {
-        if (rank == 1) {
+        if (rank == 2) {
             if (effect == 0) {
                 return "";
             }
@@ -7232,10 +9035,25 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 66) {
         if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
             if (effect == 0) {
                 return "";
             }
@@ -7264,6 +9082,9 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
     if (index == 69) {
         if (rank == 1) {
             if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -7343,6 +9164,201 @@ pub consumeAuraIdAt(index: int, rank: int, effect: int, slot: int): string {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 78) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 79) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 80) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 81) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 82) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
         if (rank == 1) {
             if (effect == 0) {
                 return "";
@@ -8299,6 +10315,9 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             if (effect == 0) {
                 return "";
             }
+            if (effect == 1) {
+                return "";
+            }
             throw "unknown WOC M4 effect index";
         }
         throw "unknown WOC M4 ability rank";
@@ -8315,7 +10334,7 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 52) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "auraKind") { return "hot"; }
+                if (field == "kind") { return "combustion"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8325,24 +10344,7 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 53) {
         if (rank == 1) {
             if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
-            if (effect == 0) {
+                if (field == "kind") { return "overload"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8351,24 +10353,6 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     }
     if (index == 54) {
         if (rank == 1) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 3) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 4) {
             if (effect == 0) {
                 return "";
             }
@@ -8388,15 +10372,7 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 56) {
         if (rank == 1) {
             if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            if (effect == 1) {
+                if (field == "auraKind") { return "hot"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8416,10 +10392,40 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 58) {
         if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 4) {
             if (effect == 0) {
                 return "";
             }
@@ -8434,18 +10440,20 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             }
             throw "unknown WOC M4 effect index";
         }
-        if (rank == 2) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 60) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "kind") { return "stealth"; }
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8457,16 +10465,10 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             if (effect == 0) {
                 return "";
             }
-            if (effect == 1) {
-                return "";
-            }
             throw "unknown WOC M4 effect index";
         }
         if (rank == 2) {
             if (effect == 0) {
-                return "";
-            }
-            if (effect == 1) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8475,12 +10477,6 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     }
     if (index == 62) {
         if (rank == 1) {
-            if (effect == 0) {
-                return "";
-            }
-            throw "unknown WOC M4 effect index";
-        }
-        if (rank == 2) {
             if (effect == 0) {
                 return "";
             }
@@ -8495,11 +10491,18 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 64) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "kind") { return "stealth"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8516,12 +10519,26 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             }
             throw "unknown WOC M4 effect index";
         }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
         throw "unknown WOC M4 ability rank";
     }
     if (index == 66) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "kind") { return "buff_armor"; }
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8531,7 +10548,6 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 67) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "kind") { return "buff_dodge"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8552,6 +10568,9 @@ pub text(index: int, rank: int, effect: int, field: string): string {
             if (effect == 0) {
                 return "";
             }
+            if (effect == 1) {
+                return "";
+            }
             throw "unknown WOC M4 effect index";
         }
         throw "unknown WOC M4 ability rank";
@@ -8559,6 +10578,7 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 70) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "kind") { return "buff_armor"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8568,6 +10588,7 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 71) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "kind") { return "buff_dodge"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8577,7 +10598,6 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 72) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "kind") { return "buff_speed"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8605,7 +10625,6 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 75) {
         if (rank == 1) {
             if (effect == 0) {
-                if (field == "kind") { return "buff_ap"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8615,6 +10634,7 @@ pub text(index: int, rank: int, effect: int, field: string): string {
     if (index == 76) {
         if (rank == 1) {
             if (effect == 0) {
+                if (field == "kind") { return "buff_speed"; }
                 return "";
             }
             throw "unknown WOC M4 effect index";
@@ -8631,6 +10651,202 @@ pub text(index: int, rank: int, effect: int, field: string): string {
         throw "unknown WOC M4 ability rank";
     }
     if (index == 78) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 79) {
+        if (rank == 1) {
+            if (effect == 0) {
+                if (field == "kind") { return "buff_ap"; }
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 80) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 81) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 82) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 83) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 84) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            if (effect == 1) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 85) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 86) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 87) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 88) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 89) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 2) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        if (rank == 3) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 90) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 91) {
+        if (rank == 1) {
+            if (effect == 0) {
+                return "";
+            }
+            throw "unknown WOC M4 effect index";
+        }
+        throw "unknown WOC M4 ability rank";
+    }
+    if (index == 92) {
         if (rank == 1) {
             if (effect == 0) {
                 return "";

@@ -1,20 +1,20 @@
+use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
-    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
+    GraphemeAdvanceIndex, corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
     line_text_fits_with_provider as shared_line_text_fits_with_provider,
     should_wrap_before_accumulated, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider, GraphemeAdvanceIndex,
+    word_smart_line_break_chunks_with_provider,
 };
-use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextRange, UiTextRunKind, UiTextWrap,
 };
 
-use super::super::adapter::text_style;
+use crate::text::text_style;
 use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
-    append_segment, push_current_line, push_wrapped_line, trim_word_break_trailing_spaces,
-    CandidateLine, PendingBreakSuffix,
+    CandidateLine, PendingBreakSuffix, append_segment, push_current_line, push_wrapped_line,
+    trim_word_break_trailing_spaces,
 };
 use super::direction::resolve_direction;
 
@@ -41,8 +41,8 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
     let mut current_advance = 0.0_f32;
 
     for run in runs {
-        for segment in split_preserving_newline(&run.text, run.source_range.start) {
-            if segment.text == "\n" {
+        for segment in split_preserving_hard_lines(run.text(), run.source_range.start) {
+            if segment.hard_break {
                 push_current_line(&mut lines, &mut current);
                 current_advance = 0.0;
                 continue;
@@ -104,39 +104,41 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
 struct TextSegment<'a> {
     text: &'a str,
     range: UiTextRange,
+    hard_break: bool,
 }
 
-fn split_preserving_newline(text: &str, source_start: usize) -> Vec<TextSegment<'_>> {
+fn split_preserving_hard_lines(text: &str, source_start: usize) -> Vec<TextSegment<'_>> {
     let mut segments = Vec::new();
-    let mut start = 0;
-    for (index, ch) in text.char_indices() {
-        if ch == '\n' {
-            if start < index {
-                segments.push(TextSegment {
-                    text: &text[start..index],
-                    range: UiTextRange {
-                        start: source_start + start,
-                        end: source_start + index,
-                    },
-                });
-            }
+    for line in crate::text::hard_lines(text) {
+        if !line.content.is_empty() {
             segments.push(TextSegment {
-                text: &text[index..index + ch.len_utf8()],
+                text: &text[line.content.clone()],
                 range: UiTextRange {
-                    start: source_start + index,
-                    end: source_start + index + ch.len_utf8(),
+                    start: source_start + line.content.start,
+                    end: source_start + line.content.end,
                 },
+                hard_break: false,
             });
-            start = index + ch.len_utf8();
+        }
+        if !line.separator.is_empty() {
+            segments.push(TextSegment {
+                text: &text[line.separator.clone()],
+                range: UiTextRange {
+                    start: source_start + line.separator.start,
+                    end: source_start + line.separator.end,
+                },
+                hard_break: true,
+            });
         }
     }
-    if start < text.len() || segments.is_empty() {
+    if segments.is_empty() {
         segments.push(TextSegment {
-            text: &text[start..],
+            text,
             range: UiTextRange {
-                start: source_start + start,
-                end: source_start + text.len(),
+                start: source_start,
+                end: source_start,
             },
+            hard_break: false,
         });
     }
     segments

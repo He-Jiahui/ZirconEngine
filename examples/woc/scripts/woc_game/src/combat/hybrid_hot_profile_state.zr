@@ -28,13 +28,14 @@ closeEnough(actual: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
-hybridHotProfile(
+hybridHotProfileWithResolvedTotal(
     abilityIndex: int,
-    rank: int
+    rank: int,
+    resolvedTotal: int
 ): HybridHotProfile {
     var profile = new HybridHotProfile();
     if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
-        rank > abilities.rankCount(abilityIndex) ||
+        rank > abilities.rankCount(abilityIndex) || resolvedTotal < 0 ||
         effects.count(abilityIndex, rank) != 2 ||
         effects.typeAt(abilityIndex, rank, 0) != "heal" ||
         effects.typeAt(abilityIndex, rank, 1) != "hot") {
@@ -44,7 +45,7 @@ hybridHotProfile(
     var interval = effects.metric(abilityIndex, rank, 1, "interval");
     if (duration <= 0.0 || interval <= 0.0 || duration < interval) { return profile; }
     var ticks = duration / interval;
-    var base = roundPositive(effects.metric(abilityIndex, rank, 1, "total") / ticks);
+    var base = roundPositive(<float>resolvedTotal / ticks);
     if (base < 1) { base = 1; }
     profile.valid = true;
     profile.heal = base;
@@ -53,8 +54,22 @@ hybridHotProfile(
     return profile;
 }
 
+hybridHotProfile(abilityIndex: int, rank: int): HybridHotProfile {
+    return hybridHotProfileWithResolvedTotal(
+        abilityIndex, rank, roundPositive(effects.metric(abilityIndex, rank, 1, "total"))
+    );
+}
+
 pub resolveHybridHotProfile(abilityIndex: int, rank: int): HybridHotProfile {
     return hybridHotProfile(abilityIndex, rank);
+}
+
+pub resolveHybridHotProfileWithResolvedTotal(
+    abilityIndex: int,
+    rank: int,
+    resolvedTotal: int
+): HybridHotProfile {
+    return hybridHotProfileWithResolvedTotal(abilityIndex, rank, resolvedTotal);
 }
 
 pub hybridHotProfileMatches(
@@ -69,6 +84,20 @@ pub hybridHotProfileMatches(
         closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
 }
 
+// Hybrid HoT ticks are also persisted as application-time snapshots; the
+// active talent loadout is not an authority for an existing Aura row.
+pub hybridHotProfileSnapshotMatches(
+    abilityIndex: int,
+    rank: int,
+    heal: int,
+    duration: float,
+    interval: float
+): bool {
+    var profile = hybridHotProfile(abilityIndex, rank);
+    return profile.valid && heal > 0 && heal <= 65535 &&
+        closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
+}
+
 pub contractTest(): int {
     var regrowth = abilities.indexOf("regrowth");
     var profile = resolveHybridHotProfile(regrowth, 1);
@@ -80,5 +109,11 @@ pub contractTest(): int {
         hybridHotProfileMatches(regrowth, 1, 8, 21.0, 3.0)) {
         return -2;
     }
+    if (!hybridHotProfileSnapshotMatches(regrowth, 1, 9, 21.0, 3.0) ||
+        hybridHotProfileSnapshotMatches(regrowth, 1, 0, 21.0, 3.0)) {
+        return -3;
+    }
+    var restoration = resolveHybridHotProfileWithResolvedTotal(regrowth, 1, 61);
+    if (!restoration.valid || restoration.heal != 9) return -4;
     return 1;
 }

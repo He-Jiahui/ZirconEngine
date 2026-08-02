@@ -11,6 +11,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
     label: String,
     color: [u8; 4],
     font_size: f32,
+    text_style: UiTextRunPaintStyle,
     opacity: f32,
 ) {
     if label.trim().is_empty()
@@ -32,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         color,
         font_size,
         template_node_text_line_height(font_size),
-        UiTextRunPaintStyle::default(),
+        text_style,
         opacity,
     ));
 }
@@ -78,6 +79,10 @@ mod tests {
             "Caption".to_string(),
             [226, 230, 232, 255],
             10.666_667,
+            UiTextRunPaintStyle {
+                code: true,
+                ..UiTextRunPaintStyle::default()
+            },
             1.0,
         );
 
@@ -86,6 +91,7 @@ mod tests {
         assert_eq!(commands[0].clip_frame.as_ref(), Some(&clip));
         assert_eq!(commands[0].z_index, 7);
         assert_eq!(commands[0].text.as_deref(), Some("Caption"));
+        assert!(commands[0].text_style.code);
         assert_eq!(
             commands[0].line_height,
             template_node_text_line_height(10.666_667)
@@ -110,6 +116,7 @@ mod tests {
             "Caption".to_string(),
             [226, 230, 232, 255],
             10.666_667,
+            UiTextRunPaintStyle::default(),
             1.0,
         );
         let populated_rect = FrameRect {
@@ -124,6 +131,7 @@ mod tests {
             String::new(),
             [226, 230, 232, 255],
             10.666_667,
+            UiTextRunPaintStyle::default(),
             1.0,
         );
 

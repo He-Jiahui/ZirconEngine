@@ -113,8 +113,8 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
 }
 
 #[test]
-fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineages_even_when_page_matches()
- {
+fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineages_even_when_page_matches(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -157,6 +157,7 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
         vec![
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 40,
                 page_id: 400,
                 lod_level: 2,
@@ -166,6 +167,7 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
             },
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 50,
                 page_id: 400,
                 lod_level: 2,
@@ -180,6 +182,7 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
         vec![
             VisibilityVirtualGeometryDrawSegment {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 40,
                 page_id: 400,
                 cluster_ordinal: 3,
@@ -190,6 +193,7 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
             },
             VisibilityVirtualGeometryDrawSegment {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 50,
                 page_id: 400,
                 cluster_ordinal: 4,
@@ -245,6 +249,7 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
         context.virtual_geometry_visible_clusters,
         vec![VisibilityVirtualGeometryCluster {
             entity: mesh,
+            stable_instance_key: mesh << 16,
             cluster_id: 10,
             page_id: 100,
             lod_level: 0,
@@ -265,8 +270,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
 }
 
 #[test]
-fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_clusters_when_page_budget_is_tight()
- {
+fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_clusters_when_page_budget_is_tight(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -322,8 +327,8 @@ fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_cl
 }
 
 #[test]
-fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometry_page_priority_ties()
- {
+fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometry_page_priority_ties(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 

@@ -10,8 +10,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use marks:
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::workbench_selection_control_metrics;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    workbench_selection_control_metrics_from_host, RADIO_DOT_SIZE, TOGGLE_THUMB_SIZE,
-    TOGGLE_TRACK_WIDTH,
+    RADIO_DOT_SIZE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH,
+    workbench_selection_control_metrics_from_host,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use radio::radio_dot_size;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use toggle::{

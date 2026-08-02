@@ -1,9 +1,13 @@
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll, Waker};
 
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderQualityTier,
-    ShaderVariantKey, ShaderVariantMissReport,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId,
+    ShaderPipelineDiagnosticStage, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
 };
+use crate::graphics::pipeline::{PipelineAsyncCompiler, RuntimePipelineCache};
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::environment::{
     SceneLightmapResources, SceneReflectionProbeResources,
@@ -14,6 +18,25 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::{MeshPipelineVariantRegistry, MeshPipelineVariantResolver};
+
+pub(super) const MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT: usize = 64;
+const MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT: usize = 64;
+const MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS: usize = 64;
+
+pub(super) struct AsyncBasePipelineProduct {
+    pub(super) shader_key: String,
+    pub(super) shader_module: wgpu::ShaderModule,
+    pub(super) pipeline: wgpu::RenderPipeline,
+}
+
+pub(super) type AsyncBasePipelineCompileResult = Result<AsyncBasePipelineProduct, String>;
+
+type PipelineCreationErrorFuture = Pin<Box<dyn Future<Output = Option<wgpu::Error>>>>;
+
+struct PendingPipelineCreationDiagnostic {
+    shader_variant_key: ShaderVariantKey,
+    error: PipelineCreationErrorFuture,
+}
 
 pub(crate) struct MeshPipelineCache {
     pub(in crate::graphics::scene::scene_renderer::mesh) target_format: wgpu::TextureFormat,
@@ -74,6 +97,21 @@ pub(crate) struct MeshPipelineCache {
         HashMap<GeometrySourceId, GeometrySourceDescriptor>,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_variant_disk_cache:
         ShaderVariantCacheDisk,
+    // WGPU validation arrives asynchronously. Keep a bounded, per-variant set
+    // of scopes to poll at later frame boundaries without stalling creation.
+    pending_pipeline_creation_diagnostics: Vec<PendingPipelineCreationDiagnostic>,
+    // Naga remapping stays available for authoring diagnostics, but validation
+    // is always performed by this bounded worker instead of the frame path.
+    shader_source_validation_compiler:
+        Option<PipelineAsyncCompiler<ShaderVariantKey, Result<(), String>>>,
+    // Fields drop in declaration order. Join the compiler before persisting the
+    // driver cache so no worker can mutate it while `get_data` is running.
+    pub(super) async_base_pipeline_compiler:
+        Option<PipelineAsyncCompiler<MeshPipelineVariantId, AsyncBasePipelineCompileResult>>,
+    pub(super) runtime_pipeline_cache: RuntimePipelineCache,
+    pub(super) allow_async_pipeline_compile: bool,
+    pub(super) force_synchronous_base_pipeline_compile: bool,
+    pub(super) async_variant_first_frame_miss_count: u32,
 }
 
 impl MeshPipelineCache {
@@ -104,6 +142,18 @@ impl MeshPipelineCache {
             geometry_source,
             shader_quality,
         )
+    }
+
+    /// Local reflection providers require the generic environment shader ABI.
+    /// This is intentionally one-way for the renderer lifetime: retaining the
+    /// generic key after a provider appears avoids variant thrashing when a
+    /// preview scene toggles provider visibility.
+    pub(in crate::graphics::scene::scene_renderer) fn disable_environment_only_pbr_base_profile(
+        &mut self,
+    ) {
+        self.pipeline_variant_registry
+            .disable_environment_only_pbr_base_profile();
+        self.force_synchronous_base_pipeline_compile = true;
     }
 
     pub(crate) fn pipeline_and_shader_key_for_variant(
@@ -150,10 +200,80 @@ impl MeshPipelineCache {
 
     pub(crate) fn reset_shader_variant_miss_report(&mut self) {
         self.pipeline_variant_registry.reset_miss_report();
+        self.async_variant_first_frame_miss_count = 0;
+    }
+
+    pub(crate) fn drain_pipeline_creation_diagnostics(&mut self, device: &wgpu::Device) {
+        self.drain_shader_source_validation_diagnostics();
+        let _ = device.poll(wgpu::PollType::Poll);
+        let waker = Waker::noop();
+        let mut context = Context::from_waker(waker);
+        let mut pending = Vec::with_capacity(self.pending_pipeline_creation_diagnostics.len());
+        let mut errors = Vec::new();
+        for mut diagnostic in self.pending_pipeline_creation_diagnostics.drain(..) {
+            match diagnostic.error.as_mut().poll(&mut context) {
+                Poll::Ready(Some(error)) => {
+                    errors.push((diagnostic.shader_variant_key, error.to_string()));
+                }
+                Poll::Ready(None) => {}
+                Poll::Pending => pending.push(diagnostic),
+            }
+        }
+        self.pending_pipeline_creation_diagnostics = pending;
+        for (key, error) in errors {
+            self.record_shader_variant_pipeline_creation_message(&key, error);
+        }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::mesh) fn queue_shader_source_validation(
+        &mut self,
+        key: &ShaderVariantKey,
+        wgsl_source: String,
+        segments: Vec<crate::graphics::shader::ShaderAssemblySegment>,
+    ) {
+        let _ = self
+            .shader_source_validation_compiler
+            .as_mut()
+            .map(|compiler| {
+                let key = key.clone();
+                compiler.try_queue(key, move || {
+                    super::shader_source::MeshPipelineShaderSource::validate_wgsl_with_segments(
+                        &wgsl_source,
+                        &segments,
+                    )
+                })
+            });
+    }
+
+    fn drain_shader_source_validation_diagnostics(&mut self) {
+        let mut completions = Vec::new();
+        if let Some(compiler) = self.shader_source_validation_compiler.as_mut() {
+            compiler.drain_ready(|key, result| completions.push((key, result)));
+        }
+        for (key, result) in completions {
+            match result {
+                Ok(Ok(())) => {}
+                Ok(Err(message)) => self.record_shader_variant_validation_error(&key, message),
+                Err(error) => {
+                    self.record_shader_variant_validation_error(&key, format!("{error:?}"))
+                }
+            }
+        }
     }
 
     pub(crate) fn shader_variant_miss_report(&self) -> ShaderVariantMissReport {
         self.pipeline_variant_registry.miss_report()
+    }
+
+    pub(crate) fn async_pipeline_compile_pending_count(&self) -> u32 {
+        self.async_base_pipeline_compiler
+            .as_ref()
+            .map_or(0, PipelineAsyncCompiler::pending_count)
+            .min(u32::MAX as usize) as u32
+    }
+
+    pub(crate) const fn async_variant_first_frame_miss_count(&self) -> u32 {
+        self.async_variant_first_frame_miss_count
     }
 
     pub(crate) fn record_shader_variant_disk_hit(&mut self, key: &ShaderVariantKey) {
@@ -166,6 +286,69 @@ impl MeshPipelineCache {
 
     pub(crate) fn record_shader_variant_disk_error(&mut self, key: &ShaderVariantKey) {
         self.pipeline_variant_registry.record_disk_error(key);
+    }
+
+    pub(crate) fn record_shader_variant_assembly_error(
+        &mut self,
+        key: &ShaderVariantKey,
+        error: impl std::fmt::Debug,
+    ) {
+        self.record_shader_variant_disk_error(key);
+        self.pipeline_variant_registry.record_pipeline_diagnostic(
+            key,
+            ShaderPipelineDiagnosticStage::SourceAssembly,
+            format!("{error:?}"),
+        );
+    }
+
+    pub(crate) fn record_shader_variant_validation_error(
+        &mut self,
+        key: &ShaderVariantKey,
+        message: String,
+    ) {
+        self.record_shader_variant_disk_error(key);
+        self.pipeline_variant_registry.record_pipeline_diagnostic(
+            key,
+            ShaderPipelineDiagnosticStage::WgslValidation,
+            message,
+        );
+    }
+
+    pub(crate) fn record_shader_variant_pipeline_creation_error(
+        &mut self,
+        key: &ShaderVariantKey,
+        error: impl std::fmt::Debug,
+    ) {
+        self.record_shader_variant_pipeline_creation_message(key, format!("{error:?}"));
+    }
+
+    pub(crate) fn track_pipeline_creation_error_scope(
+        &mut self,
+        key: &ShaderVariantKey,
+        error_scope: wgpu::ErrorScopeGuard,
+    ) {
+        if self.pending_pipeline_creation_diagnostics.len()
+            >= MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS
+        {
+            return;
+        }
+        self.pending_pipeline_creation_diagnostics
+            .push(PendingPipelineCreationDiagnostic {
+                shader_variant_key: key.clone(),
+                error: Box::pin(error_scope.pop()),
+            });
+    }
+
+    fn record_shader_variant_pipeline_creation_message(
+        &mut self,
+        key: &ShaderVariantKey,
+        message: impl Into<String>,
+    ) {
+        self.pipeline_variant_registry.record_pipeline_diagnostic(
+            key,
+            ShaderPipelineDiagnosticStage::PipelineCreation,
+            message,
+        );
     }
 
     pub(crate) fn record_shader_variant_compile_miss(&mut self, key: &ShaderVariantKey) {

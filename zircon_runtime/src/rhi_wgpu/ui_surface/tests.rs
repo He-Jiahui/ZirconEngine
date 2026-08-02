@@ -1,9 +1,32 @@
+use std::collections::HashMap;
+
 use crate::rhi::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
     UiSurfaceImageUvRect, UiSurfaceRect,
 };
 
 use super::*;
+
+#[test]
+fn wgpu_ui_surface_moves_staged_image_pixels_into_the_native_cache() {
+    let rgba = vec![17; 16];
+    let rgba_ptr = rgba.as_ptr();
+    let mut staged = Some(UiSurfaceImageResource {
+        generation: 4,
+        width: 2,
+        height: 2,
+        upload_bytes: 16,
+        rgba,
+    });
+    let draw_list = UiSurfaceDrawList::new((2, 2), None, Vec::new());
+
+    let moved = take_image_source_pixels(&mut staged, &draw_list, "image://owned", None, 16)
+        .expect("staged source should move into the cache");
+
+    assert!(staged.is_none());
+    assert_eq!(moved.as_ptr(), rgba_ptr);
+    assert_eq!(moved, vec![17; 16]);
+}
 
 #[test]
 fn wgpu_ui_surface_presenter_records_present_stats() {
@@ -29,6 +52,9 @@ fn wgpu_ui_surface_presenter_records_present_stats() {
     assert_eq!(stats.compiled_draw_calls, 1);
     assert_eq!(stats.render_pass_count, 0);
     assert_eq!(stats.retained_cache_copy_bytes, 0);
+    assert!(!stats.gpu_timestamp_supported);
+    assert_eq!(stats.gpu_time_us, None);
+    assert_eq!(stats.gpu_profile_latency_frames, 0);
     assert_eq!(stats.visible_command_count, 1);
     assert_eq!(stats.visible_draw_item_count, 1);
     assert_eq!(stats.compiled_visible_draw_item_count, 1);
@@ -42,6 +68,8 @@ fn wgpu_ui_surface_presenter_records_present_stats() {
     assert_eq!(stats.compiled_batch_merge_count, 0);
     assert_eq!(stats.solid_vertex_count, 6);
     assert_eq!(stats.compiled_solid_vertex_count, 6);
+    assert_eq!(stats.solid_instance_count, 1);
+    assert_eq!(stats.compiled_solid_instance_count, 1);
     assert_eq!(stats.image_vertex_count, 0);
     assert_eq!(stats.compiled_image_vertex_count, 0);
     assert_eq!(stats.image_cache_key_allocation_count, 0);
@@ -193,6 +221,17 @@ fn wgpu_ui_surface_prefers_opaque_swapchain_alpha() {
 }
 
 #[test]
+fn wgpu_ui_surface_requests_gpu_timestamps_only_when_enabled_and_fully_supported() {
+    let disabled = requested_device_features(GPU_TIMESTAMP_REQUIRED_FEATURES, false);
+    let partial = requested_device_features(wgpu::Features::TIMESTAMP_QUERY, true);
+    let full = requested_device_features(GPU_TIMESTAMP_REQUIRED_FEATURES, true);
+
+    assert!(!disabled.intersects(GPU_TIMESTAMP_REQUIRED_FEATURES));
+    assert!(!partial.intersects(GPU_TIMESTAMP_REQUIRED_FEATURES));
+    assert!(full.contains(GPU_TIMESTAMP_REQUIRED_FEATURES));
+}
+
+#[test]
 fn wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity() {
     assert_eq!(UI_IMAGE_TEXTURE_FORMAT, wgpu::TextureFormat::Rgba8Unorm);
     assert_eq!(
@@ -254,6 +293,7 @@ fn wgpu_ui_surface_presenter_uses_damage_for_patch_stats() {
                 kind: UiSurfaceCommandKind::Image {
                     payload: UiSurfaceImagePayload {
                         resource_key: "viewport".to_string(),
+                        resource_generation: 0,
                         width: 2,
                         height: 2,
                         upload_bytes: 16,
@@ -543,7 +583,7 @@ fn wgpu_ui_surface_image_cache_rejects_growth_when_the_hard_budget_is_fully_acti
     assert_eq!(
         action,
         ImageCacheAdmissionAction::Reject {
-            cache_saturated: true
+            entry_saturated: true
         }
     );
     assert_eq!(visits, 3);
@@ -581,10 +621,32 @@ fn wgpu_ui_surface_image_cache_rejects_a_single_oversized_resource_without_satur
     assert_eq!(
         action,
         ImageCacheAdmissionAction::Reject {
-            cache_saturated: false
+            entry_saturated: false
         }
     );
     assert_eq!(visits, 0);
+}
+
+#[test]
+fn wgpu_ui_surface_image_cache_byte_rejection_does_not_poison_a_smaller_admission() {
+    let active = [("active", 3, 60, true, false)];
+    let (large, large_visits) = image_cache_admission_plan(active.into_iter(), 2, 70, 4, 64, 10);
+    let (small, small_visits) = image_cache_admission_plan(active.into_iter(), 2, 64, 4, 64, 4);
+
+    assert_eq!(
+        large,
+        ImageCacheAdmissionAction::Reject {
+            entry_saturated: false
+        }
+    );
+    assert_eq!(large_visits, 1);
+    assert_eq!(
+        small,
+        ImageCacheAdmissionAction::Admit {
+            evict_keys: Vec::new()
+        }
+    );
+    assert_eq!(small_visits, 0);
 }
 
 #[test]
@@ -630,6 +692,7 @@ fn atlas_image(
         kind: UiSurfaceCommandKind::Image {
             payload: UiSurfaceImagePayload {
                 resource_key: "atlas://editor/icons".to_string(),
+                resource_generation: 0,
                 width: 4,
                 height: 4,
                 upload_bytes: 64,
@@ -667,4 +730,31 @@ fn wgpu_ui_surface_marks_the_complete_present_submission_for_renderdoc() {
         source.contains("encoder.pop_debug_group();"),
         "the UI debug group must close before command submission"
     );
+}
+
+#[test]
+fn wgpu_ui_surface_presents_submitted_frame_before_readback_error() {
+    let source = include_str!("../ui_surface.rs");
+    let map_error = source.find("let readback_map_error").unwrap_or_default();
+    let present = source
+        .find("surface_texture.present();")
+        .unwrap_or_default();
+    let propagate = source
+        .find("if let Some(error) = readback_map_error")
+        .unwrap_or_default();
+
+    assert!(map_error < present);
+    assert!(present < propagate);
+}
+
+#[test]
+fn wgpu_ui_surface_setup_production_path_is_panic_free() {
+    let source = include_str!("surface_setup.rs")
+        .split("\n#[cfg(test)]")
+        .next()
+        .unwrap_or_default();
+
+    assert!(!source.contains(".expect("));
+    assert!(!source.contains(".unwrap("));
+    assert!(!source.contains("panic!("));
 }

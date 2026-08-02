@@ -30,13 +30,10 @@ related_code:
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
+  - zircon_runtime/src/animation/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
-  - zircon_plugins/animation/runtime/src/sequence/apply.rs
-  - zircon_plugins/animation/runtime/src/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/core/framework/animation/asset/binary.rs
   - zircon_runtime/src/core/framework/animation/asset/channel.rs
@@ -134,7 +131,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/record_to_view.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
   - zircon_editor/src/ui/workbench/reflection/activity_actions/inspector_actions.rs
   - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
   - zircon_editor/src/ui/workbench/reflection/animation_route.rs
@@ -190,13 +187,10 @@ implementation_files:
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
+  - zircon_runtime/src/animation/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
-  - zircon_plugins/animation/runtime/src/sequence/apply.rs
-  - zircon_plugins/animation/runtime/src/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/core/framework/animation/asset/binary.rs
   - zircon_runtime/src/core/framework/animation/asset/channel.rs
@@ -272,7 +266,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/record_to_view.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
   - zircon_editor/src/ui/workbench/reflection/activity_actions/inspector_actions.rs
   - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
   - zircon_editor/src/ui/workbench/reflection/animation_route.rs

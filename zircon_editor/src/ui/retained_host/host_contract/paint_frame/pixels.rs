@@ -1,5 +1,5 @@
 use super::super::data::FrameRect;
-use super::{geometry::clipped_frame, HostRgbaFrame};
+use super::{HostRgbaFrame, geometry::clipped_frame};
 
 impl HostRgbaFrame {
     pub(in crate::ui::retained_host::host_contract) fn fill_rect(

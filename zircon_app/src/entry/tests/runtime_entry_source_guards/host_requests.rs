@@ -32,10 +32,12 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
         routing_source,
         &[
             "ZrRuntimeHostRequestV1::Ime(request)",
+            "if !ime_request_targets_viewport(&request, app.viewport)",
+            "return;",
             "let Some(window) = app.window.as_ref()",
             "apply_runtime_ime_host_request(window.as_ref(), request)",
         ],
-        "runtime host-request routing should send IME requests to the platform window leaf",
+        "runtime host-request routing should apply an IME request only to its target viewport",
     );
     assert!(
         ime_mod_source.contains("pub(super) use request::apply_runtime_ime_host_request;"),
@@ -46,9 +48,10 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
         &[
             "ZrRuntimeImeHostRequestKindV1::SetCursorArea",
             "ImeRequest::Update(",
-            ".with_cursor_area(ime_logical_position(area), ime_logical_size(area))",
+            "ime_logical_position(area)",
+            "ime_logical_size(area)",
         ],
-        "IME cursor-area requests should become winit cursor-area updates",
+        "IME cursor-area requests should become unscaled winit logical cursor-area updates",
     );
     assert_source_order(
         ime_request_source,
@@ -66,5 +69,9 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
     assert!(
         ime_geometry_source.contains("LogicalSize::new(area.width as f64, area.height as f64)"),
         "IME cursor-area width/height should stay in the geometry leaf"
+    );
+    assert!(
+        !ime_request_source.contains("scale_factor"),
+        "IME cursor-area requests must submit the ABI's logical coordinates without DPI scaling"
     );
 }

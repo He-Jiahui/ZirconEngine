@@ -3,9 +3,72 @@ use std::io;
 
 use super::super::ProjectAuthorityError;
 use super::super::authority::{
-    cleanup_failed_transaction_staging, commit_staged_directory, rollback_committed_project,
+    cleanup_failed_transaction_staging, commit_staged_directory, finalize_empty_target_backup,
+    rollback_committed_project,
 };
 use super::temp_root;
+
+#[test]
+fn target_that_becomes_non_empty_before_commit_is_restored_without_publishing() {
+    let root = temp_root("commit-concurrent-target-write");
+    let target = root.join("project");
+    let staging = root.join("staging");
+    let backup = root.join("backup");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("caller-owned.txt"), "retain").unwrap();
+    fs::create_dir(&staging).unwrap();
+    fs::write(staging.join("zircon-project.toml"), "staged").unwrap();
+
+    let error = commit_staged_directory(&staging, &target, &backup, true, |from, to| {
+        fs::rename(from, to)
+    })
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ProjectAuthorityError::TargetNotEmpty { ref path } if path == &target
+    ));
+    assert_eq!(
+        fs::read_to_string(target.join("caller-owned.txt")).unwrap(),
+        "retain"
+    );
+    assert!(
+        staging.join("zircon-project.toml").is_file(),
+        "the staged project must not publish over the changed target"
+    );
+    assert!(!backup.exists());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn target_that_changes_after_commit_forces_project_rollback() {
+    let root = temp_root("commit-post-publish-target-write");
+    let target = root.join("project");
+    let staging = root.join("staging");
+    let backup = root.join("backup");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("published-project"), "published").unwrap();
+    fs::create_dir(&backup).unwrap();
+    fs::write(backup.join("caller-owned.txt"), "retain").unwrap();
+
+    let error = finalize_empty_target_backup(&target, &backup, true).unwrap_err();
+
+    assert!(matches!(
+        error,
+        ProjectAuthorityError::TargetNotEmpty { ref path } if path == &target
+    ));
+    rollback_committed_project(&staging, &target, &backup, true, |from, to| {
+        fs::rename(from, to)
+    })
+    .unwrap();
+    assert_eq!(
+        fs::read_to_string(target.join("caller-owned.txt")).unwrap(),
+        "retain"
+    );
+    assert!(staging.join("published-project").is_file());
+    assert!(!backup.exists());
+    fs::remove_dir_all(root).unwrap();
+}
 
 #[test]
 fn failed_commit_restores_the_original_empty_target() {

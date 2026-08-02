@@ -54,4 +54,9 @@ Runtime04 asset registry、Render08 prewarm manifest和CLI scanner分别构造�
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `source implementation and second static review complete; managed current-source validation pending`.
+
+- The CLI now owns one bounded asset inventory per root. The compact warm index checks only file/directory metadata on an unchanged default run; external inputs hydrate the payload conservatively. Both the payload and index reject unsafe relative paths, missing root/ancestor directory records, symlink/reparse substitution, and untracked payload-map keys before reuse.
+- Include dependencies are indexed and SCC-condensed, source payloads are content-addressed through the manifest source table, and high-fanout external hashes are interned once per batch. Inventory/DAG integrity and execution-budget failures remain typed through the implementation boundary.
+- Invalid execution budgets now produce a report-level `preflight_error` with zero synthetic variant counters before registry, cache, or asset I/O; the CLI writes that JSON report and returns exit code 2.
+- Focused regression owners cover shared-source provenance, warm/cold snapshot recovery, tampered paths/ancestor chains, high-fanout external hashes, bounded preflight reporting, and ignored scale fixtures. `rustfmt --check` passes for the touched production/test owners; scoped `git diff --check` reports only repository CRLF warnings. No Cargo/WGPU result is claimed until the managed validator returns.

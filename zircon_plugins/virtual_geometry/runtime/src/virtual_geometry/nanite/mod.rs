@@ -1,8 +1,6 @@
 mod automatic_extract;
 #[allow(dead_code)]
 mod cpu_reference;
-#[allow(dead_code)]
-mod execution_mode;
 mod page_payload;
 
 #[cfg(test)]
@@ -25,5 +23,3 @@ pub(crate) use cpu_reference::{
     VirtualGeometryCpuReferenceLeafCluster, VirtualGeometryCpuReferenceNodeVisit,
     VirtualGeometryDebugConfig,
 };
-#[allow(unused_imports)]
-pub(crate) use execution_mode::VirtualGeometryExecutionMode;

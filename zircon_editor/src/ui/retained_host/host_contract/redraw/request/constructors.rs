@@ -1,5 +1,5 @@
 use crate::ui::retained_host::ui_perf::{
-    current_ui_perf_scenario, record_ui_perf_counter, UiPerfCounter, UiPerfScenario,
+    UiPerfCounter, UiPerfScenario, current_ui_perf_scenario, record_ui_perf_counter,
 };
 
 use super::super::super::data::FrameRect;

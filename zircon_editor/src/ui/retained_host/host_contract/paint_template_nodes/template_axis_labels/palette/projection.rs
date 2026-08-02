@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::model::AxisLabelPalette;
 use super::rgb::scaled_rgb;
 
@@ -7,8 +7,8 @@ const AXIS_LABEL_SCALE_MUTED_SCALE: [f32; 3] = [0.7682927, 0.7586207, 0.7555556]
 const AXIS_LABEL_LINK_MUTED_SCALE: [f32; 3] = [0.88414633, 0.90229887, 0.9111111];
 const AXIS_LABEL_DISABLED_SCALE: [f32; 3] = [0.8118812, 0.8378378, 0.84745765];
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_label_palette(
-) -> AxisLabelPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_label_palette()
+-> AxisLabelPalette {
     axis_label_palette_from_host(current_host_palette())
 }
 

@@ -34,8 +34,8 @@ requireText(sourceItems,
   'source unequip capacity, transfer, or stat semantics drifted');
 
 const contract = JSON.parse(read('contracts', 'command_payloads.json'));
-if (contract.schema_version !== 38) {
-  throw new Error('WOS149 command payload schema must be 38');
+if (contract.schema_version !== 51) {
+  throw new Error('WOS149 command payload schema must be 44');
 }
 const equip = contract.entries.find((entry) => entry.id === 20 && entry.name === 'equip');
 if (!equip || equip.kind !== 'equipment_item_optional_slot' ||

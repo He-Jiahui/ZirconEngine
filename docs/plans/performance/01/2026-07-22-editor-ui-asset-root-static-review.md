@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/asset_editor/*.rs
+  - zircon_editor/src/ui/asset_editor/
   - zircon_editor/src/ui/asset_editor/session/palette_state.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

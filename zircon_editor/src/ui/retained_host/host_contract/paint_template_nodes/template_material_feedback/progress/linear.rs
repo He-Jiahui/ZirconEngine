@@ -5,6 +5,9 @@ use super::super::metrics::{linear_progress_radius, material_feedback_metrics};
 use super::super::state::{
     progress_fill_color, progress_is_indeterminate, progress_percent, progress_track_color,
 };
+use crate::ui::retained_host::host_contract::paint_geometry::{
+    bounded_extent, corner_radius_for_frame,
+};
 
 const PROGRESS_SEGMENT_RATIO_UNITS: f32 = 100.0;
 
@@ -36,10 +39,16 @@ pub(super) fn push_linear_progress_commands(
     order: i32,
     opacity: f32,
 ) {
-    let radius = linear_progress_radius(
-        template_corner_radius(node),
-        rect.height,
-        material_feedback_metrics(),
+    if bounded_extent(rect.width) <= 0.0 || bounded_extent(rect.height) <= 0.0 {
+        return;
+    }
+    let track_radius = corner_radius_for_frame(
+        rect,
+        linear_progress_radius(
+            template_corner_radius(node),
+            rect.height,
+            material_feedback_metrics(),
+        ),
     );
     commands.push(HostPaintCommand::quad(
         rect.clone(),
@@ -48,7 +57,7 @@ pub(super) fn push_linear_progress_commands(
         Some(progress_track_color(node)),
         None,
         0.0,
-        radius,
+        track_radius,
         opacity,
     ));
 
@@ -56,51 +65,67 @@ pub(super) fn push_linear_progress_commands(
     if progress_is_indeterminate(node) {
         for segment in INDETERMINATE_SEGMENTS {
             let bar = indeterminate_segment_rect(rect, segment);
+            if bar.width <= 0.0 || bar.height <= 0.0 {
+                continue;
+            }
             commands.push(HostPaintCommand::quad(
-                bar,
+                bar.clone(),
                 Some(clip.clone()),
                 order + 1,
                 Some(fill),
                 None,
                 0.0,
-                radius,
+                corner_radius_for_frame(&bar, track_radius),
                 opacity,
             ));
         }
         return;
     }
 
-    let width = rect.width * progress_percent(node);
-    if width <= 0.0 {
+    let Some(fill_rect) = determinate_fill_rect(rect, progress_percent(node)) else {
         return;
-    }
+    };
     commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: rect.x,
-            y: rect.y,
-            width: width.max(1.0),
-            height: rect.height,
-        },
+        fill_rect.clone(),
         Some(clip.clone()),
         order + 1,
         Some(fill),
         None,
         0.0,
-        radius,
+        corner_radius_for_frame(&fill_rect, track_radius),
         opacity,
     ));
+}
+
+fn determinate_fill_rect(rect: &FrameRect, percent: f32) -> Option<FrameRect> {
+    let track_width = bounded_extent(rect.width);
+    let fraction = if percent.is_finite() {
+        percent.clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    let width = track_width * fraction;
+    (width > 0.0).then_some(FrameRect {
+        x: rect.x,
+        y: rect.y,
+        width,
+        height: bounded_extent(rect.height),
+    })
 }
 
 fn indeterminate_segment_rect(
     rect: &FrameRect,
     segment: IndeterminateProgressSegmentSpec,
 ) -> FrameRect {
+    let track_width = bounded_extent(rect.width);
+    let offset = track_width * f32::from(segment.x_units) / PROGRESS_SEGMENT_RATIO_UNITS;
+    let requested_width =
+        track_width * f32::from(segment.width_units) / PROGRESS_SEGMENT_RATIO_UNITS;
     FrameRect {
-        x: rect.x + rect.width * f32::from(segment.x_units) / PROGRESS_SEGMENT_RATIO_UNITS,
+        x: rect.x + offset,
         y: rect.y,
-        width: (rect.width * f32::from(segment.width_units) / PROGRESS_SEGMENT_RATIO_UNITS)
-            .max(1.0),
-        height: rect.height,
+        width: requested_width.min((track_width - offset).max(0.0)),
+        height: bounded_extent(rect.height),
     }
 }
 
@@ -139,6 +164,44 @@ mod tests {
 
         let segment = indeterminate_segment_rect(&rect, INDETERMINATE_SEGMENTS[1]);
 
-        assert_eq!(segment.width, 1.0);
+        assert!((segment.width - 0.48).abs() < f32::EPSILON);
+        assert!(segment.right() <= rect.right());
+    }
+
+    #[test]
+    fn determinate_fill_stays_inside_a_tight_track() {
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.4,
+            height: 4.0,
+        };
+
+        let fill = determinate_fill_rect(&rect, 1.0).expect("positive progress should retain fill");
+
+        assert_eq!(fill.width, rect.width);
+        assert!(fill.right() <= rect.right());
+    }
+
+    #[test]
+    fn collapsed_track_emits_no_linear_progress_commands() {
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.0,
+            height: 4.0,
+        };
+        let mut commands = Vec::new();
+
+        push_linear_progress_commands(
+            &mut commands,
+            &TemplatePaneNodeData::default(),
+            &rect,
+            &rect,
+            0,
+            1.0,
+        );
+
+        assert!(commands.is_empty());
     }
 }

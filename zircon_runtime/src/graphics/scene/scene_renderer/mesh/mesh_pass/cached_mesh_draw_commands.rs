@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::core::framework::render::{
     RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
 };
-use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::MaterialDisabledPasses;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MeshDrawQueuePhase;
 
@@ -11,7 +10,7 @@ use super::{MeshBatchRef, MeshDrawCommand};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct CachedMeshDrawKey {
-    pub(crate) entity: EntityId,
+    pub(crate) stable_instance_key: u64,
     pub(crate) draw_ordinal: u32,
     pub(crate) phase: RenderPhase,
     pub(crate) disabled_passes: MaterialDisabledPasses,
@@ -43,7 +42,7 @@ impl CachedMeshDrawKey {
     pub(crate) fn from_batch_phase(batch: &MeshBatchRef, phase: RenderPhase) -> Option<Self> {
         let identity = batch.cache_identity?;
         Some(Self {
-            entity: identity.entity,
+            stable_instance_key: identity.stable_instance_key,
             draw_ordinal: identity.draw_ordinal,
             phase,
             disabled_passes: batch.disabled_passes,
@@ -197,7 +196,7 @@ mod tests {
     fn cached_mesh_draw_commands_reuse_matching_static_state() {
         let mut cache = CachedMeshDrawCommands::default();
         let key = CachedMeshDrawKey {
-            entity: 7,
+            stable_instance_key: (7 << 16) | 2,
             draw_ordinal: 2,
             phase: RenderPhase::Opaque3d,
             disabled_passes: Default::default(),
@@ -220,7 +219,7 @@ mod tests {
     fn cached_mesh_draw_commands_invalidate_changed_material_revision() {
         let mut cache = CachedMeshDrawCommands::default();
         let key = CachedMeshDrawKey {
-            entity: 7,
+            stable_instance_key: (7 << 16) | 2,
             draw_ordinal: 2,
             phase: RenderPhase::Opaque3d,
             disabled_passes: Default::default(),
@@ -239,16 +238,16 @@ mod tests {
     fn cached_mesh_draw_commands_reject_dynamic_transparent_and_indirect_batches() {
         let static_state = RenderMeshStaticState::new(true, 11, 17);
         let opaque_static = batch(MeshDrawQueuePhase::Opaque, Mobility::Static, false)
-            .with_cache_identity(7, 0)
+            .with_cache_identity(7, 7 << 16, 0)
             .with_static_state(static_state);
         let transparent_static = batch(MeshDrawQueuePhase::Transparent, Mobility::Static, false)
-            .with_cache_identity(7, 0)
+            .with_cache_identity(7, 7 << 16, 0)
             .with_static_state(static_state);
         let indirect_static = batch(MeshDrawQueuePhase::Opaque, Mobility::Static, true)
-            .with_cache_identity(7, 0)
+            .with_cache_identity(7, 7 << 16, 0)
             .with_static_state(static_state);
         let dynamic = batch(MeshDrawQueuePhase::Opaque, Mobility::Dynamic, false)
-            .with_cache_identity(7, 0)
+            .with_cache_identity(7, 7 << 16, 0)
             .with_static_state(static_state);
 
         assert!(CachedMeshDrawCommands::is_cacheable_batch_phase(
@@ -267,6 +266,29 @@ mod tests {
             &dynamic,
             RenderPhase::Opaque3d
         ));
+    }
+
+    #[test]
+    fn cached_mesh_draw_commands_keep_sibling_primitives_separate() {
+        let mut cache = CachedMeshDrawCommands::default();
+        let state = RenderMeshStaticState::new(true, 11, 17);
+        let first = CachedMeshDrawKey {
+            stable_instance_key: 7 << 16,
+            draw_ordinal: 0,
+            phase: RenderPhase::Opaque3d,
+            disabled_passes: Default::default(),
+        };
+        let second = CachedMeshDrawKey {
+            stable_instance_key: (7 << 16) | 1,
+            ..first
+        };
+
+        cache.store(first, &state, test_command(RenderPhase::Opaque3d, 1), 1);
+        cache.store(second, &state, test_command(RenderPhase::Opaque3d, 2), 1);
+
+        assert_eq!(cache.len(), 2);
+        assert!(cache.lookup(&first, &state, 2).is_some());
+        assert!(cache.lookup(&second, &state, 2).is_some());
     }
 
     fn test_command(phase: RenderPhase, sort_key: u64) -> MeshDrawCommand {

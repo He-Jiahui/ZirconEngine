@@ -44,9 +44,10 @@ which tracks active tab drag identity, pointer location, and source/target group
 `host_interaction/text_focus.rs` owns `HostTextInputFocusData` and the narrow helper methods for
 active focus detection plus edit/commit target resolution. `host_interaction/pane.rs` owns
 `HostPaneInteractionStateData`, the pointer-only pane hover and scroll state used for Hierarchy,
-Assets, AssetBrowser, and template hover overlays without rebuilding the full retained
-presentation. `host_interaction/resize.rs` owns `HostResizeStateData`, the active host resize
-capture payload.
+Assets, AssetBrowser, Console, and template hover overlays without rebuilding the full retained
+presentation. Console stores a non-negative `console_scroll_px`; its painter consumes that state
+to translate only visible output rows while keeping the body clip fixed. `host_interaction/resize.rs`
+owns `HostResizeStateData`, the active host resize capture payload.
 
 ## Behavior Model
 

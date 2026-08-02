@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
+use std::sync::Arc;
 
-use zircon_runtime::core::{ModuleDescriptor, sort_module_activation_order};
+use zircon_runtime::core::{sort_module_activation_order, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 
 use super::{
@@ -90,6 +90,34 @@ fn module(name: &'static str) -> Arc<dyn EngineModule> {
 
 fn described_module(name: &'static str, description: &'static str) -> Arc<dyn EngineModule> {
     Arc::new(TestModule::described(name, description))
+}
+
+#[test]
+fn builtin_plugin_groups_are_pure_selection_and_feature_declarations() {
+    let declarations = include_str!("groups.rs");
+    let resolution = include_str!("groups/resolution.rs");
+
+    for forbidden in [
+        "Arc::new",
+        "FoundationModule",
+        "TasksModule",
+        "AssetModule",
+        "SceneModule",
+        "default_modules",
+    ] {
+        assert!(
+            !declarations.contains(forbidden),
+            "builtin group declarations must not construct `{forbidden}`"
+        );
+    }
+    for profile in ["Minimal", "Client3d", "Dev", "Server"] {
+        assert!(declarations.contains(&format!("RuntimeProfileId::{profile}")));
+    }
+    assert!(declarations.contains("BuiltinPluginGroupFeature::Ui"));
+    assert!(declarations.contains("BuiltinPluginGroupFeature::LogDiagnostics"));
+    assert!(resolution
+        .contains("runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports"));
+    assert!(!resolution.contains("runtime_modules_for_target"));
 }
 
 #[test]
@@ -293,78 +321,51 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
             zircon_runtime::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
         ]
     );
-    assert!(
-        default
-            .module_keys()
-            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
-    );
-    assert!(
-        default
-            .module_keys()
-            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
-    );
-    assert!(
-        dev.module_keys()
-            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
-    );
-    assert!(
-        dev.module_keys()
-            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
-    );
-    assert!(
-        headless
-            .module_keys()
-            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
-    );
-    assert!(
-        headless
-            .module_keys()
-            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
-    );
-    assert!(
-        !minimal
-            .module_keys()
-            .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME)
-    );
-    assert!(
-        !minimal
-            .module_keys()
-            .contains(&zircon_runtime::input::INPUT_MODULE_NAME)
-    );
-    assert!(
-        default
-            .module_keys()
-            .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME)
-    );
-    assert!(
-        !default
-            .module_keys()
-            .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME)
-    );
-    assert!(
-        dev.module_keys()
-            .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME)
-    );
-    assert!(
-        headless
-            .module_keys()
-            .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME)
-    );
-    assert!(
-        default
-            .module_keys()
-            .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME)
-    );
-    assert!(
-        default
-            .module_keys()
-            .contains(&zircon_runtime::script::SCRIPT_MODULE_NAME)
-    );
-    assert!(
-        !headless
-            .module_keys()
-            .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME)
-    );
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(dev
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(dev
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(headless
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(headless
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(!minimal
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(!minimal
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
+    assert!(!default
+        .module_keys()
+        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+    assert!(dev
+        .module_keys()
+        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+    assert!(headless
+        .module_keys()
+        .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::script::SCRIPT_MODULE_NAME));
+    assert!(!headless
+        .module_keys()
+        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
 }
 
 #[test]

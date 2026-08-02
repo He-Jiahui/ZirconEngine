@@ -17,6 +17,14 @@ pub type ReflectComponentWriteFieldBySlot =
         zircon_runtime_interface::reflect::ReflectedValue,
     ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>;
 
+pub type ReflectComponentWriteFieldsBySlot =
+    fn(
+        &mut crate::scene::World,
+        crate::scene::EntityId,
+        &str,
+        Vec<(u32, zircon_runtime_interface::reflect::ReflectedValue)>,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>;
+
 #[derive(Clone)]
 pub struct ReflectComponent {
     pub type_path: String,
@@ -47,6 +55,7 @@ pub struct ReflectComponent {
     ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>,
     pub read_field_by_slot: Option<ReflectComponentReadFieldBySlot>,
     pub write_field_by_slot: Option<ReflectComponentWriteFieldBySlot>,
+    pub write_fields_by_slot: Option<ReflectComponentWriteFieldsBySlot>,
     pub remove: fn(
         &mut crate::scene::World,
         crate::scene::EntityId,
@@ -96,6 +105,7 @@ impl ReflectComponent {
             write_field,
             read_field_by_slot: None,
             write_field_by_slot: None,
+            write_fields_by_slot: None,
             remove,
         }
     }
@@ -107,6 +117,14 @@ impl ReflectComponent {
     ) -> Self {
         self.read_field_by_slot = Some(read_field_by_slot);
         self.write_field_by_slot = Some(write_field_by_slot);
+        self
+    }
+
+    pub fn with_dense_field_batch_write(
+        mut self,
+        write_fields_by_slot: ReflectComponentWriteFieldsBySlot,
+    ) -> Self {
+        self.write_fields_by_slot = Some(write_fields_by_slot);
         self
     }
 
@@ -173,6 +191,18 @@ impl ReflectComponent {
             return Err(missing_dense_slot_adapter(&self.type_path, "write"));
         };
         write_field_by_slot(world, entity, &self.type_path, field_slot, value)
+    }
+
+    pub fn write_fields_by_slot(
+        &self,
+        world: &mut crate::scene::World,
+        entity: crate::scene::EntityId,
+        fields: Vec<(u32, zircon_runtime_interface::reflect::ReflectedValue)>,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError> {
+        let Some(write_fields_by_slot) = self.write_fields_by_slot else {
+            return Err(missing_dense_slot_adapter(&self.type_path, "batch write"));
+        };
+        write_fields_by_slot(world, entity, &self.type_path, fields)
     }
 
     pub fn remove(

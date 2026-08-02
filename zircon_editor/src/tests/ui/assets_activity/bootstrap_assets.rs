@@ -268,7 +268,10 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(tree_subtitle.text.to_string(), "Browse project assets");
     assert_eq!(tree_scroll_body.role.to_string(), "Panel");
     assert_eq!(tree_scroll_body.surface_variant.to_string(), "inset");
-    assert_eq!(open_browser.role.to_string(), "Button");
+    assert_eq!(open_browser.role.to_string(), "IconButton");
+    assert_eq!(open_browser.component_role.to_string(), "icon-button");
+    assert_eq!(open_browser.text.to_string(), "");
+    assert_eq!(open_browser.icon_name.to_string(), "folder-open-outline");
     assert_eq!(open_browser.dispatch_kind.to_string(), "asset");
     assert_eq!(
         open_browser.binding_id.to_string(),
@@ -324,6 +327,10 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(!preview_adapter.selected);
     assert_eq!(preview_adapter.text_tone.to_string(), "muted");
     assert!(thumb_mode.selected);
+    assert_eq!(thumb_mode.role.to_string(), "IconButton");
+    assert_eq!(thumb_mode.component_role.to_string(), "icon-button");
+    assert_eq!(thumb_mode.text.to_string(), "");
+    assert_eq!(thumb_mode.icon_name.to_string(), "grid-outline");
     assert_eq!(thumb_mode.surface_variant.to_string(), "inset");
     assert_eq!(thumb_mode.dispatch_kind.to_string(), "asset");
     assert_eq!(
@@ -398,11 +405,18 @@ fn assets_activity_regular_drawer_compacts_toolbar_and_reclaims_content_width() 
     let preview = node("AssetsActivityPreviewTabButton");
     let references = node("AssetsActivityReferencesTabButton");
 
-    assert_eq!(thumb.text.to_string(), "Thumb");
+    assert_eq!(browser.frame.width, 28.0);
+    assert_eq!(list.frame.width, 28.0);
+    assert_eq!(thumb.frame.width, 28.0);
+    assert_eq!(thumb.text.to_string(), "");
     assert_eq!(texture.text.to_string(), "Tex");
     assert_eq!(preview.text.to_string(), "Preview");
     assert!(preview.selected);
     assert!(toolbar.frame.height <= 68.0);
+    assert!(search.frame.x + search.frame.width <= browser.frame.x);
+    assert!(list.frame.x + list.frame.width <= thumb.frame.x);
+    assert!(thumb.frame.x + thumb.frame.width <= all.frame.x);
+    assert!(all.frame.x + all.frame.width <= texture.frame.x);
     for control in [
         browser, search, list, thumb, all, texture, preview, references,
     ] {
@@ -604,9 +618,11 @@ fn assets_activity_content_rows_share_the_activity_pointer_geometry() {
         selected_name.frame.x + selected_name.frame.width
             <= selected.frame.x + selected.frame.width
     );
-    assert!(!nodes
-        .iter()
-        .any(|node| node.control_id == "AssetsActivityContentEmptyText"));
+    assert!(
+        !nodes
+            .iter()
+            .any(|node| node.control_id == "AssetsActivityContentEmptyText")
+    );
 }
 
 #[test]

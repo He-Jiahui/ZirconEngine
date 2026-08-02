@@ -5,7 +5,12 @@ impl RetainedEditorHost {
         &mut self,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
     ) {
-        self.sync_console_pointer_layout(&chrome.status_line);
+        if let Some(size) = self.ui.console_output_viewport_size(
+            self.callback_source_window.as_ref().map(|id| id.0.as_str()),
+        ) {
+            self.console_scroll_surface.set_size(size);
+        }
+        self.sync_console_pointer_layout(chrome.console_output.as_ref());
         self.sync_inspector_pointer_layout();
         self.sync_browser_asset_details_pointer_layout(&chrome.asset_browser);
     }
@@ -20,10 +25,11 @@ impl RetainedEditorHost {
         }
 
         let size = self.console_scroll_surface.size();
-        self.console_scroll_surface.sync(console_scroll_layout(
-            size,
-            console_content_extent(status_line, size.width, false, ""),
-        ));
+        self.console_scroll_surface
+            .sync_following_tail(console_scroll_layout(
+                size,
+                console_content_extent(status_line),
+            ));
         self.apply_console_pointer_state_to_ui();
     }
 

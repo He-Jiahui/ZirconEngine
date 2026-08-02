@@ -11,13 +11,13 @@ styles = ["res://ui/editor/theme/editor_tokens.zui"]
 [components.WorkbenchPanelHeader]
 root = "root"
 default_classes = ["workbench-panel-header", "workbench-composite"]
-slots = { title = { multiple = false }, actions = { multiple = true } }
+slots = { title = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchCaption", "WorkbenchSectionTitle"] }, actions = { multiple = true, kind = "linear", accepts = ["WorkbenchButton", "WorkbenchCaption", "WorkbenchChip", "WorkbenchDropdown", "WorkbenchIconButton", "WorkbenchToggle"] } }
 
 [nodes.root]
 component = "HorizontalGroup"
 control_id = "WorkbenchPanelHeaderRoot"
-classes = ["workbench-panel-toolbar"]
-props = { background_color = "$editor.surface.1", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel-header", "workbench-panel-toolbar"]
+props = { background_color = "$editor.surface.3", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium" }
 layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.compact", stretch = "Fixed" } }
 children = [{ node = "title_slot" }, { node = "actions_slot" }]
 

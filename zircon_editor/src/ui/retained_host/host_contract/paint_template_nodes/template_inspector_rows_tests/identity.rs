@@ -1,5 +1,5 @@
 use super::super::super::template_inspector_row_kind::{
-    inspector_row_kind, InspectorResourceKind, InspectorRowKind,
+    InspectorResourceKind, InspectorRowKind, inspector_row_kind,
 };
 use super::support::inspector_node;
 

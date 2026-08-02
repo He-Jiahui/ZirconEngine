@@ -3,7 +3,8 @@ use std::str::FromStr;
 use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::editor_event::{
-    EditorEvent, EditorEventTransient, LayoutCommand, MenuAction, ViewDescriptorId,
+    ConsoleMessageFilter, EditorEvent, EditorEventTransient, LayoutCommand, MenuAction,
+    ViewDescriptorId,
 };
 use crate::core::editor_operation::EditorOperationPath;
 
@@ -22,6 +23,14 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.extend(window_commands());
     commands.push(migrate_assets_commandlet());
     commands.push(plugin_list_commandlet());
+    commands.push(
+        EditorCommandDescriptor::operation(
+            path("view.editor.ui_asset.open"),
+            "Open UI Asset Editor",
+        )
+        .with_category(EditorCommandCategory::View)
+        .with_callable_from_remote(false),
+    );
     commands.push(
         EditorCommandDescriptor::operation(
             path("inspector.field.apply_batch"),
@@ -149,6 +158,17 @@ mod tests {
             Some(EditorEvent::WorkbenchMenu(MenuAction::CloseProject))
         ));
     }
+
+    #[test]
+    fn ui_asset_toolkit_open_operation_is_registered() {
+        let operation = default_workbench_commands()
+            .into_iter()
+            .find(|command| command.id().as_str() == "view.editor.ui_asset.open")
+            .expect("the default command registry should expose the UI asset toolkit operation");
+
+        assert_eq!(operation.display_name(), "Open UI Asset Editor");
+        assert!(operation.event().is_none());
+    }
 }
 
 fn edit_commands() -> Vec<EditorCommandDescriptor> {
@@ -266,7 +286,7 @@ fn runtime_commands() -> Vec<EditorCommandDescriptor> {
 }
 
 fn view_commands() -> Vec<EditorCommandDescriptor> {
-    [
+    let mut commands = [
         ("view.project.open", "Project", "editor.project"),
         ("view.hierarchy.open", "Hierarchy", "editor.hierarchy"),
         ("view.inspector.open", "Inspector", "editor.inspector"),
@@ -314,7 +334,51 @@ fn view_commands() -> Vec<EditorCommandDescriptor> {
             ["view", "panel"],
         )
     })
-    .collect()
+    .collect::<Vec<_>>();
+    commands.push(command(
+        "view.console.clear",
+        "Clear Console",
+        EditorCommandCategory::View,
+        "View/Clear Console",
+        EditorEvent::WorkbenchMenu(MenuAction::ClearConsole),
+        None,
+        WhenClause::Always,
+        ["console", "clear", "output", "log"],
+    ));
+    for (id, label, filter) in [
+        (
+            "view.console.filter.all",
+            "Show All Console Messages",
+            ConsoleMessageFilter::All,
+        ),
+        (
+            "view.console.filter.info",
+            "Show Console Info",
+            ConsoleMessageFilter::Info,
+        ),
+        (
+            "view.console.filter.warning",
+            "Show Console Warnings",
+            ConsoleMessageFilter::Warning,
+        ),
+        (
+            "view.console.filter.error",
+            "Show Console Errors",
+            ConsoleMessageFilter::Error,
+        ),
+    ] {
+        commands.push(command(
+            id,
+            label,
+            EditorCommandCategory::View,
+            format!("View/Console/{label}"),
+            EditorEvent::WorkbenchMenu(MenuAction::SetConsoleMessageFilter(filter)),
+            None,
+            WhenClause::Always,
+            ["console", "filter", filter.as_str()],
+        ));
+    }
+    commands
 }
 
 fn window_commands() -> Vec<EditorCommandDescriptor> {

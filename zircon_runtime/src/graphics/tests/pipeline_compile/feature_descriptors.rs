@@ -325,7 +325,7 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
             1280,
             720,
-            TextureFormat::Rgba8UnormSrgb,
+            TextureFormat::Rgba16Float,
         ),
         (
             PostProcessGraphResourceNames::HZB_FURTHEST,
@@ -366,6 +366,6 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
                     && desc.height == expected_height
                     && desc.format == expected_format
                     && desc.sample_count == 1
-        ));
+        ), "post-process resource {resource_name} descriptor drifted: expected {expected_width}x{expected_height} {expected_format:?} with one sample, got {:?}", lifetime.desc);
     }
 }

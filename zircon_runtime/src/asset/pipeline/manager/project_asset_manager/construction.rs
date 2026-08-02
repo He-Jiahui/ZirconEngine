@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, RwLock};
 
 use crate::core::CoreError;
@@ -37,13 +38,17 @@ impl ProjectAssetManager {
         Self {
             worker_task_pool,
             project_generation_gate: Arc::new(RwLock::new(())),
+            project_preparation_epoch: Arc::new(AtomicU64::new(0)),
             project: Arc::new(RwLock::new(None)),
             project_source_paths: Arc::new(RwLock::new(ProjectSourcePathIndex::new())),
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
+            residency_stripes: Arc::new(std::array::from_fn(|_| Mutex::new(()))),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
             watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
             watcher_activation: Arc::new(Mutex::new(Option::<Arc<ProjectWatcherActivation>>::None)),
+            watch_refresh_gate: Arc::new(Mutex::new(())),
+            watch_diagnostics: Arc::new(Mutex::new(Default::default())),
             watchers: Arc::new(Mutex::new(Vec::new())),
         }
     }
@@ -103,6 +108,7 @@ impl ProjectAssetManager {
         self.importer_registry_write()
             .register_arc(importer.clone())
             .map_err(|error| asset_error_message(error.to_string()))?;
+        self.begin_project_preparation();
 
         let mut project = self.project_write();
         if let Some(project) = project.as_mut() {

@@ -10,8 +10,6 @@ impl RuntimeEntryApp {
     ) {
         let event =
             ZrRuntimeEventV1::file_drag_cancelled(ZIRCON_RUNTIME_ABI_VERSION_V1, self.viewport);
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, event);
     }
 }

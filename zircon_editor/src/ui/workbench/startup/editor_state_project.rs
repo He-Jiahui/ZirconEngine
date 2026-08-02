@@ -100,7 +100,7 @@ impl EditorState {
     pub fn set_welcome_snapshot(&mut self, welcome: WelcomePaneSnapshot) {
         self.welcome = welcome;
         if self.session_mode == EditorSessionMode::Welcome {
-            self.status_line = self.welcome.status_message.clone();
+            self.set_status_line(self.welcome.status_message.clone());
         }
     }
 

@@ -40,7 +40,7 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
         if starts_with_forbidden_line_start(chunk.text)
             || completes_jlreq_inseparable_pair(adjusted.last(), chunk.text)
         {
-            if let Some(previous) = adjusted.last_mut() {
+            if let Some(previous) = adjusted.last_mut().filter(|chunk| !chunk.mandatory_break) {
                 let start = previous.visual_range.start;
                 let end = chunk.visual_range.end;
                 if start < end
@@ -54,13 +54,14 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
                     if previous.break_suffix.is_none() {
                         previous.break_suffix = chunk.break_suffix;
                     }
+                    previous.mandatory_break |= chunk.mandatory_break;
                     previous.allow_glyph_fallback = false;
                     continue;
                 }
             }
         }
 
-        if starts_with_forbidden_line_end(chunk.text) {
+        if starts_with_forbidden_line_end(chunk.text) && !chunk.mandatory_break {
             if let Some(next) = chunk_iter.peek() {
                 let start = chunk.visual_range.start;
                 let end = next.visual_range.end;
@@ -76,6 +77,7 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
                         if chunk.break_suffix.is_none() {
                             chunk.break_suffix = next.break_suffix;
                         }
+                        chunk.mandatory_break |= next.mandatory_break;
                         chunk.allow_glyph_fallback = false;
                     }
                 }
@@ -85,20 +87,23 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
             if let Some((prefix, suffix)) = split_forbidden_line_end_suffix(text, chunk) {
                 adjusted.push(prefix);
                 chunk = suffix;
-                if let Some(next) = chunk_iter.peek() {
-                    let start = chunk.visual_range.start;
-                    let end = next.visual_range.end;
-                    if start < end
-                        && end <= text.len()
-                        && text.is_char_boundary(start)
-                        && text.is_char_boundary(end)
-                    {
-                        if let Some(next) = chunk_iter.next() {
-                            chunk.text = &text[start..end];
-                            chunk.visual_range.end = end;
-                            chunk.source_range.end = next.source_range.end;
-                            if chunk.break_suffix.is_none() {
-                                chunk.break_suffix = next.break_suffix;
+                if !chunk.mandatory_break {
+                    if let Some(next) = chunk_iter.peek() {
+                        let start = chunk.visual_range.start;
+                        let end = next.visual_range.end;
+                        if start < end
+                            && end <= text.len()
+                            && text.is_char_boundary(start)
+                            && text.is_char_boundary(end)
+                        {
+                            if let Some(next) = chunk_iter.next() {
+                                chunk.text = &text[start..end];
+                                chunk.visual_range.end = end;
+                                chunk.source_range.end = next.source_range.end;
+                                if chunk.break_suffix.is_none() {
+                                    chunk.break_suffix = next.break_suffix;
+                                }
+                                chunk.mandatory_break |= next.mandatory_break;
                             }
                         }
                     }
@@ -155,6 +160,7 @@ fn split_forbidden_line_end_suffix<'a>(
             end: suffix_start,
         },
         allow_glyph_fallback: chunk.allow_glyph_fallback,
+        mandatory_break: false,
         break_suffix: None,
     };
     let suffix = LineBreakChunk {
@@ -168,6 +174,7 @@ fn split_forbidden_line_end_suffix<'a>(
             end: chunk.source_range.end,
         },
         allow_glyph_fallback: false,
+        mandatory_break: chunk.mandatory_break,
         break_suffix: chunk.break_suffix,
     };
     Some((prefix, suffix))
@@ -181,6 +188,9 @@ fn completes_jlreq_inseparable_pair(
     previous: Option<&LineBreakChunk<'_>>,
     current_text: &str,
 ) -> bool {
+    if previous.is_some_and(|chunk| chunk.mandatory_break) {
+        return false;
+    }
     let Some(previous_char) = previous.and_then(|chunk| chunk.text.chars().next_back()) else {
         return false;
     };

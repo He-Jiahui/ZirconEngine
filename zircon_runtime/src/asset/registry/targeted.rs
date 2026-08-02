@@ -1,13 +1,32 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::asset::project::{AssetMetaDocument, AssetMetaEntry};
-use crate::asset::{AssetUri, AssetUuid};
+use crate::asset::{AssetId, AssetUri, AssetUuid};
 
 use super::asset_registry_index::source_locator;
 use super::rebuild::registry_entries;
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError, AssetRegistryIndex};
 
 impl AssetRegistryIndex {
+    pub(crate) fn prepare_source_removal(&self, source: &AssetUri) -> (Self, HashSet<AssetUuid>) {
+        let source = source_locator(source);
+        let removed_paths = self
+            .source_entries(&source)
+            .into_iter()
+            .map(|entry| entry.path().clone())
+            .collect::<HashSet<_>>();
+        let affected_owners = removed_paths
+            .iter()
+            .filter_map(|path| self.referencers_by_path.get(path))
+            .flatten()
+            .copied()
+            .collect::<HashSet<_>>();
+        let mut candidate = self.clone();
+        candidate.remove_source_path(&source);
+        candidate.refresh_dependency_owners(&affected_owners);
+        (candidate, affected_owners)
+    }
+
     pub(crate) fn prepare_source_replacement(
         &self,
         meta: &mut AssetMetaDocument,
@@ -62,6 +81,35 @@ impl AssetRegistryIndex {
             .filter_map(|uuid| self.entries_by_uuid.get(uuid))
             .cloned()
             .collect()
+    }
+
+    pub(crate) fn retarget_runtime_dependency_paths(
+        &mut self,
+        changes: impl IntoIterator<Item = (AssetId, Vec<AssetUri>, Vec<AssetUri>)>,
+    ) -> HashSet<AssetUuid> {
+        let mut owners = HashSet::new();
+        for (id, removed, added) in changes {
+            let Some(owner) = self.uuid_by_asset_id.get(&id).copied() else {
+                continue;
+            };
+            let mut paths = self
+                .dependency_paths_by_uuid
+                .get(&owner)
+                .cloned()
+                .unwrap_or_default();
+            for path in removed {
+                if let Some(index) = paths.iter().position(|candidate| candidate == &path) {
+                    paths.remove(index);
+                }
+            }
+            for path in added {
+                paths.push(path);
+            }
+            self.replace_dependency_paths(owner, paths);
+            owners.insert(owner);
+        }
+        self.refresh_dependency_owners(&owners);
+        owners
     }
 
     fn normalize_source_identities(
@@ -163,27 +211,30 @@ impl AssetRegistryIndex {
         Ok(())
     }
 
-    fn refresh_dependency_owners(&mut self, owners: &HashSet<AssetUuid>) {
+    pub(super) fn refresh_dependency_owners(&mut self, owners: &HashSet<AssetUuid>) {
         let mut unresolved = Vec::new();
         let resolved = owners
             .iter()
             .filter(|owner| self.entries_by_uuid.contains_key(owner))
             .map(|owner| {
-                let dependencies = self
+                let mut dependencies = Vec::new();
+                for path in self
                     .dependency_paths_by_uuid
                     .get(owner)
                     .into_iter()
                     .flatten()
-                    .filter_map(|path| {
-                        self.uuids_by_path.get(path).copied().or_else(|| {
-                            unresolved.push(AssetRegistryDiagnostic::UnresolvedDependency {
-                                owner: *owner,
-                                path: path.clone(),
-                            });
-                            None
-                        })
-                    })
-                    .collect::<Vec<_>>();
+                {
+                    if let Some(dependency) = self.uuids_by_path.get(path).copied() {
+                        if !dependencies.contains(&dependency) {
+                            dependencies.push(dependency);
+                        }
+                    } else {
+                        unresolved.push(AssetRegistryDiagnostic::UnresolvedDependency {
+                            owner: *owner,
+                            path: path.clone(),
+                        });
+                    }
+                }
                 (*owner, dependencies)
             })
             .collect::<Vec<_>>();

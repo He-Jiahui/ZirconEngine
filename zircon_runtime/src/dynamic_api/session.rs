@@ -27,9 +27,11 @@ mod status;
 #[cfg(test)]
 mod tests;
 
-use zircon_runtime_interface::ZrRuntimeViewportHandle;
+use zircon_runtime_interface::{
+    ZrRuntimeViewportHandle, ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1,
+};
 
-const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);
+const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1;
 
 pub use error::{RuntimeDynamicSessionError, RuntimeProjectError};
 pub use linked_session::create_linked_runtime_session;

@@ -39,12 +39,12 @@ mod tests {
     use crate::asset::project::{ProjectManifest, ProjectPaths};
     use crate::asset::{AssetUri, ProjectAssetManager};
     use crate::core::framework::render::{
-        EnvironmentExtract, FallbackSkyboxKind, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
-        IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactBlob, IblBakeArtifactDescriptor,
-        IblBakeArtifactReadbackSections, PreviewEnvironmentExtract, RenderFrameExtract,
-        RenderSceneGeometryExtract, RenderWorldSnapshotHandle,
-        SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, SceneViewportRenderPacket,
-        SourceCubemapEnvironment, build_source_cubemap_from_equirect,
+        build_source_cubemap_from_equirect, EnvironmentExtract, FallbackSkyboxKind,
+        IblBakeArtifactBlob, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
+        PreviewEnvironmentExtract, RenderFrameExtract, RenderSceneGeometryExtract,
+        RenderWorldSnapshotHandle, SceneViewportRenderPacket, SourceCubemapEnvironment,
+        IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+        SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
     };
     use crate::core::math::Vec4;
     use crate::graphics::RenderPipelineCompileOptions;

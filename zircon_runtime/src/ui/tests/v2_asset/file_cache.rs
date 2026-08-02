@@ -307,6 +307,46 @@ control_id = "ActivityDrawerWindowRoot"
 }
 
 #[test]
+fn ui_v2_file_cache_rejects_widget_imports_with_multiple_component_fragments() {
+    let temp_dir = v2_cache_temp_dir("ambiguous_widget_import");
+    let assets_root = temp_dir.join("assets");
+    let window_path = assets_root.join("ui/editor/windows/workbench_window.zui");
+    std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &window_path,
+        r##"
+[asset]
+kind = "view"
+id = "editor.window.ambiguous_import"
+version = 2
+
+[imports]
+widgets = ["res://ui/editor/components/button.zui#Button#Unexpected"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+"##,
+    )
+    .unwrap();
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+
+    let error = cache
+        .load_store(vec![window_path])
+        .expect_err("ambiguous widget imports must fail during file-source discovery");
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { asset_id, detail }
+            if asset_id == "editor.window.ambiguous_import"
+                && detail.contains("exactly one non-empty #Component suffix")
+    ));
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
 fn ui_v2_file_cache_resolves_res_imports_from_package_root_when_source_has_assets_folder() {
     let temp_dir = v2_cache_temp_dir("nested_assets_resource_imports");
     let assets_root = temp_dir.join("assets");

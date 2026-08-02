@@ -24,7 +24,7 @@ fn script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi() {
     for required_source_anchor in [
         "const GAMEPLAY_MODULE: &str = \"zr.zircon.gameplay\";",
         "pub fn register_gameplay_host_module(",
-        "current_script_runtime_call_context()?",
+        "runtime_context_for_frame(frame)?",
     ] {
         assert!(
             gameplay_source.contains(required_source_anchor),
@@ -32,9 +32,9 @@ fn script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi() {
         );
     }
     assert!(
-        runtime_context_source.contains("pub struct ScriptRuntimeCallContext")
-            && runtime_context_source.contains("pub level: LevelSystem")
-            && runtime_context_source.contains("pub entity: EntityId"),
+        runtime_context_source.contains("pub(crate) struct ScriptRuntimeCallContext")
+            && runtime_context_source.contains("pub(crate) level: LevelSystem")
+            && runtime_context_source.contains("pub(crate) entity: EntityId"),
         "script runtime call context should continue to carry the gameplay facade ECS scope"
     );
 

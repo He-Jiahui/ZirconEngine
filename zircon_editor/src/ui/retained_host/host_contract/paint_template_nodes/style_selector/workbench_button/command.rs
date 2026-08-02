@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
-use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
+use super::super::workbench_command::{WorkbenchCommandVisualRole, workbench_command_visual_role};
 use super::metrics::workbench_button_border_width;
 use super::model::WorkbenchButtonStyle;
 use super::palette::workbench_button_command_palette;

@@ -65,6 +65,20 @@ fn zr_gpu_scene_light_count() -> u32 {
     return min(zr_visible_instance_remap_params.values.y, arrayLength(&zr_light_data));
 }
 
+fn zr_gpu_scene_virtual_geometry_page_count() -> u32 {
+    return min(
+        zr_visible_instance_remap_params.values.z,
+        arrayLength(&zr_virtual_geometry_pages),
+    );
+}
+
+fn zr_gpu_scene_virtual_geometry_cluster_word_count() -> u32 {
+    return min(
+        zr_visible_instance_remap_params.values.w,
+        arrayLength(&zr_virtual_geometry_clusters),
+    );
+}
+
 fn zr_gpu_light(light_index: u32) -> ZrGpuLightData {
     return zr_light_data[light_index];
 }

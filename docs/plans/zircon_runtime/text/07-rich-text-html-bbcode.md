@@ -204,3 +204,5 @@ pub struct RichParseResult {
 - 产出记录：[`07/2026-07-11-rich-text-html-bbcode-output-records.md`](07/2026-07-11-rich-text-html-bbcode-output-records.md)
 - fixed 已修复：[rich-inline-provider-export-name](../shader/06/fixed-2026-07-11-rich-inline-provider-export-name.md)
 - fixed 已修复：[rich-table-layout-provider-visibility](../../zircon_editor/editor/15/fixed-2026-07-12-rich-table-layout-provider-visibility.md)
+
+当前状态（2026-08-01）：Text07 的编译 rich artifact 已接入 `UiResolvedTextLayout`，并移除 renderer/resource/link 对 markup cache 的 lookup-only 依赖；table cell 改为 parent compiled artifact 的 range/index projection，不复制 text、metadata 或 `CompiledRichText`。extract 现在先验证并保留可解析的 layout artifact，只在缺失或类型不匹配时编译；handle 直接强持有 type-erased `Arc`，全局 weak-token registry 已删除，最后一个 layout/command clone 释放时自动回收。cache eviction 后的 extract pointer-identity + link-hit 回归已覆盖该链路，后修复复核 P0=0/P1=0。计划仍为 `in_progress`，因为 managed Cargo、真实 WGPU framebuffer 和新的 `docs/tests/runtime/text` PNG 尚未执行或生成。

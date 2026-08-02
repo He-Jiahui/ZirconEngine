@@ -5,7 +5,7 @@ related_code:
   - zircon_plugins/navigation/runtime/src/components.rs
   - zircon_plugins/navigation/runtime/src/components/agent.rs
   - zircon_plugins/navigation/runtime/src/agent.rs
-  - zircon_plugins/navigation/runtime/src/agent/repath.rs
+  - zircon_runtime/src/navigation/repath_budget.rs
   - zircon_plugins/navigation/runtime/src/agent/writeback.rs
   - zircon_plugins/navigation/runtime/src/components/modifier.rs
   - zircon_plugins/navigation/runtime/src/components/obstacle.rs
@@ -73,8 +73,6 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/query.rs
   - zircon_runtime/src/core/framework/navigation/asset/mod.rs
   - zircon_runtime/src/core/framework/navigation/asset/v1.rs
-  - zircon_runtime/src/core/framework/navigation/manager.rs
-  - zircon_runtime/src/core/framework/navigation/query.rs
   - zircon_runtime/src/asset/artifact/store.rs
 implementation_files:
   - zircon_plugins/navigation/runtime/src/lib.rs

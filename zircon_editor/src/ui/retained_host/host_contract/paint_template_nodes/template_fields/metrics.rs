@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -23,8 +23,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub stepper_glyph_height: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_field_metrics(
-) -> WorkbenchFieldMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_field_metrics()
+-> WorkbenchFieldMetrics {
     workbench_field_metrics_from_host(current_host_metrics())
 }
 

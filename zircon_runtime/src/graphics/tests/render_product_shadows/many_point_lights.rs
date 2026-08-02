@@ -3,11 +3,11 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
-    CapturedFrame, DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, GpuLightType,
-    PostProcessGraphResourceNames, PreviewEnvironmentExtract, RenderFrameExtract, RenderFramework,
-    RenderLayerSet, RenderMeshSnapshot, RenderPipelineHandle, RenderPointLightSnapshot,
-    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    CapturedFrame, FallbackSkyboxKind, GpuLightType, PostProcessGraphResourceNames,
+    PreviewEnvironmentExtract, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderPointLightSnapshot, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -27,12 +27,10 @@ fn render_product_many_point_lights() {
 
     assert_eq!(packed.point_count, 64);
     assert_eq!(packed.light_count(), 64);
-    assert!(
-        packed
-            .lights
-            .iter()
-            .all(|light| { light.direction_type[3].to_bits() == GpuLightType::Point.as_u32() })
-    );
+    assert!(packed
+        .lights
+        .iter()
+        .all(|light| { light.direction_type[3].to_bits() == GpuLightType::Point.as_u32() }));
     assert_eq!(packed.lights[0].shadow_slot_layer[2], 20_000);
     assert_eq!(packed.lights[63].shadow_slot_layer[2], 20_063);
 
@@ -48,12 +46,10 @@ fn render_product_many_point_lights() {
         light_grid.stats.peak_lights_per_cluster >= 32,
         "the grid should shade dense point-light clusters rather than truncating after a tiny fixed set"
     );
-    assert!(
-        light_grid
-            .tile_masks
-            .chunks(light_grid.params.words_per_tile as usize)
-            .any(|words| words[0] != 0 && words[1] != 0)
-    );
+    assert!(light_grid
+        .tile_masks
+        .chunks(light_grid.params.words_per_tile as usize)
+        .any(|words| words[0] != 0 && words[1] != 0));
 
     let bin_stride = 2 + light_grid.params.words_per_tile as usize;
     assert!(light_grid.zbins.chunks(bin_stride).any(|bin| bin[3] != 0));
@@ -599,7 +595,11 @@ fn average_luma_in_region(frame: &CapturedFrame, origin: UVec2, size: UVec2) -> 
             count += 1.0;
         }
     }
-    if count <= 0.0 { 0.0 } else { total / count }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }
 
 fn assert_light_grid_reads(compiled: &crate::graphics::CompiledRenderPipeline, pass_name: &str) {

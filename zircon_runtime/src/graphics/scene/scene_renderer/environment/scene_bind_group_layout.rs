@@ -2,8 +2,8 @@ use std::num::NonZeroU64;
 
 use super::super::primitives::SceneEnvironmentSh9;
 
-pub(in crate::graphics::scene::scene_renderer) fn scene_bind_group_layout_entries()
--> [wgpu::BindGroupLayoutEntry; 7] {
+pub(in crate::graphics::scene::scene_renderer) fn scene_bind_group_layout_entries(
+) -> [wgpu::BindGroupLayoutEntry; 7] {
     [
         scene_uniform_layout_entry(),
         environment_cube_texture_entry(1),

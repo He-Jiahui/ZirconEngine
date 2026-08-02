@@ -69,37 +69,45 @@ mod tests {
         };
 
         assert!(popup_row_adornment_rect(&full_row, &full_row).is_some());
-        assert!(popup_row_adornment_rect(
-            &FrameRect {
-                width: minimum_width - 0.1,
-                ..full_row.clone()
-            },
-            &full_row,
-        )
-        .is_none());
-        assert!(popup_row_adornment_rect(
-            &FrameRect {
-                height: metrics.adornment_size - 0.1,
-                ..full_row.clone()
-            },
-            &full_row,
-        )
-        .is_none());
-        assert!(popup_row_adornment_rect(
-            &full_row,
-            &FrameRect {
-                width: minimum_width - 0.1,
-                ..full_row.clone()
-            },
-        )
-        .is_none());
-        assert!(popup_row_adornment_rect(
-            &FrameRect {
-                x: f32::NAN,
-                ..full_row.clone()
-            },
-            &full_row,
-        )
-        .is_none());
+        assert!(
+            popup_row_adornment_rect(
+                &FrameRect {
+                    width: minimum_width - 0.1,
+                    ..full_row.clone()
+                },
+                &full_row,
+            )
+            .is_none()
+        );
+        assert!(
+            popup_row_adornment_rect(
+                &FrameRect {
+                    height: metrics.adornment_size - 0.1,
+                    ..full_row.clone()
+                },
+                &full_row,
+            )
+            .is_none()
+        );
+        assert!(
+            popup_row_adornment_rect(
+                &full_row,
+                &FrameRect {
+                    width: minimum_width - 0.1,
+                    ..full_row.clone()
+                },
+            )
+            .is_none()
+        );
+        assert!(
+            popup_row_adornment_rect(
+                &FrameRect {
+                    x: f32::NAN,
+                    ..full_row.clone()
+                },
+                &full_row,
+            )
+            .is_none()
+        );
     }
 }

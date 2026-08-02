@@ -52,6 +52,7 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
         vec![
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 30,
                 page_id: 300,
                 lod_level: 0,
@@ -61,6 +62,7 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
             },
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 20,
                 page_id: 200,
                 lod_level: 1,
@@ -180,8 +182,8 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
 }
 
 #[test]
-fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_children_when_budget_allows()
- {
+fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_children_when_budget_allows(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -221,6 +223,7 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
         vec![
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 20,
                 page_id: 200,
                 lod_level: 1,
@@ -230,6 +233,7 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
             },
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 30,
                 page_id: 300,
                 lod_level: 1,
@@ -260,8 +264,8 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
 }
 
 #[test]
-fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children()
- {
+fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -300,6 +304,7 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
         context.virtual_geometry_visible_clusters,
         vec![VisibilityVirtualGeometryCluster {
             entity: mesh,
+            stable_instance_key: mesh << 16,
             cluster_id: 10,
             page_id: 100,
             lod_level: 0,
@@ -329,8 +334,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
 }
 
 #[test]
-fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren()
- {
+fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -374,6 +379,7 @@ fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_req
         vec![
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 20,
                 page_id: 200,
                 lod_level: 1,
@@ -383,6 +389,7 @@ fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_req
             },
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 30,
                 page_id: 300,
                 lod_level: 1,
@@ -477,6 +484,7 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
         held_context.virtual_geometry_visible_clusters,
         vec![VisibilityVirtualGeometryCluster {
             entity: mesh,
+            stable_instance_key: mesh << 16,
             cluster_id: 10,
             page_id: 100,
             lod_level: 0,
@@ -514,6 +522,7 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
         vec![
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 20,
                 page_id: 200,
                 lod_level: 1,
@@ -523,6 +532,7 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
             },
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
+                stable_instance_key: mesh << 16,
                 cluster_id: 30,
                 page_id: 300,
                 lod_level: 1,

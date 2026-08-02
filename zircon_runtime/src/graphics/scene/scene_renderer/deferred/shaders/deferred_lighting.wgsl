@@ -16,6 +16,7 @@ struct SceneUniform {
     sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_rotation_sin_cos: vec4<f32>,
 };
 
 const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
@@ -506,7 +507,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     }
 
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
-    let normal = normalize(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
+    let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
     let material = textureLoad(gbuffer_material_tex, coord, 0);
     let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
@@ -522,7 +523,7 @@ fn fs_main_sss(@builtin(position) position: vec4<f32>) -> ZrDeferredLightingMrtO
         discard;
     }
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
-    let normal = normalize(encoded_normal * 2.0 - vec3<f32>(1.0));
+    let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0));
     let material = textureLoad(gbuffer_material_tex, coord, 0);
     let emissive = max(textureLoad(gbuffer_emissive_tex, coord, 0).rgb, vec3<f32>(0.0));
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);

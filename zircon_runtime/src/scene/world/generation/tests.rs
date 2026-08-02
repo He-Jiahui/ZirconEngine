@@ -32,10 +32,16 @@ fn world_generation_advances_only_for_successful_structural_mutations() {
 fn explicit_entity_spawn_advances_generation_exactly_once() {
     let mut world = World::empty();
 
-    assert!(world.spawn_empty_at(42));
+    assert!(world.spawn_empty_at(42).unwrap());
     assert_eq!(world.world_generation(), 1);
 
-    assert!(!world.spawn_empty_at(42));
+    assert!(!world.spawn_empty_at(42).unwrap());
+    assert_eq!(world.world_generation(), 1);
+
+    assert_eq!(
+        world.spawn_empty_at(u64::MAX).unwrap_err(),
+        SceneError::EntityIdExhausted { entity: u64::MAX }
+    );
     assert_eq!(world.world_generation(), 1);
 }
 

@@ -1,7 +1,6 @@
 use crate::ui::retained_host::primitives::{PhysicalPosition, PhysicalSize};
 use winit::dpi::{PhysicalPosition as WinitPhysicalPosition, PhysicalSize as WinitPhysicalSize};
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::write_error;
 
 use super::super::UiHostWindowEventLoop;
 use crate::ui::retained_host::host_contract::redraw::HostRedrawRequest;
@@ -27,12 +26,11 @@ impl UiHostWindowEventLoop {
         }
         if let Some(presenter) = self.presenter.as_mut() {
             if let Err(error) = presenter.resize((size.width, size.height)) {
-                write_error(
+                self.host.report_fatal_failure(
                     "editor_host_window",
-                    format!(
-                        "presenter resize failed size={}x{}: {error}",
-                        size.width, size.height
-                    ),
+                    format!("presenter size={}x{}", size.width, size.height),
+                    format!("presenter resize failed: {error}"),
+                    "verify the graphics adapter and window surface, then restart zircon_editor",
                 );
                 event_loop.exit();
             }

@@ -19,6 +19,7 @@ impl ResourceManager {
             }
         };
         self.ensure_runtime_slot(id);
+        self.refresh_readiness(id);
 
         self.broadcast(ResourceEvent {
             kind: event_kind,
@@ -39,18 +40,23 @@ impl ResourceManager {
     ) -> Option<ResourceRecord> {
         let updated = {
             let mut registry = self.lock_registry_write();
-            let record = registry.get_mut(id)?;
-            if !matches!(
-                record.state,
-                ResourceState::Ready | ResourceState::Reloading | ResourceState::Error
-            ) {
-                return None;
-            }
-            record.state = crate::core::resource::ResourceState::Reloading;
-            record.diagnostics = diagnostics;
-            record.clone()
+            let updated = {
+                let record = registry.get_mut(id)?;
+                if !matches!(
+                    record.state,
+                    ResourceState::Ready | ResourceState::Reloading | ResourceState::Error
+                ) {
+                    return None;
+                }
+                record.state = crate::core::resource::ResourceState::Reloading;
+                record.diagnostics = diagnostics;
+                record.clone()
+            };
+            registry.publish_record(&updated);
+            updated
         };
         self.set_runtime_state(id, RuntimeResourceState::Reloading);
+        self.refresh_readiness(id);
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Updated,
@@ -71,18 +77,23 @@ impl ResourceManager {
     ) -> Option<ResourceRecord> {
         let updated = {
             let mut registry = self.lock_registry_write();
-            let record = registry.get_mut(id)?;
-            if !matches!(
-                record.state,
-                ResourceState::Pending | ResourceState::Reloading | ResourceState::Error
-            ) {
-                return None;
-            }
-            record.state = crate::core::resource::ResourceState::Error;
-            record.diagnostics = diagnostics;
-            record.clone()
+            let updated = {
+                let record = registry.get_mut(id)?;
+                if !matches!(
+                    record.state,
+                    ResourceState::Pending | ResourceState::Reloading | ResourceState::Error
+                ) {
+                    return None;
+                }
+                record.state = crate::core::resource::ResourceState::Error;
+                record.diagnostics = diagnostics;
+                record.clone()
+            };
+            registry.publish_record(&updated);
+            updated
         };
         self.set_runtime_state(id, RuntimeResourceState::Error);
+        self.refresh_readiness(id);
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::ReloadFailed,
@@ -104,6 +115,7 @@ impl ResourceManager {
 
         self.lock_payloads_write().remove(&removed.id);
         self.lock_runtime_write().remove(&removed.id);
+        self.refresh_readiness(removed.id);
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Removed,
@@ -126,6 +138,7 @@ impl ResourceManager {
             let mut registry = self.lock_registry_write();
             registry.rename(from, to.clone())?
         };
+        self.refresh_readiness(renamed.id);
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Renamed,

@@ -11,19 +11,19 @@ node = "root"
 component = "VerticalGroup"
 control_id = "ModulePluginsPaneBodyRoot"
 classes = ["editor-pane", "module-plugins-pane"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "header" }, { node = "summary" }, { node = "plugin_list_slot", slot = { name = "module_plugin_list_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "ModulePluginsHeader"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 children = [{ node = "focus" }]
 
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusModulePlugins"
-props = { label = "Focus Plugins", icon = "editor_pages/build_plugins/plugins/plugin.svg" }
+props = { label = "Focus Plugins", icon = "editor_pages/build_plugins/plugins/plugin.svg", icon_placement = "leading" }
 layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ModulePluginsPaneBody/FocusModulePlugins", event = "Click", route = "workbench.dock.focus_view" }]
 

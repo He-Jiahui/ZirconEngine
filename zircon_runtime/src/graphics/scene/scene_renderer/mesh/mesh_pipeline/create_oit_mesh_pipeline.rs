@@ -5,6 +5,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_oit_mesh_pipeline
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-oit-mesh-pipeline"),
@@ -34,6 +35,6 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_oit_mesh_pipeline
             targets: &[],
         }),
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }

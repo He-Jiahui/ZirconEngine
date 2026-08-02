@@ -1,4 +1,4 @@
-use super::geometry::{ImageVertex, SolidVertex};
+use super::geometry::{ImageVertex, SolidInstance, SolidVertex};
 
 const UI_MATERIAL_SHADER: &str = include_str!("shaders/ui_material.wgsl");
 const UI_SURFACE_BLEND: wgpu::BlendState = wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING;
@@ -35,6 +35,68 @@ pub(super) fn create_solid_pipeline(
                     wgpu::VertexAttribute {
                         offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                         shader_location: 1,
+                        format: wgpu::VertexFormat::Float32x4,
+                    },
+                ],
+            }],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("solid_fs_main"),
+            compilation_options: Default::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format: target_format,
+                blend: Some(UI_SURFACE_BLEND),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    })
+}
+
+pub(super) fn create_solid_instance_pipeline(
+    device: &wgpu::Device,
+    target_format: wgpu::TextureFormat,
+) -> wgpu::RenderPipeline {
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("zircon-ui-solid-instance-pipeline-layout"),
+        bind_group_layouts: &[],
+        immediate_size: 0,
+    });
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-ui-solid-instance-shader"),
+        source: wgpu::ShaderSource::Wgsl(UI_MATERIAL_SHADER.into()),
+    });
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("zircon-ui-solid-instance-pipeline"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("solid_instance_vs_main"),
+            compilation_options: Default::default(),
+            buffers: &[wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<SolidInstance>() as wgpu::BufferAddress,
+                step_mode: wgpu::VertexStepMode::Instance,
+                attributes: &[
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidInstance, min_position)
+                            as wgpu::BufferAddress,
+                        shader_location: 0,
+                        format: wgpu::VertexFormat::Float32x2,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidInstance, max_position)
+                            as wgpu::BufferAddress,
+                        shader_location: 1,
+                        format: wgpu::VertexFormat::Float32x2,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidInstance, color) as wgpu::BufferAddress,
+                        shader_location: 2,
                         format: wgpu::VertexFormat::Float32x4,
                     },
                 ],
@@ -159,6 +221,7 @@ mod tests {
     fn ui_material_shader_exposes_surface_entry_points_and_material_helpers() {
         for entry_point in [
             "solid_vs_main",
+            "solid_instance_vs_main",
             "solid_fs_main",
             "image_vs_main",
             "image_fs_main",
@@ -181,6 +244,16 @@ mod tests {
                 "ui_material.wgsl must keep the Material UI helper `{helper}`"
             );
         }
+    }
+
+    #[test]
+    fn compact_solid_instance_abi_is_one_record_per_quad() {
+        assert_eq!(std::mem::size_of::<super::SolidInstance>(), 32);
+        assert_eq!(std::mem::offset_of!(super::SolidInstance, min_position), 0);
+        assert_eq!(std::mem::offset_of!(super::SolidInstance, max_position), 8);
+        assert_eq!(std::mem::offset_of!(super::SolidInstance, color), 16);
+        assert!(UI_MATERIAL_SHADER.contains("@builtin(vertex_index) vertex_index: u32"));
+        assert!(UI_MATERIAL_SHADER.contains("array<vec2<f32>, 6>"));
     }
 
     #[test]

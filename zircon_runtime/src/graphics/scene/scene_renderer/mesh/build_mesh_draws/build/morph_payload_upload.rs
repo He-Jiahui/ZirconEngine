@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::{
-    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
-    MeshAsset,
+    MeshAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT,
 };
 use crate::graphics::scene::gpu_scene::{
     GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuScene, GpuSceneMorphUploadReport,
@@ -220,8 +220,9 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::asset::{
-        AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-        MESH_ATTRIBUTE_TANGENT, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+        AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+        MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+        MESH_ATTRIBUTE_TANGENT,
     };
     use crate::core::framework::render::RenderMeshTopology;
     use crate::graphics::scene::gpu_scene::GpuMorphPayload;

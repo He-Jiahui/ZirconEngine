@@ -1,5 +1,5 @@
-use crate::capability::{RENDERING_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
-use crate::{feature_manifest, module_descriptor, PLUGIN_ID, RENDERING_FEATURES};
+use crate::capability::{RENDERING_DECLARATION, RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME};
+use crate::{RENDERING_FEATURES, feature_manifest, module_descriptor};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
@@ -39,9 +39,6 @@ impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("rendering.dist", RENDERING_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -64,25 +61,14 @@ impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    let mut builder = zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Rendering",
-        zircon_runtime::builtin::RuntimePluginId::Rendering,
-        "zircon_plugin_rendering_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("rendering")
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Stable)
-    .with_target_modes([
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(RENDERING_RUNTIME_CAPABILITY);
+    let mut builder = RENDERING_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor());
 
     for feature in RENDERING_FEATURES {
         builder = builder.with_optional_feature(feature_manifest(*feature));
     }
-    builder.build()
+    builder.into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(RenderingRuntimePlugin);

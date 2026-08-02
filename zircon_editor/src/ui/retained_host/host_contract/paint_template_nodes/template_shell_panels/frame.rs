@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 use super::super::style_selector::{WorkbenchChromeKind as ShellPanelKind, WorkbenchChromeStyle};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,6 +56,8 @@ mod tests {
     #[test]
     fn shell_panel_frame_metrics_project_from_host_control_metrics() {
         let metrics = HostControlMetrics {
+            control_default_height: 32.0,
+            control_large_height: 48.0,
             radius_control: 3.0,
             border_width: 1.5,
             font_small: 8.0,

@@ -4,7 +4,9 @@ use glyphon::{
 };
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
-use crate::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceTextStyle};
+use crate::rhi::{
+    UiSurfaceCommand, UiSurfaceDrawList, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
+};
 
 use super::batching::DrawOp;
 use super::geometry::{
@@ -102,7 +104,7 @@ impl WgpuUiTextRenderer {
                 let Some(command) = draw_list.commands.get(*command_index) else {
                     continue;
                 };
-                let UiSurfaceCommandKind::Text {
+                let Some(UiSurfaceResolvedCommandKind::Text {
                     text,
                     font_family,
                     font_weight,
@@ -110,7 +112,7 @@ impl WgpuUiTextRenderer {
                     line_height,
                     style,
                     ..
-                } = &command.kind
+                }) = draw_list.resolved_kind(command)
                 else {
                     continue;
                 };
@@ -134,9 +136,9 @@ impl WgpuUiTextRenderer {
                     &mut buffer,
                     command,
                     text,
-                    font_family.as_deref(),
-                    *font_weight,
-                    *style,
+                    font_family,
+                    font_weight,
+                    style,
                 );
                 stats.text_shape_count = stats.text_shape_count.saturating_add(1);
                 buffers.push(buffer);
@@ -157,7 +159,7 @@ impl WgpuUiTextRenderer {
                         top: command.frame.y,
                         scale: 1.0,
                         bounds: text_bounds_from_rect(*clip),
-                        default_color: text_color(command),
+                        default_color: text_color(command, draw_list),
                         custom_glyphs: &[],
                     })
                     .collect::<Vec<_>>();
@@ -262,9 +264,9 @@ fn prepare_buffer(
     buffer.shape_until_scroll(font_system, false);
 }
 
-fn text_color(command: &UiSurfaceCommand) -> Color {
-    match &command.kind {
-        UiSurfaceCommandKind::Text { color, .. } => {
+fn text_color(command: &UiSurfaceCommand, draw_list: &UiSurfaceDrawList) -> Color {
+    match draw_list.resolved_kind(command) {
+        Some(UiSurfaceResolvedCommandKind::Text { color, .. }) => {
             Color::rgba(color[0], color[1], color[2], color[3])
         }
         _ => Color::rgb(255, 255, 255),

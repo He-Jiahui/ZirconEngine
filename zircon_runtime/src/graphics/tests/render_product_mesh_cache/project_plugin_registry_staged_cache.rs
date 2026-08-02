@@ -5,11 +5,11 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AssetReference, AssetUri, ShaderAsset, ShaderSourceLanguage};
 use crate::core::framework::render::{
-    CorePipelineKind, DisplayMode, GEOMETRY_SOURCE_ID_STATIC_MESH, PostProcessGraphResourceNames,
-    RenderFramework, RenderPhase, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderViewportDescriptor, SHADING_MODEL_ID_STANDARD_PBR, ShaderAssetKind, ShaderFeatureBits,
-    ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
-    ShaderVariantPrewarmRequest,
+    CorePipelineKind, DisplayMode, PostProcessGraphResourceNames, RenderFramework, RenderPhase,
+    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
+    ShaderAssetKind, ShaderFeatureBits, ShaderPassType, ShaderQualityTier,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord, ResourceState};
@@ -183,28 +183,36 @@ fn register_registry_material(asset_manager: &ProjectAssetManager, case: Registr
 }
 
 fn registry_product_prewarm_manifest(cases: &[RegistryShaderCase]) -> ShaderVariantPrewarmManifest {
-    let forward_request = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+    let template_manifest = builtin_standard_material_shader_prewarm_manifest_for_geometry(
         ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
         SHADING_MODEL_ID_STANDARD_PBR,
         None,
         GEOMETRY_SOURCE_ID_STATIC_MESH,
         &[ShaderQualityTier::Medium],
-    )
-    .variants
-    .into_iter()
-    .find(|request| request.key.pass_type == ShaderPassType::Forward)
-    .expect("builtin forward shader prewarm request");
+    );
+    let forward_request = template_manifest
+        .variants
+        .iter()
+        .find(|request| request.key.pass_type == ShaderPassType::Forward)
+        .expect("builtin forward shader prewarm request")
+        .clone();
+    let forward_source = template_manifest
+        .source_for(&forward_request)
+        .expect("builtin forward shader prewarm source");
+    let mut sources = Vec::with_capacity(cases.len());
     let variants = cases
         .iter()
         .map(|case| {
             let mut request = forward_request.clone();
+            let source = forward_source.with_source_label(case.locator);
             request.key.material_shader = case.shader_id();
             request.key.material_revision = case.revision;
-            request.source_label = case.locator.to_string();
+            request.source_id = source.id.clone();
+            sources.push(source);
             request
         })
         .collect();
-    ShaderVariantPrewarmManifest::new(variants)
+    ShaderVariantPrewarmManifest::new(sources, variants)
 }
 
 fn assert_registry_product_prewarm_written(
@@ -215,9 +223,13 @@ fn assert_registry_product_prewarm_written(
     let request = manifest
         .variants
         .iter()
-        .find(|request| request.source_label == case.locator)
+        .find(|request| {
+            manifest
+                .source_for(request)
+                .is_some_and(|source| source.source_label == case.locator)
+        })
         .unwrap_or_else(|| panic!("registry prewarm request for {}", case.locator));
-    assert_registry_request_key(request, case);
+    assert_registry_request_key(manifest, request, case);
     let written = report
         .written_variants
         .iter()
@@ -294,20 +306,27 @@ fn assert_registry_product_shader_cache_hit(stats: &RenderStats, case: RegistryS
     );
 }
 
-fn assert_registry_request_key(request: &ShaderVariantPrewarmRequest, case: RegistryShaderCase) {
+fn assert_registry_request_key(
+    manifest: &ShaderVariantPrewarmManifest,
+    request: &ShaderVariantPrewarmRequest,
+    case: RegistryShaderCase,
+) {
+    let source = manifest
+        .source_for(request)
+        .expect("registry prewarm source");
     assert_eq!(request.key.material_shader, case.shader_id());
     assert_eq!(request.key.material_revision, case.revision);
-    assert_eq!(request.source_label, case.locator);
-    let request_source_hash = raw_wgsl_hash(&request.wgsl_source);
+    assert_eq!(source.source_label, case.locator);
+    let request_source_hash = raw_wgsl_hash(&source.wgsl_source);
     assert!(
-        request
+        source
             .include_content_hashes
             .contains(&request_source_hash),
         "registry product prewarm request should preserve the assembled source hash for {}; hashes={:?}",
         case.locator,
-        request.include_content_hashes
+        source.include_content_hashes
     );
-    assert_eq!(request.template_revision, MATERIAL_SHADER_TEMPLATE_REVISION);
+    assert_eq!(source.template_revision, MATERIAL_SHADER_TEMPLATE_REVISION);
 }
 
 fn assert_runtime_dimension_disk_hit(

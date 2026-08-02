@@ -18,7 +18,7 @@ fn runtime_extension_registry_accepts_valid_plugin_event_catalog() {
 }
 
 #[test]
-fn typed_event_registration_derives_schema_valid_event_catalog() {
+fn plugin_event_catalog_derived_from_typed_registration() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry
         .intern_plugin_module("weather.runtime")

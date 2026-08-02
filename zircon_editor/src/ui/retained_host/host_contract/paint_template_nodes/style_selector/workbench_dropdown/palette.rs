@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,8 +21,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub active_chevron: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_dropdown_palette(
-) -> WorkbenchDropdownPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_dropdown_palette()
+-> WorkbenchDropdownPalette {
     workbench_dropdown_palette_from_host(current_host_palette())
 }
 

@@ -17,7 +17,9 @@ mod render_pass_executors;
 pub(crate) mod test_support;
 
 pub use capability::{
-    HYBRID_GI_ADVANCED_RENDER_CAPABILITY, HYBRID_GI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    HYBRID_GI_ADVANCED_RENDER_CAPABILITY, HYBRID_GI_DECLARATION, HYBRID_GI_RUNTIME_CAPABILITY,
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, RUNTIME_CAPABILITIES,
 };
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
@@ -35,7 +37,6 @@ use render_pass_executors::{
     HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES,
 };
 
-pub const PLUGIN_ID: &str = "hybrid_gi";
 pub const HYBRID_GI_FEATURE_NAME: &str = "hybrid_gi";
 pub const HYBRID_GI_MODULE_NAME: &str = "hybrid_gi.runtime";
 pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL: &str =

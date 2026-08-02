@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
 
-use super::super::super::{geometry::translated, ChromePointerRoute};
+use super::super::super::{ChromePointerRoute, geometry::translated};
 use super::super::tabs::route_document_tabs;
 
 pub(super) fn route_document_dock_tabs(

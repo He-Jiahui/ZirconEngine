@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use zircon_runtime_interface::resource::ResourceId;
 
 use crate::core::math::{Vec2, Vec4};
@@ -161,7 +162,7 @@ pub struct RichTable {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RichParseResult {
-    pub text: String,
+    pub text: Arc<str>,
     pub runs: Vec<StyledRun>,
     pub paragraphs: Vec<((u32, u32), ParagraphOverride)>,
     pub tables: Vec<RichTable>,

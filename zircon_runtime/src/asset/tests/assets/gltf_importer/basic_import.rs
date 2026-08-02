@@ -9,7 +9,7 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
     let root_uri = AssetUri::parse("res://models/triangle.gltf").unwrap();
 
     let outcome = importer
-        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .import_with_settings(&gltf_path, &root_uri, virtual_geometry_import_settings())
         .unwrap();
 
     match &outcome.root_entry().expect("root gltf entry").asset {
@@ -70,7 +70,7 @@ fn default_importer_decodes_gltf_without_first_wave_plugin_fixture() {
     match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
         ImportedAsset::Mesh(mesh) => {
             let primitive = mesh.to_model_primitive().unwrap();
-            assert_cooked_virtual_geometry(&primitive, "res://models/default_triangle.gltf");
+            assert!(primitive.virtual_geometry.is_none());
         }
         other => panic!("unexpected default gltf mesh asset: {other:?}"),
     }

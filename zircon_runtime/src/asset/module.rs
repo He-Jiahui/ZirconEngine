@@ -1,3 +1,5 @@
+mod lifecycle;
+
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::{
@@ -14,6 +16,8 @@ use crate::core::{
     ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
+
+use lifecycle::AssetModuleLifecycle;
 
 pub const ASSET_MODULE_NAME: &str = "AssetModule";
 pub const ASSET_IO_DRIVER_NAME: &str = "AssetModule.Driver.AssetIoDriver";
@@ -47,6 +51,7 @@ fn module_descriptor_with_asset_importers(
     .with_init_level(InitLevel::Services)
     .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
+    .with_lifecycle(Arc::new(AssetModuleLifecycle))
     .with_driver(DriverDescriptor::new(
         qualified_name(ASSET_MODULE_NAME, ServiceKind::Driver, "AssetIoDriver"),
         StartupMode::Immediate,

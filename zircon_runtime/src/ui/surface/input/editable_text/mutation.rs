@@ -3,16 +3,17 @@ use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{UiComponentEventReport, UiDispatchReply, UiInputDispatchResult, UiInputEvent},
     event_ui::{UiNodeId, UiReflectedPropertySource},
-    surface::UiEditableTextState,
+    surface::{UiEditableTextState, UiTextEditAction},
 };
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
+use crate::ui::text::apply_text_edit_action;
 
 use super::super::super::surface::UiSurface;
 use super::super::{
     effect::append_dispatch_effect_to_result,
     owner_route::{focused_input_kind_for_event, record_owner_focused_input},
-    text_state::editable_value_property,
+    text_state::{editable_text_state_for_node, editable_value_property},
 };
 use super::ime_context::input_method_update_for_text_state;
 
@@ -135,6 +136,109 @@ pub(in crate::ui::surface::input) fn apply_editable_text_state(
     }
 
     result
+}
+
+pub(in crate::ui::surface) fn commit_editable_text_composition_for_focus_loss(
+    surface: &mut UiSurface,
+    target: UiNodeId,
+) -> Option<UiComponentEventReport> {
+    let Some(editable) = editable_text_state_for_node(surface, target) else {
+        return None;
+    };
+    if editable.composition.is_none() {
+        return None;
+    }
+    let committed = apply_text_edit_action(editable, UiTextEditAction::CommitComposition);
+    let value_property = editable_value_property(surface, target)?;
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        value_property.as_str(),
+        UiValue::String(committed.text.clone()),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "caret_offset",
+        UiValue::Int(committed.caret.offset as i64),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "selection_anchor",
+        UiValue::Int(committed.caret.offset as i64),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "selection_focus",
+        UiValue::Int(committed.caret.offset as i64),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "composition_start",
+        UiValue::Int(committed.caret.offset as i64),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "composition_end",
+        UiValue::Int(committed.caret.offset as i64),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "composition_text",
+        UiValue::String(String::new()),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "composition_restore_text",
+        UiValue::String(String::new()),
+    );
+    focus_loss_commit_event(surface, target, value_property, committed)
+}
+
+fn mutate_focus_loss_text_property(
+    surface: &mut UiSurface,
+    target: UiNodeId,
+    property: &str,
+    value: UiValue,
+) {
+    let _ = surface.mutate_property(
+        UiPropertyMutationRequest::widget_behavior(target, property, value)
+            .with_source(UiReflectedPropertySource::RuntimeState),
+    );
+}
+
+fn focus_loss_commit_event(
+    surface: &UiSurface,
+    target: UiNodeId,
+    value_property: String,
+    state: UiEditableTextState,
+) -> Option<UiComponentEventReport> {
+    let metadata = surface
+        .tree
+        .nodes
+        .get(&target)?
+        .template_metadata
+        .as_ref()?;
+    metadata
+        .bindings
+        .iter()
+        .any(|binding| binding.event == UiEventKind::Submit)
+        .then_some(UiComponentEventReport {
+            target,
+            event: UiComponentEvent::Commit {
+                property: value_property,
+                value: UiValue::String(state.text),
+            },
+            delivered: true,
+            drag: None,
+            template_action: None,
+        })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

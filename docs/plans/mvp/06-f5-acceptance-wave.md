@@ -36,7 +36,7 @@ last_refined: 2026-07-24
 
 **Goal:** 在 coordinator 管理的干净 validation copy 上完成一次批量 build/test、创建全新 MVP 项目、执行 F1-F4 产品闭环，并让 runtime/editor 对同一项目连续运行两次，保存结构化诊断和真实视觉证据。
 
-**Architecture:** 一个 acceptance driver 负责 source-bound validation manifest、staging、项目创建、运行次序、超时、证据归档和最终一致性检查；它调用正常产品入口和现有测试，不复制 engine/editor 行为。Windows CI 复用同一最小 smoke contract，防止后续回归。
+**Architecture:** `Stage-MvpProducts.ps1` 是唯一产品执行器，负责 source-bound staging、项目创建、子进程次序与 timeout；`Invoke-MvpAcceptance.ps1` 是不可变证据验证/归档器，消费 staging 与 build/profile summaries，校验 identity/hash/schema 后发布 evidence root。两者都调用正常产品入口，不复制 engine/editor 行为。Windows CI 复用同一最小 smoke contract，防止后续回归。
 
 **Tech Stack:** Windows coordinator validation copy、PowerShell acceptance driver、Cargo workspace/profile gates、staged runtime/editor、PNG/window capture、GitHub Actions Windows runner。
 
@@ -97,14 +97,12 @@ comparison/
 
 ### 实现切片
 
-- [ ] 新建 `tools/mvp/Invoke-MvpAcceptance.ps1`，参数只包括 coordinator validation copy、批准 build/evidence root 和超时；不接受 repo-local target。
-- [ ] driver 在开始时验证 F0-F4 status、source fingerprint、clean validation copy、磁盘空间和 WGPU/display prerequisites。
-- [ ] driver 为每个子进程设置独立 working directory、stdout/stderr 文件和 timeout；非零退出或 timeout 立即停止上层步骤。
-- [ ] driver 创建一次 `ZirconMvpFixture`，后续所有 runtime/editor run 只引用该 canonical root。
-- [ ] driver 每个阶段解析结构化 summary，验证 project identity、scene URI、entity identity、transform 和 refs 未被替换。
-- [ ] driver 生成 evidence manifest 并校验所有相对路径、hash、exit code、截图尺寸和非空像素。
-- [ ] 新建 `tools/tests/mvp-acceptance.Tests.ps1`，使用 fake child processes 覆盖成功、非零退出、timeout、缺文件、hash mismatch、project identity drift 和 evidence cleanup。
-- [ ] acceptance driver 不解析 Cargo target 目录猜产物；只消费 coordinator/staging manifest。
+- [ ] 复验既有 `Stage-MvpProducts.ps1` 执行器：开始前验证 source fingerprint、clean validation copy、磁盘/WGPU/display prerequisites，并为每个子进程设置独立 working directory、日志和 timeout。
+- [ ] Stage 只创建一次 `ZirconMvpFixture`；任一子进程非零或 timeout 立即终止执行波次，后续 runtime/editor run 只引用该 canonical root。
+- [ ] 复验既有 `Invoke-MvpAcceptance.ps1` 验证器：只消费 coordinator/build/profile/staging summaries，不启动产品或解析 Cargo target 目录猜产物。
+- [ ] Invoke 对每个阶段验证 project/scene/entity identity、transform、refs、相对路径、hash、exit code、绝对开始/结束时间、截图尺寸与非空像素。
+- [ ] 只有 profile/workspace build summaries 与每进程时间均进入最终 manifest 时，`RequireF5Evidence` 才能成功；current-source staging/acceptance/workflow PowerShell 门已绿，fixed return 仍等待 clean coordinator workflow 与真实上传 artifact 检查，见 [open failure](06/failure-2026-08-01-f5-evidence-package-incomplete.md)。
+- [ ] `tools/tests/mvp-staging.Tests.ps1` 负责 fake child、非零、timeout 与 process ordering；`tools/tests/mvp-acceptance.Tests.ps1` 负责不可变 evidence schema、缺文件、hash mismatch、identity drift 和归档清理。
 
 ### 测试阶段：F5 Driver Contract Gate
 
@@ -152,7 +150,7 @@ comparison/
 
 ### 目标
 
-acceptance driver 从全新项目开始执行完整闭环，并证明连续运行不依赖第一次进程残留状态。
+`Stage-MvpProducts.ps1` 从全新项目开始执行完整闭环；`Invoke-MvpAcceptance.ps1` 随后验证并归档不可变证据，二者共同证明连续运行不依赖第一次进程残留状态。
 
 ### 执行顺序
 
@@ -167,7 +165,7 @@ acceptance driver 从全新项目开始执行完整闭环，并证明连续运�
 
 ### 测试阶段：F5 Product Acceptance Gate
 
-- [ ] driver 从头执行以上顺序，不跳过已有 evidence 阶段。
+- [ ] Stage 从头执行以上顺序，不跳过阶段；Invoke 不重跑产品，只验证同一 staging run 的完整 evidence。
 - [ ] runtime 两次运行均有非空帧、draw/light/pass/input/teardown 诊断。
 - [ ] editor 两次重开均观察相同 persisted entity/transform/refs，且不同于 authoring 前 transform。
 - [ ] before/after runtime 帧保持可见 primitive；editor before/after 截图显示同一 entity 和修改后的 X value。
@@ -187,7 +185,7 @@ CI 至少保护 editor/runtime profile build 和可自动化的 MVP integration 
 
 ### 实现切片
 
-- [ ] 新建 `.github/workflows/mvp-editor-windows.yml`，使用 `windows-latest`、stable toolchain 和 locked dependencies。
+- [ ] 复验既有 `.github/workflows/mvp-editor-windows.yml`，确认使用 `windows-latest`、stable toolchain 和 locked dependencies。
 - [ ] CI 构建 `zircon_app --bin zircon_editor --no-default-features --features target-editor-host` 与固定 runtime desktop binary。
 - [ ] 运行 project template/registry、F2 foundation render（adapter 可用时）、F3 roundtrip 和 `editor_mvp_authoring` integration tests。
 - [ ] 对 Windows runner 无可用 GPU/interactive desktop 的情况使用明确 skip/fail policy；不得把空白 capture 当作通过。
@@ -225,12 +223,8 @@ CI 至少保护 editor/runtime profile build 和可自动化的 MVP integration 
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-### 与代码现状不符，需修订
-
-- front-matter 的 `planned_code` / `planned_tests` 列出的四个产物在当前源码树中均已存在，不再是「planned」：`tools/mvp/Invoke-MvpAcceptance.ps1`（352 行）、`.github/workflows/mvp-editor-windows.yml`（97 行）、`tools/tests/mvp-acceptance.Tests.ps1`（350 行）、`zircon_app/tests/editor_mvp_authoring.rs`（335 行）都已落地。M6.1「新建 `tools/mvp/Invoke-MvpAcceptance.ps1`」「新建 `tools/tests/mvp-acceptance.Tests.ps1`」与 M6.4「新建 `.github/workflows/mvp-editor-windows.yml`」应改为「核对既有实现是否满足声明的 driver/CI contract（child failure/timeout 非零退出、evidence manifest 校验、identity drift 检测、Windows job 覆盖）」。注意 front-matter 本身不要改（docs 门禁校验路径），此处只提示正文与状态描述需同步。
-
-### 验证缺口
-
-- 因为 acceptance driver、CI workflow 和 authoring integration test 已存在，F5 的真实缺口不是「新建」而是「执行并归档证据」：建议正文明确 M6.2/M6.3 仍需在 coordinator 干净 validation copy 上产出 §2 证据包（PNG/window capture、persisted-state 比较、manifest hash），并核对 `mvp-editor-windows.yml` 是否已在 CI 实跑且对 F2/F3/F4 回归有效。当前无法从静态检查确认这些产物是否已被真实运行过。
+- 已把职责同步为 Stage 执行、Invoke 验证归档，并把 child/timeout 测试归回 staging contract；不再要求重复新建已有脚本、workflow 或 harness。
+- 静态审阅确认 `RequireF5Evidence` 当前归档不含 §2 要求的 profile/workspace build summaries，也未保存每个 process 的绝对开始/结束时间。linked failure 关闭前，该开关不得被解释为完整 F5 acceptance。
+- F5 的剩余工作是修复 evidence schema 并在 coordinator clean validation copy 真正执行/归档，不是继续扩写静态 harness；当前所有验收复选框保持未完成。

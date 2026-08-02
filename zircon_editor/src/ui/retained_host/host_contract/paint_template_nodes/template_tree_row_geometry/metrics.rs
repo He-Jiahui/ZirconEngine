@@ -1,9 +1,9 @@
 use super::super::template_row_metrics::{
-    workbench_row_metrics, workbench_row_palette, WorkbenchRowMetrics,
+    WorkbenchRowMetrics, workbench_row_metrics, workbench_row_palette,
 };
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_metrics(
-) -> WorkbenchRowMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_metrics()
+-> WorkbenchRowMetrics {
     workbench_row_metrics()
 }
 
@@ -15,8 +15,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_ro
     tree_metrics().surface_radius
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_guide_color(
-) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_guide_color()
+-> [u8; 4] {
     workbench_row_palette().tree_guide
 }
 

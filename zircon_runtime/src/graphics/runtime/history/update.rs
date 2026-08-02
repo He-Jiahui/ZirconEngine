@@ -11,12 +11,14 @@ impl ViewportFrameHistory {
         bindings: Vec<FrameHistoryBinding>,
         visibility: VisibilityHistorySnapshot,
         static_index: VisibilityStaticIndex,
+        dynamic_index: VisibilityStaticIndex,
         validation_key: Arc<FrameHistoryValidationKey>,
     ) {
         self.generation = generation;
         self.bindings = bindings;
         self.visibility = visibility;
         self.static_index = static_index;
+        self.dynamic_index = dynamic_index;
         self.validation_key = validation_key;
     }
 }

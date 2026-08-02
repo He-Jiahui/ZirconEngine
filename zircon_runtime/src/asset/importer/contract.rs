@@ -3,7 +3,9 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AssetImportError, AssetKind, AssetUri, ImportedAsset};
+use crate::asset::{
+    AssetImportError, AssetKind, AssetUri, ImportedAsset, VirtualGeometryCookRequest,
+};
 use crate::core::resource::ResourceDiagnostic;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -202,8 +204,55 @@ impl AssetImportContext {
         })
     }
 
+    pub fn virtual_geometry_cook_request(
+        &self,
+    ) -> Result<VirtualGeometryCookRequest, AssetImportError> {
+        VirtualGeometryCookRequest::from_import_settings(&self.import_settings)
+            .map_err(AssetImportError::Parse)
+    }
+
     pub(crate) fn has_project_resolver(&self) -> bool {
         self.project_resolver.is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn context_with_settings(import_settings: toml::Table) -> AssetImportContext {
+        AssetImportContext::new(
+            PathBuf::from("assets/models/mesh.obj"),
+            AssetUri::parse("res://models/mesh.obj").unwrap(),
+            Vec::new(),
+            import_settings,
+        )
+    }
+
+    #[test]
+    fn context_exposes_disabled_virtual_geometry_request_by_default() {
+        assert_eq!(
+            context_with_settings(toml::Table::new())
+                .virtual_geometry_cook_request()
+                .unwrap(),
+            VirtualGeometryCookRequest::Disabled
+        );
+    }
+
+    #[test]
+    fn context_rejects_malformed_virtual_geometry_request() {
+        let settings = toml::from_str(
+            r#"
+                [virtual_geometry]
+                enabled = "yes"
+            "#,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            context_with_settings(settings).virtual_geometry_cook_request(),
+            Err(AssetImportError::Parse(message)) if message.contains("virtual_geometry.enabled")
+        ));
     }
 }
 

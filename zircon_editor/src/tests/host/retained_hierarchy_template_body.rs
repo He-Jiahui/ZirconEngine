@@ -6,14 +6,14 @@ use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, HierarchyPaneViewData, PaneContentSize, PanePayloadBuildContext,
-    PanePresentation, PaneShellPresentation, SceneNodeData,
+    HierarchyPaneViewData, PaneContentSize, PanePayloadBuildContext, PanePresentation,
+    PaneShellPresentation, SceneNodeData, build_pane_body_presentation,
 };
 use crate::ui::retained_host::to_host_contract_hierarchy_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
-    AssetWorkspaceSnapshot, EditorChromeSnapshot, ProjectOverviewSnapshot, SceneEntry,
-    WorkbenchSnapshot,
+    AssetWorkspaceSnapshot, EditorChromeSnapshot, ProjectOverviewSnapshot, SceneEntries,
+    SceneEntry, WorkbenchSnapshot,
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
@@ -29,22 +29,24 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             drawers: BTreeMap::new(),
             floating_windows: Vec::new(),
         },
-        scene_entries: vec![
-            SceneEntry {
-                id: 7,
-                name: "Root".to_string(),
-                depth: 0,
-                selected: true,
-            },
-            SceneEntry {
-                id: 8,
-                name: "Camera".to_string(),
-                depth: 1,
-                selected: false,
-            },
-        ],
+        scene_entries: SceneEntries::from_entries(
+            vec![
+                SceneEntry {
+                    id: 7,
+                    name: "Root".to_string(),
+                    depth: 0,
+                },
+                SceneEntry {
+                    id: 8,
+                    name: "Camera".to_string(),
+                    depth: 1,
+                },
+            ],
+            [7],
+        ),
         inspector: None,
         status_line: "Hierarchy ready".to_string(),
+        console_output: "Hierarchy ready".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
@@ -132,6 +134,23 @@ fn hierarchy_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
 
 #[test]
 fn hierarchy_template_body_projects_hybrid_slot_and_payload_nodes_for_retained_conversion() {
+    let template = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/host/hierarchy_body.zui"),
+    )
+    .expect("hierarchy template should be readable");
+    assert_eq!(
+        template
+            .matches("gap = \"$editor.density.gap.small\"")
+            .count(),
+        2,
+        "hierarchy shell and header must consume the shared dense spacing token"
+    );
+    assert!(
+        !template.contains("gap = 6.0"),
+        "hierarchy template must not keep local spacing literals"
+    );
+
     let projected = to_host_contract_hierarchy_pane_from_host_pane(
         &hierarchy_pane(),
         PaneContentSize::new(300.0, 240.0),

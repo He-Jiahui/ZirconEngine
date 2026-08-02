@@ -89,12 +89,16 @@ mod tests {
         assert_eq!(target.total_count, target.rows.len());
         assert!(!target.window_navigation_enabled);
         assert!(target.window_query.is_empty());
-        assert!(target
-            .next_move(WorkbenchPopupKeyboardCommand::PageDown)
-            .is_none());
-        assert!(target
-            .next_move(WorkbenchPopupKeyboardCommand::PageUp)
-            .is_none());
+        assert!(
+            target
+                .next_move(WorkbenchPopupKeyboardCommand::PageDown)
+                .is_none()
+        );
+        assert!(
+            target
+                .next_move(WorkbenchPopupKeyboardCommand::PageUp)
+                .is_none()
+        );
     }
 
     fn overflow_presentation() -> HostWindowPresentationData {

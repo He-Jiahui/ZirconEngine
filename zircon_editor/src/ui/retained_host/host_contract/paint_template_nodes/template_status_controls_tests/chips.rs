@@ -1,8 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::{
-    push_status_control_commands, select_workbench_status_chip_style, status_chip_text_colors,
-    status_chip_text_rect, status_control_offset_rect, PALETTE,
+    PALETTE, push_status_control_commands, select_workbench_status_chip_style,
+    status_chip_text_colors, status_chip_text_rect, status_control_offset_rect,
 };
 use super::support::{pixel_at, status_chip_node};
 use crate::ui::layouts::common::model_rc;

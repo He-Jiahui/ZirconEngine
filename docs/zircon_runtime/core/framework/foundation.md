@@ -29,8 +29,9 @@ doc_type: module-detail
 
 `zircon_runtime::core::framework::foundation` owns the neutral configuration, event, persistence
 report, and Foundation module-identity vocabulary shared by runtime assembly and sibling domains.
-The contract tree contains declarations only; concrete persistence and service behavior remains in
-`zircon_runtime::foundation`.
+The contract tree contains declarations only; concrete Foundation service behavior remains in
+`zircon_runtime::foundation`. Generic crash-safe file replacement belongs to
+`zircon_runtime::core::resource::io::atomic_file`, which Foundation consumes directly.
 
 ## Ownership and Constraints
 
@@ -43,9 +44,9 @@ Asset and Platform module descriptors consume the neutral identity directly. The
 `zircon_runtime::foundation::FOUNDATION_MODULE_NAME` path remains a structural public projection
 from the neutral owner, not a compatibility owner or forwarding declaration.
 
-Eight existing Asset references still consume the concrete
-`foundation::persistence::atomic_file` implementation. They are a separate open decoupling seam and
-must not be confused with the module-identity cut.
+Foundation does not expose a `persistence` compatibility path. Asset, Platform, Scene, and
+Foundation configuration all use the shared Resource I/O atomic-file owner directly; this keeps the
+Foundation contract neutral and avoids a concrete Asset-to-Foundation dependency.
 
 ## Relevant Validation
 

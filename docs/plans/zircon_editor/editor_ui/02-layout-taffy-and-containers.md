@@ -26,10 +26,12 @@ plan_sources:
   - .codex/plans/布局系统.md
   - .codex/plans/Bevy-Informed Zircon UI 架构优化里程碑计划.md
   - .codex/plans/Zircon UI 增量布局、增量重绘与控件池优化计划.md
-status: planned
+status: in_progress
 ---
 
 # 02 布局系统：Taffy 权威与特殊容器
+
+> 2026-08-01 实仓复核：`UiLayoutStyle`、layout debug DTO 与唯一 `style_mapping.rs` 已经落入当前源码，M1 的基础 owner 不再是待创建状态；`debug_packet.rs`、`pane_content_contract.rs` 及其余 M2-M5 行为/产品 gate 仍未落地或未验收。计划状态由 `planned` 修正为 `in_progress`，不得把已存在的三个文件外推为整篇完成。
 
 ## 1. 目标
 

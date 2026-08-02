@@ -219,6 +219,21 @@ pub readF64LeAt(
     return reader.readF64(1, 1, 2, 4, 8);
 }
 
+pub readI32LeAt(
+    source: container.Array<uint>, offset: uint, width: uint
+): int {
+    if (width != <uint>4 || offset > <uint>source.length ||
+        width > <uint>source.length - offset) {
+        throw "woc i32 payload range is invalid";
+    }
+    var raw = <uint>source[<int>offset] +
+        <uint>source[<int>(offset + <uint>1)] * <uint>256 +
+        <uint>source[<int>(offset + <uint>2)] * <uint>65536 +
+        <uint>source[<int>(offset + <uint>3)] * <uint>16777216;
+    if (raw < <uint>2147483648) { return <int>raw; }
+    return -2147483648 + <int>(raw - <uint>2147483648);
+}
+
 class ByteWriter {
     pri var bytes: container.Array<uint>;
 

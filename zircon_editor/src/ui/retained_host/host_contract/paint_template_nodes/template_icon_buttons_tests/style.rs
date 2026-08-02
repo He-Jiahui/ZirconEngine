@@ -1,4 +1,4 @@
-use super::super::{icon_button_context, icon_button_style, IconButtonContext};
+use super::super::{IconButtonContext, icon_button_context, icon_button_style};
 use super::support::{icon_node, resolved_panel_surface, resolved_panel_surface_with_radius};
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 use zircon_runtime_interface::ui::style::{ResolvedButtonStyle, UiPainterResolvedState};

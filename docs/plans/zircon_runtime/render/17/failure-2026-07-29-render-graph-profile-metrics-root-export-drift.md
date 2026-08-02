@@ -24,9 +24,9 @@ tests:
 ## 来源执行者
 
 - 来源计划：`docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md`
-- 来源执行者：`editor01-runtime-frame-demand-hardcut-r1-20260729`
+- 来源执行切片：Editor01 M2 runtime-frame demand hard cut，执行者 `editor01-runtime-frame-demand-hardcut-r1-20260729`
 - 来源受管运行：job `640dc354cc38475daa1bd25e7217baf6` / run `bb226267623f4322839092a6f7365c15`
-- 修复责任计划：`docs/plans/zircon_runtime/render/17-performance-and-profiling.md`，PF-M1 观测底座
+- 修复责任计划：`docs/plans/zircon_runtime/render/17-performance-and-profiling.md`
 - 交接原因：render graph pass profiling DTO 的定义、crate-private framework projection 和两处 graph execution consumer 同属 Render17；Editor01 不得改写运行时的模块可见性或导入边界。
 
 ## 失败现象与复现证据

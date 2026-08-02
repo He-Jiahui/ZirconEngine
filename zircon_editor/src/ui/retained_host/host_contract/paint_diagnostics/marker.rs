@@ -20,10 +20,18 @@ pub(in crate::ui::retained_host::host_contract) fn debug_refresh_overlay_frame(
         + MARKER_HORIZONTAL_PADDING)
         .min((top_bar.width - MARKER_VERTICAL_INSET).max(1.0))
         .max(1.0);
+    let y = top_bar.y + MARKER_TOP_INSET;
+    let available_height = top_bar.y + top_bar.height - y;
+    if available_height <= 0.0 {
+        return None;
+    }
+    let marker_height = (top_bar.height - MARKER_VERTICAL_INSET)
+        .max(MARKER_MIN_HEIGHT)
+        .min(available_height);
     Some(FrameRect {
         x: (top_bar.x + top_bar.width - marker_width - MARKER_RIGHT_INSET).max(top_bar.x),
-        y: top_bar.y + MARKER_TOP_INSET,
+        y,
         width: marker_width,
-        height: (top_bar.height - MARKER_VERTICAL_INSET).max(MARKER_MIN_HEIGHT),
+        height: marker_height,
     })
 }

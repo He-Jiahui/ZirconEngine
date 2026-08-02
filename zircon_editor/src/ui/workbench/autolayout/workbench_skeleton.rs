@@ -1,12 +1,13 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
-use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
+use zircon_runtime_interface::ui::{design_tokens::EditorDesignTokens, layout::UiDimension};
 
 use crate::ui::workbench::layout::ActivityDrawerMode;
 
 use super::{
-    EditorRegion, EditorRegionRole, RegionBinding, ShellRegionId, WorkbenchConstraintTokenName,
+    CssLikeConstraint, CssLikeDimension, CssLikeSize, EditorRegion, EditorRegionRole,
+    RegionBinding, ShellRegionId, WorkbenchConstraintTokenName,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,6 +23,16 @@ pub struct WorkbenchSkeleton {
 }
 
 impl WorkbenchSkeleton {
+    pub fn default_region_extents_from_tokens(
+        tokens: &EditorDesignTokens,
+    ) -> BTreeMap<ShellRegionId, f32> {
+        static DEFAULT_WORKBENCH_SKELETON: OnceLock<WorkbenchSkeleton> = OnceLock::new();
+
+        DEFAULT_WORKBENCH_SKELETON
+            .get_or_init(Self::jetbrains_default)
+            .preferred_region_extents_from_tokens(tokens)
+    }
+
     pub fn jetbrains_default() -> Self {
         let regions = vec![
             region(
@@ -100,7 +111,11 @@ impl WorkbenchSkeleton {
             let Some(size_token) = binding.size_token.as_ref() else {
                 continue;
             };
-            let Some(value) = tokens.density_value_for_token_name(size_token.as_str()) else {
+            let Some(value) = preferred_extent_from_constraint(
+                tokens,
+                binding.shell_region(),
+                size_token.clone(),
+            ) else {
                 continue;
             };
             extents
@@ -109,6 +124,44 @@ impl WorkbenchSkeleton {
                 .or_insert(value);
         }
         extents
+    }
+}
+
+fn preferred_extent_from_constraint(
+    tokens: &EditorDesignTokens,
+    region: ShellRegionId,
+    size_token: WorkbenchConstraintTokenName,
+) -> Option<f32> {
+    let size = match region {
+        ShellRegionId::Bottom => CssLikeSize {
+            width: CssLikeDimension::Auto,
+            height: CssLikeDimension::Token(size_token),
+        },
+        ShellRegionId::Left | ShellRegionId::Right | ShellRegionId::Document => CssLikeSize {
+            width: CssLikeDimension::Token(size_token),
+            height: CssLikeDimension::Auto,
+        },
+    };
+    let constraint = CssLikeConstraint {
+        size,
+        ..CssLikeConstraint::default()
+    };
+    if !constraint.family().is_taffy_owned() {
+        return None;
+    }
+    let style = constraint.into_layout_style(tokens).ok()?;
+    match region {
+        ShellRegionId::Bottom => layout_extent(style.size.height),
+        ShellRegionId::Left | ShellRegionId::Right | ShellRegionId::Document => {
+            layout_extent(style.size.width)
+        }
+    }
+}
+
+fn layout_extent(dimension: UiDimension) -> Option<f32> {
+    match dimension {
+        UiDimension::Px(value) if value.is_finite() && value >= 0.0 => Some(value),
+        UiDimension::Auto | UiDimension::Px(_) | UiDimension::Percent(_) => None,
     }
 }
 
@@ -124,4 +177,25 @@ fn region(
         panel_asset,
         size_token.map(WorkbenchConstraintTokenName::new),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
+
+    use super::{ShellRegionId, WorkbenchSkeleton};
+
+    #[test]
+    fn cached_default_skeleton_resolves_each_call_against_the_supplied_tokens() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.density.left_drawer_width = 512.0;
+        tokens.density.right_drawer_width = 544.0;
+        tokens.density.bottom_output_height = 288.0;
+
+        let extents = WorkbenchSkeleton::default_region_extents_from_tokens(&tokens);
+
+        assert_eq!(extents.get(&ShellRegionId::Left), Some(&512.0));
+        assert_eq!(extents.get(&ShellRegionId::Right), Some(&544.0));
+        assert_eq!(extents.get(&ShellRegionId::Bottom), Some(&288.0));
+    }
 }

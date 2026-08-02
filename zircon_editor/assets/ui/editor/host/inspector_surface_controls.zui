@@ -11,54 +11,60 @@ node = "root"
 component = "InspectorSurfaceControls"
 control_id = "InspectorSurfaceControls"
 classes = ["editor-surface-controls", "inspector-controls"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "name" }, { node = "parent" }, { node = "position_x" }, { node = "position_y" }, { node = "position_z" }, { node = "apply" }, { node = "delete" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "name" }, { node = "parent" }, { node = "position_x" }, { node = "position_y" }, { node = "position_z" }, { node = "actions" }]
 
 [nodes.name]
 component = "InputField"
 control_id = "NameField"
-props = { label = "Name", value = "", placeholder = "Name", value_text = "", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, layout_min_height = 28.0, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { label = "Name", value = "", placeholder = "Name", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "InspectorView/NameField", event = "Change", route = "workbench.draft.set_inspector_field" }]
 
 [nodes.parent]
 component = "InputField"
 control_id = "ParentField"
-props = { label = "Parent", value = "", placeholder = "Parent", value_text = "", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, layout_min_height = 28.0, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { label = "Parent", value = "", placeholder = "Parent", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "InspectorView/ParentField", event = "Change", route = "workbench.draft.set_inspector_field" }]
 
 [nodes.position_x]
 component = "NumberField"
 control_id = "PositionXField"
-props = { label = "X", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { label = "X", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "InspectorView/PositionXField", event = "Change", route = "workbench.draft.set_inspector_field" }]
 
 [nodes.position_y]
 component = "NumberField"
 control_id = "PositionYField"
-props = { label = "Y", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { label = "Y", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "InspectorView/PositionYField", event = "Change", route = "workbench.draft.set_inspector_field" }]
 
 [nodes.position_z]
 component = "NumberField"
 control_id = "PositionZField"
-props = { label = "Z", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { label = "Z", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "InspectorView/PositionZField", event = "Change", route = "workbench.draft.set_inspector_field" }]
+
+[nodes.actions]
+component = "HorizontalGroup"
+control_id = "InspectorActionsRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "apply" }, { node = "delete" }]
 
 [nodes.apply]
 component = "Button"
 control_id = "ApplyBatchButton"
-props = { label = "Apply", text = "Apply", surface_variant = "accent", button_variant = "primary", border_width = 1.0, corner_radius = 999.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
-layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Apply", text = "Apply", surface_variant = "accent", button_variant = "primary", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "InspectorView/ApplyBatchButton", event = "Click", route = "workbench.inspector.field_batch.apply" }]
 
 [nodes.delete]
 component = "Button"
 control_id = "DeleteSelected"
-props = { label = "Delete", text = "Delete", text_tone = "danger", surface_variant = "danger", button_variant = "danger", border_width = 1.0, corner_radius = 999.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
-layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Delete", text = "Delete", text_tone = "danger", surface_variant = "danger", button_variant = "danger", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "InspectorView/DeleteSelected", event = "Click", route = "workbench.selection.delete_selected" }]

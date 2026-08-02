@@ -1,7 +1,7 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_frame::HostPaintAtlasImage;
 use super::super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::{kind::HostPaintCommandKind, model::HostPaintCommand};

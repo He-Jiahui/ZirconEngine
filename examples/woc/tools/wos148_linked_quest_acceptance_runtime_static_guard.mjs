@@ -26,8 +26,8 @@ requireText(sourceQuests,
   'source linked-quest party, shareability, or availability semantics drifted');
 
 const contract = JSON.parse(read('contracts', 'command_payloads.json'));
-if (contract.schema_version !== 38) {
-  throw new Error('WOS148 command payload schema must be 38');
+if (contract.schema_version !== 51) {
+  throw new Error('WOS148 command payload schema must be 44');
 }
 const linked = contract.entries.find((entry) => entry.id === 19 && entry.name === 'qlinkaccept');
 if (!linked || linked.kind !== 'linked_quest_acceptance' ||

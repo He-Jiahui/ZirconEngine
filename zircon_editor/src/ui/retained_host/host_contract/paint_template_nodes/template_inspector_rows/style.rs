@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::template_inspector_row_geometry::inspector_row_metrics;
 use super::super::template_style_color::resolved_style_color;
 
@@ -17,8 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Ins
     pub checked_border: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn inspector_row_palette(
-) -> InspectorRowPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn inspector_row_palette()
+-> InspectorRowPalette {
     inspector_row_palette_from_host(current_host_palette())
 }
 

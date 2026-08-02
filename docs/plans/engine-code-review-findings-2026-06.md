@@ -12,9 +12,6 @@ related_code:
   - tools/tests/test_runtime_plan_status_archive_ownership.py
   - tests/acceptance/runtime-plan-status-archive-ownership-sync.md
   - tools/tests/test_zui_docs_suffix_convergence.py
-  - tools/tests/test_zui_docs_suffix_status_guards.py
-  - tools/tests/test_zui_docs_suffix_convergence_test_owner_boundaries.py
-  - tools/tests/test_zui_docs_current_status_suffix_test_owner_budget.py
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/animation/manager/mod.rs
@@ -581,36 +578,36 @@ related_code:
   - zircon_plugins/native_window_hosting/dist/src/lib.rs
   - zircon_plugins/runtime_diagnostics/editor/src/lib.rs
   - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
-- zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
-- zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
-- zircon_plugins/runtime_diagnostics/editor/src/tests.rs
-- zircon_plugins/runtime_diagnostics/plugin.toml
-- zircon_plugins/runtime_diagnostics/dist/Cargo.toml
-- zircon_plugins/runtime_diagnostics/dist/src/lib.rs
-- zircon_plugins/ui_asset_authoring/editor/src/lib.rs
-- zircon_plugins/ui_asset_authoring/editor/src/capability.rs
-- zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
-- zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
-- zircon_plugins/ui_asset_authoring/editor/src/tests.rs
-- zircon_plugins/ui_asset_authoring/plugin.toml
-- zircon_plugins/ui_asset_authoring/dist/Cargo.toml
-- zircon_plugins/ui_asset_authoring/dist/src/lib.rs
-- zircon_plugins/material_editor/editor/src/lib.rs
-- zircon_plugins/material_editor/editor/src/capability.rs
-- zircon_plugins/material_editor/editor/src/extension_ids.rs
-- zircon_plugins/material_editor/editor/src/plugin.rs
-- zircon_plugins/material_editor/editor/src/tests.rs
-- zircon_plugins/material_editor/plugin.toml
-- zircon_plugins/material_editor/dist/Cargo.toml
-- zircon_plugins/material_editor/dist/src/lib.rs
-- zircon_plugins/animation_graph/editor/src/lib.rs
-- zircon_plugins/animation_graph/editor/src/capability.rs
-- zircon_plugins/animation_graph/editor/src/extension_ids.rs
-- zircon_plugins/animation_graph/editor/src/plugin.rs
-- zircon_plugins/animation_graph/editor/src/tests.rs
-- zircon_plugins/animation_graph/plugin.toml
-- zircon_plugins/animation_graph/dist/Cargo.toml
-- zircon_plugins/animation_graph/dist/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
+  - zircon_plugins/runtime_diagnostics/plugin.toml
+  - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
+  - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/lib.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
+  - zircon_plugins/ui_asset_authoring/plugin.toml
+  - zircon_plugins/ui_asset_authoring/dist/Cargo.toml
+  - zircon_plugins/ui_asset_authoring/dist/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/capability.rs
+  - zircon_plugins/material_editor/editor/src/extension_ids.rs
+  - zircon_plugins/material_editor/editor/src/plugin.rs
+  - zircon_plugins/material_editor/editor/src/tests.rs
+  - zircon_plugins/material_editor/plugin.toml
+  - zircon_plugins/material_editor/dist/Cargo.toml
+  - zircon_plugins/material_editor/dist/src/lib.rs
+  - zircon_plugins/animation_graph/editor/src/lib.rs
+  - zircon_plugins/animation_graph/editor/src/capability.rs
+  - zircon_plugins/animation_graph/editor/src/extension_ids.rs
+  - zircon_plugins/animation_graph/editor/src/plugin.rs
+  - zircon_plugins/animation_graph/editor/src/tests.rs
+  - zircon_plugins/animation_graph/plugin.toml
+  - zircon_plugins/animation_graph/dist/Cargo.toml
+  - zircon_plugins/animation_graph/dist/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/capability.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/extension_ids.rs
@@ -1077,7 +1074,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - Text 06 D4 is hard-cut from post-shape script/codepoint recomputation to actual backend identity: `text/font/{backend.rs,database.rs,shared.rs}` owns the database lineage and ID reconciliation, and cosmic/native consume `LayoutGlyph.font_id` directly.
 - The former `text/shaping/font_id.rs` bridge and its unused resolver API are deleted rather than hidden with `allow(dead_code)` or retained as compatibility surface.
 - `font/shared.rs` uses poison recovery for its production `RwLock` and a generation snapshot, satisfying E9 while avoiding a global lock on the steady-state shaping hot path.
-- Detailed status and validation remain owned by `docs/plans/zircon_runtime/text/06-font-fallback.md`; bounded missing-glyph diagnostics and resolver-side partial-cluster handling are closed, and the real runtime WGPU product framebuffer now covers CJK, Arabic, Hebrew, mixed BiDi, native color emoji, SDF, and zh-Hans/ja same-codepoint divergence. The selected `Segoe UI Emoji` backend face is directly verified as `SwashContent::Color` with RGBA-sized bytes; after the monolithic lib-test timed out, the isolated executable closed the same complex-cluster invariant by proving Arabic base+fatha produced two glyphs on one actual `Segoe UI` face.
+- Detailed status and validation remain owned by `docs/plans/zircon_runtime/text/06-font-fallback.md`; bounded missing-glyph diagnostics and resolver-side partial-cluster handling are closed. Historical runtime WGPU evidence covered CJK, Arabic, Hebrew, mixed BiDi, native color emoji, SDF, and zh-Hans/ja same-codepoint divergence, but it is not current-source acceptance; a fresh managed product framebuffer remains required. The selected `Segoe UI Emoji` backend face is directly verified as `SwashContent::Color` with RGBA-sized bytes; after the monolithic lib-test timed out, the isolated executable closed the same complex-cluster invariant by proving Arabic base+fatha produced two glyphs on one actual `Segoe UI` face.
 - The follow-up keeps report growth folder-backed: missing-glyph frame-out aggregation is in `scene_renderer/ui/text/prepare_report.rs`, leaving the renderer root below the 800-line soft budget and avoiding another root-level diagnostics DTO block.
 
 ## 2026-07-10 Runtime Text locale-cache review follow-up
@@ -1095,7 +1092,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - Structure remains folder-backed and bounded: orientation rules and their tests are children, the root shaping module only wires providers, and no old horizontal-only alias is retained as a success path.
 - NFC remains intentionally disabled in V1, but the old implicit assumption is removed: `normalize.rs::ShapingTextView` now owns the identity view/source projection and exact tests lock decomposed byte preservation. Any future NFC feature must extend that owner with bidirectional mapping instead of rewriting contract ranges in `cosmic.rs`.
 - LB-M4 now closes the review-plan's first vertical ownership cut: column capacity, right-to-left frame placement, and axis extents are no longer authored in `ui/text/layout_engine/vertical.rs`; they are exact-tested in `text/layout/vertical_layout.rs` and consumed by the UI projection adapter.
-- Product-level TDD first exposed the render defect: VerticalRl SDF batches reused horizontal resolved advances and never rotated sideways UVs, collapsing all glyphs into one strip. The SDF child consumes the shared orientation/advance owner, swaps destination axes, rotates sideways UVs clockwise, and owns vertical main-axis advances. A subsequent CJK product gate exposed a lower shared-font defect: `StoredFontSource::FontDb` faces had backend IDs but `face_bytes(...)` always rejected them. `FontDatabase` now materializes bytes through the authoritative backend database and existing standalone-face extractor; the temporary coverage→SDF strategy was deleted. Native `vmtx` remains a font child owner. The current follow-up adds rustybuzz TTB/BTT plus backend vertical-origin offsets, preserves actual glyph/face identity through `render/text_advances.rs` and `sdf_atlas/text_keys.rs`, and bakes indexed glyphs on the authoritative face. The accepted WGPU frame now shows two right-to-left CJK columns with vertical punctuation, while soft-wrap affinity and VerticalRl layout/hit-test/IME filters are green. Horizontal cosmic per-run `locl`, variable axes, mixed-BiDi product geometry and platform IME live QA remain explicit gaps.
+- Product-level TDD first exposed the render defect: VerticalRl SDF batches reused horizontal resolved advances and never rotated sideways UVs, collapsing all glyphs into one strip. The SDF child consumes the shared orientation/advance owner, swaps destination axes, rotates sideways UVs clockwise, and owns vertical main-axis advances. A subsequent CJK product gate exposed a lower shared-font defect: `StoredFontSource::FontDb` faces had backend IDs but `face_bytes(...)` always rejected them. `FontDatabase` now materializes bytes through the authoritative backend database and existing standalone-face extractor; the temporary coverage→SDF strategy was deleted. Native `vmtx` remains a font child owner. The current follow-up adds rustybuzz TTB/BTT plus backend vertical-origin offsets, preserves actual glyph/face identity through `render/text_advances.rs` and `sdf_atlas/text_keys.rs`, and bakes indexed glyphs on the authoritative face. A historical WGPU frame showed two right-to-left CJK columns with vertical punctuation, but it is not current-source acceptance; fresh managed WGPU output remains required. Soft-wrap affinity and VerticalRl layout/hit-test/IME filters are covered by their focused owners; horizontal cosmic per-run `locl`, variable axes, mixed-BiDi product geometry and platform IME live QA remain explicit gaps.
 - LB-M3 hit testing now consumes per-visual-cluster source ranges and direction through a folder-backed leaf, returning logical offset plus affinity for RTL edges. The old descending-range merge was deleted rather than hidden behind a fallback alias.
 
 ## 2026-07-11 Runtime Text mixed-storage ordering review follow-up
@@ -1112,3 +1109,47 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - Secondary review found and fixed three actionable implementation defects before acceptance: duplicated plain/rich boundary planners, O(G^2) complete-candidate `BoundaryAdvanceUnit` collection despite bounded shaping, and rich-inline soft-hyphen width correction without synthetic suffix projection. The final owner reads prefix raw advances and materializes at most 32 edge units; horizontal/VerticalRl rich UI append the same measured `-` suffix as the plain path.
 - The structure finding remains closed under the current repository budget: `rich.rs` is 279 lines; `materialize.rs`, `advance_index.rs`, `rich_advance_index.rs`, and `metrics.rs` are 258/193/399/77; `rich_vertical.rs` is 232 and `boundary_correction.rs` is 358. UI `wrapping.rs`, `rich_inline.rs`, and `rich_inline_vertical.rs` are 417/315/273. Every owner remains below the 800-line production review warning. No production panic/unwrap/expect/dead-code allow, compatibility facade, second shaping backend, or scalar-width approximation was introduced.
 - After those forward fixes, the secondary static review finds no remaining actionable P0/P1/P2 in the slice. It does not accept runtime behavior yet: managed Cargo, run-scale/p50/p95 evidence, Text09 cache regressions, and fresh WGPU product evidence remain owned by the open Text03 failure.
+
+## 2026-08-01 Runtime Text atlas draw-duplication review follow-up
+
+- PERF-MVP-244 的双层六顶点物化已前向删除：每 glyph 只写一个 68 B `GlyphAtlasGpuInstance`，WGSL 通过 `vertex_index` 展开固定六角点，viewport uniform 完成 pixel-to-NDC；CPU source 不再包含 `GlyphAtlasGpuVertex`、`position_ndc` 或 vertex-buffer layout owner。
+- Renderer 只以 `VertexStepMode::Instance` 和 `draw(0..6, instance_range)` 消费 plan。相同 page/contract 仅在相邻时合并，非相邻 Alpha/Color/Subpixel batch 保留 painter order；没有用全局 regroup 换 draw count。
+- WGPU instance buffer 在首次或 `68N` bytes 超出当前容量时按至少 4 KiB 的二次幂增长；稳态/缩小帧复用同一 buffer，显式 idle 释放 mixed-storage 历史 pass。capacity/reallocation 进入 prepare report，因此后续产品验证无需通过推测判断资源 churn。
+- 本轮补齐 1/100/1k/10k 的 exact scale gate 和 31-sample ignored p50/p95 exporter，并在二次审查中修正 nearest-rank p95 下标与错误的 helper 命名。production owner 均低于 800 行，旧 vertex symbol、panic/unwrap/expect/dead-code allow 扫描为 0；静态范围未发现 remaining actionable P0/P1/P2。
+- 该结论只关闭非验收结构/算法缺口。Text04 failure 仍为 `open / implementation_complete / resolving_failure / managed_validation_pending`，需要 coordinator 执行 current-source focused/upward/metrics 和 exact WGPU framebuffer；未产生新截图，也未将旧 PNG 当作接受证据。
+
+## 2026-08-01 Runtime Text source/slot/page residency review follow-up
+
+- PERF-MVP-242 的 source byte/entry pressure 不再与 persistent atlas residency 脱节：exact source entry 以 O(1) reverse index 绑定 neutral raster key；source eviction 由 atlas owner 收敛到整页 generation/allocator/slot/shadow 失效，再把同页 source entries 定点清理。atlas LRU eviction 与 failed upload 也沿显式 key handoff 反向闭环。
+- 300 empty-frame 回归锁定预算内 source/slot 保留且无 submitted/unknown/upload copy；2048 resident + 1/100/1k miss 回归锁定每 miss 至多三个 approximate probes 且无 LRU touch/eviction，31-sample p50/p95 exporter 保持 ignored，避免用未标定机器时间做 CI gate。产品 report 已暴露 CPU resident/max bytes、LRU touches、linked eviction/invalidation 与 logical GPU page bytes。
+- 二次审查发现并前向修复十一项缺口：instance hard-cut 后两个 stale `.vertices` 消费者、hidden invalidation keys 跨帧残留、同页 failed copies 重复推进 generation、source report 旧 exact 期望、LRU guard 搜索不存在的方法名、规模测试回流大父文件，以及产品 report 把本帧遇到的 pending 请求误当作全部 in-flight worker work、遗漏 completion error、rejected completion bitmap 与 missing native-atlas image。产品 report 现直接投影 source cache 的持久 `pending_worker_count`、汇聚 request/completion/rejection failure，并向 `RenderStats` 暴露 missing image count，使 screenshot capture 必须等待实际 outstanding raster work、worker failure 和 placeholder image 均为零；测试继续按 residency 语义拆分。
+- current-source production owners 均低于 800 行，测试 owners 均低于 1000 行；旧 GPU vertex symbol 与本切片 production panic/unwrap/expect/dead-code allow 扫描为 0。二次静态范围未发现 remaining actionable P0/P1/P2。
+- 该结论不替代运行时 acceptance：Text04 failure 保持 `open / implementation_complete / resolving_failure / managed_validation_pending`，等待 coordinator receipt 后执行 focused/upward/ignored metrics 和 exact WGPU framebuffer；当前没有 queued/running ticket，也没有生成或登记新 PNG。
+
+## 2026-08-01 Runtime Text Auto-route identity/hysteresis review follow-up
+
+- PERF-MVP-241 不再由 stateless test helper 代表产品路由：screen-space UI 的 Auto batches 进入有界 `AutoTextRasterRouter`，只有 command/layout generation 变化才重新调用唯一 `GlyphRasterPolicy`；相同 generation 的 route state 直接 O(1) 命中。
+- 稳定 identity 使用 tree/node/source-range，不使用数组下标或文本内容 hash。24px threshold 两侧的 22/26px hysteresis 保留 warm Native/SDF route，font asset 显式 Native/Sdf/Msdf/Mtsdf 与 outline/shadow/glow 强制分支保持原语义。
+- 状态表受 2048 entries 与 300 idle frames 约束，recency token 避免 per-frame 全表扫描；产品 report 暴露 capacity/entry/generation hit/evaluation/warm retain/switch/eviction。exact 1/100/1k 回归与 ignored 31-sample p50/p95 exporter 已写入，不引入未标定时间阈值。
+- 二次审查发现并修复 tree-domain 碰撞、Arc Copy/move 编译风险、child visibility、effects projection duplication 与 eager allocation；所有 production owner 低于 800 行，禁用模式扫描为 0，未发现 remaining actionable P0/P1/P2。
+- 该结论仅关闭非验收实现缺口。Text04 failure 保持 `open / implementation_complete / resolving_failure / managed_validation_pending`；managed focused/upward/metrics、stable-route raster-miss、真实 WGPU/RenderDoc 和新 PNG 仍待 coordinator receipt，当前不等待或轮询。
+
+## 2026-08-01 Runtime Text SDF generation/frame review follow-up
+
+- PERF-MVP-249/250 的 source parse/hash 与 glyph generation 已收敛到 generation-owned parsed context 和 runtime/offline shared batch generator；runtime miss 由 batch/glyph/source bytes/completion depth/bytes 五类预算约束，主线程只 commit completed batches。
+- SDF frame 现在以同一个 final `SdfAtlasBake` 作为 generation failure、atlas upload 和 render 输入；bitmap/page/failure/glyph payload 使用 `Arc<[T]>`，CPU atlas page 跨帧驻留并增量维护 nonzero/dirty rect，GPU upload 借用 page-local bytes。`prepared_atlas`、`sdf_cpu_frame` 与 renderer `compiled_frame` 分别稳定复用 slot/bake、CPU run/decoration、material/draw/text-range/vertex artifact；稳定帧 page alloc/zero/copy/scan/upload、CPU plan rebuild、GPU buffer create/write 均有 exact zero/reuse counter。
+- 第一次审查前向修复了 completion backpressure/worker panic 永久 pending、每 glyph 深拷贝 font/family/language、以及 generation source/offline/baked resident 无硬上限。实现完成后的二次审查继续前向修复六项：stable bake metadata 分配、failure map 重建、无 fallback 仍移动 Vec、renderer 重复持有 generation/metric owner、scheduler report 采样时机，以及接近 800 行的 SDF atlas root；对应 owner 已拆到 `prepared_atlas.rs`、`sdf_cpu_frame.rs`、`compiled_frame.rs` 与 `sdf_atlas/generation_failures.rs`。
+- Cache admission 是 exact 且 fail-closed：pending/deferred scheduler work 禁止 prepared-atlas 命中；font generation、whole-batch fallback mutation、atlas resize、upload delta 或 CPU/native-decoration input 变化都会重建对应层。相同 shared failure slice 通过 slot index + key 双重校验，并保持 run failure storage 地址稳定。
+- Current-source static gates find no production panic/unwrap/expect/dead-code allow or deleted flat-atlas owner, all touched production owners stay below 800 lines, every exact `SdfAtlasBakeReport` constructor contains the compiled-atlas fields, focused rustfmt check and full `git diff --check` pass. The second static review finds no remaining actionable P0/P1/P2 in the implementation slice.
+- Text05 failures remain `open / resolving_failure / non_validation_implementation_complete / secondary_review_complete / managed_validation_pending`; this review does not claim acceptance. Managed Cargo, 1/100/10k p50/p95/RSS, device loss, real WGPU/RenderDoc, and a fresh real-rendered PNG under `docs/tests/runtime/text` remain coordinator validation follow-ups; no policy-text screenshot is accepted.
+
+## 2026-08-01 Runtime Text shaping ownership/performance review follow-up
+
+- PERF-MVP-233的per-glyph script String与run/cache/line source重复所有权已前向移除：script为inline Copy tag，run clone共享`Arc<str>`，line只持range，cache exact compare复用run source。
+- OpenType canonical identity现在由短生命周期request owner至多构建一次；cache bucket hash不再承担相等性，owned key精确保存canonical features与kerning。该修复关闭了二次审查发现的O(F^2) raw fingerprint与具体digest collision误命中风险。
+- PERF-MVP-234/235已从“优化projection”继续前向收敛为“删除projection”：shared itemization驱动horizontal/vertical一次RustyBuzz shape并直接生成逻辑序glyph；cosmic只作整请求回退。RTL/BTT恢复逻辑cluster顺序且保持cluster内glyph顺序，service/native fallback不再重复预解析Bidi，parallel shape复用完整source Arc。
+- fallback primary coverage不再复制全文codepoints；per-grapheme codepoint storage跨cluster复用，family name只在新span admission时分配。horizontal/vertical都携effective instance，避免竖排变量实例退回weight-only。
+- 审查期间发现的Rust 2024 let-chain已改为2021兼容控制流，`layout/measure.rs` import ordering也按workspace edition收敛；相关production owners均低于800行，focused rustfmt与diff check通过。
+- PERF-MVP-235的Text02非验收实现已完成，旧RustyBuzz精度能力被移入canonical direct path而非关闭。首次独立审查的6个P1均已前向修复；实现完成后的定向二次审查为P0=0、P1=4、P2=4，8项也已前向修复：cosmic baseline/raw LF offset、Text02/Text03/UI公共hard-line owner、`Tr`仅按`vert`/`vrt2`差分结果决策、backend face映射缺失fail closed，以及direct cluster/BIDI line-order线性化。当前不把静态审查扩大为managed Cargo或产品像素验收。
+- 2026-08-01 后续二次审查纠正：先前的 `Tr` 判定仍从 GSUB lookup 输出集合推测 provenance，rich extract 还会覆盖 layout 的 compiled artifact。现已改为同 buffer 的 `vert`/`vrt2` enabled/disabled glyph-sequence 差分，并将 artifact 直接随 layout 的 type-erased `Arc` 传递，移除 idle registry 强引用；对应 extract cache-eviction、link 与 projection-order 回归已加入。post-fix review reports P0=0/P1=0；该结论仍不替代 managed Cargo、性能证据或产品像素验收。
+- 更早的metadata/cache独立审查无P0/P1；其两个P2已继续前向处理：完整run serde roundtrip覆盖非空glyph/range accessor，cache budget由logical `len`提升为capacity、Arc header、cloned key/LRU/lookup bucket与hash reserve的保守resident estimate。真实Windows WGPU产品帧harness已切到`docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260801.png`且不会覆盖旧证据，但尚未实际运行；managed Cargo、规模backend-call/face-byte指标、跨Text01/Text09 owner指标和新WGPU产品截图仍待后续验证。

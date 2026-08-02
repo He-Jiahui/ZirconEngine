@@ -50,12 +50,10 @@ fn production_clip_evaluation_reuses_compiled_targets_without_source_strings() {
         )
         .unwrap();
 
-    assert!(
-        first.bones[1]
-            .local_transform
-            .translation
-            .abs_diff_eq(Vec3::new(5.0, 0.0, 0.0), 0.0001)
-    );
+    assert!(first.bones[1]
+        .local_transform
+        .translation
+        .abs_diff_eq(Vec3::new(5.0, 0.0, 0.0), 0.0001));
     assert_eq!(
         second.bones[1].local_transform,
         first.bones[1].local_transform
@@ -127,18 +125,16 @@ fn evaluator_caches_are_bounded_and_retain_the_most_recent_entries() {
         )
         .expect("the recently touched clip remains cached");
     clips[1].1.tracks[0].target_id = Some("Missing/Evicted".to_string());
-    assert!(
-        evaluator
-            .sample_clip(
-                skeleton_revision,
-                AnimationAssetRevision::new(clips[1].0, 1),
-                &skeleton,
-                &clips[1].1,
-                0.0,
-                false,
-            )
-            .is_err()
-    );
+    assert!(evaluator
+        .sample_clip(
+            skeleton_revision,
+            AnimationAssetRevision::new(clips[1].0, 1),
+            &skeleton,
+            &clips[1].1,
+            0.0,
+            false,
+        )
+        .is_err());
 
     let stats = evaluator.stats();
     assert_eq!(stats.cached_skeleton_count, 1);
@@ -447,24 +443,18 @@ fn compiled_evaluator_matches_the_plugin_canonical_sampling_golden() {
     assert_eq!(actual.bones.len(), expected.bones.len());
     for (actual, expected) in actual.bones.iter().zip(&expected.bones) {
         assert_eq!(actual.name, expected.name);
-        assert!(
-            actual
-                .local_transform
-                .translation
-                .abs_diff_eq(expected.local_transform.translation, 0.0001)
-        );
-        assert!(
-            actual
-                .local_transform
-                .rotation
-                .abs_diff_eq(expected.local_transform.rotation, 0.0001)
-        );
-        assert!(
-            actual
-                .local_transform
-                .scale
-                .abs_diff_eq(expected.local_transform.scale, 0.0001)
-        );
+        assert!(actual
+            .local_transform
+            .translation
+            .abs_diff_eq(expected.local_transform.translation, 0.0001));
+        assert!(actual
+            .local_transform
+            .rotation
+            .abs_diff_eq(expected.local_transform.rotation, 0.0001));
+        assert!(actual
+            .local_transform
+            .scale
+            .abs_diff_eq(expected.local_transform.scale, 0.0001));
     }
 }
 
@@ -477,9 +467,7 @@ fn production_scene_sampling_routes_through_the_compiled_evaluator() {
     assert!(source.contains("AnimationClipEvaluator"));
     assert!(source.contains("sample_clip("));
     assert!(!source.contains(".sample_clip_pose("));
-    assert!(
-        runtime_system.contains("module.resource(crate::AnimationEvaluationPipeline::default)")
-    );
+    assert!(runtime_system.contains("module.resource(crate::AnimationEvaluationPipeline::default)"));
     assert!(!tick.contains("insert_resource(AnimationClipEvaluator"));
 }
 

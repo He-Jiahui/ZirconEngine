@@ -221,7 +221,7 @@ fn create_depth_texture_sample_readback_buffer(
     device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(label),
         size: SURFACE_CACHE_DEPTH_SAMPLE_READBACK_BYTES_PER_ROW as u64,
-        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     })
 }

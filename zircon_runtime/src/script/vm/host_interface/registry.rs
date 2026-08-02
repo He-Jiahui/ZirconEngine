@@ -62,6 +62,20 @@ impl VmHostInterfaceRegistry {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
+    /// Interns a dense callback target without publishing it on an extension channel.
+    ///
+    /// Scene-owned callbacks use this path because their lifecycle is controlled by the
+    /// scene projection rather than by a script-visible interface registration.
+    pub fn intern_callback(
+        &self,
+        caller: &VmInterfaceCaller,
+        module: &str,
+        function: &str,
+    ) -> Result<VmCallbackHandle, VmHostInterfaceError> {
+        let mut state = self.lock_state();
+        compile_callback(&mut state, caller, module, function)
+    }
+
     /// Registers a VM callback for conservative scheduled execution.
     pub fn register_system(
         &self,

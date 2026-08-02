@@ -1,7 +1,6 @@
 use crate::asset::assets::{
-    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset,
-    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport,
+    TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSupport, LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, RenderImageUsage,
@@ -766,7 +765,11 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 #[cfg(test)]

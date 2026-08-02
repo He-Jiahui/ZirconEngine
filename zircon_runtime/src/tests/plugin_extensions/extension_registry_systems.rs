@@ -23,7 +23,7 @@ impl Resource for WeatherObserved {}
 struct WeatherChanged;
 
 #[test]
-fn plugin_resource_event_and_system_registrations_apply_to_world() {
+fn plugin_resource_available_to_systems() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry
         .intern_plugin_module("weather.runtime")

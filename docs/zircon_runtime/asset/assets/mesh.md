@@ -28,7 +28,7 @@ related_code:
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_model.rs
@@ -74,7 +74,7 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs

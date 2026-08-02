@@ -63,6 +63,8 @@ pub enum ProtocolError {
     InvalidLootRollChoice(u8),
     #[error("invalid equipment slot code {0}")]
     InvalidEquipmentSlot(u8),
+    #[error("invalid overhead emote code {0}")]
+    InvalidEmoteId(u8),
     #[error("invalid talent row level {0}; expected one of 5, 8, 11, 14, 17, or 20")]
     InvalidTalentRowLevel(u8),
     #[error("invalid talent option code {0}")]
@@ -75,6 +77,14 @@ pub enum ProtocolError {
     InvalidSkinCatalog(u8),
     #[error("invalid class skin index {0}; expected 0 through 7")]
     InvalidClassSkinIndex(u8),
+    #[error("invalid weapon-skin payload mode {0}; expected detach 0 or apply 1")]
+    InvalidWeaponSkinMode(u8),
+    #[error("invalid weapon-skin type code {0}; expected 1 through 8")]
+    InvalidWeaponSkinType(u8),
+    #[error("invalid corpse-harvest component count {0}; expected 0 through 3")]
+    InvalidCorpseHarvestComponentCount(u8),
+    #[error("invalid corpse-harvest component code {0}; expected 0 through 8")]
+    InvalidCorpseHarvestComponentCode(u8),
     #[error("schema fingerprint mismatch")]
     SchemaMismatch { actual: [u8; 32] },
     #[error("payload length {actual} does not match declared length {declared}")]

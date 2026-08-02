@@ -4,7 +4,6 @@ status: open
 created_at: 2026-07-22
 summary_slug: play-process-output-byte-budget
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
-origin_workflow_node: P3
 fixing_plan: docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/14

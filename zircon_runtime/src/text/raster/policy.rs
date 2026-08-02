@@ -2,6 +2,7 @@ use crate::text::atlas::GlyphAtlasFormat;
 use crate::text::sdf::SdfMode;
 
 const DEFAULT_SDF_MIN_SIZE_PX: f32 = 24.0;
+const DEFAULT_SDF_HYSTERESIS_PX: f32 = 2.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum GlyphRasterPath {
@@ -54,6 +55,12 @@ pub(crate) struct GlyphRasterPolicy {
     pub(crate) scalable_prefers_sdf: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct GlyphRasterAutoPolicyDecision {
+    pub(crate) path: GlyphRasterPath,
+    pub(crate) retained_warm_path: bool,
+}
+
 impl Default for GlyphRasterPolicy {
     fn default() -> Self {
         Self {
@@ -69,6 +76,13 @@ pub(crate) fn raster_path_for(size_px: f32, scalable: bool) -> GlyphRasterPath {
 
 pub(crate) fn raster_path_for_request(request: GlyphRasterPolicyRequest) -> GlyphRasterPath {
     GlyphRasterPolicy::default().path_for_request(request)
+}
+
+pub(crate) fn auto_raster_path_for_request(
+    request: GlyphRasterPolicyRequest,
+    warm_path: Option<GlyphRasterPath>,
+) -> GlyphRasterAutoPolicyDecision {
+    GlyphRasterPolicy::default().auto_path_for_request(request, warm_path)
 }
 
 pub(crate) fn distance_field_mode_for_request(
@@ -110,6 +124,42 @@ impl GlyphRasterPolicy {
             GlyphRasterPath::Sdf
         } else {
             GlyphRasterPath::Bitmap
+        }
+    }
+
+    pub(crate) fn auto_path_for_request(
+        self,
+        request: GlyphRasterPolicyRequest,
+        warm_path: Option<GlyphRasterPath>,
+    ) -> GlyphRasterAutoPolicyDecision {
+        let cold_path = self.path_for_request(request);
+        let plain_scalable_alpha = matches!(request.requested_format, GlyphAtlasFormat::AlphaMask)
+            && !request.scalable
+            && !request.effects.requires_distance_field();
+        if !plain_scalable_alpha {
+            return GlyphRasterAutoPolicyDecision {
+                path: cold_path,
+                retained_warm_path: false,
+            };
+        }
+
+        let lower_bound = (self.sdf_min_size_px - DEFAULT_SDF_HYSTERESIS_PX).max(0.0);
+        let upper_bound = self.sdf_min_size_px + DEFAULT_SDF_HYSTERESIS_PX;
+        let retained_path = match warm_path {
+            Some(GlyphRasterPath::Bitmap) if request.size_px < upper_bound => {
+                Some(GlyphRasterPath::Bitmap)
+            }
+            Some(GlyphRasterPath::Sdf) if request.size_px >= lower_bound => {
+                Some(GlyphRasterPath::Sdf)
+            }
+            _ => None,
+        };
+
+        GlyphRasterAutoPolicyDecision {
+            path: retained_path.unwrap_or(cold_path),
+            retained_warm_path: retained_path.is_some()
+                && request.size_px >= lower_bound
+                && request.size_px < upper_bound,
         }
     }
 }

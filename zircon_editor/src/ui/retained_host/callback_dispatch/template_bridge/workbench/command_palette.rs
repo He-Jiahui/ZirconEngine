@@ -1,5 +1,7 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
+use crate::ui::retained_host::popup_anchor_metrics::command_palette_anchor_frame;
+
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 
@@ -15,6 +17,13 @@ const FILTERED_COMMANDS: &str = "filtered_commands";
 const SELECTED_COMMAND_ID: &str = "selected_command_id";
 const FOCUSED_INDEX: &str = "focused_index";
 const COMMAND_SOURCE: &str = "command_source";
+const PLACEHOLDER: &str = "placeholder";
+const EMPTY_TEXT: &str = "empty_text";
+const ARIA_LABELLEDBY: &str = "aria_labelledby";
+const ARIA_DESCRIBEDBY: &str = "aria_describedby";
+const POPUP_ANCHOR_X: &str = "popup_anchor_x";
+const POPUP_ANCHOR_Y: &str = "popup_anchor_y";
+const POPUP_ANCHOR_WIDTH: &str = "popup_anchor_width";
 const CATALOG_GENERATION: &str = "catalog_generation";
 const MATCH_COUNT: &str = "match_count";
 const WINDOW_COUNT: &str = "window_count";
@@ -29,6 +38,7 @@ const WINDOW_REQUEST_OFFSET: &str = "window_request_offset";
 const WINDOW_REQUEST_FOCUS: &str = "window_request_focus";
 const WINDOW_REQUEST_GENERATION: &str = "window_request_generation";
 const DEFAULT_WINDOW_COUNT: usize = 12;
+const WORKBENCH_COMMAND_SOURCE: &str = "workbench";
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct WorkbenchCommandPaletteOpenState {
@@ -46,6 +56,25 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn open_command_palette(
         &mut self,
         state: WorkbenchCommandPaletteOpenState,
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
+        self.open_command_palette_with_chrome(
+            state,
+            WORKBENCH_COMMAND_SOURCE,
+            "Search commands",
+            "No commands found",
+            "Workbench command palette",
+            "Search and run editor commands",
+        )
+    }
+
+    pub(crate) fn open_command_palette_with_chrome(
+        &mut self,
+        state: WorkbenchCommandPaletteOpenState,
+        command_source: &str,
+        placeholder: &str,
+        empty_text: &str,
+        aria_label: &str,
+        aria_description: &str,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         if !self.has_control(WORKBENCH_COMMAND_PALETTE_CONTROL_ID) {
             return Ok(false);
@@ -75,8 +104,29 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
             COMMAND_SOURCE,
-            UiValue::String(String::new()),
+            UiValue::String(command_source.to_string()),
         )?;
+        self.mutate_control_property(
+            WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+            PLACEHOLDER,
+            UiValue::String(placeholder.to_string()),
+        )?;
+        self.mutate_control_property(
+            WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+            EMPTY_TEXT,
+            UiValue::String(empty_text.to_string()),
+        )?;
+        self.mutate_control_property(
+            WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+            ARIA_LABELLEDBY,
+            UiValue::String(aria_label.to_string()),
+        )?;
+        self.mutate_control_property(
+            WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+            ARIA_DESCRIBEDBY,
+            UiValue::String(aria_description.to_string()),
+        )?;
+        self.refresh_command_palette_popup_anchor()?;
         self.apply_command_palette_query_state(state)?;
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
@@ -213,6 +263,32 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn command_palette_query(&self) -> String {
         self.control_string(WORKBENCH_COMMAND_PALETTE_CONTROL_ID, QUERY)
             .unwrap_or_default()
+    }
+
+    pub(crate) fn command_palette_source(&self) -> String {
+        self.control_string(WORKBENCH_COMMAND_PALETTE_CONTROL_ID, COMMAND_SOURCE)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn refresh_command_palette_popup_anchor(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.has_control(WORKBENCH_COMMAND_PALETTE_CONTROL_ID) {
+            return Ok(());
+        }
+        let anchor = command_palette_anchor_frame(self.mount_frame.width, self.mount_frame.height);
+        for (property, value) in [
+            (POPUP_ANCHOR_X, anchor.x),
+            (POPUP_ANCHOR_Y, anchor.y),
+            (POPUP_ANCHOR_WIDTH, anchor.width),
+        ] {
+            self.mutate_control_property(
+                WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+                property,
+                UiValue::Float(value as f64),
+            )?;
+        }
+        Ok(())
     }
 
     pub(crate) fn command_palette_catalog_generation(&self) -> Option<u64> {

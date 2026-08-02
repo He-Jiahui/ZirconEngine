@@ -14,13 +14,12 @@ pub const BRIDGE_HOST_CAPABILITY: &str = "bridge.call";
 const BRIDGE_HOST_MODULE_VERSION: &str = "0.1.0";
 
 pub type ScriptBridgeMethodFn =
-    Arc<dyn Fn(ScriptBridgeCall) -> ScriptHostResult + Send + Sync + 'static>;
+    Arc<dyn for<'call> Fn(ScriptBridgeCall<'call>) -> ScriptHostResult + Send + Sync + 'static>;
 
-#[derive(Clone)]
-pub struct ScriptBridgeCall {
+pub struct ScriptBridgeCall<'call> {
     pub interface_slot: InterfaceSlot,
     pub method_slot: u32,
-    pub arguments: Vec<ScriptHostValue>,
+    pub arguments: &'call [ScriptHostValue],
 }
 
 #[derive(Clone)]
@@ -44,7 +43,7 @@ impl ScriptBridgeMethodDescriptor {
         method: F,
     ) -> Self
     where
-        F: Fn(ScriptBridgeCall) -> ScriptHostResult + Send + Sync + 'static,
+        F: for<'call> Fn(ScriptBridgeCall<'call>) -> ScriptHostResult + Send + Sync + 'static,
     {
         Self {
             function_name: function_name.into(),
@@ -158,7 +157,7 @@ where
         (method.method)(ScriptBridgeCall {
             interface_slot: slot,
             method_slot: method.method_slot,
-            arguments: context.arguments.clone(),
+            arguments: context.arguments,
         })
         .map_err(|error| {
             ScriptHostError::new(format!(

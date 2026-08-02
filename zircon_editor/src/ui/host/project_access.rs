@@ -60,24 +60,22 @@ impl EditorUiHost {
     }
 
     pub(super) fn close_project(&self) -> Result<Option<PathBuf>, EditorError> {
-        let closed_root = self.asset_manager()?.close_project()?;
-        let Some(closed_root) = closed_root else {
-            return Ok(None);
-        };
+        // Resolve both authorities before committing the runtime close. Once the runtime project
+        // is retired, projection cleanup is a forward-only synchronization step and cannot be
+        // made safe by resolving a missing manager after the commit.
+        let asset_manager = self.asset_manager()?;
+        let editor_asset_manager = self.editor_asset_manager()?;
+        let closed_root = asset_manager.close_project()?;
 
-        let _ = post_committed_project_close_sync(
-            "stop_ui_asset_workspace_watcher",
-            self.restart_ui_asset_workspace_watcher(),
-        );
-        let _ = post_committed_project_close_sync(
-            "deactivate_editor_asset_projection",
-            self.editor_asset_manager().and_then(|manager| {
-                manager
+        Ok(finish_committed_project_close(
+            closed_root,
+            || {
+                editor_asset_manager
                     .deactivate_runtime_project()
                     .map_err(EditorError::from)
-            }),
-        );
-        Ok(Some(closed_root))
+            },
+            || self.restart_ui_asset_workspace_watcher(),
+        ))
     }
 
     pub(super) fn save_project(
@@ -292,6 +290,27 @@ fn project_close_post_commit_sync_diagnostic(
     format!("editor_project_close result=post_commit_sync_failed phase={phase} error={error}")
 }
 
+fn finish_committed_project_close<Deactivate, DeactivateError, Watch, WatchError>(
+    closed_root: Option<PathBuf>,
+    deactivate_projection: Deactivate,
+    transition_watcher: Watch,
+) -> Option<PathBuf>
+where
+    Deactivate: FnOnce() -> Result<bool, DeactivateError>,
+    DeactivateError: std::fmt::Display,
+    Watch: FnOnce() -> Result<(), WatchError>,
+    WatchError: std::fmt::Display,
+{
+    let closed_root = closed_root?;
+    let _ = post_committed_project_close_sync(
+        "deactivate_editor_asset_projection",
+        deactivate_projection(),
+    );
+    let _ =
+        post_committed_project_close_sync("stop_ui_asset_workspace_watcher", transition_watcher());
+    Some(closed_root)
+}
+
 pub(crate) fn resolve_project_asset_write_path(
     project: &ProjectManager,
     asset_id: &str,
@@ -320,10 +339,11 @@ pub(crate) fn normalize_ui_asset_asset_id(asset_id: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
     use std::path::Path;
 
     use super::{
-        post_persist_project_save_sync, project_opened_diagnostic,
+        finish_committed_project_close, post_persist_project_save_sync, project_opened_diagnostic,
         project_save_post_persist_sync_diagnostic,
     };
 
@@ -374,5 +394,65 @@ mod tests {
         assert!(diagnostic.contains("result=post_persist_sync_failed"));
         assert!(diagnostic.contains("phase=refresh_editor_assets"));
         assert!(diagnostic.contains("error=catalog stale"));
+    }
+
+    #[test]
+    fn committed_project_close_deactivates_projection_before_stopping_the_watcher() {
+        let calls = RefCell::new(Vec::new());
+
+        let closed = finish_committed_project_close(
+            Some(Path::new("C:/projects/forest").to_path_buf()),
+            || {
+                calls.borrow_mut().push("deactivate");
+                Ok::<_, &str>(true)
+            },
+            || {
+                calls.borrow_mut().push("watcher");
+                Ok::<_, &str>(())
+            },
+        );
+
+        assert_eq!(closed.as_deref(), Some(Path::new("C:/projects/forest")));
+        assert_eq!(calls.borrow().as_slice(), ["deactivate", "watcher"]);
+    }
+
+    #[test]
+    fn project_close_no_op_does_not_mutate_editor_projection_or_watcher() {
+        let calls = RefCell::new(Vec::new());
+
+        let closed = finish_committed_project_close(
+            None,
+            || {
+                calls.borrow_mut().push("deactivate");
+                Ok::<_, &str>(true)
+            },
+            || {
+                calls.borrow_mut().push("watcher");
+                Ok::<_, &str>(())
+            },
+        );
+
+        assert!(closed.is_none());
+        assert!(calls.borrow().is_empty());
+    }
+
+    #[test]
+    fn committed_project_close_continues_watcher_transition_after_deactivation_failure() {
+        let calls = RefCell::new(Vec::new());
+
+        let closed = finish_committed_project_close(
+            Some(Path::new("C:/projects/forest").to_path_buf()),
+            || {
+                calls.borrow_mut().push("deactivate");
+                Err::<bool, _>("projection unavailable")
+            },
+            || {
+                calls.borrow_mut().push("watcher");
+                Err::<(), _>("watcher unavailable")
+            },
+        );
+
+        assert_eq!(closed.as_deref(), Some(Path::new("C:/projects/forest")));
+        assert_eq!(calls.borrow().as_slice(), ["deactivate", "watcher"]);
     }
 }

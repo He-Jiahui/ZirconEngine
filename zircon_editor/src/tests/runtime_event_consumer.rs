@@ -13,9 +13,10 @@ use crate::core::gateway::{
     EditorRuntimePluginEventPage, GatewayError,
 };
 use crate::core::runtime_event_consumer::{
-    EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerHost,
-    EditorRuntimeEventConsumerManifest, EditorRuntimeEventConsumerRegistration,
-    EditorRuntimeEventConsumerRegistry, EditorRuntimeEventConsumerState,
+    EditorRuntimeEventConsumerApplyError, EditorRuntimeEventConsumerError,
+    EditorRuntimeEventConsumerHost, EditorRuntimeEventConsumerManifest,
+    EditorRuntimeEventConsumerRegistration, EditorRuntimeEventConsumerRegistry,
+    EditorRuntimeEventConsumerState,
 };
 
 const CONSUMER_ID: &str = "tests.consumer";
@@ -168,7 +169,7 @@ impl EditorRuntimeGateway for FakeRuntimeGateway {
     fn poll_operation(
         &self,
         _handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
-    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })
@@ -262,6 +263,53 @@ fn consumer_host_rejects_cross_session_wrong_schema_and_stale_sequence() {
         Err(EditorRuntimeEventConsumerError::StaleSequence { .. })
     ));
     host.end_play_session(200).unwrap();
+}
+
+#[test]
+fn consumer_host_parses_raw_payload_at_the_typed_consumer_boundary() {
+    let (host, client, state) = test_host();
+    host.begin_play_session(250, &[CAPABILITY.to_string()])
+        .unwrap();
+
+    let raw_delivery: ZrRuntimePluginEventDeliveryV1 = serde_json::from_str(
+        r#"{
+            "playSessionId": 7,
+            "subscription": 11,
+            "eventId": "tests.events.tick",
+            "payloadSchema": "tests.events.tick.v1",
+            "sequence": 1,
+            "payload": { "value": 12 }
+        }"#,
+    )
+    .unwrap();
+    assert_eq!(raw_delivery.payload.get(), r#"{ "value": 12 }"#);
+    client.push(raw_delivery);
+    assert_eq!(host.pump().unwrap(), 1);
+    assert_eq!(
+        state.lock().unwrap().deliveries,
+        vec![(1, TestPayload { value: 12 })]
+    );
+
+    let wrong_shape: ZrRuntimePluginEventDeliveryV1 = serde_json::from_str(
+        r#"{
+            "playSessionId": 7,
+            "subscription": 11,
+            "eventId": "tests.events.tick",
+            "payloadSchema": "tests.events.tick.v1",
+            "sequence": 2,
+            "payload": { "value": "not a number" }
+        }"#,
+    )
+    .unwrap();
+    client.push(wrong_shape);
+    assert!(matches!(
+        host.pump(),
+        Err(EditorRuntimeEventConsumerError::Payload {
+            source: EditorRuntimeEventConsumerApplyError::Decode { .. },
+            ..
+        })
+    ));
+    host.end_play_session(250).unwrap();
 }
 
 #[test]

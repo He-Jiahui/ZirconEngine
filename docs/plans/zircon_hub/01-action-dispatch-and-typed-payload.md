@@ -20,7 +20,7 @@ plan_sources:
   - docs/plans/zircon_hub/index.md
   - .codex/plans/Zircon Hub 本地闭环 v1 功能实现设计.md
   - docs/zircon_hub/pages/actionable-pages.md
-status: planned
+status: in_progress
 ---
 
 # 01 action 分发与 payload 类型化收敛
@@ -315,7 +315,7 @@ impl BackgroundHubAction {
 
 （计划原文写 `BackgroundHubAction::from(HubActionId)`；因映射是部分函数（仅 4/29 个 id 是后台动作），`From` trait 无法返回 `Option`，落地为 `from_action_id` 命名。）
 
-`action_targets.rs`：`apply_action_project_target` 第三参由 `&str` 改 `HubActionId`（现签名在 22-27 行），错误消息渲染结果不变（`localized.rs` 现 269 行附近按 `"Unknown recent project target for "` 前缀翻译，不能破坏）：
+`action_targets.rs`：`apply_action_project_target` 第三参由 `&str` 改 `HubActionId`（现签名在 22-27 行）；未知目标由 `ShellMessageId::UnknownRecentProjectTarget` 携带 action/target 参数，recovery 为 `CheckActionTarget`，不得恢复英文前缀解析：
 
 ```rust
 // runtime_state/action_targets.rs
@@ -335,11 +335,15 @@ pub(in crate::tauri_app) fn apply_action_project_target(
     action: HubActionId,                        // 现为 action_id: &str
 ) -> Result<(), HubError> {
     // ...
-    return Err(HubError::message(format!(
-        "Unknown recent project target for {}: {}",
-        action.as_str(),
-        targets[0]
-    )));
+    return Err(HubError::status(
+        HubMessage::with_params(
+            HubMessageId::Shell(ShellMessageId::UnknownRecentProjectTarget),
+            [action.as_str().to_string(), targets[0].clone()],
+        ),
+        Some(HubMessage::new(HubMessageId::Shell(
+            ShellMessageId::CheckActionTarget,
+        ))),
+    ));
     // ...
 }
 ```
@@ -366,10 +370,10 @@ pub(in crate::tauri_app) fn apply_action_project_target(
 
 #### 实施步骤
 
-1. 新建 `action_id.rs` 全文（见目标代码形状），在 `tauri_app/mod.rs:1-4` 模块声明区加 `mod action_id;`。此时尚无调用方，仅验证：`cargo check -p zircon_hub --locked`，`cargo test -p zircon_hub --lib tauri_app::action_id --locked`。
-2. 改 `action_request.rs`：把 `parse()`（236-344 附近）重写为 `action()` + `parse_as()`，逐 arm 平移（右侧 payload 帮助函数调用原样保留）；删除 `_ =>` 分支；`use super::action_id::HubActionId;`。同步刷新 `project_workflow_contract.rs`（118-129 附近 parse 分支 snippet）与 `ui_foundation_contract.rs`（611-617 附近）。验证：`cargo test -p zircon_hub --lib --locked`、`cargo test -p zircon_hub --test project_workflow_contract --test ui_foundation_contract --locked`。
-3. 改 `action_tasks.rs`（`from_request`/`from_action_id`）与 `commands.rs::spawn_background_action`（73-88）；`should_run_action_in_background` 本体不动（仍 `from_request(...).is_some()`）。同步刷新三处 `"\"build-project\" => Some(Self::BuildProject)"` 断言（见契约联动）。验证：`cargo test -p zircon_hub --test project_workflow_contract --test project_quick_actions_contract --test ui_foundation_contract --locked`。
-4. 改 `action_targets.rs` 签名 + `runtime_state.rs:201-232` 四个 arm + `view_model.rs:487-531` quick_actions id + `project_delivery_actions.rs:328/342`；同步刷新 `ui_project_scope_contract.rs` 与上述各测试中的 `"\"build-project\","` 类 snippet。验证：`cargo test -p zircon_hub --locked`、`cargo fmt --all --check`。
+1. 新建 `action_id.rs` 全文（见目标代码形状），在 `tauri_app/mod.rs:1-4` 模块声明区加 `mod action_id;`。此时尚无调用方，仅验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipTest`，`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -LibTests -TestFilter tauri_app::action_id`。
+2. 改 `action_request.rs`：把 `parse()`（236-344 附近）重写为 `action()` + `parse_as()`，逐 arm 平移（右侧 payload 帮助函数调用原样保留）；删除 `_ =>` 分支；`use super::action_id::HubActionId;`。同步刷新 `project_workflow_contract.rs`（118-129 附近 parse 分支 snippet）与 `ui_foundation_contract.rs`（611-617 附近）。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -LibTests`，并分别以 `-TestTarget project_workflow_contract`、`-TestTarget ui_foundation_contract` 运行两个受管集成目标。
+3. 改 `action_tasks.rs`（`from_request`/`from_action_id`）与 `commands.rs::spawn_background_action`（73-88）；`should_run_action_in_background` 本体不动（仍 `from_request(...).is_some()`）。同步刷新三处 `"\"build-project\" => Some(Self::BuildProject)"` 断言（见契约联动）。验证：分别运行 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -TestTarget <target>`，其中 `<target>` 为 `project_workflow_contract`、`project_quick_actions_contract`、`ui_foundation_contract`。
+4. 改 `action_targets.rs` 签名 + `runtime_state.rs:201-232` 四个 arm + `view_model.rs:487-531` quick_actions id + `project_delivery_actions.rs:328/342`；同步刷新 `ui_project_scope_contract.rs` 与上述各测试中的 `"\"build-project\","` 类 snippet。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub`，并对触及的 Rust 文件运行 `rustfmt --edition 2021 --check`。
 5. 验收：`rg '"build-project"' zircon_hub/src` 的非测试命中仅剩 `action_id.rs` 的 `as_str` 单点定义；各文件 `#[cfg(test)]` 块内的原始字符串（如 `action_tasks.rs:239` 起的测试构造）有意保留，用于独立锁定 IPC 线缆协议。
 
 #### 契约联动
@@ -393,18 +397,18 @@ pub(in crate::tauri_app) fn apply_action_project_target(
 - `legacy_aliases_and_whitespace_resolve_to_canonical_actions`：`"page"`/`"project-subpage"`/`"open-project"` 别名与 trim 行为 + 未知 id 返回 `None`。
 
 测试阶段：
-- `cargo test -p zircon_hub --locked`（重点 `project_workflow`、`project_quick_actions`、`app_error_recovery`）。
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub`（重点复核 `project_workflow`、`project_quick_actions`、`app_error_recovery`）。
 - 验收证据：`rg '"build-project"' zircon_hub/src` 的非测试代码命中仅剩 `action_id.rs` 的 `as_str` 单点定义（`#[cfg(test)]` 块内有意保留原始字符串以独立锁定线缆协议，见实施步骤 5）。
 
 ### M2 payload DTO 与统一校验
 
-> 【落地状态终核（2026-06-12）】M2 已全部落地：八个信封结构、九个 `*_payload_from_value` 帮助函数、`settings_dto.rs::settings_payload_from_value` 与字符串简写均已删净；`ValidatePayload` + `parse_payload`/`parse_optional_payload` 已接线全部 arm；提案的六个负向单测（`create_project_rejects_empty_name_with_recoverable_message` 等，`action_request.rs:697-832`）与 `runtime_state.rs:1126` 的 `apply_action_records_payload_validation_failure_as_recoverable_status`（含中文断言）均已存在；`localized.rs` 词条已接通。下述切片/实施步骤转为「盘点补缺/验收」口径。与提案的实仓差异，以实仓为准：
+> 【落地状态终核（2026-06-12，2026-08-01 消息边界对齐）】M2 已全部落地：八个信封结构、九个 `*_payload_from_value` 帮助函数、`settings_dto.rs::settings_payload_from_value` 与字符串简写均已删净；`ValidatePayload` + `parse_payload`/`parse_optional_payload` 已接线全部 arm；提案的六个负向单测与 `apply_action_records_payload_validation_failure_as_recoverable_status`（含中文断言）均已存在。payload/target 错误当前统一由 typed `HubMessage` 渲染。下述切片/实施步骤转为「盘点补缺/验收」口径。与提案的实仓差异，以实仓为准：
 > - 统一入口实形：`parse_payload`/`parse_optional_payload` 为自由函数并共享 `deserialize_payload` 帮助函数；`ValidatePayload::validate` 带默认实现 `Ok(())`，宽松 DTO 写成空 `impl ValidatePayload for X {}`。
 > - 提案「宽松校验（仅形状）」未按提案落地：实仓对 `ProjectTargetActionPayload`/`OpenResourcePayload`/`OpenOutputFolderPayload`/`BrowseSettingsFolderPayload` 也做了绝对路径校验，且 `BrowseSettingsFolderPayload.field` 在 `action_request.rs::validate_settings_folder_field` 即有白名单（`settings_actions.rs` 的 `settings_folder_field_from_target` 仍保留既有失败路径，现位于 210 行）。
 > - `NewProjectDraftActionPayload` 实仓复用与 create-project 相同的完整校验（`validate_project_creation_payload`：非空 name、绝对路径、模板目录集合），非提案的 `Ok(())` 宽松形。
 > - search-projects 实仓未保留 `target_id` 回退：payload 必填（直接 `parse_payload`），提案代码块中的 `None => target_id` 回退分支未落地；对应单测现名 `parses_search_projects_typed_payload`。
 > - payload 失败落状态未复用 `record_background_action_error`：实仓在 `runtime_state.rs` 新增专用 `record_action_payload_failure(action_id, detail)`（label `"Action failed"`、recovery `"Review the action payload and retry from Hub"`、operation `Hub`、target 为 action id 字符串）。
-> - `localized.rs` 实落绝对路径类 strip_prefix 词条 10 条（Project location / Project path / Import path / Import folder / Initial directory / Resource path / Output path / Output directory 等，现 142-176 行）+ 常量词条 `"Project name must not be empty" => "项目名称不能为空"`（现 462 行），多于提案的 6 条。
+> - 早期 `localized.rs::strip_prefix` 词条已由 07 的 typed message 硬切换取代；当前 owner 为 `state/hub_message/{shell,project,settings}.rs`，契约测试应断言 message id、参数和最终双语渲染。
 > - `view_model.rs` 的 re-export 实为 `pub(crate) use settings_dto::{validate_settings_for_save, HubSettingsActionPayload, HubSettingsPayload};`（现 32-33 行），比提案多保留 `validate_settings_for_save`。
 
 切片：
@@ -414,101 +418,68 @@ pub(in crate::tauri_app) fn apply_action_project_target(
 
 #### 目标代码形状
 
-统一入口落在 `action_request.rs`（payload DTO 所在文件；`action_id.rs` 只放 id 表）。设计要点：(a) 未知 id 错误（`action()`）与 payload 错误（`parse_as()`）分离，前者维持 IPC `Err` 现状口径，后者落 TaskStatus；(b) 信封删除即「canonical 形状唯一」——project/draft/search/folder/resource/output 信封与字符串简写删除、扁平为 canonical，settings 族相反：`{ "settings": {...} }` 包裹是前端 canonical 形状（`hub.ts:674-686`），删除的是 `settings_payload_from_value`（`settings_dto.rs:208-221`）接受顶层扁平字段的兼容分支。
+统一入口已落在 `action_request.rs`（payload DTO 所在文件；`action_id.rs` 只放 id 表）。未知 id 错误与 payload 错误继续分离；信封和字符串简写已硬切换为各 action 的 canonical JSON 形状。当前实现由 `parse_payload` / `parse_optional_payload` 统一进入 `deserialize_payload`，使用 typed `HubError::status` 与 `HubMessage` 构造可恢复错误，再调用 DTO 的 `ValidatePayload`。
 
 ```rust
-// action_request.rs —— 新增统一 payload 入口（替换 374-529 行的 8 个 *_payload_from_value 帮助函数）
+// action_request.rs —— 当前统一 payload 入口的结构摘要
 pub(crate) trait ValidatePayload {
-    fn validate(&self) -> Result<(), HubError>;
+    fn validate(&self) -> Result<(), HubError> {
+        Ok(())
+    }
 }
 
-fn parse_payload<T: DeserializeOwned + ValidatePayload>(
+fn parse_payload<T>(action: HubActionId, payload: Option<&Value>) -> Result<T, HubError>
+where
+    T: DeserializeOwned + ValidatePayload,
+{
+    let Some(payload) = payload else {
+        return Err(HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Shell(ShellMessageId::PayloadRequiredForAction),
+                [action.as_str()],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        ));
+    };
+    deserialize_payload(action, payload)
+}
+
+fn parse_optional_payload<T>(
     action: HubActionId,
     payload: Option<&Value>,
-) -> Result<T, HubError> {
+) -> Result<Option<T>, HubError>
+where
+    T: DeserializeOwned + ValidatePayload,
+{
     let Some(payload) = payload else {
-        return Err(HubError::message(format!(
-            "Payload is required for Hub action: {}",
-            action.as_str()
-        )));
+        return Ok(None);
     };
+    deserialize_payload(action, payload).map(Some)
+}
+
+fn deserialize_payload<T>(action: HubActionId, payload: &Value) -> Result<T, HubError>
+where
+    T: DeserializeOwned + ValidatePayload,
+{
     let parsed: T = serde_json::from_value(payload.clone()).map_err(|error| {
-        HubError::message(format!(
-            "Invalid payload for Hub action {}: {error}",
-            action.as_str()
-        ))
+        HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Shell(ShellMessageId::InvalidPayloadForAction),
+                [action.as_str().to_string(), error.to_string()],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        )
     })?;
     parsed.validate()?;
     Ok(parsed)
 }
-
-fn parse_optional_payload<T: DeserializeOwned + ValidatePayload>(
-    action: HubActionId,
-    payload: Option<&Value>,
-) -> Result<Option<T>, HubError> {
-    if payload.is_none() {
-        return Ok(None);
-    }
-    parse_payload(action, payload).map(Some)
-}
 ```
 
-各 DTO 的 `validate` 实现（语义校验已有归属的不重复——`HubSettingsPayload` 的非空/枚举校验留在 `apply_to`/`apply_to_draft`（`settings_dto.rs`，现 210-248 行起），browse-settings-folder 的 `field` 白名单提案原拟留在 `settings_actions.rs` 的 `settings_folder_field_from_target`（现 210 行）既有本地化失败路径；【终核（2026-06-12）】实仓在 `action_request.rs::validate_settings_folder_field` 另落了一份入口白名单，与 `settings_actions.rs` 并存，以实仓为准）：
-
-```rust
-// action_request.rs
-use crate::projects::project_template_catalog;
-
-impl ValidatePayload for CreateProjectActionPayload {
-    fn validate(&self) -> Result<(), HubError> {
-        if self.name.trim().is_empty() {
-            return Err(HubError::message("Project name must not be empty"));
-        }
-        if !self.location.is_absolute() {
-            return Err(HubError::message(format!(
-                "Project location must be an absolute path: {}",
-                self.location.to_string_lossy()
-            )));
-        }
-        // 目录集合校验（含 disabled 模板）：垃圾 id 在此拒绝；
-        // coming-soon（disabled）模板放行，保留 project_actions.rs:27-39 的
-        // "Project template is coming soon: ..." 友好失败路径。
-        if !project_template_catalog()
-            .iter()
-            .any(|template| template.id == self.template.as_str())
-        {
-            return Err(HubError::message(format!(
-                "Unknown project template: {}",
-                self.template
-            )));
-        }
-        Ok(())
-    }
-}
-
-impl ValidatePayload for ImportProjectActionPayload {
-    fn validate(&self) -> Result<(), HubError> {
-        for path in [self.path.as_deref(), self.folder.as_deref()].into_iter().flatten() {
-            if !path.is_absolute() {
-                return Err(HubError::message(format!(
-                    "Import path must be an absolute path: {}",
-                    path.to_string_lossy()
-                )));
-            }
-        }
-        Ok(())
-    }
-}
-
-// 宽松校验（仅形状）：草稿允许半成品输入；target/resource/output/search 的语义
-// 校验留在 runtime_state 既有失败路径。
-impl ValidatePayload for NewProjectDraftActionPayload { fn validate(&self) -> Result<(), HubError> { Ok(()) } }
-impl ValidatePayload for ProjectTargetActionPayload { fn validate(&self) -> Result<(), HubError> { Ok(()) } }
-impl ValidatePayload for BrowseSettingsFolderPayload { fn validate(&self) -> Result<(), HubError> { Ok(()) } }
-impl ValidatePayload for OpenResourcePayload { fn validate(&self) -> Result<(), HubError> { Ok(()) } }
-impl ValidatePayload for OpenOutputFolderPayload { fn validate(&self) -> Result<(), HubError> { Ok(()) } }
-impl ValidatePayload for SearchProjectsPayload { fn validate(&self) -> Result<(), HubError> { Ok(()) } }
-```
+DTO 校验边界以当前 `action_request.rs` 为准：`SearchProjectsPayload` 与 `HubSettingsActionPayload` 只校验 JSON 形状；`NewProjectDraftActionPayload` 与 `CreateProjectActionPayload` 复用完整项目创建校验；import、project-target、open-resource、open-output-folder 校验绝对路径；browse-settings-folder 同时校验字段白名单与初始目录。不得恢复旧的「target/resource/output 全部 `Ok(())`」示例。
 
 settings 族：`settings_dto.rs` 的私有 `HubSettingsActionPayload`（111-115 行）提升为 `pub(crate)` 并实现 `ValidatePayload`（`Ok(())`），整体删除 `settings_payload_from_value`（208-221 行，双形状入口）；`view_model.rs:29` 的 re-export 改为 `pub(crate) use settings_dto::{HubSettingsActionPayload, HubSettingsPayload};`。
 
@@ -564,7 +535,7 @@ pub(crate) fn project_target_payload(
 }
 ```
 
-`runtime_state.rs::apply_action`（139-236 附近，现 `match request.parse()? {`）改为「未知 id 仍 Err、payload 错误落状态」：
+`runtime_state.rs::apply_action`（撰写时 139-236 附近，旧入口为 `match request.parse()? {`）切换为「未知 id 仍 Err、payload 错误落状态」：
 
 ```rust
 pub(super) fn apply_action(
@@ -591,29 +562,7 @@ pub(super) fn apply_action(
 
 【终核（2026-06-12）】上方代码块的「未知 id 仍 Err、payload 错误落状态」骨架已按此落地（`runtime_state.rs:154-165`），但错误记录未复用 `record_background_action_error`，而是新增专用 `record_action_payload_failure`（`runtime_state.rs:264-276`）；arm 实为 31 个（含并行新增的 `DiscardSettingsDraft`/`RestoreDefaultSettings`）。
 
-`localized.rs::status_detail`（139-224 附近的 strip_prefix 链）新增词条，保证新错误消息中文可见（`"Action failed" => "操作失败"` 已在 status_label 表 127 行）：
-
-```rust
-if let Some(action) = detail.strip_prefix("Payload is required for Hub action: ") {
-    return format!("Hub 操作缺少 payload：{action}");
-}
-if let Some(body) = detail.strip_prefix("Invalid payload for Hub action ") {
-    if let Some((action, error)) = body.split_once(": ") {
-        return format!("Hub 操作 payload 无效（{action}）：{error}");
-    }
-}
-if let Some(path) = detail.strip_prefix("Project location must be an absolute path: ") {
-    return format!("项目位置必须是绝对路径：{path}");
-}
-if let Some(template) = detail.strip_prefix("Unknown project template: ") {
-    return format!("未知项目模板：{template}");
-}
-if let Some(path) = detail.strip_prefix("Import path must be an absolute path: ") {
-    return format!("导入路径必须是绝对路径：{path}");
-}
-// match detail 常量表（226 行起）追加：
-// "Project name must not be empty" => "项目名称不能为空",
-```
+payload 校验错误的本地化 owner 已由 07 计划硬切换到 `state/hub_message/shell.rs`。缺 payload 与反序列化失败分别使用 `PayloadRequiredForAction` / `InvalidPayloadForAction` typed message，并由 `HubError::status` 携带 recovery；不得在 `localized.rs` 恢复基于英文 `strip_prefix` 的解析链。
 
 删除清单（硬切换，同变更删净）：`SearchProjectsEnvelope`（127-131）、`NewProjectDraftActionEnvelope`（143-147）、`CreateProjectActionEnvelope`（159-163）、`ImportProjectActionEnvelope`（173-177）、`ProjectTargetActionEnvelope`（188-192）、`BrowseSettingsFolderEnvelope`（202-206）、`OpenResourceEnvelope`（215-219）、`OpenOutputFolderEnvelope`（229-233）八个信封结构；`search_projects_payload_from_value`/`new_project_draft_payload_from_value`/`create_project_payload_from_value`/`import_project_payload_from_value`/`project_target_payload_from_value`/`browse_settings_folder_payload_from_value`/`required_settings_payload_from_value`/`open_resource_payload_from_value`/`open_output_folder_payload_from_value` 九个帮助函数（374-529）；其中 import/project-target/open-resource/open-output-folder/search 的字符串简写分支（`payload.as_str()` 路径）一并删除（前端从未发字符串 payload）；`settings_dto.rs::settings_payload_from_value`（208-221）；`action_request.rs:8` 对它的 import 与 `view_model.rs:29` 的 re-export 中的该符号。
 
@@ -626,17 +575,17 @@ if let Some(path) = detail.strip_prefix("Import path must be an absolute path: "
 | `zircon_hub/src/tauri_app/view_model.rs` | 修改 | 29 行 re-export 改为 `{HubSettingsActionPayload, HubSettingsPayload}` |
 | `zircon_hub/src/tauri_app/runtime_state.rs` | 修改 | `apply_action` 改 `action()` + `parse_as`，payload 错误落 `record_action_payload_failure`（实仓命名；提案原写 `record_background_action_error`）后返回 `Ok(view_model)` |
 | `zircon_hub/src/tauri_app/runtime_state/action_targets.rs` | 修改 | 三个单测（156-216 附近）的 `{"project": {...}}` payload 改扁平 `{"projectId"/"projectPath"}` |
-| `zircon_hub/src/tauri_app/view_model/localized.rs` | 修改 | `status_detail` 新增 6 条新错误消息的 strip_prefix/常量词条 |
+| `zircon_hub/src/state/hub_message/shell.rs` | 修改 | 由 typed `ShellMessageId` 承载 payload 缺失、反序列化失败及 recovery 文案；不新增英文字符串解析 |
 | `zircon_hub/tests/project_workflow_contract.rs` | 修改 | 刷新 `*_payload_from_value` / `match request.parse()?` / 测试名 snippet |
 | `zircon_hub/tests/ui_foundation_contract.rs` | 修改 | 刷新 `"match request.parse()?"`（593 行附近）snippet |
 
 #### 实施步骤
 
-1. `action_request.rs` 落 `ValidatePayload` trait + `parse_payload`/`parse_optional_payload` + 全部 DTO `validate` 实现（暂不接线，旧帮助函数保留）。验证：`cargo check -p zircon_hub --locked`。
-2. 切换 create-project / update-new-project-draft 两个 arm 到 `parse_payload`，删除 `CreateProjectActionEnvelope`/`NewProjectDraftActionEnvelope` 与对应帮助函数（395-419）；`action_request.rs` 单测 `parses_create_project_payload_for_create_project_action`（536-558）、`parses_new_project_draft_payload_for_runtime_state_update`（560-584）的 payload 由 `{"project"/"draft": {...}}` 改扁平；同步刷新 `project_workflow_contract.rs:124` snippet。验证：`cargo test -p zircon_hub --lib --locked`、`cargo test -p zircon_hub --test project_workflow_contract --locked`。
-3. 切换十个 project-target 类 arm 与 import-project，删除 `ProjectTargetActionEnvelope`/`ImportProjectActionEnvelope`、字符串简写与帮助函数（421-462）；改 `project_target_payload()`；`action_request.rs` 单测 `parses_project_target_payload_for_background_project_actions`（653-678）、`parses_cancel_delete_project_target_payload`（680-705）与 `action_targets.rs` 单测（168-206 附近）payload 改扁平。验证：`cargo test -p zircon_hub --lib --locked`、`cargo test -p zircon_hub project_target --locked`。
-4. 切换 settings 族 + open-resource / open-output-folder / search-projects：删 `settings_payload_from_value`（settings_dto.rs:208-221）、`required_settings_payload_from_value`、`BrowseSettingsFolderEnvelope`/`OpenResourceEnvelope`/`OpenOutputFolderEnvelope`/`SearchProjectsEnvelope` 及帮助函数（374-393、464-529）；`HubSettingsActionPayload` 提升 `pub(crate)`；改 `view_model.rs:29` re-export 与 `action_request.rs:8` import；单测 `parses_browse_settings_folder_payload_for_folder_action`（604-629）改扁平、`parses_open_output_folder_wrapped_payload_for_output_action`（707-731）改扁平并更名 `parses_open_output_folder_flat_payload_for_output_action`、settings_dto.rs:688 附近单测随迁；刷新 `project_workflow_contract.rs:122/126/128/133/823` 与 `ui_foundation_contract.rs` 相关 snippet。验证：`cargo test -p zircon_hub --locked`。
-5. `runtime_state.rs::apply_action` 改为 `action()` + `parse_as` + 错误落状态（见目标代码形状）；`localized.rs` 增词条；刷新 `project_workflow_contract.rs:143`、`ui_foundation_contract.rs:593` 的 `"match request.parse()?"` snippet；新增负向单测（见契约联动）。验证：`cargo test -p zircon_hub --locked`、`cargo fmt --all --check`。
+1. `action_request.rs` 落 `ValidatePayload` trait + `parse_payload`/`parse_optional_payload` + 全部 DTO `validate` 实现（暂不接线，旧帮助函数保留）。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipTest`。
+2. 切换 create-project / update-new-project-draft 两个 arm 到 `parse_payload`，删除 `CreateProjectActionEnvelope`/`NewProjectDraftActionEnvelope` 与对应帮助函数（395-419）；`action_request.rs` 单测 `parses_create_project_payload_for_create_project_action`（536-558）、`parses_new_project_draft_payload_for_runtime_state_update`（560-584）的 payload 由 `{"project"/"draft": {...}}` 改扁平；同步刷新 `project_workflow_contract.rs:124` snippet。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -LibTests` 与同脚本的 `-TestTarget project_workflow_contract`。
+3. 切换十个 project-target 类 arm 与 import-project，删除 `ProjectTargetActionEnvelope`/`ImportProjectActionEnvelope`、字符串简写与帮助函数（421-462）；改 `project_target_payload()`；`action_request.rs` 单测 `parses_project_target_payload_for_background_project_actions`（653-678）、`parses_cancel_delete_project_target_payload`（680-705）与 `action_targets.rs` 单测（168-206 附近）payload 改扁平。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -LibTests -TestFilter project_target`。
+4. 切换 settings 族 + open-resource / open-output-folder / search-projects：删 `settings_payload_from_value`（settings_dto.rs:208-221）、`required_settings_payload_from_value`、`BrowseSettingsFolderEnvelope`/`OpenResourceEnvelope`/`OpenOutputFolderEnvelope`/`SearchProjectsEnvelope` 及帮助函数（374-393、464-529）；`HubSettingsActionPayload` 提升 `pub(crate)`；改 `view_model.rs:29` re-export 与 `action_request.rs:8` import；单测 `parses_browse_settings_folder_payload_for_folder_action`（604-629）改扁平、`parses_open_output_folder_wrapped_payload_for_output_action`（707-731）改扁平并更名 `parses_open_output_folder_flat_payload_for_output_action`、settings_dto.rs:688 附近单测随迁；刷新 `project_workflow_contract.rs:122/126/128/133/823` 与 `ui_foundation_contract.rs` 相关 snippet。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub`。
+5. `runtime_state.rs::apply_action` 改为 `action()` + `parse_as` + 错误落状态（见目标代码形状）；在 `state/hub_message/shell.rs` 增加 typed message；刷新 `project_workflow_contract.rs:143`、`ui_foundation_contract.rs:593` 的 `"match request.parse()?"` snippet；新增负向单测（见契约联动）。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub`，并对触及的 Rust 文件运行 `rustfmt --edition 2021 --check`。
 6. 前端回归（无代码改动，验证扁平契约未破）：在 `zircon_hub/` 目录（package.json 位于 `zircon_hub/`，非 `web/`）执行 `npm run typecheck`、`npm run build`。
 
 #### 契约联动
@@ -660,7 +609,7 @@ if let Some(path) = detail.strip_prefix("Import path must be an absolute path: "
 - `runtime_state.rs`：`apply_action_records_payload_validation_failure_as_recoverable_status`（对 create-project 发相对路径 payload，断言返回 `Ok`、`task_summary` 为 error 且 `recovery` 非空、IPC 不报 Err）；中文语种下断言 detail 为 `"项目位置必须是绝对路径：..."`（验证 localized 词条接通）。
 
 测试阶段：
-- Rust：为每个 DTO 增加非法 payload 用例（缺字段、相对路径、未知模板、空字符串），`cargo test -p zircon_hub --locked`。
+- Rust：为每个 DTO 增加非法 payload 用例（缺字段、相对路径、未知模板、空字符串），运行 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub`。
 - 前端：`npm run typecheck`、`npm run build`（均在 `zircon_hub/` 目录执行——`package.json` 位于 `zircon_hub/`，不在 `web/` 下）。
 
 ### M3 前后端 action 契约守卫
@@ -813,9 +762,9 @@ fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
 #### 实施步骤
 
 1. 改 `web/src/types/hub.ts`：`HUB_ACTION`（613-642）插入 `updateNewProjectDraft: "update-new-project-draft",`；新增 `NewProjectDraftPayload` 接口；`HubActionPayloadById`（698-717）插入对应键。验证：`zircon_hub/` 下 `npm run typecheck`、`npm run build`。
-2. 在 `ui_input_navigation_api_contract.rs` 末尾新增 `quoted_values_between` 与 `hub_action_id_table_matches_react_hub_action_map_bidirectionally`、`hub_action_legacy_aliases_stay_rust_side_only`、`payload_carrying_actions_keep_typed_entries_in_react_payload_map` 三个测试。验证：`cargo test -p zircon_hub --test ui_input_navigation_api_contract --locked`。
+2. 在 `ui_input_navigation_api_contract.rs` 末尾新增 `quoted_values_between` 与 `hub_action_id_table_matches_react_hub_action_map_bidirectionally`、`hub_action_legacy_aliases_stay_rust_side_only`、`payload_carrying_actions_keep_typed_entries_in_react_payload_map` 三个测试。验证：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -TestTarget ui_input_navigation_api_contract`。
 3. 守卫自证（临时改动，验证后撤销，不入库）：(a) 在 `hub.ts` 的 `HUB_ACTION` 临时加 `fakeAction: "fake-action",` → 双向比对测试必须报 web 侧多出 id；(b) 在 `action_id.rs` 的 `as_str` 临时把 `"pin-project"` 改 `"pin-projects"` → 必须报集合不等；两者确认红灯后还原绿灯。
-4. 收尾全量：`cargo test -p zircon_hub --locked`、`cargo fmt --all --check`。
+4. 收尾全量：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub`，并对触及的 Rust 文件运行 `rustfmt --edition 2021 --check`。
 
 #### 契约联动
 
@@ -824,11 +773,11 @@ fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
 - 后续任何新增 action 的变更将同时触碰 `action_id.rs`（枚举 + ALL + as_str）与 `hub.ts`（HUB_ACTION + 可选 PayloadById），守卫缺一侧即红——这是本计划交付给 05/07 等后续计划的稳定接口面。
 
 测试阶段：
-- `cargo test -p zircon_hub ui_input_navigation_api --locked`；人为加一个只在一侧存在的 id 验证守卫确实报错后撤销。
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub -SkipBuild -TestTarget ui_input_navigation_api_contract`；人为加一个只在一侧存在的 id 验证守卫确实报错后撤销。
 
 ## 风险与协调
 
-- `parse()` 周边有大量现有测试依赖字符串 id 的别名（如 `"show-page" | "page"`）：保留别名但收进 id 表的 `from_str`，避免破坏外部调用方。
+- `action()` / `parse_as()` 周边测试依赖字符串 id 的归一化与历史别名（如 canonical `"show-page"` 与 alias `"page"`）：别名只由 `HubActionId::from_str` 持有，避免重新引入第二解析入口。
 - 前端扁平 payload 切换与 05 计划的组件拆分都会动 `ProjectsDashboard`：先做本计划 M2，05 在其上拆分。
 - `view_model.rs`/`runtime_state.rs` 的行数问题不强行在此解决，但 M1/M2 自然带出的代码删除应使两文件净缩。
 - 【2026-06-12 核实修正】action history 的 `HubActionKind`（`src/state/action_history.rs:28-63`）是与分发 id 不同名的独立词表（`"build-editor-runtime"`/`"install-project"`/`"open-output"` vs `"build-project"`/`"install-device"`/`"open-output-folder"`），不能从 `HubActionId` 派生；目标 1 原文「action history 全部从它派生」已据此收窄为 quick_actions DTO id，history 词表 schema 化归 07 计划。
@@ -837,11 +786,8 @@ fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
 - 守卫测试以文本标记提取 id 集合（`quoted_values_between`），对 `action_id.rs` 的函数排列顺序（`ALL` → `as_str` → `from_str`）与 `hub.ts` 的 `} as const;` 写法有结构依赖；任何重排这两个区块的重构必须连带跑 `ui_input_navigation_api_contract`，标记缺失会直接 panic 并指明丢失的 marker。
 - M2 把 payload 校验失败从「IPC Err → 前端通用 `actionFailed` 文案」改为「`Ok(view_model)` + 可恢复 `TaskStatus`」：`app_error_recovery_contract.rs` 锁定的前端 catch 路径仍保留（传输层错误仍走它），但任何依赖「非法 payload 必然 reject promise」的调用方行为会变；已核实仓内无此类调用方（`App.tsx` 的 catch 只写日志与 snackbar）。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-### 与代码现状不符，需修订
-
-- front-matter `status: planned` 与实仓不符：M1/M2/M3 全部落地（文档正文各里程碑「终核」注记已如实反映）。核对 `zircon_hub/src/tauri_app/action_id.rs:2-124`（`HubActionId` 31 变体 + `ALL` + `as_str`/`from_str` + round-trip 单测）、`commands.rs:48-79`（`spawn_background_action` 已收敛为 `run_background_worker_loop`，无字符串比对）。建议把状态改为 `completed`，否则会继续以 planned 调度已完成计划。
-- M2「目标代码形状」的 `parse_payload` 签名（第 425-443 行）写为 `parse_payload<T>(action: HubActionId, payload: Option<&Value>)`，但正文 M2 终核注记（第 402 行）已说明实仓落地为「自由函数 + 共享 `deserialize_payload`」。文档的两份签名并存易误导实施者；建议在目标代码形状块顶部直接标注「以实仓 `action_request.rs` 为准」并删除或明确降级过时代码块。
-- M2「宽松校验（仅形状）」代码块（第 505-511 行）把 `ProjectTargetActionPayload`/`OpenResourcePayload` 等写成 `validate` 返回 `Ok(())`，但正文终核注记（第 403 行）已指出实仓对这些类型也做了绝对路径校验、`NewProjectDraftActionPayload` 复用完整校验。目标代码形状与实仓相反，属可执行文档里的错误示范，建议整块替换为实仓形态或删除。
-- M2 关于 `localized.rs` strip_prefix 词条的目标形状（第 596-616 行）整段已被 07 的 `HubMessage` schema 取代——`localized.rs` 现无 `status_detail`/`strip_prefix`（`grep` 零命中），payload 校验错误改由 `state/hub_message/shell.rs`（`PayloadRequiredForAction`/`InvalidPayloadForAction`）承载。该节应标注「已被 07 计划整体重构，词条落点迁移至 `hub_message` 域文件」。
+- 已把 front-matter 调整为 `in_progress`：M1/M2/M3 源码形态已经落地，但本轮没有 current-source 的受管 `zircon_hub` 完整门禁与前端构建证据，不能仅凭静态阅读标成 `completed`。
+- 已同步当前 `parse_payload` / `parse_optional_payload` / `deserialize_payload` 边界，并删除与实仓相反的宽松 DTO 校验示例。
+- 已把 payload 错误本地化 owner 收敛到 `state/hub_message/shell.rs` 的 typed `HubMessage`，删除过时的 `localized.rs::strip_prefix` 目标形状。

@@ -222,7 +222,7 @@ where
         let (_, entry, inserted) = self.index.update_or_insert_with(
             slot,
             (),
-            false,
+            true,
             |_, ()| {},
             |()| TextLayoutCacheEntry {
                 key,

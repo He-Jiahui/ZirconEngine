@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_app/src/entry/entry_runner/editor
-  - zircon_app/src/entry/builtin_engine_entry.rs
+  - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_editor/src/ui/host
   - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
@@ -22,11 +22,22 @@ tests:
 
 # Editor01：editor启动single projection
 
-## 现象与根因
+## 来源执行者
 
-GUI和CLI operation启动先为capability/session构造`first_party_runtime_plugin_registrations_for_config`，随后first-party bootstrap再次构造同一集合。`editor_entry_config`通过`ProjectManager::open`读取项目插件，retained host的startup session又通过project authority打开同一项目。入口还重复store config、重建builtin catalog并复制descriptor/report。startup artifact没有唯一generation owner，多个阶段只能重新投影。
+- 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
+- 来源执行切片：PERF-MVP-427 editor startup single-projection audit
+- 修复责任计划：`docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md`
+- 交接原因：最低共享根因位于 Editor01 拥有的 GUI/CLI editor startup preparation 与 project/session projection 边界。
 
-## 修复验收
+## 失败现象与复现证据
+
+GUI和CLI operation启动先为capability/session构造`first_party_runtime_plugin_registrations_for_config`，随后first-party bootstrap再次构造同一集合。`editor_entry_config`通过`ProjectManager::open`读取项目插件，retained host的startup session又通过project authority打开同一项目。
+
+## 最低共享层根因
+
+入口还重复store config、重建builtin catalog并复制descriptor/report。startup artifact没有唯一generation owner，多个阶段只能重新投影。
+
+## 架构修复验收
 
 - 一次启动产生一个prepared project/session artifact，manifest read/parse/project open每project generation至多1次。
 - first-party registrations/catalog/module descriptors每entry generation构造至多1次，由capability、session和bootstrap共享；联动Editor12保持plugin lifecycle失效准确。

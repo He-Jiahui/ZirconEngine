@@ -83,15 +83,17 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             CONTEXT_TARGET_PATH,
             UiValue::String(request.target_path.to_string()),
         )?;
+        let local_anchor_x = request.popup_anchor_x - self.mount_frame.x;
+        let local_anchor_y = request.popup_anchor_y - self.mount_frame.y;
         self.mutate_control_property(
             WORKBENCH_CONTEXT_MENU_CONTROL_ID,
             POPUP_ANCHOR_X,
-            UiValue::Float(f64::from(request.popup_anchor_x)),
+            UiValue::Float(f64::from(local_anchor_x)),
         )?;
         self.mutate_control_property(
             WORKBENCH_CONTEXT_MENU_CONTROL_ID,
             POPUP_ANCHOR_Y,
-            UiValue::Float(f64::from(request.popup_anchor_y)),
+            UiValue::Float(f64::from(local_anchor_y)),
         )?;
         for node_id in control_node_ids_with_descendants(
             &self.template_surface.surface,

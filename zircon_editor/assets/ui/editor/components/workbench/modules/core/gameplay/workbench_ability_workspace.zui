@@ -123,7 +123,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityPlaytestButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Playtest", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8" }
+props = { text = "Playtest", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 82.0, preferred = 82.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/AbilityPlaytest", event = "Click", route = "workbench.module.ability.playtest" }]
 
@@ -222,7 +222,7 @@ events = [
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilitySequencerButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Sequencer", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Sequencer", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SequencerOpen", event = "Click", route = "workbench.extension.sequencer.open" }]
 
@@ -230,7 +230,7 @@ events = [{ id = "WorkbenchExtension/SequencerOpen", event = "Click", route = "w
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityMontageEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Montage Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Montage Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/MontageEditorOpen", event = "Click", route = "workbench.extension.montage_editor.open" }]
 
@@ -238,7 +238,7 @@ events = [{ id = "WorkbenchExtension/MontageEditorOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityBlendSpaceButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Blend Space", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Blend Space", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/BlendSpaceOpen", event = "Click", route = "workbench.extension.blend_space.open" }]
 
@@ -246,7 +246,7 @@ events = [{ id = "WorkbenchExtension/BlendSpaceOpen", event = "Click", route = "
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityPoseLibraryButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Pose Library", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Pose Library", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PoseLibraryOpen", event = "Click", route = "workbench.extension.pose_library.open" }]
 
@@ -254,7 +254,7 @@ events = [{ id = "WorkbenchExtension/PoseLibraryOpen", event = "Click", route = 
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityRetargetButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Retarget", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Retarget", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/RetargetOpen", event = "Click", route = "workbench.extension.retarget.open" }]
 
@@ -262,7 +262,7 @@ events = [{ id = "WorkbenchExtension/RetargetOpen", event = "Click", route = "wo
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityControlRigButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Control Rig", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Control Rig", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ControlRigOpen", event = "Click", route = "workbench.extension.control_rig.open" }]
 
@@ -270,7 +270,7 @@ events = [{ id = "WorkbenchExtension/ControlRigOpen", event = "Click", route = "
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityMotionMatchingButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Motion Matching", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Motion Matching", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/MotionMatchingOpen", event = "Click", route = "workbench.extension.motion_matching.open" }]
 
@@ -278,6 +278,6 @@ events = [{ id = "WorkbenchExtension/MotionMatchingOpen", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchAbilityAnimationCompressionButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Animation Compression", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Animation Compression", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/AnimationCompressionOpen", event = "Click", route = "workbench.extension.animation_compression.open" }]

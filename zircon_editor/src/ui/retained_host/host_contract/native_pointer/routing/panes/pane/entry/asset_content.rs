@@ -5,7 +5,7 @@ use crate::ui::workbench::asset_content_layout::{
     BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
 };
 
-use super::super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
+use super::super::super::super::{PanePointerRoute, PanePointerTarget, geometry::contains};
 
 const ACTIVITY_ASSET_SURFACE_MODE: &str = "activity";
 const BROWSER_ASSET_SURFACE_MODE: &str = "browser";

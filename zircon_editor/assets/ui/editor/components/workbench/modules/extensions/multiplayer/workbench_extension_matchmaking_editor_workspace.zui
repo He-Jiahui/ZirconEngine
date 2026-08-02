@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/MatchmakingEditorValidateRules", event = "C
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionMatchmakingEditorQueueTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "matchmaking_editor_bronze_bucket_table_row" }, { node = "matchmaking_editor_gold_bucket_table_row" }, { node = "matchmaking_editor_diamond_bucket_table_row" }, { node = "matchmaking_editor_backfill_table_row" }]
 

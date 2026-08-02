@@ -37,11 +37,6 @@ class PluginDocsCurrentStatusStageHandoffOwnerSplitTests(unittest.TestCase):
                     "Stage handoff strategy owner",
                     "Validate strategy report diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_stage_handoff_strategy_owner_split",
-                    "stage_handoff_strategy.py",
-                    "Stage handoff strategy owner",
-                ],
             },
             "Current export/plugin docs do not reflect stage handoff strategy owner split",
         )

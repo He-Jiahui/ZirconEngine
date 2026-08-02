@@ -6,6 +6,8 @@ pub dartsId(): string { return "arcane_missiles"; }
 pub maxCharges(): int { return 4; }
 pub damagePerCharge(): float { return 0.3; }
 pub chargeWindow(): float { return 10.0; }
+pub freeProcChance(): float { return 0.25; }
+pub freeWindow(): float { return 15.0; }
 pub dartsBonusPerCharge(): int { return 9; }
 pub fullChargeMissiles(): int { return 5; }
 pub castHastePerCharge(): float { return 0.05; }

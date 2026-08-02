@@ -1,56 +1,16 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::BTreeMap,
-    rc::Rc,
-};
-
 use serde_json::Value;
+use std::time::{Duration, Instant};
 use woc_client::GraphicsRuntimeHints;
 use woc_client::{
-    setting_application_route, ClientSettingValue, GamepadSettingApplication, PreferenceStorage,
+    setting_application_route, ClientSettingValue, GamepadSettingApplication,
     RendererSettingApplication, SettingApplication, StoredClientSettings, BOOL_SETTINGS,
     CLIENT_SETTINGS_STORAGE_KEY, NUMERIC_SETTINGS,
 };
+use zircon_runtime::core::framework::platform::{
+    PreferenceMutationTerminal, PreferenceStorageErrorKind, PreferenceTicketWaitResult,
+};
 
-#[derive(Clone, Default)]
-struct MemoryStorage {
-    values: Rc<RefCell<BTreeMap<String, String>>>,
-    fail_reads: Rc<Cell<bool>>,
-    fail_writes: Rc<Cell<bool>>,
-}
-
-impl MemoryStorage {
-    fn insert(&self, key: &str, value: &str) {
-        self.values
-            .borrow_mut()
-            .insert(key.to_string(), value.to_string());
-    }
-
-    fn get(&self, key: &str) -> Option<String> {
-        self.values.borrow().get(key).cloned()
-    }
-}
-
-impl PreferenceStorage for MemoryStorage {
-    type Error = ();
-
-    fn read(&self, key: &str) -> Result<Option<String>, Self::Error> {
-        if self.fail_reads.get() {
-            Err(())
-        } else {
-            Ok(self.get(key))
-        }
-    }
-
-    fn write(&self, key: &str, value: &str) -> Result<(), Self::Error> {
-        if self.fail_writes.get() {
-            Err(())
-        } else {
-            self.insert(key, value);
-            Ok(())
-        }
-    }
-}
+use crate::preference_storage_support::MemoryPreferenceStorage as MemoryStorage;
 
 #[test]
 fn fresh_settings_use_defaults_without_writing_storage() {
@@ -59,6 +19,27 @@ fn fresh_settings_use_defaults_without_writing_storage() {
     assert_eq!(settings.numeric("graphicsPreset"), Some(2.0));
     assert_eq!(settings.boolean("graphicsDefaultApplied"), Some(false));
     assert!(storage.get(CLIENT_SETTINGS_STORAGE_KEY).is_none());
+}
+
+#[test]
+fn fresh_backend_value_loads_after_the_cold_read_completes() {
+    let storage = MemoryStorage::default();
+    storage.seed_persisted(
+        CLIENT_SETTINGS_STORAGE_KEY,
+        r#"{"cameraSpeed":0.35,"showFps":true}"#,
+    );
+    storage.block_read(CLIENT_SETTINGS_STORAGE_KEY);
+
+    let mut settings = StoredClientSettings::new(storage.clone());
+    storage.wait_until_read_started(CLIENT_SETTINGS_STORAGE_KEY);
+    assert_eq!(settings.numeric("cameraSpeed"), Some(0.7));
+    assert!(!settings.refresh_from_storage());
+    storage.release_read(CLIENT_SETTINGS_STORAGE_KEY);
+    storage.wait_until_loaded(CLIENT_SETTINGS_STORAGE_KEY);
+
+    assert!(settings.refresh_from_storage());
+    assert_eq!(settings.numeric("cameraSpeed"), Some(0.35));
+    assert_eq!(settings.boolean("showFps"), Some(true));
 }
 
 #[test]
@@ -163,15 +144,28 @@ fn reset_persists_every_default() {
 #[test]
 fn unavailable_storage_degrades_to_defaults_and_keeps_session_changes() {
     let storage = MemoryStorage::default();
-    storage.fail_reads.set(true);
-    storage.fail_writes.set(true);
+    storage.set_fail_reads(true);
+    storage.set_fail_writes(true);
     let mut settings = StoredClientSettings::new(storage.clone());
     assert_eq!(settings.numeric("cameraSpeed"), Some(0.7));
     assert_eq!(settings.set_numeric("cameraSpeed", 0.4), Some(0.4));
     assert_eq!(settings.set_boolean("showFps", true), Some(true));
     assert_eq!(settings.numeric("cameraSpeed"), Some(0.4));
     assert_eq!(settings.boolean("showFps"), Some(true));
-    assert!(storage.get(CLIENT_SETTINGS_STORAGE_KEY).is_none());
+    let submission = settings
+        .take_persistence_submission()
+        .expect("last accepted settings write");
+    let terminal = submission
+        .ticket()
+        .wait_until(Instant::now() + Duration::from_secs(2));
+    let failure = match terminal {
+        PreferenceTicketWaitResult::Terminal(PreferenceMutationTerminal::Failed(failure)) => {
+            failure
+        }
+        other => panic!("expected typed unavailable write failure, got {other:?}"),
+    };
+    assert_eq!(failure.kind(), PreferenceStorageErrorKind::Unavailable);
+    assert!(storage.persisted(CLIENT_SETTINGS_STORAGE_KEY).is_none());
 }
 
 #[test]

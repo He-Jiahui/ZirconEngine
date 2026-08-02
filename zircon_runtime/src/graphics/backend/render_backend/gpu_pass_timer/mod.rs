@@ -1,6 +1,4 @@
-mod gpu_pass_timer;
-
-pub(crate) use gpu_pass_timer::{
-    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_TIMESTAMP_REQUIRED_FEATURES, GpuPassTimer,
-    GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
+pub(crate) use crate::rhi_wgpu::{
+    GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
+    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_TIMESTAMP_REQUIRED_FEATURES,
 };

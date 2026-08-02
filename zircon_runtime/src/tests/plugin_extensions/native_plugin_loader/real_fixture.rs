@@ -377,6 +377,75 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
 }
 
 #[test]
+fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
+    let fixture_target = temp_export_root("native-dynamic-fixture-v2-target");
+    let package_root = temp_export_root("native-dynamic-fixture-v2-package");
+    let plugin_root = package_root.join("native_dynamic_fixture");
+    let native_root = plugin_root.join("native");
+    fs::create_dir_all(&native_root).unwrap();
+
+    let library_path =
+        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_v2_only"]);
+    fs::copy(
+        &library_path,
+        native_root.join(platform_library_file_name(
+            "zircon_plugin_native_dynamic_fixture_native",
+        )),
+    )
+    .unwrap();
+    fs::copy(
+        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
+        plugin_root.join("plugin.toml"),
+    )
+    .unwrap();
+
+    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+
+    assert!(
+        report.diagnostics().is_empty(),
+        "{:?}",
+        report.diagnostics()
+    );
+    assert_eq!(report.loaded().len(), 1);
+    let plugin = &report.loaded()[0];
+    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 2);
+    assert_eq!(
+        plugin
+            .descriptor
+            .as_ref()
+            .unwrap()
+            .runtime_entry_name
+            .as_deref(),
+        Some("zircon_native_dynamic_fixture_runtime_entry_v2")
+    );
+    assert_eq!(plugin.runtime_behavior_is_stateless(), Some(false));
+    assert_eq!(plugin.runtime_state_schema_version(), Some(0));
+    assert_eq!(
+        plugin.runtime_behavior_health(),
+        Some(NativePluginBehaviorHealth::Degraded)
+    );
+    assert!(plugin
+        .runtime_behavior_validation_report()
+        .unwrap()
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("legacy ABI v2 behavior is metadata-only")));
+    let command = plugin.invoke_runtime_command("echo", b"hello");
+    assert_eq!(command.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    assert!(command
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("legacy ABI v2 behavior cannot invoke commands")));
+    assert!(report
+        .diagnostics_for_runtime_plugin("native_dynamic_fixture")
+        .iter()
+        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+
+    let _ = fs::remove_dir_all(fixture_target);
+    let _ = fs::remove_dir_all(package_root);
+}
+
+#[test]
 fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
     let fixture_target = temp_export_root("native-dynamic-fixture-unknown-abi-target");
     let package_root = temp_export_root("native-dynamic-fixture-unknown-abi-package");

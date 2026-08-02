@@ -26,9 +26,7 @@ impl RuntimeEntryApp {
                 position.x as f32,
                 position.y as f32,
             );
-            if self.session.handle_event(event).is_err() {
-                event_loop.exit();
-            }
+            self.dispatch_runtime_event(event_loop, event);
         } else if let (Some(button), Some(state)) = (mouse_button(button), button_state(state)) {
             let event = ZrRuntimeEventV1::mouse_button(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -38,9 +36,7 @@ impl RuntimeEntryApp {
                 position.x as f32,
                 position.y as f32,
             );
-            if self.session.handle_event(event).is_err() {
-                event_loop.exit();
-            }
+            self.dispatch_runtime_event(event_loop, event);
         }
     }
 }

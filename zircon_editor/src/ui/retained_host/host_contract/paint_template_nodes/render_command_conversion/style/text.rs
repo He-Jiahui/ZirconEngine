@@ -84,7 +84,7 @@ fn resolved_text_align(align: UiTextAlign, direction: UiTextDirection) -> UiText
 #[cfg(test)]
 mod tests {
     use super::super::super::super::super::paint_text::{
-        runtime_font_family_for_face, HostTextFontFace,
+        HostTextFontFace, runtime_font_family_for_face,
     };
     use super::*;
     use zircon_runtime::ui::surface::measure_text_size;

@@ -1,8 +1,8 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
-use zircon_runtime_interface::ui::surface::UiPointerButton;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
+use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::super::super::super::NativePointerButtonState;
 use super::input::BodyButtonRouteInput;

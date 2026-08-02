@@ -76,7 +76,7 @@ if (!entry || entry.index !== 59 || entry.definition.class !== "druid" ||
 
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 const main = read("scripts", "woc_game", "src", "main.zr");
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)/,
+requireText(world, /writer\.u16\(<uint>78, 1, 1\)/,
   "WOS66 encoder schema is missing");
 requireText(world, /schemaVersion != <uint>65 && schemaVersion != <uint>66/,
   "WOS66 decoder admission is missing");
@@ -102,7 +102,7 @@ requireText(world, /pub demoralizingRoarCommandStateTest\(\): int[\s\S]*?forms\.
   "Demoralizing Roar state regression coverage is missing");
 requireText(world, /if \(demoralizingRoarCommandStateTest\(\) != 1\) \{[\s\S]*?return -113;/,
   "world selfTest must execute Demoralizing Roar");
-if (!main.includes('\\"world_state\\":\\"WOS71\\"')) {
+if (!main.includes('\\"world_state\\":\\"WOS78\\"')) {
   throw new Error("WOC package metadata still advertises the prior WOS schema");
 }
 

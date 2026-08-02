@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::editing::engine::{
     EditCommandError, EditorTransactionEngine, HistoryContextId, HistoryDirtyBatch,
-    HistoryDirtyBatchKind, HistoryDirtyCursor,
+    HistoryDirtyBatchKind, HistoryDirtyCursor, HistorySaveToken,
 };
 use crate::core::editor_message::DocumentId;
 
@@ -20,6 +20,17 @@ pub(super) trait DirtyTransactionStateSource: Send + Sync {
         &self,
         cursor: Option<&HistoryDirtyCursor>,
     ) -> Result<HistoryDirtyBatch, EditCommandError>;
+
+    fn capture_save_token(
+        &self,
+        document: DocumentId,
+    ) -> Result<HistorySaveToken, EditCommandError>;
+
+    fn mark_saved_if_unchanged(
+        &self,
+        document: DocumentId,
+        token: HistorySaveToken,
+    ) -> Result<(), EditCommandError>;
 }
 
 impl DirtyTransactionStateSource for EditorTransactionEngine {
@@ -32,6 +43,26 @@ impl DirtyTransactionStateSource for EditorTransactionEngine {
         cursor: Option<&HistoryDirtyCursor>,
     ) -> Result<HistoryDirtyBatch, EditCommandError> {
         self.dirty_states_since(cursor)
+    }
+
+    fn capture_save_token(
+        &self,
+        document: DocumentId,
+    ) -> Result<HistorySaveToken, EditCommandError> {
+        EditorTransactionEngine::capture_save_token(self, HistoryContextId::Document(document))
+    }
+
+    fn mark_saved_if_unchanged(
+        &self,
+        document: DocumentId,
+        token: HistorySaveToken,
+    ) -> Result<(), EditCommandError> {
+        EditorTransactionEngine::mark_saved_if_unchanged(
+            self,
+            HistoryContextId::Document(document),
+            token,
+        )
+        .map(drop)
     }
 }
 
@@ -47,6 +78,7 @@ impl DirtyExternalEffectRevision {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DirtyDocumentSnapshot {
     document: DocumentId,
+    generation: u64,
     transaction_dirty: bool,
     external_effects: Vec<DirtyExternalEffectId>,
     external_revisions: Vec<DirtyExternalEffectRevision>,
@@ -55,6 +87,10 @@ pub struct DirtyDocumentSnapshot {
 impl DirtyDocumentSnapshot {
     pub fn document(&self) -> DocumentId {
         self.document
+    }
+
+    pub fn generation(&self) -> u64 {
+        self.generation
     }
 
     pub fn transaction_dirty(&self) -> bool {
@@ -310,7 +346,7 @@ impl DirtyRegistry {
                         .unwrap_or_default(),
                 )
             };
-            let snapshot = self.snapshot_with_effects(document, effects)?;
+            let snapshot = self.snapshot_with_effects(document, generation, effects)?;
             let state = self.lock_state();
             Self::require_document(&state, document)?;
             if state.document_generations.get(&document) == Some(&generation) {
@@ -421,8 +457,10 @@ impl DirtyRegistry {
                     .get(&document)
                     .cloned()
                     .unwrap_or_default();
+                let document_generation = state.document_generations[&document];
                 snapshots.push(Self::snapshot_from_parts(
                     document,
+                    document_generation,
                     transaction_dirty,
                     external_revisions,
                 ));
@@ -448,11 +486,13 @@ impl DirtyRegistry {
     fn snapshot_with_effects(
         &self,
         document: DocumentId,
+        generation: u64,
         external_revisions: BTreeMap<DirtyExternalEffectId, DirtyExternalEffectRevision>,
     ) -> Result<DirtyDocumentSnapshot, DirtyRegistryError> {
         let transaction_dirty = self.transactions.is_dirty(document)?;
         Ok(Self::snapshot_from_parts(
             document,
+            generation,
             transaction_dirty,
             external_revisions,
         ))
@@ -460,16 +500,75 @@ impl DirtyRegistry {
 
     fn snapshot_from_parts(
         document: DocumentId,
+        generation: u64,
         transaction_dirty: bool,
         external_revisions: BTreeMap<DirtyExternalEffectId, DirtyExternalEffectRevision>,
     ) -> DirtyDocumentSnapshot {
         let (external_effects, external_revisions) = external_revisions.into_iter().unzip();
         DirtyDocumentSnapshot {
             document,
+            generation,
             transaction_dirty,
             external_effects,
             external_revisions,
         }
+    }
+
+    pub fn is_generation_current(
+        &self,
+        document: DocumentId,
+        generation: u64,
+    ) -> Result<bool, DirtyRegistryError> {
+        let state = self.lock_state();
+        Self::require_document(&state, document)?;
+        Ok(state.document_generations.get(&document) == Some(&generation))
+    }
+
+    pub fn capture_save_token(
+        &self,
+        document: DocumentId,
+    ) -> Result<HistorySaveToken, DirtyRegistryError> {
+        let state = self.lock_state();
+        Self::require_document(&state, document)?;
+        drop(state);
+        Ok(self.transactions.capture_save_token(document)?)
+    }
+
+    pub fn mark_saved_if_unchanged(
+        &self,
+        document: DocumentId,
+        token: HistorySaveToken,
+    ) -> Result<(), DirtyRegistryError> {
+        let state = self.lock_state();
+        Self::require_document(&state, document)?;
+        drop(state);
+        Ok(self.transactions.mark_saved_if_unchanged(document, token)?)
+    }
+
+    pub fn clear_saved_external_effects(
+        &self,
+        snapshot: &DirtyDocumentSnapshot,
+    ) -> Result<bool, DirtyRegistryError> {
+        if !self.is_generation_current(snapshot.document(), snapshot.generation())? {
+            return Ok(false);
+        }
+        let mut unchanged = true;
+        for effect in snapshot.external_effects() {
+            let Some(revision) = snapshot.external_revision(effect) else {
+                unchanged = false;
+                continue;
+            };
+            if !self.clear_external_effect(snapshot.document(), effect, revision)? {
+                unchanged = false;
+            }
+        }
+        let state = self.lock_state();
+        Self::require_document(&state, snapshot.document())?;
+        let has_residual_effects = state
+            .external_effects
+            .get(&snapshot.document())
+            .is_some_and(|effects| !effects.is_empty());
+        Ok(unchanged && !has_residual_effects)
     }
 
     fn require_document(

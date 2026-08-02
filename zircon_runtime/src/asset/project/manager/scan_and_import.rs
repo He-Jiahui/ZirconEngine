@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
     shader_project_namespace_from_name, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
@@ -6,8 +6,12 @@ use crate::core::framework::render::{
 use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceState};
 
 use crate::asset::importer::stage_environment_ibl_source_with_parallel_executor;
-use crate::asset::project::{AssetMetaEntry, PreviewState};
+use crate::asset::project::manager::targeted_transaction::{
+    commit_prepared_files, PreparedFileWrite, TargetedTransactionFault,
+};
+use crate::asset::project::{AssetMetaEntry, PreviewState, ProjectCatalogInputSource};
 use crate::asset::registry::AssetRegistryIndex;
+use crate::asset::watch::AssetChangeKind;
 use crate::asset::{
     stage_environment_ibl_source, stage_external_source_cubemap_texture, AssetId,
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
@@ -26,6 +30,34 @@ mod shader_import_dependencies;
 mod sources;
 mod targeted;
 
+pub(super) use shader_import_dependencies::ShaderImportDependencyIndex;
+pub(crate) use targeted::PreparedTargetedGeneration;
+
+pub(crate) enum PreparedTargetedWatchChanges {
+    Source(PreparedTargetedGeneration),
+    Removal(PreparedTargetedWatchRemoval),
+}
+
+impl PreparedTargetedWatchChanges {
+    pub(crate) fn commit(self) -> Result<(), AssetImportError> {
+        match self {
+            Self::Source(prepared) => prepared.commit(),
+            Self::Removal(prepared) => prepared.commit(),
+        }
+    }
+}
+
+pub(crate) struct PreparedTargetedWatchRemoval {
+    writes: Vec<PreparedFileWrite>,
+}
+
+impl PreparedTargetedWatchRemoval {
+    fn commit(self) -> Result<(), AssetImportError> {
+        commit_prepared_files(self.writes, TargetedTransactionFault::None)?;
+        Ok(())
+    }
+}
+
 use self::dependency_resolution::{
     dependencies_for_entry, merge_handwritten_dependencies_into_meta, resolve_imported_dependencies,
 };
@@ -41,7 +73,7 @@ impl ProjectManager {
     pub fn scan_and_import(&mut self) -> Result<Vec<ResourceRecord>, AssetImportError> {
         self.scan_and_import_with_registry_update(
             None,
-            crate::foundation::persistence::atomic_file::AtomicWriteFault::None,
+            crate::core::resource::io::atomic_file::AtomicWriteFault::None,
         )
     }
 
@@ -49,9 +81,29 @@ impl ProjectManager {
         &mut self,
         changes: &[crate::asset::watch::AssetChange],
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        if Self::watch_changes_use_incremental_path(changes) {
+            let mut candidate = self.clone();
+            let (updated_records, prepared) = candidate.prepare_targeted_watch_changes(changes)?;
+            prepared.commit()?;
+            *self = candidate;
+            return Ok(updated_records);
+        }
         self.scan_and_import_with_registry_update(
             Some(changes),
-            crate::foundation::persistence::atomic_file::AtomicWriteFault::None,
+            crate::core::resource::io::atomic_file::AtomicWriteFault::None,
+        )
+    }
+
+    pub(crate) fn watch_changes_use_incremental_path(
+        changes: &[crate::asset::watch::AssetChange],
+    ) -> bool {
+        matches!(
+            changes,
+            [change]
+                if matches!(
+                    change.kind,
+                    AssetChangeKind::Added | AssetChangeKind::Modified | AssetChangeKind::Removed
+                ) && change.previous_uri.is_none()
         )
     }
 
@@ -59,15 +111,123 @@ impl ProjectManager {
     pub(crate) fn scan_and_import_watch_changes_with_registry_fault(
         &mut self,
         changes: &[crate::asset::watch::AssetChange],
-        fault: crate::foundation::persistence::atomic_file::AtomicWriteFault,
+        fault: crate::core::resource::io::atomic_file::AtomicWriteFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
         self.scan_and_import_with_registry_update(Some(changes), fault)
+    }
+
+    pub(crate) fn prepare_targeted_watch_changes(
+        &mut self,
+        changes: &[crate::asset::watch::AssetChange],
+    ) -> Result<(Vec<ResourceRecord>, PreparedTargetedWatchChanges), AssetImportError> {
+        let [change] = changes else {
+            unreachable!("only one complete source event enters the incremental watch path");
+        };
+        match change.kind {
+            AssetChangeKind::Removed => {
+                let (updated_records, prepared) =
+                    self.prepare_targeted_watch_source_removal(&change.uri)?;
+                Ok((
+                    updated_records,
+                    PreparedTargetedWatchChanges::Removal(prepared),
+                ))
+            }
+            AssetChangeKind::Added | AssetChangeKind::Modified => {
+                let source_path =
+                    self.existing_or_primary_project_source_path_for_uri(&change.uri)?;
+                let prepared = self.prepare_targeted_generation(&change.uri, &source_path)?;
+                let updated_records = prepared
+                    .imported()
+                    .iter()
+                    .chain(prepared.affected())
+                    .cloned()
+                    .collect();
+                Ok((
+                    updated_records,
+                    PreparedTargetedWatchChanges::Source(prepared),
+                ))
+            }
+            AssetChangeKind::Renamed => {
+                unreachable!("rename events enter the complete reconciliation path")
+            }
+        }
+    }
+
+    fn prepare_targeted_watch_source_removal(
+        &mut self,
+        source: &crate::asset::AssetUri,
+    ) -> Result<(Vec<ResourceRecord>, PreparedTargetedWatchRemoval), AssetImportError> {
+        let removed_entries = self.asset_registry.source_entries(source);
+        if removed_entries.is_empty() {
+            return Ok((
+                Vec::new(),
+                PreparedTargetedWatchRemoval { writes: Vec::new() },
+            ));
+        }
+        let removed_ids = removed_entries
+            .iter()
+            .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
+            .collect::<HashSet<_>>();
+        let mut registry = self.registry.clone();
+        for entry in &removed_entries {
+            registry.remove_by_locator(entry.path());
+        }
+        let (mut asset_registry, mut affected_uuids) =
+            self.asset_registry.prepare_source_removal(source);
+        let (shader_import_dependencies, shader_affected_ids) = self
+            .shader_import_dependencies
+            .prepare_source_replacement(&removed_ids, &[]);
+        let dependency_changes = shader_affected_ids.into_iter().map(|id| {
+            (
+                id,
+                self.shader_import_dependencies.dependency_locators(id),
+                shader_import_dependencies.dependency_locators(id),
+            )
+        });
+        affected_uuids.extend(asset_registry.retarget_runtime_dependency_paths(dependency_changes));
+        self::targeted::refresh_runtime_dependency_closure(
+            &mut registry,
+            &asset_registry,
+            &affected_uuids,
+        );
+        let mut catalog_inputs = self.catalog_input_generation.input_sources();
+        for id in &removed_ids {
+            catalog_inputs.remove(id);
+        }
+        let catalog_input_generation =
+            crate::asset::project::ProjectCatalogInputGeneration::publish(
+                &self.catalog_input_generation,
+                self.paths.root(),
+                &self.manifest,
+                &self.package_assets,
+                registry.values().cloned(),
+                catalog_inputs,
+            );
+        let persisted = asset_registry.prepare_persistence(self.paths.registry_root())?;
+        let mut affected = affected_uuids
+            .into_iter()
+            .filter_map(|uuid| registry.get(AssetId::from_asset_uuid(uuid)).cloned())
+            .collect::<Vec<_>>();
+        affected.sort_by(|left, right| left.primary_locator.cmp(&right.primary_locator));
+        self.registry = registry;
+        self.asset_registry = asset_registry;
+        self.shader_import_dependencies = shader_import_dependencies;
+        self.catalog_input_generation = catalog_input_generation;
+        Ok((
+            affected,
+            PreparedTargetedWatchRemoval {
+                writes: vec![PreparedFileWrite {
+                    path: persisted.path,
+                    bytes: persisted.bytes,
+                }],
+            },
+        ))
     }
 
     fn scan_and_import_with_registry_update(
         &mut self,
         watch_changes: Option<&[crate::asset::watch::AssetChange]>,
-        registry_fault: crate::foundation::persistence::atomic_file::AtomicWriteFault,
+        registry_fault: crate::core::resource::io::atomic_file::AtomicWriteFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
         let parallel_executor = self.environment_ibl_parallel_executor.clone();
         let sources = self.collect_import_sources()?;
@@ -98,6 +258,7 @@ impl ProjectManager {
 
         let mut registry = ResourceRegistry::default();
         let mut dependencies_by_id = HashMap::new();
+        let mut catalog_inputs = HashMap::new();
         let mut shader_import_paths = HashMap::new();
         let mut imported = Vec::with_capacity(sources.len());
 
@@ -156,6 +317,20 @@ impl ProjectManager {
                     self.paths.cache_root(),
                     parallel_executor.as_ref(),
                 )?;
+                let direct_references = restored_root_asset
+                    .as_ref()
+                    .map(ImportedAsset::direct_references)
+                    .unwrap_or_default();
+                catalog_inputs.insert(
+                    root_asset_id,
+                    ProjectCatalogInputSource::new(
+                        file,
+                        meta_path,
+                        meta.clone(),
+                        source_mtime_unix_ms,
+                        direct_references,
+                    ),
+                );
                 for record in metadata {
                     let asset_id = record.id();
                     dependencies_by_id.insert(
@@ -169,7 +344,7 @@ impl ProjectManager {
             }
 
             let import_result = self.importer.import_context(&import_context);
-            let metadata = match import_result {
+            let (metadata, direct_references) = match import_result {
                 Ok(outcome) => {
                     let validation = validate_import_entries(&uri, &outcome).and_then(|()| {
                         stage_environment_ibl_import(
@@ -182,11 +357,31 @@ impl ProjectManager {
                     match validation {
                         Ok(()) => {
                             let mut outcome = outcome;
+                            let direct_references = outcome
+                                .root_entry()
+                                .map(|entry| entry.asset.direct_references())
+                                .unwrap_or_default();
                             append_shader_import_path_conflict_diagnostics(
                                 &mut outcome,
                                 &mut shader_import_paths,
                             );
-                            self.finish_successful_import(
+                            (
+                                self.finish_successful_import(
+                                    &source,
+                                    &mut meta,
+                                    meta_exists,
+                                    &previous_meta,
+                                    source_digest.clone(),
+                                    source_mtime_unix_ms,
+                                    config_hash,
+                                    descriptor.as_ref(),
+                                    outcome,
+                                )?,
+                                direct_references,
+                            )
+                        }
+                        Err(error) => (
+                            self.finish_failed_import(
                                 &source,
                                 &mut meta,
                                 meta_exists,
@@ -195,38 +390,41 @@ impl ProjectManager {
                                 source_mtime_unix_ms,
                                 config_hash,
                                 descriptor.as_ref(),
-                                outcome,
-                            )?
-                        }
-                        Err(error) => self.finish_failed_import(
-                            &source,
-                            &mut meta,
-                            meta_exists,
-                            &previous_meta,
-                            source_digest.clone(),
-                            source_mtime_unix_ms,
-                            config_hash,
-                            descriptor.as_ref(),
-                            fallback_kind,
-                            root_asset_id,
-                            error,
-                        )?,
+                                fallback_kind,
+                                root_asset_id,
+                                error,
+                            )?,
+                            Vec::new(),
+                        ),
                     }
                 }
-                Err(error) => self.finish_failed_import(
-                    &source,
-                    &mut meta,
-                    meta_exists,
-                    &previous_meta,
-                    source_digest.clone(),
-                    source_mtime_unix_ms,
-                    config_hash,
-                    descriptor.as_ref(),
-                    fallback_kind,
-                    root_asset_id,
-                    error,
-                )?,
+                Err(error) => (
+                    self.finish_failed_import(
+                        &source,
+                        &mut meta,
+                        meta_exists,
+                        &previous_meta,
+                        source_digest.clone(),
+                        source_mtime_unix_ms,
+                        config_hash,
+                        descriptor.as_ref(),
+                        fallback_kind,
+                        root_asset_id,
+                        error,
+                    )?,
+                    Vec::new(),
+                ),
             };
+            catalog_inputs.insert(
+                root_asset_id,
+                ProjectCatalogInputSource::new(
+                    file,
+                    meta_path,
+                    meta.clone(),
+                    source_mtime_unix_ms,
+                    direct_references,
+                ),
+            );
             for record in metadata {
                 let asset_id = record.id();
                 dependencies_by_id.insert(
@@ -238,28 +436,32 @@ impl ProjectManager {
             }
         }
 
-        shader_import_dependencies::append_shader_import_dependencies(
+        let shader_import_dependencies = ShaderImportDependencyIndex::from_artifacts(
             &self.artifact_store,
             &self.paths,
             &imported,
-            &mut dependencies_by_id,
         )?;
+        shader_import_dependencies.append_dependencies(&mut dependencies_by_id);
         resolve_imported_dependencies(&mut registry, &mut imported, &dependencies_by_id);
 
         let mut asset_registry = self.asset_registry.clone();
-        if watch_changes.is_some() {
-            asset_registry.apply_watch_changes_with_atomic_fault(
-                &asset_roots,
-                &registry_root,
-                identity_changes.unwrap_or_default(),
-                registry_fault,
-            )?;
-        } else {
-            asset_registry.rebuild_after_import(&asset_roots, &registry_root)?;
-        }
+        asset_registry.rebuild_after_import(&asset_roots)?;
         asset_registry.replace_duplicate_diagnostics(duplicate_diagnostics);
+        asset_registry.reconcile_resource_dependencies(&registry, &dependencies_by_id);
+        let catalog_input_generation =
+            crate::asset::project::ProjectCatalogInputGeneration::publish(
+                &self.catalog_input_generation,
+                self.paths.root(),
+                &self.manifest,
+                &self.package_assets,
+                registry.values().cloned(),
+                catalog_inputs,
+            );
+        asset_registry.persist_with_atomic_fault(&registry_root, registry_fault)?;
         self.registry = registry;
         self.asset_registry = asset_registry;
+        self.shader_import_dependencies = shader_import_dependencies;
+        self.catalog_input_generation = catalog_input_generation;
         Ok(imported)
     }
 

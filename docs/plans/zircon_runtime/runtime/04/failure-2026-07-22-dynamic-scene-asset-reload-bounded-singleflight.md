@@ -52,4 +52,16 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `实现候选完成，待受管验证`; no pass is claimed.
+
+- 已实现AssetId keyed bounded single-flight、重复supersede物理worker保留、same-revision lifecycle authority、event gap/reconciliation、count/time/bytes预算、TTL/catalog generation清理、资源stage clone字节上限、target generation CAS commit与队列诊断。
+- 已补充三次快速revision同一物理worker、空日志eviction gap、resource staging byte rejection等回归测试。
+- Windows受管compile receipt：ticket `0e933cadb8814993821c52e5cbe70de7`，request `runtime04-dynamic-reload-archive-r5-compile-20260801-ef7edf57baec`，source manifest `a1c42abdc37f3d636c7b66b00a88b2418a178a3a20827de83e6afc4f8079a9d8`，command `cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1`；receipt状态为`queued`，本Session不轮询、不等待。
+- 剩余实现：ready artifact到target-bound compiled transaction的后台stage/main-thread bounded commit硬边界，以及1/1k/100k与0/10/1000 ms规模矩阵；完成后执行独立二次审查并由coordinator wakeup收口。
+
+### 2026-08-01 forward repair candidate
+
+- Production construction now requires `ProjectAssetManager`; static queue construction, raw ready collection, and direct world/level spawn helpers are test-only. Production exposes the single bounded `tick_into_level` commit path, where Level capture occurs in the scheduled stage task rather than under the caller's world lock.
+- Ready and target-stage residency share one cumulative byte cap. Event, schedule, ready, apply, and target commit all retain count/time/bytes boundaries; deferred results return through the keyed queue instead of bypassing its single-flight state.
+- Regression coverage now exercises real Scene resource bursts at 1/1k/100k under one-event/one-task limits, plus three rapid revisions with 0/10/1000 ms blocked worker preparation. The final independent review of the dynamic archive/reload scope reported `0 Critical / 0 Important / 0 Minor`.
+- The current source-bound focused receipt remains `78c053989d304cb6a1123954287b6bd7` for `cargo +1.94.1 test -p zircon_runtime --lib dynamic_scene --locked --jobs 1 -- --nocapture --test-threads=1`; it is a materializing receipt, not terminal test evidence. This handoff remains open until that evidence is supplied by the coordinator.

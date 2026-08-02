@@ -1,5 +1,5 @@
 use super::assemble::{
-    MaterialShaderTemplateAssembly, ShaderAssemblySegment, shader_assembly_source_location_for_line,
+    shader_assembly_source_location_for_line, MaterialShaderTemplateAssembly, ShaderAssemblySegment,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -94,12 +94,12 @@ fn remap_shader_diagnostic_message(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType, builtin_geometry_source_descriptor,
+        builtin_geometry_source_descriptor, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
     };
 
-    use super::{ShaderTemplateValidationError, validate_material_shader_template_assembly};
+    use super::{validate_material_shader_template_assembly, ShaderTemplateValidationError};
     use crate::graphics::shader::template::assemble::{
-        MaterialShaderTemplateRequest, assemble_material_shader_template,
+        assemble_material_shader_template, MaterialShaderTemplateRequest,
     };
 
     const INVALID_USER_SURFACE: &str = r#"

@@ -11,14 +11,15 @@ use zircon_editor::core::gateway::{
     EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
 };
 use zircon_runtime::core::framework::navigation::{
-    NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
-    NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION, NavMeshAsset,
-    NavMeshBakeRequest, NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
+    NavMeshAsset, NavMeshBakeRequest, NavigationGeneratedBakeChange,
+    NavigationGeneratedBakeSnapshot, NAVIGATION_BAKE_SCENE_OPERATION,
+    NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
+    NAVIGATION_RESTORE_BAKE_OPERATION,
 };
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
-    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
-    ZrRuntimeSessionHandle,
+    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use crate::operation_command::NavigationOperationCommand;
@@ -95,14 +96,12 @@ fn navigation_selected_surface_factory_rejects_missing_or_malformed_selection_ar
         serde_json::json!({ "surface_entity": "not-an-entity", "force_full_rebuild": false }),
         serde_json::json!({ "force_full_rebuild": false }),
     ] {
-        assert!(
-            factory
-                .create(&operation_invocation(
-                    NAVIGATION_BAKE_SURFACE_OPERATION,
-                    arguments
-                ))
-                .is_err()
-        );
+        assert!(factory
+            .create(&operation_invocation(
+                NAVIGATION_BAKE_SURFACE_OPERATION,
+                arguments
+            ))
+            .is_err());
     }
 }
 

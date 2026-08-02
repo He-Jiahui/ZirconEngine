@@ -4,8 +4,8 @@ use zircon_runtime_interface::{
     ZrRuntimeViewportSizeV1,
 };
 
-use super::mvp_input_probe::mvp_input_probe_enabled;
 use super::RuntimeEntryApp;
+use super::mvp_input_probe::mvp_input_probe_enabled;
 
 impl RuntimeEntryApp {
     pub(in crate::entry::runtime_entry_app) fn emit_first_frame_product_diagnostics(
@@ -130,6 +130,10 @@ fn validate_mvp_input_probe_evidence(
 
     for (field, value) in [
         (
+            "input.viewport_resize_count",
+            snapshot.input.viewport_resize_count,
+        ),
+        (
             "input.pointer_move_count",
             snapshot.input.pointer_move_count,
         ),
@@ -205,7 +209,7 @@ fn product_frame_diagnostic(
 ) -> String {
     let render_device = snapshot.render_device.as_ref();
     format!(
-        "runtime_product_frame_diagnostics frame_index={} viewport={}x{} project_identity={} scene_uri={} selected_model_resource_id={} selected_material_resource_id={} render_backend={} render_adapter={} render_adapter_type={} device_max_bind_groups={} device_max_texture_dimension_2d={} device_max_texture_array_layers={} device_max_sampled_textures_per_shader_stage={} device_max_storage_buffers_per_shader_stage={} device_max_storage_buffer_binding_size={} graph_executed_pass_count={} mesh_draw_count={} directional_light_count={} material_fallback_count={} material_validation_error_count={} input_pointer_move_count={} input_mouse_button_press_count={} input_mouse_button_release_count={} input_keyboard_press_count={} input_keyboard_release_count={}",
+        "runtime_product_frame_diagnostics frame_index={} viewport={}x{} project_identity={} scene_uri={} selected_model_resource_id={} selected_material_resource_id={} render_backend={} render_adapter={} render_adapter_type={} device_max_bind_groups={} device_max_texture_dimension_2d={} device_max_texture_array_layers={} device_max_sampled_textures_per_shader_stage={} device_max_storage_buffers_per_shader_stage={} device_max_storage_buffer_binding_size={} graph_executed_pass_count={} mesh_draw_count={} directional_light_count={} material_fallback_count={} material_validation_error_count={} input_viewport_resize_count={} input_pointer_move_count={} input_mouse_button_press_count={} input_mouse_button_release_count={} input_keyboard_press_count={} input_keyboard_release_count={}",
         snapshot.frame_index,
         viewport.width,
         viewport.height,
@@ -231,6 +235,7 @@ fn product_frame_diagnostic(
         metric_count(snapshot, "render.light.directional.count"),
         metric_count(snapshot, "render.material.fallback_count"),
         metric_count(snapshot, "render.material.validation_error_count"),
+        snapshot.input.viewport_resize_count,
         snapshot.input.pointer_move_count,
         snapshot.input.mouse_button_press_count,
         snapshot.input.mouse_button_release_count,
@@ -310,6 +315,7 @@ mod tests {
                 numeric_series("render.material.validation_error_count", 0.0),
             ],
             input: RuntimeInputDiagnosticsSnapshot {
+                viewport_resize_count: 6,
                 pointer_move_count: 1,
                 mouse_button_press_count: 2,
                 mouse_button_release_count: 3,
@@ -321,7 +327,7 @@ mod tests {
 
         assert_eq!(
             product_frame_diagnostic(&snapshot, ZrRuntimeViewportSizeV1::new(1280, 720)),
-            "runtime_product_frame_diagnostics frame_index=17 viewport=1280x720 project_identity=ZirconProject scene_uri=res://scenes/main.scene.toml selected_model_resource_id=cube-model selected_material_resource_id=cube-material render_backend=wgpu(dx12) render_adapter=Zircon Test Adapter render_adapter_type=discrete_gpu device_max_bind_groups=5 device_max_texture_dimension_2d=16384 device_max_texture_array_layers=256 device_max_sampled_textures_per_shader_stage=16 device_max_storage_buffers_per_shader_stage=8 device_max_storage_buffer_binding_size=134217728 graph_executed_pass_count=4 mesh_draw_count=2 directional_light_count=1 material_fallback_count=0 material_validation_error_count=0 input_pointer_move_count=1 input_mouse_button_press_count=2 input_mouse_button_release_count=3 input_keyboard_press_count=4 input_keyboard_release_count=5"
+            "runtime_product_frame_diagnostics frame_index=17 viewport=1280x720 project_identity=ZirconProject scene_uri=res://scenes/main.scene.toml selected_model_resource_id=cube-model selected_material_resource_id=cube-material render_backend=wgpu(dx12) render_adapter=Zircon Test Adapter render_adapter_type=discrete_gpu device_max_bind_groups=5 device_max_texture_dimension_2d=16384 device_max_texture_array_layers=256 device_max_sampled_textures_per_shader_stage=16 device_max_storage_buffers_per_shader_stage=8 device_max_storage_buffer_binding_size=134217728 graph_executed_pass_count=4 mesh_draw_count=2 directional_light_count=1 material_fallback_count=0 material_validation_error_count=0 input_viewport_resize_count=6 input_pointer_move_count=1 input_mouse_button_press_count=2 input_mouse_button_release_count=3 input_keyboard_press_count=4 input_keyboard_release_count=5"
         );
     }
 
@@ -332,7 +338,7 @@ mod tests {
                 &RuntimeDiagnosticsSnapshot::default(),
                 ZrRuntimeViewportSizeV1::new(1, 1),
             ),
-            "runtime_product_frame_diagnostics frame_index=0 viewport=1x1 project_identity=unavailable scene_uri=unavailable selected_model_resource_id=unavailable selected_material_resource_id=unavailable render_backend=unavailable render_adapter=unavailable render_adapter_type=unavailable device_max_bind_groups=unavailable device_max_texture_dimension_2d=unavailable device_max_texture_array_layers=unavailable device_max_sampled_textures_per_shader_stage=unavailable device_max_storage_buffers_per_shader_stage=unavailable device_max_storage_buffer_binding_size=unavailable graph_executed_pass_count=unavailable mesh_draw_count=unavailable directional_light_count=unavailable material_fallback_count=unavailable material_validation_error_count=unavailable input_pointer_move_count=0 input_mouse_button_press_count=0 input_mouse_button_release_count=0 input_keyboard_press_count=0 input_keyboard_release_count=0"
+            "runtime_product_frame_diagnostics frame_index=0 viewport=1x1 project_identity=unavailable scene_uri=unavailable selected_model_resource_id=unavailable selected_material_resource_id=unavailable render_backend=unavailable render_adapter=unavailable render_adapter_type=unavailable device_max_bind_groups=unavailable device_max_texture_dimension_2d=unavailable device_max_texture_array_layers=unavailable device_max_sampled_textures_per_shader_stage=unavailable device_max_storage_buffers_per_shader_stage=unavailable device_max_storage_buffer_binding_size=unavailable graph_executed_pass_count=unavailable mesh_draw_count=unavailable directional_light_count=unavailable material_fallback_count=unavailable material_validation_error_count=unavailable input_viewport_resize_count=0 input_pointer_move_count=0 input_mouse_button_press_count=0 input_mouse_button_release_count=0 input_keyboard_press_count=0 input_keyboard_release_count=0"
         );
     }
 
@@ -464,7 +470,7 @@ mod tests {
 
         assert_eq!(
             validate_mvp_input_probe_evidence(&snapshot, true).unwrap_err(),
-            "runtime_product_frame_diagnostics_incomplete metric=input.pointer_move_count expected=greater_than_zero observed=0"
+            "runtime_product_frame_diagnostics_incomplete metric=input.viewport_resize_count expected=greater_than_zero observed=0"
         );
     }
 

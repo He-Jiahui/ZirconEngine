@@ -71,14 +71,5 @@ class EditorWorldSyncWatchMapContractTests(unittest.TestCase):
             "public_watch_map_view_and_session_cleanup_return_sorted_tokens", source
         )
 
-    def test_plan_record_keeps_parent_m2_pending_until_gateway_wiring(self) -> None:
-        record = self.read(
-            "docs/plans/zircon_editor/editor/02/2026-07-22-world-sync-watch-map.md"
-        )
-        self.assertIn("## 产出记录与时间", record)
-        self.assertIn("review_clean_waiting_editor13_base", record)
-        self.assertIn("父 M2 保持 pending", record)
-
-
 if __name__ == "__main__":
     unittest.main()

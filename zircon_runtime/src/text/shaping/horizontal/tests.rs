@@ -6,28 +6,19 @@ use crate::text::{TextRange, TextStyle};
 use crate::text::font::FontDatabase;
 #[cfg(target_os = "windows")]
 use crate::text::shaping::shape_horizontal_line;
-use crate::text::TextOrientation;
 #[cfg(target_os = "windows")]
 use crate::text::VariationCoords;
 
 use super::backend::shape_horizontal_run;
-use super::projection::should_apply_horizontal_backend;
-
 #[test]
-fn text_horizontal_backend_skips_vertical_requests() {
-    assert!(should_apply_horizontal_backend(TextOrientation::Horizontal));
-    assert!(!should_apply_horizontal_backend(TextOrientation::Vertical));
-}
-
-#[test]
-fn text_horizontal_backend_skips_static_face_for_empty_language_tag() {
+fn text_horizontal_backend_shapes_static_face_without_language_override() {
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
     let mut database = FontDatabase::default();
     let face = database
         .register_font_file(&source, Some("Fira Sans Empty Locale Test"), 0)
         .expect("register tracked static font");
 
-    assert!(shape_horizontal_run(
+    let shaped = shape_horizontal_run(
         &database,
         face,
         None,
@@ -40,7 +31,9 @@ fn text_horizontal_backend_skips_static_face_for_empty_language_tag() {
         400,
         18.0,
     )
-    .is_none());
+    .expect("static face shapes through the canonical backend");
+
+    assert!(!shaped.glyphs.is_empty());
 }
 
 #[cfg(target_os = "windows")]

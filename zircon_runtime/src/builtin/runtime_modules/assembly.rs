@@ -7,6 +7,7 @@ use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistr
 mod extension_inputs;
 mod feature_reports;
 mod profile_modules;
+pub(super) mod profile_selection;
 mod registration_inputs;
 mod registration_reports;
 mod target_modules;

@@ -14,7 +14,7 @@ use super::super::super::super::paint_primitives::{
 };
 use super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 use super::super::super::native_panes::draw_vertical_scrollbar;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;

@@ -29,6 +29,19 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists
 }
 
 impl<'a> RenderPassMeshCommandLists<'a> {
+    pub(in crate::graphics::scene::scene_renderer) fn with_replay_stats<'b>(
+        self,
+        replay_stats: &'b MeshDrawReplayStatsAccumulator,
+    ) -> RenderPassMeshCommandLists<'b>
+    where
+        'a: 'b,
+    {
+        RenderPassMeshCommandLists {
+            replay_stats,
+            ..self
+        }
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn stream_for_stage(
         &self,
         stage: RenderPassStage,

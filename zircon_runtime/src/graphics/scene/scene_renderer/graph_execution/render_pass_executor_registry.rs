@@ -31,7 +31,10 @@ use super::builtin_scene_executors::{
     transmission_scene_copy_executor,
 };
 use super::preview_sky_executor::preview_sky_scene_color_executor;
-use super::render_pass_executor_registration::{RenderPassExecutor, render_pass_executor_from_fn};
+use super::render_pass_executor_registration::{
+    RenderPassExecutor, RenderPassRecordingPolicy, render_pass_executor_from_fn,
+    render_pass_executor_from_parallel_safe_fn,
+};
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
 pub type RenderPassExecutorFn = fn(&mut RenderPassExecutionContext<'_>) -> Result<(), String>;
@@ -103,10 +106,10 @@ impl RenderPassExecutorRegistry {
         registry.register("post.upscale".into(), upscale_postprocess_executor);
         registry.register(FXAA_EXECUTOR_ID.into(), fxaa_postprocess_executor);
         registry.register(SMAA_EXECUTOR_ID.into(), smaa_postprocess_executor);
-        registry.register("sprite.opaque".into(), sprite_executor);
-        registry.register("sprite.alpha-mask".into(), sprite_executor);
-        registry.register("sprite.transparent".into(), sprite_executor);
-        registry.register("particle.transparent".into(), particle_billboard_executor);
+        registry.register_parallel_safe("sprite.opaque".into(), sprite_executor);
+        registry.register_parallel_safe("sprite.alpha-mask".into(), sprite_executor);
+        registry.register_parallel_safe("sprite.transparent".into(), sprite_executor);
+        registry.register_parallel_safe("particle.transparent".into(), particle_billboard_executor);
         registry.register("mesh.depth-prepass".into(), depth_prepass_executor);
         registry.register("mesh.opaque".into(), mesh_executor);
         registry.register("mesh.alpha-mask".into(), mesh_executor);
@@ -246,6 +249,14 @@ impl RenderPassExecutorRegistry {
         self.register_executor(id, render_pass_executor_from_fn(executor))
     }
 
+    fn register_parallel_safe(
+        &mut self,
+        id: RenderPassExecutorId,
+        executor: RenderPassExecutorFn,
+    ) -> Option<Arc<dyn RenderPassExecutor>> {
+        self.register_executor(id, render_pass_executor_from_parallel_safe_fn(executor))
+    }
+
     pub fn register_executor(
         &mut self,
         id: RenderPassExecutorId,
@@ -289,6 +300,15 @@ impl RenderPassExecutorRegistry {
             )
         })?;
         executor.execute(context)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn supports_parallel_recording(
+        &self,
+        executor_id: &str,
+    ) -> bool {
+        self.executors.get(executor_id).is_some_and(|executor| {
+            executor.recording_policy() == RenderPassRecordingPolicy::ParallelSafe
+        })
     }
 
     pub fn validate_compiled_pipeline(

@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/PluginManagerValidate", event = "Click", ro
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPluginManagerDependencyTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "plugin_manager_audio_runtime_table_row" }, { node = "plugin_manager_renderdoc_bridge_table_row" }, { node = "plugin_manager_gameplay_pack_table_row" }, { node = "plugin_manager_version_warning_table_row" }]
 

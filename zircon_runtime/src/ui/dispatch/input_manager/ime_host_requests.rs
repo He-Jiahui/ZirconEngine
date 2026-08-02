@@ -19,6 +19,15 @@ pub(super) fn append_ime_host_requests_for_result(
     }
 }
 
+pub(super) fn append_ime_host_requests_for_input_method_requests(
+    requests: impl IntoIterator<Item = UiInputMethodRequest>,
+    output: &mut Vec<ImeHostRequest>,
+) {
+    for request in requests {
+        append_ime_host_requests_for_input_method_request(&request, output);
+    }
+}
+
 fn append_ime_host_requests_for_input_method_request(
     request: &UiInputMethodRequest,
     output: &mut Vec<ImeHostRequest>,

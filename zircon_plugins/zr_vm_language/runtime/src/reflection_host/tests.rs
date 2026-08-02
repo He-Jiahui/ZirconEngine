@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, NodeKind, VmTypeBacking, World};
 use zircon_runtime::script::{
-    with_script_runtime_call_context, CapabilitySet, HotReloadCoordinator,
-    ScriptRuntimeCallContext, VmBackend, VmError, VmPluginHostContext, VmPluginInstance,
+    with_script_runtime_test_context, CapabilitySet, HotReloadCoordinator,
+    ScriptRuntimeTestContext, VmBackend, VmError, VmPluginHostContext, VmPluginInstance,
     VmPluginManager, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
     VmPluginSlotLifecycle, VmPluginSlotRecord, VmStateSchema, VmStateTypeSchema,
 };
@@ -26,7 +26,7 @@ fn reflection_host_resolves_once_then_reads_and_writes_by_numeric_token() {
             VmTypeBacking::DynamicComponent,
         )
         .expect("test world should install the public VM type");
-    let host = ReflectionHostModule::default();
+    let host = reflection_host();
     host.install_type_registry(world.type_registry())
         .expect("public registry should compile into the reflection host table");
     let token = host
@@ -44,14 +44,9 @@ fn reflection_host_resolves_once_then_reads_and_writes_by_numeric_token() {
     let levels = DefaultLevelManager::default();
     let level = levels.create_level(world, LevelMetadata::default());
     let runtime = CoreRuntime::new();
-    let context = ScriptRuntimeCallContext {
-        core: runtime.handle().downgrade(),
-        level,
-        entity,
-        delta_seconds: 0.0,
-    };
+    let context = ScriptRuntimeTestContext::new(runtime.handle().downgrade(), level, entity, 0.0);
 
-    with_script_runtime_call_context(context, || {
+    with_script_runtime_test_context(context, || {
         assert_eq!(
             host.read(token, entity)
                 .expect("numeric reflection read should succeed"),
@@ -83,7 +78,7 @@ fn reflection_host_does_not_expose_private_vm_types() {
             VmTypeBacking::DynamicComponent,
         )
         .expect("private VM type should still register in the host registry");
-    let host = ReflectionHostModule::default();
+    let host = reflection_host();
     host.install_type_registry(world.type_registry())
         .expect("private types should be filtered rather than rejected");
 
@@ -100,7 +95,7 @@ fn reflection_host_does_not_expose_private_vm_types() {
 #[test]
 fn reflection_host_exports_public_builtin_component_fields() {
     let world = World::empty();
-    let host = ReflectionHostModule::default();
+    let host = reflection_host();
     host.install_type_registry(world.type_registry())
         .expect("canonical host registry should compile");
 
@@ -356,23 +351,28 @@ fn gameplay_package() -> VmPluginPackage {
     }
 }
 
+fn reflection_host() -> ReflectionHostModule {
+    let manager = VmPluginManager::mock();
+    let host_context = test_host_context(&manager, "reflection-host");
+    ReflectionHostModule::new(host_context.reflection_world_access())
+}
+
 fn test_host_context(
     manager: &Arc<VmPluginManager>,
     backend_selector: &str,
 ) -> VmPluginHostContext {
-    VmPluginHostContext {
-        plugin: manager.base_plugin_context().clone(),
-        capabilities: CapabilitySet::default(),
-        backend_selector: backend_selector.to_string(),
-        package_source: VmPluginPackageSource::default(),
-        host_registry: manager.host_registry(),
-        host_exports: manager.host_exports(),
-        host_interfaces: manager.host_interfaces(),
-        reflection_catalog: manager.reflection_catalog(),
-        reflection_schema_installer: Default::default(),
-        slot_lifecycle: Arc::new(NoopSlotLifecycle),
-        vm_owner: None,
-    }
+    VmPluginHostContext::new_for_tests(
+        manager.base_plugin_context().clone(),
+        CapabilitySet::default(),
+        backend_selector.to_string(),
+        VmPluginPackageSource::default(),
+        manager.host_registry(),
+        manager.host_exports(),
+        manager.host_interfaces(),
+        manager.reflection_catalog(),
+        Default::default(),
+        Arc::new(NoopSlotLifecycle),
+    )
 }
 
 struct NoopSlotLifecycle;

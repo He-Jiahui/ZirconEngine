@@ -1,7 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::metrics::{chip_glyph_chevron_right, chip_glyph_chevron_size};
-use super::segments::{push_segments, ChipGlyphSegmentSpec};
+use super::segments::{ChipGlyphSegmentSpec, push_segments};
 
 const CHIP_CHEVRON_SEGMENTS: &[ChipGlyphSegmentSpec] = &[
     ChipGlyphSegmentSpec::new(3, 4, 2, 2),

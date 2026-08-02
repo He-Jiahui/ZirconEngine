@@ -3,7 +3,7 @@ use crate::ui::layouts::common::model_rc;
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::{
-    draw_template_nodes, draw_template_nodes_with_transform, TemplateNodePaintTransform,
+    TemplateNodePaintTransform, draw_template_nodes, draw_template_nodes_with_transform,
 };
 use super::support::{changed_pixel_count, panel_node, rect};
 

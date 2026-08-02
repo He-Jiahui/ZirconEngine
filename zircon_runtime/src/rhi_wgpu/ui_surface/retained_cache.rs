@@ -103,14 +103,15 @@ mod tests {
     use crate::graphics::backend::read_texture_rgba;
     use crate::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceRect};
 
-    use super::super::batching::{batch_draw_plan, CompiledUiBatchPlanCache};
-    use super::super::pipeline::{
-        create_image_bind_group_layout, create_image_pipeline, create_solid_pipeline,
-    };
-    use super::super::render_pass::{record_draw_ops_to_view, TargetLoad, WgpuUiDrawBufferCache};
-    use super::super::text::WgpuUiTextRenderer;
     use super::super::WgpuUiImageResource;
-    use super::{retained_copy_byte_count, WgpuRetainedSurfaceCache};
+    use super::super::batching::{CompiledUiBatchPlanCache, batch_draw_plan};
+    use super::super::pipeline::{
+        create_image_bind_group_layout, create_image_pipeline, create_solid_instance_pipeline,
+        create_solid_pipeline,
+    };
+    use super::super::render_pass::{TargetLoad, WgpuUiDrawBufferCache, record_draw_ops_to_view};
+    use super::super::text::WgpuUiTextRenderer;
+    use super::{WgpuRetainedSurfaceCache, retained_copy_byte_count};
 
     const TEST_SIZE: (u32, u32) = (4, 4);
     const TEST_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -172,6 +173,7 @@ mod tests {
             .resolve(&device, &queue, &seed_draw_list, &seed_draw_plan)
             .buffers;
         let solid_pipeline = create_solid_pipeline(&device, TEST_FORMAT);
+        let solid_instance_pipeline = create_solid_instance_pipeline(&device, TEST_FORMAT);
         let image_pipeline = create_image_pipeline(&device, TEST_FORMAT, &image_layout);
         let image_cache = HashMap::<String, WgpuUiImageResource>::new();
         let mut text = WgpuUiTextRenderer::new(&device, &queue, TEST_FORMAT);
@@ -187,6 +189,7 @@ mod tests {
             &seed_draw_plan.ops,
             &seed_buffers,
             &solid_pipeline,
+            &solid_instance_pipeline,
             &image_pipeline,
             &image_cache,
             &mut text,
@@ -225,6 +228,7 @@ mod tests {
             &patch_draw_plan.ops,
             &patch_buffers,
             &solid_pipeline,
+            &solid_instance_pipeline,
             &image_pipeline,
             &image_cache,
             &mut text,
@@ -301,6 +305,7 @@ mod tests {
             .resolve(&device, &queue, &draw_list, &full_redraw.plan)
             .buffers;
         let solid_pipeline = create_solid_pipeline(&device, TEST_FORMAT);
+        let solid_instance_pipeline = create_solid_instance_pipeline(&device, TEST_FORMAT);
         let image_pipeline = create_image_pipeline(&device, TEST_FORMAT, &image_layout);
         let image_cache = HashMap::<String, WgpuUiImageResource>::new();
         let mut text = WgpuUiTextRenderer::new(&device, &queue, TEST_FORMAT);
@@ -317,6 +322,7 @@ mod tests {
             &full_redraw.plan.ops,
             &buffers,
             &solid_pipeline,
+            &solid_instance_pipeline,
             &image_pipeline,
             &image_cache,
             &mut text,

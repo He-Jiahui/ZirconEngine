@@ -73,7 +73,7 @@ fn f4_project_authoring_survives_full_application_restart() {
     let cube = first_snapshot
         .scene_entries
         .iter()
-        .find(|entry| entry.name == "Cube")
+        .find(|entry| entry.display_name == "Cube")
         .expect("renderable-empty project must contain a Cube")
         .id;
     let (initial_cube, initial_camera, initial_sun) = {
@@ -115,11 +115,14 @@ fn f4_project_authoring_survives_full_application_restart() {
         Some(selection_binding_path.as_str()),
         "the F4 selection must originate from the normal Hierarchy binding"
     );
-    assert!(host
-        .editor_snapshot()
-        .scene_entries
-        .iter()
-        .any(|entry| entry.id == cube && entry.selected));
+    let selected_snapshot = host.editor_snapshot();
+    assert!(
+        selected_snapshot
+            .scene_entries
+            .iter()
+            .any(|entry| entry.entity == cube
+                && selected_snapshot.scene_entries.is_selected(entry.entity))
+    );
     let initial_x = host
         .editor_snapshot()
         .inspector
@@ -222,14 +225,14 @@ fn f4_project_authoring_survives_full_application_restart() {
         save_record.save_generation.is_some(),
         "the successful F4 save must publish its persisted history generation"
     );
-    drop(first);
+    first.close().unwrap();
 
     let reopened = EditorApplicationComposition::open_project(&created.root).unwrap();
     let reopened_snapshot = reopened.editor_host().editor_snapshot();
     let reopened_cube = reopened_snapshot
         .scene_entries
         .iter()
-        .find(|entry| entry.name == "Cube")
+        .find(|entry| entry.display_name == "Cube")
         .expect("reopened project must contain a Cube")
         .id;
     reopened
@@ -295,7 +298,7 @@ fn f4_project_authoring_survives_full_application_restart() {
 
     drop(persisted);
     drop(opened_project);
-    drop(reopened);
+    reopened.close().unwrap();
     fs::remove_dir_all(location).unwrap();
 }
 

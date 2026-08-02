@@ -3,6 +3,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::core::asset::{
     AssetTypeContribution, AssetTypeId, AssetTypeIdError, AssetTypeRegistryError,
@@ -16,12 +17,11 @@ use crate::core::editor_authoring_extension::{
     TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
 use crate::core::editor_operation::{EditorOperationPath, EditorOperationPathError};
+use crate::core::extension::InspectorCustomizationDescriptor;
 use crate::core::settings::SettingsPageDescriptor;
 use crate::scene::modes::SceneModeRegistration;
 
-use contribution_descriptors::{
-    validate_asset_importer, validate_component_drawer, validate_menu_item_path,
-};
+use contribution_descriptors::{validate_asset_importer, validate_menu_item_path};
 
 mod contribution_descriptors;
 mod template_contributions;
@@ -29,7 +29,7 @@ mod view_descriptor;
 mod viewport_overlay_provider;
 
 pub use contribution_descriptors::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor, EditorMenuItemDescriptor,
+    AssetImporterDescriptor, DrawerDescriptor, EditorMenuItemDescriptor,
 };
 pub use template_contributions::EditorUiTemplateDescriptor;
 pub use view_descriptor::{
@@ -45,7 +45,7 @@ pub struct EditorExtensionRegistry {
     views: BTreeMap<String, ViewDescriptor>,
     drawers: BTreeMap<String, DrawerDescriptor>,
     menu_items: BTreeMap<String, EditorMenuItemDescriptor>,
-    component_drawers: BTreeMap<String, ComponentDrawerDescriptor>,
+    inspector_customizations: BTreeMap<String, InspectorCustomizationDescriptor>,
     ui_templates: BTreeMap<String, EditorUiTemplateDescriptor>,
     #[serde(skip)]
     ui_template_root: Option<PathBuf>,
@@ -69,6 +69,82 @@ pub struct EditorExtensionRegistry {
 }
 
 impl EditorExtensionRegistry {
+    pub(crate) fn into_contribution_batch(
+        mut self,
+    ) -> Result<crate::core::extension::ContributionBatch, EditorExtensionRegistryError> {
+        let pane_data_sources = self.ui_template_pane_data_sources();
+        let commands = self.take_command_contributions();
+        let mut factories = self
+            .take_operation_factories()
+            .into_iter()
+            .map(|factory| (factory.operation().clone(), factory))
+            .collect::<BTreeMap<_, _>>();
+        let mut batch = crate::core::extension::ContributionBatch::default();
+
+        for descriptor in self.views.into_values() {
+            batch.register_view(descriptor)?;
+        }
+        for descriptor in self.drawers.into_values() {
+            batch.register_drawer(descriptor)?;
+        }
+        for descriptor in self.menu_items.into_values() {
+            batch.register_menu_item(descriptor)?;
+        }
+        for descriptor in self.inspector_customizations.into_values() {
+            batch.register_inspector_customization(Arc::new(descriptor))?;
+        }
+        for descriptor in self.ui_templates.into_values() {
+            batch.register_ui_template(descriptor)?;
+        }
+        for (template_id, source) in pane_data_sources {
+            batch.register_ui_template_pane_data_source(template_id, source)?;
+        }
+        for descriptor in self.asset_importers.into_values() {
+            batch.register_asset_importer(descriptor)?;
+        }
+        for contribution in self.asset_type_contributions.into_values() {
+            batch.register_asset_type_contribution(contribution)?;
+        }
+        for descriptor in self.settings_pages.into_values() {
+            batch.register_settings_page(descriptor)?;
+        }
+        for registration in self.scene_mode_registrations.into_values() {
+            batch.register_scene_mode(registration)?;
+        }
+        for registration in self.viewport_overlay_providers.into_values() {
+            batch.register_viewport_overlay_provider(registration)?;
+        }
+        for descriptor in self.graph_editors.into_values() {
+            batch.register_graph_editor(descriptor)?;
+        }
+        for descriptor in self.graph_node_palettes.into_values() {
+            batch.register_graph_node_palette(descriptor)?;
+        }
+        for descriptor in self.timeline_editors.into_values() {
+            batch.register_timeline_editor(descriptor)?;
+        }
+        for descriptor in self.timeline_track_types.into_values() {
+            batch.register_timeline_track_type(descriptor)?;
+        }
+        for command in commands {
+            if let Some(factory) = factories.remove(command.id()) {
+                batch.register_operation_command(command, factory)?;
+            } else {
+                batch.register_command(command)?;
+            }
+        }
+        if let Some((operation, _)) = factories.into_iter().next() {
+            return Err(EditorExtensionRegistryError::Command(
+                EditorCommandRegistryError::OperationFactory(
+                    crate::core::editing::operation::OperationCommandFactoryError::OrphanFactory {
+                        operation,
+                    },
+                ),
+            ));
+        }
+        Ok(batch)
+    }
+
     pub fn register_view(
         &mut self,
         descriptor: ViewDescriptor,
@@ -105,16 +181,21 @@ impl EditorExtensionRegistry {
         )
     }
 
-    pub fn register_component_drawer(
+    pub fn register_inspector_customization(
         &mut self,
-        descriptor: ComponentDrawerDescriptor,
+        descriptor: InspectorCustomizationDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_component_drawer(&descriptor)?;
+        descriptor
+            .validate()
+            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        crate::core::extension::ContributionBatch::default()
+            .register_inspector_customization(Arc::new(descriptor.clone()))?;
+        let id = descriptor.id().to_string();
         insert_unique(
-            &mut self.component_drawers,
-            descriptor.component_type.clone(),
+            &mut self.inspector_customizations,
+            id,
             descriptor,
-            "component drawer",
+            "inspector customization",
         )
     }
 
@@ -294,8 +375,8 @@ impl EditorExtensionRegistry {
         self.menu_items.values().collect()
     }
 
-    pub fn component_drawers(&self) -> Vec<&ComponentDrawerDescriptor> {
-        self.component_drawers.values().collect()
+    pub fn inspector_customizations(&self) -> Vec<&InspectorCustomizationDescriptor> {
+        self.inspector_customizations.values().collect()
     }
 
     pub(crate) fn bind_matching_ui_templates_to_views(&mut self) {

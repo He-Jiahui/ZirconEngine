@@ -18,12 +18,31 @@ fn text_sdf_offline_lookup_resolves_manifest_and_instance_once() {
     assert!(!source.contains("resolve_font_face("));
     assert!(!source.contains("register_loaded_font_manifest("));
     assert!(source.contains("manifests: HashMap<String, Option<LoadedTextFontSource>>"));
-    assert_eq!(
-        source
-            .matches("and_then(crate::text::font::resolve_font_instance_handle)")
-            .count(),
-        1
-    );
+    assert!(source.contains("artifacts: HashMap<SdfOfflineArtifactIdentity, Option<"));
+    assert!(source.contains("glyph_bitmaps: HashMap<SdfOfflineGlyphKey, Arc<[u8]>>"));
+    assert!(source.contains("MAX_RESIDENT_MANIFEST_COUNT"));
+    assert!(source.contains("MAX_RESIDENT_ARTIFACT_BYTE_COUNT"));
+    assert!(source.contains("MAX_RESIDENT_GLYPH_BITMAP_BYTE_COUNT"));
+    assert!(source.contains("resident_artifact_byte_count"));
+    assert!(source.contains("resident_glyph_bitmap_byte_count"));
+}
+
+#[test]
+fn text_sdf_offline_negative_manifest_cache_has_a_hard_lru_limit() {
+    let asset_manager = ProjectAssetManager::default();
+    let mut bake = SdfFontBakeCache::new();
+
+    for index in 0..129 {
+        let font_ref = format!("res://fonts/missing-{index}.font.toml");
+        assert!(bake
+            .offline_source
+            .load_manifest_for_test(&font_ref, &asset_manager)
+            .is_none());
+    }
+
+    let report = bake.offline_source.report();
+    assert_eq!(bake.offline_source.manifest_cache_len(), 128);
+    assert_eq!(report.manifest_eviction_count, 1);
 }
 
 #[test]
@@ -34,7 +53,8 @@ fn text_sdf_font_bake_consumers_use_database_glyph_metadata_without_reparse() {
     assert!(!dynamic_source.contains("Face::parse"));
     assert!(!offline_source.contains("Face::parse"));
     assert!(dynamic_source.contains("face_glyph_id"));
-    assert!(offline_source.contains("glyph_id_for_key(key, face_id, font_database)"));
+    assert!(offline_source
+        .contains("glyph_id_for_key(key, face_id, resolved_shaped_face, font_database)"));
 }
 
 #[test]
@@ -115,12 +135,37 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     assert_eq!(offline.report.offline_glyph_count, 1);
     assert_eq!(offline.report.dynamic_glyph_count, 0);
     assert!(offline.report.nonzero_pixel_count > 0);
+    assert_eq!(offline.report.offline_manifest_parse_count, 1);
+    assert_eq!(offline.report.offline_artifact_stat_count, 1);
+    assert_eq!(offline.report.offline_artifact_read_count, 1);
+    assert_eq!(offline.report.offline_artifact_decode_count, 1);
+    assert_eq!(
+        offline.report.offline_resident_artifact_byte_count,
+        generated.pixels.len()
+    );
+    assert_eq!(
+        offline.report.offline_resident_glyph_bitmap_byte_count,
+        generated.pixels.len()
+    );
+    assert_eq!(offline.report.offline_pixel_copy_count, 1);
+    assert_eq!(
+        offline.report.offline_pixel_copy_byte_count,
+        generated.pixels.len()
+    );
+    assert_eq!(offline.report.offline_manifest_eviction_count, 0);
+    assert_eq!(offline.report.offline_artifact_eviction_count, 0);
+    assert_eq!(offline.report.offline_glyph_bitmap_eviction_count, 0);
     assert_eq!(dynamic.report.offline_glyph_count, 0);
     assert_eq!(dynamic.report.dynamic_glyph_count, 1);
     assert!(dynamic.report.nonzero_pixel_count > 0);
+    assert_eq!(dynamic.report.offline_manifest_parse_count, 0);
+    assert_eq!(dynamic.report.offline_artifact_stat_count, 0);
+    assert_eq!(dynamic.report.offline_artifact_read_count, 0);
+    assert_eq!(dynamic.report.offline_artifact_decode_count, 0);
+    assert_eq!(dynamic.report.offline_pixel_copy_count, 0);
     assert_eq!(bake.offline_source.manifest_cache_len(), 1);
 
-    bake.glyphs.clear();
+    bake.clear_cached_glyph_entries();
     std::fs::remove_file(&artifact_path).unwrap();
     let reused = bake.build_atlas_from_slots(
         offline_plan.atlas_size,
@@ -130,6 +175,10 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     );
     assert_eq!(reused.report.offline_glyph_count, 1);
     assert_eq!(reused.report.dynamic_glyph_count, 0);
+    assert_eq!(reused.report.offline_artifact_stat_count, 0);
+    assert_eq!(reused.report.offline_artifact_read_count, 0);
+    assert_eq!(reused.report.offline_artifact_decode_count, 0);
+    assert_eq!(reused.report.offline_pixel_copy_count, 0);
 
     let mut stale_variation = identity.clone();
     stale_variation.variation_hash = [0x11; 32];
@@ -143,6 +192,27 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     );
     assert_eq!(stale_variation_result.report.offline_glyph_count, 0);
     assert_eq!(stale_variation_result.report.dynamic_glyph_count, 1);
+    assert_eq!(stale_variation_result.report.offline_artifact_stat_count, 1);
+    assert_eq!(stale_variation_result.report.offline_artifact_read_count, 1);
+    assert_eq!(
+        stale_variation_result.report.offline_artifact_decode_count,
+        1
+    );
+    assert_eq!(stale_variation_result.report.offline_pixel_copy_count, 0);
+
+    stale_variation_bake.clear_cached_glyph_entries();
+    let stale_variation_reused = stale_variation_bake.build_atlas_from_slots(
+        offline_plan.atlas_size,
+        &offline_plan.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+    assert_eq!(stale_variation_reused.report.offline_artifact_stat_count, 0);
+    assert_eq!(stale_variation_reused.report.offline_artifact_read_count, 0);
+    assert_eq!(
+        stale_variation_reused.report.offline_artifact_decode_count,
+        0
+    );
 
     let mut stale_source = identity;
     stale_source.source_hash = [0x22; 32];

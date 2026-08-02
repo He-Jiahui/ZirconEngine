@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 const expected = [
   [12, 'loot', 'lootCorpse', 'loot', 'LOOT_COMMAND_ID', 'LootCorpse', ['id']],
   [15, 'pickup', 'pickUpObject', 'pickup', 'PICKUP_COMMAND_ID', 'PickUpObject', ['id']],
@@ -60,9 +60,9 @@ for (const symbol of [
 }
 assert.match(protocol, /CommandPayloadKind::WorldObjectId/);
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('world-object command payload contracts are complete\n');

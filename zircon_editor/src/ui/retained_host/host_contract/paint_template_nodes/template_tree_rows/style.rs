@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::style_selector::{select_workbench_tree_row_style, WorkbenchTreeRowStyle};
+use super::super::style_selector::{WorkbenchTreeRowStyle, select_workbench_tree_row_style};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_row_background(

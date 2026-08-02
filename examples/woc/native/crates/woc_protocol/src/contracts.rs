@@ -35,6 +35,26 @@ pub struct FixedTickInput {
 
 /// Source-derived inputs that construct one fresh standard offline simulation.
 /// This is a first-tick envelope, never an authoritative gameplay command.
+pub const OFFLINE_WEAPON_SKIN_COUNT: usize = 29;
+pub const OFFLINE_WEAPON_SKIN_TYPE_COUNT: usize = 8;
+
+/// Account-cosmetic facts supplied by the host when it creates an offline session.
+/// The fixed arrays preserve the source catalog order and keep the first tick
+/// deterministic without requiring an account service inside the simulation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct OfflineWeaponSkinAccount {
+    pub owned: [bool; OFFLINE_WEAPON_SKIN_COUNT],
+    pub loadout_codes: [u8; OFFLINE_WEAPON_SKIN_TYPE_COUNT],
+}
+
+impl Default for OfflineWeaponSkinAccount {
+    fn default() -> Self {
+        Self {
+            owned: [false; OFFLINE_WEAPON_SKIN_COUNT],
+            loadout_codes: [0; OFFLINE_WEAPON_SKIN_TYPE_COUNT],
+        }
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct OfflineSessionBootstrap {
     pub launch_version: u16,
@@ -42,6 +62,7 @@ pub struct OfflineSessionBootstrap {
     pub player_class: u8,
     pub player_name: String,
     pub skin_variant: u16,
+    pub weapon_skin_account: OfflineWeaponSkinAccount,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]

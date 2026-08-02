@@ -12,9 +12,7 @@ impl RuntimeEntryApp {
     ) {
         let event =
             ZrRuntimeEventV1::window_destroyed(ZIRCON_RUNTIME_ABI_VERSION_V1, self.viewport);
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, event);
     }
 
     pub(in crate::entry::runtime_entry_app) fn handle_window_moved(
@@ -28,9 +26,7 @@ impl RuntimeEntryApp {
             position.x,
             position.y,
         );
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, event);
     }
 
     pub(in crate::entry::runtime_entry_app) fn handle_window_occluded(
@@ -43,9 +39,7 @@ impl RuntimeEntryApp {
             self.viewport,
             occluded,
         );
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, event);
     }
 
     pub(in crate::entry::runtime_entry_app) fn handle_window_theme_changed(
@@ -58,8 +52,6 @@ impl RuntimeEntryApp {
             self.viewport,
             window_theme(theme),
         );
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, event);
     }
 }

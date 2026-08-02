@@ -121,14 +121,84 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
         control_string_list_attribute(&bridge, "filtered_commands"),
         vec!["file.project.save"]
     );
-    assert!(bridge
-        .close_command_palette()
-        .expect("command palette should close"));
+    assert!(
+        bridge
+            .close_command_palette()
+            .expect("command palette should close")
+    );
     assert!(!bridge.command_palette_open());
     assert_eq!(
         control_string_attribute(&bridge, "visibility").as_deref(),
         Some("collapsed")
     );
+}
+
+#[test]
+fn scene_picker_chrome_is_scoped_to_its_palette_open() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("componentized workbench template should project");
+
+    bridge
+        .open_command_palette_with_chrome(
+            palette_state("scene-picker-open-0", "res://levels/main.scene.toml"),
+            "scene-picker-open",
+            "Search project scenes",
+            "No scene assets found in this project",
+            "Open project scene",
+            "Choose a project-owned scene asset",
+        )
+        .expect("scene picker chrome should open");
+
+    assert_eq!(bridge.command_palette_source(), "scene-picker-open");
+    assert_eq!(
+        control_string_attribute(&bridge, "placeholder").as_deref(),
+        Some("Search project scenes")
+    );
+    assert_eq!(
+        control_string_attribute(&bridge, "empty_text").as_deref(),
+        Some("No scene assets found in this project")
+    );
+
+    bridge
+        .open_command_palette(palette_state("file.project.open", "Open Project"))
+        .expect("normal command palette should reopen");
+
+    assert_eq!(bridge.command_palette_source(), "workbench");
+    assert_eq!(
+        control_string_attribute(&bridge, "placeholder").as_deref(),
+        Some("Search commands")
+    );
+    assert_eq!(
+        control_string_attribute(&bridge, "empty_text").as_deref(),
+        Some("No commands found")
+    );
+}
+
+#[test]
+fn command_palette_anchor_tracks_the_current_workbench_size() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("componentized workbench template should project");
+
+    bridge
+        .recompute_layout(UiSize::new(360.0, 640.0))
+        .expect("narrow workbench layout should recompute");
+    bridge
+        .open_command_palette(palette_state("file.project.open", "Open Project"))
+        .expect("command palette should open after a narrow layout recompute");
+
+    assert_float_attribute(&bridge, "popup_anchor_x", 14.4);
+    assert_float_attribute(&bridge, "popup_anchor_y", 64.0);
+    assert_float_attribute(&bridge, "popup_anchor_width", 331.2);
+
+    bridge
+        .recompute_layout(UiSize::new(1200.0, 900.0))
+        .expect("desktop workbench layout should recompute");
+
+    assert_float_attribute(&bridge, "popup_anchor_x", 32.0);
+    assert_float_attribute(&bridge, "popup_anchor_y", 72.0);
+    assert_float_attribute(&bridge, "popup_anchor_width", 1136.0);
 }
 
 #[test]
@@ -205,6 +275,22 @@ fn control_string_attribute(
         .map(str::to_string)
 }
 
+fn palette_state(command_id: &str, label: &str) -> WorkbenchCommandPaletteOpenState {
+    WorkbenchCommandPaletteOpenState {
+        query: String::new(),
+        commands: UiValue::Array(vec![UiValue::Map(std::collections::BTreeMap::from([
+            ("id".to_string(), UiValue::String(command_id.to_string())),
+            ("label".to_string(), UiValue::String(label.to_string())),
+        ]))]),
+        filtered_commands: UiValue::Array(vec![UiValue::String(command_id.to_string())]),
+        selected_command_id: command_id.to_string(),
+        focused_index: 0,
+        catalog_generation: 1,
+        total_match_count: 1,
+        window_offset: 0,
+    }
+}
+
 fn control_bool_attribute(
     bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
     property: &str,
@@ -217,6 +303,20 @@ fn control_integer_attribute(
     property: &str,
 ) -> Option<i64> {
     control_attribute(bridge, property).and_then(toml::Value::as_integer)
+}
+
+fn assert_float_attribute(
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    property: &str,
+    expected: f64,
+) {
+    let actual = control_attribute(bridge, property)
+        .and_then(toml::Value::as_float)
+        .expect("command palette float property should exist");
+    assert!(
+        (actual - expected).abs() < 0.001,
+        "{property} expected {expected}, got {actual}"
+    );
 }
 
 fn control_string_list_attribute(

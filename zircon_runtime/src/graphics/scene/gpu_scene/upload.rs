@@ -24,6 +24,40 @@ pub(super) fn write_full_pod_buffer<T: Pod>(
     bytes.len() as u64
 }
 
+pub(super) fn write_changed_pod_buffer<T: Pod + PartialEq>(
+    queue: &wgpu::Queue,
+    buffer: &wgpu::Buffer,
+    previous: &[T],
+    current: &[T],
+) -> u64 {
+    let mut uploaded_bytes = 0;
+    let mut index = 0;
+    while index < current.len() {
+        if previous.get(index) == Some(&current[index]) {
+            index += 1;
+            continue;
+        }
+
+        let start = index;
+        index += 1;
+        while index < current.len() && previous.get(index) != Some(&current[index]) {
+            index += 1;
+        }
+
+        let bytes = bytemuck::cast_slice(&current[start..index]);
+        if bytes.is_empty() {
+            continue;
+        }
+        let byte_offset = start
+            .checked_mul(std::mem::size_of::<T>())
+            .and_then(|offset| u64::try_from(offset).ok())
+            .expect("gpu scene dirty upload offset overflowed u64");
+        queue.write_buffer(buffer, byte_offset, bytes);
+        uploaded_bytes += bytes.len() as u64;
+    }
+    uploaded_bytes
+}
+
 pub(super) fn write_upload_ranges<T: Pod>(
     queue: &wgpu::Queue,
     buffer: &wgpu::Buffer,

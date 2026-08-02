@@ -6,9 +6,9 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_authoring_extension.rs
-  - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_plugin_catalog_gen.rs
-  - zircon_editor/src/core/editor_plugin_sdk/
+  - zircon_editor/src/core/plugin/mod.rs
+  - zircon_editor/src/core/plugin/catalog_gen.rs
+  - zircon_editor/src/core/plugin/sdk/
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_plugins/editor_support/src/lib.rs

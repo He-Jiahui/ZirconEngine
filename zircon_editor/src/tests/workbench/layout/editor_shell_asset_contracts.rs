@@ -33,6 +33,12 @@ const WORKBENCH_VIEWPORT_PANEL_ASSET: &str = include_str!(
 fn layout_shell_and_floating_assets_reference_editor_tokens_instead_of_hex_colors() {
     assert!(EDITOR_TOKENS_ASSET.contains("editor.surface.0"));
     assert!(EDITOR_TOKENS_ASSET.contains("editor.control.height.default"));
+    assert!(EDITOR_TOKENS_ASSET.contains("editor.control.radius.pill"));
+    assert!(
+        EDITOR_TOKENS_ASSET.contains("editor.density.toolbar_action_width")
+            && EDITOR_TOKENS_ASSET.contains("editor.density.toolbar_wide_action_width"),
+        "editor token asset must name both toolbar action width tokens"
+    );
     assert!(EDITOR_TOKENS_ASSET.contains("--left-drawer-width"));
     let typography_tokens = EDITOR_TOKENS_ASSET
         .split("[typography]")

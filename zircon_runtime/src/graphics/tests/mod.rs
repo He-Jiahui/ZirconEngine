@@ -12,6 +12,7 @@ mod render_framework_bridge;
 mod render_framework_graph_stats;
 mod render_framework_post_process_submit;
 mod render_framework_visibility_submit;
+mod render_perf_baseline;
 mod render_product_advanced;
 mod render_product_advanced_lighting;
 mod render_product_anti_alias;

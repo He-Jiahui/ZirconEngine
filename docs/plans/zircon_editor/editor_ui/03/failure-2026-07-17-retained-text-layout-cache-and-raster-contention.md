@@ -12,7 +12,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_runtime/src/ui/text
-  - zircon_runtime/src/graphics/text
+  - zircon_runtime/src/text
   - zircon_editor/src/ui/retained_host/host_contract/window/text_input
 tests:
   - retained paint text layout/raster/pixel tests

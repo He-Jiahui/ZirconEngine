@@ -11,8 +11,11 @@ fixing_child_dir: docs/plans/zircon_editor/editor/08
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/persistence.rs
-  - zircon_editor/src/core/settings/
+  - zircon_editor/src/core/commands/keymap/tests.rs
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
+  - zircon_editor/src/core/settings/keymap_overrides.rs
+  - zircon_editor/src/core/settings/tests.rs
 tests:
   - user keymap override resolve through SettingsRegistry
   - SettingsStore current-shell save/load for keymap overrides
@@ -60,3 +63,4 @@ Open state: `keymap SettingsRegistry hard cut 已静态落地；current-source C
 | --- | --- | --- | --- |
 | 2026-07-23 | Editor17 M1.1 -> Editor08 keymap migration handoff | open | 实查 `EditorKeymap.user_layer` 与 `keymap/persistence.rs` 的独立 current-shell 文件读写仍存在；新 Settings User 层已成为唯一迁移目标，等待 Editor08 硬切消费。 |
 | 2026-07-27 | Editor08 M2.2 keymap SettingsRegistry hard cut + PERF-MVP-074 source | source prepared / static green / immutable validation pending | 当前 `EditorKeymap` 只保留内建 preset、typed override 合并、冲突检测与 generation-time `signature_index`；`EditorKeymapOverrides` 已作为 `SettingValue::KeymapOverrides` 的 User schema 值由 `EditorManager` 启动时解析，私有 `apply_user_layer`、`serialize_user_layer`、私有文件读写与旧 document 标识扫描均为 0。新增 User/Session 覆盖、冲突顺序、current shell/legacy 拒绝、10k bindings、dead/unidentified/modifier/F5 与 1,000,000 event storm 回归；`rustfmt --check`、scoped diff check、借用签名静态合同通过。旧 snapshot `1122` 在后续测试补齐后已过期，当前 snapshot/source-copy 创建受 Coordinator01 external-source 与前台超时阻断，未运行 Cargo、未独立复核、未 fixed return 或提交。 |
+| 2026-08-02 | stale private-shell receipt cleanup | static owner review passed / managed Cargo pending | 当前源码复核确认 private persistence owner 已删除，`EDITOR_KEYMAP_OVERRIDES_KEY`、typed tombstone 与 strict `zircon.editor.settings` 壳均由 `core/settings` 持有。失效 Python contract 实跑出现 2 个 missing-file error 与 1 个旧测试名 failure，已连同仅被其引用的 v0 fixture 删除；Editor11 child record 与模块文档已改到现行 owner。failure 继续 open：本次未运行 managed Cargo，不据静态证据执行 fixed return。 |

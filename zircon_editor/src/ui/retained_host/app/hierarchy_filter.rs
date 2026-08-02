@@ -1,4 +1,7 @@
-use super::{HostInvalidationMask, RetainedEditorHost, SceneEntry};
+use zircon_runtime::scene::WorldInspectionHierarchyRow;
+
+use super::{HostInvalidationMask, RetainedEditorHost};
+use crate::ui::workbench::snapshot::SceneEntries;
 
 impl RetainedEditorHost {
     pub(super) fn hierarchy_filter_query(&self) -> &str {
@@ -7,10 +10,14 @@ impl RetainedEditorHost {
 
     pub(super) fn filtered_hierarchy_entries(
         &self,
-        entries: &[SceneEntry],
-    ) -> Option<Vec<SceneEntry>> {
-        (!self.hierarchy_filter_query.trim().is_empty())
-            .then(|| hierarchy_entries_matching_query(entries, &self.hierarchy_filter_query))
+        entries: &SceneEntries,
+    ) -> Option<SceneEntries> {
+        (!self.hierarchy_filter_query.trim().is_empty()).then(|| {
+            entries.with_hierarchy_rows(hierarchy_entries_matching_query(
+                entries,
+                &self.hierarchy_filter_query,
+            ))
+        })
     }
 
     pub(super) fn set_hierarchy_filter_query(&mut self, query: &str) {
@@ -24,7 +31,10 @@ impl RetainedEditorHost {
     }
 }
 
-fn hierarchy_entries_matching_query(entries: &[SceneEntry], query: &str) -> Vec<SceneEntry> {
+fn hierarchy_entries_matching_query(
+    entries: &[WorldInspectionHierarchyRow],
+    query: &str,
+) -> Vec<WorldInspectionHierarchyRow> {
     zircon_runtime::profile_scope!("editor", "hierarchy", "filter_projection");
     let query = query.trim();
     if query.is_empty() {
@@ -36,7 +46,7 @@ fn hierarchy_entries_matching_query(entries: &[SceneEntry], query: &str) -> Vec<
     let parent_indices = hierarchy_parent_indices(entries);
 
     for (index, entry) in entries.iter().enumerate() {
-        included[index] = hierarchy_name_matches_query(&entry.name, &query);
+        included[index] = hierarchy_name_matches_query(&entry.display_name, &query);
     }
 
     // A single reverse pass preserves every matching entry's ancestry in O(N).
@@ -55,7 +65,7 @@ fn hierarchy_entries_matching_query(entries: &[SceneEntry], query: &str) -> Vec<
         .collect()
 }
 
-fn hierarchy_parent_indices(entries: &[SceneEntry]) -> Vec<Option<usize>> {
+fn hierarchy_parent_indices(entries: &[WorldInspectionHierarchyRow]) -> Vec<Option<usize>> {
     let mut parent_indices = vec![None; entries.len()];
     let mut ancestor_indices = Vec::new();
 
@@ -92,14 +102,21 @@ mod tests {
     use super::{
         hierarchy_entries_matching_query, hierarchy_name_matches_query, hierarchy_parent_indices,
     };
-    use crate::ui::workbench::snapshot::SceneEntry;
+    use zircon_runtime::scene::WorldInspectionHierarchyRow;
 
-    fn entry(id: u64, name: &str, depth: usize) -> SceneEntry {
-        SceneEntry {
-            id,
-            name: name.to_string(),
-            depth,
-            selected: false,
+    use crate::ui::workbench::snapshot::{SceneEntries, SceneEntry};
+
+    fn entry(id: u64, name: &str, depth: usize) -> WorldInspectionHierarchyRow {
+        WorldInspectionHierarchyRow {
+            entity: id,
+            parent: None,
+            depth: depth as u32,
+            display_name: name.to_string(),
+            kind: "Entity".to_string(),
+            subtree_hash: 0,
+            focused: false,
+            active_in_hierarchy: true,
+            has_children: false,
         }
     }
 
@@ -118,7 +135,7 @@ mod tests {
         assert_eq!(
             filtered
                 .into_iter()
-                .map(|entry| entry.id)
+                .map(|entry| entry.entity)
                 .collect::<Vec<_>>(),
             vec![3, 4, 5]
         );
@@ -128,7 +145,10 @@ mod tests {
     fn hierarchy_filter_is_case_insensitive_and_returns_all_entries_for_blank_queries() {
         let entries = vec![entry(1, "Camera", 0), entry(2, "Cube", 0)];
 
-        assert_eq!(hierarchy_entries_matching_query(&entries, "CAM")[0].id, 1);
+        assert_eq!(
+            hierarchy_entries_matching_query(&entries, "CAM")[0].entity,
+            1
+        );
         assert_eq!(hierarchy_entries_matching_query(&entries, "   "), entries);
     }
 
@@ -169,7 +189,7 @@ mod tests {
         let filtered = hierarchy_entries_matching_query(&entries, "Node 4999");
 
         assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].id, 4_999);
+        assert_eq!(filtered[0].entity, 4_999);
     }
 
     #[test]
@@ -187,8 +207,8 @@ mod tests {
         let filtered = hierarchy_entries_matching_query(&entries, "needle");
 
         assert_eq!(filtered.len(), 5_000);
-        assert_eq!(filtered.first().map(|entry| entry.id), Some(0));
-        assert_eq!(filtered.last().map(|entry| entry.id), Some(4_999));
+        assert_eq!(filtered.first().map(|entry| entry.entity), Some(0));
+        assert_eq!(filtered.last().map(|entry| entry.entity), Some(4_999));
     }
 
     #[test]
@@ -214,7 +234,33 @@ mod tests {
         let filtered = hierarchy_entries_matching_query(&entries, "node");
 
         assert_eq!(filtered.len(), entries.len());
-        assert_eq!(filtered.first().map(|entry| entry.id), Some(0));
-        assert_eq!(filtered.last().map(|entry| entry.id), Some(4_999));
+        assert_eq!(filtered.first().map(|entry| entry.entity), Some(0));
+        assert_eq!(filtered.last().map(|entry| entry.entity), Some(4_999));
+    }
+
+    #[test]
+    fn hierarchy_filter_preserves_the_editor_selection_overlay() {
+        let entries = SceneEntries::from_entries(
+            [
+                SceneEntry {
+                    id: 1,
+                    name: "Camera".to_string(),
+                    depth: 0,
+                },
+                SceneEntry {
+                    id: 2,
+                    name: "Cube".to_string(),
+                    depth: 0,
+                },
+            ],
+            [2],
+        );
+
+        let filtered =
+            entries.with_hierarchy_rows(hierarchy_entries_matching_query(&entries, "cube"));
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].entity, 2);
+        assert!(filtered.is_selected(2));
     }
 }

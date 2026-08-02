@@ -13,10 +13,10 @@ use crate::core::math::{Transform, Vec2, Vec3, Vec4};
 use crate::scene::components::{
     CameraComponent, Mesh2dComponent, MeshRenderer, Name, Sprite2dComponent,
 };
-use crate::scene::{world::World, NodeKind, SystemStage};
+use crate::scene::{NodeKind, SystemStage, world::World};
 
 use super::authoring_boundary::{
-    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
 };
 use super::support::{material_handle, model_handle};
 

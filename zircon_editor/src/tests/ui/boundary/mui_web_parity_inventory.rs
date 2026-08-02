@@ -327,14 +327,6 @@ fn mui_web_parity_tracks_explicit_retained_mui_x_targets() {
             prototype.display()
         );
     }
-
-    let plan = workspace_file(".codex/plans/ZirconEditor MUI Web Parity Plan.md");
-    for required in ["Data Grid", "Charts", "Date/Time Pickers", "Tree View"] {
-        assert!(
-            plan.contains(required),
-            "MUI Web parity plan should name the MUI X target `{required}`"
-        );
-    }
 }
 
 #[test]

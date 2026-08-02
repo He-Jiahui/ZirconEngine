@@ -34,14 +34,20 @@ const ABILITY_METRIC_FIELDS = [
   'channelTicks',
   'awardsCombo',
 ];
-const ABILITY_FLAG_FIELDS = ['requiresTarget', 'onNextSwing', 'offGcd', 'spendsCombo'];
+const ABILITY_FLAG_FIELDS = [
+  'requiresTarget', 'onNextSwing', 'offGcd', 'spendsCombo', 'partyOnlyTarget',
+];
 const EFFECT_METRIC_FIELDS = [
   'amount',
   'armor',
   'base',
   'bonus',
   'duration',
+  'fraction',
   'healFrac',
+  'healMaxHpPct',
+  'hostilePveDuration',
+  'hostilePvpDuration',
   'hp',
   'interval',
   'judgeMax',
@@ -49,26 +55,36 @@ const EFFECT_METRIC_FIELDS = [
   'leechPct',
   'lockout',
   'max',
+  'maxHpFraction',
+  'maxTargets',
   'maxStacks',
   'mana',
   'min',
   'mult',
   'perCombo',
   'radius',
+  'selfRadius',
+  'captureRadius',
+  'groundDuration',
+  'selfCooldownRate',
+  'allyCooldownRate',
   'total',
   'value',
   'variance',
+  'windowSec',
   'weaponMult',
 ];
 const EFFECT_TEXT_FIELDS = ['auraKind', 'kind', 'mobId'];
-const EFFECT_FLAG_FIELDS = ['requiresBehind'];
+const EFFECT_FLAG_FIELDS = [
+  'canCrit', 'requiresBehind', 'spell', 'exhaust', 'groupOnly',
+];
 
 main();
 
 function main() {
   const document = JSON.parse(readFileSync(inputPath, 'utf8'));
   invariant(document.schema_version === 1, 'unsupported M4 ability catalog schema');
-  invariant(document.entries.length === 79, 'M4 ability catalog must contain 79 entries');
+  invariant(document.entries.length === 93, 'M4 ability catalog must contain 93 entries');
   invariant(
     document.catalog_sha256 === hashText(JSON.stringify(document.entries)),
     'M4 ability catalog entry fingerprint drifted',
@@ -126,6 +142,14 @@ function validateEffect(abilityId, rank, effect) {
         invariant(typeof value === 'number' && EFFECT_METRIC_FIELDS.includes(field),
           `${abilityId} rank ${rank} consumeAura has unsupported ${payload} field ${field}`);
       }
+    }
+  }
+  if (effect.type === 'massTemporalEcho') {
+    invariant(effect.heal && typeof effect.heal === 'object',
+      `${abilityId} rank ${rank} massTemporalEcho must declare heal`);
+    for (const [field, value] of Object.entries(effect.heal)) {
+      invariant(typeof value === 'number' && EFFECT_METRIC_FIELDS.includes(field),
+        `${abilityId} rank ${rank} massTemporalEcho has unsupported heal field ${field}`);
     }
   }
   for (const [field, value] of Object.entries(effect)) {

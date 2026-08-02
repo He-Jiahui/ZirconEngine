@@ -14,6 +14,7 @@ use crate::dynamic_api::{
     builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor,
 };
 use crate::graphics::backend::RenderBackend;
+use crate::graphics::pipeline::PipelineAsyncQueueResult;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::{
     default_pipeline_key, fallback_shader_uri, PipelineKey, ResourceStreamer,
@@ -26,6 +27,18 @@ use super::super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId
 use super::super::mesh_pipeline_standard_material_template_source;
 use super::super::MeshPipelineCache;
 use super::mesh_shader_module_cache_key;
+
+struct AsyncWorkerReleaseGuard {
+    release: Option<std::sync::mpsc::SyncSender<()>>,
+}
+
+impl Drop for AsyncWorkerReleaseGuard {
+    fn drop(&mut self) {
+        if let Some(release) = self.release.take() {
+            let _ = release.send(());
+        }
+    }
+}
 
 #[test]
 fn mesh_pipeline_template_source_hashes_feed_disk_and_module_keys() {
@@ -119,9 +132,8 @@ fn runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss() {
 
 #[test]
 fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
-    let Ok(backend) = RenderBackend::new_offscreen() else {
-        return;
-    };
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base prewarm gate");
     let RenderBackend { device, queue, .. } = backend;
     let texture_layout = test_texture_bind_group_layout(&device);
     let mut streamer = ResourceStreamer::new_for_test(
@@ -173,6 +185,15 @@ fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
         &viewer_pipeline_key,
         ShaderQualityTier::default(),
     );
+    let (_, _, viewer_shader_variant) = cache
+        .pipeline_and_shader_key_for_variant(viewer_variant_id)
+        .expect("environment-only prewarm must retain its exact Base variant identity");
+    assert!(
+        viewer_shader_variant
+            .features
+            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR),
+        "the environment-only renderer cache must reuse the reduced Forward shader variant"
+    );
     assert_eq!(cache.mesh_variant_pipelines.len(), 1);
     assert!(
         cache
@@ -207,6 +228,236 @@ fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
         error.is_none(),
         "environment-only PBR runtime Base prewarm should pass WGPU validation: {error:?}"
     );
+}
+
+#[test]
+fn runtime_environment_only_pbr_base_prewarm_stays_synchronous_when_async_compile_is_enabled() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base prewarm gate");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    cache.set_async_pipeline_compile_enabled(true);
+
+    let prewarm = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("environment-only PBR prewarm must not queue a SkipDraw placeholder");
+
+    assert!(prewarm.pipeline_ready());
+    assert!(prewarm.created_pipeline());
+    assert!(cache.async_pipeline_compile_enabled());
+    assert_eq!(cache.async_pipeline_compile_pending_count(), 0);
+}
+
+#[test]
+fn runtime_environment_only_provider_fallback_resolves_generic_base_without_async_placeholder() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR provider fallback");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    cache.set_async_pipeline_compile_enabled(true);
+    cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("specialized Base prewarm must be ready before the provider upgrade");
+
+    cache.disable_environment_only_pbr_base_profile();
+    let mut pipeline_key = default_pipeline_key();
+    let (_, shader_revision, _) = streamer
+        .ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))
+        .expect("builtin PBR shader should remain streamed for generic fallback");
+    pipeline_key.shader_revision = shader_revision;
+    pipeline_key.receive_shadows = false;
+    let generic_variant = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &pipeline_key,
+        ShaderQualityTier::default(),
+    );
+
+    assert!(!cache
+        .pipeline_and_shader_key_for_variant(generic_variant)
+        .expect("generic Base variant key after provider upgrade")
+        .2
+        .features
+        .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
+    assert!(cache
+        .ensure_pipeline_for_variant(&device, &streamer, generic_variant)
+        .is_some(), "provider fallback must not hand BaseScenePass an async placeholder");
+    assert_eq!(cache.async_pipeline_compile_pending_count(), 0);
+}
+
+#[test]
+fn runtime_environment_only_pbr_base_prewarm_waits_for_its_queued_async_variant() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base prewarm gate");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let (blocker_started, wait_for_blocker_start) = std::sync::mpsc::sync_channel(0);
+    let (release_blocker, wait_for_blocker_release) = std::sync::mpsc::sync_channel(0);
+    let blocker_id = MeshPipelineVariantId::new(u32::MAX);
+    assert_eq!(
+        cache
+            .async_base_pipeline_compiler
+            .as_mut()
+            .expect("the test backend should create its async pipeline worker")
+            .try_queue(blocker_id, move || {
+                blocker_started
+                    .send(())
+                    .expect("test should still observe the blocked worker");
+                wait_for_blocker_release
+                    .recv()
+                    .expect("test should release the blocked worker");
+                panic!("test-only predecessor must not install a pipeline")
+            }),
+        PipelineAsyncQueueResult::Queued
+    );
+    wait_for_blocker_start
+        .recv()
+        .expect("the predecessor should block the async compiler before queueing the target");
+    let _blocker_release_guard = AsyncWorkerReleaseGuard {
+        release: Some(release_blocker.clone()),
+    };
+    let mut pipeline_key = default_pipeline_key();
+    let (_, shader_revision, _) = streamer
+        .ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))
+        .expect("builtin PBR shader should stream before queueing its exact variant");
+    pipeline_key.shader_revision = shader_revision;
+    pipeline_key.receive_shadows = false;
+    cache
+        .pipeline_variant_registry
+        .enable_environment_only_pbr_base_profile();
+    let variant_id = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &pipeline_key,
+        ShaderQualityTier::default(),
+    );
+    cache.set_async_pipeline_compile_enabled(true);
+    assert!(
+        cache
+            .ensure_pipeline_for_variant(&device, &streamer, variant_id)
+            .is_none(),
+        "the async frame path should queue the Base variant with its SkipDraw placeholder"
+    );
+    assert_eq!(cache.async_pipeline_compile_pending_count(), 2);
+    cache
+        .async_base_pipeline_compiler
+        .as_mut()
+        .expect("the async compiler should remain available")
+        .set_target_sync_wait_observer(release_blocker);
+
+    let prewarm = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("prewarm must wait for its queued Base variant instead of reporting failure");
+
+    assert!(prewarm.pipeline_ready());
+    assert!(prewarm.cache_hit());
+    assert!(!prewarm.created_pipeline());
+    assert_eq!(cache.async_pipeline_compile_pending_count(), 0);
+}
+
+#[test]
+fn runtime_environment_only_pbr_base_prewarm_reports_creation_after_async_target_failure() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base prewarm gate");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let mut pipeline_key = default_pipeline_key();
+    let (_, shader_revision, _) = streamer
+        .ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))
+        .expect("builtin PBR shader should stream before queueing its exact variant");
+    pipeline_key.shader_revision = shader_revision;
+    pipeline_key.receive_shadows = false;
+    cache
+        .pipeline_variant_registry
+        .enable_environment_only_pbr_base_profile();
+    let variant_id = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &pipeline_key,
+        ShaderQualityTier::default(),
+    );
+    assert_eq!(
+        cache
+            .async_base_pipeline_compiler
+            .as_mut()
+            .expect("the test backend should create its async pipeline worker")
+            .try_queue(variant_id, || panic!("test-only async target failure")),
+        PipelineAsyncQueueResult::Queued
+    );
+
+    let prewarm = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("prewarm should synchronously recover from its failed async target");
+
+    assert!(prewarm.pipeline_ready());
+    assert!(!prewarm.cache_hit());
+    assert!(prewarm.created_pipeline());
+    assert_eq!(cache.async_pipeline_compile_pending_count(), 0);
 }
 
 #[test]
@@ -630,23 +881,31 @@ impl RegistryShaderCase {
 }
 
 fn registry_shader_prewarm_manifest(cases: &[RegistryShaderCase]) -> ShaderVariantPrewarmManifest {
-    let fallback_forward = builtin_fallback_shader_prewarm_manifest()
+    let fallback_manifest = builtin_fallback_shader_prewarm_manifest();
+    let fallback_forward = fallback_manifest
         .variants
-        .into_iter()
+        .iter()
         .find(|request| request.key.pass_type == ShaderPassType::Forward)
-        .expect("builtin forward shader prewarm request");
+        .expect("builtin forward shader prewarm request")
+        .clone();
+    let fallback_source = fallback_manifest
+        .source_for(&fallback_forward)
+        .expect("builtin forward shader prewarm source");
+    let mut sources = Vec::with_capacity(cases.len());
     let variants = cases
         .iter()
         .map(|case| {
+            let source = fallback_source.with_source_label(case.locator);
             let mut request = fallback_forward.clone();
             // Registry export must reach the actual cache key, not only the report label.
             request.key.material_shader = case.resource_id();
             request.key.material_revision = case.revision;
-            request.source_label = case.locator.to_string();
+            request.source_id = source.id.clone();
+            sources.push(source);
             request
         })
         .collect();
-    ShaderVariantPrewarmManifest::new(variants)
+    ShaderVariantPrewarmManifest::new(sources, variants)
 }
 
 fn registry_shader_pipeline_key(case: RegistryShaderCase) -> PipelineKey {

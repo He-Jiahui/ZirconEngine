@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/TelemetryDashboardRunQuery", event = "Click
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTelemetryDashboardMetricTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "telemetry_dashboard_dau_table_row" }, { node = "telemetry_dashboard_fps_p95_table_row" }, { node = "telemetry_dashboard_crash_rate_table_row" }, { node = "telemetry_dashboard_queue_wait_table_row" }]
 

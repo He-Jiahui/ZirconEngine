@@ -433,13 +433,13 @@ mod tests {
         required_wgpu_readback_resource, strip_padded_cube_mip_chain, SOURCE_CUBEMAP_FACE_COUNT,
     };
     use crate::core::framework::render::{
-        CubemapFace, IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
-        IblBakeArtifactRequest, ProceduralSkyParams, SourceCubemapIrradianceCube,
-        SourceCubemapMipChain, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
         build_source_cubemap_from_equirect, cubemap_direction_from_scaled_uv,
         cubemap_face_scaled_uv_from_direction, cubemap_scaled_uv_for_texel,
         source_cubemap_face_mip_offset, source_cubemap_mip_chain_with_bake_artifact,
-        source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness,
+        source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness, CubemapFace,
+        IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+        IblBakeArtifactRequest, ProceduralSkyParams, SourceCubemapIrradianceCube,
+        SourceCubemapMipChain, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
     };
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::types::GraphicsError;

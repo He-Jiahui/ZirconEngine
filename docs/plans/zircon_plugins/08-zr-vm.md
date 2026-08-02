@@ -6,7 +6,7 @@
 
 ## 1. 目标
 
-把 `zircon_plugins/zr_vm_language` 从 wrapper 推进到完整 VM 集成层：完备的双向反射（宿主类型导出给 VM、VM 类型注册回宿主）、接口注册（VM 实现引擎扩展点）、GC 与宿主句柄生命周期协约、热替换状态迁移生产化。`E:\Git\zr_vm` 后端经 `real-zr-vm` feature 接入的既定路线不变。
+把 `zircon_plugins/zr_vm_language` 从 wrapper 推进到完整 VM 集成层：完备的双向反射（宿主类型导出给 VM、VM 类型注册回宿主）、接口注册（VM 实现引擎扩展点）、GC 与宿主句柄生命周期协约、热替换状态迁移生产化。`E:\Git\zr_vm` 后端经当前 manifest 声明的 `backend-zr-vm` feature 接入。
 
 ```zircon-workflow
 {
@@ -17,15 +17,15 @@
     {"id": "M1", "title": "反射注册表统一", "depends_on": []},
     {"id": "M2", "title": "接口注册四通道", "depends_on": ["M1"]},
     {"id": "M3", "title": "GC 与宿主句柄生命周期协约", "depends_on": ["M1"]},
-    {"id": "M4", "title": "real-zr-vm 全链路接通", "depends_on": ["M2", "M3"]},
+    {"id": "M4", "title": "backend-zr-vm 真实后端全链路接通", "depends_on": ["M2", "M3"]},
     {"id": "M5", "title": "热替换状态迁移生产化", "depends_on": ["M1"]}
   ]
 }
 ```
 
-## 2. 现状基线（实查）
+## 2. 实施前基线（原始实查）
 
-**反射地基比早期假设厚实**——统一反射模型的 DTO 与宿主侧注册表已在，缺的是 derive、反向通道与性能层：
+计划编制时，统一反射模型的 DTO 与宿主侧注册表已在，缺的是 derive、反向通道与性能层。以下内容保留为设计来源，不代表当前实现状态；当前状态以第 5 节产出记录与 open failure 为准。
 
 - **接口层** `zircon_runtime_interface/src/reflect/`：`ReflectTypeInfo`/`ReflectFieldInfo`/`ReflectTypePath`/`ReflectTypeKind`/`ReflectTypeRegistration`（带 `plugin_owned`/`serializable`/`editor_visible`/`remote_visible` 旗标——天生面向 inspector/replication/VM 三消费方）/`ReflectObjectAddress`/`ReflectedValue`/`ReflectFieldValue` + Read/Write/Fields 请求响应对/`ReflectSchemaRequest`/`ReflectEditorHint`（数值范围/枚举选项，inspector 用）/`ReflectError`；契约测试在 `tests/reflect_contracts.rs`。
 - **runtime 侧** `zircon_runtime/src/scene/reflect/`：`type_registry.rs`、`world_reflection.rs`（World 级反射读写）、`dynamic_component.rs`、`fixed/`（内置组件的手写反射实现）。
@@ -146,11 +146,11 @@ zircon_plugins/zr_vm_language/runtime/src/
 | M3-T2 | VmObjectRef RAII root | gc_bridge/vm_object_ref.rs | M3-T1 | `dropped_ref_unregisters_gc_root`（root 泄漏检测） |
 | M3-T3 | script.gc_step 预算系统 + 诊断 | gc_bridge/budget.rs、注册路径 | 01-M1 | `gc_step_respects_frame_budget` |
 
-### M4 real-zr-vm 接通
+### M4 backend-zr-vm 真实后端接通
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
 |------|------|---------|------|---------|
-| M4-T1 | real-zr-vm feature 下全链路（基础库 + 回调 + GC） | real_backend/* | M2、M3 | feature 矩阵 CI（无 zr_vm 环境构建必须保持绿） |
+| M4-T1 | `backend-zr-vm` feature 下全链路（基础库 + 回调 + GC） | real_backend/* | M2、M3 | feature 矩阵 CI（无 zr_vm 环境构建必须保持绿） |
 
 ### M5 热替换生产化
 
@@ -159,15 +159,15 @@ zircon_plugins/zr_vm_language/runtime/src/
 | M5-T1 | VmStateBlob v2（schema 版本 + 类型表） | instance.rs | M1 | `state_blob_round_trips_with_schema` |
 | M5-T2 | 字段级迁移（缺省填充 + 改名映射）+ 回滚 | state_migration.rs | M5-T1、01-M5 | `schema_change_migrates_fields`、`migration_failure_rolls_back_old_module` |
 
-### 当前实施状态（2026-07-14）
+### 当前实施状态（复核于 2026-08-02）
 
 | 里程碑 | 状态 | 产出记录 / 边界 |
 |---|---|---|
-| M1 | 完成，等待协调器 validation-copy 与里程碑提交 | [`08/2026-07-14-zr-vm-m1-output-records.md`](08/2026-07-14-zr-vm-m1-output-records.md)；derive/统一注册契约、`fixed/**` 硬切及初版 dense call-site 已随共享 main 提交 `facb719f` 落库。本轮进一步完成 VM-backed 完整 JSON 闭环、clean builtin catalog、retained payload 事务、trusted manifest namespace、闭合 `List<T>`/`Map<String,T>` grammar、prepared candidate/committed epoch 身份与 catalog provenance、opaque token、自守卫 name resolution 与 unload rollback。最终 Windows 证据为插件 **21/21**、Runtime reflection **29/29**、hot reload **16/16**、`vm_type_backing` **3/3**、dynamic components **14/14**；failure validator 115/0、插件结构审计全 0，独立复核 0 Critical / 0 Important。主计划状态与跨计划 `fixed-*` 回执由各自 owner Session 独立持有，当前 M1 output record Files 为 98/98 unique。 |
+| M1 | 完成 | [`08/2026-07-14-zr-vm-m1-output-records.md`](08/2026-07-14-zr-vm-m1-output-records.md)；derive/统一注册契约、`fixed/**` 硬切及初版 dense call-site 已随共享 main 提交 `facb719f` 落库。本轮进一步完成 VM-backed 完整 JSON 闭环、clean builtin catalog、retained payload 事务、trusted manifest namespace、闭合 `List<T>`/`Map<String,T>` grammar、prepared candidate/committed epoch 身份与 catalog provenance、opaque token、自守卫 name resolution 与 unload rollback。最终 Windows 证据为插件 **21/21**、Runtime reflection **29/29**、hot reload **16/16**、`vm_type_backing` **3/3**、dynamic components **14/14**；failure validator 115/0、插件结构审计全 0，独立复核 0 Critical / 0 Important。当前 M1 output record Files 为 98/98 unique。 |
 | M2 | 完成 | [`08/2026-07-13-zr-vm-m2-output-records.md`](08/2026-07-13-zr-vm-m2-output-records.md)；四通道、capability gate、世代回调与 Windows/default/真实后端验证已有记录。 |
 | M3 | 完成 | [`08/2026-07-13-zr-vm-m3-output-records.md`](08/2026-07-13-zr-vm-m3-output-records.md)；runtime-neutral GC 协约与默认插件路径通过 81 + 11 项 Windows 测试。逻辑 `script.gc_step` 使用包所有权注册 ID `zr_vm_language.script.gc_step`。 |
-| M4 | 待实施（M1 提交后进入） | `E:/Git/zr_vm/build` 当前已存在 Windows import libraries 与 DLL；真实 ZrVM root/collector 接通、`backend-zr-vm` feature 执行和 feature 矩阵属于下一里程碑。 |
-| M5 | 完成（真实后端 feature 验证归 M4） | [`08/2026-07-14-zr-vm-m5-output-records.md`](08/2026-07-14-zr-vm-m5-output-records.md)；v2 完整 envelope、权威类型表、统一反射 schema、缺省/改名迁移和精确回滚已通过 86 项 Script VM 回归。真实 ZrVM 已接 `saveState`/`restoreState` 完整 blob + 可选 `stateSchema` 协议；新出现的外部 build 产物及 feature 编译/执行仍由 M4 验收。 |
+| M4 | 完成；新增产品行为缺口保持 open | [`08/2026-07-15-zr-vm-m4-output-records.md`](08/2026-07-15-zr-vm-m4-output-records.md) 记录 `backend-zr-vm` 真实后端、GC/root、四通道与 Windows `real_backend` **15/15**。2026-08-01 复核发现 Vampire gameplay/HUD/menu/diagnostics 等价 owner 尚未迁入插件；该增量缺口由 [`08/failure-2026-08-01-zrvm-vampire-behavior-test-ownership-gap.md`](08/failure-2026-08-01-zrvm-vampire-behavior-test-ownership-gap.md) 独立保持 open，不回写成整个 M4 未实施。 |
+| M5 | 完成 | [`08/2026-07-14-zr-vm-m5-output-records.md`](08/2026-07-14-zr-vm-m5-output-records.md)；v2 完整 envelope、权威类型表、统一反射 schema、缺省/改名迁移和精确回滚已通过 86 项 Script VM 回归。真实 ZrVM 已接 `saveState`/`restoreState` 完整 blob + 可选 `stateSchema` 协议；真实后端验收见 M4 产出记录。 |
 
 - fixed 已修复：[derived-reflection-hard-cut-guard](08/fixed-2026-07-14-derived-reflection-hard-cut-guard.md)
 
@@ -182,20 +182,21 @@ zircon_plugins/zr_vm_language/runtime/src/
 - fixed 已修复：[vm-dynamic-property-write-structure-regression](../zircon_editor/editor/02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
 - 2026-07-14 回传后 owner 清单复验：插件受管测试 18/18；Runtime core-min lib-test 早期 scene filter 为 595/596，独立复核确认唯一 `JsonNumber` 失败属于本 M1 的 legacy descriptor 回归而非其他 owner。最终 VM owner 标记与声明类型双向转换修复后，受管旧 ECS 路径为 14/14、反射目录为 16/16；Runtime04 migration-journal 精确回归 1/1。Runtime13/Runtime06 定向结构审计分别为 18/14 sources，均 `missing_source_files = []`、`risks = []`。
 - 2026-07-22 performance follow-up：Runtime `script/**` 96/96静态审查确认M2/M3现有功能契约仍缺steady-state artifact与真实预算闭环。PERF-MVP-444要求load/reload时发布active callback/system/package索引，445要求host实测GC deadline、next-due结构与memory policy执行，446要求prepared reflection artifact只验证一次并缓存revision snapshot，447要求bounded worker discovery与lazy bytecode。当前已直接删除callback wide slot record clone、owned systems二次clone及GC pending FIFO线性membership；其余见`08/failure-2026-07-22-runtime-script-vm-hotpath.md`，不得以既有M2/M3“完成”状态代替性能验收。
+- open / 待修复：[Vampire real-VM 行为测试 owner 缺口](08/failure-2026-08-01-zrvm-vampire-behavior-test-ownership-gap.md)；Runtime10 仍编译 10 个永久 ignored gameplay/HUD/menu/diagnostics tests 与 508 行 support owner，但 Plugins08 当前没有被声明为“已迁移”的等价 Vampire 覆盖。先在 real backend 建立可执行验收，再协同 Runtime10/Runtime15 删除旧测试与结构锚。
 
 ## 6. 验收命令
 
-```bash
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked
-# real backend（需 ZR_VM_RUST_BINDING_LIB_DIR）
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked
+```powershell
+./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -ManifestPath zircon_plugins/Cargo.toml -Package zircon_plugin_zr_vm_language_runtime -LibTests
+# 真实后端（需 ZR_VM_RUST_BINDING_LIB_DIR）
+./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -ManifestPath zircon_plugins/Cargo.toml -Package zircon_plugin_zr_vm_language_runtime -Features backend-zr-vm -LibTests -TestFilter real_backend
 ```
 
 ## 7. 风险
 
 - derive 宏是跨插件收益最大的单项投资，也是 10-E1（反射默认 drawer）与 07-M4（replication schema）的硬前置；M1-T1 排最高优先。
 - VM 系统 dynamic access 使调度器对其保守串行；文档明确 VM 系统性能定位（gameplay 逻辑而非引擎 hot path）。
-- real-zr-vm 的 CI 依赖外部构建产物：CI 用预编译缓存或专用 runner，default 构建绝不依赖。
+- `backend-zr-vm` 的 CI 依赖外部构建产物：CI 用预编译缓存或专用 runner，default 构建绝不依赖。
 - 2026-07-22 World dynamic component性能同步：retained payload的registrations×entities扫描已改为单遍type index；prepare/sync仍复制registry并全payload验证，单字段VM JSON写仍clone整component且O(F²) schema probes。Plugins08与Runtime13按PERF-MVP-446/443发布prepared immutable registry generation、World type delta和dense field validator，stable field access禁止整JSON clone；局部止损见PERF-MVP-461及performance dynamic-components证据。
 - proc-macro crate 进根工作区会增加全量构建时间；保持宏实现最小化（syn features 收紧）。
 

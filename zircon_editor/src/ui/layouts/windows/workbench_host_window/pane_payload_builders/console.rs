@@ -3,6 +3,9 @@ use super::super::pane_presentation::PanePayloadBuildContext;
 
 pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
     PanePayload::ConsoleV1(ConsolePanePayload {
-        status_text: context.chrome.status_line.clone(),
+        status_text: context.chrome.console_output.text_arc(),
+        levels: context.chrome.console_output.levels_arc(),
+        counts: context.chrome.console_output.counts(),
+        filter: context.chrome.console_output.filter(),
     })
 }

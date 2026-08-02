@@ -221,7 +221,7 @@ fn stable_scene_sync_skips_candidate_and_handle_rebuilds() {
         },
     );
     assert!(first.scene_gizmos().iter().any(|gizmo| gizmo.owner == 808));
-    assert!(router.sync_scene(&camera, viewport, first));
+    assert!(router.sync_scene(&camera, viewport, scene.world_generation(), first));
     let second = cache.resolve_for_pointer(
         &scene,
         None,
@@ -237,7 +237,7 @@ fn stable_scene_sync_skips_candidate_and_handle_rebuilds() {
             vec![empty_scene_gizmo(808)]
         },
     );
-    assert!(!router.sync_scene(&camera, viewport, second));
+    assert!(!router.sync_scene(&camera, viewport, scene.world_generation(), second));
 
     assert_eq!(handle_builds.get(), 1);
     assert_eq!(additional_gizmo_builds.get(), 1);
@@ -399,6 +399,7 @@ fn seed_debug_feed_router(router: &mut ViewportOverlayPointerRouter) {
         .lock()
         .expect("shared route state should be writable") = SharedResolutionState {
         candidates,
+        renderer_visible_spatial_pick_source: None,
         last_route: None,
         last_debug_feed: None,
     };

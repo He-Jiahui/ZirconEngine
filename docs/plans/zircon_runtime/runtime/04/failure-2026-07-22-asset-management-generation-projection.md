@@ -62,3 +62,16 @@ Open state: `待修复`; no pass is claimed.
 2026-07-30 retained-host startup caller补充：`sync_asset_workspace`首帧同步调用`ResourceManager::list_resources()`；当前实现克隆registry全部`ResourceRecord`并以`primary_locator.to_string()`排序，随后把完整Vec交给runtime state。即使catalog已同步，这一步仍独立产生全表clone、排序和locator String，启动成本随N增长。Runtime04应把compact rows与stable ordered view随resource generation发布，retained host只传generation/Arc或MVP visible page；不得在Editor缓存第二份registry。验收增加startup/stable调用的registry scans、record deep-clone bytes、sort/key String bytes：warm unchanged必须为0，changed近delta+visible page。证据：`docs/plans/performance/01/2026-07-30-editor-retained-host-startup-current-review.md`；无动态pass声明。
 
 2026-07-30 retained-host tick补充：任意非空resource event batch都会再次调用完整`list_resources()`，随后`EditorState::sync_resources`把每条locator重新格式化为String并从零构建map，同时无差别标记render/presentation dirty。现有256项/600us drain slice不约束这段O(N log N)+O(N)消费；持续resource backlog可每tick重建。generation projection必须直接发布共享stable ordered rows/map与affected-domain invalidation，stable batch全表clone/sort/map build=0；记录batch apply wall、registry scans、locator bytes、map entries和不相关render invalidation。证据：`docs/plans/performance/01/2026-07-30-editor-retained-host-assets-current-review.md`；无动态pass声明。
+
+### 2026-08-01 current-source implementation
+
+- `core::resource` now owns the immutable management generation, stable ordered
+  compact rows, lookup indexes, summary counters and a bounded shared event
+  stream. Mutation paths publish the projection with the resource generation;
+  facade/manager consumers borrow that snapshot instead of rebuilding a second
+  registry truth.
+- The exact source was sealed as snapshot `1411`. Managed ticket
+  `608273936187445f955af3f6bbe24e89` was accepted and remains receipt-only
+  evidence; no terminal Cargo pass is inferred from its queued state.
+
+Open state: `实现完成，受管验证待回执`; accepted closeout remains deferred.

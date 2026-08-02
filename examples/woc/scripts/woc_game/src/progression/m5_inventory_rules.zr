@@ -34,6 +34,8 @@ pub itemCodeForId(itemId: string): uint {
 
 pub stackLimitForItemIndex(itemIndex: int): int {
     if (itemIndex < 0 || itemIndex >= catalog.count("item")) { return 0; }
+    var explicitLimit = <int>catalog.metric("item", itemIndex, "stackSize");
+    if (explicitLimit > 0) { return explicitLimit; }
     var kind = catalog.text("item", itemIndex, "kind");
     if (kind == "weapon" || kind == "armor" || kind == "held_offhand" ||
         kind == "bag" || kind == "tool") {
@@ -57,10 +59,12 @@ pub contractTest(): int {
     var breadCode = itemCodeForId("baked_bread");
     var swordCode = itemCodeForId("worn_sword");
     var satchelCode = itemCodeForId("wolfhide_satchel");
+    var heroicMarkCode = itemCodeForId("heroic_mark");
     if (backpackSlots() != 16 || bagSockets() != 4 || breadCode != <uint>1 ||
         !itemCodeIsValid(breadCode) || itemCodeIsValid(<uint>0) ||
         stackLimitForItemIndex(itemIndexFromCode(breadCode)) != 20 ||
         stackLimitForItemIndex(itemIndexFromCode(swordCode)) != 1 ||
+        stackLimitForItemIndex(itemIndexFromCode(heroicMarkCode)) != 20 ||
         !bagCodeIsValid(satchelCode) || bagSlotsForCode(satchelCode) != 10 ||
         bagCodeIsValid(breadCode) || bagSlotsForCode(breadCode) != 0) {
         return -1;

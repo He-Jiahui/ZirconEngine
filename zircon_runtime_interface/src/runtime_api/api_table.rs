@@ -7,7 +7,7 @@ use super::{
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeDrainPluginEventsFnV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHarvestOperationFnV1,
-    ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV1, ZrRuntimeSessionConfigV2,
+    ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV2, ZrRuntimeSessionConfigV2,
     ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1,
     ZrRuntimeUnsubscribePluginEventFnV1,
 };
@@ -87,7 +87,7 @@ pub struct ZrRuntimeApiV3 {
     pub unsubscribe_plugin_event: Option<ZrRuntimeUnsubscribePluginEventFnV1>,
     pub drain_plugin_events: Option<ZrRuntimeDrainPluginEventsFnV1>,
     pub submit_operation: Option<ZrRuntimeSubmitOperationFnV1>,
-    pub poll_operation: Option<ZrRuntimePollOperationFnV1>,
+    pub poll_operation: Option<ZrRuntimePollOperationFnV2>,
     pub harvest_operation: Option<ZrRuntimeHarvestOperationFnV1>,
 }
 

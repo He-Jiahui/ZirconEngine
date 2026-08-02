@@ -6,6 +6,7 @@ mod example_vampire;
 mod manager;
 mod manifest;
 mod package_assets;
+mod template_contract;
 mod uri;
 mod zmeta;
 

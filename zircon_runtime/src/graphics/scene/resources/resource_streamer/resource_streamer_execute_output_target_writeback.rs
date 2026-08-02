@@ -2,8 +2,8 @@ use crate::core::framework::render::RenderCameraTargetWritebackReport;
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
 use crate::graphics::debug_markers::{
-    RENDERDOC_MARKER_TEXTURE_WRITEBACK, RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION,
-    insert_marker,
+    insert_marker, RENDERDOC_MARKER_TEXTURE_WRITEBACK,
+    RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION,
 };
 use crate::graphics::types::{
     GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportStatus,
@@ -209,8 +209,8 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{
-        FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderOutputTarget,
-        ViewportTextureWritebackStatus,
+        ViewportRenderOutputTarget, ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL,
+        LINEAR_OUTPUT_FORMAT_LABEL,
     };
 
     use super::{

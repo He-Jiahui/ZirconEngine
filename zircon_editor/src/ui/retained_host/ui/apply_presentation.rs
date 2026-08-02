@@ -2,8 +2,8 @@ use super::pane_data_conversion;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views as view_data;
 use crate::ui::layouts::windows::workbench_host_window::{
-    self as host_window, build_host_scene_data, build_native_floating_surface_data, frame_rect,
-    ShellPresentation,
+    self as host_window, ShellPresentation, build_host_scene_data,
+    build_native_floating_surface_data, frame_rect,
 };
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;

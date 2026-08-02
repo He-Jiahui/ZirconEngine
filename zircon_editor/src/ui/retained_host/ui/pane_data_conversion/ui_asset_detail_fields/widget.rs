@@ -1,6 +1,6 @@
 use crate::ui::asset_editor;
 
-use super::row_model::{push_detail_row, UiAssetDetailFieldRow};
+use super::row_model::{UiAssetDetailFieldRow, push_detail_row};
 
 const PROP_STATE_ROW_LIMIT: usize = 6;
 

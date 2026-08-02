@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs
-  - zircon_runtime/src/ui/runtime_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
-  - zircon_runtime/src/ui/surface/debug_snapshot.rs
+  - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/ui/dispatch
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

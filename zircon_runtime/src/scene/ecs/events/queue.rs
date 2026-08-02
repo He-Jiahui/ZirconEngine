@@ -114,6 +114,14 @@ impl<T> Events<T> {
         }
     }
 
+    pub(crate) fn requires_maintenance(&self) -> bool {
+        if !self.current.is_empty() || !self.next.is_empty() {
+            return true;
+        }
+        let retained_capacity = self.current.capacity().max(self.next.capacity());
+        retained_capacity > 0 && self.low_water_frames < EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES
+    }
+
     fn record_next_queue_len(&mut self) {
         self.high_water_len = self.high_water_len.max(self.next.len());
         self.low_water_frames = 0;

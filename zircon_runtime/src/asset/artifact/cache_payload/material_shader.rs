@@ -17,8 +17,8 @@ use crate::core::framework::render::{
 };
 
 use super::toml_value::{
-    cache_table_like_to_toml, cache_table_to_toml, toml_table_like_to_cache, toml_table_to_cache,
-    ArtifactCacheTomlTable, ArtifactCacheTomlValue,
+    ArtifactCacheTomlTable, ArtifactCacheTomlValue, cache_table_like_to_toml, cache_table_to_toml,
+    toml_table_like_to_cache, toml_table_to_cache,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

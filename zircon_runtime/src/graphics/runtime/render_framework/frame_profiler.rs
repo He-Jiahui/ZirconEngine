@@ -5,6 +5,8 @@ use crate::core::framework::render::{
 use crate::graphics::backend::GpuTimerFrameResult;
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
+use super::budget::{BudgetDegradeLadder, RenderMemoryBudget};
+
 const MAX_PENDING_FRAME_PROFILES: usize = 4;
 
 pub(in crate::graphics::runtime::render_framework) struct FrameProfileWrite {
@@ -43,32 +45,40 @@ impl FrameProfiler {
         frame_generation: u64,
         cpu_submit_time_us: u64,
         gpu_timer_frame_result: Option<&GpuTimerFrameResult>,
+        memory_budget: &RenderMemoryBudget,
+        degrade_ladder: &mut BudgetDegradeLadder,
+        store_lint_count: u32,
     ) -> FrameProfileWrite {
         let compiled_graph_cache_hit =
             stats.last_graph_compiled_cache_hit_count > self.last_compiled_graph_cache_hit_count;
         self.last_compiled_graph_cache_hit_count = stats.last_graph_compiled_cache_hit_count;
 
-        let pending_profile = Arc::new(RenderFrameProfile {
+        let passes = stats
+            .last_graph_execution_profile_report
+            .pass_profiles
+            .iter()
+            .map(|record| RenderPassProfileEntry {
+                pass_name: record.pass_name.clone(),
+                executor_id: record.executor_id.clone(),
+                budget_key: record.budget_key,
+                gpu_time_us: None,
+                draw_count: record.draw_count,
+                instance_count: record.instance_count,
+                state_change_count: record.state_change_count,
+                upload_bytes: record.upload_bytes,
+                dispatch_count: record.dispatch_count,
+            })
+            .collect::<Vec<_>>();
+        let staging_total_bytes = passes
+            .iter()
+            .map(|pass| pass.upload_bytes)
+            .fold(0_u64, u64::saturating_add);
+        let mut pending_profile = RenderFrameProfile {
             frame_generation,
             gpu_frame_time_us: None,
             cpu_submit_time_us,
             profile_latency_frames: 0,
-            passes: stats
-                .last_graph_execution_profile_report
-                .pass_profiles
-                .iter()
-                .map(|record| RenderPassProfileEntry {
-                    pass_name: record.pass_name.clone(),
-                    executor_id: record.executor_id.clone(),
-                    budget_key: record.budget_key,
-                    gpu_time_us: None,
-                    draw_count: record.draw_count,
-                    instance_count: record.instance_count,
-                    state_change_count: record.state_change_count,
-                    upload_bytes: record.upload_bytes,
-                    dispatch_count: record.dispatch_count,
-                })
-                .collect(),
+            passes,
             subsystems: RenderBudgetKey::ALL
                 .into_iter()
                 .map(|key| RenderSubsystemProfileEntry {
@@ -80,15 +90,20 @@ impl FrameProfiler {
                 .collect(),
             transient_texture_peak_bytes: stats.last_graph_transient_texture_bytes_reserved,
             transient_buffer_peak_bytes: stats.last_graph_transient_buffer_bytes_reserved,
-            staging_total_bytes: 0,
+            staging_total_bytes,
             compiled_graph_cache_hit,
             variant_miss_count: saturating_u32(
                 stats.last_shader_variant_miss_report.compile_miss_count,
             ),
-            store_lint_count: 0,
+            store_lint_count,
             budget_warning_count: 0,
             degrade_step_active: 0,
-        });
+        };
+        pending_profile.budget_warning_count = memory_budget.warning_count(&pending_profile);
+        degrade_ladder.evaluate(&pending_profile, memory_budget);
+        pending_profile.degrade_step_active = saturating_u32(degrade_ladder.active_level());
+        let pending_profile = Arc::new(pending_profile);
+        let capture_profile = Arc::clone(&pending_profile);
         self.pending_profiles.push_back(pending_profile);
 
         // Merge before eviction: the oldest of three in-flight readbacks can resolve while the
@@ -98,11 +113,6 @@ impl FrameProfiler {
         while self.pending_profiles.len() > MAX_PENDING_FRAME_PROFILES {
             self.pending_profiles.pop_front();
         }
-        let capture_profile = Arc::clone(
-            self.pending_profiles
-                .back()
-                .expect("the current frame profile remains pending"),
-        );
         stats.last_budget_warning_count = capture_profile.budget_warning_count;
         stats.last_store_lint_count = capture_profile.store_lint_count;
         stats.last_frame_profile = Arc::clone(&capture_profile);
@@ -148,7 +158,9 @@ impl FrameProfiler {
                 current_frame_generation.saturating_sub(result.frame_generation),
             );
             update_subsystem_gpu_times(profile, &self.budget);
-            profile.budget_warning_count = budget_warning_count(profile, &self.budget);
+            profile.budget_warning_count = profile
+                .budget_warning_count
+                .saturating_add(gpu_budget_warning_count(profile, &self.budget));
         }
 
         Some(Arc::clone(&self.pending_profiles[profile_index]))
@@ -172,7 +184,7 @@ fn update_subsystem_gpu_times(profile: &mut RenderFrameProfile, budget: &RenderF
     }
 }
 
-fn budget_warning_count(profile: &RenderFrameProfile, budget: &RenderFrameBudget) -> u32 {
+fn gpu_budget_warning_count(profile: &RenderFrameProfile, budget: &RenderFrameBudget) -> u32 {
     let subsystem_warning_count = profile
         .subsystems
         .iter()
@@ -203,7 +215,30 @@ mod tests {
     };
     use crate::graphics::backend::{GpuPassTiming, GpuTimerFrameResult};
 
-    use super::FrameProfiler;
+    use super::{FrameProfileWrite, FrameProfiler};
+    use crate::graphics::runtime::render_framework::budget::{
+        BudgetDegradeLadder, RenderMemoryBudget,
+    };
+
+    fn write_profile(
+        profiler: &mut FrameProfiler,
+        stats: &mut RenderStats,
+        frame_generation: u64,
+        cpu_submit_time_us: u64,
+        gpu_timer_frame_result: Option<&GpuTimerFrameResult>,
+    ) -> FrameProfileWrite {
+        let memory_budget = RenderMemoryBudget::default();
+        let mut degrade_ladder = BudgetDegradeLadder::default();
+        profiler.write_frame_profile(
+            stats,
+            frame_generation,
+            cpu_submit_time_us,
+            gpu_timer_frame_result,
+            &memory_budget,
+            &mut degrade_ladder,
+            0,
+        )
+    }
 
     #[test]
     fn render_perf_frame_profile_matches_flat_stats() {
@@ -224,9 +259,8 @@ mod tests {
         stats.last_shader_variant_miss_report.compile_miss_count = 3;
 
         let mut profiler = FrameProfiler::default();
-        let capture_profile = profiler
-            .write_frame_profile(&mut stats, 17, 1234, None)
-            .capture_profile;
+        let capture_profile =
+            write_profile(&mut profiler, &mut stats, 17, 1234, None).capture_profile;
 
         let profile = &stats.last_frame_profile;
         assert_eq!(profile.frame_generation, 17);
@@ -282,19 +316,19 @@ mod tests {
         let mut stats = RenderStats::default();
         let mut profiler = FrameProfiler::default();
 
-        profiler.write_frame_profile(&mut stats, 1, 1, None);
+        write_profile(&mut profiler, &mut stats, 1, 1, None);
         assert!(!stats.last_frame_profile.compiled_graph_cache_hit);
 
         stats.last_graph_compiled_cache_hit_count = 1;
-        profiler.write_frame_profile(&mut stats, 2, 1, None);
+        write_profile(&mut profiler, &mut stats, 2, 1, None);
         assert!(stats.last_frame_profile.compiled_graph_cache_hit);
 
-        profiler.write_frame_profile(&mut stats, 3, 1, None);
+        write_profile(&mut profiler, &mut stats, 3, 1, None);
         assert!(!stats.last_frame_profile.compiled_graph_cache_hit);
     }
 
     #[test]
-    fn delayed_gpu_results_merge_only_into_the_matching_cached_profile() {
+    fn render_perf_gpu_timer_latency_within_three_frames() {
         let mut stats = RenderStats::default();
         stats.last_graph_execution_profile_report =
             RenderGraphExecutionProfileReport::new(vec![RenderGraphPassProfileRecord::new(
@@ -305,9 +339,7 @@ mod tests {
             .with_budget_key(RenderBudgetKey::BasePass)]);
         let mut profiler = FrameProfiler::default();
 
-        let first_capture = profiler
-            .write_frame_profile(&mut stats, 7, 111, None)
-            .capture_profile;
+        let first_capture = write_profile(&mut profiler, &mut stats, 7, 111, None).capture_profile;
         assert_eq!(first_capture.frame_generation, 7);
         assert_eq!(first_capture.gpu_frame_time_us, None);
 
@@ -318,7 +350,7 @@ mod tests {
                 gpu_time_us: 4_000,
             }],
         };
-        let write = profiler.write_frame_profile(&mut stats, 9, 222, Some(&delayed_result));
+        let write = write_profile(&mut profiler, &mut stats, 9, 222, Some(&delayed_result));
         let current_capture = write.capture_profile;
 
         assert_eq!(
@@ -349,7 +381,7 @@ mod tests {
         assert!(base_pass.over_budget);
         assert_eq!(stats.last_budget_warning_count, 0);
 
-        profiler.write_frame_profile(&mut stats, 10, 333, None);
+        write_profile(&mut profiler, &mut stats, 10, 333, None);
         assert_eq!(stats.last_frame_profile.frame_generation, 10);
         assert_eq!(
             stats
@@ -373,7 +405,7 @@ mod tests {
             .with_budget_key(RenderBudgetKey::BasePass)]);
         let mut profiler = FrameProfiler::default();
         for generation in 1..=4 {
-            profiler.write_frame_profile(&mut stats, generation, 10, None);
+            write_profile(&mut profiler, &mut stats, generation, 10, None);
         }
         let first_result = GpuTimerFrameResult {
             frame_generation: 1,
@@ -383,7 +415,7 @@ mod tests {
             }],
         };
 
-        let write = profiler.write_frame_profile(&mut stats, 5, 10, Some(&first_result));
+        let write = write_profile(&mut profiler, &mut stats, 5, 10, Some(&first_result));
 
         assert_eq!(write.capture_profile.frame_generation, 5);
         let resolved = write
@@ -392,5 +424,36 @@ mod tests {
         assert_eq!(resolved.frame_generation, 1);
         assert_eq!(resolved.gpu_frame_time_us, Some(17));
         assert_eq!(stats.last_frame_profile.frame_generation, 5);
+    }
+
+    #[test]
+    fn render_perf_profile_feeds_memory_budget_lint_and_degrade_state() {
+        let mut stats = RenderStats::default();
+        stats.last_graph_execution_profile_report =
+            RenderGraphExecutionProfileReport::new(vec![RenderGraphPassProfileRecord::new(
+                "upload", "upload", 1,
+            )
+            .with_compute_metrics(1, 128)]);
+        stats.last_graph_transient_texture_bytes_reserved = 65;
+        let memory_budget = RenderMemoryBudget::new(64, 64, 64);
+        let mut degrade_ladder = BudgetDegradeLadder::with_hysteresis_frames(2);
+        let mut profiler = FrameProfiler::default();
+
+        let write = profiler.write_frame_profile(
+            &mut stats,
+            11,
+            10,
+            None,
+            &memory_budget,
+            &mut degrade_ladder,
+            3,
+        );
+
+        assert_eq!(write.capture_profile.staging_total_bytes, 128);
+        assert_eq!(write.capture_profile.store_lint_count, 3);
+        assert_eq!(write.capture_profile.budget_warning_count, 2);
+        assert_eq!(write.capture_profile.degrade_step_active, 1);
+        assert_eq!(stats.last_budget_warning_count, 2);
+        assert_eq!(stats.last_store_lint_count, 3);
     }
 }

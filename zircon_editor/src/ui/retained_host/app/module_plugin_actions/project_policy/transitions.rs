@@ -24,10 +24,7 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn next_target_mode
                 RuntimeTargetMode::EditorHost,
             ]
         }
-        [
-            RuntimeTargetMode::ClientRuntime,
-            RuntimeTargetMode::EditorHost,
-        ] => Vec::new(),
+        [RuntimeTargetMode::ClientRuntime, RuntimeTargetMode::EditorHost] => Vec::new(),
         _ => Vec::new(),
     }
 }

@@ -7,6 +7,8 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
+#[cfg(feature = "graphics")]
+use crate::plugin::PluginShaderModuleSource;
 use crate::plugin::RuntimeExtensionRegistry;
 
 pub(super) struct RuntimeModuleExtensionInputs {
@@ -18,6 +20,8 @@ pub(super) struct RuntimeModuleExtensionInputs {
     pub(super) geometry_sources: Vec<GeometrySourceDescriptor>,
     #[cfg(feature = "graphics")]
     pub(super) shading_models: Vec<ShadingModelDescriptor>,
+    #[cfg(feature = "graphics")]
+    pub(super) shader_module_sources: Vec<PluginShaderModuleSource>,
     #[cfg(feature = "graphics")]
     pub(super) render_pass_executors: Vec<RenderPassExecutorRegistration>,
     #[cfg(feature = "graphics")]
@@ -45,6 +49,8 @@ pub(super) fn extension_inputs_from_extension_registries<'a>(
         geometry_sources: collect_geometry_sources(&registries),
         #[cfg(feature = "graphics")]
         shading_models: collect_shading_models(&registries),
+        #[cfg(feature = "graphics")]
+        shader_module_sources: collect_shader_module_sources(&registries),
         #[cfg(feature = "graphics")]
         render_pass_executors: collect_render_pass_executors(&registries),
         #[cfg(feature = "graphics")]
@@ -99,6 +105,56 @@ fn collect_shading_models(registries: &[&RuntimeExtensionRegistry]) -> Vec<Shadi
         .iter()
         .flat_map(|registry| registry.shading_models().iter().cloned())
         .collect()
+}
+
+#[cfg(feature = "graphics")]
+fn collect_shader_module_sources(
+    registries: &[&RuntimeExtensionRegistry],
+) -> Vec<PluginShaderModuleSource> {
+    let mut seen = std::collections::HashSet::new();
+    registries
+        .iter()
+        .flat_map(|registry| registry.shader_module_sources().iter().cloned())
+        .filter(|source| {
+            seen.insert((
+                source.owner_id.clone(),
+                source.import_path.clone(),
+                source.content_hash.clone(),
+            ))
+        })
+        .collect()
+}
+
+#[cfg(all(test, feature = "graphics"))]
+mod tests {
+    use super::collect_shader_module_sources;
+    use crate::plugin::{PluginShaderModuleSource, RuntimeExtensionRegistry};
+
+    #[test]
+    fn identical_feature_extension_shader_modules_are_collected_once() {
+        let source = PluginShaderModuleSource::new(
+            "feature-extension-fixture",
+            "zircon_fixture::feature_extension",
+            "fn feature_extension_lighting() -> vec3f { return vec3f(0.2); }",
+            "feature extension fixture",
+        );
+        let mut first = RuntimeExtensionRegistry::default();
+        first
+            .register_plugin_shader_module_source("feature-extension-fixture", source.clone())
+            .expect("first feature registration should accept its module");
+        let mut second = RuntimeExtensionRegistry::default();
+        second
+            .register_plugin_shader_module_source("feature-extension-fixture", source)
+            .expect("second feature registration should accept its module");
+
+        let collected = collect_shader_module_sources(&[&first, &second]);
+
+        assert_eq!(
+            collected.len(),
+            1,
+            "the same package module attached to multiple active features is one runtime source"
+        );
+    }
 }
 
 #[cfg(feature = "graphics")]

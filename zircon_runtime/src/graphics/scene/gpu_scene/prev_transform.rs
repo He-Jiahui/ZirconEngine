@@ -76,8 +76,8 @@ mod tests {
 
     use super::*;
     use crate::graphics::scene::gpu_scene::{
-        GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT, GpuInstanceData,
-        GpuPrimitiveData, GpuScene,
+        GpuInstanceData, GpuPrimitiveData, GpuScene, GPU_PRIMITIVE_FLAG_VISIBLE,
+        GPU_SCENE_INVALID_PAYLOAD_SLOT,
     };
 
     const TEST_STABLE_INSTANCE_KEY: u64 = 0x6000_0001;

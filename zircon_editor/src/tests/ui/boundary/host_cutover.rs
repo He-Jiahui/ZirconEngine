@@ -84,10 +84,8 @@ fn editor_ui_host_owns_bootstrap_orchestration() {
             "expected EditorManager constructor to stop directly owning `{forbidden}`"
         );
     }
-    assert!(
-        manager_source.contains("EditorUiHost::bootstrap(core, context.jobs().clone())"),
-        "expected EditorManager to delegate bootstrap to EditorUiHost"
-    );
+    assert!(manager_source.contains("EditorUiHost::bootstrap("));
+    assert!(manager_source.contains("context.dirty_documents().clone()"));
 }
 
 #[test]
@@ -446,4 +444,31 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
             "expected startup wrapper to stay thin for `{required}`"
         );
     }
+}
+
+#[test]
+fn document_toolkit_registry_owns_domain_save_and_close_lifecycle() {
+    let host_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("ui")
+        .join("host");
+    let host = std::fs::read_to_string(host_root.join("editor_ui_host.rs"))
+        .expect("editor ui host source");
+    let ui_asset_save =
+        std::fs::read_to_string(host_root.join("asset_editor_sessions").join("save.rs"))
+            .expect("ui asset save source");
+    let animation_save =
+        std::fs::read_to_string(host_root.join("animation_editor_sessions").join("save.rs"))
+            .expect("animation save source");
+    let layout_commands = std::fs::read_to_string(host_root.join("layout_commands.rs"))
+        .expect("layout commands source");
+    let workspace = std::fs::read_to_string(host_root.join("workspace_state.rs"))
+        .expect("workspace state source");
+
+    assert!(host.contains("DocumentToolkitRegistry<EditorUiHost>"));
+    assert!(host.contains("fn save_document_toolkit("));
+    assert!(ui_asset_save.contains("self.save_document_toolkit(instance_id"));
+    assert!(animation_save.contains("self.save_document_toolkit(instance_id"));
+    assert!(layout_commands.contains("self.begin_document_close(instance_id)?"));
+    assert!(workspace.contains("self.clear_document_toolkits()?"));
 }

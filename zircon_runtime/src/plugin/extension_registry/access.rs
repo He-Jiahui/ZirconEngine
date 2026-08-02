@@ -8,6 +8,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::bridge::InterfaceExport;
+use crate::plugin::PluginShaderModuleSource;
 
 use super::{PluginModuleId, RuntimeExtensionRegistry};
 
@@ -16,6 +17,10 @@ mod runtime_core;
 mod scene_hook;
 
 impl RuntimeExtensionRegistry {
+    pub fn shader_module_sources(&self) -> &[PluginShaderModuleSource] {
+        &self.shader_module_sources
+    }
+
     #[cfg(feature = "graphics")]
     pub fn render_features(&self) -> &[RenderFeatureDescriptor] {
         self.render_features.values()

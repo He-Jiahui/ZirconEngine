@@ -1,7 +1,8 @@
 use crate::core::framework::project::ProjectPluginSelection;
 use crate::core::{ModuleDescriptor, ModuleLifecycle};
 use crate::plugin::{
-    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    PluginPackageManifest, PluginShaderModuleSource, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError,
 };
 
 use super::super::RuntimePluginDescriptor;
@@ -24,6 +25,12 @@ pub trait RuntimePlugin {
 
     fn project_selection(&self) -> ProjectPluginSelection {
         self.descriptor().project_selection()
+    }
+
+    /// Returns module text resolved by a linked plugin before renderer construction.
+    /// Native packages populate the same registry from their package manifest files.
+    fn shader_module_sources(&self) -> Vec<PluginShaderModuleSource> {
+        Vec::new()
     }
 
     fn register(

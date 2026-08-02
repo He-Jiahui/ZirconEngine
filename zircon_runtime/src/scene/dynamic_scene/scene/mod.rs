@@ -11,6 +11,8 @@ mod capture;
 mod spawn;
 mod validation;
 
+pub(crate) use spawn::CompiledSceneSpawn;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DynamicScene {
@@ -50,6 +52,62 @@ impl DynamicScene {
         world: &World,
     ) -> Result<ScenePatchPreviewReport, DynamicSceneError> {
         spawn::preview_scene_spawn_into(self, world)
+    }
+
+    pub(crate) fn compile_spawn_into(
+        &self,
+        world: &World,
+    ) -> Result<spawn::CompiledSceneSpawn, DynamicSceneError> {
+        spawn::compile_scene_spawn(self, world)
+    }
+
+    pub(crate) fn apply_compiled_spawn_into(
+        &self,
+        world: &mut World,
+        plan: spawn::CompiledSceneSpawn,
+    ) -> Result<EntityRemap, DynamicSceneError> {
+        spawn::apply_compiled_scene_spawn(self, world, plan)
+    }
+
+    pub(crate) fn capture_compiled_spawn_preflight(
+        &self,
+        world: &World,
+        plan: &spawn::CompiledSceneSpawn,
+        limit_bytes: usize,
+    ) -> Result<(World, usize), DynamicSceneError> {
+        spawn::capture_compiled_scene_spawn_preflight(self, world, plan, limit_bytes)
+    }
+
+    pub(crate) fn validate_compiled_spawn_preflight(
+        &self,
+        preflight: &mut World,
+        plan: &spawn::CompiledSceneSpawn,
+    ) -> Result<(), DynamicSceneError> {
+        spawn::validate_compiled_scene_spawn_preflight(self, preflight, plan)
+    }
+
+    pub(crate) fn apply_preflighted_compiled_spawn_into(
+        &self,
+        world: &mut World,
+        plan: spawn::CompiledSceneSpawn,
+    ) -> Result<EntityRemap, DynamicSceneError> {
+        spawn::apply_preflighted_compiled_scene_spawn(self, world, plan)
+    }
+
+    pub(crate) fn stage_existing_resources_bounded(
+        &self,
+        source: &World,
+        target: &mut World,
+        base_estimated_bytes: usize,
+        limit_bytes: usize,
+    ) -> Result<usize, DynamicSceneError> {
+        spawn::stage_existing_resources_bounded(
+            self,
+            source,
+            target,
+            base_estimated_bytes,
+            limit_bytes,
+        )
     }
 
     pub fn ensure_supported(&self) -> Result<(), DynamicSceneError> {

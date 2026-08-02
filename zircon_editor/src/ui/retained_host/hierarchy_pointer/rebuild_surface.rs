@@ -11,14 +11,13 @@ use zircon_runtime_interface::ui::{
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 use super::base_state::base_state;
-use super::constants::{
-    ROOT_NODE_ID, ROW_GAP, ROW_HEIGHT, ROW_WIDTH_INSET, ROW_X, ROW_Y, VIEWPORT_NODE_ID,
-};
+use super::constants::{ROOT_NODE_ID, VIEWPORT_NODE_ID};
 use super::content_height::content_height;
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;
 use super::hierarchy_pointer_route::HierarchyPointerRoute;
 use super::item_node_id::{item_node_id, item_route_id, list_surface_route_id};
 use super::register_handled_pointer_node::register_handled_pointer_node;
+use super::row_metrics::{hierarchy_row_width, hierarchy_row_y};
 use super::viewport_frame::viewport_frame;
 
 impl HierarchyPointerBridge {
@@ -60,7 +59,7 @@ impl HierarchyPointerBridge {
                 .with_scroll_state(UiScrollState {
                     offset: self.state.scroll_offset,
                     viewport_extent: viewport.height.max(0.0),
-                    content_extent: content_height(self.layout.node_ids.len()),
+                    content_extent: content_height(self.layout.node_ids.len(), self.row_metrics),
                 })
                 .with_state_flags(base_state(true)),
             )
@@ -72,7 +71,7 @@ impl HierarchyPointerBridge {
             EditorRouteIntent::Hierarchy(HierarchyPointerRoute::ListSurface),
         );
 
-        let row_width = (self.layout.pane_width - ROW_WIDTH_INSET).max(0.0);
+        let row_width = hierarchy_row_width(self.layout.pane_width, self.row_metrics);
         for (item_index, node_id) in self.layout.node_ids.iter().enumerate() {
             let item_node_id = item_node_id(item_index);
             surface
@@ -84,11 +83,10 @@ impl HierarchyPointerBridge {
                         UiNodePath::new(format!("editor.hierarchy/item_{item_index}")),
                     )
                     .with_frame(UiFrame::new(
-                        ROW_X,
-                        ROW_Y + item_index as f32 * (ROW_HEIGHT + ROW_GAP)
-                            - self.state.scroll_offset,
+                        self.row_metrics.row_x,
+                        hierarchy_row_y(self.row_metrics, item_index, self.state.scroll_offset),
                         row_width,
-                        ROW_HEIGHT,
+                        self.row_metrics.row_height,
                     ))
                     .with_z_index(20 + item_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)

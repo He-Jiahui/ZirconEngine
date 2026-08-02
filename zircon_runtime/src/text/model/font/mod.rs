@@ -1,11 +1,12 @@
-mod composite;
 mod database;
 mod face;
 mod family;
 
-pub use composite::{CompositeFontDescriptor, FontCultureTag, FontScript, SubFontRange};
+pub use crate::asset::assets::{
+    CompositeFontDescriptor, FontCultureTag, FontFamilyName, FontScript, SubFontRange,
+};
 pub use database::{FontFaceId, FontMatch, FontQuery, InstancedFaceId};
 pub use face::{
     FaceIndex, FontFaceDescriptor, FontStretch, FontStyle, FontWeight, VariationCoords,
 };
-pub use family::{FontFamilyDescriptor, FontFamilyName};
+pub use family::FontFamilyDescriptor;

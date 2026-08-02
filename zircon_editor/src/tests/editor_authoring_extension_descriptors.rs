@@ -5,10 +5,10 @@ use crate::core::editor_authoring_extension::{
     SceneModeDescriptor, TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
 use crate::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorUiTemplateDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
 };
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::extension::InspectorCustomizationDescriptor;
 
 #[test]
 fn authoring_descriptors_register_and_preserve_capability_gates() {
@@ -193,7 +193,7 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
 }
 
 #[test]
-fn authoring_registry_accepts_zui_view_templates_but_rejects_non_zui_drawer_documents() {
+fn authoring_registry_accepts_zui_view_templates_but_rejects_non_zui_customization_documents() {
     let mut registry = EditorExtensionRegistry::default();
 
     registry
@@ -210,7 +210,7 @@ fn authoring_registry_accepts_zui_view_templates_but_rejects_non_zui_drawer_docu
         .unwrap();
 
     let error = registry
-        .register_component_drawer(ComponentDrawerDescriptor::new(
+        .register_inspector_customization(InspectorCustomizationDescriptor::new(
             "material.Component.Graph",
             "asset://material_editor/editor/graph_drawer.toml",
             "material.GraphDrawerController",
@@ -220,7 +220,7 @@ fn authoring_registry_accepts_zui_view_templates_but_rejects_non_zui_drawer_docu
     assert!(matches!(
         error,
         EditorExtensionRegistryError::InvalidUiDocument {
-            kind: "component drawer document",
+            kind: "inspector customization document",
             ..
         }
     ));

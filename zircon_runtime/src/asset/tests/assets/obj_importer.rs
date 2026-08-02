@@ -5,6 +5,16 @@ use crate::asset::{
     AssetImportOutcome, AssetImporter, AssetUri, ImportedAsset, ImportedAssetEntry,
 };
 
+fn virtual_geometry_import_settings() -> toml::Table {
+    toml::from_str(
+        r#"
+            [virtual_geometry]
+            enabled = true
+        "#,
+    )
+    .unwrap()
+}
+
 #[test]
 fn importer_emits_obj_multi_mesh_subassets() {
     let root = unique_temp_project_root("obj_multi_mesh_subassets");
@@ -14,7 +24,7 @@ fn importer_emits_obj_multi_mesh_subassets() {
     let root_uri = AssetUri::parse("res://models/two_objects.obj").unwrap();
 
     let outcome = AssetImporter::default()
-        .import_with_settings(&obj_path, &root_uri, Default::default())
+        .import_with_settings(&obj_path, &root_uri, virtual_geometry_import_settings())
         .unwrap();
     let root_entry = outcome.root_entry().expect("root obj entry");
 

@@ -9,25 +9,21 @@ fn render_advanced_material_scene_copy_is_absent_without_specular_transmission()
     ] {
         let compiled = pipeline.compile(&test_extract()).unwrap();
 
-        assert!(
-            !compiled
-                .graph()
-                .passes()
-                .iter()
-                .any(|pass| pass.name == "transmission.scene_copy")
-        );
+        assert!(!compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "transmission.scene_copy"));
         assert_pass_does_not_read(
             &compiled,
             "transparent-mesh",
             PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR,
         );
-        assert!(
-            !compiled
-                .graph()
-                .passes()
-                .iter()
-                .any(|pass| pass.name.starts_with("transmission-mesh"))
-        );
+        assert!(!compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name.starts_with("transmission-mesh")));
     }
 }
 
@@ -159,20 +155,16 @@ fn render_advanced_material_zero_copy_steps_keep_one_environment_only_draw() {
         .compile(&extract)
         .unwrap();
 
-    assert!(
-        !compiled
-            .graph()
-            .passes()
-            .iter()
-            .any(|pass| pass.name.starts_with("transmission.scene_copy"))
-    );
-    assert!(
-        compiled
-            .graph()
-            .passes()
-            .iter()
-            .any(|pass| pass.name == "transmission-mesh.0")
-    );
+    assert!(!compiled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name.starts_with("transmission.scene_copy")));
+    assert!(compiled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "transmission-mesh.0"));
     assert_pass_does_not_read(
         &compiled,
         "transmission-mesh.0",

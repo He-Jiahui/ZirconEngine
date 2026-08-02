@@ -2,9 +2,9 @@ use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
 };
 
+use super::HostPagePointerError;
 use super::host_page_pointer_bridge::HostPagePointerBridge;
 use super::host_page_pointer_dispatch::HostPagePointerDispatch;
-use super::HostPagePointerError;
 
 impl HostPagePointerBridge {
     pub(crate) fn handle_overflow_click(

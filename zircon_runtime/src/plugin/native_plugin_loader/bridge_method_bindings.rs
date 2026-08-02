@@ -27,13 +27,13 @@ impl NativeBridgeMethodFn {
         }
     }
 
-    pub const fn from_abi_v3(method: NativePluginBridgeMethodFnV3, user_data: u64) -> Self {
+    pub(super) const fn from_abi_v3(method: NativePluginBridgeMethodFnV3, user_data: u64) -> Self {
         Self {
             callable: NativeBridgeMethodCallable::AbiV3 { method, user_data },
         }
     }
 
-    pub fn call(self, call: NativeBridgeCall) -> ZrStatus {
+    pub(super) fn call(self, call: NativeBridgeCall) -> ZrStatus {
         match self.callable {
             NativeBridgeMethodCallable::Rust(method) => method(call),
             NativeBridgeMethodCallable::AbiV3 { method, user_data } => unsafe {
@@ -46,6 +46,10 @@ impl NativeBridgeMethodFn {
                 })
             },
         }
+    }
+
+    pub(super) const fn requires_loaded_generation_owner(self) -> bool {
+        matches!(self.callable, NativeBridgeMethodCallable::AbiV3 { .. })
     }
 }
 
@@ -68,12 +72,6 @@ impl std::fmt::Debug for NativeBridgeMethodFn {
 impl From<fn(NativeBridgeCall) -> ZrStatus> for NativeBridgeMethodFn {
     fn from(method: fn(NativeBridgeCall) -> ZrStatus) -> Self {
         Self::from_rust(method)
-    }
-}
-
-impl From<(NativePluginBridgeMethodFnV3, u64)> for NativeBridgeMethodFn {
-    fn from((method, user_data): (NativePluginBridgeMethodFnV3, u64)) -> Self {
-        Self::from_abi_v3(method, user_data)
     }
 }
 
@@ -153,6 +151,10 @@ impl NativeBridgeMethodBinding {
 
     pub fn method_name(&self) -> &str {
         &self.method_name
+    }
+
+    pub(super) const fn requires_loaded_generation_owner(&self) -> bool {
+        self.method.requires_loaded_generation_owner()
     }
 }
 

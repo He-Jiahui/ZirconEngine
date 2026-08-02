@@ -6,8 +6,8 @@ use crate::ui::retained_host::host_contract::{
 use super::super::identity::alert_has_icon;
 use super::action::alert_action_width;
 use super::metrics::{
-    alert_font_size, alert_message_line_height, alert_message_width, alert_message_y,
-    ALERT_ICON_EDGE, ALERT_ICON_GAP, ALERT_PADDING_X,
+    ALERT_ICON_EDGE, ALERT_ICON_GAP, ALERT_PADDING_X, alert_font_size, alert_message_line_height,
+    alert_message_width, alert_message_y,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_message_left(

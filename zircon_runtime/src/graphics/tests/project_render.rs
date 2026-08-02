@@ -1,8 +1,8 @@
 use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::assets::{
@@ -756,5 +756,9 @@ fn average_channel_in_region(
             count += 1.0;
         }
     }
-    if count <= 0.0 { 0.0 } else { total / count }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }

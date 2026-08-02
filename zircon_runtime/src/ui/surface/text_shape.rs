@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::text::{ShapedGlyphRun, SharedTextLayoutSession, TextRange};
+use crate::text::{ShapedGlyphRun, SharedTextLayoutSession, TextRange, text_style};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRange};
 
 pub fn shape_text_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphRun {
     let mut session = SharedTextLayoutSession::new();
     Arc::unwrap_or_clone(session.shape_horizontal_line(
         text,
-        &crate::ui::text::text_style(style),
+        &text_style(style),
         style.text_direction.into(),
         TextRange {
             start: 0,

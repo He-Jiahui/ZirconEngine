@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::{
-    SCENE_COLOR_HDR_FORMAT, post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
+    post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT, SCENE_COLOR_HDR_FORMAT,
 };
 
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
@@ -44,6 +44,7 @@ pub(crate) fn create_pipeline_bundle(
     taa_resolve_bind_group_layout: &wgpu::BindGroupLayout,
     velocity_camera_bind_group_layout: &wgpu::BindGroupLayout,
     motion_vector_tile_max_bind_group_layout: &wgpu::BindGroupLayout,
+    motion_vector_tile_max_parameter_bind_group_layout: &wgpu::BindGroupLayout,
     motion_vector_neighbor_max_bind_group_layout: &wgpu::BindGroupLayout,
     post_process_bind_group_layout: &wgpu::BindGroupLayout,
     upscale_bind_group_layout: &wgpu::BindGroupLayout,
@@ -104,6 +105,7 @@ pub(crate) fn create_pipeline_bundle(
         motion_vector_tile_max_pipeline: motion_vector_tile_max_pipeline(
             device,
             motion_vector_tile_max_bind_group_layout,
+            motion_vector_tile_max_parameter_bind_group_layout,
         ),
         motion_vector_neighbor_max_pipeline: motion_vector_neighbor_max_pipeline(
             device,
@@ -180,7 +182,7 @@ const fn bloom_target_format() -> wgpu::TextureFormat {
 
 #[cfg(test)]
 mod tests {
-    use super::{POST_PROCESS_INTERMEDIATE_HDR_FORMAT, bloom_target_format};
+    use super::{bloom_target_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT};
 
     #[test]
     fn bloom_pipeline_targets_intermediate_hdr_resource_format() {

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::platform::PreferenceStorageBackendKind;
+#[cfg(test)]
 use zircon_runtime::core::{CoreError, CoreRuntime};
 use zircon_runtime::platform::{
     AtomicFilePreferenceStorageBackend, PlatformConfig, PlatformDriver, PlatformTarget,
@@ -51,24 +52,23 @@ pub(super) fn planned_preference_storage_backend(
     }
 }
 
-pub(super) fn install_default_preference_storage(
-    runtime: &CoreRuntime,
+pub(super) fn preference_storage_backend_for_bootstrap(
     config: &PlatformConfig,
     host_backend: Option<&HostPreferenceStorageBackend>,
-) -> Result<PreferenceStorageBackendKind, CoreError> {
+) -> Option<Arc<dyn PreferenceStorageBackend>> {
     if !config.enabled {
-        return Ok(PreferenceStorageBackendKind::Unavailable);
+        return None;
     }
-    let backend = match host_backend {
+    match host_backend {
         Some(host_backend) => Some(Arc::clone(&host_backend.backend)),
         None => default_preference_storage_root(config.target).map(|root| {
             Arc::new(AtomicFilePreferenceStorageBackend::new(root))
                 as Arc<dyn PreferenceStorageBackend>
         }),
-    };
-    install_preference_storage_backend(runtime, backend)
+    }
 }
 
+#[cfg(test)]
 fn install_preference_storage_backend(
     runtime: &CoreRuntime,
     backend: Option<Arc<dyn PreferenceStorageBackend>>,
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn platform_preference_storage_host_installs_atomic_backend_after_activation() {
+    fn platform_preference_storage_host_can_install_backend_on_manual_runtime() {
         let runtime = CoreRuntime::new();
         runtime
             .register_module(foundation::module_descriptor())
@@ -275,6 +275,24 @@ mod tests {
             storage.backend_kind(),
             PreferenceStorageBackendKind::AtomicFile
         );
+    }
+
+    #[test]
+    fn builtin_bootstrap_installs_preference_backend_before_remaining_module_activation() {
+        let source = include_str!("engine_entry.rs");
+        let wire_factory = source
+            .find("runtime.register_module(descriptor_with_preference_storage_backend(")
+            .expect("bootstrap must wire the host backend into the platform driver factory");
+        let activate_remaining = source[wire_factory..]
+            .find("runtime.activate_registered_modules()?")
+            .map(|offset| wire_factory + offset)
+            .expect("bootstrap must activate registered modules after wiring factories");
+
+        assert!(
+            wire_factory < activate_remaining,
+            "activation-time consumers must never observe the temporary unavailable backend"
+        );
+        assert!(source.contains("PlatformDriver::with_preference_storage_backend"));
     }
 
     fn env_map<const N: usize>(values: [(&str, &str); N]) -> impl Fn(&str) -> Option<OsString> {

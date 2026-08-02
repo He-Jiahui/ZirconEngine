@@ -53,4 +53,9 @@ Prepared spawn只做scene schema自检；target remap/compatibility/parent、ada
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `前向修复中`; no pass is claimed.
+
+- 已完成：`CompiledSceneSpawn` 现在唯一拥有 target World generation、component schema catalog generation、entity remap、预写入 `NodeRecord`、已解析 component/resource adapter、dense field slot 与 remapped value；preview 与 apply 消费同一 plan，apply 在任何 type/record/component/resource 写入前拒绝 stale target 或 schema。反射 resource/component write 先在只含 schema、affected rows 与 staged affected resources 的隔离 World 预飞，target entity/component storage 不会被 clone 或修改；`PreparedDynamicSceneSpawn::{spawn_into,stage_into,stage_into_level}` 与 Level asset-reload ticket 已硬切到该 compiled transaction，worker ticket 不再持有 target `World`。
+- 已完成：`NodeRecord` batch 先整体预验证，再一次发布 records、World generation 与 lifecycle；不会在已发布的 batch 中暴露半完成 record 集。
+- 仍未完成：component/resource write 尚未通过 affected-row rollback/COW storage 在单一 publish boundary 中提交。因此 adapter 的不可预期 commit failure、generic component/resource final-row transfer、1/1k/100k probes 与 full commit 的 zero-partial-mutation 仍未满足，handoff 保持 `open`。
+- 当前证据：仅完成格式、diff 与静态 source guard；未运行声明的受管 Cargo 验收、上游复现或 1/1k/100k probes。

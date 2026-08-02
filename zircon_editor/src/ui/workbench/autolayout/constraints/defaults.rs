@@ -7,6 +7,8 @@ const DEFAULT_BOTTOM_REGION_MIN_HEIGHT: f32 = 120.0;
 const DEFAULT_BOTTOM_REGION_PREFERRED_HEIGHT: f32 = 148.0;
 const DEFAULT_LOG_TOOL_MIN_HEIGHT: f32 = 120.0;
 const DEFAULT_LOG_TOOL_PREFERRED_HEIGHT: f32 = 148.0;
+const DEFAULT_CONSOLE_MIN_WIDTH: f32 = 186.0;
+const DEFAULT_CONSOLE_PREFERRED_WIDTH: f32 = 204.0;
 
 pub fn default_region_constraints(region: ShellRegionId) -> PaneConstraints {
     match region {
@@ -47,8 +49,21 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
             width: stretch_axis(220.0, 280.0, 55, 1.0),
             height: stretch_axis(180.0, 320.0, 55, 1.0),
         },
-        ViewContentKind::Console
-        | ViewContentKind::RuntimeDiagnostics
+        ViewContentKind::Console => PaneConstraints {
+            width: stretch_axis(
+                DEFAULT_CONSOLE_MIN_WIDTH,
+                DEFAULT_CONSOLE_PREFERRED_WIDTH,
+                50,
+                1.0,
+            ),
+            height: stretch_axis(
+                DEFAULT_LOG_TOOL_MIN_HEIGHT,
+                DEFAULT_LOG_TOOL_PREFERRED_HEIGHT,
+                50,
+                1.0,
+            ),
+        },
+        ViewContentKind::RuntimeDiagnostics
         | ViewContentKind::PerformanceTimeline
         | ViewContentKind::ModulePlugins
         | ViewContentKind::BuildExport
@@ -71,5 +86,22 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
             height: stretch_axis(260.0, 480.0, 80, 2.0),
         },
         ViewContentKind::Placeholder => default_region_constraints(ShellRegionId::Document),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        default_constraints_for_content, DEFAULT_CONSOLE_MIN_WIDTH, DEFAULT_CONSOLE_PREFERRED_WIDTH,
+    };
+    use crate::ui::workbench::snapshot::ViewContentKind;
+
+    #[test]
+    fn console_constraints_preserve_the_compact_filter_group_minimum() {
+        let constraints = default_constraints_for_content(ViewContentKind::Console);
+
+        assert_eq!(constraints.width.min, DEFAULT_CONSOLE_MIN_WIDTH);
+        assert_eq!(constraints.width.preferred, DEFAULT_CONSOLE_PREFERRED_WIDTH);
+        assert!(constraints.width.max < 0.0);
     }
 }

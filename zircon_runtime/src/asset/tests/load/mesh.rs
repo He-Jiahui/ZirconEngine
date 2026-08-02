@@ -1,4 +1,4 @@
-use crate::asset::load::mesh::{decode_mesh_file, generate_cube_mesh, MeshLoadError};
+use crate::asset::load::mesh::{MeshLoadError, decode_mesh_file, generate_cube_mesh};
 
 #[test]
 fn builtin_cube_mesh_has_triangles() {

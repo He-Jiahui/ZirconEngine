@@ -171,9 +171,11 @@ fn direct_dynamic_component_mutations_publish_fresh_field_artifacts() {
         .expect("empty node should expose reflected fields");
     let initial_diagnostics = world.inspection_artifact_diagnostics();
 
-    assert!(world
-        .set_dynamic_component(entity, DYNAMIC_TYPE_PATH, json!({ "coverage": 0.75 }))
-        .expect("direct dynamic component insertion should succeed"));
+    assert!(
+        world
+            .set_dynamic_component(entity, DYNAMIC_TYPE_PATH, json!({ "coverage": 0.75 }))
+            .expect("direct dynamic component insertion should succeed")
+    );
     let added = world.inspection_artifact();
     let added_fields = world
         .inspection_fields_artifact(entity)
@@ -184,21 +186,27 @@ fn direct_dynamic_component_mutations_publish_fresh_field_artifacts() {
         world.inspection_artifact_diagnostics().hierarchy_builds(),
         initial_diagnostics.hierarchy_builds()
     );
-    assert!(added
-        .published_delta_from(initial.generation())
-        .expect("the adjacent generation should publish a delta")
-        .changed_rows()
-        .is_empty());
-    assert!(added_fields
-        .delta_from(&initial_fields)
-        .changed_fields()
-        .iter()
-        .any(|field| field.component_type_path == DYNAMIC_TYPE_PATH
-            && field.field_name == "coverage"));
+    assert!(
+        added
+            .published_delta_from(initial.generation())
+            .expect("the adjacent generation should publish a delta")
+            .changed_rows()
+            .is_empty()
+    );
+    assert!(
+        added_fields
+            .delta_from(&initial_fields)
+            .changed_fields()
+            .iter()
+            .any(|field| field.component_type_path == DYNAMIC_TYPE_PATH
+                && field.field_name == "coverage")
+    );
 
-    assert!(world
-        .remove_dynamic_component(entity, DYNAMIC_TYPE_PATH)
-        .expect("direct dynamic component removal should succeed"));
+    assert!(
+        world
+            .remove_dynamic_component(entity, DYNAMIC_TYPE_PATH)
+            .expect("direct dynamic component removal should succeed")
+    );
     let removed = world.inspection_artifact();
     let removed_fields = world
         .inspection_fields_artifact(entity)
@@ -209,12 +217,14 @@ fn direct_dynamic_component_mutations_publish_fresh_field_artifacts() {
         world.inspection_artifact_diagnostics().hierarchy_builds(),
         initial_diagnostics.hierarchy_builds()
     );
-    assert!(removed_fields
-        .delta_from(&added_fields)
-        .removed_fields()
-        .iter()
-        .any(|field| field.component_type_path() == DYNAMIC_TYPE_PATH
-            && field.field_name() == "coverage"));
+    assert!(
+        removed_fields
+            .delta_from(&added_fields)
+            .removed_fields()
+            .iter()
+            .any(|field| field.component_type_path() == DYNAMIC_TYPE_PATH
+                && field.field_name() == "coverage")
+    );
 }
 
 #[test]
@@ -302,12 +312,14 @@ fn unrelated_transform_change_reuses_the_focused_field_payload() {
         .expect("focused entity should expose reflected fields");
     let initial_diagnostics = world.inspection_artifact_diagnostics();
 
-    assert!(world
-        .update_transform(
-            changed,
-            Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
-        )
-        .expect("unrelated transform update should succeed"));
+    assert!(
+        world
+            .update_transform(
+                changed,
+                Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
+            )
+            .expect("unrelated transform update should succeed")
+    );
     let current_fields = world
         .inspection_fields_artifact(focused)
         .expect("focused entity should remain inspectable");
@@ -363,6 +375,37 @@ fn focused_field_artifact_reuses_its_arc_and_reports_property_changes() {
             && field.field_name == name_field.field_name
     }));
     assert!(delta.removed_fields().is_empty());
+}
+
+#[test]
+fn focused_field_cache_retains_only_the_current_primary_selection() {
+    let mut world = World::empty();
+    let first_entity = world.spawn_node(NodeKind::Empty);
+    let second_entity = world.spawn_node(NodeKind::Empty);
+
+    let first = world
+        .inspection_fields_artifact(first_entity)
+        .expect("first entity should expose reflected fields");
+    let after_first = world.inspection_artifact_diagnostics();
+    let second = world
+        .inspection_fields_artifact(second_entity)
+        .expect("second entity should expose reflected fields");
+    let after_second = world.inspection_artifact_diagnostics();
+    let first_reselected = world
+        .inspection_fields_artifact(first_entity)
+        .expect("reselected entity should expose reflected fields");
+
+    assert!(!std::sync::Arc::ptr_eq(&first, &second));
+    assert!(!std::sync::Arc::ptr_eq(&first, &first_reselected));
+    assert_eq!(
+        after_second.focused_field_builds(),
+        after_first.focused_field_builds() + 1
+    );
+    assert_eq!(
+        world.inspection_artifact_diagnostics().focused_field_builds(),
+        after_second.focused_field_builds() + 1,
+        "returning to an older selection must rebuild it instead of retaining every historical focus"
+    );
 }
 
 #[test]

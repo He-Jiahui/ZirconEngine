@@ -6,15 +6,14 @@ use wgpu::util::DeviceExt;
 use crate::core::framework::render::{
     RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
 };
-use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometrySubmissionDetail;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::pending_mesh_draw::{
-    PendingMeshDraw, VirtualGeometryIndirectDrawRef, VirtualGeometryIndirectDrawRefInput,
-    VirtualGeometryIndirectSegmentInput, VirtualGeometryIndirectSegmentKey, draw_ref_input,
-    segment_input,
+    draw_ref_input, segment_input, PendingMeshDraw, VirtualGeometryIndirectDrawRef,
+    VirtualGeometryIndirectDrawRefInput, VirtualGeometryIndirectSegmentInput,
+    VirtualGeometryIndirectSegmentKey,
 };
 
 pub(super) struct VirtualGeometryIndirectDrawPlan {
@@ -67,13 +66,20 @@ pub(super) fn build_virtual_geometry_indirect_draw_plan(
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     }
 
-    let segments_by_entity = execution_segments_by_entity(&snapshot.execution_segments);
-    if segments_by_entity.is_empty() {
+    let segments_by_stable_instance_key =
+        execution_segments_by_stable_instance_key(&snapshot.execution_segments);
+    if segments_by_stable_instance_key.is_empty() {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     }
 
-    let draw_segments =
-        expand_pending_draws_for_execution_segments(pending_draws, &segments_by_entity);
+    let draw_segments = expand_pending_draws_for_execution_segments(
+        pending_draws,
+        &segments_by_stable_instance_key,
+        |pending_draw| pending_draw.stable_instance_key,
+        |pending_draw, segment| {
+            pending_draw.indirect_draw_ref = Some(indirect_draw_ref_for_segment(segment));
+        },
+    );
     let Some(indirect_inputs) = build_indirect_inputs(pending_draws, &draw_segments) else {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     };
@@ -129,38 +135,46 @@ pub(super) fn build_virtual_geometry_indirect_draw_plan(
     }
 }
 
-fn execution_segments_by_entity(
+fn execution_segments_by_stable_instance_key(
     execution_segments: &[RenderVirtualGeometryExecutionSegment],
-) -> BTreeMap<EntityId, Vec<RenderVirtualGeometryExecutionSegment>> {
+) -> BTreeMap<u64, Vec<RenderVirtualGeometryExecutionSegment>> {
     let mut segments = BTreeMap::<_, Vec<_>>::new();
     for segment in execution_segments {
         if segment.state == RenderVirtualGeometryExecutionState::Missing {
             continue;
         }
         segments
-            .entry(segment.entity)
+            .entry(segment.stable_instance_key_or_legacy())
             .or_default()
             .push(segment.clone());
     }
     segments
 }
 
-fn expand_pending_draws_for_execution_segments(
-    pending_draws: &mut Vec<PendingMeshDraw>,
-    segments_by_entity: &BTreeMap<EntityId, Vec<RenderVirtualGeometryExecutionSegment>>,
-) -> Vec<Option<RenderVirtualGeometryExecutionSegment>> {
+fn expand_pending_draws_for_execution_segments<PendingDraw>(
+    pending_draws: &mut Vec<PendingDraw>,
+    segments_by_stable_instance_key: &BTreeMap<u64, Vec<RenderVirtualGeometryExecutionSegment>>,
+    stable_instance_key: impl Fn(&PendingDraw) -> u64,
+    mut attach_segment: impl FnMut(&mut PendingDraw, &RenderVirtualGeometryExecutionSegment),
+) -> Vec<Option<RenderVirtualGeometryExecutionSegment>>
+where
+    PendingDraw: Clone,
+{
     let mut expanded_draws = Vec::with_capacity(pending_draws.len());
     let mut draw_segments = Vec::with_capacity(pending_draws.len());
 
     for pending_draw in pending_draws.drain(..) {
-        let Some(entity_segments) = segments_by_entity.get(&pending_draw.source_entity) else {
+        let Some(instance_segments) = execution_segments_for_stable_instance_key(
+            segments_by_stable_instance_key,
+            stable_instance_key(&pending_draw),
+        ) else {
             expanded_draws.push(pending_draw);
             draw_segments.push(None);
             continue;
         };
-        for segment in entity_segments {
+        for segment in instance_segments {
             let mut draw = pending_draw.clone();
-            draw.indirect_draw_ref = Some(indirect_draw_ref_for_segment(segment));
+            attach_segment(&mut draw, segment);
             expanded_draws.push(draw);
             draw_segments.push(Some(segment.clone()));
         }
@@ -168,6 +182,15 @@ fn expand_pending_draws_for_execution_segments(
 
     *pending_draws = expanded_draws;
     draw_segments
+}
+
+fn execution_segments_for_stable_instance_key<'a>(
+    segments_by_stable_instance_key: &'a BTreeMap<u64, Vec<RenderVirtualGeometryExecutionSegment>>,
+    stable_instance_key: u64,
+) -> Option<&'a [RenderVirtualGeometryExecutionSegment]> {
+    segments_by_stable_instance_key
+        .get(&stable_instance_key)
+        .map(Vec::as_slice)
 }
 
 struct VirtualGeometryIndirectInputs {
@@ -287,6 +310,7 @@ fn segment_key_for_execution_segment(
         submission_index: segment.submission_index.unwrap_or(segment.draw_ref_index),
         instance_index: segment.instance_index,
         entity: segment.entity,
+        stable_instance_key: segment.stable_instance_key_or_legacy(),
         page_id: segment.page_id,
         cluster_start_ordinal: segment.cluster_start_ordinal,
         cluster_span_count: segment.cluster_span_count,
@@ -339,4 +363,127 @@ fn indirect_args_usage() -> wgpu::BufferUsages {
 
 fn metadata_buffer_usage() -> wgpu::BufferUsages {
     wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        execution_segments_by_stable_instance_key, expand_pending_draws_for_execution_segments,
+    };
+    use crate::core::framework::render::{
+        RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    };
+
+    #[test]
+    fn execution_segments_keep_same_entity_primitives_partitioned_by_stable_instance_key() {
+        let segments = vec![
+            execution_segment(41, 41 << 16, 10),
+            execution_segment(41, (41 << 16) | 1, 20),
+        ];
+
+        let segments_by_stable_instance_key = execution_segments_by_stable_instance_key(&segments);
+
+        assert_eq!(segments_by_stable_instance_key.len(), 2);
+        assert_eq!(segments_by_stable_instance_key[&(41 << 16)][0].page_id, 10);
+        assert_eq!(
+            segments_by_stable_instance_key[&((41 << 16) | 1)][0].page_id,
+            20
+        );
+    }
+
+    #[test]
+    fn legacy_execution_segment_key_only_matches_primitive_zero_for_its_entity() {
+        let entity = 41;
+        let segments = vec![
+            execution_segment(entity, 0, 10),
+            execution_segment(entity, (entity << 16) | 1, 20),
+        ];
+
+        let segments_by_stable_instance_key = execution_segments_by_stable_instance_key(&segments);
+
+        assert_eq!(segments_by_stable_instance_key.len(), 2);
+        assert_eq!(
+            segments_by_stable_instance_key[&(entity << 16)][0].page_id,
+            10
+        );
+        assert_eq!(
+            segments_by_stable_instance_key[&((entity << 16) | 1)][0].page_id,
+            20
+        );
+    }
+
+    #[test]
+    fn pending_draw_expansion_keeps_same_entity_primitives_and_legacy_key_isolated() {
+        let entity = 41_u64;
+        let first_key = entity << 16;
+        let second_key = first_key | 1;
+        let segments_by_stable_instance_key = execution_segments_by_stable_instance_key(&[
+            execution_segment(entity, 0, 10),
+            execution_segment(entity, second_key, 20),
+        ]);
+        let mut pending_draws = vec![
+            PendingDrawKey::new(first_key),
+            PendingDrawKey::new(second_key),
+        ];
+
+        let draw_segments = expand_pending_draws_for_execution_segments(
+            &mut pending_draws,
+            &segments_by_stable_instance_key,
+            |draw| draw.stable_instance_key,
+            |draw, segment| draw.attached_segment_page = Some(segment.page_id),
+        );
+
+        assert_eq!(pending_draws.len(), 2);
+        assert_eq!(pending_draws[0].attached_segment_page, Some(10));
+        assert_eq!(pending_draws[1].attached_segment_page, Some(20));
+        assert_eq!(draw_segments.len(), 2);
+        assert_eq!(
+            draw_segments[0].as_ref().map(|segment| segment.page_id),
+            Some(10)
+        );
+        assert_eq!(
+            draw_segments[1].as_ref().map(|segment| segment.page_id),
+            Some(20)
+        );
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct PendingDrawKey {
+        stable_instance_key: u64,
+        attached_segment_page: Option<u32>,
+    }
+
+    impl PendingDrawKey {
+        const fn new(stable_instance_key: u64) -> Self {
+            Self {
+                stable_instance_key,
+                attached_segment_page: None,
+            }
+        }
+    }
+
+    fn execution_segment(
+        entity: u64,
+        stable_instance_key: u64,
+        page_id: u32,
+    ) -> RenderVirtualGeometryExecutionSegment {
+        RenderVirtualGeometryExecutionSegment {
+            original_index: 0,
+            instance_index: None,
+            entity,
+            stable_instance_key,
+            page_id,
+            draw_ref_index: 0,
+            submission_index: Some(0),
+            draw_ref_rank: Some(0),
+            cluster_start_ordinal: 0,
+            cluster_span_count: 1,
+            cluster_total_count: 1,
+            submission_slot: Some(0),
+            state: RenderVirtualGeometryExecutionState::Resident,
+            lineage_depth: 0,
+            lod_level: 0,
+            frontier_rank: 0,
+        }
+    }
 }

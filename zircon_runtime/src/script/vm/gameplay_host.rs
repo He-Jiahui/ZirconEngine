@@ -3,8 +3,8 @@ use crate::core::framework::script::{
     ScriptHostValue, ScriptHostValueKind,
 };
 use crate::script::{
-    current_script_runtime_call_context, script_float, HostExportFunction, HostExportRegistry,
-    HostHandle, VmError,
+    runtime_context_for_frame, script_float, HostExportFunction, HostExportRegistry, HostHandle,
+    VmError,
 };
 
 mod combat;
@@ -308,12 +308,12 @@ pub fn register_gameplay_host_module(
     let handle = exports.register_module(
         descriptor,
         [
-            HostExportFunction::new("delta_seconds", |_| {
-                let context = current_script_runtime_call_context()?;
+            HostExportFunction::new("delta_seconds", |frame| {
+                let context = runtime_context_for_frame(frame)?;
                 Ok(script_float(context.delta_seconds))
             }),
-            HostExportFunction::new("entity", |_| {
-                let context = current_script_runtime_call_context()?;
+            HostExportFunction::new("entity", |frame| {
+                let context = runtime_context_for_frame(frame)?;
                 Ok(ScriptHostValue::Int(context.entity as i64))
             }),
             HostExportFunction::new("key_pressed", key_pressed),

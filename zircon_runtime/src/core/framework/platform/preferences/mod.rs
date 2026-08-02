@@ -7,8 +7,8 @@ pub use backend_kind::PreferenceStorageBackendKind;
 pub use error::{PreferenceStorageError, PreferenceStorageErrorKind, PreferenceStorageOperation};
 pub use key::{PreferenceKey, PreferenceKeyError, PreferenceKeyErrorKind};
 pub use storage::{
-    PreferenceDurabilityState, PreferenceFlushTicket, PreferenceMutationCancelError,
-    PreferenceMutationCancellation, PreferenceMutationSubmission, PreferenceMutationTerminal,
-    PreferenceMutationTicket, PreferencePersistenceFailureProjection, PreferenceReadSnapshot,
-    PreferenceStorage, PreferenceTicketWaitResult, PreferenceWorkDeadline,
+    PreferenceDurabilityState, PreferenceEviction, PreferenceFlushTicket,
+    PreferenceMutationCancelError, PreferenceMutationCancellation, PreferenceMutationSubmission,
+    PreferenceMutationTerminal, PreferenceMutationTicket, PreferencePersistenceFailureProjection,
+    PreferenceReadSnapshot, PreferenceStorage, PreferenceTicketWaitResult, PreferenceWorkDeadline,
 };

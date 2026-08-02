@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
   - zircon_runtime/src/scene/tests/render_extract/level_source_guards.rs
-  - zircon_runtime/src/animation/scene_hook/tick.rs
+  - zircon_runtime/src/scene/tests/level_system_frame_state.rs
 plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 ---
 
@@ -14,25 +14,28 @@ plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 
 ## 已确认的逐帧冗余
 
-动画 tick 把最终姿势保存在 `LevelSystem` runtime state 的
-`BTreeMap<EntityId, AnimationPoseOutput>`。render extract 原先先 clone 整棵 map，再把其有序
-iterator 收集为 `Vec<RenderSkeletalPoseExtract>`，最后又按同一 `EntityId` 排序。对 N 个动画
-实体，这会产生一个无消费者的中间 tree allocation，以及一个语义重复的 `O(N log N)` 排序。
+当前 producer 通过 `LevelSystem::record_animation_poses` 把最终姿势发布到 generation-sealed
+`Arc<LevelFrameStateSnapshot>`，其中姿势仍由有序
+`BTreeMap<EntityId, AnimationPoseOutput>` 持有。render extract 只取得一次
+`frame_state_snapshot()`，校验 world generation 后直接迭代该 map；不会先 clone 整棵 tree，
+不会物化中间 pose-entry Vec，也不会再按 `EntityId` 排序。
 
 `filter_map` 不改变剩余元素的相对顺序，所以有序 map iterator 已满足 deterministic extract
-合同。当前修复让 `animation_pose_entries()` 在短 runtime-state 锁内直接收集一次有序 `Vec`；
-world/skeleton 过滤继续消费该 Vec，但不再进行第二次排序。姿势 payload 仍必须 clone 到拥有所有权
-的 frame DTO，未用借用跨越 world 锁或 renderer 边界。
+合同。姿势 payload 仍必须 clone 到拥有所有权的 frame DTO，但 sealed frame handle 可以跨越
+短锁读取边界并由同一帧的消费者共享。2026-07-17 的 `animation_pose_entries()` 中间 Vec 止损已经被
+这一更强的 snapshot 合同取代，不再是当前生产路径。
 
 ## 回归与状态
 
-- 先加入结构守卫并静态确认旧源码为 RED：仍存在 `sort_by_key`，且调用旧的 tree clone snapshot。
-- 修复后同一守卫的静态等价检查为 GREEN：调用 `animation_pose_entries`，消费有序 Vec，且没有
-  `animation_poses.sort` / `sort_by_key`。
+- 当前结构守卫断言 render extract 取得 `frame_state_snapshot()`，消费
+  `frame_state.animation_poses().iter()`，校验 world generation，并明确拒绝旧的
+  `animation_pose_entries`、`animation_poses.sort` 与 `sort_by_key` 路径。
+- `level_system_frame_state.rs` 与 render-extract source guard 覆盖 generation 发布、稳定 frame handle
+  复用、clear 和 world replacement 后的旧 snapshot 隔离。
 - `level_system.rs`、producer 与 source guard 已通过 `rustfmt --check`；scoped
   `git diff --check` 仅报告仓库既有 LF/CRLF 提示。
-- Cargo CPU lane 被 Plugins02 Sound 的精确 reservation 占用，实际 Rust 测试尚未启动；因此
-  `zircon_runtime/src/scene` 仍全部保留在 `pending.md`，不写入 `review.md`。
+- 2026-08-02 current-source 复扫仅确认上述静态合同；本轮未抢占共享 managed Cargo lane。因此
+  `zircon_runtime/src/scene` 的动态规模验收仍保留在 `pending.md`，不写入 `review.md`。
 
 ## Mesh/phase 双 Vec 投影
 

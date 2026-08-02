@@ -78,7 +78,6 @@ related_code:
   - zircon_runtime/src/core/framework/physics/shape_overlap_hit.rs
   - zircon_runtime/src/core/framework/physics/shape_overlap_query.rs
   - zircon_runtime/src/core/framework/physics/mesh_asset.rs
-  - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
   - zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs
   - zircon_runtime/src/core/framework/physics/trigger_event.rs
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
@@ -88,7 +87,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/runtime_hook/mod.rs
@@ -175,7 +174,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
 plan_sources:

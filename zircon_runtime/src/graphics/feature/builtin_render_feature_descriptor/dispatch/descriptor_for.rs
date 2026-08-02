@@ -1,4 +1,4 @@
-use super::super::builtin_render_feature::{BuiltinRenderFeature, descriptor_only_advanced_slot};
+use super::super::builtin_render_feature::{descriptor_only_advanced_slot, BuiltinRenderFeature};
 use super::super::feature_descriptors::{
     advanced_slot, anti_alias, bloom, clustered_lighting, color_grading, debug_overlay,
     deferred_geometry, deferred_lighting, hzb, mesh, neural_compute, post_process, ray_tracing,

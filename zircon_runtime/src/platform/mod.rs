@@ -22,9 +22,8 @@ pub use config::{PlatformConfig, PLATFORM_CONFIG_KEY};
 pub use feature_selection::PlatformFeatureSelection;
 pub use module::{module_descriptor, PlatformModule, PLATFORM_DRIVER_NAME};
 pub use preferences::{
-    AtomicFilePreferenceStorageBackend, PreferenceBackendWorkAuthority,
-    PreferencePersistenceAdapter, PreferencePersistenceLimits, PreferencePersistenceQuote,
-    PreferenceStorageBackend, MAX_PREFERENCE_FAILURE_DETAIL_BYTES, MAX_PREFERENCE_VALUE_BYTES,
+    AtomicFilePreferenceStorageBackend, PreferenceBackendWorkAuthority, PreferenceStorageBackend,
+    PreferenceStorageBackendDiagnostics,
 };
 pub use service_types::{
     PlatformDriver, PlatformManager, PreferenceStorageBackendInstallError,

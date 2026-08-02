@@ -44,12 +44,10 @@ fn compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled() {
         workload.dispatch_extent,
         crate::render_graph::RenderGraphComputeDispatchExtent::Fixed([8, 8, 8])
     );
-    assert!(
-        color_lut_pass
-            .resources
-            .iter()
-            .any(|resource| resource.name == PostProcessGraphResourceNames::EXPOSURE_CURRENT)
-    );
+    assert!(color_lut_pass
+        .resources
+        .iter()
+        .any(|resource| resource.name == PostProcessGraphResourceNames::EXPOSURE_CURRENT));
 }
 
 #[test]
@@ -545,16 +543,12 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
         crate::rhi::TextureFormat::Rgba8UnormSrgb
     );
     assert_eq!(terminal_input.sample_count, 1);
-    assert!(
-        terminal_input
-            .usage
-            .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT)
-    );
-    assert!(
-        terminal_input
-            .usage
-            .contains(crate::rhi::TextureUsage::SAMPLED)
-    );
+    assert!(terminal_input
+        .usage
+        .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT));
+    assert!(terminal_input
+        .usage
+        .contains(crate::rhi::TextureUsage::SAMPLED));
 }
 
 #[test]
@@ -605,13 +599,11 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         resource.name == PostProcessGraphResourceNames::FINAL_COLOR
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
-    assert!(
-        !compiled
-            .graph()
-            .passes()
-            .iter()
-            .any(|pass| pass.name == "fxaa")
-    );
+    assert!(!compiled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "fxaa"));
 
     let terminal_input =
         texture_lifetime(&compiled, PostProcessGraphResourceNames::FINAL_COMPOSITED);
@@ -620,16 +612,12 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         crate::rhi::TextureFormat::Rgba8UnormSrgb
     );
     assert_eq!(terminal_input.sample_count, 1);
-    assert!(
-        terminal_input
-            .usage
-            .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT)
-    );
-    assert!(
-        terminal_input
-            .usage
-            .contains(crate::rhi::TextureUsage::SAMPLED)
-    );
+    assert!(terminal_input
+        .usage
+        .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT));
+    assert!(terminal_input
+        .usage
+        .contains(crate::rhi::TextureUsage::SAMPLED));
 }
 
 #[test]
@@ -701,15 +689,13 @@ fn hybrid_gi_lighting_descriptor() -> RenderFeatureDescriptor {
         "hybrid_gi",
         vec!["view".to_string(), "lighting".to_string()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Lighting,
-                "hybrid-gi-resolve",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("hybrid-gi.resolve")
-            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "hybrid-gi-resolve",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("hybrid-gi.resolve")
+        .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)],
     )
 }
 

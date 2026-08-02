@@ -1,0 +1,21 @@
+[package]
+name = "cargo-zircon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Zircon plugin scaffolding, manifest synchronization, and validation tooling."
+
+[dependencies]
+libloading = "0.9.0"
+proc-macro2 = "1.0.106"
+syn = { version = "2.0.110", features = ["full"] }
+toml.workspace = true
+toml_edit = "0.25.12"
+
+[lib]
+name = "cargo_zircon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cargo-zircon"
+path = "src/main.rs"

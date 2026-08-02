@@ -138,7 +138,7 @@ impl UiRenderCommand {
         }
     }
 
-    fn cache_generation(&self) -> u64 {
+    pub fn cache_generation(&self) -> u64 {
         stable_json_generation(self)
     }
 
@@ -419,7 +419,7 @@ impl Write for StableHashWriter {
 mod cache_generation_tests {
     use serde::ser::SerializeStruct;
 
-    use super::{FNV_OFFSET, stable_json_generation};
+    use super::{stable_json_generation, FNV_OFFSET};
 
     struct PartialThenFail;
 

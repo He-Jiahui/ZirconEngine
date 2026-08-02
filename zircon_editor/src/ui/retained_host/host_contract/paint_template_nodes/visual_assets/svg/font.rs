@@ -2,8 +2,8 @@ use std::sync::{Arc, OnceLock};
 
 use resvg::usvg;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn cached_svg_font_db(
-) -> Arc<usvg::fontdb::Database> {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn cached_svg_font_db()
+-> Arc<usvg::fontdb::Database> {
     static SVG_FONT_DB: OnceLock<Arc<usvg::fontdb::Database>> = OnceLock::new();
     SVG_FONT_DB
         .get_or_init(|| {

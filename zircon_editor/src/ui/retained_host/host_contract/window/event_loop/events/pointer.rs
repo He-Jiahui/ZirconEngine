@@ -3,11 +3,11 @@ use winit::event::MouseScrollDelta;
 use zircon_runtime_interface::ui::surface::UiPointerEventKind;
 use zircon_runtime_interface::ui::window::UiWindowInputPumpEvent;
 
-use super::super::platform_input::{platform_pointer_input, platform_pointer_move_point};
 use super::super::UiHostWindowEventLoop;
+use super::super::platform_input::{platform_pointer_input, platform_pointer_move_point};
 use crate::ui::retained_host::host_contract::native_pointer::{
-    dispatch_native_pointer_button, dispatch_native_pointer_move, dispatch_native_pointer_scroll,
-    NativePointerButtonState,
+    NativePointerButtonState, dispatch_native_pointer_button, dispatch_native_pointer_move,
+    dispatch_native_pointer_scroll,
 };
 
 impl UiHostWindowEventLoop {

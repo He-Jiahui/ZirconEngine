@@ -1,6 +1,5 @@
 mod card_capture_shading;
 mod collect_inputs;
-mod copy_readbacks;
 mod create_bind_group;
 mod create_buffers;
 mod dispatch;

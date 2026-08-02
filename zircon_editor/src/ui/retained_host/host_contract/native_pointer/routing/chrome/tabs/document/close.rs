@@ -1,8 +1,8 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostChromeTabData};
 
 use super::super::super::super::{
-    geometry::{contains, translated},
     ChromePointerRoute,
+    geometry::{contains, translated},
 };
 
 pub(super) fn route_document_tab_close(

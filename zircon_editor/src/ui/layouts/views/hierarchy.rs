@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::build_view_template_nodes;
 use crate::ui::retained_host::primitives::ModelRc;
-use crate::ui::workbench::snapshot::SceneEntry;
+use crate::ui::workbench::snapshot::SceneEntries;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
@@ -16,11 +16,13 @@ const HIERARCHY_LIST_PANEL: &str = "HierarchyListPanel";
 const HIERARCHY_EMPTY_STATE_MESSAGE: &str = "HierarchyEmptyStateMessage";
 
 pub(crate) fn hierarchy_pane_nodes(
-    entries: &[SceneEntry],
+    entries: &SceneEntries,
     size: UiSize,
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
-    let active_entry = entries.iter().find(|entry| entry.selected);
+    let active_entry = entries
+        .iter()
+        .find(|entry| entries.is_selected(entry.entity));
     text_overrides.insert(HIERARCHY_HEADER_PANEL.to_string(), "Hierarchy".to_string());
     text_overrides.insert(
         HIERARCHY_EMPTY_STATE_MESSAGE.to_string(),

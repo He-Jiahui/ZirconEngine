@@ -131,8 +131,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.he
 [nodes.component_buttons]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentButtons"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 204.0, preferred = 204.0, max = 204.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "buttons_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "buttons_row_primary", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "buttons_row_variant", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "buttons_row_icon", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "buttons_row_tail", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -154,7 +154,7 @@ children = [{ node = "primary_button" }, { node = "secondary_button" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchPrimaryButton"
 classes = ["workbench-primary-button"]
-props = { text = "Primary", button_variant = "filled", button_color = "primary", button_size = "small", background_color = "$editor.accent.soft", border_color = "$editor.accent", foreground_color = "$editor.text.primary", layout_offset_x = 3.0, layout_offset_y = -1.0, visual_brightness = 1.0 }
+props = { text = "Primary", button_variant = "filled", button_color = "primary", button_size = "small" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Primary", event = "Click", route = "component_lab.primary" }]
 
@@ -162,7 +162,7 @@ events = [{ id = "ComponentLab/Primary", event = "Click", route = "component_lab
 component = "WorkbenchButton"
 control_id = "WorkbenchSecondaryButton"
 classes = ["workbench-control-button"]
-props = { text = "Secondary", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "$editor.surface.1", layout_offset_x = 1.0, layout_offset_y = -1.0, visual_brightness = 1.01 }
+props = { text = "Secondary", button_variant = "outlined", button_color = "secondary", button_size = "small" }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Secondary", event = "Click", route = "component_lab.secondary" }]
 
@@ -177,7 +177,7 @@ children = [{ node = "tertiary_button" }, { node = "outline_button" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchTertiaryButton"
 classes = ["workbench-control-button", "workbench-tertiary-button"]
-props = { text = "Tertiary", button_variant = "text", button_color = "secondary", button_size = "small", background_color = "$editor.surface.0", border_color = "$editor.separator.soft", foreground_color = "$editor.text.secondary", corner_radius = "$editor.control.radius.small", layout_offset_x = 1.0 }
+props = { text = "Tertiary", button_variant = "text", button_color = "secondary", button_size = "small" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Tertiary", event = "Click", route = "component_lab.tertiary" }]
 
@@ -185,7 +185,7 @@ events = [{ id = "ComponentLab/Tertiary", event = "Click", route = "component_la
 component = "WorkbenchButton"
 control_id = "WorkbenchOutlineButton"
 classes = ["workbench-control-button", "workbench-outline-button"]
-props = { text = "Outline", button_variant = "outlined", button_color = "secondary", button_size = "small", border_color = "$editor.separator.soft", foreground_color = "$editor.text.secondary", corner_radius = "$editor.control.radius.small", layout_offset_x = 1.0 }
+props = { text = "Outline", button_variant = "outlined", button_color = "secondary", button_size = "small" }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Outline", event = "Click", route = "component_lab.outline" }]
 
@@ -200,7 +200,7 @@ children = [{ node = "button_icon" }, { node = "button_delete" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchButtonIcon"
 classes = ["workbench-control-button", "workbench-button-icon"]
-props = { text = "Icon", icon = "zircon_editor_shell/controls/add.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "$editor.surface.2", border_color = "$editor.border", foreground_color = "$editor.text.secondary", corner_radius = "$editor.control.radius.small", layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
+props = { text = "Icon", icon = "zircon_editor_shell/controls/add.svg", button_variant = "outlined", button_color = "secondary", button_size = "small" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/IconButton", event = "Click", route = "component_lab.icon_button" }]
 
@@ -208,7 +208,7 @@ events = [{ id = "ComponentLab/IconButton", event = "Click", route = "component_
 component = "WorkbenchButton"
 control_id = "WorkbenchButtonDelete"
 classes = ["workbench-control-button", "workbench-danger"]
-props = { text = "", icon = "zircon_editor_shell/controls/delete.svg", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger", foreground_color = "$editor.semantic.error", corner_radius = "$editor.control.radius.small", layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
+props = { text = "", icon = "zircon_editor_shell/controls/delete.svg", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger" }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/DeleteButton", event = "Click", route = "component_lab.delete_button" }]
 
@@ -223,22 +223,22 @@ children = [{ node = "disabled_button" }, { node = "dropdown_button" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchDisabledButton"
 classes = ["workbench-control-button", "workbench-disabled-button"]
-props = { text = "Disabled", button_variant = "outlined", button_color = "secondary", button_size = "small", disabled = true, background_color = "$editor.surface.disabled", border_color = "$editor.border.disabled", foreground_color = "$editor.text.disabled", disabled_opacity = 0.72, layout_offset_x = -1.0, layout_offset_y = 3.5 }
+props = { text = "Disabled", button_variant = "outlined", button_color = "secondary", button_size = "small", disabled = true }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.dropdown_button]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchDropdownButton"
 classes = ["workbench-field", "workbench-button-dropdown"]
-props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown", "option_a", "option_b"], popup_open = false, layout_width = 82.0, value_color = "$editor.text.secondary", arrow_color = "$editor.text.disabled", border_color = "$editor.surface.recessed", layout_offset_x = -1.0, layout_offset_y = 3.5, visual_brightness = 1.005 }
+props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown", "option_a", "option_b"], popup_open = false, layout_width = 82.0 }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/ButtonDropdownOpen", event = "Click", route = "component_lab.open_popup.button_dropdown" }, { id = "ComponentLab/ButtonDropdownSelect", event = "Change", route = "component_lab.select_option.button_dropdown" }]
 
 [nodes.component_icon_buttons]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentIconButtons"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 210.0, preferred = 210.0, max = 210.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "icon_buttons_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "icon_grid_row_top", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "icon_grid_row_bottom", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "icon_toggle_title", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "icon_toggle_segment", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -260,28 +260,28 @@ children = [{ node = "mini_add" }, { node = "mini_folder" }, { node = "mini_save
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniAdd"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_folder]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniFolder"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Open", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Open", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_save]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniSave"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_delete]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniDelete"
 classes = ["workbench-icon-button", "workbench-danger"]
-props = { icon = "zircon_editor_shell/controls/delete.svg", label = "Delete", button_color = "danger", validation_level = "danger", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/controls/delete.svg", label = "Delete", button_color = "danger", validation_level = "danger", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.icon_grid_row_bottom]
@@ -295,28 +295,28 @@ children = [{ node = "mini_eye" }, { node = "mini_eye_off" }, { node = "mini_loc
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniEye"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/scene/eye.svg", label = "Visible", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/scene/eye.svg", label = "Visible", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_eye_off]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniEyeOff"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/scene/eye-off.svg", label = "Hidden", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/scene/eye-off.svg", label = "Hidden", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_lock]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniLock"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/scene/lock.svg", label = "Locked", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/scene/lock.svg", label = "Locked", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_more]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniMore"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/more-vertical.svg", label = "More", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "$editor.text.secondary", background_color = "$editor.surface.3", border_color = "$editor.surface.recessed", corner_radius = "$editor.control.radius.small" }
+props = { icon = "zircon_editor_shell/toolbar/more-vertical.svg", label = "More", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.icon_toggle_title]
@@ -330,15 +330,15 @@ layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 2
 component = "WorkbenchSegmentedControl"
 control_id = "WorkbenchIconToggleSegmented"
 classes = ["workbench-segmented-control", "workbench-icon-toggle-segmented"]
-props = { value = "grid", options = ["grid", "list", "columns"], selection_state = "single", layout_width = 150.0, layout_offset_y = 1.0, selected_segment_border_width = 0.0, selected_segment_underline_height = 2.0, selected_segment_underline_color = "$editor.accent" }
+props = { value = "grid", options = ["grid", "list", "columns"], selection_state = "single", layout_width = 150.0 }
 layout = { width = { min = 150.0, preferred = 150.0, max = 150.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/IconToggleSegmentedSelect", event = "Change", route = "component_lab.select_option.icon_toggle_segmented" }]
 
 [nodes.component_inputs]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentInputs"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 214.0, preferred = 214.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "inputs_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "input_search", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_text", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_focused", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_disabled", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_dropdown_row", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -369,7 +369,7 @@ events = [{ id = "ComponentLab/InputFocusedEdit", event = "Change", route = "com
 component = "WorkbenchField"
 control_id = "WorkbenchInputDisabled"
 classes = ["workbench-field", "workbench-component-field", "workbench-disabled"]
-props = { value = "", placeholder = "Disabled input", disabled = true, disabled_opacity = 0.94, layout_width = 170.0 }
+props = { value = "", placeholder = "Disabled input", disabled = true, layout_width = 170.0 }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.input_search]
@@ -407,28 +407,28 @@ layout = { width = { min = 67.0, preferred = 67.0, max = 67.0, stretch = "Fixed"
 component = "WorkbenchSlider"
 control_id = "WorkbenchInputSlider"
 classes = ["workbench-slider"]
-props = { label_text = "Value", value = 75.0, value_text = "0.75", min = 0.0, max = 100.0, step = 1.0, layout_offset_x = -18.0, layout_offset_y = 1.0, track_offset_x = -10.0, track_width_delta = 18.0 }
+props = { label_text = "Value", value = 75.0, value_text = "0.75", min = 0.0, max = 100.0, step = 1.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.input_slider_range]
 component = "WorkbenchRangeSlider"
 control_id = "WorkbenchInputRangeSlider"
 classes = ["workbench-slider", "workbench-slider-range"]
-props = { label_text = "Range", range_min = 20.0, value = 80.0, range_min_percent = 0.2, value_percent = 0.8, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, layout_offset_x = -18.0, layout_offset_y = 1.0, track_offset_x = -10.0, track_width_delta = 18.0 }
+props = { label_text = "Range", range_min = 20.0, value = 80.0, range_min_percent = 0.2, value_percent = 0.8, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
 
 [nodes.input_slider_steps]
 component = "WorkbenchSlider"
 control_id = "WorkbenchInputStepsSlider"
 classes = ["workbench-slider", "workbench-slider-steps"]
-props = { label_text = "Steps", value = 86.0, value_text = "3", min = 0.0, max = 100.0, step = 1.0, step_tick_count = 5.0, layout_offset_x = -18.0, layout_offset_y = 1.0, track_offset_x = -10.0, track_width_delta = 18.0 }
+props = { label_text = "Steps", value = 86.0, value_text = "3", min = 0.0, max = 100.0, step = 1.0, step_tick_count = 5.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.component_sliders]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentSliders"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "sliders_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "input_slider", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_slider_range", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_slider_steps", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -436,22 +436,22 @@ children = [{ node = "sliders_title", slot = { layout = { padding = { left = 8.0
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchSlidersTitle"
 classes = ["workbench-section-title"]
-props = { text = "Sliders", label_color = "$editor.text.secondary" }
+props = { text = "Sliders" }
 layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
 
 [nodes.input_segmented]
 component = "WorkbenchSegmentedControl"
 control_id = "WorkbenchInputSegmented"
 classes = ["workbench-segmented-control"]
-props = { value = "center", options = ["left", "center", "right"], selection_state = "single", label_text = "Segmented Control", label_color = "$editor.text.secondary", label_brightness = 0.94, layout_offset_x = -0.5 }
+props = { value = "center", options = ["left", "center", "right"], selection_state = "single", label_text = "Segmented Control" }
 layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/InputSegmentedSelect", event = "Change", route = "component_lab.select_option.input_segmented" }]
 
 [nodes.component_selection]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentSelection"
-classes = ["workbench-panel"]
-props = { layout_gap = "$editor.density.gap.medium", surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { layout_gap = "$editor.density.gap.medium", surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "selection_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "checkbox_on", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "checkbox_off", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "radio_on", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "radio_off", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -459,14 +459,14 @@ children = [{ node = "selection_title", slot = { layout = { padding = { left = 8
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchSelectionTitle"
 classes = ["workbench-section-title"]
-props = { text = "Checkboxes & Radios", label_color = "$editor.text.secondary" }
+props = { text = "Checkboxes & Radios" }
 layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
 
 [nodes.checkbox_on]
 component = "WorkbenchCheckbox"
 control_id = "WorkbenchCheckboxOn"
 classes = ["workbench-tree-item"]
-props = { text = "Checkbox", value = true, checked = true, selected = true, label_color = "$editor.text.secondary", background_color = "$editor.surface.selected", border_color = "$editor.accent", layout_spacing = 9.0, layout_icon_size = 16.0 }
+props = { text = "Checkbox", value = true, checked = true, selected = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/CheckboxOnToggle", event = "Toggle", route = "component_lab.change.checkbox_on" }]
 
@@ -474,7 +474,7 @@ events = [{ id = "ComponentLab/CheckboxOnToggle", event = "Toggle", route = "com
 component = "WorkbenchCheckbox"
 control_id = "WorkbenchCheckboxOff"
 classes = ["workbench-tree-item"]
-props = { text = "Checkbox", value = false, checked = false, label_color = "$editor.text.secondary", background_color = "$editor.surface.recessed", border_color = "$editor.border", layout_spacing = 9.0, layout_icon_size = 16.0 }
+props = { text = "Checkbox", value = false, checked = false }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/CheckboxOffToggle", event = "Toggle", route = "component_lab.change.checkbox_off" }]
 
@@ -482,7 +482,7 @@ events = [{ id = "ComponentLab/CheckboxOffToggle", event = "Toggle", route = "co
 component = "WorkbenchRadio"
 control_id = "WorkbenchRadioOn"
 classes = ["workbench-tree-item"]
-props = { text = "Radio option", value = true, checked = true, selected = true, label_color = "$editor.text.secondary", layout_spacing = 9.0, layout_icon_size = 16.0, dot_size = 7.0, dot_color = "$editor.accent" }
+props = { text = "Radio option", value = true, checked = true, selected = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/RadioOnChange", event = "Change", route = "component_lab.change.radio_on" }]
 
@@ -490,7 +490,7 @@ events = [{ id = "ComponentLab/RadioOnChange", event = "Change", route = "compon
 component = "WorkbenchRadio"
 control_id = "WorkbenchRadioOff"
 classes = ["workbench-tree-item"]
-props = { text = "Radio option", value = false, checked = false, label_color = "$editor.text.secondary", background_color = "$editor.surface.recessed", border_color = "$editor.border", layout_spacing = 9.0, layout_icon_size = 16.0, dot_size = 7.0, dot_color = "$editor.accent" }
+props = { text = "Radio option", value = false, checked = false }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/RadioOffChange", event = "Change", route = "component_lab.change.radio_off" }]
 
@@ -498,15 +498,15 @@ events = [{ id = "ComponentLab/RadioOffChange", event = "Change", route = "compo
 component = "WorkbenchToggle"
 control_id = "WorkbenchToggleOn"
 classes = ["workbench-toggle"]
-props = { text = "Switch", value = true, checked = true, selected = true, background_color = "$editor.surface.selected", border_color = "$editor.separator.strong", foreground_color = "$editor.text.secondary", layout_spacing = 10.0, track_width = 34.0, track_height = 18.0, thumb_size = 12.0 }
+props = { text = "Switch", value = true, checked = true, selected = true }
 layout = { width = { min = 72.0, preferred = 96.0, max = 120.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = 30.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/ToggleSwitch", event = "Toggle", route = "component_lab.change.toggle_switch" }]
 
 [nodes.component_labs]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentLabs"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 236.0, preferred = 236.0, max = 236.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "labs_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "labs_tabs", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_segmented", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "visual_atom_row", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "visual_divider", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "toggle_on", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -521,7 +521,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 2
 component = "WorkbenchTabStrip"
 control_id = "WorkbenchLabsTabs"
 classes = ["workbench-tabs", "workbench-tab-strip"]
-props = { value = "overview", selected_index = 0.0, options = ["overview", "details", "stats"], orientation = "horizontal", selection_state = "single", background_color = "$editor.surface.2" }
+props = { value = "overview", selected_index = 0.0, options = ["overview", "details", "stats"], orientation = "horizontal", selection_state = "single" }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 216.0, preferred = 216.0, max = 216.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "labs_tab_one" }, { node = "labs_tab_two" }, { node = "labs_tab_three" }]
 
@@ -536,7 +536,7 @@ children = [{ node = "visual_label" }, { node = "visual_icon" }]
 component = "WorkbenchLabel"
 control_id = "WorkbenchVisualLabel"
 classes = ["workbench-label", "workbench-muted"]
-props = { text = "Label atom", foreground_color = "$editor.text.secondary" }
+props = { text = "Label atom" }
 layout = { width = { min = 174.0, preferred = 174.0, max = 174.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.visual_icon]
@@ -557,7 +557,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.
 component = "WorkbenchTab"
 control_id = "WorkbenchLabsTabOne"
 classes = ["workbench-tab", "workbench-labs-tab"]
-props = { text = "Tab 1", checked = true, selected = true, value = true, layout_offset_x = 3.0, layout_offset_y = 2.0 }
+props = { text = "Tab 1", checked = true, selected = true, value = true }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ComponentLab/LabsTabOne", event = "Click", route = "component_lab.labs_tab_one.select" }]
 
@@ -565,7 +565,7 @@ events = [{ id = "ComponentLab/LabsTabOne", event = "Click", route = "component_
 component = "WorkbenchTab"
 control_id = "WorkbenchLabsTabTwo"
 classes = ["workbench-tab", "workbench-labs-tab"]
-props = { text = "Tab 2", checked = false, selected = false, value = false, layout_offset_x = 3.0, layout_offset_y = 2.0 }
+props = { text = "Tab 2", checked = false, selected = false, value = false }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ComponentLab/LabsTabTwo", event = "Click", route = "component_lab.labs_tab_two.select" }]
 
@@ -573,15 +573,15 @@ events = [{ id = "ComponentLab/LabsTabTwo", event = "Click", route = "component_
 component = "WorkbenchTab"
 control_id = "WorkbenchLabsTabThree"
 classes = ["workbench-tab", "workbench-labs-tab"]
-props = { text = "Tab 3", checked = false, selected = false, value = false, layout_offset_x = 3.0, layout_offset_y = 2.0 }
+props = { text = "Tab 3", checked = false, selected = false, value = false }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ComponentLab/LabsTabThree", event = "Click", route = "component_lab.labs_tab_three.select" }]
 
 [nodes.component_feedback]
 component = "HorizontalGroup"
 control_id = "WorkbenchComponentFeedback"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "feedback_alerts", slot = { layout = { padding = { left = 8.0, top = 4.0, bottom = 4.0 } } } }, { node = "feedback_tooltip", slot = { layout = { padding = { top = 4.0, bottom = 4.0 } } } }, { node = "feedback_toast_column", slot = { layout = { padding = { top = 4.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -624,7 +624,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 3
 component = "WorkbenchTooltip"
 control_id = "WorkbenchTooltipRoot"
 classes = ["workbench-tooltip"]
-props = { text = "Tooltip", label_text = "This is a tooltip", icon = "info", surface_variant = "workbench-tooltip", background_color = "$editor.surface.0", border_color = "$editor.separator.soft", text_color = "$editor.text.primary", label_color = "$editor.text.secondary", icon_color = "$editor.accent", layout_icon_size = 18.0, layout_content_offset_y = 56.0, arrow_size = 8.0, arrow_color = "$editor.surface.0" }
+props = { text = "Tooltip", label_text = "This is a tooltip", icon = "info", show_icon = false, surface_variant = "workbench-tooltip" }
 layout = { width = { min = 110.0, preferred = 110.0, max = 120.0, stretch = "Fixed" }, height = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" } }
 
 [nodes.feedback_toast_column]
@@ -645,13 +645,13 @@ layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 1
 component = "WorkbenchSkeleton"
 control_id = "WorkbenchFeedbackSkeleton"
 classes = ["workbench-skeleton"]
-props = { variant = "rounded", animation = "pulse", loading = true, background_color = "$editor.surface.3", highlight_color = "$editor.border" }
+props = { variant = "rounded", animation = "pulse", loading = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 24.0, stretch = "Fixed" } }
 
 [nodes.feedback_toast_spacer]
 component = "Space"
 classes = ["workbench-feedback-toast-offset"]
-props = { border_width = 0.0, corner_radius = 0.0 }
+props = {}
 layout = { width = { stretch = "Stretch" }, height = { min = 43.0, preferred = 43.0, max = 43.0, stretch = "Fixed" } }
 
 [nodes.feedback_toast]
@@ -661,8 +661,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 3
 [nodes.component_list]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentList"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "list_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "list_group", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "menu_title", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "popup_menu", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -677,7 +677,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 2
 component = "Container"
 control_id = "WorkbenchListGroup"
 classes = ["workbench-list-group"]
-props = { border_width = 0.0, corner_radius = 0.0 }
+props = {}
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 102.0, preferred = 102.0, max = 110.0, stretch = "Fixed" } }
 children = [{ node = "list_item" }, { node = "list_selected" }, { node = "list_disabled" }]
 
@@ -692,7 +692,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 2
 component = "WorkbenchListRow"
 control_id = "WorkbenchListItem"
 classes = ["workbench-tree-item"]
-props = { text = "List item", value = "list_item", selected = false, text_color = "$editor.text.primary", icon_color = "$editor.text.secondary" }
+props = { text = "List item", value = "list_item", selected = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/ListItemSelect", event = "Click", route = "component_lab.select.list_item" }]
 
@@ -700,7 +700,7 @@ events = [{ id = "ComponentLab/ListItemSelect", event = "Click", route = "compon
 component = "WorkbenchListRow"
 control_id = "WorkbenchListSelected"
 classes = ["workbench-tree-item"]
-props = { text = "Selected item", value = "selected_item", selected = true, checked = true, background_color = "$editor.accent.soft", text_color = "$editor.accent", icon_color = "$editor.accent" }
+props = { text = "Selected item", value = "selected_item", selected = true, checked = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/ListSelectedSelect", event = "Click", route = "component_lab.select.list_selected" }]
 
@@ -708,14 +708,14 @@ events = [{ id = "ComponentLab/ListSelectedSelect", event = "Click", route = "co
 component = "WorkbenchListRow"
 control_id = "WorkbenchListDisabled"
 classes = ["workbench-tree-item", "workbench-disabled"]
-props = { text = "Disabled item", value = "disabled_item", disabled = true, text_color = "$editor.text.disabled", icon_color = "$editor.text.disabled" }
+props = { text = "Disabled item", value = "disabled_item", disabled = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 
 [nodes.component_table]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentTable"
-classes = ["workbench-panel"]
-props = { surface_variant = "component-panel", corner_radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+classes = ["workbench-panel", "workbench-component-sample-card"]
+props = { surface_variant = "component-panel" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 590.0, preferred = 590.0, max = 590.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "table_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "table_group", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
 
@@ -730,7 +730,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 2
 component = "Container"
 control_id = "WorkbenchTableGroup"
 classes = ["workbench-table-group"]
-props = { border_width = 0.0, corner_radius = 0.0 }
+props = {}
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 120.0, stretch = "Fixed" } }
 children = [{ node = "table_row_header" }, { node = "table_row_item" }, { node = "table_row_selected" }, { node = "table_row_tail" }]
 
@@ -738,14 +738,14 @@ children = [{ node = "table_row_header" }, { node = "table_row_item" }, { node =
 component = "WorkbenchTableRow"
 control_id = "WorkbenchTableHeader"
 classes = ["workbench-table-row", "workbench-table-header", "workbench-muted"]
-props = { text = "Name        Type        Size        Modified", value = "header", options = ["Name", "Type", "Size", "Modified"], selected = false, layout_content_offset_x = -1.0, layout_content_offset_y = 3.0, layout_first_cell_offset_x = 0.0, layout_padding_top = 2.0, layout_padding_bottom = 0.0 }
+props = { text = "Name        Type        Size        Modified", value = "header", options = ["Name", "Type", "Size", "Modified"], selected = false }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = 30.0, stretch = "Fixed" } }
 
 [nodes.table_row_item]
 component = "WorkbenchTableRow"
 control_id = "WorkbenchTableItem"
 classes = ["workbench-table-row"]
-props = { text = "Item_01     Mesh        2.4 MB      2m ago", value = "item_01", options = ["Item_01", "Mesh", "2.4 MB", "2m ago"], selected = false, layout_first_cell_offset_x = 4.0 }
+props = { text = "Item_01     Mesh        2.4 MB      2m ago", value = "item_01", options = ["Item_01", "Mesh", "2.4 MB", "2m ago"], selected = false }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = 30.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/TableItemSelect", event = "Click", route = "component_lab.select.table_item" }]
 
@@ -753,7 +753,7 @@ events = [{ id = "ComponentLab/TableItemSelect", event = "Click", route = "compo
 component = "WorkbenchTableRow"
 control_id = "WorkbenchTableSelected"
 classes = ["workbench-table-row"]
-props = { text = "Item_02     Material    512 KB      10m ago", value = "item_02", options = ["Item_02", "Material", "512 KB", "10m ago"], selected = true, layout_offset_x = -1.0, layout_offset_y = -1.5, layout_first_cell_offset_x = 0.0, background_color = "$editor.surface.selected" }
+props = { text = "Item_02     Material    512 KB      10m ago", value = "item_02", options = ["Item_02", "Material", "512 KB", "10m ago"], selected = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = 30.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/TableSelectedSelect", event = "Click", route = "component_lab.select.table_selected" }]
 
@@ -761,7 +761,7 @@ events = [{ id = "ComponentLab/TableSelectedSelect", event = "Click", route = "c
 component = "WorkbenchTableRow"
 control_id = "WorkbenchTableTail"
 classes = ["workbench-table-row", "workbench-table-tail"]
-props = { text = "Item_03     Texture     1.2 MB      1h ago", value = "item_03", options = ["Item_03", "Texture", "1.2 MB", "1h ago"], selected = false, layout_offset_y = 0.5, layout_content_offset_y = -0.5, layout_first_cell_offset_x = 6.0, layout_second_cell_offset_x = 2.0, layout_fourth_cell_offset_x = -2.0, background_color = "$editor.surface.recessed", fourth_cell_text_color = "$editor.text.secondary" }
+props = { text = "Item_03     Texture     1.2 MB      1h ago", value = "item_03", options = ["Item_03", "Texture", "1.2 MB", "1h ago"], selected = false }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = 30.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/TableTailSelect", event = "Click", route = "component_lab.select.table_tail" }]
 
@@ -769,5 +769,5 @@ events = [{ id = "ComponentLab/TableTailSelect", event = "Click", route = "compo
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchPopupMenu"
 classes = ["workbench-popup-menu"]
-props = { value = "Open", menu_items = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,hovered,icon=trash", "More Tools|submenu"], popup_open = true, disable_enforce_focus = true, popup_anchor_x = 16.0, popup_anchor_y = 20.0, layout_offset_y = -12.0 }
+props = { value = "Open", menu_items = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,hovered,icon=trash", "More Tools|submenu"], popup_open = true, disable_enforce_focus = true, popup_anchor_x = 16.0, popup_anchor_y = 20.0 }
 layout = { width = { min = 145.0, preferred = 145.0, max = 145.0, stretch = "Fixed" }, height = { min = 140.0, preferred = 150.0, max = 156.0, stretch = "Fixed" } }

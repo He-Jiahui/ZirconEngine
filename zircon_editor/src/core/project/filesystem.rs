@@ -81,7 +81,7 @@ fn reject_blank_project_path(path: &Path) -> Result<(), ProjectAuthorityError> {
     Ok(())
 }
 
-fn reject_linked_components(path: &Path) -> Result<(), ProjectAuthorityError> {
+pub(super) fn reject_linked_components(path: &Path) -> Result<(), ProjectAuthorityError> {
     let mut existing = path;
     while !existing.exists() {
         let Some(parent) = existing.parent() else {
@@ -102,12 +102,215 @@ fn reject_linked_components(path: &Path) -> Result<(), ProjectAuthorityError> {
     Ok(())
 }
 
+/// Keeps the project-owned directory chain stable while a scene source is opened or published.
+///
+/// On Windows, metadata checks alone are not sufficient because an attacker can replace a checked
+/// directory with a reparse point before the runtime opens the scene path. The guarded handles are
+/// opened without following reparse points and deny delete sharing, so the existing runtime path
+/// APIs cannot be redirected while this guard is alive.
+pub(super) fn protect_scene_path(
+    project_root: &Path,
+    path: &Path,
+    include_file: bool,
+) -> Result<ScenePathGuard, ProjectAuthorityError> {
+    reject_linked_components(path)?;
+    if path.strip_prefix(project_root).is_err() {
+        return Err(ProjectAuthorityError::SceneTarget {
+            uri: path.display().to_string(),
+            reason: "resolved scene source is outside the active project root",
+        });
+    }
+    ScenePathGuard::acquire(project_root, path, include_file)
+}
+
+#[cfg(not(windows))]
+pub(super) struct ScenePathGuard;
+
+#[cfg(not(windows))]
+impl ScenePathGuard {
+    fn acquire(
+        _project_root: &Path,
+        path: &Path,
+        _include_file: bool,
+    ) -> Result<Self, ProjectAuthorityError> {
+        // POSIX directory descriptors do not prevent a concurrent rename. The runtime loader
+        // currently accepts only paths, not an openat-derived descriptor, so allowing this route
+        // would reintroduce a path-replacement window after the guard returns.
+        Err(ProjectAuthorityError::SceneTarget {
+            uri: path.display().to_string(),
+            reason: "scene document paths require Windows no-follow lease support",
+        })
+    }
+}
+
+#[cfg(windows)]
+pub(super) struct ScenePathGuard {
+    _handles: Vec<ReparseSafeHandle>,
+}
+
+#[cfg(windows)]
+impl ScenePathGuard {
+    fn acquire(
+        project_root: &Path,
+        path: &Path,
+        include_file: bool,
+    ) -> Result<Self, ProjectAuthorityError> {
+        let target_parent = path
+            .parent()
+            .ok_or_else(|| ProjectAuthorityError::SceneTarget {
+                uri: path.display().to_string(),
+                reason: "scene source path has no parent directory",
+            })?;
+        let relative_parent = target_parent.strip_prefix(project_root).map_err(|_| {
+            ProjectAuthorityError::SceneTarget {
+                uri: path.display().to_string(),
+                reason: "resolved scene source is outside the active project root",
+            }
+        })?;
+        let mut guarded_paths = project_root
+            .ancestors()
+            .map(Path::to_path_buf)
+            .collect::<Vec<_>>();
+        guarded_paths.reverse();
+        let mut current = project_root.to_path_buf();
+        for component in relative_parent.components() {
+            current.push(component.as_os_str());
+            guarded_paths.push(current.clone());
+        }
+        if include_file {
+            guarded_paths.push(path.to_path_buf());
+        }
+
+        let mut handles = Vec::with_capacity(guarded_paths.len());
+        let file_index = include_file.then_some(guarded_paths.len().saturating_sub(1));
+        for (index, guarded_path) in guarded_paths.into_iter().enumerate() {
+            handles.push(ReparseSafeHandle::open(
+                &guarded_path,
+                Some(index) != file_index,
+            )?);
+        }
+        Ok(Self { _handles: handles })
+    }
+}
+
+#[cfg(windows)]
+struct ReparseSafeHandle(isize);
+
+#[cfg(windows)]
+impl ReparseSafeHandle {
+    fn open(path: &Path, allow_shared_writes: bool) -> Result<Self, ProjectAuthorityError> {
+        use std::os::windows::ffi::OsStrExt;
+
+        const FILE_READ_ATTRIBUTES: u32 = 0x0080;
+        const FILE_SHARE_READ: u32 = 0x0001;
+        const FILE_SHARE_WRITE: u32 = 0x0002;
+        const OPEN_EXISTING: u32 = 3;
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0400;
+        const INVALID_HANDLE_VALUE: isize = -1;
+
+        let mut wide_path = path.as_os_str().encode_wide().collect::<Vec<_>>();
+        wide_path.push(0);
+        let share_mode = if allow_shared_writes {
+            FILE_SHARE_READ | FILE_SHARE_WRITE
+        } else {
+            FILE_SHARE_READ
+        };
+        let handle = unsafe {
+            CreateFileW(
+                wide_path.as_ptr(),
+                FILE_READ_ATTRIBUTES,
+                share_mode,
+                std::ptr::null(),
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+                0,
+            )
+        };
+        if handle == INVALID_HANDLE_VALUE {
+            return Err(ProjectAuthorityError::io(
+                "open protected scene path",
+                path,
+                std::io::Error::last_os_error(),
+            ));
+        }
+
+        let mut information = ByHandleFileInformation::default();
+        let inspected = unsafe { GetFileInformationByHandle(handle, &mut information) } != 0;
+        if !inspected {
+            let error = std::io::Error::last_os_error();
+            unsafe {
+                CloseHandle(handle);
+            }
+            return Err(ProjectAuthorityError::io(
+                "inspect protected scene path",
+                path,
+                error,
+            ));
+        }
+        if information.file_attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+            unsafe {
+                CloseHandle(handle);
+            }
+            return Err(ProjectAuthorityError::LinkedPath {
+                path: path.to_path_buf(),
+            });
+        }
+        Ok(Self(handle))
+    }
+}
+
+#[cfg(windows)]
+impl Drop for ReparseSafeHandle {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.0);
+        }
+    }
+}
+
+#[cfg(windows)]
+#[repr(C)]
+#[derive(Default)]
+struct ByHandleFileInformation {
+    file_attributes: u32,
+    creation_time_low: u32,
+    creation_time_high: u32,
+    last_access_time_low: u32,
+    last_access_time_high: u32,
+    last_write_time_low: u32,
+    last_write_time_high: u32,
+    volume_serial_number: u32,
+    file_size_high: u32,
+    file_size_low: u32,
+    number_of_links: u32,
+    file_index_high: u32,
+    file_index_low: u32,
+}
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+extern "system" {
+    fn CreateFileW(
+        file_name: *const u16,
+        desired_access: u32,
+        share_mode: u32,
+        security_attributes: *const std::ffi::c_void,
+        creation_disposition: u32,
+        flags_and_attributes: u32,
+        template_file: isize,
+    ) -> isize;
+    fn GetFileInformationByHandle(handle: isize, information: *mut ByHandleFileInformation) -> i32;
+    fn CloseHandle(handle: isize) -> i32;
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
     use super::super::ProjectAuthorityError;
-    use super::{canonical_project_root, validate_creation_target};
+    use super::{canonical_project_root, protect_scene_path, validate_creation_target};
 
     #[test]
     fn project_root_validation_rejects_empty_and_blank_paths_before_filesystem_access() {
@@ -121,6 +324,25 @@ mod tests {
                 Err(ProjectAuthorityError::EmptyProjectPath)
             ));
         }
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn scene_path_guard_rejects_unsupported_platforms_before_loading_or_publishing() {
+        let root =
+            std::env::temp_dir().join(format!("zircon-editor-scene-guard-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("assets/scenes")).unwrap();
+
+        let error = protect_scene_path(&root, &root.join("assets/scenes/main.scene.toml"), false)
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            ProjectAuthorityError::SceneTarget { reason, .. }
+                if reason.contains("Windows no-follow lease support")
+        ));
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
 

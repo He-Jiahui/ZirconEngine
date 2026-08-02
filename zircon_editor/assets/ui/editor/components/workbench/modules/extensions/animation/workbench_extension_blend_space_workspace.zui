@@ -46,12 +46,14 @@ children = [{ node = "blend_space_rail_gap" }, { node = "blend_space_left" }, { 
 [nodes.blend_space_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionBlendSpaceRailGap"
+props = { responsive_min_tier = "narrow" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.blend_space_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBlendSpaceLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "narrow" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 188.0, preferred = 220.0, max = 250.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "blend_space_title" }, { node = "blend_space_tabs" }, { node = "blend_space_search" }, { node = "blend_space_assets_title" }, { node = "blend_space_idle_run_row" }, { node = "blend_space_strafe_row" }, { node = "blend_space_sprint_row" }, { node = "blend_space_left_divider" }, { node = "blend_space_files_title" }, { node = "blend_space_characters_tree_row" }, { node = "blend_space_locomotion_tree_row" }, { node = "blend_space_clips_tree_row" }, { node = "blend_space_left_fill" }]
 
@@ -170,11 +172,10 @@ layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width =
 children = [{ node = "blend_space_center_header" }, { node = "blend_space_center_work_area" }, { node = "blend_space_bottom_composite_row" }]
 
 [nodes.blend_space_center_header]
-component = "HorizontalGroup"
+component = "WorkbenchPanelHeader"
 control_id = "WorkbenchExtensionBlendSpaceCenterHeader"
-classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-children = [{ node = "blend_space_center_title" }, { node = "blend_space_asset_summary" }, { node = "blend_space_header_fill" }, { node = "blend_space_preview_button" }, { node = "blend_space_apply_button" }]
+layout = { width = { stretch = "Stretch" } }
+children = [{ node = "blend_space_center_title", slot = { name = "title" } }, { node = "blend_space_asset_summary", slot = { name = "actions" } }, { node = "blend_space_preview_button", slot = { name = "actions" } }, { node = "blend_space_apply_button", slot = { name = "actions" } }]
 
 [nodes.blend_space_center_title]
 component = "WorkbenchSectionTitle"
@@ -187,11 +188,6 @@ component = "WorkbenchCaption"
 control_id = "WorkbenchExtensionBlendSpaceAssetSummary"
 props = { text = "BS_Locomotion  |  8 samples", responsive_min_tier = "wide" }
 layout = { width = { min = 122.0, preferred = 164.0, max = 190.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.blend_space_header_fill]
-component = "Container"
-control_id = "WorkbenchExtensionBlendSpaceHeaderFill"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.blend_space_preview_button]
 component = "WorkbenchButton"
@@ -277,7 +273,8 @@ children = [{ node = "blend_space_preview_toolbar" }, { node = "blend_space_prev
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionBlendSpacePreviewToolbar"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+props = { background_color = "$editor.surface.3", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium" }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 children = [{ node = "blend_space_preview_camera" }, { node = "blend_space_preview_toolbar_fill" }, { node = "blend_space_preview_lighting" }]
 
 [nodes.blend_space_preview_camera]

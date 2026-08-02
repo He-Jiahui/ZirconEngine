@@ -2,7 +2,7 @@ use crate::scene::{LevelSystem, World};
 
 use super::super::super::DynamicScene;
 use super::super::{
-    slot_id::normalize_slot_id, RuntimeSessionArchiveError, RuntimeSessionMetadata,
+    RuntimeSessionArchiveError, RuntimeSessionMetadata, slot_id::normalize_slot_id,
 };
 use super::RuntimeSessionSlot;
 
@@ -32,6 +32,6 @@ impl RuntimeSessionSlot {
         level: &LevelSystem,
     ) -> Result<Self, RuntimeSessionArchiveError> {
         let metadata = RuntimeSessionMetadata::from_level_metadata(level.metadata());
-        Self::from_world_with_metadata(slot_id, &level.snapshot(), metadata)
+        level.with_world(|world| Self::from_world_with_metadata(slot_id, world, metadata))
     }
 }

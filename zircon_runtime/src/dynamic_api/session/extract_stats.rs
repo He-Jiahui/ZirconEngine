@@ -139,7 +139,7 @@ fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {
     bytes += slice_bytes(&extract.environment.probes);
     if let Some(lightmaps) = extract.environment.baked_lighting() {
         bytes += std::mem::size_of_val(lightmaps);
-        bytes += lightmaps.slots.capacity()
+        bytes += lightmaps.slot_capacity()
             * std::mem::size_of::<(u64, crate::core::framework::render::LightmapInstanceSlot)>();
     }
     if let Some(probe_grid) = extract.environment.light_probe_grid() {

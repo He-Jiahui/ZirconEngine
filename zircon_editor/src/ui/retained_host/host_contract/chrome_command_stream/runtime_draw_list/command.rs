@@ -44,6 +44,7 @@ pub(super) fn ui_surface_command_from_chrome(command: &ChromeCommand) -> UiSurfa
             ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: payload.resource_key.clone(),
+                    resource_generation: payload.resource_generation,
                     width: payload.width,
                     height: payload.height,
                     upload_bytes: payload.upload_bytes,
@@ -96,6 +97,7 @@ pub(super) fn ui_surface_command_from_owned_chrome(command: ChromeCommand) -> Ui
             ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: payload.resource_key,
+                    resource_generation: payload.resource_generation,
                     width: payload.width,
                     height: payload.height,
                     upload_bytes: payload.upload_bytes,

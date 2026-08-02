@@ -1,5 +1,5 @@
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
@@ -25,7 +25,7 @@ impl EditorRuntimeGateway for DetachedEditorRuntimeGateway {
     fn poll_operation(
         &self,
         _handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })

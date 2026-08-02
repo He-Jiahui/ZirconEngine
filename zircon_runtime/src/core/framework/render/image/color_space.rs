@@ -7,5 +7,4 @@ pub enum RenderImageColorSpace {
     Srgb,
     Linear,
     Hdr,
-    Unknown,
 }

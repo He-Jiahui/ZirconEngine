@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE, RenderCapabilitySummary, RenderQualityProfile,
+    RenderCapabilitySummary, RenderQualityProfile, OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
 };
 use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
 

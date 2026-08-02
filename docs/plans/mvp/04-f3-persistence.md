@@ -161,3 +161,19 @@ F3 使用唯一、可精确比较的 authoring delta：
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
+
+## Current-Source Review (2026-08-02)
+
+- `document_roundtrip.rs` now creates the RenderableEmpty product template through
+  `ProjectAuthority`, applies the fixed Cube transform through `EditorTransactionEngine`, captures
+  a save token, drops the initial document/level/project generation, and compares the reopened
+  Cube identity, full transform, parent, mesh/material references, default scene, and workspace
+  against the persisted project.
+- `EditorProjectDocument::save_to_project` keeps the scene as the authoring authority: it captures
+  the prior workspace, atomically persists the requested workspace before the scene, and restores
+  the exact workspace bytes if the scene save fails. Current focused source tests cover byte-stable
+  repeat saves, failed scene/workspace writes, dirty-baseline behavior, and persisted settings
+  provenance.
+- The production `SaveProject` event records dirty/save-token/persisted-generation diagnostics and
+  does not mark history clean until persistence completes. These are current-source contracts only;
+  the declared staged editor/runtime process evidence remains required before F3 can be accepted.

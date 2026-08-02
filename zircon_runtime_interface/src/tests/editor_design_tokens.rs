@@ -44,6 +44,10 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
     assert_eq!(tokens.controls.large_height, 48.0);
     assert_eq!(tokens.controls.compact_height, 30.0);
     assert_eq!(tokens.controls.dense_height, 28.0);
+    assert_eq!(tokens.controls.control_radius, 4.0);
+    assert_eq!(tokens.controls.pill_radius, 999.0);
+    assert_eq!(tokens.density.toolbar_action_width, 76.0);
+    assert_eq!(tokens.density.toolbar_wide_action_width, 96.0);
     assert_eq!(tokens.typography.ui_family, "system-ui");
     assert_eq!(tokens.typography.code_family, "monospace");
     assert_eq!(
@@ -68,6 +72,45 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
     assert_eq!(
         tokens.density.row_height,
         EditorDensityTokens::WORKBENCH_ROW_HEIGHT
+    );
+}
+
+#[test]
+fn editor_design_tokens_default_new_chrome_tokens_for_older_payloads() {
+    let defaults = EditorDesignTokens::workbench_dark();
+    let expected_pill_radius = defaults.controls.pill_radius;
+    let expected_toolbar_action_width = defaults.density.toolbar_action_width;
+    let expected_toolbar_wide_action_width = defaults.density.toolbar_wide_action_width;
+    let mut serialized = serde_json::to_value(defaults).unwrap();
+    serialized["controls"]
+        .as_object_mut()
+        .unwrap()
+        .remove("pill_radius");
+    serialized["density"]
+        .as_object_mut()
+        .unwrap()
+        .remove("toolbar_action_width");
+    serialized["density"]
+        .as_object_mut()
+        .unwrap()
+        .remove("toolbar_wide_action_width");
+
+    let decoded: EditorDesignTokens = serde_json::from_value(serialized).unwrap();
+
+    assert_eq!(decoded.controls.pill_radius, expected_pill_radius);
+    assert_eq!(
+        decoded.density.toolbar_action_width,
+        expected_toolbar_action_width
+    );
+    assert_eq!(
+        decoded.density.toolbar_wide_action_width,
+        expected_toolbar_wide_action_width
+    );
+    assert_eq!(
+        decoded
+            .resolve_painter_style(UiPainterState::normal(), UiPainterFamily::Toggle)
+            .corner_radius,
+        decoded.controls.pill_radius
     );
 }
 
@@ -280,8 +323,24 @@ fn editor_design_tokens_register_canonical_and_css_custom_property_values() {
         Some(&Value::Float(f64::from(tokens.controls.large_height)))
     );
     assert_eq!(
+        registry.get("editor.control.radius.pill"),
+        Some(&Value::Float(f64::from(tokens.controls.pill_radius)))
+    );
+    assert_eq!(
         registry.get("editor.density.activity_rail_width"),
         Some(&Value::Float(f64::from(tokens.density.activity_rail_width)))
+    );
+    assert_eq!(
+        registry.get("editor.density.toolbar_action_width"),
+        Some(&Value::Float(f64::from(
+            tokens.density.toolbar_action_width
+        )))
+    );
+    assert_eq!(
+        registry.get("editor.density.toolbar_wide_action_width"),
+        Some(&Value::Float(f64::from(
+            tokens.density.toolbar_wide_action_width
+        )))
     );
     assert_eq!(
         registry.get("editor.density.gap.xsmall"),
@@ -328,7 +387,7 @@ fn editor_design_tokens_register_canonical_and_css_custom_property_values() {
         .keys()
         .filter(|name| !name.starts_with("--"))
         .count();
-    assert_eq!(canonical_token_count, 94);
+    assert_eq!(canonical_token_count, 95);
     assert_eq!(registry.len(), canonical_token_count * 2 + 26);
 
     for token_name in registry.keys().filter(|name| !name.starts_with("--")) {
@@ -444,6 +503,9 @@ fn editor_design_tokens_feed_painter_styles_through_selector_state() {
     assert_eq!(hovered_icon.background_color, tokens.palette.surface[2]);
     assert_eq!(hovered_icon.foreground_color, tokens.palette.text_primary);
     assert_eq!(hovered_icon.corner_radius, tokens.controls.small_radius);
+
+    let toggle = tokens.resolve_painter_style(UiPainterState::normal(), UiPainterFamily::Toggle);
+    assert_eq!(toggle.corner_radius, tokens.controls.pill_radius);
 
     let disabled_tab = tokens.resolve_painter_style(
         UiPainterState {

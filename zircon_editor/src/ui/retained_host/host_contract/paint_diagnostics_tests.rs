@@ -37,6 +37,34 @@ fn debug_refresh_overlay_frame_uses_runtime_text_measurement() {
 }
 
 #[test]
+fn debug_refresh_overlay_frame_stays_inside_a_compact_top_bar() {
+    let top_bar = FrameRect {
+        x: 4.0,
+        y: 8.0,
+        width: 160.0,
+        height: 18.0,
+    };
+
+    let frame = debug_refresh_overlay_frame(&top_bar, "FPS 60").unwrap();
+
+    assert_eq!(frame.y, top_bar.y + 6.0);
+    assert_eq!(frame.height, 12.0);
+    assert!(frame.y + frame.height <= top_bar.y + top_bar.height);
+}
+
+#[test]
+fn debug_refresh_overlay_frame_hides_when_top_bar_cannot_fit_its_inset() {
+    let top_bar = FrameRect {
+        x: 4.0,
+        y: 8.0,
+        width: 160.0,
+        height: 6.0,
+    };
+
+    assert_eq!(debug_refresh_overlay_frame(&top_bar, "FPS 60"), None);
+}
+
+#[test]
 fn presentation_top_bar_frame_uses_scene_layout_height_before_fallback() {
     let mut presentation = HostWindowPresentationData::default();
     presentation.host_scene_data.layout.center_band_frame = FrameRect {

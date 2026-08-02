@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/scene/world/property_access
   - zircon_runtime/src/core/framework/scene/entity_path.rs
   - zircon_runtime/src/animation/sequence
-  - zircon_plugins/animation/runtime/src/sequence
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md
@@ -25,7 +24,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`zircon_runtime/src/scene/world/property_access/**`当前源 **9/9** 个Rust文件、**2,883** 行、**2** 个就地tests已逐文件阅读，并追到`ComponentPropertyPath` owner、Runtime/Plugins04 animation sequence每track apply/target fallback和property-path测试。范围包含path resolution、fixed/dynamic read枚举、physics/collider shape entry projection、全部write dispatch与value conversion。
+`zircon_runtime/src/scene/world/property_access/**`当前源 **9/9** 个Rust文件、**2,883** 行、**2** 个就地tests已逐文件阅读，并追到`ComponentPropertyPath` owner、Runtime animation sequence每track apply/target fallback和property-path测试。范围包含path resolution、fixed/dynamic read枚举、physics/collider shape entry projection、全部write dispatch与value conversion。
 
 ## 已直接修复
 
@@ -35,7 +34,7 @@ current-source受管Cargo test lane被`runtime10-runtime03-animation-frame-deman
 
 ## 仍待PERF-MVP-329的P0根因
 
-- `get_entity_by_path`仍枚举全部entities；每个ancestor为了判定同名兄弟又扫描全部entities，最坏接近O(N²×depth)。Runtime与Plugins04 animation target/apply在未命中cached entity时逐binding调用。
+- `get_entity_by_path`仍枚举全部entities；每个ancestor为了判定同名兄弟又扫描全部entities，最坏接近O(N²×depth)。Runtime animation target/apply在未命中cached entity时逐binding调用。
 - fixed `property()`没有直接field dispatch，而是从Name开始调用`visit_property_entries`枚举schema，命中前会 eagerly 构造每个`ScenePropertyValue`；后置animation/physics/compound collider字段会产生resource/enum/path/parameter clone与递归格式化。动态field随后再走第二条查找。
 - 每次`set_property`都把component和每个segment规范化为新String，并构造`Vec<String>`后进入约600行字符串match；animation sequence按track/frame调用，稳定clip仍重复分配/解析。
 - `property_entries`用于Inspector全量枚举时先做capacity-hint完整component/dynamic scan，再做实际projection；应与PERF-MVP-456 inspection generation共享artifact，而不是另建永久cache。

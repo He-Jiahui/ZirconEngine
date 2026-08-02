@@ -7,6 +7,7 @@ use super::super::template_style::{
     template_border_width, template_corner_radius,
 };
 use super::eligibility::draws_border;
+use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 
 const ASSET_THUMBNAIL_NAME_AREA_SURFACE: &str = "asset-thumbnail-name-area";
 const MATERIAL_ELEVATION_SHADOW_OPACITY: f32 = 0.72;
@@ -23,7 +24,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
         return;
     }
     let border_width = template_border_width(node);
-    let corner_radius = template_corner_radius(node);
+    let corner_radius = corner_radius_for_frame(rect, template_corner_radius(node));
     if draws_elevation_shadow(node) {
         commands.push(HostPaintCommand::quad(
             elevation_shadow_rect(rect, node.elevation),
@@ -322,6 +323,30 @@ mod tests {
         );
 
         assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn narrow_surface_radius_stays_inside_the_surface_frame() {
+        let node = TemplatePaneNodeData {
+            role: "Panel".into(),
+            corner_radius: 4.0,
+            ..TemplatePaneNodeData::default()
+        };
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 0.5,
+            height: 42.0,
+        };
+        let mut commands = Vec::new();
+
+        push_surface_commands(&mut commands, &node, &rect, &rect, 7, 1.0);
+
+        assert!(
+            commands
+                .iter()
+                .all(|command| command.corner_radius <= rect.width * 0.5)
+        );
     }
 
     #[test]

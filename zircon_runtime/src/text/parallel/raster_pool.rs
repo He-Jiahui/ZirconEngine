@@ -1,44 +1,33 @@
 //! Worker queue for CPU glyph rasterization.
 
-use crossbeam_channel::{TrySendError, bounded};
+use crossbeam_channel::{bounded, TrySendError};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 
-use crate::core::diagnostics::DiagnosticStore;
 use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
-use crate::core::runtime::tasks::{TaskPoolOptions, spawn_named_thread};
+use crate::core::runtime::tasks::{spawn_named_thread, TaskPoolOptions};
 use crate::core::{CoreError, CoreResult};
 use crate::text::raster::{GlyphBitmap, SwashRasterError, SwashRasterRequest, SwashRasterizer};
 
 use super::completion_queue::CompletionByteBudget;
 
+mod diagnostics;
 mod worker;
+
+pub(crate) use diagnostics::{
+    TextRasterThreadBudgetSource, TextRasterWorkerPoolDiagnostics,
+    TextRasterWorkerPoolFrameDiagnostics, TextRasterWorkerPoolFrameSampler,
+    TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC, TEXT_RASTER_WORKER_COMPLETED_DIAGNOSTIC,
+    TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC, TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC,
+    TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC, TEXT_RASTER_WORKER_QUEUED_DIAGNOSTIC,
+    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC,
+};
 
 const TEXT_RASTER_WORKER_QUEUE_DEPTH_PER_THREAD: usize = 64;
 const TEXT_RASTER_WORKER_MAX_SCALER_BATCH_SIZE: usize = 32;
 const TEXT_RASTER_WORKER_COMPLETION_BYTES_PER_THREAD: usize = 2 * 1024 * 1024;
-
-pub(crate) const TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC: &str = "text.raster.worker.in_flight";
-pub(crate) const TEXT_RASTER_WORKER_QUEUED_DIAGNOSTIC: &str = "text.raster.worker.queued";
-pub(crate) const TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC: &str = "text.raster.worker.running";
-pub(crate) const TEXT_RASTER_WORKER_COMPLETED_DIAGNOSTIC: &str = "text.raster.worker.completed";
-pub(crate) const TEXT_RASTER_WORKER_FAILED_DIAGNOSTIC: &str = "text.raster.worker.failed";
-pub(crate) const TEXT_RASTER_WORKER_CANCELLED_DIAGNOSTIC: &str = "text.raster.worker.cancelled";
-pub(crate) const TEXT_RASTER_WORKER_QUEUE_PEAK_DIAGNOSTIC: &str = "text.raster.worker.queue_peak";
-pub(crate) const TEXT_RASTER_WORKER_COMPLETION_BACKLOG_DIAGNOSTIC: &str =
-    "text.raster.worker.completion_backlog";
-pub(crate) const TEXT_RASTER_WORKER_COMPLETION_BACKLOG_BYTES_DIAGNOSTIC: &str =
-    "text.raster.worker.completion_backlog_bytes";
-pub(crate) const TEXT_RASTER_WORKER_COMPLETION_BACKPRESSURED_DIAGNOSTIC: &str =
-    "text.raster.worker.completion_backpressured";
-pub(crate) const TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC: &str =
-    "text.raster.worker.budgeted_threads";
-pub(crate) const TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC: &str =
-    "text.raster.worker.frame_completed";
-pub(crate) const TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC: &str =
-    "text.raster.worker.frame_failed";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub(crate) struct TextRasterWorkId(u64);
@@ -61,51 +50,14 @@ pub(crate) struct TextRasterWorkResult {
     pub(crate) result: Result<GlyphBitmap, SwashRasterError>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) enum TextRasterThreadBudgetSource {
-    #[default]
-    Explicit,
-    TaskPoolAsyncCompute,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct TextRasterWorkerPoolOptions {
     pub(crate) worker_count: usize,
     pub(crate) queue_depth: Option<usize>,
     pub(crate) completion_queue_depth: usize,
+    pub(crate) request_byte_budget: usize,
     pub(crate) completion_byte_budget: usize,
     pub(crate) thread_budget_source: TextRasterThreadBudgetSource,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct TextRasterWorkerPoolDiagnostics {
-    pub(crate) thread_budget_source: TextRasterThreadBudgetSource,
-    pub(crate) budgeted_threads: usize,
-    pub(crate) in_flight: usize,
-    pub(crate) queued: usize,
-    pub(crate) running: usize,
-    pub(crate) completed: u64,
-    pub(crate) failed: u64,
-    pub(crate) cancelled: u64,
-    pub(crate) queue_peak: usize,
-    pub(crate) completion_backlog: usize,
-    pub(crate) completion_backlog_bytes: usize,
-    pub(crate) completion_backpressured: u64,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct TextRasterWorkerPoolFrameDiagnostics {
-    pub(crate) thread_budget_source: TextRasterThreadBudgetSource,
-    pub(crate) budgeted_threads: usize,
-    pub(crate) in_flight: usize,
-    pub(crate) completed_delta: u64,
-    pub(crate) failed_delta: u64,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct TextRasterWorkerPoolFrameSampler {
-    last_completed: u64,
-    last_failed: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -117,6 +69,7 @@ pub(crate) enum TextRasterWorkDisposition {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum TextRasterWorkerRequestError {
     QueueFull(TextRasterWorkId),
+    QueueBytesFull(TextRasterWorkId),
     ChannelClosed(TextRasterWorkId),
     DuplicateInFlight(TextRasterWorkId),
 }
@@ -126,6 +79,9 @@ pub(crate) struct TextRasterCompletionDrain {
     pub(crate) accepted: Vec<TextRasterWorkResult>,
     pub(crate) face_invalidated_ids: Vec<TextRasterWorkId>,
     pub(crate) face_invalidated_count: usize,
+    pub(crate) drained_bytes: usize,
+    pub(crate) byte_budget_deferred_count: usize,
+    pub(crate) oversized_accepted_count: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -150,6 +106,7 @@ pub(crate) struct TextRasterWorkerPool {
     diagnostics: Arc<Mutex<TextRasterWorkerPoolDiagnostics>>,
     completion_tx: ChannelSender<TextRasterWorkResult>,
     completion_rx: Option<ChannelReceiver<TextRasterWorkResult>>,
+    deferred_completion: Mutex<Option<TextRasterWorkResult>>,
     completion_byte_budget: Arc<CompletionByteBudget>,
     shutdown: Arc<AtomicBool>,
     joins: Vec<JoinHandle<()>>,
@@ -174,6 +131,10 @@ impl TextRasterWorkItem {
             font_data,
             request,
         }
+    }
+
+    const fn input_byte_count(&self) -> usize {
+        std::mem::size_of::<Self>()
     }
 }
 
@@ -203,15 +164,6 @@ impl TextRasterCompletionDrainBudget {
     }
 }
 
-impl TextRasterThreadBudgetSource {
-    pub(crate) const fn as_str(self) -> &'static str {
-        match self {
-            Self::Explicit => "explicit",
-            Self::TaskPoolAsyncCompute => "task_pool_async_compute",
-        }
-    }
-}
-
 impl TextRasterWorkerPoolOptions {
     pub(crate) fn new(worker_count: usize) -> Self {
         let worker_count = worker_count.max(1);
@@ -220,6 +172,9 @@ impl TextRasterWorkerPoolOptions {
             queue_depth: None,
             completion_queue_depth: worker_count
                 .saturating_mul(TEXT_RASTER_WORKER_QUEUE_DEPTH_PER_THREAD),
+            request_byte_budget: worker_count
+                .saturating_mul(TEXT_RASTER_WORKER_QUEUE_DEPTH_PER_THREAD)
+                .saturating_mul(std::mem::size_of::<TextRasterWorkItem>()),
             completion_byte_budget: worker_count
                 .saturating_mul(TEXT_RASTER_WORKER_COMPLETION_BYTES_PER_THREAD),
             thread_budget_source: TextRasterThreadBudgetSource::Explicit,
@@ -245,6 +200,11 @@ impl TextRasterWorkerPoolOptions {
         self
     }
 
+    pub(crate) fn with_request_byte_budget(mut self, request_byte_budget: usize) -> Self {
+        self.request_byte_budget = request_byte_budget;
+        self
+    }
+
     pub(crate) fn with_completion_byte_budget(mut self, completion_byte_budget: usize) -> Self {
         self.completion_byte_budget = completion_byte_budget;
         self
@@ -267,112 +227,9 @@ impl TextRasterWorkerPoolOptions {
             );
         }
         self.completion_queue_depth = self.completion_queue_depth.max(1);
+        self.request_byte_budget = self.request_byte_budget.max(1);
         self.completion_byte_budget = self.completion_byte_budget.max(1);
         self
-    }
-}
-
-impl Default for TextRasterWorkerPoolDiagnostics {
-    fn default() -> Self {
-        Self {
-            thread_budget_source: TextRasterThreadBudgetSource::Explicit,
-            budgeted_threads: 0,
-            in_flight: 0,
-            queued: 0,
-            running: 0,
-            completed: 0,
-            failed: 0,
-            cancelled: 0,
-            queue_peak: 0,
-            completion_backlog: 0,
-            completion_backlog_bytes: 0,
-            completion_backpressured: 0,
-        }
-    }
-}
-
-impl TextRasterWorkerPoolDiagnostics {
-    fn for_options(options: &TextRasterWorkerPoolOptions) -> Self {
-        Self {
-            thread_budget_source: options.thread_budget_source,
-            budgeted_threads: options.worker_count,
-            ..Self::default()
-        }
-    }
-}
-
-impl TextRasterWorkerPoolFrameDiagnostics {
-    pub(crate) fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        store.record(
-            TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC,
-            frame_index,
-            self.in_flight as f64,
-            Some("glyph"),
-            ["text", "raster", "worker"],
-        );
-        store.record(
-            TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
-            frame_index,
-            self.budgeted_threads as f64,
-            Some("thread"),
-            [
-                "text",
-                "raster",
-                "worker",
-                "budget",
-                self.thread_budget_source.as_str(),
-            ],
-        );
-        store.record(
-            TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC,
-            frame_index,
-            self.completed_delta as f64,
-            Some("glyph"),
-            ["text", "raster", "worker", "frame"],
-        );
-        store.record(
-            TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC,
-            frame_index,
-            self.failed_delta as f64,
-            Some("glyph"),
-            ["text", "raster", "worker", "frame"],
-        );
-    }
-}
-
-impl TextRasterWorkerPoolFrameSampler {
-    pub(crate) fn from_pool(pool: &TextRasterWorkerPool) -> Self {
-        let diagnostics = pool.diagnostics();
-        Self {
-            last_completed: diagnostics.completed,
-            last_failed: diagnostics.failed,
-        }
-    }
-
-    pub(crate) fn sample(
-        &mut self,
-        pool: &TextRasterWorkerPool,
-    ) -> TextRasterWorkerPoolFrameDiagnostics {
-        let diagnostics = pool.diagnostics();
-        let frame = TextRasterWorkerPoolFrameDiagnostics {
-            thread_budget_source: diagnostics.thread_budget_source,
-            budgeted_threads: diagnostics.budgeted_threads,
-            in_flight: diagnostics.in_flight,
-            completed_delta: diagnostics.completed.saturating_sub(self.last_completed),
-            failed_delta: diagnostics.failed.saturating_sub(self.last_failed),
-        };
-        self.last_completed = diagnostics.completed;
-        self.last_failed = diagnostics.failed;
-        frame
-    }
-
-    pub(crate) fn record_diagnostics(
-        &mut self,
-        pool: &TextRasterWorkerPool,
-        store: &mut DiagnosticStore,
-        frame_index: u64,
-    ) {
-        self.sample(pool).record_diagnostics(store, frame_index);
     }
 }
 
@@ -437,6 +294,7 @@ impl TextRasterWorkerPool {
             diagnostics,
             completion_tx,
             completion_rx: Some(completion_rx),
+            deferred_completion: Mutex::new(None),
             completion_byte_budget,
             shutdown,
             joins,
@@ -460,15 +318,24 @@ impl TextRasterWorkerPool {
             return Err(TextRasterWorkerRequestError::ChannelClosed(work.id));
         };
         let mut work_state = self.lock_work_state();
-        if !work_state.in_flight.insert(work.id) {
+        if work_state.in_flight.contains(&work.id) {
             return Err(TextRasterWorkerRequestError::DuplicateInFlight(work.id));
         }
 
         let work_id = work.id;
+        if queued_input_bytes(&work_state).saturating_add(work.input_byte_count())
+            > self.options.request_byte_budget
+        {
+            self.record_request_backpressured();
+            return Err(TextRasterWorkerRequestError::QueueBytesFull(work_id));
+        }
+        work_state.in_flight.insert(work_id);
+
         if let Err(error) = request_tx.try_send(work) {
             work_state.in_flight.remove(&work_id);
             work_state.cancelled.remove(&work_id);
             self.record_in_flight_locked(&work_state);
+            self.record_request_backpressured();
             return Err(match error {
                 TrySendError::Full(_) => TextRasterWorkerRequestError::QueueFull(work_id),
                 TrySendError::Disconnected(_) => {
@@ -510,22 +377,52 @@ impl TextRasterWorkerPool {
             return drain;
         };
 
-        let mut drained_bytes = 0;
+        let mut deferred_completion = self
+            .deferred_completion
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         while drain
             .accepted
             .len()
             .saturating_add(drain.face_invalidated_count)
             < budget.max_items
-            && drained_bytes < budget.max_bytes
         {
-            let Ok(result) = completion_rx.try_recv() else {
-                break;
+            let result = match deferred_completion.take() {
+                Some(result) => result,
+                None => {
+                    let Ok(result) = completion_rx.try_recv() else {
+                        break;
+                    };
+                    result
+                }
             };
             let result_bytes = result.byte_count();
+            let accepted_bytes = drain.drained_bytes.saturating_add(result_bytes);
+            let accepted = matches!(
+                result.disposition_for_face_epoch(live_face_epoch),
+                TextRasterWorkDisposition::Accepted
+            );
+            let oversized_progress = accepted
+                && drain.accepted.is_empty()
+                && drain.face_invalidated_count == 0
+                && budget.max_bytes > 0
+                && result_bytes > budget.max_bytes;
+            if accepted && accepted_bytes > budget.max_bytes && !oversized_progress {
+                *deferred_completion = Some(result);
+                drain.byte_budget_deferred_count =
+                    drain.byte_budget_deferred_count.saturating_add(1);
+                break;
+            }
             self.release_completion_backlog(result_bytes);
-            drained_bytes = drained_bytes.saturating_add(result_bytes);
             match result.disposition_for_face_epoch(live_face_epoch) {
-                TextRasterWorkDisposition::Accepted => drain.accepted.push(result),
+                TextRasterWorkDisposition::Accepted => {
+                    drain.drained_bytes = accepted_bytes;
+                    if oversized_progress {
+                        drain.oversized_accepted_count =
+                            drain.oversized_accepted_count.saturating_add(1);
+                    }
+                    drain.accepted.push(result);
+                }
                 TextRasterWorkDisposition::InvalidatedFace => {
                     drain.face_invalidated_count += 1;
                     drain.face_invalidated_ids.push(result.id);
@@ -537,73 +434,6 @@ impl TextRasterWorkerPool {
 
     pub(crate) fn diagnostics(&self) -> TextRasterWorkerPoolDiagnostics {
         *self.lock_diagnostics()
-    }
-
-    pub(crate) fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        let diagnostics = self.diagnostics();
-        for (path, value) in [
-            (
-                TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC,
-                diagnostics.in_flight as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_QUEUED_DIAGNOSTIC,
-                diagnostics.queued as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC,
-                diagnostics.running as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_COMPLETED_DIAGNOSTIC,
-                diagnostics.completed as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_FAILED_DIAGNOSTIC,
-                diagnostics.failed as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_CANCELLED_DIAGNOSTIC,
-                diagnostics.cancelled as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_QUEUE_PEAK_DIAGNOSTIC,
-                diagnostics.queue_peak as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_COMPLETION_BACKLOG_DIAGNOSTIC,
-                diagnostics.completion_backlog as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_COMPLETION_BACKLOG_BYTES_DIAGNOSTIC,
-                diagnostics.completion_backlog_bytes as f64,
-            ),
-            (
-                TEXT_RASTER_WORKER_COMPLETION_BACKPRESSURED_DIAGNOSTIC,
-                diagnostics.completion_backpressured as f64,
-            ),
-        ] {
-            store.record(
-                path,
-                frame_index,
-                value,
-                Some("glyph"),
-                ["text", "raster", "worker"],
-            );
-        }
-        store.record(
-            TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
-            frame_index,
-            diagnostics.budgeted_threads as f64,
-            Some("thread"),
-            [
-                "text",
-                "raster",
-                "worker",
-                "budget",
-                diagnostics.thread_budget_source.as_str(),
-            ],
-        );
     }
 
     #[cfg(test)]
@@ -639,6 +469,8 @@ impl TextRasterWorkerPool {
         let mut diagnostics = self.lock_diagnostics();
         diagnostics.in_flight = in_flight_count;
         diagnostics.queued = queued_count;
+        diagnostics.queued_input_bytes =
+            queued_count.saturating_mul(std::mem::size_of::<TextRasterWorkItem>());
         diagnostics.running = running_count;
         diagnostics.queue_peak = diagnostics.queue_peak.max(queued_count);
     }
@@ -654,6 +486,11 @@ impl TextRasterWorkerPool {
 
     fn record_completion_backpressured(&self) {
         worker::record_completion_backpressured(&self.diagnostics);
+    }
+
+    fn record_request_backpressured(&self) {
+        let mut diagnostics = self.lock_diagnostics();
+        diagnostics.request_backpressured = diagnostics.request_backpressured.saturating_add(1);
     }
 
     #[cfg(test)]
@@ -684,6 +521,12 @@ impl std::fmt::Display for TextRasterWorkerRequestError {
             Self::QueueFull(work_id) => {
                 write!(formatter, "text raster work queue full: {work_id:?}")
             }
+            Self::QueueBytesFull(work_id) => {
+                write!(
+                    formatter,
+                    "text raster work queue byte budget full: {work_id:?}"
+                )
+            }
             Self::ChannelClosed(work_id) => {
                 write!(
                     formatter,
@@ -695,6 +538,14 @@ impl std::fmt::Display for TextRasterWorkerRequestError {
             }
         }
     }
+}
+
+fn queued_input_bytes(work_state: &TextRasterWorkerWorkState) -> usize {
+    work_state
+        .in_flight
+        .len()
+        .saturating_sub(work_state.running.len())
+        .saturating_mul(std::mem::size_of::<TextRasterWorkItem>())
 }
 
 impl Drop for TextRasterWorkerPool {

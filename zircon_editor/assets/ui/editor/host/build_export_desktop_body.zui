@@ -11,20 +11,20 @@ node = "root"
 component = "VerticalGroup"
 control_id = "BuildExportPaneBodyRoot"
 classes = ["editor-pane", "build-export-pane"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "header" }, { node = "summary" }, { node = "targets_slot", slot = { name = "build_export_targets_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "BuildExportHeader"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "focus" }]
 
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusBuildExport"
-props = { label = "Focus Export", icon = "editor_pages/build_plugins/package/package.svg" }
-layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Focus Export", icon = "editor_pages/build_plugins/package/package.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "BuildExportPaneBody/FocusBuildExport", event = "Click", route = "workbench.dock.focus_view" }]
 
 [nodes.summary]

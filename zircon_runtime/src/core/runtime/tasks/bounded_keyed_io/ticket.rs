@@ -46,7 +46,7 @@ struct TicketState {
 #[derive(Clone, Copy, Debug, Default)]
 struct TicketStateInner {
     started: bool,
-    fence_pinned: bool,
+    fence_pins: usize,
     terminal: Option<BoundedKeyedIoTerminal>,
 }
 
@@ -57,7 +57,7 @@ impl BoundedKeyedIoTicket {
             generation,
             state: Arc::new(TicketState {
                 inner: Mutex::new(TicketStateInner {
-                    fence_pinned,
+                    fence_pins: usize::from(fence_pinned),
                     ..TicketStateInner::default()
                 }),
                 changed: Condvar::new(),
@@ -104,16 +104,20 @@ impl BoundedKeyedIoTicket {
             return Err(BoundedKeyedIoCancelError::WrongAuthority);
         }
         let mut state = self.lock();
-        if state.fence_pinned {
+        if state.terminal == Some(BoundedKeyedIoTerminal::CancelledBeforeStart) {
+            return Ok(());
+        }
+        if state.terminal.is_some() {
+            return Err(BoundedKeyedIoCancelError::AlreadyStarted);
+        }
+        if state.fence_pins != 0 {
             return Err(BoundedKeyedIoCancelError::FencePinned);
         }
         if state.started {
             return Err(BoundedKeyedIoCancelError::AlreadyStarted);
         }
-        if state.terminal.is_none() {
-            state.terminal = Some(BoundedKeyedIoTerminal::CancelledBeforeStart);
-            self.state.changed.notify_all();
-        }
+        state.terminal = Some(BoundedKeyedIoTerminal::CancelledBeforeStart);
+        self.state.changed.notify_all();
         Ok(())
     }
 
@@ -126,21 +130,38 @@ impl BoundedKeyedIoTicket {
         true
     }
 
-    pub(crate) fn mark_terminal(&self, terminal: BoundedKeyedIoTerminal) {
+    pub(crate) fn mark_terminal(&self, terminal: BoundedKeyedIoTerminal) -> bool {
         let mut state = self.lock();
         if state.terminal.is_some() {
-            return;
+            return false;
         }
         state.terminal = Some(terminal);
         self.state.changed.notify_all();
+        true
+    }
+
+    pub(crate) fn mark_terminal_before_start(&self, terminal: BoundedKeyedIoTerminal) -> bool {
+        let mut state = self.lock();
+        if state.started || state.terminal.is_some() {
+            return false;
+        }
+        state.terminal = Some(terminal);
+        self.state.changed.notify_all();
+        true
     }
 
     pub(crate) fn fence_pinned(&self) -> bool {
-        self.lock().fence_pinned
+        self.lock().fence_pins != 0
     }
 
     pub(crate) fn pin_to_fence(&self) {
-        self.lock().fence_pinned = true;
+        let mut state = self.lock();
+        state.fence_pins = state.fence_pins.saturating_add(1);
+    }
+
+    pub(crate) fn unpin_from_fence(&self) {
+        let mut state = self.lock();
+        state.fence_pins = state.fence_pins.saturating_sub(1);
     }
 
     fn lock(&self) -> MutexGuard<'_, TicketStateInner> {

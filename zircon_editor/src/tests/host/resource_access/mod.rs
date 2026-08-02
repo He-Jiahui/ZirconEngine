@@ -1,8 +1,8 @@
-use crossbeam_channel::unbounded;
-use zircon_runtime::core::framework::asset::ResourceManager;
+use std::sync::Arc;
+use zircon_runtime::core::framework::asset::{ResourceManagementGeneration, ResourceManager};
 use zircon_runtime_interface::resource::{
-    MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEvent, ResourceHandle, ResourceId,
-    ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
+    MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind,
+    ResourceLocator, ResourceRecord, ResourceState,
 };
 
 #[test]
@@ -55,11 +55,19 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
 #[derive(Clone, Debug)]
 struct FakeResourceManager {
     records: Vec<ResourceRecord>,
+    management: Arc<ResourceManagementGeneration>,
 }
 
 impl FakeResourceManager {
     fn new(records: Vec<ResourceRecord>) -> Self {
-        Self { records }
+        let manager = zircon_runtime::core::resource::ResourceManager::new();
+        for record in &records {
+            manager.register_record(record.clone());
+        }
+        Self {
+            records,
+            management: manager.management_generation(),
+        }
     }
 }
 
@@ -78,8 +86,8 @@ impl ResourceManager for FakeResourceManager {
             .cloned()
     }
 
-    fn list_resources(&self) -> Vec<ResourceRecord> {
-        self.records.clone()
+    fn resource_management_generation(&self) -> Arc<ResourceManagementGeneration> {
+        self.management.clone()
     }
 
     fn resource_revision(&self, locator: &str) -> Option<u64> {
@@ -89,11 +97,8 @@ impl ResourceManager for FakeResourceManager {
             .map(|record| record.revision)
     }
 
-    fn subscribe_resource_changes(
-        &self,
-    ) -> zircon_runtime::core::framework::channel::ChannelReceiver<ResourceEvent> {
-        let (_sender, receiver) = unbounded();
-        receiver
+    fn subscribe_resource_changes(&self) -> zircon_runtime::core::resource::ResourceEventReceiver {
+        zircon_runtime::core::resource::ResourceManager::new().subscribe()
     }
 }
 

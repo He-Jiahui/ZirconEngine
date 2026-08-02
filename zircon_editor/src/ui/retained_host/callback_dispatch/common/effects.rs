@@ -12,6 +12,8 @@ pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEvent
     target.import_model_requested |= source.import_model_requested;
     target.reset_active_layout_preset |= source.reset_active_layout_preset;
     target.open_command_palette_requested |= source.open_command_palette_requested;
+    target.open_scene_picker_requested |= source.open_scene_picker_requested;
+    target.create_scene_picker_requested |= source.create_scene_picker_requested;
     target
         .workbench_notifications
         .extend(source.workbench_notifications);

@@ -430,4 +430,4 @@ pub enum UiTreeViewCommand {               // editor 经 route id 收到的语�
 
 - 迁入记录：[`06/2026-07-09-component-library-mui-output-records.md`](06/2026-07-09-component-library-mui-output-records.md)
 - 当前失败交接（`open / 待修复`）：[`06/failure-2026-07-11-mui-native-painter-contract-drift.md`](06/failure-2026-07-11-mui-native-painter-contract-drift.md)
-- CommandPalette 分页键盘契约（`resolving_failure / 源码完成，待受管验收`）：[`06/failure-2026-07-18-command-palette-paged-keyboard-navigation.md`](06/failure-2026-07-18-command-palette-paged-keyboard-navigation.md)
+- CommandPalette 分页键盘契约（`open / 源码完成，待受管验收`）：[`06/failure-2026-07-18-command-palette-paged-keyboard-navigation.md`](06/failure-2026-07-18-command-palette-paged-keyboard-navigation.md)

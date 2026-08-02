@@ -40,6 +40,7 @@ fn seed_backed_execution_selection_collection_applies_cluster_budget_after_stabl
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -165,6 +166,7 @@ fn seed_backed_execution_selection_derives_frontier_rank_from_first_unresolved_p
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

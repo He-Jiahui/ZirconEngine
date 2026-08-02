@@ -3,16 +3,16 @@ use std::collections::{HashMap, VecDeque};
 use crate::core::math::UVec2;
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapQueuedGlyph,
-    GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapRetryBackpressurePolicy,
-    GlyphAtlasBitmapRetryFrameDriverConfig, GlyphAtlasBitmapRetryFrameState,
-    GlyphAtlasBitmapRetryFrameStateReport, GlyphAtlasBitmapRetryFrameSubmissionPlan,
-    GlyphAtlasBitmapRetryFrameSubmissionReport, GlyphAtlasBitmapRetrySourceOrigin,
-    GlyphAtlasBitmapSource, GlyphAtlasFormat, GlyphAtlasSet, GlyphRasterKey,
     glyph_atlas_bitmap_retry_frame_driver_submit_with_atlas_and_config,
+    GlyphAtlasBitmapQueuedGlyph, GlyphAtlasBitmapRenderSubmissionPlan,
+    GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapRetryFrameDriverConfig,
+    GlyphAtlasBitmapRetryFrameState, GlyphAtlasBitmapRetryFrameStateReport,
+    GlyphAtlasBitmapRetryFrameSubmissionPlan, GlyphAtlasBitmapRetryFrameSubmissionReport,
+    GlyphAtlasBitmapRetrySourceOrigin, GlyphAtlasBitmapSource, GlyphAtlasFormat, GlyphAtlasSet,
+    GlyphRasterKey, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 
-use super::{NativeBitmapAtlasSourceImage, bitmap_atlas_page_size};
+use super::{bitmap_atlas_page_size, NativeBitmapAtlasSourceImage};
 
 const NATIVE_BITMAP_ATLAS_MAX_RETRY_SOURCES_PER_FRAME: usize =
     super::source_cache::NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME / 2;
@@ -80,8 +80,8 @@ pub(crate) fn native_bitmap_atlas_retry_frame(
     }
 }
 
-pub(crate) fn native_bitmap_atlas_retry_backpressure_policy()
--> GlyphAtlasBitmapRetryBackpressurePolicy {
+pub(crate) fn native_bitmap_atlas_retry_backpressure_policy(
+) -> GlyphAtlasBitmapRetryBackpressurePolicy {
     // Split the documented Text09 256 glyph / 2 MiB frame envelope evenly so retry pressure
     // cannot consume the entire new-visible-glyph budget. The retained queue is capped at the
     // full envelope; overflow fails closed to Glyphon rather than retaining unbounded work.
@@ -213,7 +213,11 @@ fn native_bitmap_atlas_retry_source_key(
 
 fn native_bitmap_atlas_retry_float_key(value: f32) -> u32 {
     // PartialEq treats both zero signs as equal.
-    if value == 0.0 { 0 } else { value.to_bits() }
+    if value == 0.0 {
+        0
+    } else {
+        value.to_bits()
+    }
 }
 
 fn native_bitmap_atlas_submission_source_images(

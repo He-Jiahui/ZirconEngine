@@ -4,8 +4,8 @@ use super::super::super::template_segmented_control_geometry::{
     segment_rect, segmented_body_rect, selected_segment_rect, selected_segment_underline_rect,
 };
 use super::super::style::{
-    segmented_background, selected_segment_underline_height, SEGMENT_IDLE_BACKGROUND,
-    SEGMENT_SELECTED_BACKGROUND,
+    SEGMENT_IDLE_BACKGROUND, SEGMENT_SELECTED_BACKGROUND, segmented_background,
+    selected_segment_underline_height,
 };
 use super::support::{
     changed_pixel_count, frame_rect, labeled_segmented_node, pixel_at, segmented_node,

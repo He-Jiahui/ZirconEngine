@@ -1,7 +1,7 @@
 use crate::asset::TextureAsset;
 use crate::core::framework::render::{
-    RenderMaterialAlphaMode, RenderMaterialLightingModel, SHADING_MODEL_ID_STANDARD_PBR,
-    ShadingModelId,
+    RenderMaterialAlphaMode, RenderMaterialLightingModel, ShadingModelId,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;

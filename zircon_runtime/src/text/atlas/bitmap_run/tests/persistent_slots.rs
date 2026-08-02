@@ -47,7 +47,7 @@ fn render_perf_text_atlas_reuses_persistent_slot_without_upload() {
     );
 
     assert_eq!(second.glyphs[0].atlas_rect, first_rect);
-    assert_eq!(second.glyphs[0].draw_glyph.screen_rect, moved.screen_rect);
+    assert_eq!(second.draw_glyphs[0].screen_rect, moved.screen_rect);
     assert_eq!(second.slot_cache_hit_count, 1);
     assert_eq!(second.slot_cache_miss_count, 0);
     assert_eq!(second.slot_cache_insert_count, 0);
@@ -289,11 +289,10 @@ fn render_perf_text_scroll_list_reuses_raster_slots_and_uploads_only_entering_ro
     let scrolled_report = scrolled.submission_report();
 
     assert_ne!(
-        first.run.glyphs[SCROLL_DELTA_ROWS as usize]
-            .draw_glyph
+        first.run.draw_glyphs[SCROLL_DELTA_ROWS as usize]
             .screen_rect
             .y,
-        scrolled.run.glyphs[0].draw_glyph.screen_rect.y,
+        scrolled.run.draw_glyphs[0].screen_rect.y,
         "overlapping rows must be allowed to move on screen without losing their raster slot"
     );
     assert_eq!(scrolled_report.source_count, VISIBLE_ROW_COUNT as usize);
@@ -464,6 +463,7 @@ fn render_text_atlas_persistent_slot_eviction_invalidates_page_identity() {
     assert_eq!(replacement.upload_commands.len(), 1);
     assert_eq!(replacement.upload_commands[0].rect.width, 8);
     assert_eq!(replacement.upload_commands[0].rect.height, 8);
+    assert_eq!(replacement.invalidated_raster_keys, vec![first_key]);
 
     let first_again = glyph_atlas_bitmap_run_plan_with_atlas_and_padding(
         replacement.atlas,
@@ -484,6 +484,53 @@ fn render_text_atlas_persistent_slot_eviction_invalidates_page_identity() {
     assert_eq!(first_again.slot_cache_miss_count, 1);
     assert_eq!(first_again.slot_cache_insert_count, 1);
     assert_eq!(first_again.slot_invalidations[0].page_generation, 2);
+}
+
+#[test]
+fn render_text_atlas_upload_failure_deduplicates_page_generation_invalidation() {
+    let first_key = raster_key(27);
+    let second_key = raster_key(28);
+    let plan = glyph_atlas_bitmap_run_plan_with_padding(
+        [
+            keyed_source(
+                first_key,
+                GlyphAtlasFormat::AlphaMask,
+                UVec2::new(8, 8),
+                4.0,
+                64,
+            ),
+            keyed_source(
+                second_key,
+                GlyphAtlasFormat::AlphaMask,
+                UVec2::new(8, 8),
+                14.0,
+                64,
+            ),
+        ],
+        UVec2::new(32, 32),
+        45,
+        1,
+        2,
+    );
+    let page_key = plan.glyphs[0].page_key;
+    let initial_generation = plan
+        .atlas
+        .page(page_key.format, page_key.page_index)
+        .expect("persistent page")
+        .generation;
+    let mut atlas = plan.atlas;
+
+    let mut invalidated = atlas.invalidate_bitmap_page_upload_state([page_key, page_key, page_key]);
+    invalidated.sort_by_key(|key| key.glyph_id);
+
+    assert_eq!(invalidated, vec![first_key, second_key]);
+    assert_eq!(
+        atlas
+            .page(page_key.format, page_key.page_index)
+            .expect("invalidated page remains reusable")
+            .generation,
+        initial_generation + 1
+    );
 }
 
 #[test]
@@ -523,7 +570,7 @@ fn render_text_atlas_persistent_slot_rebuilds_when_page_size_changes() {
     assert_eq!(resized.slot_cache_insert_count, 1);
     assert_eq!(resized.rebuilt_pages.len(), 1);
     assert_eq!(resized.upload_copies.len(), 1);
-    assert_eq!(resized.glyphs[0].draw_glyph.atlas_size, UVec2::new(32, 32));
+    assert_eq!(resized.draw_glyphs[0].atlas_size, UVec2::new(32, 32));
 }
 
 fn keyed_source(

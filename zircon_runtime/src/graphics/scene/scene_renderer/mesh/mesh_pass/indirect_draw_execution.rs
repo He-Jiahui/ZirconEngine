@@ -1,10 +1,12 @@
-use std::{cell::Cell, sync::mpsc};
+use std::cell::Cell;
+use std::sync::{Arc, Mutex};
 
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::RenderCapabilitySummary;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
+use crate::rhi_wgpu::gpu_readback_queue::{GpuReadbackQueue, ReadbackError};
 
 use super::{
     IndirectCompactionBatchRange, IndirectCompactionPlan, IndirectDrawBatch, IndirectDrawBatcher,
@@ -68,10 +70,15 @@ pub(crate) struct MeshIndirectArgsSnapshot {
 }
 
 pub(crate) struct MeshIndirectArgsReadback {
-    buffer: wgpu::Buffer,
+    args: SharedReadbackBytes,
     args_count: u32,
-    draw_count_buffer: Option<wgpu::Buffer>,
+    draw_counts: Option<SharedReadbackBytes>,
     draw_count_count: u32,
+}
+
+#[derive(Clone, Default)]
+struct SharedReadbackBytes {
+    result: Arc<Mutex<Option<Result<Vec<u8>, String>>>>,
 }
 
 impl MeshIndirectDrawExecution {
@@ -93,7 +100,7 @@ impl MeshIndirectDrawExecution {
                 batch.draw_count_index,
             )
         });
-        let compaction_plan = IndirectCompactionPlan::try_from_args_and_batch_ranges(
+        let compaction_plan = IndirectCompactionPlan::try_from_ordered_batch_ranges(
             batcher.args_cpu(),
             batch_ranges,
         )?;
@@ -173,54 +180,43 @@ impl MeshIndirectDrawExecution {
         self.total_instances
     }
 
-    pub(crate) fn copy_args_to_readback(
+    pub(crate) fn request_args_readback(
         &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
+        queue: &mut GpuReadbackQueue,
         label: &'static str,
-    ) -> MeshIndirectArgsReadback {
+    ) -> Result<MeshIndirectArgsReadback, ReadbackError> {
         let byte_size = self.args_readback_byte_size();
-        let readback = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(label),
-            size: byte_size,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-        encoder.copy_buffer_to_buffer(self.replay_args_buffer(), 0, &readback, 0, byte_size);
+        let args = SharedReadbackBytes::default();
+        args.request(queue, label, self.replay_args_buffer(), byte_size)?;
 
         let draw_count_count = self.compaction_resources.draw_count_capacity();
         let draw_count_byte_size = self.compaction_resources.draw_count_buffer_byte_size();
-        let draw_count_buffer = (self.compaction_ready_for_replay()
+        let draw_counts = (self.compaction_ready_for_replay()
             && draw_count_count > 0
             && draw_count_byte_size > 0)
-            .then(|| {
-                let readback = device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some(label),
-                    size: draw_count_byte_size,
-                    usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                    mapped_at_creation: false,
-                });
-                encoder.copy_buffer_to_buffer(
+            .then(|| -> Result<_, ReadbackError> {
+                let readback = SharedReadbackBytes::default();
+                readback.request(
+                    queue,
+                    label,
                     self.compaction_resources.draw_count_buffer(),
-                    0,
-                    &readback,
-                    0,
                     draw_count_byte_size,
-                );
-                readback
-            });
-        let copied_draw_count_count = if draw_count_buffer.is_some() {
+                )?;
+                Ok(readback)
+            })
+            .transpose()?;
+        let copied_draw_count_count = if draw_counts.is_some() {
             draw_count_count.min((draw_count_byte_size / DRAW_COUNT_STRIDE_BYTES) as u32)
         } else {
             0
         };
 
-        MeshIndirectArgsReadback {
-            buffer: readback,
+        Ok(MeshIndirectArgsReadback {
+            args,
             args_count: self.args_count,
-            draw_count_buffer,
+            draw_counts,
             draw_count_count: copied_draw_count_count,
-        }
+        })
     }
 
     fn args_readback_byte_size(&self) -> wgpu::BufferAddress {
@@ -269,12 +265,18 @@ impl MeshIndirectArgsSnapshot {
 }
 
 impl MeshIndirectArgsReadback {
-    pub(crate) fn collect(self, device: &wgpu::Device) -> Option<MeshIndirectArgsSnapshot> {
-        let byte_size = u64::from(self.args_count) * INDEXED_INDIRECT_ARGS_STRIDE_BYTES;
-        let args = collect_pod_buffer::<IndexedIndirectArgs>(device, &self.buffer, byte_size)?;
-        let draw_counts = if let Some(draw_count_buffer) = self.draw_count_buffer.as_ref() {
-            let byte_size = u64::from(self.draw_count_count) * DRAW_COUNT_STRIDE_BYTES;
-            collect_pod_buffer::<u32>(device, draw_count_buffer, byte_size)?
+    pub(crate) fn is_ready(&self) -> bool {
+        self.args.is_ready()
+            && self
+                .draw_counts
+                .as_ref()
+                .map_or(true, SharedReadbackBytes::is_ready)
+    }
+
+    pub(crate) fn collect(self) -> Option<MeshIndirectArgsSnapshot> {
+        let args = decode_indexed_indirect_args(&self.args.take()?, self.args_count)?;
+        let draw_counts = if let Some(draw_counts) = self.draw_counts {
+            decode_u32s(&draw_counts.take()?, self.draw_count_count)?
         } else {
             Vec::new()
         };
@@ -286,28 +288,83 @@ impl MeshIndirectArgsReadback {
     }
 }
 
-fn collect_pod_buffer<T: bytemuck::Pod>(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
-    byte_size: wgpu::BufferAddress,
-) -> Option<Vec<T>> {
-    if byte_size == 0 {
-        return Some(Vec::new());
+impl SharedReadbackBytes {
+    fn request(
+        &self,
+        queue: &mut GpuReadbackQueue,
+        name: impl Into<String>,
+        source: &wgpu::Buffer,
+        byte_size: u64,
+    ) -> Result<(), ReadbackError> {
+        let result = Arc::clone(&self.result);
+        queue.request_readback_external(
+            name,
+            source,
+            0..byte_size,
+            Box::new(move |readback| {
+                *result
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(
+                    readback
+                        .map(<[u8]>::to_vec)
+                        .map_err(|error| error.to_string()),
+                );
+            }),
+        )?;
+        Ok(())
     }
 
-    let slice = buffer.slice(0..byte_size);
-    let (sender, receiver) = mpsc::channel();
-    slice.map_async(wgpu::MapMode::Read, move |result| {
-        let _ = sender.send(result);
-    });
-    device.poll(wgpu::PollType::wait_indefinitely()).ok()?;
-    receiver.recv().ok()?.ok()?;
+    fn is_ready(&self) -> bool {
+        self.result
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_some()
+    }
 
-    let mapped = slice.get_mapped_range();
-    let values = bytemuck::cast_slice::<u8, T>(&mapped[..byte_size as usize]).to_vec();
-    drop(mapped);
-    buffer.unmap();
-    Some(values)
+    fn take(self) -> Option<Vec<u8>> {
+        let mut result = self
+            .result
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        result.take()?.ok()
+    }
+}
+
+fn decode_indexed_indirect_args(bytes: &[u8], count: u32) -> Option<Vec<IndexedIndirectArgs>> {
+    let byte_len = count as usize * INDEXED_INDIRECT_ARGS_STRIDE_BYTES as usize;
+    let bytes = bytes.get(..byte_len)?;
+    Some(
+        bytes
+            .chunks_exact(INDEXED_INDIRECT_ARGS_STRIDE_BYTES as usize)
+            .map(|args| IndexedIndirectArgs {
+                index_count: decode_u32(args, 0),
+                instance_count: decode_u32(args, 4),
+                first_index: decode_u32(args, 8),
+                base_vertex: decode_u32(args, 12) as i32,
+                first_instance: decode_u32(args, 16),
+            })
+            .collect(),
+    )
+}
+
+fn decode_u32s(bytes: &[u8], count: u32) -> Option<Vec<u32>> {
+    let byte_len = count as usize * std::mem::size_of::<u32>();
+    Some(
+        bytes
+            .get(..byte_len)?
+            .chunks_exact(4)
+            .map(|word| u32::from_le_bytes([word[0], word[1], word[2], word[3]]))
+            .collect(),
+    )
+}
+
+fn decode_u32(bytes: &[u8], offset: usize) -> u32 {
+    u32::from_le_bytes([
+        bytes[offset],
+        bytes[offset + 1],
+        bytes[offset + 2],
+        bytes[offset + 3],
+    ])
 }
 
 #[derive(Default)]
@@ -444,29 +501,15 @@ impl MeshPassIndirectDrawExecutions {
             .sum()
     }
 
-    pub(crate) fn copy_args_to_readbacks(
+    pub(crate) fn request_hzb_occlusion_args_readbacks(
         &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
+        queue: &mut GpuReadbackQueue,
         label: &'static str,
-    ) -> Vec<MeshIndirectArgsReadback> {
-        self.executions()
-            .into_iter()
-            .flatten()
-            .map(|execution| execution.copy_args_to_readback(device, encoder, label))
-            .collect()
-    }
-
-    pub(crate) fn copy_hzb_occlusion_args_to_readbacks(
-        &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        label: &'static str,
-    ) -> Vec<MeshIndirectArgsReadback> {
+    ) -> Result<Vec<MeshIndirectArgsReadback>, ReadbackError> {
         self.hzb_occlusion_executions()
             .into_iter()
             .flatten()
-            .map(|execution| execution.copy_args_to_readback(device, encoder, label))
+            .map(|execution| execution.request_args_readback(queue, label))
             .collect()
     }
 
@@ -476,19 +519,6 @@ impl MeshPassIndirectDrawExecutions {
             self.alpha_mask(),
             self.advanced_pbr_opaque(),
             self.velocity(),
-        ]
-    }
-
-    fn executions(&self) -> [Option<&MeshIndirectDrawExecution>; 8] {
-        [
-            self.depth_prepass(),
-            self.shadow(),
-            self.opaque(),
-            self.alpha_mask(),
-            self.advanced_pbr_opaque(),
-            self.transparent(),
-            self.velocity(),
-            self.taa_reactive_mask(),
         ]
     }
 
@@ -508,7 +538,7 @@ impl MeshPassIndirectDrawExecutions {
 
 #[cfg(test)]
 mod tests {
-    use super::{INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectArgsSnapshot};
+    use super::{MeshIndirectArgsSnapshot, INDEXED_INDIRECT_ARGS_STRIDE_BYTES};
     use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
@@ -547,14 +577,15 @@ mod tests {
     }
 
     #[test]
-    fn mesh_indirect_draw_execution_sources_readback_from_indirect_args_buffer() {
+    fn mesh_indirect_draw_execution_routes_readback_through_the_shared_queue() {
         let source = include_str!("indirect_draw_execution.rs");
 
-        assert!(source.contains("copy_buffer_to_buffer(self.replay_args_buffer()"));
+        assert!(source.contains("request_readback_external"));
+        assert!(source.contains("self.replay_args_buffer()"));
         assert!(source.contains("self.compaction_resources.draw_count_buffer()"));
-        assert!(source.contains("wgpu::BufferUsages::MAP_READ"));
-        assert!(source.contains("collect_pod_buffer::<IndexedIndirectArgs>"));
-        assert!(source.contains("collect_pod_buffer::<u32>"));
+        assert!(source.contains("SharedReadbackBytes"));
+        assert!(source.contains("decode_indexed_indirect_args"));
+        assert!(!source.contains("map_async"));
     }
 
     #[test]

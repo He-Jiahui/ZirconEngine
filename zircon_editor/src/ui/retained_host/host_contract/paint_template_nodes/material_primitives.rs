@@ -14,4 +14,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use dispatch::{
     push_material_primitive_commands, push_material_text_field_surface_commands,
 };
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use shared::{component_variant_contains, first_non_empty};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use shared::{
+    bounded_extent, component_variant_contains, first_non_empty,
+};

@@ -58,8 +58,6 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/crates.rs
@@ -176,7 +174,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
@@ -206,8 +203,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking/cycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/base.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/declaration.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
@@ -225,8 +221,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/diagnostic.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_registration_match.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability/outcome.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/active.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/partition.rs
@@ -250,7 +244,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/lookup.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
@@ -289,16 +282,12 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/package_contributions/manifest_metadata.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/components.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/components/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/components/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/event_catalogs.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/event_catalogs/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/event_catalogs/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/options.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/options/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/options/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/ui_components.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/ui_components/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/ui_components/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_owners.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_owners/components.rs
@@ -320,16 +309,13 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/identity/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities/namespace.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/row/namespace.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/row/uniqueness.rs
@@ -339,7 +325,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/capability/namespace.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/capability/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/rows/pairs.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/row/capability.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/row/pair.rs
@@ -352,7 +337,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/row/path.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/row/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/path.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/path/segments.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/uniqueness.rs
@@ -370,14 +354,12 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/identity/ownership.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/identity/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/note.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/owned_capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/note.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/references.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/targets.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contributions.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contributions/groups.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/coordinates.rs
@@ -402,7 +384,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists/feature_extension.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists/optional.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row/provider.rs
@@ -425,10 +406,8 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity/name.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/target_modes.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/array.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/array/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/array/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/path.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/path/field.rs
@@ -436,6 +415,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/path/separator.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/path/segments.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation.rs
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape/field.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape/identity.rs
@@ -458,11 +438,11 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments/count.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation.rs
+  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/row/field.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/row/namespace.rs
@@ -477,7 +457,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/row/capability.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/row/provider.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/rows/pairs.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/rows/primary.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/row.rs
@@ -487,7 +466,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/row/identity/name.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/row/target_modes.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/provider.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape/field.rs
@@ -512,7 +490,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/row/kind_prefix.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/row/uniqueness.rs
@@ -734,7 +711,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_capabilities.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/mod.rs
   - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
@@ -781,7 +758,6 @@ related_code:
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/mod.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
-  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cleanup.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/artifacts.rs
@@ -799,7 +775,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - .github/workflows/ci.yml
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
@@ -895,6 +870,8 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/projection.rs
+  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/projection.rs
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/scene/runtime_hook/mod.rs
   - zircon_runtime/src/plugin/core_profiles.rs
@@ -1058,7 +1035,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
@@ -1088,8 +1064,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking/cycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/base.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/declaration.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
@@ -1107,8 +1082,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/diagnostic.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_registration_match.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability/outcome.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/active.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/partition.rs
@@ -1132,7 +1105,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/lookup.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
@@ -1171,16 +1143,12 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/package_contributions/manifest_metadata.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/components.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/components/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/components/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/event_catalogs.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/event_catalogs/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/event_catalogs/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/options.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/options/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/options/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/ui_components.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/ui_components/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_duplicates/ui_components/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_owners.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_owners/components.rs
@@ -1202,16 +1170,13 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/identity/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities/namespace.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/required_capabilities/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/row/namespace.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/capabilities/row/uniqueness.rs
@@ -1221,7 +1186,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/capability/namespace.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/capability/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/rows/pairs.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/row/capability.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_dependencies/dependencies/row/pair.rs
@@ -1234,7 +1198,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/row/path.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/row/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/path.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/path/segments.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status_references/uniqueness.rs
@@ -1252,14 +1215,12 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/identity/ownership.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/identity/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/note.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/owned_capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/note.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/references.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/row/targets.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/capability_status/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contributions.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/contributions/groups.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/coordinates.rs
@@ -1284,7 +1245,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists/feature_extension.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists/optional.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/lists/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row/provider.rs
@@ -1307,10 +1267,8 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity/name.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/target_modes.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/array.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/array/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/array/uniqueness.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/path.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/roots/path/field.rs
@@ -1344,7 +1302,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/row/field.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/row/namespace.rs
@@ -1359,7 +1316,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/row/capability.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/row/provider.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/rows/pairs.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/dependencies/rows/primary.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/row.rs
@@ -1369,7 +1325,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/row/identity/name.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/row/target_modes.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/modules/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/provider.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape/field.rs
@@ -1394,7 +1349,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/rows/state.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/row/kind_prefix.rs
   - zircon_runtime/src/plugin/runtime_plugin/module_validation/capabilities/row/uniqueness.rs
@@ -1567,7 +1521,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_capabilities.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/mod.rs
   - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
@@ -1610,7 +1564,6 @@ implementation_files:
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/mod.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
-  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cleanup.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/artifacts.rs
@@ -1630,7 +1583,6 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/host/builtin_layout/ensure_shell_instances.rs
@@ -2564,13 +2516,13 @@ Feature-manifest validation is also folder-backed. `feature_validation.rs` keeps
 
 Feature provider validation follows the same owner/child split: `feature_validation/provider.rs` owns `provider_package_id` field and token diagnostics consumed by native feature manifests and provider overrides, while `feature_validation.rs` keeps the internal provider entry surface.
 
-Feature capability validation follows that same owner/child split: `feature_validation/capabilities.rs` owns the feature-level capability entry point, `feature_validation/capabilities/presence.rs` owns empty-list diagnostics, `feature_validation/capabilities/rows.rs` owns row traversal, `feature_validation/capabilities/rows/state.rs` owns seen-capability state creation, `feature_validation/capabilities/row.rs` owns per-row validation order, `feature_validation/capabilities/row/field.rs` owns field adapter dispatch, `feature_validation/capabilities/row/namespace.rs` owns namespace adapter dispatch, `feature_validation/capabilities/row/uniqueness.rs` owns duplicate-capability adapter dispatch, and `feature_validation/capabilities/uniqueness.rs` owns duplicate capability diagnostics.
+Feature capability validation follows that same owner/child split: `feature_validation/capabilities.rs` owns the feature-level capability entry point, `feature_validation/capabilities/presence.rs` owns empty-list diagnostics, and `feature_validation/capabilities/rows.rs` owns row traversal. `feature_validation/projection.rs` owns the duplicate-membership view built once for standalone features or borrowed from the package projection for embedded features; each row passes that result through `feature_validation/capabilities/row.rs` and its field, namespace, and uniqueness adapters.
 
-Feature dependency validation follows the same shape: `feature_validation/dependencies.rs` owns the feature-level dependency entry point, `feature_validation/dependencies/presence.rs` owns empty-list diagnostics, and `feature_validation/dependencies/rows.rs` owns dependency list traversal plus per-row validation order. Row state is split under that traversal owner: `feature_validation/dependencies/rows/pairs.rs` owns duplicate-pair seen-state adaptation into `dependencies/pairs.rs`, while `feature_validation/dependencies/rows/primary.rs` owns primary dependency count accumulation plus final count dispatch into `dependencies/primary_count.rs`. `dependencies/row.rs` owns row-shape dispatch order, `dependencies/row/provider.rs` owns provider id field/token diagnostics, `dependencies/row/capability.rs` owns dependency capability field/namespace diagnostics, and `dependencies/pairs.rs`, `dependencies/owner.rs`, plus `dependencies/primary_count.rs` keep the duplicate-pair, primary-owner, and exactly-one-primary rules.
+Feature dependency validation follows the same shape: `feature_validation/dependencies.rs` owns the feature-level dependency entry point, `feature_validation/dependencies/presence.rs` owns empty-list diagnostics, and `feature_validation/dependencies/rows.rs` owns dependency traversal plus per-row validation order. Duplicate-pair membership comes from `feature_validation/projection.rs`, while `feature_validation/dependencies/rows/primary.rs` retains primary dependency count accumulation and final count dispatch. `dependencies/row.rs` owns row-shape dispatch order, and `dependencies/pairs.rs`, `dependencies/owner.rs`, plus `dependencies/primary_count.rs` keep the duplicate-pair, primary-owner, and exactly-one-primary diagnostics.
 
-Shared module validation is folder-backed under `module_validation.rs`, with package and feature module rows consuming the same internal owner surface. `module_validation/names.rs` owns the shared module-name entry point, `module_validation/names/shape.rs` owns caller-provided field and namespace validation dispatch, `module_validation/names/owner_prefix.rs` owns package/feature owner-prefix diagnostics, `module_validation/names/kind_suffix.rs` owns runtime/editor suffix diagnostics, and `module_validation/names/uniqueness.rs` owns package/feature-local duplicate-name diagnostics plus seen insertion. `module_validation/capabilities.rs` owns the shared capability entry point, `module_validation/capabilities/presence.rs` owns empty capability-list diagnostics, `module_validation/capabilities/rows.rs` owns capability traversal, `module_validation/capabilities/rows/state.rs` owns seen-capability state creation, `module_validation/capabilities/row.rs` owns per-capability validation order, `module_validation/capabilities/row/kind_prefix.rs` owns runtime/editor capability-prefix diagnostics, and `module_validation/capabilities/row/uniqueness.rs` owns duplicate capability diagnostics plus seen insertion. `module_validation/target_modes.rs` owns the shared target-mode entry point, `module_validation/target_modes/presence.rs` owns empty target-mode diagnostics, `module_validation/target_modes/rows.rs` owns target-mode traversal, `module_validation/target_modes/rows/state.rs` owns seen-target state creation, `module_validation/target_modes/row.rs` owns per-target validation order, `module_validation/target_modes/row/uniqueness.rs` owns duplicate target diagnostics plus seen insertion, `module_validation/target_modes/row/editor_host.rs` owns editor-only `EditorHost` diagnostics, and `module_validation/target_modes/row/coverage.rs` owns optional package supported-target coverage diagnostics. `module_validation/crate_name.rs` owns the shared module crate-name entry point, `module_validation/crate_name/shape.rs` owns caller-provided field validation dispatch, `module_validation/crate_name/token.rs` owns `zircon_plugin_` prefix and lowercase token diagnostics, and `module_validation/crate_name/underscore.rs` owns trailing/repeated underscore diagnostics.
+Shared module validation is folder-backed under `module_validation.rs`, with package and feature module rows consuming the same internal owner surface. `module_validation/names.rs` owns shared name validation, while the package and feature projections supply duplicate-name membership. `module_validation/capabilities.rs` owns the shared capability entry point; `module_validation/capabilities/rows.rs` traverses capabilities and consumes caller-supplied duplicate membership before dispatching kind-prefix and uniqueness diagnostics through `module_validation/capabilities/row.rs`. Target-mode and crate-name validation remain under their existing `module_validation/target_modes` and `module_validation/crate_name` subtrees.
 
-Feature module validation is folder-backed as well: `feature_validation/modules.rs` owns the feature-level module entry point, `feature_validation/modules/rows.rs` owns module list traversal, `feature_validation/modules/rows/state.rs` owns seen-name state creation, while `feature_validation/modules/row.rs` owns per-module validation order. Row adapters are split by shared-rule family: `feature_validation/modules/row/identity.rs` owns identity rule dispatch, `feature_validation/modules/row/identity/name.rs` owns feature-id scoped module-name validation, `feature_validation/modules/row/identity/crate_name.rs` owns crate-name validation, `feature_validation/modules/row/capabilities.rs` owns feature field/namespace adaptation for shared module capability checks, and `feature_validation/modules/row/target_modes.rs` owns feature-module target-mode dispatch.
+Feature module validation is folder-backed as well: `feature_validation/modules.rs` owns the feature-level module entry point, `feature_validation/modules/rows.rs` owns module traversal, and `feature_validation/projection.rs` owns duplicate module-name and module-capability membership. `feature_validation/modules/row.rs` keeps per-module validation order, with identity, crate-name, capability, and target-mode adapters split below it.
 
 Package module validation follows that split under `package_validation/modules.rs`: `modules/field.rs` adapts package field diagnostics, `modules/rows.rs` owns package module traversal, `modules/rows/state.rs` owns seen-name state creation, `modules/row.rs` owns per-module dispatch order, `modules/row/identity.rs` owns package module identity rule dispatch, `modules/row/identity/name.rs` owns package ownership validation, `modules/row/identity/crate_name.rs` owns crate-name validation, `modules/row/capabilities.rs` owns package namespace adaptation for shared module capability checks, and `modules/row/target_modes.rs` owns package supported-target coverage adaptation.
 

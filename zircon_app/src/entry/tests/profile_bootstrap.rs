@@ -3,22 +3,22 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(feature = "target-editor-host")]
-use zircon_editor::EDITOR_MANAGER_NAME;
-#[cfg(feature = "target-editor-host")]
 use zircon_editor::ui::host::EditorManager;
-use zircon_runtime::core::ModuleDescriptor;
+#[cfg(feature = "target-editor-host")]
+use zircon_editor::EDITOR_MANAGER_NAME;
 use zircon_runtime::core::framework::bridge::{BridgeInterfaceStatus, PluginInterface};
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime::core::framework::events::EngineEventDeliveryPolicy;
 use zircon_runtime::core::framework::render::{
-    RENDER_PROFILE_CONFIG_KEY, RenderProductFeature, RenderProductProfile, RenderProfileBundle,
-    RenderQualityProfile, RenderViewportDescriptor,
+    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
+    RenderViewportDescriptor, RENDER_PROFILE_CONFIG_KEY,
 };
 use zircon_runtime::core::framework::window::{
-    PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY, WindowDescriptor, WindowResolution,
+    WindowDescriptor, WindowResolution, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
 use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::math::UVec2;
+use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
@@ -28,7 +28,7 @@ use zircon_runtime::graphics::{
     VirtualGeometryRuntimeUpdate,
 };
 use zircon_runtime::platform::{
-    PLATFORM_CONFIG_KEY, PlatformConfig, PlatformFeatureSelection, PlatformTarget,
+    PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
 };
 use zircon_runtime::render_graph::QueueLane;
 use zircon_runtime::scene::World;
@@ -102,26 +102,21 @@ fn editor_bootstrap_registers_editor_and_primary_managers() {
 #[test]
 fn runtime_bootstrap_excludes_editor_module() {
     let entry = BuiltinEngineEntry::for_profile(EntryProfile::Runtime).unwrap();
-    assert!(
-        entry
-            .module_descriptors()
-            .iter()
-            .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME)
-    );
+    assert!(entry
+        .module_descriptors()
+        .iter()
+        .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME));
 
     let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Runtime)).unwrap();
     #[cfg(feature = "target-editor-host")]
-    assert!(
-        core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-            .is_err()
-    );
+    assert!(core
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .is_err());
     let resolver = ManagerResolver::new(core.clone());
-    assert!(
-        resolver
-            .rendering_handle()
-            .and_then(|handle| resolver.resolve(handle))
-            .is_ok()
-    );
+    assert!(resolver
+        .rendering_handle()
+        .and_then(|handle| resolver.resolve(handle))
+        .is_ok());
 }
 
 #[test]
@@ -131,11 +126,9 @@ fn bootstrap_fails_fast_when_required_runtime_plugin_is_unavailable() {
 
     let error = EntryRunner::bootstrap(config).unwrap_err();
 
-    assert!(
-        error
-            .to_string()
-            .contains("required runtime plugin VirtualGeometry is unavailable")
-    );
+    assert!(error
+        .to_string()
+        .contains("required runtime plugin VirtualGeometry is unavailable"));
 }
 
 #[test]
@@ -148,18 +141,14 @@ fn entry_config_projects_runtime_profile_to_entry_target_and_manifest() {
     assert_eq!(config.profile, EntryProfile::Headless);
     assert_eq!(config.runtime_profile(), Some(RuntimeProfileId::Server));
     assert_eq!(config.target_mode, RuntimeTargetMode::ServerRuntime);
-    assert!(
-        manifest
-            .selections
-            .iter()
-            .any(|selection| selection.id == RuntimePluginId::Net.key())
-    );
-    assert!(
-        manifest
-            .selections
-            .iter()
-            .all(|selection| selection.id != RuntimePluginId::Ui.key())
-    );
+    assert!(manifest
+        .selections
+        .iter()
+        .any(|selection| selection.id == RuntimePluginId::Net.key()));
+    assert!(manifest
+        .selections
+        .iter()
+        .all(|selection| selection.id != RuntimePluginId::Ui.key()));
 }
 
 #[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
@@ -174,31 +163,23 @@ fn runtime_profile_bootstrap_uses_linked_first_party_provider_registrations() {
 
     assert_eq!(config.runtime_profile(), Some(RuntimeProfileId::Client2d));
     assert_eq!(ids, vec!["sound", "rendering", "texture"]);
-    assert!(
-        registrations
-            .iter()
-            .all(RuntimePluginRegistrationReport::is_success)
-    );
+    assert!(registrations
+        .iter()
+        .all(RuntimePluginRegistrationReport::is_success));
 
     let entry = BuiltinEngineEntry::for_runtime_profile(RuntimeProfileId::Client2d)
         .expect("client_2d profile should be satisfied by linked first-party registrations");
     let descriptors = entry.module_descriptors();
 
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "sound.runtime")
-    );
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "rendering.runtime")
-    );
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "texture.runtime")
-    );
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "sound.runtime"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "rendering.runtime"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "texture.runtime"));
 }
 
 #[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
@@ -212,37 +193,29 @@ fn first_party_sound_provider_preserves_manifest_maturity_and_capability_status(
         .expect("client_2d linked providers should include sound");
 
     assert_eq!(sound.package_manifest.maturity, PluginMaturity::Beta);
-    assert!(
-        sound
-            .package_manifest
-            .capability_statuses
-            .iter()
-            .any(|status| {
-                status.capability == "runtime.plugin.sound"
-                    && status.status == CapabilityStatus::Partial
-            })
-    );
-    assert!(
-        sound
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| { module.name == "sound.runtime" })
-    );
-    assert!(
-        sound
-            .extensions
-            .plugin_options()
-            .iter()
-            .any(|option| option.key == "sound.global_volume_gain")
-    );
-    assert!(
-        sound
-            .extensions
-            .plugin_event_catalogs()
-            .iter()
-            .any(|catalog| catalog.namespace == "sound.dynamic_events")
-    );
+    assert!(sound
+        .package_manifest
+        .capability_statuses
+        .iter()
+        .any(|status| {
+            status.capability == "runtime.plugin.sound"
+                && status.status == CapabilityStatus::Partial
+        }));
+    assert!(sound
+        .extensions
+        .modules()
+        .iter()
+        .any(|module| { module.name == "sound.runtime" }));
+    assert!(sound
+        .extensions
+        .plugin_options()
+        .iter()
+        .any(|option| option.key == "sound.global_volume_gain"));
+    assert!(sound
+        .extensions
+        .plugin_event_catalogs()
+        .iter()
+        .any(|catalog| catalog.namespace == "sound.dynamic_events"));
 }
 
 #[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
@@ -259,21 +232,15 @@ fn runtime_profile_feature_bootstrap_uses_profile_level_provider_availability() 
     .expect("client_2d profile should use linked providers during feature-aware bootstrap");
 
     let descriptors = entry.module_descriptors();
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "sound.runtime")
-    );
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "rendering.runtime")
-    );
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "texture.runtime")
-    );
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "sound.runtime"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "rendering.runtime"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "texture.runtime"));
 }
 
 #[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
@@ -310,21 +277,15 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
             .expect("optional first-party runtime plugin registrations should satisfy bootstrap");
     let descriptors = entry.module_descriptors();
 
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "animation.runtime")
-    );
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "net.runtime")
-    );
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "particles.runtime")
-    );
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "animation.runtime"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "net.runtime"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "particles.runtime"));
 
     let feature_aware_entry =
         BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
@@ -336,21 +297,15 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
     let feature_aware_descriptors = feature_aware_entry.module_descriptors();
     let feature_aware_report = feature_aware_entry.module_selection_report();
 
-    assert!(
-        feature_aware_descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "animation.runtime")
-    );
-    assert!(
-        feature_aware_descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "net.runtime")
-    );
-    assert!(
-        feature_aware_descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "particles.runtime")
-    );
+    assert!(feature_aware_descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "animation.runtime"));
+    assert!(feature_aware_descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "net.runtime"));
+    assert!(feature_aware_descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "particles.runtime"));
     for expected in [
         RuntimePluginId::Animation,
         RuntimePluginId::Net,
@@ -373,16 +328,12 @@ fn render_profile_runtime_plugins_do_not_link_advanced_providers_for_default_ren
     let config = EntryConfig::new(EntryProfile::Runtime);
     let registrations = first_party_runtime_plugin_registrations_for_config(&config);
 
-    assert!(
-        registrations
-            .iter()
-            .all(|registration| registration.package_manifest.id != "virtual_geometry")
-    );
-    assert!(
-        registrations
-            .iter()
-            .all(|registration| registration.package_manifest.id != "hybrid_gi")
-    );
+    assert!(registrations
+        .iter()
+        .all(|registration| registration.package_manifest.id != "virtual_geometry"));
+    assert!(registrations
+        .iter()
+        .all(|registration| registration.package_manifest.id != "hybrid_gi"));
 }
 
 #[test]
@@ -437,11 +388,9 @@ fn render_profile_runtime_plugins_link_advanced_providers_when_advanced_render_i
         .collect::<Vec<_>>();
 
     assert_eq!(ids, vec!["virtual_geometry", "hybrid_gi"]);
-    assert!(
-        registrations
-            .iter()
-            .all(RuntimePluginRegistrationReport::is_success)
-    );
+    assert!(registrations
+        .iter()
+        .all(RuntimePluginRegistrationReport::is_success));
     assert_eq!(
         registrations[0]
             .extensions
@@ -479,11 +428,9 @@ fn render_profile_runtime_plugins_link_solari_provider_when_solari_experimental_
         .collect::<Vec<_>>();
 
     assert_eq!(ids, vec!["virtual_geometry", "hybrid_gi", "solari"]);
-    assert!(
-        registrations
-            .iter()
-            .all(RuntimePluginRegistrationReport::is_success)
-    );
+    assert!(registrations
+        .iter()
+        .all(RuntimePluginRegistrationReport::is_success));
     assert_eq!(
         registrations[2].extensions.solari_runtime_providers().len(),
         1
@@ -540,22 +487,18 @@ fn runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is
         .with_optional_runtime_plugins([RuntimePluginId::Navigation]);
     let registrations = first_party_runtime_plugin_registrations_for_config(&config);
 
-    assert!(
-        registrations
-            .iter()
-            .any(|registration| registration.package_manifest.id == "navigation")
-    );
+    assert!(registrations
+        .iter()
+        .any(|registration| registration.package_manifest.id == "navigation"));
 
     let entry =
         BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)
             .expect("navigation provider feature should contribute the first-party runtime module");
 
-    assert!(
-        entry
-            .module_descriptors()
-            .iter()
-            .any(|descriptor| descriptor.name == "navigation.runtime")
-    );
+    assert!(entry
+        .module_descriptors()
+        .iter()
+        .any(|descriptor| descriptor.name == "navigation.runtime"));
 }
 
 #[cfg(all(feature = "first-party-zr-vm-language-runtime-plugin", feature = "ui"))]
@@ -565,22 +508,18 @@ fn runtime_profile_bootstrap_can_link_zr_vm_language_when_provider_feature_is_en
         .with_optional_runtime_plugins([RuntimePluginId::ZrVmLanguage]);
     let registrations = first_party_runtime_plugin_registrations_for_config(&config);
 
-    assert!(
-        registrations
-            .iter()
-            .any(|registration| registration.package_manifest.id == "zr_vm_language")
-    );
+    assert!(registrations
+        .iter()
+        .any(|registration| registration.package_manifest.id == "zr_vm_language"));
 
     let entry =
         BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)
             .expect("ZrVM provider feature should contribute the first-party runtime module");
 
-    assert!(
-        entry
-            .module_descriptors()
-            .iter()
-            .any(|descriptor| descriptor.name == "zr_vm_language.runtime")
-    );
+    assert!(entry
+        .module_descriptors()
+        .iter()
+        .any(|descriptor| descriptor.name == "zr_vm_language.runtime"));
 }
 
 #[test]
@@ -604,11 +543,9 @@ fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contrib
         .expect("linked required plugin should satisfy runtime startup selection");
     let descriptors = entry.module_descriptors();
 
-    assert!(
-        descriptors
-            .iter()
-            .any(|descriptor| descriptor.name == "VirtualGeometryPlugin")
-    );
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "VirtualGeometryPlugin"));
 }
 
 #[test]
@@ -637,12 +574,10 @@ fn runtime_plugin_bootstrap_installs_neutral_module_lifecycle_observer() {
         .bootstrap()
         .expect("linked bridge provider should bootstrap");
 
-    assert!(
-        state
-            .bridge_table()
-            .resolve_slot(<dyn EntryBootstrapPhysicsBridge as PluginInterface>::INTERFACE_ID)
-            .is_some()
-    );
+    assert!(state
+        .bridge_table()
+        .resolve_slot(<dyn EntryBootstrapPhysicsBridge as PluginInterface>::INTERFACE_ID)
+        .is_some());
     let outcome = state.apply_provider_lifecycle_event(
         RuntimePluginBridgeLifecycleEvent::disable_provider("physics"),
     );
@@ -676,11 +611,9 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
     let error = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
         .expect_err("EditorHost-only plugin registration must not satisfy ClientRuntime startup");
 
-    assert!(
-        error
-            .to_string()
-            .contains("required runtime plugin VirtualGeometry is unavailable")
-    );
+    assert!(error
+        .to_string()
+        .contains("required runtime plugin VirtualGeometry is unavailable"));
 }
 
 #[test]
@@ -711,30 +644,22 @@ fn runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightwe
         .expect("base virtual geometry request should degrade to the base pipeline");
     let stats = render_framework.query_stats().unwrap();
 
-    assert!(
-        !stats
-            .last_effective_features
-            .iter()
-            .any(|feature| feature == "virtual_geometry")
-    );
-    assert!(
-        !stats
-            .last_effective_features
-            .iter()
-            .any(|feature| feature == "global_illumination" || feature == "hybrid_gi")
-    );
-    assert!(
-        !stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass.starts_with("virtual-geometry-"))
-    );
-    assert!(
-        !stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass.starts_with("hybrid-gi-"))
-    );
+    assert!(!stats
+        .last_effective_features
+        .iter()
+        .any(|feature| feature == "virtual_geometry"));
+    assert!(!stats
+        .last_effective_features
+        .iter()
+        .any(|feature| feature == "global_illumination" || feature == "hybrid_gi"));
+    assert!(!stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass.starts_with("virtual-geometry-")));
+    assert!(!stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass.starts_with("hybrid-gi-")));
 }
 
 #[test]
@@ -795,11 +720,9 @@ fn headless_bootstrap_stores_absent_primary_window_descriptor() {
 
     assert_eq!(descriptor.primary_window, None);
     assert!(!descriptor.visible);
-    assert!(
-        descriptor
-            .format_diagnostics()
-            .contains("window.primary_window=none")
-    );
+    assert!(descriptor
+        .format_diagnostics()
+        .contains("window.primary_window=none"));
 }
 
 #[test]
@@ -878,12 +801,10 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
         .expect("linked virtual geometry frame should submit");
     let stats = render_framework.query_stats().unwrap();
 
-    assert!(
-        stats
-            .last_effective_features
-            .iter()
-            .any(|feature| feature == "virtual_geometry")
-    );
+    assert!(stats
+        .last_effective_features
+        .iter()
+        .any(|feature| feature == "virtual_geometry"));
     assert_eq!(
         stats
             .advanced_provider_availability
@@ -891,18 +812,14 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
             .as_deref(),
         Some("virtual_geometry")
     );
-    assert!(
-        stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == "linked-virtual-geometry-pass")
-    );
-    assert!(
-        !stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == "virtual-geometry-prepare")
-    );
+    assert!(stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == "linked-virtual-geometry-pass"));
+    assert!(!stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == "virtual-geometry-prepare"));
 }
 
 #[test]
@@ -944,64 +861,50 @@ target_modes = ["client_runtime"]
             .runtime_plugin_registration_reports(),
     )
     .expect("native dynamic load manifest should satisfy required plugin availability");
-    assert!(
-        entry
-            .module_descriptors()
-            .iter()
-            .any(|descriptor| descriptor.name == "virtual_geometry.runtime")
-    );
+    assert!(entry
+        .module_descriptors()
+        .iter()
+        .any(|descriptor| descriptor.name == "virtual_geometry.runtime"));
 
     let bootstrap =
         EntryRunner::bootstrap_with_native_plugins_from_export_root(config, &export_root)
             .expect("native dynamic load manifest should satisfy required plugin availability");
 
     let resolver = ManagerResolver::new(bootstrap.clone_core());
-    assert!(
-        resolver
-            .rendering_handle()
-            .and_then(|handle| resolver.resolve(handle))
-            .is_ok()
-    );
-    assert!(
-        bootstrap
-            .module_selection_report()
-            .runtime_plugin_availability
-            .contains(
-                RuntimePluginAvailabilityCategory::NativeDynamic,
-                RuntimePluginId::VirtualGeometry
-            )
-    );
-    assert!(
-        !bootstrap
-            .module_selection_report()
-            .runtime_plugin_availability
-            .has_missing_required()
-    );
-    assert!(
-        bootstrap
-            .module_selection_report()
-            .module_keys()
-            .contains(&"virtual_geometry.runtime")
-    );
-    assert!(
-        bootstrap
-            .native_plugin_host()
-            .loaded_plugin_ids(PluginModuleKind::Runtime)
-            .expect("bootstrap host should expose loaded native runtime ids")
-            .is_empty()
-    );
+    assert!(resolver
+        .rendering_handle()
+        .and_then(|handle| resolver.resolve(handle))
+        .is_ok());
+    assert!(bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .contains(
+            RuntimePluginAvailabilityCategory::NativeDynamic,
+            RuntimePluginId::VirtualGeometry
+        ));
+    assert!(!bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .has_missing_required());
+    assert!(bootstrap
+        .module_selection_report()
+        .module_keys()
+        .contains(&"virtual_geometry.runtime"));
+    assert!(bootstrap
+        .native_plugin_host()
+        .loaded_plugin_ids(PluginModuleKind::Runtime)
+        .expect("bootstrap host should expose loaded native runtime ids")
+        .is_empty());
     assert_eq!(
         bootstrap
             .runtime_behavior_descriptor("virtual_geometry")
             .unwrap_err(),
         "plugin virtual_geometry is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
     );
-    assert!(
-        bootstrap
-            .runtime_behavior_descriptors()
-            .expect("bootstrap should expose runtime native behavior descriptors")
-            .is_empty()
-    );
+    assert!(bootstrap
+        .runtime_behavior_descriptors()
+        .expect("bootstrap should expose runtime native behavior descriptors")
+        .is_empty());
     let dispatch = bootstrap
         .dispatch_runtime_plugin_command("play-mode.enter", b"{}")
         .expect("bootstrap should expose runtime native command dispatch");
@@ -1057,15 +960,13 @@ impl RuntimePlugin for LinkedVirtualGeometryPlugin {
                 "virtual_geometry",
                 Vec::new(),
                 Vec::new(),
-                vec![
-                    RenderFeaturePassDescriptor::new(
-                        RenderPassStage::DepthPrepass,
-                        "linked-virtual-geometry-pass",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("virtual-geometry.prepare")
-                    .with_side_effects(),
-                ],
+                vec![RenderFeaturePassDescriptor::new(
+                    RenderPassStage::DepthPrepass,
+                    "linked-virtual-geometry-pass",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("virtual-geometry.prepare")
+                .with_side_effects()],
             )
             .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
         )?;

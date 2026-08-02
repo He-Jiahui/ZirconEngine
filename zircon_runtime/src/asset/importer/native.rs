@@ -7,7 +7,7 @@ use super::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, AssetImporterHandler,
     AssetSchemaMigrationReport, ImportedAssetEntry,
 };
-use crate::asset::{asset_kind_for_imported_asset, AssetImportError, AssetUri};
+use crate::asset::{AssetImportError, AssetUri, asset_kind_for_imported_asset};
 
 const REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
@@ -389,9 +389,11 @@ mod tests {
 
         let error = native_command_payload(report).expect_err("missing ok payload");
 
-        assert!(error
-            .to_string()
-            .contains("did not return an output payload"));
+        assert!(
+            error
+                .to_string()
+                .contains("did not return an output payload")
+        );
     }
 
     #[test]
@@ -410,10 +412,12 @@ mod tests {
 
         let outcome = native_response_to_outcome(&descriptor, response).expect("valid response");
 
-        assert!(outcome.entries[0]
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message == "native warning"));
+        assert!(
+            outcome.entries[0]
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message == "native warning")
+        );
     }
 
     #[test]

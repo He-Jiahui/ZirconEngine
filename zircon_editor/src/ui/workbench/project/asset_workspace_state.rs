@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::core::asset::AssetTypeId;
@@ -6,7 +5,8 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetDetailsGeneration,
     EditorAssetFolderRecord,
 };
-use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord, ResourceState};
+use zircon_runtime::core::framework::asset::{ResourceManagementGeneration, ResourceManagementRow};
+use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
@@ -22,7 +22,7 @@ pub(crate) struct AssetWorkspaceState {
     selected_folder_id: String,
     selected_asset_uuid: Option<String>,
     selected_details: Option<Arc<EditorAssetDetailsGeneration>>,
-    resources_by_locator: HashMap<String, ResourceRecord>,
+    resources: Arc<ResourceManagementGeneration>,
     search_query: String,
     kind_filter: Option<ResourceKind>,
     activity_view_mode: AssetViewMode,
@@ -38,7 +38,7 @@ impl Default for AssetWorkspaceState {
             selected_folder_id: "res://".to_string(),
             selected_asset_uuid: None,
             selected_details: None,
-            resources_by_locator: HashMap::new(),
+            resources: Arc::new(ResourceManagementGeneration::default()),
             search_query: String::new(),
             kind_filter: None,
             activity_view_mode: AssetViewMode::List,
@@ -70,11 +70,12 @@ impl AssetWorkspaceState {
         self.selected_details = details;
     }
 
-    pub fn sync_resources(&mut self, resources: Vec<ResourceRecord>) {
-        self.resources_by_locator = resources
-            .into_iter()
-            .map(|resource| (resource.primary_locator.to_string(), resource))
-            .collect();
+    pub fn sync_resources(&mut self, resources: Arc<ResourceManagementGeneration>) -> bool {
+        if Arc::ptr_eq(&self.resources, &resources) {
+            return false;
+        }
+        self.resources = resources;
+        true
     }
 
     pub fn select_folder(&mut self, folder_id: impl Into<String>) {
@@ -207,7 +208,7 @@ impl AssetWorkspaceState {
             folder_tree,
             visible_folders,
             visible_assets,
-            creation_templates: Vec::new(),
+            creation_menu: Default::default(),
             selected_folder_id: Some(self.selected_folder_id.clone()),
             selected_asset_uuid: self.selected_asset_uuid.clone(),
             selection: self.selection_snapshot(),
@@ -282,7 +283,7 @@ impl AssetWorkspaceState {
             .selected_details
             .as_ref()
             .filter(|details| details.asset.uuid == *selected_uuid);
-        let resource = self.resources_by_locator.get(&asset.locator);
+        let resource = self.resources.row_by_locator(&asset.locator);
 
         AssetSelectionSnapshot {
             uuid: Some(asset.uuid.clone()),
@@ -321,8 +322,8 @@ impl AssetWorkspaceState {
                 })
                 .unwrap_or_default(),
             diagnostics: asset.diagnostics.clone(),
-            resource_state: resource_state(resource),
-            resource_revision: resource.map(|resource| resource.revision),
+            resource_state: resource_state(resource.as_deref()),
+            resource_revision: resource.as_ref().map(|resource| resource.revision),
             references: details
                 .map(|details| {
                     details
@@ -345,7 +346,7 @@ impl AssetWorkspaceState {
     }
 
     fn asset_item_snapshot(&self, asset: &EditorAssetCatalogRecord) -> AssetItemSnapshot {
-        let resource = self.resources_by_locator.get(&asset.locator);
+        let resource = self.resources.row_by_locator(&asset.locator);
         AssetItemSnapshot {
             uuid: asset.uuid.clone(),
             locator: asset.locator.clone(),
@@ -358,8 +359,8 @@ impl AssetWorkspaceState {
             dirty: asset.dirty,
             diagnostics: asset.diagnostics.clone(),
             selected: self.selected_asset_uuid.as_deref() == Some(asset.uuid.as_str()),
-            resource_state: resource_state(resource),
-            resource_revision: resource.map(|resource| resource.revision),
+            resource_state: resource_state(resource.as_deref()),
+            resource_revision: resource.as_ref().map(|resource| resource.revision),
         }
     }
 }
@@ -375,7 +376,7 @@ fn asset_unit_label(unit: AssetSourceUnit) -> &'static str {
     }
 }
 
-fn resource_state(resource: Option<&ResourceRecord>) -> Option<ResourceState> {
+fn resource_state(resource: Option<&ResourceManagementRow>) -> Option<ResourceState> {
     resource.map(|resource| resource.state)
 }
 
@@ -504,7 +505,20 @@ fn reference_snapshot(
 
 #[cfg(test)]
 mod performance_tests {
-    use super::parent_folder_id_for_locator;
+    use std::sync::Arc;
+
+    use zircon_runtime::core::framework::asset::ResourceManagementGeneration;
+
+    use super::{parent_folder_id_for_locator, AssetWorkspaceState};
+
+    #[test]
+    fn stable_resource_generation_skips_asset_projection_invalidation() {
+        let mut workspace = AssetWorkspaceState::default();
+        let generation = Arc::new(ResourceManagementGeneration::default());
+
+        assert!(workspace.sync_resources(generation.clone()));
+        assert!(!workspace.sync_resources(generation));
+    }
 
     #[test]
     fn asset_snapshot_normalizes_search_once_and_streams_parent_paths() {

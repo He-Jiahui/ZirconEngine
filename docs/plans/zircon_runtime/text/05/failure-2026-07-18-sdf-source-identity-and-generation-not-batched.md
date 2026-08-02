@@ -51,4 +51,13 @@ PERF-MVP-250：动态glyph先在distance-field wrapper parse face，generator再
 
 ## 修复结果与回传
 
-Open state: `等待Text05联动Text01/09/Runtime11回传generation-owned source context、bounded batch generator、deterministic offline output与current-source证据`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / secondary_review_complete / managed_validation_pending`。
+
+- generation-owned `SdfGenerationSourceContext` 现在以自引用 parsed face 持有稳定 font bytes/face/variation/source hash，runtime dynamic 与 offline build 共用 batch generator；runtime 同一 source/variation 只 parse/hash 一次，offline 多 worker 输出仍按 glyph identity 稳定排序。
+- runtime miss 已接入全局 `TaskPool` 的 bounded scheduler：batch/glyph/source bytes/completion depth/completion bytes 都有 admission budget，主线程只 drain/commit；reload 会 cancel。二次审查发现 completion backpressure/worker panic 会让 `pending_keys` 永久停在 `GenerationPending`，现通过单锁 active-work 对账在下一帧清理并重试，不扩张 completion pixel queue。
+- source context cache 增加 64 context/128 MiB unique source bytes 上限与 LRU；离线 manifest/artifact/glyph bitmap 增加 128 manifests、32 artifact identities/128 MiB、4096 bitmaps/64 MiB 上限及 negative cache；runtime baked glyph 增加 4096 entries/64 MiB 上限。resident bytes、eviction、oldest idle age、stat/read/decode/copy、batch depth/age 均进入 bake/scheduler report。
+- `SdfAtlasGlyphKey` 的 font/family/language 已硬切为 run-owned `Arc<str>`，每个 text batch 只规范化/分配一次，glyph key clone 不再逐字形深拷贝 String；未保留 String compatibility key。
+- compiled atlas 只在无 pending/retry 且 exact plan 稳定时复用；`GenerationPending` / `GenerationBudgetDeferred` 明确绕过 cache，因此 cache 不会冻结 scheduler 前向进展。font generation 变化同时清空 parsed source、resident glyph/page 与 compiled artifact。
+- current production owners 为 `generation_scheduler.rs` 447 行、`generation_source.rs` 219、`font_bake.rs` 724、`source_context.rs` 202、`offline_source.rs` 364、`glyph_cache.rs` 124、`prepared_atlas.rs` 108，均低于 800 行 warning；production panic/unwrap/expect/dead-code allow、旧 per-glyph source parse 和独立 failure probe 扫描为 0。
+
+当前不标记 fixed：Text05 尚无 managed validation receipt，本轮未直接执行 Cargo；1/100/10k 的 current-source compile、p50/p95/RSS、TTC/variation/system-font/reload/cancel/checksum 组合门仍待 coordinator 后续唤醒执行。没有轮询 queued/running 状态，也没有把旧结果冒充当前验收。

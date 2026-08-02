@@ -1,4 +1,4 @@
-use super::{TextDirection, TextFontRequest, TextWritingMode};
+use super::{TextDirection, TextFontRequest, TextOpenTypeFeature, TextWritingMode};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TextShapeRequest<'a> {
@@ -9,6 +9,7 @@ pub struct TextShapeRequest<'a> {
     pub line_height: f32,
     pub tab_size: f32,
     pub include_kerning: bool,
+    pub features: &'a [TextOpenTypeFeature],
     pub font: TextFontRequest<'a>,
 }
 
@@ -22,7 +23,13 @@ impl<'a> TextShapeRequest<'a> {
             line_height: font.size * 1.2,
             tab_size: 4.0,
             include_kerning: true,
+            features: &[],
             font,
         }
+    }
+
+    pub const fn with_features(mut self, features: &'a [TextOpenTypeFeature]) -> Self {
+        self.features = features;
+        self
     }
 }

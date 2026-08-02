@@ -5,6 +5,9 @@ pub combustionId(): string { return "combustion"; }
 pub heatingUpId(): string { return "heating_up"; }
 pub hotStreakId(): string { return "hot_streak"; }
 pub hotStreakInstantId(): string { return "hot_streak_instant"; }
+// WOS-owned stable identities for the source pair; their target scope is gameplay state.
+pub hotStreakFreeModifierIdentityCode(): uint { return <uint>1; }
+pub hotStreakInstantModifierIdentityCode(): uint { return <uint>2; }
 pub temporalBarrierId(): string { return "temporal_barrier"; }
 pub blazingBarrierId(): string { return "blazing_barrier"; }
 pub iceBarrierId(): string { return "ice_barrier"; }

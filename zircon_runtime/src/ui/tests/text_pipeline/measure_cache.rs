@@ -410,7 +410,7 @@ fn text_measure_cache_reshapes_when_wrap_bucket_changes() {
         wrap: UiTextWrap::Word,
         ..UiResolvedStyle::default()
     };
-    let neutral_style = crate::ui::text::text_style(&style);
+    let neutral_style = crate::text::text_style(&style);
     let alpha_width = measure_line_width("Alpha", &neutral_style);
     let beta_width = measure_line_width("Beta", &neutral_style);
     let full_width = measure_line_width("Alpha Beta", &neutral_style);

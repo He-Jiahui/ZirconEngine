@@ -2,7 +2,12 @@
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch/key.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch/plan.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch/clip.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
   - zircon_runtime/src/rhi
   - zircon_runtime/src/rhi_wgpu
 plan_sources:
@@ -12,21 +17,22 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
   - docs/plans/zircon_runtime/render/14-2d-stack.md  # 2D 栈勾稽(2026-07-02 评审收口)
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md  # 文本图集共享服务(2026-07-02 评审收口)
-status: planned
+status: in_progress
 ---
 # 21 GPU 提交与绘制管线(批次合并 / 裁剪栈 / 图集 / 顶点 / 上屏)
 
 ## 1. 目标
 
-把"绘制命令如何变成最少的 GPU draw call 上屏"沉淀为一份**GPU 提交规范**。`10` 已定 extract→command→**batch**→上屏的契约,但把底层批次合并、裁剪栈、图集、顶点装配、render-thread 提交**整体推给运行时渲染框架,未细化**(`10` §1 明确不重写 wgpu)。这是"GPU 提交绘制不成熟"的根因:`UiBatch`/`UiBatchKey`/`UiBatchPlan` DTO 存在,但**批次键的合并语义、裁剪栈(scissor vs stencil)、动态图集、layer/z 排序、render-thread 拆分**无权威规范。本计划补这层,深化 `10` 的 batch→上屏段,运行时 wgpu 实现细节仍归渲染框架。
+把"绘制命令如何变成最少的 GPU draw call 上屏"沉淀为一份**GPU 提交规范**。当前 interface 已实现 `UiBatchKey`、排序后相邻合批、clip-state 去重与 scissor 栈；wgpu backend 已实现 dependency-layer draw plan、solid instance/image vertex arena、generation-keyed compiled-plan cache 和统计。本计划继续把这些已有实现收敛为稳定契约，补齐动态图集、stencil/复杂裁剪、backend 资源生命周期与局部重绘证据；运行时 wgpu 细节仍归渲染框架。
 
 > 工程化硬目标(接 `index` §4.0):UI 上屏必须是**批次化、可裁剪、增量**的,不是每节点一个 draw call、每帧全量重画。
 
 ## 2. 现状(按代码核实)
 
-- `iface .../render/batch.rs` 有 `UiBatch`/`UiBatchPlan`/`UiBatchKey`;`render/command.rs` 有 `UiRenderCommand`(矩形/边框/文本/图像/裁剪);`extract.rs` 产 `UiRenderExtract`(`draw_order`)。
-- 缺:`UiBatchKey` **合并语义**(哪些命令可并入同批)、**裁剪栈**(push/pop、scissor vs stencil 选择)、**图集**(字形/图标 atlas、合批的纹理一致性约束)、**layer/z 与批次边界**、**render-thread 提交拆分**、**顶点/索引装配规范**。
-- `10` §2.2 已点"脏区→重提取增量"缺口;本计划补"批次/上屏侧的增量(dirty region 局部重绘)"。
+- `batch/key.rs` 已把 clip、primitive、shader、resource、text backend、draw effects 与 opacity class 纳入 `UiBatchKey`；layer 明确不进 key。`batch/plan.rs` 按 `(z_index, paint_order, source index)` 排序，只合并同 layer 的相邻同 key 元素，并记录 range/source/split reason/stats。
+- `batch/clip.rs` 已去重 clip state，并用 push/pop stack 对嵌套 scissor 求交；复杂 stencil 与后端 clip handle 生命周期仍需完成/验证。
+- `rhi_wgpu/ui_surface/batching.rs` 已按 dependency depth 构建 solid/image/text draw ops，集中 solid vertices/instances 与 image vertices，并通过 `CompiledUiBatchPlanCache` 区分 generation cache build/hit。对应 stats initializer 的源码修复已可见，但 open failure 仍要求稳定 current-source managed gate 与来源回传。
+- `10` §2.2 的脏区/重提取、动态图集、复杂裁剪和 backend 持久资源仍缺完整跨层验收；不能因 DTO/CPU plan 已存在而宣称 GPU 提交完成。
 
 ## 3. 设计
 
@@ -121,9 +127,9 @@ pub fn dirty_region(dirty: &ViewDirtySet, arranged: &ArrangedTree) -> Vec<UiRect
 
 | # | 切片 | 验证命令 |
 | -- | --- | --- |
-| S1 | 批次键合并语义 + layer 排序 + 裁剪栈(scissor/stencil)契约 | `cargo test -p zircon_runtime_interface --lib ui_batch --locked` |
-| S2 | 字形/图标动态图集合批(接 17 scale) + 顶点装配 + 像素吸附 | `cargo test -p zircon_runtime --lib ui_atlas_batch --locked` |
-| S3 | dirty region 局部重绘(接 09/10),复用未脏批次 | `cargo test -p zircon_runtime --lib ui_partial_render --locked` |
+| S1 | 加固并受管验收现有批次键、layer 排序、相邻合批和 scissor clip stack；补 stencil 契约 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests -TestFilter ui_batch` |
+| S2 | 字形/图标动态图集合批(接 17 scale) + 复核现有顶点/instance arena + 像素吸附 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter ui_atlas_batch` |
+| S3 | dirty region 局部重绘(接 09/10)，验证 generation cache 命中并复用未脏批次/持久 GPU 资源 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter ui_partial_render` |
 
 ## 7. 测试矩阵
 
@@ -157,7 +163,9 @@ extract→command 契约归 `10`;wgpu pipeline/bind group/draw 实现归运行�
 
 ## 12. 状态与产出记录
 
-planned。后续项:S1 批次键合并语义 + layer 排序 + 裁剪栈契约。
+in_progress。interface batch key/ordered merge/clip stack，以及 wgpu dependency-layer draw plan、vertex/instance arena 与 generation cache 已有当前源码 owner；stencil/动态图集/backend 资源生命周期、局部重绘和稳定受管验收仍未完成，不据此宣称里程碑完成。
+
+- applicable open failure（保持 open）：[batch-draw-plan-stats-initializer-drift](21/failure-2026-07-29-batch-draw-plan-stats-initializer-drift.md)。
 
 - 2026-07-18 scene UI image性能交接：每可见image当前逐frame创建bind group、6-vertex GPU buffer并单draw，即使相同texture；stable draw list无generation命中。S1必须把image纳入ordered batch key(texture generation+clip/scissor+blend)，以static quad+instance arena和persistent binding handle提交；stable prepare/create/upload=0，见PERF-MVP-397及UI image静态证据。
 - 2026-07-18 scene screen-space UI root交接：当前每frame从原始command重建七组plan Vec，并在`to_paint_elements`内逐command重建payload、serde hash和debug label；text line/advance/style再深clone。本轮只把decoration路径的重复paint投影2次降至1次。S1/S3必须让extract发布唯一generation-owned ordered plan、共享text/image handles与persistent geometry arena，stable generation projection/serde/hash/clone/plan rebuild/upload均为0；见PERF-MVP-398及UI render root静态证据。

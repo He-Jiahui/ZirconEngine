@@ -43,10 +43,6 @@ def current_doc_sections(repo_root: Path) -> dict[str, str]:
         "export tooling docs": (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8"),
-        "active session notes": (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8"),
     }
 
 
@@ -61,7 +57,6 @@ def plugin_validate_status_requirements(
         "13 standalone status": [slug, owner_file, owner_label],
         "standalone current contract": [slug, owner_file, detail_label],
         "export tooling docs": [owner_file, owner_label, detail_label],
-        "active session notes": [slug, owner_file, owner_label],
     }
 
 

@@ -12,7 +12,7 @@ pub(super) fn runtime_diagnostics_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Runtime Diagnostics",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::Bottom)
+    .with_workbench_slot(WorkbenchSlot::BottomDrawer)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::RuntimeDiagnostics,
     ))

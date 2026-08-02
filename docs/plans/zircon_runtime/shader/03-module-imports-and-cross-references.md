@@ -26,7 +26,7 @@
 
 ## 目标架构
 
-归属:模块 id/依赖契约在 `core/framework/render/shader/`;注册表与解析器在 `graphics/shader/module_registry/`(由现 `include_registry` 原位演进,硬切换改名);资产侧导入在 `asset/`。
+归属:模块 id/依赖契约在 `core/framework/render/shader/module_import.rs`;注册表与解析器在 `graphics/shader/template/module_registry.rs`(由 `include_registry.rs` 原位硬切换);资产侧导入在 `asset/`。项目与插件模块的源码必须由产品运行时 ResourceStreamer 显式供给该注册表，依赖索引或 prewarm hash 不能替代源码注册。
 
 ### 模块身份与引用语法
 
@@ -86,15 +86,22 @@ pub struct ResolvedModuleSet {
 
 ## 测试与验收清单
 
-- `render_shader_module_resolve_*`:拓扑/去重/环/undeclared。
+- `shader_module_registry_resolves_transitive_modules_once`:传递拓扑与去重。
+- `shader_module_registry_reports_cycles`:环诊断。
+- `shader_module_registry_strips_include_directives`:组装前 include 指令剥离。
 - `render_shader_module_hash_*`:失效传播精确性(引用者失效、旁观者不失效)。
 - `render_shader_module_lexical_*`:entry point/@group/保留前缀拒绝。
-- `render_product_cross_module_material`:跨模块引用的材质端到端产物。
+- `render_product_cross_module_material`:source-only 项目模块与插件模块分别经真实 ResourceStreamer/template/Naga 或 WGPU 路径的端到端产物；实现已落地，当前 `--locked` Cargo 基线待 Runtime04 恢复后复验。
 
 ## 状态与产出记录
 
+> 2026-08-01 current-source 解释：在本轮 forward fix 之前，下表的“完成/通过”只对各行列出的 registry、依赖索引、redirect 或 prewarm 切片有效，不代表 SH03 产品闭环完成：source-only 项目 import 当时只建立热重载依赖，插件模块当时只进入 manifest/prewarm。该架构缺口由 [open failure](03/failure-2026-08-01-shader-module-runtime-source-owner-gap.md) 跟踪；实现已前向修复，但在 locked Cargo 产品验证通过前 SH03-M1/M2 不得整体标为 completed。
+
+> 2026-08-01 forward-fix update：ResourceStreamer 已接入 source-only `dependency_ids` 的准备与收集路径。项目 asset 与插件 package 共用 `ShaderModuleSourceBinding`，该 binding 保留 owner identity、正文、原始 blake3 hash 与来源诊断；项目 `PreparedShader` 与 binding 通过 `Arc<str>` 共享正文，避免持久副本。native package 不在冻结 projection 时扫描整个 catalog，只在生成实际 runtime registration report 时按 package-relative 路径、单模块 4 MiB、每包 64 模块/16 MiB 总量预算解析，linked plugin 也可显式提供同一 binding。绑定经 RuntimeExtensionRegistry、GraphicsModule 和 SceneRenderer 在初始化期传入 ResourceStreamer，渲染期间不读包文件。模板组装继续只使用既有 `ShaderModuleRegistry`，优先级为 `redirect > project source-only > plugin`。新增 source-only 和 plugin 的 ResourceStreamer/template/Naga 产品用例，插件用例还创建 WGPU shader module，并补充 native 缺失模块、linked 注册和跨包同 token 冲突诊断用例；当前 `cargo test --locked` 因共享 `Cargo.toml`/`Cargo.lock` 不一致而在解析阶段终止，Runtime04 owns that baseline。实现完成但 linked failure 在获得该 Cargo 复验前保持 `open`，SH03-M1/M2 不得整体标为 completed。
+
 | 日期 | 里程碑 | 状态 | 完成项目 | 验证与证据 | 后续 |
 |---|---|---|---|---|---|
+| 2026-08-01 | SH03-M1/M2 产品 runtime module-source owner 前向修复 | 实现完成，locked 验证待 Runtime04 基线 | 新增项目/插件共用的 `ShaderModuleSourceBinding`（owner identity、正文、blake3 hash、诊断来源），项目 `PreparedShader` 与 binding 通过 `Arc<str>` 共享正文；native source 解析延迟至实际 runtime registration report，且受单模块 4 MiB、每包 64 模块/16 MiB 总量预算保护，linked plugin 可提供同型 binding。RuntimeExtensionRegistry → RuntimeModuleRegistrationInputs → GraphicsModule → Wgpu/SceneRenderer → ResourceStreamer 传递 binding，ResourceStreamer 在初始化构造有序 binding map 并拒绝哈希不符或跨包同名冲突。source-only `dependency_ids` 预备递归与模块收集已合入；模板仍由唯一 `ShaderModuleRegistry` 解析，顺序强制 `redirect > project source-only > plugin`，没有渲染期文件扫描或第二 registry。 | 2026-08-01 scoped `rustfmt --check` 和 `git diff --check` 均通过；两轮独立复审最终均为 0 Critical / 0 Important / 0 Minor。新增 product tests 覆盖 source-only 覆盖插件同名模块、插件模块正文/hash/Naga/WGPU module validation，以及 native manifest source 绑定、延迟的 native 缺失模块诊断、64 模块和 16 MiB 总量预算、linked 注册和跨包同 token 冲突。`cargo test -p zircon_runtime --lib render_product_streamer_resolves_plugin_imports_into_validated_module_sources --no-default-features --features target-server --locked ...` 于 2026-08-01 在依赖解析阶段因 `Cargo.lock` 需更新退出，未编译本轮代码、未改写共享锁文件。 | Runtime04 修复共享锁文件后复跑新增 focused tests；验收前 failure 保持 open。 |
 | 2026-07-03 | SH03-M1 统一注册表与资产模块导入 | runtime 主路径完成，focused tests 未全闭合 | `graphics/shader/template/include_registry.rs` 已硬切换为 `module_registry.rs`；内建 include 与资产 include 统一走 `ShaderModuleRegistry`，支持传递依赖拓扑、注入去重、content_hash、环诊断和 unknown module 诊断；`core/framework/render/shader/module_import.rs` 提供 `#include <...>` 扫描/剥离与 `self::`/`zr_*` 分类；模板 assembly 在 surface/GBuffer/TAA 路径展开用户模块并剥离源码内 include 指令；ResourceStreamer 递归收集 include 型 shader 的 `import_path`/source 并供给模板请求；importer 增加 imports 与 WGSL include 一致性诊断、include module 禁 entry point/禁 `@group`/禁保留前缀的词法诊断。 | `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` 于 2026-07-03 通过；vampire 截图导出测试通过；模板/ABI 单测 harness 编译超时，未计通过；`git grep -n "include_registry" -- zircon_runtime/src` 无生产源码命中。 | 仍需补跑 `shader_module` focused tests、热重载传播测试、插件注册 API、redirect 覆盖诊断；历史状态行可保留旧 owner 名称作为已迁移背景，新增文档须使用 `module_registry`。 |
 | 2026-07-03 | SH03-M2 失效传播与插件注册口 | asset-root include 预热失效传播完成；插件注册口后续已在 2026-07-04 行关闭 | 模块 include 的 content_hash 已进入 template assembly 的 include content hash 列表，可参与现有磁盘 shader hash；引用资产依赖会通过 material/shader dependency set 基础链路进入加载。`zircon_shader_prewarm` asset-root 扫描现在保留 `.zshader` 的 kind/import_path/imports，在生成 variants 前由 `manifest/module_dependencies.rs` 解析同 root 下 include 模块依赖，并把模块内容 hash 混入引用者 request 的 `include_content_hashes` 与 `ShaderVariantKey.material_revision`；无 include 依赖的旁观者 shader revision 保持不变。回归用例下沉到 `manifest/tests/module_dependencies.rs`，父测试文件继续只保留原 10 个 manifest 合约用例。 | `rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/module_dependencies.rs` 通过；静态结构等价检查通过：`manifest.rs` 762 行、`manifest/tests.rs` 738 行、`manifest/module_dependencies.rs` 77 行、`manifest/tests/module_dependencies.rs` 97 行，父测试文件 `#[test]` 计数为 10 且文档/status 镜像包含新 child owner；`cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest_tracks_imported_include_module_revisions --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` 通过 1/1；`cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` 通过 10/10，只有既有 warning；`runtime_15_shader_prewarm_manifest_tests_are_folder_backed` 的 Cargo lib-test wrapper 本轮因 Windows 大 lib-test 编译超时/后续空转未取得计数结果，不计通过。 | 此行仅保留 asset-root prewarm 切片；插件 manifest 与 source-only 项目扫描依赖传播见 2026-07-04 行。redirect 覆盖链产品诊断已由 2026-07-04 产品侧 ResourceStreamer 行聚焦关闭；RenderDoc/product capture 与更广 product/perf sweep 仍待后续切片；focused product material-pass 二次启动 miss=0 已由 SH04 用例关闭。 |
 | 2026-07-04 | SH03-M2 redirect 来源诊断补口 | 已完成聚焦验证 | `ShaderImportReadiness` 新增只读 `source_diagnostic`，redirect 行会记录 declared import path 与 redirect locator；source-only import 保持 `None`，不改变 readiness ready/fail 判定、依赖计数、ResourceStreamer 供给、模板拼接或渲染行为。 | `rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/asset/assets/shader/readiness.rs zircon_runtime/src/asset/tests/assets/shader_readiness.rs` 通过；`git diff --check` scoped 到同两文件通过，仅报告既有 LF/CRLF 提示；首次 `E:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704` 运行在 `proc-macro2` build-script 链接阶段遇到 MSVC `link.exe` exit code 1318，未编译项目代码且不计结果；改用 `F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b` 后 `cargo test -p zircon_runtime --lib shader_readiness_reports_import_rows_without_blocking_source_only_imports --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` 通过 1/1，只有既有 warning。 | redirect 覆盖链材质 readiness 诊断见 2026-07-04 新行；RenderDoc/product capture 与更广 product/perf sweep 仍待后续产品化切片；focused miss=0 已由 SH04 补跑关闭。 |
@@ -109,11 +116,8 @@ pub struct ResolvedModuleSet {
 - 词法级 `#include` 扫描误报(注释/字符串中的伪指令):解析器按行首指令处理并忽略行注释,测试覆盖;不为此引入完整 WGSL 预处理器。
 - 模块级 properties(带属性的可复用模块)是已知的后续需求(UE Material Function 带参数的形态):当前禁止,避免布局归属复杂化;需求成熟后作为独立计划扩展,不在本计划夹带。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-基于对 shader graphics 目录与 module import 契约的实际阅读。
-
-### 与代码现状不符，需修订
-
-- 「目标架构」写「注册表与解析器在 `graphics/shader/module_registry/`(由现 `include_registry` 原位演进,硬切换改名)」,但实际落点是单文件 `zircon_runtime/src/graphics/shader/template/module_registry.rs`(仍在 `template/` 下,不是独立的 `graphics/shader/module_registry/` 目录)。SH03-M1 状态行已写「`include_registry.rs` 已硬切换为 `module_registry.rs`」但沿用了 template 子路径。建议把目标架构的归属路径更正为 `graphics/shader/template/module_registry.rs`,与实际模块 mount 一致(front-matter 无此字段,勿动)。
-- 「模块 id/依赖契约在 `core/framework/render/shader/`」的落点已实现为 `zircon_runtime/src/core/framework/render/shader/module_import.rs`(提供 `#include` 扫描/剥离与 `self::`/`zr_*` 分类,SH03-M1 状态行已确认)。目标架构段建议点名该具体文件,便于后续 owner 定位,而不是只写目录。
+- 已把 owner 路径同步为 `core/framework/render/shader/module_import.rs` 与 `graphics/shader/template/module_registry.rs`，并把 registry 单测名同步为当前实仓名称。
+- 静态审阅确认 redirect include 的产品供给存在，但 source-only import 只进入 `dependency_ids`，插件 module 只进入 manifest/prewarm overlay；计划原先把这些切片汇总成“runtime 主路径完成”属于过度验收。
+- 缺口已写入 linked open failure；关闭条件是项目 source-only 与插件模块都通过真实 ResourceStreamer/template/Naga 或 WGPU 产品测试，而不是再增加 registry/prewarm 单测。

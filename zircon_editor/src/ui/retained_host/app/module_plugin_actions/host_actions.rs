@@ -1,5 +1,5 @@
 use super::super::RetainedEditorHost;
-use super::action_ids::{ModulePluginAction, parse_module_plugin_action};
+use super::action_ids::{parse_module_plugin_action, ModulePluginAction};
 use super::live_host::ModulePluginLiveHostCommand;
 
 mod live_actions;

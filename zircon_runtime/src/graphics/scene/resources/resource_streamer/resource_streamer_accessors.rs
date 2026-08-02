@@ -1,5 +1,5 @@
-use crate::asset::MeshAsset;
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::MeshAsset;
 #[cfg(test)]
 use crate::asset::{
     AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
@@ -13,18 +13,19 @@ use crate::asset::{
     SceneEntityManagementRecordSet, ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
     ShaderAssetReadinessSummary, ShaderReadinessReport,
 };
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    MaterialPropertyOverrideBlock, RenderCameraTargetGraphImportReport,
+    wgsl_include_paths, MaterialPropertyOverrideBlock, RenderCameraTargetGraphImportReport,
     RenderCameraTargetWritebackReport, RenderColorLookupTextureLayout,
     RenderMaterialPropertyUniformPayload, RenderMaterialReadinessReport,
     RenderMaterialReadinessSummary, RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
-use crate::graphics::GraphicsError;
 use crate::graphics::shader::ShaderTemplateInclude;
+use crate::graphics::GraphicsError;
+use crate::plugin::ShaderModuleSourceBinding;
 
 mod material_capture;
 #[cfg(test)]
@@ -34,6 +35,7 @@ use super::super::{
     GpuMaterialUniformResource, GpuMeshResource, GpuModelResource, GpuTextureResource,
     MaterialRuntime, OutputTargetTextureResource,
 };
+use super::resource_streamer_ensure_shader_source::shader_dependency_ids;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -407,7 +409,7 @@ impl ResourceStreamer {
     pub(crate) fn shader_source(&self, shader_id: &ResourceId) -> Option<&str> {
         self.shaders
             .get(shader_id)
-            .map(|shader| shader.runtime.source.as_str())
+            .map(|shader| shader.runtime.source.as_ref())
     }
 
     pub(crate) fn shader_generated_material_source(&self, shader_id: &ResourceId) -> Option<&str> {
@@ -443,15 +445,89 @@ impl ResourceStreamer {
         let Ok(asset_manager) = self.asset_manager() else {
             return Vec::new();
         };
-        let mut includes = Vec::new();
+        let mut project_modules = Vec::new();
         let mut visited = HashSet::new();
         self.collect_shader_module_include_sources(
             asset_manager.as_ref(),
             shader_id,
             &mut visited,
-            &mut includes,
+            &mut project_modules,
         );
-        includes
+        // Source-only and redirect entries are appended after plugin bindings so they
+        // override a same-token plugin module in ShaderModuleRegistry. Only plugin modules
+        // reachable from the final project/module graph are materialized for this template.
+        let required_plugin_tokens =
+            self.required_plugin_shader_module_tokens(shader_id, &project_modules);
+        let mut modules = required_plugin_tokens
+            .into_iter()
+            .filter_map(|token| self.shader_module_sources.get(&token))
+            .cloned()
+            .collect::<Vec<_>>();
+        modules.extend(project_modules);
+        modules
+            .into_iter()
+            .map(ShaderTemplateInclude::from_source_binding)
+            .collect()
+    }
+
+    fn required_plugin_shader_module_tokens(
+        &self,
+        shader_id: &ResourceId,
+        project_modules: &[ShaderModuleSourceBinding],
+    ) -> BTreeSet<String> {
+        let project_modules = project_modules
+            .iter()
+            .map(|module| (module.import_path.clone(), module))
+            .collect::<HashMap<_, _>>();
+        let mut required = BTreeSet::new();
+        let mut visited = HashSet::new();
+        let Some(shader) = self.shaders.get(shader_id) else {
+            return required;
+        };
+        for token in wgsl_include_paths(&shader.runtime.source) {
+            self.collect_required_plugin_shader_module_tokens(
+                &token,
+                &project_modules,
+                &mut visited,
+                &mut required,
+            );
+        }
+        required
+    }
+
+    fn collect_required_plugin_shader_module_tokens(
+        &self,
+        token: &str,
+        project_modules: &HashMap<String, &ShaderModuleSourceBinding>,
+        visited: &mut HashSet<String>,
+        required: &mut BTreeSet<String>,
+    ) {
+        if !visited.insert(token.to_string()) {
+            return;
+        }
+        if let Some(project_module) = project_modules.get(token) {
+            for dependency in wgsl_include_paths(&project_module.source) {
+                self.collect_required_plugin_shader_module_tokens(
+                    &dependency,
+                    project_modules,
+                    visited,
+                    required,
+                );
+            }
+            return;
+        }
+        let Some(plugin_module) = self.shader_module_sources.get(token) else {
+            return;
+        };
+        required.insert(token.to_string());
+        for dependency in wgsl_include_paths(&plugin_module.source) {
+            self.collect_required_plugin_shader_module_tokens(
+                &dependency,
+                project_modules,
+                visited,
+                required,
+            );
+        }
     }
 
     fn collect_shader_module_include_sources(
@@ -459,7 +535,7 @@ impl ResourceStreamer {
         asset_manager: &ProjectAssetManager,
         shader_id: &ResourceId,
         visited: &mut HashSet<ResourceId>,
-        includes: &mut Vec<ShaderTemplateInclude>,
+        modules: &mut Vec<ShaderModuleSourceBinding>,
     ) {
         if !visited.insert(*shader_id) {
             return;
@@ -467,6 +543,17 @@ impl ResourceStreamer {
         let Some(shader) = self.shaders.get(shader_id) else {
             return;
         };
+        for dependency_id in shader_dependency_ids(asset_manager.as_ref(), *shader_id) {
+            if let Some(binding) = self.project_shader_module_source_binding(dependency_id) {
+                modules.push(binding);
+            }
+            self.collect_shader_module_include_sources(
+                asset_manager,
+                &dependency_id,
+                visited,
+                modules,
+            );
+        }
         for import in &shader.runtime.imports {
             let Some(reference) = import.redirect.as_ref() else {
                 continue;
@@ -474,23 +561,20 @@ impl ResourceStreamer {
             let Some(import_id) = asset_manager.resolve_asset_id(&reference.locator) else {
                 continue;
             };
-            if let Some(import_shader) = self.shaders.get(&import_id) {
-                if import_shader.runtime.kind.is_include() {
-                    if let Some(import_path) = import_shader.runtime.import_path.as_ref() {
-                        includes.push(ShaderTemplateInclude::new(
-                            import_path.clone(),
-                            import_shader.runtime.source.clone(),
-                        ));
-                    }
-                }
+            if let Some(binding) = self.project_shader_module_source_binding(import_id) {
+                modules.push(binding);
             }
-            self.collect_shader_module_include_sources(
-                asset_manager,
-                &import_id,
-                visited,
-                includes,
-            );
+            self.collect_shader_module_include_sources(asset_manager, &import_id, visited, modules);
         }
+    }
+
+    fn project_shader_module_source_binding(
+        &self,
+        shader_id: ResourceId,
+    ) -> Option<ShaderModuleSourceBinding> {
+        self.shaders
+            .get(&shader_id)
+            .and_then(|shader| shader.module_source_binding.clone())
     }
 
     pub(crate) fn shader_material_option_defines(

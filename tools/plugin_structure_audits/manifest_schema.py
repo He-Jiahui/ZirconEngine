@@ -10,15 +10,8 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback.
     import tomli as tomllib  # type: ignore[no-redef]
 
 
-GENERATED_MANIFEST_HEADER = (
-    "# @generated from Rust descriptor package_manifest(); do not edit by hand."
-)
-NATIVE_GENERATED_MANIFEST_HEADER = (
-    "# @generated from zircon_plugin_sdk::native_plugin_manifest_v3!; do not edit by hand."
-)
-GENERATED_MANIFEST_HEADERS = (
-    GENERATED_MANIFEST_HEADER,
-    NATIVE_GENERATED_MANIFEST_HEADER,
+PLUGIN_DECLARATION_GENERATED_MANIFEST_HEADER = (
+    "# @generated from Rust PluginDeclaration; do not edit by hand."
 )
 SKIPPED_WORKSPACE_ROOTS = {
     "editor_support",
@@ -184,7 +177,9 @@ def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
             missing_paths.append(display_path)
             continue
         manifest_text = manifest_path.read_text(encoding="utf-8")
-        if not manifest_text.startswith(GENERATED_MANIFEST_HEADERS):
+        if not manifest_text.startswith(
+            PLUGIN_DECLARATION_GENERATED_MANIFEST_HEADER
+        ):
             generated_header_violations.append(display_path)
             violations.append(f"{display_path}: missing generated manifest header")
         try:

@@ -35,7 +35,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - docs/ui-and-layout/shared-ui-template-runtime.md
 status: in_progress
-last_refined: 2026-07-12
+last_refined: 2026-07-23
 ---
 
 # 09 UI 子系统架构收束
@@ -193,6 +193,9 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 
 - 迁入记录：[`09/2026-07-09-ui-subsystem-architecture-output-records.md`](09/2026-07-09-ui-subsystem-architecture-output-records.md)
 - fixed 已修复：[runtime-rich-table-layout-recursion](09/fixed-2026-07-12-runtime-rich-table-layout-recursion.md)
+
+## 性能审阅交接
+
 - 2026-07-23 performance handoff：`zircon_runtime_interface/src/ui/pipeline/**` 6/6静态反查确认`UiSurface::surface_frame()`每次都重建固定10行pipeline report、多个dirty-reason Vec与skipped note String。Runtime09按PERF-MVP-278让rebuild发布generation-owned frame/report，稳定generation不得重建stage rows或owned notes；保留10-stage serde与archived diagnostic兼容。验收1/1k/10k nodes及input/layout/render/window单域变化的report builds、owned bytes、Arc owners与p95；current-source Cargo/F4 trace待完成。
 - 2026-07-23 binding performance handoff：`ui/binding/**` 10/10反查确认`UiEventManager::invoke_binding`每event格式化完整native String查表并clone arguments/binding/result；新增PERF-MVP-572。Runtime09在route generation发布`UiRouteId`/typed handle与shared binding/default arguments，native codec只留authoring/serde/error边界并加bytes/args/nodes/depth/string硬预算。property mutation report重复property/value/message/dirty所有权并入PERF-MVP-265；验收1/100/10k routes/fields、1M events和0/1KiB/1MiB payload的format/clone/owner/transaction/p95，current-source Cargo/F4待完成。
 - 2026-07-23 ECS projection handoff：`ui/{ecs.rs,ecs/**}` 2/2反查确认snapshot/delta分别重扫totals/mask/10-stage/8-domain并为各组建BTreeSet/Vec，single-stage/domain query也忽略carried derived rows重算全部，`diff_from`另建previous/current双BTreeMap。Runtime09按PERF-MVP-278发布generation-owned projection+node index+derived rows，并从authoritative changed set直接产delta；稳定generation visits/alloc=0，单delta随changed rows。1/1k/10k/100k nodes记录passes/visits/tree alloc/published bytes/p95，current-source Cargo/F4待完成。

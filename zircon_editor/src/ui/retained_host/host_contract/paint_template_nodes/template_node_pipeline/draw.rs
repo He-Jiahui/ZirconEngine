@@ -2,7 +2,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::render_commands::{draw_host_paint_commands, HostPaintCommand};
+use super::super::render_commands::{HostPaintCommand, draw_host_paint_commands};
 use super::super::template_nodes::push_template_node_commands;
 use super::clip::effective_template_clip;
 use super::transform::TemplateNodePaintTransform;

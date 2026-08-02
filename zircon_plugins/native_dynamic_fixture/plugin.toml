@@ -1,4 +1,4 @@
-# @generated from zircon_plugin_sdk::native_plugin_manifest_v3!; do not edit by hand.
+# @generated from Rust PluginDeclaration; do not edit by hand.
 id = "native_dynamic_fixture"
 version = "0.1.0"
 sdk_api_version = "0.2.0"

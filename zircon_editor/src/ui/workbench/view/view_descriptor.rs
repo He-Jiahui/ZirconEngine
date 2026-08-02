@@ -1,12 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::commands::DocumentKind;
+use crate::core::extension::{DefaultWorkbenchPreset, WorkbenchSlot};
 use crate::ui::workbench::autolayout::PaneConstraints;
 
-use super::{
-    ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, PreferredHost, ViewDescriptorId,
-    ViewKind,
-};
+use super::{ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, ViewDescriptorId, ViewKind};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewDescriptor {
@@ -16,8 +14,8 @@ pub struct ViewDescriptor {
     pub icon_key: String,
     pub multi_instance: bool,
     pub dock_policy: DockPolicy,
-    pub preferred_drawer_slot: Option<crate::ui::workbench::layout::ActivityDrawerSlot>,
-    pub preferred_host: PreferredHost,
+    pub workbench_slot: WorkbenchSlot,
+    pub default_presets: Vec<DefaultWorkbenchPreset>,
     pub persistence_key_policy: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub document_kind: Option<DocumentKind>,
@@ -45,8 +43,8 @@ impl ViewDescriptor {
             icon_key: descriptor_key.clone(),
             multi_instance: false,
             dock_policy: DockPolicy::DrawerOrDocument,
-            preferred_drawer_slot: None,
-            preferred_host: PreferredHost::DocumentCenter,
+            workbench_slot: WorkbenchSlot::DocumentCenter,
+            default_presets: vec![DefaultWorkbenchPreset::Authoring],
             persistence_key_policy: descriptor_key,
             document_kind: None,
             default_constraints: PaneConstraints::default(),

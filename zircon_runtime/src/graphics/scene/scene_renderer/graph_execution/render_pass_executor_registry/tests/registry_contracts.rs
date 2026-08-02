@@ -3,6 +3,9 @@ use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
     IBL_BAKE_PMREM_EXECUTOR_ID,
 };
+use crate::graphics::scene::scene_renderer::graph_execution::{
+    RenderPassExecutor, RenderPassRecordingPolicy,
+};
 
 #[test]
 fn registry_rejects_unregistered_executor_ids() {
@@ -250,6 +253,66 @@ fn registry_invokes_object_backed_executor_with_mutable_context() {
     registry.execute(&mut context).unwrap();
 
     assert_eq!(context.pass_name, "object-pass:executed");
+    assert!(!registry.supports_parallel_recording("object.executor"));
+}
+
+#[test]
+fn parallel_recording_requires_an_explicit_executor_policy() {
+    let mut registry = RenderPassExecutorRegistry::default();
+    registry.register(
+        RenderPassExecutorId::new("custom.function"),
+        noop_render_pass_executor,
+    );
+
+    assert!(!registry.supports_parallel_recording("custom.function"));
+    assert!(!registry.supports_parallel_recording("missing.executor"));
+
+    let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
+    for executor_id in [
+        "sprite.opaque",
+        "sprite.alpha-mask",
+        "sprite.transparent",
+        "particle.transparent",
+    ] {
+        assert!(
+            registry.supports_parallel_recording(executor_id),
+            "audited built-in executor `{executor_id}` should opt into parallel recording"
+        );
+    }
+    for executor_id in [
+        "lighting.baked-composite",
+        "ao.ssao-evaluate",
+        "lighting.light-grid",
+        "post.bloom",
+    ] {
+        assert!(
+            !registry.supports_parallel_recording(executor_id),
+            "no-op or queue-writing executor `{executor_id}` must remain serial"
+        );
+    }
+}
+
+#[test]
+fn object_executor_must_explicitly_opt_into_parallel_recording() {
+    struct ExplicitParallelExecutor;
+
+    impl RenderPassExecutor for ExplicitParallelExecutor {
+        fn execute(&self, _context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn recording_policy(&self) -> RenderPassRecordingPolicy {
+            RenderPassRecordingPolicy::ParallelSafe
+        }
+    }
+
+    let mut registry = RenderPassExecutorRegistry::default();
+    registry.register_executor(
+        RenderPassExecutorId::new("plugin.explicit-parallel"),
+        Arc::new(ExplicitParallelExecutor),
+    );
+
+    assert!(registry.supports_parallel_recording("plugin.explicit-parallel"));
 }
 
 #[test]

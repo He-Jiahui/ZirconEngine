@@ -5,7 +5,7 @@ use super::super::template_status_control_geometry::{
     frame_is_within, status_control_offset_rect, status_icon_button_glyph_rect,
     status_icon_button_radius, workbench_status_metrics,
 };
-use super::super::template_status_glyphs::{push_status_icon_glyph, StatusIconKind};
+use super::super::template_status_glyphs::{StatusIconKind, push_status_icon_glyph};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_icon_button(
     commands: &mut Vec<HostPaintCommand>,

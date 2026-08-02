@@ -27,6 +27,13 @@ pub(crate) fn install_editor_v2_design_tokens(tokens: &EditorDesignTokens) {
     }
 }
 
+pub(crate) fn active_editor_v2_design_tokens_snapshot() -> EditorDesignTokens {
+    match active_editor_v2_design_tokens().read() {
+        Ok(tokens) => tokens.clone(),
+        Err(poisoned) => poisoned.into_inner().clone(),
+    }
+}
+
 fn active_editor_v2_design_tokens() -> &'static RwLock<EditorDesignTokens> {
     static TOKENS: OnceLock<RwLock<EditorDesignTokens>> = OnceLock::new();
     TOKENS.get_or_init(|| RwLock::new(EditorDesignTokens::workbench_dark()))

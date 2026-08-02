@@ -4,7 +4,7 @@ use super::{
     registry::{keybind_action, KEYBIND_ACTIONS, KEYBIND_CATEGORIES},
     storage::StoredKeybinds,
 };
-use crate::preferences::PreferenceStorage;
+use zircon_runtime::core::framework::platform::PreferenceStorage;
 
 pub trait KeybindOptionsBindings {
     fn code_at(&self, id: &str, slot: usize) -> Option<&str>;
@@ -28,7 +28,7 @@ impl KeybindOptionsBindings for Keybinds {
 
 impl<S> KeybindOptionsBindings for StoredKeybinds<S>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
     fn code_at(&self, id: &str, slot: usize) -> Option<&str> {
         Keybinds::code_at(self, id, slot)

@@ -1,9 +1,142 @@
+#[cfg(feature = "runtime")]
 use crate::runtime::RuntimePluginDeclaration;
+#[cfg(feature = "runtime")]
 use zircon_runtime::builtin::RuntimePluginId;
-use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
+#[cfg(feature = "runtime")]
 use zircon_runtime::core::ModuleDescriptor;
-use zircon_runtime::plugin::{PluginMaturity, RuntimePluginDescriptor};
+#[cfg(feature = "runtime")]
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+#[cfg(feature = "runtime")]
+use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
+#[cfg(feature = "runtime")]
+use zircon_runtime::plugin::{PluginMaturity as RuntimePluginMaturity, RuntimePluginDescriptor};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PluginTarget {
+    ClientRuntime,
+    ServerRuntime,
+    EditorHost,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PluginPlatform {
+    Windows,
+    Linux,
+    Macos,
+    Android,
+    Ios,
+    WebGpu,
+    Wasm,
+    Headless,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PluginMaturityLevel {
+    Core,
+    Stable,
+    Beta,
+    Experimental,
+    Externalized,
+    Stub,
+    Deprecated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PluginPackaging {
+    SourceTemplate,
+    LibraryEmbed,
+    NativeDynamic,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PluginCapabilityRole {
+    RuntimeRegistration,
+    EditorRegistration,
+    RuntimeEditorRegistration,
+    RequestedOnly,
+}
+
+impl PluginCapabilityRole {
+    const fn is_runtime_provided(self) -> bool {
+        matches!(
+            self,
+            Self::RuntimeRegistration | Self::RuntimeEditorRegistration
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NativePluginEntryDeclaration {
+    name: &'static str,
+    cstr: &'static [u8],
+}
+
+impl NativePluginEntryDeclaration {
+    pub const fn new(name: &'static str, cstr: &'static [u8]) -> Self {
+        Self { name, cstr }
+    }
+
+    pub const fn name(self) -> &'static str {
+        self.name
+    }
+
+    pub const fn cstr(self) -> &'static [u8] {
+        self.cstr
+    }
+}
+
+#[cfg(feature = "runtime")]
+impl From<PluginTarget> for RuntimeTargetMode {
+    fn from(target: PluginTarget) -> Self {
+        match target {
+            PluginTarget::ClientRuntime => Self::ClientRuntime,
+            PluginTarget::ServerRuntime => Self::ServerRuntime,
+            PluginTarget::EditorHost => Self::EditorHost,
+        }
+    }
+}
+
+#[cfg(feature = "runtime")]
+impl From<PluginPlatform> for ExportTargetPlatform {
+    fn from(platform: PluginPlatform) -> Self {
+        match platform {
+            PluginPlatform::Windows => Self::Windows,
+            PluginPlatform::Linux => Self::Linux,
+            PluginPlatform::Macos => Self::Macos,
+            PluginPlatform::Android => Self::Android,
+            PluginPlatform::Ios => Self::Ios,
+            PluginPlatform::WebGpu => Self::WebGpu,
+            PluginPlatform::Wasm => Self::Wasm,
+            PluginPlatform::Headless => Self::Headless,
+        }
+    }
+}
+
+#[cfg(feature = "runtime")]
+impl From<PluginMaturityLevel> for RuntimePluginMaturity {
+    fn from(maturity: PluginMaturityLevel) -> Self {
+        match maturity {
+            PluginMaturityLevel::Core => Self::Core,
+            PluginMaturityLevel::Stable => Self::Stable,
+            PluginMaturityLevel::Beta => Self::Beta,
+            PluginMaturityLevel::Experimental => Self::Experimental,
+            PluginMaturityLevel::Externalized => Self::Externalized,
+            PluginMaturityLevel::Stub => Self::Stub,
+            PluginMaturityLevel::Deprecated => Self::Deprecated,
+        }
+    }
+}
+
+#[cfg(feature = "runtime")]
+impl From<PluginPackaging> for ExportPackagingStrategy {
+    fn from(packaging: PluginPackaging) -> Self {
+        match packaging {
+            PluginPackaging::SourceTemplate => Self::SourceTemplate,
+            PluginPackaging::LibraryEmbed => Self::LibraryEmbed,
+            PluginPackaging::NativeDynamic => Self::NativeDynamic,
+        }
+    }
+}
 
 /// Metadata that belongs to a plugin package rather than its runtime behavior.
 ///
@@ -17,11 +150,12 @@ pub struct PluginDeclaration {
     category: &'static str,
     module_name: &'static str,
     module_description: &'static str,
-    target_modes: &'static [RuntimeTargetMode],
-    supported_platforms: &'static [ExportTargetPlatform],
+    target_modes: &'static [PluginTarget],
+    supported_platforms: &'static [PluginPlatform],
     capabilities: &'static [&'static str],
-    maturity: PluginMaturity,
-    default_packaging: &'static [ExportPackagingStrategy],
+    capability_roles: &'static [PluginCapabilityRole],
+    maturity: PluginMaturityLevel,
+    default_packaging: &'static [PluginPackaging],
 }
 
 impl PluginDeclaration {
@@ -32,11 +166,12 @@ impl PluginDeclaration {
         category: &'static str,
         module_name: &'static str,
         module_description: &'static str,
-        target_modes: &'static [RuntimeTargetMode],
-        supported_platforms: &'static [ExportTargetPlatform],
+        target_modes: &'static [PluginTarget],
+        supported_platforms: &'static [PluginPlatform],
         capabilities: &'static [&'static str],
-        maturity: PluginMaturity,
-        default_packaging: &'static [ExportPackagingStrategy],
+        capability_roles: &'static [PluginCapabilityRole],
+        maturity: PluginMaturityLevel,
+        default_packaging: &'static [PluginPackaging],
     ) -> Self {
         Self {
             id,
@@ -47,6 +182,7 @@ impl PluginDeclaration {
             target_modes,
             supported_platforms,
             capabilities,
+            capability_roles,
             maturity,
             default_packaging,
         }
@@ -68,11 +204,11 @@ impl PluginDeclaration {
         self.module_name
     }
 
-    pub const fn target_modes(self) -> &'static [RuntimeTargetMode] {
+    pub const fn declared_targets(self) -> &'static [PluginTarget] {
         self.target_modes
     }
 
-    pub const fn supported_platforms(self) -> &'static [ExportTargetPlatform] {
+    pub const fn declared_platforms(self) -> &'static [PluginPlatform] {
         self.supported_platforms
     }
 
@@ -80,202 +216,91 @@ impl PluginDeclaration {
         self.capabilities
     }
 
-    pub const fn maturity(self) -> PluginMaturity {
+    pub const fn capability_roles(self) -> &'static [PluginCapabilityRole] {
+        self.capability_roles
+    }
+
+    pub const fn declared_maturity(self) -> PluginMaturityLevel {
         self.maturity
     }
 
-    pub const fn default_packaging(self) -> &'static [ExportPackagingStrategy] {
+    pub const fn declared_packaging(self) -> &'static [PluginPackaging] {
         self.default_packaging
     }
 
+    #[cfg(feature = "runtime")]
+    pub fn target_modes(self) -> Vec<RuntimeTargetMode> {
+        self.target_modes.iter().copied().map(Into::into).collect()
+    }
+
+    #[cfg(feature = "runtime")]
+    pub fn supported_platforms(self) -> Vec<ExportTargetPlatform> {
+        self.supported_platforms
+            .iter()
+            .copied()
+            .map(Into::into)
+            .collect()
+    }
+
+    #[cfg(feature = "runtime")]
+    pub fn maturity(self) -> RuntimePluginMaturity {
+        self.maturity.into()
+    }
+
+    #[cfg(feature = "runtime")]
+    pub fn default_packaging(self) -> Vec<ExportPackagingStrategy> {
+        self.default_packaging
+            .iter()
+            .copied()
+            .map(Into::into)
+            .collect()
+    }
+
+    #[cfg(feature = "runtime")]
     pub fn module_descriptor(self) -> ModuleDescriptor {
         ModuleDescriptor::new(self.module_name, self.module_description)
     }
 
-    pub fn runtime_declaration(
-        self,
-        runtime_id: RuntimePluginId,
-        crate_name: impl Into<String>,
-    ) -> RuntimePluginDeclaration {
+    #[cfg(feature = "runtime")]
+    pub fn runtime_declaration(self, crate_name: impl Into<String>) -> RuntimePluginDeclaration {
+        let runtime_id = RuntimePluginId::new(self.id);
+        assert_eq!(
+            runtime_id.key(),
+            self.id,
+            "plugin declaration id `{}` must be a canonical RuntimePluginId key",
+            self.id
+        );
         let declaration =
             RuntimePluginDeclaration::new(self.id, self.display_name, runtime_id, crate_name)
                 .with_category(self.category)
-                .with_target_modes(self.target_modes.iter().copied())
-                .with_maturity(self.maturity)
-                .with_default_packaging(self.default_packaging.iter().copied());
+                .with_target_modes(self.target_modes())
+                .with_maturity(self.maturity())
+                .with_default_packaging(self.default_packaging());
 
+        assert_eq!(
+            self.capabilities.len(),
+            self.capability_roles.len(),
+            "plugin declaration capability names and roles must remain aligned"
+        );
         self.capabilities
             .iter()
-            .fold(declaration, |declaration, capability| {
-                declaration.with_capability(*capability)
+            .copied()
+            .zip(self.capability_roles.iter().copied())
+            .filter(|(_, role)| role.is_runtime_provided())
+            .fold(declaration, |declaration, (capability, _)| {
+                declaration.with_capability(capability)
             })
     }
 
-    pub fn runtime_descriptor(
-        self,
-        runtime_id: RuntimePluginId,
-        crate_name: impl Into<String>,
-    ) -> RuntimePluginDescriptor {
-        self.runtime_declaration(runtime_id, crate_name)
+    #[cfg(feature = "runtime")]
+    pub fn runtime_descriptor(self, crate_name: impl Into<String>) -> RuntimePluginDescriptor {
+        self.runtime_declaration(crate_name)
             .with_module_descriptor(self.module_descriptor())
             .into_descriptor()
     }
 }
 
-/// Declare package metadata once and project it into the runtime descriptor.
-///
-/// The macro is deliberately data-only: registration and callback behavior stay
-/// in the plugin crate, where their ownership remains visible to maintainers.
-#[macro_export]
-macro_rules! declare_plugin {
-    (
-        $(#[$metadata:meta])*
-        $visibility:vis $declaration:ident {
-            id: $id_constant:ident = $id:literal,
-            display_name: $display_name:literal,
-            category: $category:ident,
-            module: $module_constant:ident = $module_name:literal,
-            runtime_crate: $runtime_crate_constant:ident = $runtime_crate_name:literal,
-            module_description: $module_description:literal,
-            targets: [$($target:ident),+ $(,)?],
-            platforms: [$($platform:ident),+ $(,)?],
-            capabilities: [$($capability_constant:ident = $capability:literal),+ $(,)?],
-            maturity: $maturity:ident,
-            packaging: [$($packaging:ident),+ $(,)?] $(,)?
-        }
-    ) => {
-        $(#[$metadata])*
-        $visibility const $id_constant: &str = $id;
-        $visibility const $module_constant: &str = $module_name;
-        $visibility const $runtime_crate_constant: &str = $runtime_crate_name;
-        $(
-            $visibility const $capability_constant: &str = $capability;
-        )+
-        $visibility const $declaration: $crate::PluginDeclaration =
-            $crate::PluginDeclaration::new(
-                $id_constant,
-                $display_name,
-                stringify!($category),
-                $module_constant,
-                $module_description,
-                &[$($crate::declare_plugin!(@target $target)),+],
-                &[$($crate::declare_plugin!(@platform $platform)),+],
-                &[$($capability_constant),+],
-                $crate::declare_plugin!(@maturity $maturity),
-                &[$($crate::declare_plugin!(@packaging $packaging)),+],
-            );
-    };
-    (@target client_runtime) => {
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
-    };
-    (@target server_runtime) => {
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::ServerRuntime
-    };
-    (@target editor_host) => {
-        zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost
-    };
-    (@platform windows) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Windows
-    };
-    (@platform linux) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Linux
-    };
-    (@platform macos) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Macos
-    };
-    (@platform android) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Android
-    };
-    (@platform ios) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Ios
-    };
-    (@platform web_gpu) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::WebGpu
-    };
-    (@platform wasm) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Wasm
-    };
-    (@platform headless) => {
-        zircon_runtime::core::framework::project::ExportTargetPlatform::Headless
-    };
-    (@maturity core) => {
-        zircon_runtime::plugin::PluginMaturity::Core
-    };
-    (@maturity stable) => {
-        zircon_runtime::plugin::PluginMaturity::Stable
-    };
-    (@maturity beta) => {
-        zircon_runtime::plugin::PluginMaturity::Beta
-    };
-    (@maturity experimental) => {
-        zircon_runtime::plugin::PluginMaturity::Experimental
-    };
-    (@maturity externalized) => {
-        zircon_runtime::plugin::PluginMaturity::Externalized
-    };
-    (@maturity stub) => {
-        zircon_runtime::plugin::PluginMaturity::Stub
-    };
-    (@maturity deprecated) => {
-        zircon_runtime::plugin::PluginMaturity::Deprecated
-    };
-    (@packaging source_template) => {
-        zircon_runtime::core::framework::project::ExportPackagingStrategy::SourceTemplate
-    };
-    (@packaging library_embed) => {
-        zircon_runtime::core::framework::project::ExportPackagingStrategy::LibraryEmbed
-    };
-    (@packaging native_dynamic) => {
-        zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
-    };
-}
+mod macros;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    crate::declare_plugin! {
-        TEST_PLUGIN_DECLARATION {
-            id: TEST_PLUGIN_ID = "sdk_test_plugin",
-            display_name: "SDK Test Plugin",
-            category: runtime,
-            module: TEST_MODULE_NAME = "sdk_test_plugin.runtime",
-            runtime_crate: TEST_RUNTIME_CRATE_NAME = "zircon_plugin_sdk_test",
-            module_description: "Runtime metadata declaration fixture",
-            targets: [client_runtime, editor_host],
-            platforms: [windows, linux, macos],
-            capabilities: [TEST_CAPABILITY = "runtime.plugin.sdk_test_plugin"],
-            maturity: beta,
-            packaging: [source_template, native_dynamic],
-        }
-    }
-
-    #[test]
-    fn declaration_projects_all_standard_descriptor_metadata() {
-        let descriptor = TEST_PLUGIN_DECLARATION
-            .runtime_descriptor(RuntimePluginId::GltfImporter, "zircon_plugin_sdk_test");
-
-        assert_eq!(descriptor.package_id(), TEST_PLUGIN_ID);
-        assert_eq!(TEST_RUNTIME_CRATE_NAME, "zircon_plugin_sdk_test");
-        assert_eq!(descriptor.category(), "runtime");
-        assert_eq!(descriptor.maturity(), PluginMaturity::Beta);
-        assert_eq!(
-            descriptor.target_modes(),
-            TEST_PLUGIN_DECLARATION.target_modes()
-        );
-        assert_eq!(descriptor.capabilities(), [TEST_CAPABILITY.to_string()]);
-        assert_eq!(descriptor.module_descriptor().name, TEST_MODULE_NAME);
-        assert_eq!(
-            descriptor.package_manifest().default_packaging.as_slice(),
-            TEST_PLUGIN_DECLARATION.default_packaging()
-        );
-        assert_eq!(
-            TEST_PLUGIN_DECLARATION.supported_platforms(),
-            &[
-                ExportTargetPlatform::Windows,
-                ExportTargetPlatform::Linux,
-                ExportTargetPlatform::Macos,
-            ]
-        );
-    }
-}
+mod tests;

@@ -1,9 +1,10 @@
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchTooltipMetrics
 {
-    pub bubble_width: f32,
+    pub bubble_min_width: f32,
+    pub bubble_max_width: f32,
     pub bubble_height: f32,
     pub radius: f32,
     pub border_width: f32,
@@ -23,8 +24,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub icon_max: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_metrics(
-) -> WorkbenchTooltipMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_metrics()
+-> WorkbenchTooltipMetrics {
     tooltip_metrics_from_host(current_host_metrics())
 }
 
@@ -34,7 +35,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
     let title_font_size = metrics.font_body + metrics.border_width * 2.0;
     let body_font_size = metrics.font_body + metrics.border_width;
     WorkbenchTooltipMetrics {
-        bubble_width: metrics.row_height * 4.0,
+        bubble_min_width: metrics.row_height * 3.0,
+        bubble_max_width: metrics.row_height * 10.0,
         bubble_height: metrics.row_height + metrics.gap_l + metrics.gap_m + metrics.border_width,
         radius: metrics.radius_control,
         border_width: metrics.border_width,

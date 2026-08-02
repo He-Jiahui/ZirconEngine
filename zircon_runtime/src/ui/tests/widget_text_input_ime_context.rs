@@ -3,16 +3,19 @@ use crate::ui::{
     dispatch::{UiInputManager, UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
     text::{
-        caret_frame_for_text_layout, resolve_text_layout, text_range_frames_for_text_layout,
-        UiTextLayoutRequest,
+        UiTextLayoutRequest, caret_frame_for_text_layout, resolve_text_layout,
+        text_range_frames_for_text_layout,
     },
 };
+use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
+    component::UiComponentEvent,
     dispatch::{
-        UiDispatchDisposition, UiDispatchHostRequestKind, UiImeInputEvent, UiImeInputEventKind,
-        UiInputEvent, UiInputEventMetadata, UiInputMethodRequestKind, UiInputSequence,
-        UiInputTimestamp, UiTextByteRange,
+        UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchReply,
+        UiFocusEffectReason, UiImeDeleteSurrounding, UiImeInputEvent, UiImeInputEventKind,
+        UiInputEvent, UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
+        UiInputSequence, UiInputTimestamp, UiTextByteRange,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
@@ -24,6 +27,8 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
+
+mod focus_lifecycle;
 
 #[test]
 fn text_input_ime_preedit_refreshes_context_with_committed_surrounding_text() {
@@ -49,6 +54,205 @@ fn text_input_ime_preedit_refreshes_context_with_committed_surrounding_text() {
     assert!(request.cursor_rect.is_some());
     assert_eq!(request.composition_rects.len(), 1);
     assert_eq!(surface.input.input_method_request, Some(request.clone()));
+}
+
+#[test]
+fn text_input_ime_surrounding_text_is_bounded_to_graphemes_around_the_caret() {
+    let grapheme = "e\u{301}";
+    let value = grapheme.repeat(600);
+    let caret_offset = grapheme.len() * 300;
+    let mut surface =
+        text_input_surface_with_selection(value.as_str(), caret_offset, caret_offset, caret_offset);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "", None);
+
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    let surrounding = request
+        .surrounding_text
+        .as_ref()
+        .expect("bounded surrounding text");
+    assert_eq!(surrounding.text.graphemes(true).count(), 512);
+    assert_eq!(surrounding.text, grapheme.repeat(512));
+    assert_eq!(surrounding.cursor_byte as usize, grapheme.len() * 256);
+    assert_eq!(surrounding.anchor_byte, surrounding.cursor_byte);
+}
+
+#[test]
+fn text_input_ime_surrounding_text_trims_a_wide_grapheme_window_to_the_byte_limit() {
+    let grapheme = "\u{1f469}\u{200d}\u{1f4bb}";
+    let value = grapheme.repeat(600);
+    let caret_offset = grapheme.len() * 300;
+    let mut surface =
+        text_input_surface_with_selection(value.as_str(), caret_offset, caret_offset, caret_offset);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "", None);
+
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    let surrounding = request
+        .surrounding_text
+        .as_ref()
+        .expect("byte-limited surrounding text");
+    assert!(surrounding.text.len() < 4_000);
+    assert!(surrounding.text.graphemes(true).count() < 512);
+    assert!(
+        surrounding
+            .text
+            .is_char_boundary(surrounding.cursor_byte as usize)
+    );
+    assert_eq!(surrounding.anchor_byte, surrounding.cursor_byte);
+}
+
+#[test]
+fn text_input_ime_surrounding_text_omits_a_single_grapheme_that_exceeds_the_contract_limit() {
+    let oversized_grapheme = format!("a{}", "\u{301}".repeat(4_000));
+    let caret_offset = oversized_grapheme.len();
+    let value = format!("{oversized_grapheme}z");
+    let mut surface =
+        text_input_surface_with_selection(value.as_str(), caret_offset, caret_offset, caret_offset);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "", None);
+
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    assert!(
+        request.surrounding_text.is_none(),
+        "an oversized single grapheme must not bypass the surrounding-text byte limit"
+    );
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_expands_partial_byte_ranges_to_complete_graphemes() {
+    let emoji = "\u{1f469}\u{200d}\u{1f4bb}";
+    let value = format!("a{emoji}b");
+    let caret_offset = "a".len() + emoji.len();
+    let mut surface =
+        text_input_surface_with_selection(value.as_str(), caret_offset, caret_offset, caret_offset);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 1, 1);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "a");
+    assert_eq!(usize_attr(&surface, "caret_offset"), Some(1));
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_expands_partial_after_bytes_to_complete_graphemes() {
+    let mut surface = text_input_surface_with_selection("aé", 1, 1, 1);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 0, 1);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "a");
+    assert_eq!(usize_attr(&surface, "caret_offset"), Some(1));
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_refreshes_the_host_context_after_mutation() {
+    let mut surface = text_input_surface_with_selection("abc", 1, 1, 1);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 1, 0);
+
+    assert_eq!(text_attr(&surface, "content"), "bc");
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    let surrounding = request
+        .surrounding_text
+        .as_ref()
+        .expect("updated committed surrounding text");
+    assert_eq!(surrounding.text, "bc");
+    assert_eq!(surrounding.cursor_byte, 0);
+    assert_eq!(surrounding.anchor_byte, 0);
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_restores_committed_text_before_deleting() {
+    let mut surface = text_input_surface_with_selection("abc", 2, 1, 2);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let _ = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "X", None);
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 1, 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "ac");
+    assert_eq!(text_attr(&surface, "composition_text"), "");
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_zero_payload_preserves_composition() {
+    let mut surface = text_input_surface_with_selection("abc", 2, 1, 2);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let _ = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "X", None);
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 0, 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "aXc");
+    assert_eq!(text_attr(&surface, "composition_text"), "X");
+    assert!(result.host_requests.is_empty());
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_at_the_committed_start_preserves_composition() {
+    let mut surface = text_input_surface_with_selection("abc", 0, 0, 0);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let _ = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "X", None);
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 1, 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "Xabc");
+    assert_eq!(text_attr(&surface, "composition_text"), "X");
+    assert!(result.host_requests.is_empty());
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_without_payload_preserves_composition() {
+    let mut surface = text_input_surface_with_selection("abc", 2, 1, 2);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let _ = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "X", None);
+
+    let result = dispatch_ime(
+        &mut surface,
+        UiImeInputEventKind::DeleteSurrounding,
+        "",
+        None,
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "aXc");
+    assert_eq!(text_attr(&surface, "composition_text"), "X");
+    assert!(result.host_requests.is_empty());
+}
+
+#[test]
+fn text_input_ime_delete_surrounding_uses_the_reported_committed_caret_for_preedit() {
+    let mut surface = text_input_surface_with_selection("abcd", 3, 1, 3);
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let preedit = dispatch_ime(
+        &mut surface,
+        UiImeInputEventKind::Preedit,
+        "XY",
+        Some(UiTextByteRange::new(1, 1)),
+    );
+    let request = assert_input_method_request(&preedit, UiInputMethodRequestKind::UpdateCursor);
+    assert_eq!(
+        request
+            .surrounding_text
+            .as_ref()
+            .expect("committed surrounding text")
+            .cursor_byte,
+        3
+    );
+
+    let result = dispatch_ime_delete_surrounding(&mut surface, 1, 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "abd");
+    assert_eq!(text_attr(&surface, "composition_text"), "");
 }
 
 #[test]
@@ -452,6 +656,29 @@ fn dispatch_ime(
         .unwrap()
 }
 
+fn dispatch_ime_delete_surrounding(
+    surface: &mut UiSurface,
+    before_bytes: u32,
+    after_bytes: u32,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Ime(UiImeInputEvent {
+                metadata: UiInputEventMetadata::new(
+                    UiInputTimestamp::from_micros(44),
+                    UiInputSequence::new(10),
+                ),
+                kind: UiImeInputEventKind::DeleteSurrounding,
+                text: String::new(),
+                cursor_range: None,
+                delete_surrounding: Some(UiImeDeleteSurrounding::new(before_bytes, after_bytes)),
+            }),
+        )
+        .unwrap()
+}
+
 fn dispatch_ime_with_manager(
     surface: &mut UiSurface,
     manager: &mut UiInputManager,
@@ -563,6 +790,17 @@ fn text_attr(surface: &UiSurface, key: &str) -> String {
         .and_then(toml::Value::as_str)
         .unwrap_or_default()
         .to_string()
+}
+
+fn usize_attr(surface: &UiSurface, key: &str) -> Option<usize> {
+    surface
+        .tree
+        .nodes
+        .get(&UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(toml::Value::as_integer)
+        .and_then(|value| (value >= 0).then_some(value as usize))
 }
 
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {

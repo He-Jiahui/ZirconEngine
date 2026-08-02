@@ -24,11 +24,9 @@ fn realtime_prefilter_slice_limits_faces_and_serializes_face_offset() {
     assert_eq!(command.dispatch_groups, [2, 2, 2]);
     assert_eq!(command.params.words()[5], 2);
     assert!(command.readback_copies.is_empty());
-    assert!(
-        command
-            .wgsl_source
-            .contains("params.first_face + global_id.z")
-    );
+    assert!(command
+        .wgsl_source
+        .contains("params.first_face + global_id.z"));
 }
 
 #[test]

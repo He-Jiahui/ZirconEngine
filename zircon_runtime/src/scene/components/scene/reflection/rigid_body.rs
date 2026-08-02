@@ -48,7 +48,7 @@ pub(in crate::scene::components::scene) fn write_mass_properties_mode(
                 "mass_properties_mode",
                 "Explicit or AutoFromShape Enum",
                 "Enum",
-            ))
+            ));
         }
     };
     replace_if_changed(&mut component.mass_properties, next)
@@ -114,7 +114,7 @@ pub(in crate::scene::components::scene) fn write_ccd_mode(
                 "ccd_mode",
                 "Disabled or LinearCast Enum",
                 "Enum",
-            ))
+            ));
         }
     };
     replace_if_changed(&mut component.ccd_mode, next)

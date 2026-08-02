@@ -10,7 +10,7 @@ related_code:
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/run_config.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/registration.rs
 implementation_files:
   - zircon_plugins/first_party_editor_catalog/Cargo.toml
   - zircon_plugins/first_party_editor_catalog/src/lib.rs

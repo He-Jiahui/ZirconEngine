@@ -9,5 +9,8 @@
     "design:export:only": "node export-designs.mjs",
     "design:verify": "node verify-designs.mjs",
     "design:verify:reference-negative": "node verify-reference-negative-guard.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }

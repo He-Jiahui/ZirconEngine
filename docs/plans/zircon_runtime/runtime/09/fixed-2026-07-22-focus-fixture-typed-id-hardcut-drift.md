@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/09
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/19
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime_interface/src/ui/focus_tests.rs
+  - zircon_runtime_interface/src/ui/focus/focus_tests.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime_interface --lib ui::focus::focus_tests:: --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime_interface ui_render_command_cache_generation --locked --jobs 1 -- --nocapture --test-threads=1

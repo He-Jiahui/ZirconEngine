@@ -123,7 +123,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLightingBakePreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LightingBakePreview", event = "Click", route = "workbench.extension.lighting_bake.preview" }]
 
@@ -131,7 +131,7 @@ events = [{ id = "WorkbenchExtension/LightingBakePreview", event = "Click", rout
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLightingBakeBakeButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Bake", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+props = { text = "Bake", button_variant = "filled", button_color = "accent", selected = true, checked = true }
 layout = { width = { min = 72.0, preferred = 72.0, max = 82.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LightingBakeBake", event = "Click", route = "workbench.extension.lighting_bake.bake" }]
 
@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/LightingBakeBake", event = "Click", route =
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLightingBakeQueueTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "lighting_bake_shadow_map_row" }, { node = "lighting_bake_lightmap_uv_row" }, { node = "lighting_bake_probe_grid_row" }, { node = "lighting_bake_bleed_warning_row" }]
 

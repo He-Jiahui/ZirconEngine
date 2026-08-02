@@ -1,4 +1,5 @@
 use super::support::*;
+use crate::ui::retained_host::console_output::console_content_extent;
 use crate::ui::retained_host::welcome_recent_geometry::{
     welcome_recent_row_geometry, welcome_recent_viewport,
 };
@@ -170,6 +171,42 @@ fn root_console_pointer_scroll_uses_region_frame_fallback_in_real_host() {
     let host = harness.host.borrow();
     assert!(host.console_scroll_surface.size().width > 0.0);
     assert!(host.console_scroll_surface.size().height > 0.0);
+}
+
+#[test]
+fn root_console_recompute_initializes_viewport_and_follows_first_overflow_without_scroll_input() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_root_console_recompute_tail");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::BottomLeft, "editor.console#1");
+
+    {
+        let host = harness.host.borrow();
+        assert!(
+            host.console_scroll_surface.has_size(),
+            "presentation recompute should initialize Console from its projected output viewport"
+        );
+    }
+
+    {
+        let mut host = harness.host.borrow_mut();
+        for line in 0..32 {
+            host.set_status_line(format!("console recompute line {line:02}"));
+        }
+        host.refresh_ui();
+    }
+
+    let host = harness.host.borrow();
+    let output = host.runtime.console_output();
+    let expected_tail = (console_content_extent(output.as_ref())
+        - host.console_scroll_surface.size().height)
+        .max(0.0);
+    assert!(
+        expected_tail > 0.0,
+        "fixture should overflow the Console viewport"
+    );
+    assert_eq!(host.console_scroll_surface.scroll_offset(), expected_tail);
 }
 
 #[test]

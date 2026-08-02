@@ -13,8 +13,8 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::drop_resolution::resolve_tab_drop_with_workbench_layout_frames;
 use super::group::{
-    document_edge_from_group_key, floating_window_edge_from_group_key,
-    floating_window_from_group_key, HostDragTargetGroup,
+    HostDragTargetGroup, document_edge_from_group_key, floating_window_edge_from_group_key,
+    floating_window_from_group_key,
 };
 use super::host_resolution::{active_floating_window_path, preferred_document_page};
 use super::resolved_drop::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop};

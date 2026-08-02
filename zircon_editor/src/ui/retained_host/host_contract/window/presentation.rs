@@ -2,10 +2,12 @@ mod close_prompt;
 mod snapshot;
 mod template_hover_state;
 
-use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::console_output::console_output_viewport_size;
+use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
 use zircon_runtime::diagnostic_log::{
-    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
 };
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::data::{
     FrameRect, HostMenuStateData, HostPaneInteractionStateData, HostWindowPresentationData,
@@ -52,6 +54,14 @@ impl UiHostWindow {
 
     pub(crate) fn get_pane_interaction_state(&self) -> HostPaneInteractionStateData {
         self.state.borrow().pane_interaction_state.clone()
+    }
+
+    pub(crate) fn console_output_viewport_size(
+        &self,
+        source_window_id: Option<&str>,
+    ) -> Option<UiSize> {
+        let state = self.state.borrow();
+        console_output_viewport_size(&state.host_presentation, source_window_id)
     }
 }
 

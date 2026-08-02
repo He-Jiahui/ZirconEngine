@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    GBufferChannelMask, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
-    SHADING_MODEL_ID_UNLIT, ShadingModelDescriptor, ShadingModelRegistrationError,
+    GBufferChannelMask, ShadingModelDescriptor, ShadingModelRegistrationError,
+    SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
 };
 
 use super::registry::ShadingModelRegistry;
@@ -97,12 +97,10 @@ mod tests {
                 .id,
             SHADING_MODEL_ID_UNLIT
         );
-        assert!(
-            registry
-                .resolve_lighting_model(&RenderMaterialLightingModel::Custom {
-                    name: "subsurface".to_string()
-                })
-                .is_none()
-        );
+        assert!(registry
+            .resolve_lighting_model(&RenderMaterialLightingModel::Custom {
+                name: "subsurface".to_string()
+            })
+            .is_none());
     }
 }

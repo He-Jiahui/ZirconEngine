@@ -20,16 +20,17 @@ use crate::core::editor_event::{
     ViewInstanceId as EventViewInstanceId,
 };
 use crate::ui::retained_host::{
-    callback_dispatch::{dispatch_builtin_template_binding, retained_menu_action},
     HostInvalidationMask,
+    callback_dispatch::{dispatch_builtin_template_binding, retained_menu_action},
 };
 use crate::ui::workbench::event::menu_action_binding;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::view::ViewDescriptorId;
 
-use super::support::{env_lock, EventRuntimeHarness};
+use super::support::{EventRuntimeHarness, env_lock};
 
 mod animation_assets;
+mod console;
 mod extensions_registration;
 mod extensions_validation;
 mod integration;

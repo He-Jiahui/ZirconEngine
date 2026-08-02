@@ -2,11 +2,11 @@
 // Source 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; ability headers and resolved ranks; do not edit by hand.
 
 pub catalogSha(): string {
-    return "1f7d61d439831b44390a5609d1962c97d019f4dec62d5499051e0a2af0ded047";
+    return "c257012838863dbd77627601c57d1b3ae3ff9548c2a755649d53053fe42bbc32";
 }
 
 pub count(): int {
-    return 79;
+    return 93;
 }
 
 pub indexOf(id: string): int {
@@ -60,35 +60,49 @@ pub indexOf(id: string): int {
     if (id == "shadowburn") { return 47; }
     if (id == "demon_skin") { return 48; }
     if (id == "rain_of_fire") { return 49; }
-    if (id == "conflagrate") { return 50; }
-    if (id == "siphon_life") { return 51; }
-    if (id == "swiftmend") { return 52; }
-    if (id == "wrath") { return 53; }
-    if (id == "healing_touch") { return 54; }
-    if (id == "starfire") { return 55; }
-    if (id == "entangling_roots") { return 56; }
-    if (id == "maul") { return 57; }
-    if (id == "growl") { return 58; }
-    if (id == "demoralizing_roar") { return 59; }
-    if (id == "prowl") { return 60; }
-    if (id == "rake") { return 61; }
-    if (id == "claw") { return 62; }
-    if (id == "ferocious_bite") { return 63; }
-    if (id == "swipe") { return 64; }
-    if (id == "regrowth") { return 65; }
-    if (id == "barkskin") { return 66; }
-    if (id == "primal_reflexes") { return 67; }
-    if (id == "enrage") { return 68; }
-    if (id == "bash") { return 69; }
-    if (id == "faerie_fire") { return 70; }
-    if (id == "hibernate") { return 71; }
-    if (id == "dash") { return 72; }
-    if (id == "pounce") { return 73; }
-    if (id == "insect_swarm") { return 74; }
-    if (id == "tigers_fury") { return 75; }
-    if (id == "rip") { return 76; }
-    if (id == "hurricane") { return 77; }
-    if (id == "skull_bash") { return 78; }
+    if (id == "pyroblast") { return 50; }
+    if (id == "flamestrike") { return 51; }
+    if (id == "combustion") { return 52; }
+    if (id == "overload") { return 53; }
+    if (id == "conflagrate") { return 54; }
+    if (id == "siphon_life") { return 55; }
+    if (id == "swiftmend") { return 56; }
+    if (id == "wrath") { return 57; }
+    if (id == "healing_touch") { return 58; }
+    if (id == "starfire") { return 59; }
+    if (id == "entangling_roots") { return 60; }
+    if (id == "maul") { return 61; }
+    if (id == "growl") { return 62; }
+    if (id == "demoralizing_roar") { return 63; }
+    if (id == "prowl") { return 64; }
+    if (id == "rake") { return 65; }
+    if (id == "claw") { return 66; }
+    if (id == "ferocious_bite") { return 67; }
+    if (id == "swipe") { return 68; }
+    if (id == "regrowth") { return 69; }
+    if (id == "barkskin") { return 70; }
+    if (id == "primal_reflexes") { return 71; }
+    if (id == "enrage") { return 72; }
+    if (id == "bash") { return 73; }
+    if (id == "faerie_fire") { return 74; }
+    if (id == "hibernate") { return 75; }
+    if (id == "dash") { return 76; }
+    if (id == "pounce") { return 77; }
+    if (id == "insect_swarm") { return 78; }
+    if (id == "tigers_fury") { return 79; }
+    if (id == "rip") { return 80; }
+    if (id == "hurricane") { return 81; }
+    if (id == "skull_bash") { return 82; }
+    if (id == "temporal_mend") { return 83; }
+    if (id == "temporal_echo") { return 84; }
+    if (id == "temporal_cascade") { return 85; }
+    if (id == "temporal_rewind") { return 86; }
+    if (id == "temporal_barrier") { return 87; }
+    if (id == "arcane_surge") { return 88; }
+    if (id == "arcane_missiles") { return 89; }
+    if (id == "perfect_moment") { return 90; }
+    if (id == "temporal_hourglass") { return 91; }
+    if (id == "temporal_acceleration") { return 92; }
     return -1;
 }
 
@@ -143,35 +157,49 @@ pub idUtf8Length(index: int): int {
     if (index == 47) { return 10; }
     if (index == 48) { return 10; }
     if (index == 49) { return 12; }
-    if (index == 50) { return 11; }
+    if (index == 50) { return 9; }
     if (index == 51) { return 11; }
-    if (index == 52) { return 9; }
-    if (index == 53) { return 5; }
-    if (index == 54) { return 13; }
-    if (index == 55) { return 8; }
-    if (index == 56) { return 16; }
-    if (index == 57) { return 4; }
-    if (index == 58) { return 5; }
-    if (index == 59) { return 17; }
-    if (index == 60) { return 5; }
+    if (index == 52) { return 10; }
+    if (index == 53) { return 8; }
+    if (index == 54) { return 11; }
+    if (index == 55) { return 11; }
+    if (index == 56) { return 9; }
+    if (index == 57) { return 5; }
+    if (index == 58) { return 13; }
+    if (index == 59) { return 8; }
+    if (index == 60) { return 16; }
     if (index == 61) { return 4; }
-    if (index == 62) { return 4; }
-    if (index == 63) { return 14; }
+    if (index == 62) { return 5; }
+    if (index == 63) { return 17; }
     if (index == 64) { return 5; }
-    if (index == 65) { return 8; }
-    if (index == 66) { return 8; }
-    if (index == 67) { return 15; }
-    if (index == 68) { return 6; }
-    if (index == 69) { return 4; }
-    if (index == 70) { return 11; }
-    if (index == 71) { return 9; }
-    if (index == 72) { return 4; }
-    if (index == 73) { return 6; }
-    if (index == 74) { return 12; }
-    if (index == 75) { return 11; }
-    if (index == 76) { return 3; }
-    if (index == 77) { return 9; }
-    if (index == 78) { return 10; }
+    if (index == 65) { return 4; }
+    if (index == 66) { return 4; }
+    if (index == 67) { return 14; }
+    if (index == 68) { return 5; }
+    if (index == 69) { return 8; }
+    if (index == 70) { return 8; }
+    if (index == 71) { return 15; }
+    if (index == 72) { return 6; }
+    if (index == 73) { return 4; }
+    if (index == 74) { return 11; }
+    if (index == 75) { return 9; }
+    if (index == 76) { return 4; }
+    if (index == 77) { return 6; }
+    if (index == 78) { return 12; }
+    if (index == 79) { return 11; }
+    if (index == 80) { return 3; }
+    if (index == 81) { return 9; }
+    if (index == 82) { return 10; }
+    if (index == 83) { return 13; }
+    if (index == 84) { return 13; }
+    if (index == 85) { return 16; }
+    if (index == 86) { return 15; }
+    if (index == 87) { return 16; }
+    if (index == 88) { return 12; }
+    if (index == 89) { return 15; }
+    if (index == 90) { return 14; }
+    if (index == 91) { return 18; }
+    if (index == 92) { return 21; }
     throw "unknown WOC M4 ability index";
 }
 
@@ -865,6 +893,56 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
     if (index == 50) {
+        if (byteIndex == 0) { return <uint>112; }
+        if (byteIndex == 1) { return <uint>121; }
+        if (byteIndex == 2) { return <uint>114; }
+        if (byteIndex == 3) { return <uint>111; }
+        if (byteIndex == 4) { return <uint>98; }
+        if (byteIndex == 5) { return <uint>108; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>115; }
+        if (byteIndex == 8) { return <uint>116; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 51) {
+        if (byteIndex == 0) { return <uint>102; }
+        if (byteIndex == 1) { return <uint>108; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>109; }
+        if (byteIndex == 4) { return <uint>101; }
+        if (byteIndex == 5) { return <uint>115; }
+        if (byteIndex == 6) { return <uint>116; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>107; }
+        if (byteIndex == 10) { return <uint>101; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 52) {
+        if (byteIndex == 0) { return <uint>99; }
+        if (byteIndex == 1) { return <uint>111; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>98; }
+        if (byteIndex == 4) { return <uint>117; }
+        if (byteIndex == 5) { return <uint>115; }
+        if (byteIndex == 6) { return <uint>116; }
+        if (byteIndex == 7) { return <uint>105; }
+        if (byteIndex == 8) { return <uint>111; }
+        if (byteIndex == 9) { return <uint>110; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 53) {
+        if (byteIndex == 0) { return <uint>111; }
+        if (byteIndex == 1) { return <uint>118; }
+        if (byteIndex == 2) { return <uint>101; }
+        if (byteIndex == 3) { return <uint>114; }
+        if (byteIndex == 4) { return <uint>108; }
+        if (byteIndex == 5) { return <uint>111; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>100; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 54) {
         if (byteIndex == 0) { return <uint>99; }
         if (byteIndex == 1) { return <uint>111; }
         if (byteIndex == 2) { return <uint>110; }
@@ -878,7 +956,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 10) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 51) {
+    if (index == 55) {
         if (byteIndex == 0) { return <uint>115; }
         if (byteIndex == 1) { return <uint>105; }
         if (byteIndex == 2) { return <uint>112; }
@@ -892,7 +970,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 10) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 52) {
+    if (index == 56) {
         if (byteIndex == 0) { return <uint>115; }
         if (byteIndex == 1) { return <uint>119; }
         if (byteIndex == 2) { return <uint>105; }
@@ -904,7 +982,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 8) { return <uint>100; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 53) {
+    if (index == 57) {
         if (byteIndex == 0) { return <uint>119; }
         if (byteIndex == 1) { return <uint>114; }
         if (byteIndex == 2) { return <uint>97; }
@@ -912,7 +990,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 4) { return <uint>104; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 54) {
+    if (index == 58) {
         if (byteIndex == 0) { return <uint>104; }
         if (byteIndex == 1) { return <uint>101; }
         if (byteIndex == 2) { return <uint>97; }
@@ -928,7 +1006,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 12) { return <uint>104; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 55) {
+    if (index == 59) {
         if (byteIndex == 0) { return <uint>115; }
         if (byteIndex == 1) { return <uint>116; }
         if (byteIndex == 2) { return <uint>97; }
@@ -939,7 +1017,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 7) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 56) {
+    if (index == 60) {
         if (byteIndex == 0) { return <uint>101; }
         if (byteIndex == 1) { return <uint>110; }
         if (byteIndex == 2) { return <uint>116; }
@@ -958,14 +1036,14 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 15) { return <uint>115; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 57) {
+    if (index == 61) {
         if (byteIndex == 0) { return <uint>109; }
         if (byteIndex == 1) { return <uint>97; }
         if (byteIndex == 2) { return <uint>117; }
         if (byteIndex == 3) { return <uint>108; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 58) {
+    if (index == 62) {
         if (byteIndex == 0) { return <uint>103; }
         if (byteIndex == 1) { return <uint>114; }
         if (byteIndex == 2) { return <uint>111; }
@@ -973,7 +1051,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 4) { return <uint>108; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 59) {
+    if (index == 63) {
         if (byteIndex == 0) { return <uint>100; }
         if (byteIndex == 1) { return <uint>101; }
         if (byteIndex == 2) { return <uint>109; }
@@ -993,7 +1071,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 16) { return <uint>114; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 60) {
+    if (index == 64) {
         if (byteIndex == 0) { return <uint>112; }
         if (byteIndex == 1) { return <uint>114; }
         if (byteIndex == 2) { return <uint>111; }
@@ -1001,21 +1079,21 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 4) { return <uint>108; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 61) {
+    if (index == 65) {
         if (byteIndex == 0) { return <uint>114; }
         if (byteIndex == 1) { return <uint>97; }
         if (byteIndex == 2) { return <uint>107; }
         if (byteIndex == 3) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 62) {
+    if (index == 66) {
         if (byteIndex == 0) { return <uint>99; }
         if (byteIndex == 1) { return <uint>108; }
         if (byteIndex == 2) { return <uint>97; }
         if (byteIndex == 3) { return <uint>119; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 63) {
+    if (index == 67) {
         if (byteIndex == 0) { return <uint>102; }
         if (byteIndex == 1) { return <uint>101; }
         if (byteIndex == 2) { return <uint>114; }
@@ -1032,7 +1110,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 13) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 64) {
+    if (index == 68) {
         if (byteIndex == 0) { return <uint>115; }
         if (byteIndex == 1) { return <uint>119; }
         if (byteIndex == 2) { return <uint>105; }
@@ -1040,7 +1118,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 4) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 65) {
+    if (index == 69) {
         if (byteIndex == 0) { return <uint>114; }
         if (byteIndex == 1) { return <uint>101; }
         if (byteIndex == 2) { return <uint>103; }
@@ -1051,7 +1129,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 7) { return <uint>104; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 66) {
+    if (index == 70) {
         if (byteIndex == 0) { return <uint>98; }
         if (byteIndex == 1) { return <uint>97; }
         if (byteIndex == 2) { return <uint>114; }
@@ -1062,7 +1140,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 7) { return <uint>110; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 67) {
+    if (index == 71) {
         if (byteIndex == 0) { return <uint>112; }
         if (byteIndex == 1) { return <uint>114; }
         if (byteIndex == 2) { return <uint>105; }
@@ -1080,7 +1158,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 14) { return <uint>115; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 68) {
+    if (index == 72) {
         if (byteIndex == 0) { return <uint>101; }
         if (byteIndex == 1) { return <uint>110; }
         if (byteIndex == 2) { return <uint>114; }
@@ -1089,14 +1167,14 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 5) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 69) {
+    if (index == 73) {
         if (byteIndex == 0) { return <uint>98; }
         if (byteIndex == 1) { return <uint>97; }
         if (byteIndex == 2) { return <uint>115; }
         if (byteIndex == 3) { return <uint>104; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 70) {
+    if (index == 74) {
         if (byteIndex == 0) { return <uint>102; }
         if (byteIndex == 1) { return <uint>97; }
         if (byteIndex == 2) { return <uint>101; }
@@ -1110,7 +1188,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 10) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 71) {
+    if (index == 75) {
         if (byteIndex == 0) { return <uint>104; }
         if (byteIndex == 1) { return <uint>105; }
         if (byteIndex == 2) { return <uint>98; }
@@ -1122,14 +1200,14 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 8) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 72) {
+    if (index == 76) {
         if (byteIndex == 0) { return <uint>100; }
         if (byteIndex == 1) { return <uint>97; }
         if (byteIndex == 2) { return <uint>115; }
         if (byteIndex == 3) { return <uint>104; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 73) {
+    if (index == 77) {
         if (byteIndex == 0) { return <uint>112; }
         if (byteIndex == 1) { return <uint>111; }
         if (byteIndex == 2) { return <uint>117; }
@@ -1138,7 +1216,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 5) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 74) {
+    if (index == 78) {
         if (byteIndex == 0) { return <uint>105; }
         if (byteIndex == 1) { return <uint>110; }
         if (byteIndex == 2) { return <uint>115; }
@@ -1153,7 +1231,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 11) { return <uint>109; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 75) {
+    if (index == 79) {
         if (byteIndex == 0) { return <uint>116; }
         if (byteIndex == 1) { return <uint>105; }
         if (byteIndex == 2) { return <uint>103; }
@@ -1167,13 +1245,13 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 10) { return <uint>121; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 76) {
+    if (index == 80) {
         if (byteIndex == 0) { return <uint>114; }
         if (byteIndex == 1) { return <uint>105; }
         if (byteIndex == 2) { return <uint>112; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 77) {
+    if (index == 81) {
         if (byteIndex == 0) { return <uint>104; }
         if (byteIndex == 1) { return <uint>117; }
         if (byteIndex == 2) { return <uint>114; }
@@ -1185,7 +1263,7 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 8) { return <uint>101; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
-    if (index == 78) {
+    if (index == 82) {
         if (byteIndex == 0) { return <uint>115; }
         if (byteIndex == 1) { return <uint>107; }
         if (byteIndex == 2) { return <uint>117; }
@@ -1196,6 +1274,189 @@ pub idUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 7) { return <uint>97; }
         if (byteIndex == 8) { return <uint>115; }
         if (byteIndex == 9) { return <uint>104; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 83) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>110; }
+        if (byteIndex == 12) { return <uint>100; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 84) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>101; }
+        if (byteIndex == 10) { return <uint>99; }
+        if (byteIndex == 11) { return <uint>104; }
+        if (byteIndex == 12) { return <uint>111; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 85) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>99; }
+        if (byteIndex == 10) { return <uint>97; }
+        if (byteIndex == 11) { return <uint>115; }
+        if (byteIndex == 12) { return <uint>99; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>100; }
+        if (byteIndex == 15) { return <uint>101; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 86) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>114; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>119; }
+        if (byteIndex == 12) { return <uint>105; }
+        if (byteIndex == 13) { return <uint>110; }
+        if (byteIndex == 14) { return <uint>100; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 87) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>98; }
+        if (byteIndex == 10) { return <uint>97; }
+        if (byteIndex == 11) { return <uint>114; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>105; }
+        if (byteIndex == 14) { return <uint>101; }
+        if (byteIndex == 15) { return <uint>114; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 88) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>99; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>115; }
+        if (byteIndex == 8) { return <uint>117; }
+        if (byteIndex == 9) { return <uint>114; }
+        if (byteIndex == 10) { return <uint>103; }
+        if (byteIndex == 11) { return <uint>101; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 89) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>99; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>109; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>115; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>108; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>115; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 90) {
+        if (byteIndex == 0) { return <uint>112; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>114; }
+        if (byteIndex == 3) { return <uint>102; }
+        if (byteIndex == 4) { return <uint>101; }
+        if (byteIndex == 5) { return <uint>99; }
+        if (byteIndex == 6) { return <uint>116; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>109; }
+        if (byteIndex == 9) { return <uint>111; }
+        if (byteIndex == 10) { return <uint>109; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>110; }
+        if (byteIndex == 13) { return <uint>116; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 91) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>104; }
+        if (byteIndex == 10) { return <uint>111; }
+        if (byteIndex == 11) { return <uint>117; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>103; }
+        if (byteIndex == 14) { return <uint>108; }
+        if (byteIndex == 15) { return <uint>97; }
+        if (byteIndex == 16) { return <uint>115; }
+        if (byteIndex == 17) { return <uint>115; }
+        throw "WOC M4 ability UTF-8 byte index is invalid";
+    }
+    if (index == 92) {
+        if (byteIndex == 0) { return <uint>116; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>112; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>99; }
+        if (byteIndex == 11) { return <uint>99; }
+        if (byteIndex == 12) { return <uint>101; }
+        if (byteIndex == 13) { return <uint>108; }
+        if (byteIndex == 14) { return <uint>101; }
+        if (byteIndex == 15) { return <uint>114; }
+        if (byteIndex == 16) { return <uint>97; }
+        if (byteIndex == 17) { return <uint>116; }
+        if (byteIndex == 18) { return <uint>105; }
+        if (byteIndex == 19) { return <uint>111; }
+        if (byteIndex == 20) { return <uint>110; }
         throw "WOC M4 ability UTF-8 byte index is invalid";
     }
     throw "unknown WOC M4 ability index";
@@ -1753,6 +2014,50 @@ pub text(index: int, field: string): string {
         throw "unknown WOC M4 ability text field";
     }
     if (index == 50) {
+        if (field == "id") { return "pyroblast"; }
+        if (field == "name") { return "Pyrelance"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "fire"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Hurls an immense fiery boulder that causes $d Fire damage plus additional damage over time."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 51) {
+        if (field == "id") { return "flamestrike"; }
+        if (field == "name") { return "Flamestrike"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "fire"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "position"; }
+        if (field == "description") { return "Calls down a burst of flame at the target area, dealing $d Fire damage to enemies caught in the blast. Can critically strike (one strike for the whole blast)."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 52) {
+        if (field == "id") { return "combustion"; }
+        if (field == "name") { return "Phoenix Trance"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "fire"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Combust: for 10 sec your Fire spells always critically strike, including bolts already in flight. Off the global cooldown. These crits build Hot Streak like any other. (Fire signature)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 53) {
+        if (field == "id") { return "overload"; }
+        if (field == "name") { return "Overload"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Your next spell is amplified by 40% but costs 50% more mana. Lasts 10 sec. (Mage talent)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 54) {
         if (field == "id") { return "conflagrate"; }
         if (field == "name") { return "Conflagrate"; }
         if (field == "class") { return "warlock"; }
@@ -1763,7 +2068,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Consumes your Burning Pact on the enemy to ignite them for $d Fire damage. (Destruction signature)"; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 51) {
+    if (index == 55) {
         if (field == "id") { return "siphon_life"; }
         if (field == "name") { return "Veinleech"; }
         if (field == "class") { return "warlock"; }
@@ -1774,7 +2079,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Siphons life from the enemy, causing $d Shadow damage over 30 sec and healing you for the damage done. (Affliction signature)"; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 52) {
+    if (index == 56) {
         if (field == "id") { return "swiftmend"; }
         if (field == "name") { return "Swiftmend"; }
         if (field == "class") { return "druid"; }
@@ -1785,7 +2090,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Consumes a heal-over-time effect on a friendly target to heal them for $d. (Restoration signature)"; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 53) {
+    if (index == 57) {
         if (field == "id") { return "wrath"; }
         if (field == "name") { return "Wildbolt"; }
         if (field == "class") { return "druid"; }
@@ -1796,7 +2101,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Hurls a bolt of nature energy for $d Nature damage."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 54) {
+    if (index == 58) {
         if (field == "id") { return "healing_touch"; }
         if (field == "name") { return "Wildmend"; }
         if (field == "class") { return "druid"; }
@@ -1807,7 +2112,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Heals a friendly target for $d."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 55) {
+    if (index == 59) {
         if (field == "id") { return "starfire"; }
         if (field == "name") { return "Skyfall"; }
         if (field == "class") { return "druid"; }
@@ -1818,7 +2123,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Calls down a bolt of stellar fire, causing $d Arcane damage."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 56) {
+    if (index == 60) {
         if (field == "id") { return "entangling_roots"; }
         if (field == "name") { return "Gripping Roots"; }
         if (field == "class") { return "druid"; }
@@ -1829,7 +2134,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Roots the target in place for up to 12 sec."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 57) {
+    if (index == 61) {
         if (field == "id") { return "maul"; }
         if (field == "name") { return "Bonecrush"; }
         if (field == "class") { return "druid"; }
@@ -1840,7 +2145,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "A mauling attack that increases melee damage by $d and causes a high amount of threat. Activates on your next swing. Bruin Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 58) {
+    if (index == 62) {
         if (field == "id") { return "growl"; }
         if (field == "name") { return "Menace"; }
         if (field == "class") { return "druid"; }
@@ -1851,7 +2156,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Menaces the target: your threat rises to match its most hated enemy and it is compelled to attack you for 3 sec. Bruin Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 59) {
+    if (index == 63) {
         if (field == "id") { return "demoralizing_roar"; }
         if (field == "name") { return "Craven Roar"; }
         if (field == "class") { return "druid"; }
@@ -1862,7 +2167,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Demoralizes nearby enemies, reducing their attack power by 20 for 20 sec. Bruin Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 60) {
+    if (index == 64) {
         if (field == "id") { return "prowl"; }
         if (field == "name") { return "Stalk"; }
         if (field == "class") { return "druid"; }
@@ -1873,7 +2178,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Enter stealth while in Wolf Form, moving 50% slower. Cannot be used in combat."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 61) {
+    if (index == 65) {
         if (field == "id") { return "rake"; }
         if (field == "name") { return "Flense"; }
         if (field == "class") { return "druid"; }
@@ -1884,7 +2189,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "A stealth opener that rakes the enemy for weapon damage plus $d and causes bleeding damage over 9 sec. Awards 1 combo point. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 62) {
+    if (index == 66) {
         if (field == "id") { return "claw"; }
         if (field == "name") { return "Claw"; }
         if (field == "class") { return "druid"; }
@@ -1895,7 +2200,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Claw the enemy for weapon damage plus $d. Awards 1 combo point. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 63) {
+    if (index == 67) {
         if (field == "id") { return "ferocious_bite"; }
         if (field == "name") { return "Gorebite"; }
         if (field == "class") { return "druid"; }
@@ -1906,7 +2211,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Finishing move that causes $d. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 64) {
+    if (index == 68) {
         if (field == "id") { return "swipe"; }
         if (field == "name") { return "Sweeping Claws"; }
         if (field == "class") { return "druid"; }
@@ -1917,7 +2222,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Sweep your claws through nearby enemies for $d damage. Causes extra threat. Bruin Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 65) {
+    if (index == 69) {
         if (field == "id") { return "regrowth"; }
         if (field == "name") { return "Second Bloom"; }
         if (field == "class") { return "druid"; }
@@ -1928,7 +2233,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Heals a friendly target for $d and an additional amount over 21 sec."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 66) {
+    if (index == 70) {
         if (field == "id") { return "barkskin"; }
         if (field == "name") { return "Oakhide"; }
         if (field == "class") { return "druid"; }
@@ -1939,7 +2244,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Your skin hardens like bark, increasing armor by 150 for 15 sec."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 67) {
+    if (index == 71) {
         if (field == "id") { return "primal_reflexes"; }
         if (field == "name") { return "Primal Reflexes"; }
         if (field == "class") { return "druid"; }
@@ -1950,7 +2255,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Your instincts sharpen, increasing your chance to dodge by 50% for 6 sec."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 68) {
+    if (index == 72) {
         if (field == "id") { return "enrage"; }
         if (field == "name") { return "Stoke"; }
         if (field == "class") { return "druid"; }
@@ -1961,7 +2266,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Generates 20 rage instantly. Bruin Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 69) {
+    if (index == 73) {
         if (field == "id") { return "bash"; }
         if (field == "name") { return "Concuss"; }
         if (field == "class") { return "druid"; }
@@ -1972,7 +2277,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Stuns the target for 2 sec. Bruin Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 70) {
+    if (index == 74) {
         if (field == "id") { return "faerie_fire"; }
         if (field == "name") { return "Witchlight"; }
         if (field == "class") { return "druid"; }
@@ -1983,7 +2288,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Decreases the target's armor by $d% for 40 sec. Does not stack with Armor Shear."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 71) {
+    if (index == 75) {
         if (field == "id") { return "hibernate"; }
         if (field == "name") { return "Slumber"; }
         if (field == "class") { return "druid"; }
@@ -1994,7 +2299,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Forces the target into a deep sleep for up to 8 sec. Any damage will awaken it."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 72) {
+    if (index == 76) {
         if (field == "id") { return "dash"; }
         if (field == "name") { return "Dash"; }
         if (field == "class") { return "druid"; }
@@ -2005,7 +2310,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Sprint forward, increasing movement speed by 50% for 15 sec. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 73) {
+    if (index == 77) {
         if (field == "id") { return "pounce"; }
         if (field == "name") { return "Slinkstrike"; }
         if (field == "class") { return "druid"; }
@@ -2016,7 +2321,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "A stealth opener that stuns the target for 2 sec. Awards 1 combo point. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 74) {
+    if (index == 78) {
         if (field == "id") { return "insect_swarm"; }
         if (field == "name") { return "Stinging Swarm"; }
         if (field == "class") { return "druid"; }
@@ -2027,7 +2332,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "The enemy is swarmed by insects, taking $d Nature damage over 12 sec."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 75) {
+    if (index == 79) {
         if (field == "id") { return "tigers_fury"; }
         if (field == "name") { return "Wolfsblood"; }
         if (field == "class") { return "druid"; }
@@ -2038,7 +2343,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Increases attack power by $b for $t sec. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 76) {
+    if (index == 80) {
         if (field == "id") { return "rip"; }
         if (field == "name") { return "Rip"; }
         if (field == "class") { return "druid"; }
@@ -2049,7 +2354,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Finishing move that causes $d Bleed damage over 12 sec. Consumes combo points. Wolf Form only."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 77) {
+    if (index == 81) {
         if (field == "id") { return "hurricane"; }
         if (field == "name") { return "Galeheart"; }
         if (field == "class") { return "druid"; }
@@ -2060,7 +2365,7 @@ pub text(index: int, field: string): string {
         if (field == "description") { return "Calls a hurricane onto the target area for 6 sec, battering enemies for $d Nature damage each second."; }
         throw "unknown WOC M4 ability text field";
     }
-    if (index == 78) {
+    if (index == 82) {
         if (field == "id") { return "skull_bash"; }
         if (field == "name") { return "Headbutt"; }
         if (field == "class") { return "druid"; }
@@ -2069,6 +2374,116 @@ pub text(index: int, field: string): string {
         if (field == "targetType") { return "enemy"; }
         if (field == "targetMode") { return "entity"; }
         if (field == "description") { return "Interrupts spellcasting and prevents any spell in that school from being cast for 4 sec. (Druid talent)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 83) {
+        if (field == "id") { return "temporal_mend"; }
+        if (field == "name") { return "Temporal Mend"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "friendly"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Draws an ally a moment forward in time, mending $d health as the body settles into its healthier future self. (Chronomancy signature)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 84) {
+        if (field == "id") { return "temporal_echo"; }
+        if (field == "name") { return "Temporal Echo"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "friendly"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Marks an ally with an echo of a healthier moment, mending $d health at once. For $t sec, part of the Arcane damage you deal is drawn back through the echo to heal them."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 85) {
+        if (field == "id") { return "temporal_cascade"; }
+        if (field == "name") { return "Temporal Cascade"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "friendly"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Sends an echo cascading through your group: the target and up to four of their nearest allies are mended at once and each marked for $t sec, drawing part of the Arcane damage you deal back through their echoes to heal them. (Chronomancy)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 86) {
+        if (field == "id") { return "temporal_rewind"; }
+        if (field == "name") { return "Rewind"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Sends an arcane wave through your group or raid, rewinding time to restore 30% of the damage each ally within 40 yards took over the last 5 seconds (up to 35% of their maximum health). Cannot be a critical effect. (Chronomancy)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 87) {
+        if (field == "id") { return "temporal_barrier"; }
+        if (field == "name") { return "Temporal Barrier"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "friendly"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Shifts the target a heartbeat out of the present, a temporal shell absorbing $d damage for 10 sec before the timeline snaps back."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 88) {
+        if (field == "id") { return "arcane_surge"; }
+        if (field == "name") { return "Aether Surge"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Draws a surge of raw aether through the enemy for $d damage. Each cast leaves an Arcane Charge that raises your next Aether Surge's damage and cast speed (5% faster each) but sharply raises its mana cost, stacking up to 4; Aether Darts spends the charges. Each cast can also arm Aether Rush, making your next Aether Surge free and twice as fast to cast."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 89) {
+        if (field == "id") { return "arcane_missiles"; }
+        if (field == "name") { return "Aether Darts"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Launches Aether Darts at the enemy, causing $d Arcane damage each second for 3 sec."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 90) {
+        if (field == "id") { return "perfect_moment"; }
+        if (field == "name") { return "Perfect Moment"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Seize your perfect moment: instantly gain 4 Arcane Charges, and for 10 sec Aether Darts does not consume them. (Chronomancer)"; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 91) {
+        if (field == "id") { return "temporal_hourglass"; }
+        if (field == "name") { return "Hourglass of Suspension"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "position"; }
+        if (field == "description") { return "Place a temporal hourglass at the selected location. Beneath an enemy, it suspends them for $e sec in PvE or $p sec in PvP and prevents all actions; damage breaks the effect. At your feet or beneath a group ally, it grants stasis for $t sec, prevents damage and actions, restores $h% of maximum health, and makes cooldowns recover $s% faster for you or $a% faster for an ally. On empty ground, the hourglass waits for $g sec and affects the first valid unit to step on it. The beneficial aura can be removed manually."; }
+        throw "unknown WOC M4 ability text field";
+    }
+    if (index == 92) {
+        if (field == "id") { return "temporal_acceleration"; }
+        if (field == "name") { return "Temporal Acceleration"; }
+        if (field == "class") { return "mage"; }
+        if (field == "school") { return "arcane"; }
+        if (field == "scalesWith") { return ""; }
+        if (field == "targetType") { return "enemy"; }
+        if (field == "targetMode") { return "entity"; }
+        if (field == "description") { return "Accelerates the flow of time for your group or raid, increasing attack, casting, and channeling speed by 30% for 15 sec. Allies recently affected by Temporal Acceleration or Storm Chorus are too exhausted to benefit. (Chronomancy)"; }
         throw "unknown WOC M4 ability text field";
     }
     throw "unknown WOC M4 ability index";
@@ -2346,86 +2761,86 @@ pub rankAtLevel(index: int, level: int): int {
         return 1;
     }
     if (index == 50) {
-        if (level < 10) { return 0; }
+        if (level < 5) { return 0; }
         return 1;
     }
     if (index == 51) {
-        if (level < 10) { return 0; }
+        if (level < 12) { return 0; }
         return 1;
     }
     if (index == 52) {
-        if (level < 10) { return 0; }
+        if (level < 12) { return 0; }
         return 1;
     }
     if (index == 53) {
-        if (level < 1) { return 0; }
-        if (level >= 20) { return 4; }
-        if (level >= 14) { return 3; }
-        if (level >= 8) { return 2; }
-        return 1;
-    }
-    if (index == 54) {
-        if (level < 1) { return 0; }
-        if (level >= 20) { return 4; }
-        if (level >= 14) { return 3; }
-        if (level >= 8) { return 2; }
-        return 1;
-    }
-    if (index == 55) {
         if (level < 14) { return 0; }
         return 1;
     }
+    if (index == 54) {
+        if (level < 10) { return 0; }
+        return 1;
+    }
+    if (index == 55) {
+        if (level < 10) { return 0; }
+        return 1;
+    }
     if (index == 56) {
+        if (level < 10) { return 0; }
+        return 1;
+    }
+    if (index == 57) {
+        if (level < 1) { return 0; }
+        if (level >= 20) { return 4; }
+        if (level >= 14) { return 3; }
+        if (level >= 8) { return 2; }
+        return 1;
+    }
+    if (index == 58) {
+        if (level < 1) { return 0; }
+        if (level >= 20) { return 4; }
+        if (level >= 14) { return 3; }
+        if (level >= 8) { return 2; }
+        return 1;
+    }
+    if (index == 59) {
+        if (level < 14) { return 0; }
+        return 1;
+    }
+    if (index == 60) {
         if (level < 8) { return 0; }
         if (level >= 16) { return 2; }
         return 1;
     }
-    if (index == 57) {
-        if (level < 10) { return 0; }
-        if (level >= 16) { return 2; }
-        return 1;
-    }
-    if (index == 58) {
-        if (level < 10) { return 0; }
-        return 1;
-    }
-    if (index == 59) {
-        if (level < 10) { return 0; }
-        if (level >= 16) { return 2; }
-        return 1;
-    }
-    if (index == 60) {
-        if (level < 5) { return 0; }
-        return 1;
-    }
     if (index == 61) {
-        if (level < 5) { return 0; }
-        if (level >= 18) { return 2; }
+        if (level < 10) { return 0; }
+        if (level >= 16) { return 2; }
         return 1;
     }
     if (index == 62) {
+        if (level < 10) { return 0; }
+        return 1;
+    }
+    if (index == 63) {
+        if (level < 10) { return 0; }
+        if (level >= 16) { return 2; }
+        return 1;
+    }
+    if (index == 64) {
+        if (level < 5) { return 0; }
+        return 1;
+    }
+    if (index == 65) {
         if (level < 5) { return 0; }
         if (level >= 18) { return 2; }
         return 1;
     }
-    if (index == 63) {
-        if (level < 14) { return 0; }
-        return 1;
-    }
-    if (index == 64) {
-        if (level < 16) { return 0; }
-        return 1;
-    }
-    if (index == 65) {
-        if (level < 14) { return 0; }
-        return 1;
-    }
     if (index == 66) {
-        if (level < 16) { return 0; }
+        if (level < 5) { return 0; }
+        if (level >= 18) { return 2; }
         return 1;
     }
     if (index == 67) {
-        if (level < 20) { return 0; }
+        if (level < 14) { return 0; }
         return 1;
     }
     if (index == 68) {
@@ -2433,35 +2848,35 @@ pub rankAtLevel(index: int, level: int): int {
         return 1;
     }
     if (index == 69) {
-        if (level < 8) { return 0; }
+        if (level < 14) { return 0; }
         return 1;
     }
     if (index == 70) {
-        if (level < 18) { return 0; }
+        if (level < 16) { return 0; }
         return 1;
     }
     if (index == 71) {
-        if (level < 18) { return 0; }
+        if (level < 20) { return 0; }
         return 1;
     }
     if (index == 72) {
-        if (level < 18) { return 0; }
+        if (level < 16) { return 0; }
         return 1;
     }
     if (index == 73) {
-        if (level < 18) { return 0; }
+        if (level < 8) { return 0; }
         return 1;
     }
     if (index == 74) {
-        if (level < 20) { return 0; }
+        if (level < 18) { return 0; }
         return 1;
     }
     if (index == 75) {
-        if (level < 20) { return 0; }
+        if (level < 18) { return 0; }
         return 1;
     }
     if (index == 76) {
-        if (level < 14) { return 0; }
+        if (level < 18) { return 0; }
         return 1;
     }
     if (index == 77) {
@@ -2469,7 +2884,73 @@ pub rankAtLevel(index: int, level: int): int {
         return 1;
     }
     if (index == 78) {
+        if (level < 20) { return 0; }
+        return 1;
+    }
+    if (index == 79) {
+        if (level < 20) { return 0; }
+        return 1;
+    }
+    if (index == 80) {
+        if (level < 14) { return 0; }
+        return 1;
+    }
+    if (index == 81) {
+        if (level < 18) { return 0; }
+        return 1;
+    }
+    if (index == 82) {
         if (level < 10) { return 0; }
+        return 1;
+    }
+    if (index == 83) {
+        if (level < 5) { return 0; }
+        if (level >= 18) { return 3; }
+        if (level >= 12) { return 2; }
+        return 1;
+    }
+    if (index == 84) {
+        if (level < 8) { return 0; }
+        if (level >= 18) { return 3; }
+        if (level >= 12) { return 2; }
+        return 1;
+    }
+    if (index == 85) {
+        if (level < 12) { return 0; }
+        if (level >= 20) { return 3; }
+        if (level >= 16) { return 2; }
+        return 1;
+    }
+    if (index == 86) {
+        if (level < 14) { return 0; }
+        return 1;
+    }
+    if (index == 87) {
+        if (level < 5) { return 0; }
+        if (level >= 18) { return 3; }
+        if (level >= 12) { return 2; }
+        return 1;
+    }
+    if (index == 88) {
+        if (level < 5) { return 0; }
+        return 1;
+    }
+    if (index == 89) {
+        if (level < 5) { return 0; }
+        if (level >= 20) { return 3; }
+        if (level >= 14) { return 2; }
+        return 1;
+    }
+    if (index == 90) {
+        if (level < 10) { return 0; }
+        return 1;
+    }
+    if (index == 91) {
+        if (level < 14) { return 0; }
+        return 1;
+    }
+    if (index == 92) {
+        if (level < 20) { return 0; }
         return 1;
     }
     throw "unknown WOC M4 ability index";
@@ -2529,20 +3010,20 @@ pub rankCount(index: int): int {
     if (index == 50) { return 1; }
     if (index == 51) { return 1; }
     if (index == 52) { return 1; }
-    if (index == 53) { return 4; }
-    if (index == 54) { return 4; }
+    if (index == 53) { return 1; }
+    if (index == 54) { return 1; }
     if (index == 55) { return 1; }
-    if (index == 56) { return 2; }
-    if (index == 57) { return 2; }
-    if (index == 58) { return 1; }
-    if (index == 59) { return 2; }
-    if (index == 60) { return 1; }
+    if (index == 56) { return 1; }
+    if (index == 57) { return 4; }
+    if (index == 58) { return 4; }
+    if (index == 59) { return 1; }
+    if (index == 60) { return 2; }
     if (index == 61) { return 2; }
-    if (index == 62) { return 2; }
-    if (index == 63) { return 1; }
+    if (index == 62) { return 1; }
+    if (index == 63) { return 2; }
     if (index == 64) { return 1; }
-    if (index == 65) { return 1; }
-    if (index == 66) { return 1; }
+    if (index == 65) { return 2; }
+    if (index == 66) { return 2; }
     if (index == 67) { return 1; }
     if (index == 68) { return 1; }
     if (index == 69) { return 1; }
@@ -2555,6 +3036,20 @@ pub rankCount(index: int): int {
     if (index == 76) { return 1; }
     if (index == 77) { return 1; }
     if (index == 78) { return 1; }
+    if (index == 79) { return 1; }
+    if (index == 80) { return 1; }
+    if (index == 81) { return 1; }
+    if (index == 82) { return 1; }
+    if (index == 83) { return 3; }
+    if (index == 84) { return 3; }
+    if (index == 85) { return 3; }
+    if (index == 86) { return 1; }
+    if (index == 87) { return 3; }
+    if (index == 88) { return 1; }
+    if (index == 89) { return 3; }
+    if (index == 90) { return 1; }
+    if (index == 91) { return 1; }
+    if (index == 92) { return 1; }
     throw "unknown WOC M4 ability index";
 }
 
@@ -4454,6 +4949,150 @@ pub metric(index: int, level: int, field: string): float {
     }
     if (index == 50) {
         if (field == "learnLevel") {
+            return 5.0;
+        }
+        if (field == "cost") {
+            return 125.0;
+        }
+        if (field == "castTime") {
+            return 6.0;
+        }
+        if (field == "cooldown") {
+            return 0.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 51) {
+        if (field == "learnLevel") {
+            return 12.0;
+        }
+        if (field == "cost") {
+            return 80.0;
+        }
+        if (field == "castTime") {
+            return 2.0;
+        }
+        if (field == "cooldown") {
+            return 12.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 52) {
+        if (field == "learnLevel") {
+            return 12.0;
+        }
+        if (field == "cost") {
+            return 100.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 120.0;
+        }
+        if (field == "range") {
+            return 0.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 53) {
+        if (field == "learnLevel") {
+            return 14.0;
+        }
+        if (field == "cost") {
+            return 0.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 30.0;
+        }
+        if (field == "range") {
+            return 0.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 54) {
+        if (field == "learnLevel") {
             return 10.0;
         }
         if (field == "cost") {
@@ -4488,7 +5127,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 51) {
+    if (index == 55) {
         if (field == "learnLevel") {
             return 10.0;
         }
@@ -4524,7 +5163,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 52) {
+    if (index == 56) {
         if (field == "learnLevel") {
             return 10.0;
         }
@@ -4560,7 +5199,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 53) {
+    if (index == 57) {
         if (field == "learnLevel") {
             return 1.0;
         }
@@ -4600,7 +5239,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 54) {
+    if (index == 58) {
         if (field == "learnLevel") {
             return 1.0;
         }
@@ -4640,7 +5279,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 55) {
+    if (index == 59) {
         if (field == "learnLevel") {
             return 14.0;
         }
@@ -4676,7 +5315,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 56) {
+    if (index == 60) {
         if (field == "learnLevel") {
             return 8.0;
         }
@@ -4713,7 +5352,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 57) {
+    if (index == 61) {
         if (field == "learnLevel") {
             return 10.0;
         }
@@ -4751,7 +5390,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 58) {
+    if (index == 62) {
         if (field == "learnLevel") {
             return 10.0;
         }
@@ -4787,7 +5426,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 59) {
+    if (index == 63) {
         if (field == "learnLevel") {
             return 10.0;
         }
@@ -4824,7 +5463,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 60) {
+    if (index == 64) {
         if (field == "learnLevel") {
             return 5.0;
         }
@@ -4860,7 +5499,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 61) {
+    if (index == 65) {
         if (field == "learnLevel") {
             return 5.0;
         }
@@ -4897,7 +5536,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 62) {
+    if (index == 66) {
         if (field == "learnLevel") {
             return 5.0;
         }
@@ -4934,7 +5573,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 63) {
+    if (index == 67) {
         if (field == "learnLevel") {
             return 14.0;
         }
@@ -4970,7 +5609,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 64) {
+    if (index == 68) {
         if (field == "learnLevel") {
             return 16.0;
         }
@@ -5006,7 +5645,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 65) {
+    if (index == 69) {
         if (field == "learnLevel") {
             return 14.0;
         }
@@ -5042,7 +5681,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 66) {
+    if (index == 70) {
         if (field == "learnLevel") {
             return 16.0;
         }
@@ -5078,7 +5717,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 67) {
+    if (index == 71) {
         if (field == "learnLevel") {
             return 20.0;
         }
@@ -5114,7 +5753,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 68) {
+    if (index == 72) {
         if (field == "learnLevel") {
             return 16.0;
         }
@@ -5150,7 +5789,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 69) {
+    if (index == 73) {
         if (field == "learnLevel") {
             return 8.0;
         }
@@ -5186,7 +5825,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 70) {
+    if (index == 74) {
         if (field == "learnLevel") {
             return 18.0;
         }
@@ -5222,7 +5861,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 71) {
+    if (index == 75) {
         if (field == "learnLevel") {
             return 18.0;
         }
@@ -5258,7 +5897,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 72) {
+    if (index == 76) {
         if (field == "learnLevel") {
             return 18.0;
         }
@@ -5294,7 +5933,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 73) {
+    if (index == 77) {
         if (field == "learnLevel") {
             return 18.0;
         }
@@ -5330,7 +5969,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 74) {
+    if (index == 78) {
         if (field == "learnLevel") {
             return 20.0;
         }
@@ -5366,7 +6005,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 75) {
+    if (index == 79) {
         if (field == "learnLevel") {
             return 20.0;
         }
@@ -5402,7 +6041,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 76) {
+    if (index == 80) {
         if (field == "learnLevel") {
             return 14.0;
         }
@@ -5438,7 +6077,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 77) {
+    if (index == 81) {
         if (field == "learnLevel") {
             return 18.0;
         }
@@ -5474,7 +6113,7 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
-    if (index == 78) {
+    if (index == 82) {
         if (field == "learnLevel") {
             return 10.0;
         }
@@ -5510,6 +6149,376 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    if (index == 83) {
+        if (field == "learnLevel") {
+            return 5.0;
+        }
+        if (field == "cost") {
+            if (rank >= 3) { return 95.0; }
+            if (rank >= 2) { return 70.0; }
+            return 45.0;
+        }
+        if (field == "castTime") {
+            return 2.0;
+        }
+        if (field == "cooldown") {
+            return 0.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 84) {
+        if (field == "learnLevel") {
+            return 8.0;
+        }
+        if (field == "cost") {
+            if (rank >= 3) { return 85.0; }
+            if (rank >= 2) { return 60.0; }
+            return 40.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 0.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 85) {
+        if (field == "learnLevel") {
+            return 12.0;
+        }
+        if (field == "cost") {
+            if (rank >= 3) { return 170.0; }
+            if (rank >= 2) { return 130.0; }
+            return 90.0;
+        }
+        if (field == "castTime") {
+            return 2.0;
+        }
+        if (field == "cooldown") {
+            return 17.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 86) {
+        if (field == "learnLevel") {
+            return 14.0;
+        }
+        if (field == "cost") {
+            return 150.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 120.0;
+        }
+        if (field == "range") {
+            return 0.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 87) {
+        if (field == "learnLevel") {
+            return 5.0;
+        }
+        if (field == "cost") {
+            if (rank >= 3) { return 105.0; }
+            if (rank >= 2) { return 75.0; }
+            return 50.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 12.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 88) {
+        if (field == "learnLevel") {
+            return 5.0;
+        }
+        if (field == "cost") {
+            return 16.0;
+        }
+        if (field == "castTime") {
+            return 2.0;
+        }
+        if (field == "cooldown") {
+            return 0.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 89) {
+        if (field == "learnLevel") {
+            return 5.0;
+        }
+        if (field == "cost") {
+            if (rank >= 3) { return 105.0; }
+            if (rank >= 2) { return 75.0; }
+            return 50.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 0.0;
+        }
+        if (field == "range") {
+            return 30.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 3.0;
+        }
+        if (field == "channelTicks") {
+            return 3.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 90) {
+        if (field == "learnLevel") {
+            return 10.0;
+        }
+        if (field == "cost") {
+            return 0.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 120.0;
+        }
+        if (field == "range") {
+            return 0.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 91) {
+        if (field == "learnLevel") {
+            return 14.0;
+        }
+        if (field == "cost") {
+            return 110.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 50.0;
+        }
+        if (field == "range") {
+            return 28.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
+    if (index == 92) {
+        if (field == "learnLevel") {
+            return 20.0;
+        }
+        if (field == "cost") {
+            return 120.0;
+        }
+        if (field == "castTime") {
+            return 0.0;
+        }
+        if (field == "cooldown") {
+            return 300.0;
+        }
+        if (field == "range") {
+            return 0.0;
+        }
+        if (field == "minRange") {
+            return 0.0;
+        }
+        if (field == "threatFlat") {
+            return 0.0;
+        }
+        if (field == "threatMult") {
+            return 1.0;
+        }
+        if (field == "channelDuration") {
+            return 0.0;
+        }
+        if (field == "channelTicks") {
+            return 0.0;
+        }
+        if (field == "awardsCombo") {
+            return 0.0;
+        }
+        throw "unknown WOC M4 ability metric field";
+    }
     throw "unknown WOC M4 ability index";
 }
 
@@ -5519,6 +6528,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return true; }
         if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 1) {
@@ -5526,6 +6536,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 2) {
@@ -5533,6 +6544,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 3) {
@@ -5540,6 +6552,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 4) {
@@ -5547,6 +6560,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 5) {
@@ -5554,6 +6568,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 6) {
@@ -5561,6 +6576,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 7) {
@@ -5568,6 +6584,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 8) {
@@ -5575,6 +6592,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 9) {
@@ -5582,6 +6600,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 10) {
@@ -5589,6 +6608,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 11) {
@@ -5596,6 +6616,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 12) {
@@ -5603,6 +6624,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return true; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 13) {
@@ -5610,6 +6632,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return true; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 14) {
@@ -5617,6 +6640,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 15) {
@@ -5624,6 +6648,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 16) {
@@ -5631,6 +6656,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 17) {
@@ -5638,6 +6664,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 18) {
@@ -5645,6 +6672,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 19) {
@@ -5652,6 +6680,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 20) {
@@ -5659,6 +6688,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return true; }
         if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 21) {
@@ -5666,6 +6696,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 22) {
@@ -5673,6 +6704,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 23) {
@@ -5680,6 +6712,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 24) {
@@ -5687,6 +6720,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 25) {
@@ -5694,6 +6728,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 26) {
@@ -5701,6 +6736,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 27) {
@@ -5708,6 +6744,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 28) {
@@ -5715,6 +6752,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 29) {
@@ -5722,6 +6760,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 30) {
@@ -5729,6 +6768,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 31) {
@@ -5736,6 +6776,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 32) {
@@ -5743,6 +6784,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 33) {
@@ -5750,6 +6792,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 34) {
@@ -5757,6 +6800,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 35) {
@@ -5764,6 +6808,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 36) {
@@ -5771,6 +6816,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 37) {
@@ -5778,6 +6824,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 38) {
@@ -5785,6 +6832,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 39) {
@@ -5792,6 +6840,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 40) {
@@ -5799,6 +6848,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 41) {
@@ -5806,6 +6856,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 42) {
@@ -5813,6 +6864,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 43) {
@@ -5820,6 +6872,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 44) {
@@ -5827,6 +6880,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 45) {
@@ -5834,6 +6888,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 46) {
@@ -5841,6 +6896,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 47) {
@@ -5848,6 +6904,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 48) {
@@ -5855,6 +6912,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 49) {
@@ -5862,6 +6920,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 50) {
@@ -5869,27 +6928,31 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 51) {
-        if (field == "requiresTarget") { return true; }
+        if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 52) {
-        if (field == "requiresTarget") { return true; }
+        if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
+        if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 53) {
-        if (field == "requiresTarget") { return true; }
+        if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
+        if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 54) {
@@ -5897,6 +6960,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 55) {
@@ -5904,6 +6968,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 56) {
@@ -5911,55 +6976,63 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 57) {
         if (field == "requiresTarget") { return true; }
-        if (field == "onNextSwing") { return true; }
-        if (field == "offGcd") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 58) {
         if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return true; }
+        if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 59) {
-        if (field == "requiresTarget") { return false; }
-        if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
-        if (field == "spendsCombo") { return false; }
-        throw "unknown WOC M4 ability flag field";
-    }
-    if (index == 60) {
-        if (field == "requiresTarget") { return false; }
-        if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
-        if (field == "spendsCombo") { return false; }
-        throw "unknown WOC M4 ability flag field";
-    }
-    if (index == 61) {
         if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 60) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 61) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return true; }
+        if (field == "offGcd") { return true; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 62) {
         if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
+        if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 63) {
-        if (field == "requiresTarget") { return true; }
+        if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
-        if (field == "spendsCombo") { return true; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 64) {
@@ -5967,6 +7040,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 65) {
@@ -5974,27 +7048,31 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 66) {
-        if (field == "requiresTarget") { return false; }
+        if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return true; }
+        if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 67) {
-        if (field == "requiresTarget") { return false; }
+        if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return true; }
-        if (field == "spendsCombo") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return true; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 68) {
         if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return true; }
+        if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 69) {
@@ -6002,20 +7080,23 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 70) {
-        if (field == "requiresTarget") { return true; }
+        if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
+        if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 71) {
-        if (field == "requiresTarget") { return true; }
+        if (field == "requiresTarget") { return false; }
         if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
+        if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 72) {
@@ -6023,6 +7104,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return true; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 73) {
@@ -6030,6 +7112,7 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 74) {
@@ -6037,27 +7120,31 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 75) {
-        if (field == "requiresTarget") { return false; }
-        if (field == "onNextSwing") { return false; }
-        if (field == "offGcd") { return false; }
-        if (field == "spendsCombo") { return false; }
-        throw "unknown WOC M4 ability flag field";
-    }
-    if (index == 76) {
         if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
-        if (field == "spendsCombo") { return true; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 76) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return true; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 77) {
-        if (field == "requiresTarget") { return false; }
+        if (field == "requiresTarget") { return true; }
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     if (index == 78) {
@@ -6065,6 +7152,119 @@ pub flag(index: int, field: string): bool {
         if (field == "onNextSwing") { return false; }
         if (field == "offGcd") { return false; }
         if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 79) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 80) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return true; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 81) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 82) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 83) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 84) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 85) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return true; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 86) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 87) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 88) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 89) {
+        if (field == "requiresTarget") { return true; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 90) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return true; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 91) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
+        throw "unknown WOC M4 ability flag field";
+    }
+    if (index == 92) {
+        if (field == "requiresTarget") { return false; }
+        if (field == "onNextSwing") { return false; }
+        if (field == "offGcd") { return false; }
+        if (field == "spendsCombo") { return false; }
+        if (field == "partyOnlyTarget") { return false; }
         throw "unknown WOC M4 ability flag field";
     }
     throw "unknown WOC M4 ability index";

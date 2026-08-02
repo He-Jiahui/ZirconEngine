@@ -1,11 +1,71 @@
-use super::super::paint_theme::PALETTE;
+use super::super::paint_theme::HostMaterialPalette;
 
-pub(in crate::ui::retained_host::host_contract) const OVERLAY: [u8; 4] = [3, 5, 9, 168];
-pub(in crate::ui::retained_host::host_contract) const DIALOG: [u8; 4] = PALETTE.surface;
-pub(in crate::ui::retained_host::host_contract) const DIALOG_INSET: [u8; 4] = PALETTE.surface_inset;
-pub(in crate::ui::retained_host::host_contract) const BUTTON: [u8; 4] = PALETTE.surface_hover;
-pub(in crate::ui::retained_host::host_contract) const BUTTON_DISABLED: [u8; 4] = [31, 36, 45, 255];
-pub(in crate::ui::retained_host::host_contract) const TEXT: [u8; 4] = PALETTE.text;
-pub(in crate::ui::retained_host::host_contract) const MUTED: [u8; 4] = PALETTE.text_muted;
-pub(in crate::ui::retained_host::host_contract) const WARNING: [u8; 4] = PALETTE.warning;
-pub(in crate::ui::retained_host::host_contract) const ACCENT: [u8; 4] = PALETTE.focus_ring;
+const OVERLAY_OPACITY: u8 = 168;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct ClosePromptPalette {
+    pub(super) overlay: [u8; 4],
+    pub(super) dialog: [u8; 4],
+    pub(super) dialog_inset: [u8; 4],
+    pub(super) button: [u8; 4],
+    pub(super) button_disabled: [u8; 4],
+    pub(super) text: [u8; 4],
+    pub(super) text_muted: [u8; 4],
+    pub(super) text_disabled: [u8; 4],
+    pub(super) warning: [u8; 4],
+    pub(super) accent: [u8; 4],
+}
+
+pub(super) fn close_prompt_palette(palette: HostMaterialPalette) -> ClosePromptPalette {
+    ClosePromptPalette {
+        overlay: [
+            palette.shell_background[0],
+            palette.shell_background[1],
+            palette.shell_background[2],
+            OVERLAY_OPACITY,
+        ],
+        dialog: palette.surface,
+        dialog_inset: palette.surface_inset,
+        button: palette.surface_hover,
+        button_disabled: palette.surface_disabled,
+        text: palette.text,
+        text_muted: palette.text_muted,
+        text_disabled: palette.text_disabled,
+        warning: palette.warning,
+        accent: palette.focus_ring,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::close_prompt_palette;
+    use crate::ui::retained_host::host_contract::paint_theme::{HostMaterialPalette, PALETTE};
+
+    #[test]
+    fn close_prompt_palette_projects_runtime_host_roles() {
+        let mut host: HostMaterialPalette = PALETTE;
+        host.shell_background = [1, 2, 3, 255];
+        host.surface = [4, 5, 6, 255];
+        host.surface_inset = [7, 8, 9, 255];
+        host.surface_hover = [10, 11, 12, 255];
+        host.surface_disabled = [13, 14, 15, 255];
+        host.text = [16, 17, 18, 255];
+        host.text_muted = [19, 20, 21, 255];
+        host.text_disabled = [22, 23, 24, 255];
+        host.warning = [25, 26, 27, 255];
+        host.focus_ring = [28, 29, 30, 255];
+
+        let palette = close_prompt_palette(host);
+
+        assert_eq!(palette.overlay, [1, 2, 3, 168]);
+        assert_eq!(palette.dialog, [4, 5, 6, 255]);
+        assert_eq!(palette.dialog_inset, [7, 8, 9, 255]);
+        assert_eq!(palette.button, [10, 11, 12, 255]);
+        assert_eq!(palette.button_disabled, [13, 14, 15, 255]);
+        assert_eq!(palette.text, [16, 17, 18, 255]);
+        assert_eq!(palette.text_muted, [19, 20, 21, 255]);
+        assert_eq!(palette.text_disabled, [22, 23, 24, 255]);
+        assert_eq!(palette.warning, [25, 26, 27, 255]);
+        assert_eq!(palette.accent, [28, 29, 30, 255]);
+    }
+}

@@ -25,5 +25,6 @@ pub use plugin_option_manifest::PluginOptionManifest;
 pub use plugin_package_kind::PluginPackageKind;
 pub use plugin_package_manifest::PluginPackageManifest;
 pub use plugin_shader_permutation_manifest::{
-    PluginShaderModuleManifest, PluginShaderPermutationIdManifest, PluginShaderPermutationManifest,
+    PluginShaderModuleManifest, PluginShaderModuleSource, PluginShaderPermutationIdManifest,
+    PluginShaderPermutationManifest, ShaderModuleSourceBinding,
 };

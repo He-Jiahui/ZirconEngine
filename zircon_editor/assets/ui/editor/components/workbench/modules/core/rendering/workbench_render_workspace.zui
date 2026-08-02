@@ -115,7 +115,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchRenderCompileButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Compile", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8" }
+props = { text = "Compile", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/RenderCompile", event = "Click", route = "workbench.module.render.compile" }]
 
@@ -208,7 +208,7 @@ events = [
 component = "WorkbenchButton"
 control_id = "WorkbenchRenderShaderEditorButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Shader Editor", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Shader Editor", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ShaderEditorOpen", event = "Click", route = "workbench.extension.shader_editor.open" }]
 
@@ -216,7 +216,7 @@ events = [{ id = "WorkbenchExtension/ShaderEditorOpen", event = "Click", route =
 component = "WorkbenchButton"
 control_id = "WorkbenchRenderLightingBakeButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Lighting Bake", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Lighting Bake", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LightingBakeOpen", event = "Click", route = "workbench.extension.lighting_bake.open" }]
 
@@ -224,6 +224,6 @@ events = [{ id = "WorkbenchExtension/LightingBakeOpen", event = "Click", route =
 component = "WorkbenchButton"
 control_id = "WorkbenchRenderPostProcessButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Post Process", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Post Process", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PostProcessOpen", event = "Click", route = "workbench.extension.post_process.open" }]

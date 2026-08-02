@@ -73,7 +73,7 @@ fn rich_span_index_shapes_one_to_one_thousand_alternating_runs_once_each() {
             })
             .collect();
         let parsed = RichParseResult {
-            text,
+            text: text.into(),
             runs,
             ..RichParseResult::default()
         };

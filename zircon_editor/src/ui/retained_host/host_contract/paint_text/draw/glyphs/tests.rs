@@ -1,5 +1,5 @@
 use super::super::placement::{
-    retained_glyph_placement_for_smoothing, RetainedGlyphPlacement, RETAINED_TEXT_SUBPIXEL_BINS,
+    RETAINED_TEXT_SUBPIXEL_BINS, RetainedGlyphPlacement, retained_glyph_placement_for_smoothing,
 };
 use super::*;
 use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;

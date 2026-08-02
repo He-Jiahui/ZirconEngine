@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_button_glyphs::{
-    button_glyph_for_key, button_icon_size, push_button_glyph, ButtonGlyph,
+    ButtonGlyph, button_glyph_for_key, button_icon_size, push_button_glyph,
 };
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::identity::button_key;
@@ -14,9 +14,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     button_glyph_for_key(&button_key(node))
 }
 
-pub(super) fn button_glyph_width(node: &TemplatePaneNodeData, glyph: ButtonGlyph) -> f32 {
+pub(super) fn button_glyph_width(
+    node: &TemplatePaneNodeData,
+    glyph: ButtonGlyph,
+    has_label: bool,
+) -> f32 {
     if has_leading_asset_icon(node) || has_leading_glyph(glyph) {
-        button_icon_size() + button_icon_gap(node)
+        button_icon_size()
+            + if has_label {
+                button_icon_gap(node)
+            } else {
+                0.0
+            }
     } else {
         0.0
     }

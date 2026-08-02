@@ -26,7 +26,12 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
             | MenuAction::ExitPlayMode
             | MenuAction::OpenView(_),
         ) => EditorEventUndoPolicy::FutureInverseEvent,
-        EditorEvent::Draft(_)
+        EditorEvent::WorkbenchMenu(
+            MenuAction::ClearConsole
+            | MenuAction::SetConsoleMessageFilter(_)
+            | MenuAction::SelectPlayMode(_),
+        )
+        | EditorEvent::Draft(_)
         | EditorEvent::Selection(_)
         | EditorEvent::Operation(_)
         | EditorEvent::Transient(_) => EditorEventUndoPolicy::NonUndoable,

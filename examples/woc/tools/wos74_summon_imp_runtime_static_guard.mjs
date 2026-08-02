@@ -30,6 +30,6 @@ requireText(world, /summonImpCommandStateTest[\s\S]*?appendCastSlotCommand[\s\S]
 requireText(world, /if \(summonImpCommandStateTest\(\) != 1\) \{[\s\S]*?return -68;/, "world selfTest must execute Summon Imp");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS71/g) ?? []).length !== 2) throw new Error("WOS74 must retain the current WOS71 schema");
+if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) throw new Error("WOS74 guard must accept the current WOS77 schema");
 requireText(read("contracts", "world-state.md"), /WOS74 retains M4 Warlock `summon_imp`[\s\S]*?inert, dead, owner-bound row/, "contract must document WOS74 and the current entity-removal boundary");
 process.stdout.write("WOS74 Summon Imp runtime static guards passed\n");

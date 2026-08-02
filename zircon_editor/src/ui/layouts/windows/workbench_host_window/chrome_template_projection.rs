@@ -13,7 +13,7 @@ use crate::ui::layouts::views::{
     build_view_template_nodes, load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData,
 };
 use crate::ui::workbench::page_tabs::{
-    main_page_project_path_width, main_page_tab_preferred_width_from_title_width,
+    main_page_project_path_width, main_page_tab_preferred_width_from_title_width_with_close,
     main_page_tab_visible_cap_for_width, MAIN_PAGE_TAB_CHROME_SIDE_INSET, MAIN_PAGE_TAB_GAP,
     MAIN_PAGE_TAB_MAX_WIDTH, MAIN_PAGE_TAB_MIN_WIDTH, MAIN_PAGE_TAB_OVERFLOW_WIDTH,
     MAIN_PAGE_TAB_TITLE_FONT_SIZE,
@@ -27,6 +27,7 @@ use super::{
 mod activity_rail;
 mod dock_header;
 mod menu_chrome;
+mod page_tabs;
 mod status_bar;
 
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
@@ -50,6 +51,8 @@ const MENU_POPUP_ITEM_ROW_PREFIX: &str = "MenuPopupItemRow";
 #[cfg(test)]
 const MENU_POPUP_ROW_STEP_FALLBACK_PX: f32 = 30.0;
 const PAGE_TAB_PREFIX: &str = "PageTab";
+const PAGE_TAB_CLOSE_PREFIX: &str = "PageTabClose";
+const PAGE_TAB_CLOSE_ICON: &str = "close-outline";
 const DOCK_TAB_PREFIX: &str = "DockTab";
 const DOCK_TAB_CLOSE_PREFIX: &str = "DockTabClose";
 const DOCK_TAB_CLOSE_ICON: &str = "close-outline";
@@ -175,6 +178,7 @@ pub(super) fn page_chrome_nodes(
     if tab_chrome_needs_fallback(&nodes, PAGE_BAR_CONTROL_ID, PAGE_TAB_PREFIX, tabs) {
         return fallback_page_chrome_nodes(tabs, project_path, width, height);
     }
+    let nodes = page_tabs::append_missing_close_nodes(nodes, tabs);
     if shell_preset_id.as_str() == "jetbrains_shell" {
         return model_rc(
             (0..nodes.row_count())
@@ -195,7 +199,7 @@ pub(super) fn page_tab_frames(
     nodes: &ModelRc<ViewTemplateNodeData>,
     tabs: &ModelRc<TabData>,
 ) -> ModelRc<HostChromeTabData> {
-    tab_frames(nodes, PAGE_TAB_PREFIX, None, tabs)
+    tab_frames(nodes, PAGE_TAB_PREFIX, Some(PAGE_TAB_CLOSE_PREFIX), tabs)
 }
 
 pub(super) fn page_tab_row_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
@@ -366,7 +370,7 @@ fn tab_template_nodes(
         nodes
             .into_iter()
             .filter(|node| node_survives_filters(node, &filters))
-            .filter(|node| node_survives_dock_tab_close_filter(node, tabs))
+            .filter(|node| node_survives_tab_close_filter(node, tabs))
             .map(|node| tab_node_with_state(node, slot_prefix, tabs))
             .collect(),
     )
@@ -382,7 +386,12 @@ fn fallback_page_chrome_nodes(
     let bar_height = (height - page_bar_y).max(PAGE_BAR_HEIGHT_PX);
     let visible_tab_indices = visible_page_tab_indices(tabs, width);
     let has_overflow = visible_tab_indices.len() < tabs.row_count();
-    let mut nodes = Vec::with_capacity(visible_tab_indices.len() + usize::from(has_overflow) + 2);
+    let close_count = visible_tab_indices
+        .iter()
+        .filter(|row| tabs.row_data(**row).is_some_and(|tab| tab.closeable))
+        .count();
+    let mut nodes =
+        Vec::with_capacity(visible_tab_indices.len() + close_count + usize::from(has_overflow) + 2);
     nodes.push(ViewTemplateNodeData {
         node_id: "FallbackWorkbenchPageBar".into(),
         control_id: PAGE_BAR_CONTROL_ID.into(),
@@ -417,6 +426,12 @@ fn fallback_page_chrome_nodes(
         let text_tone = if tab.active { "default" } else { "subtle" };
         let font_weight = if tab.active { 600 } else { 400 };
         let icon_name = chrome_tab_icon_name(&tab);
+        let tab_frame = ViewTemplateFrameData {
+            x,
+            y: page_bar_y + CHROME_TAB_HEIGHT_INSET_PX,
+            width: draw_width,
+            height: (bar_height - CHROME_TAB_HEIGHT_INSET_PX).max(20.0),
+        };
         let mut tab_node = ViewTemplateNodeData {
             node_id: format!("FallbackPageTab{row}").into(),
             control_id: format!("{PAGE_TAB_PREFIX}{row}").into(),
@@ -428,17 +443,18 @@ fn fallback_page_chrome_nodes(
             surface_variant: if tab.active { "inset" } else { "" }.into(),
             button_variant: "ghost".into(),
             selected: tab.active,
-            focused: tab.active,
-            frame: ViewTemplateFrameData {
-                x,
-                y: page_bar_y + CHROME_TAB_HEIGHT_INSET_PX,
-                width: draw_width,
-                height: (bar_height - CHROME_TAB_HEIGHT_INSET_PX).max(20.0),
-            },
+            focused: false,
+            frame: tab_frame.clone(),
             ..ViewTemplateNodeData::default()
         };
         apply_template_icon(&mut tab_node, &icon_name);
         nodes.push(tab_node);
+        if tab.closeable {
+            nodes.push(page_tabs::close_node(
+                row,
+                page_tabs::close_view_frame(&tab_frame),
+            ));
+        }
         x = (x + draw_width + MAIN_PAGE_TAB_GAP).min(tab_right_limit);
     }
 
@@ -541,7 +557,7 @@ fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
 
 fn page_tab_width(tab: &TabData) -> f32 {
     let title_width = measure_runtime_text_width(tab.title.as_str(), MAIN_PAGE_TAB_TITLE_FONT_SIZE);
-    main_page_tab_preferred_width_from_title_width(title_width)
+    main_page_tab_preferred_width_from_title_width_with_close(title_width, tab.closeable)
 }
 
 fn active_tab_row(tabs: &ModelRc<TabData>) -> Option<usize> {
@@ -620,7 +636,6 @@ fn tab_node_with_state(
             let icon_name = chrome_tab_icon_name(&tab);
             apply_template_icon(&mut node, &icon_name);
             node.selected = tab.active;
-            node.focused = tab.active;
         }
         if tabs.row_data(row).is_some_and(|tab| tab.active) {
             node.text_tone = "default".into();
@@ -629,13 +644,20 @@ fn tab_node_with_state(
             node.text_tone = "subtle".into();
             node.font_weight = 400;
         }
-    } else if prefix == DOCK_TAB_PREFIX
-        && slot_index(node.control_id.as_str(), DOCK_TAB_CLOSE_PREFIX).is_some()
+    } else if (prefix == DOCK_TAB_PREFIX
+        && slot_index(node.control_id.as_str(), DOCK_TAB_CLOSE_PREFIX).is_some())
+        || (prefix == PAGE_TAB_PREFIX
+            && slot_index(node.control_id.as_str(), PAGE_TAB_CLOSE_PREFIX).is_some())
     {
         node.role = "IconButton".into();
         node.text = "".into();
         node.text_tone = "muted".into();
-        apply_template_icon(&mut node, DOCK_TAB_CLOSE_ICON);
+        let close_icon = if prefix == PAGE_TAB_PREFIX {
+            PAGE_TAB_CLOSE_ICON
+        } else {
+            DOCK_TAB_CLOSE_ICON
+        };
+        apply_template_icon(&mut node, close_icon);
     }
     node
 }
@@ -657,11 +679,10 @@ fn node_survives_filters(node: &ViewTemplateNodeData, filters: &[SlotFilter]) ->
     )
 }
 
-fn node_survives_dock_tab_close_filter(
-    node: &ViewTemplateNodeData,
-    tabs: &ModelRc<TabData>,
-) -> bool {
-    let Some(row) = slot_index(node.control_id.as_str(), DOCK_TAB_CLOSE_PREFIX) else {
+fn node_survives_tab_close_filter(node: &ViewTemplateNodeData, tabs: &ModelRc<TabData>) -> bool {
+    let row = slot_index(node.control_id.as_str(), PAGE_TAB_CLOSE_PREFIX)
+        .or_else(|| slot_index(node.control_id.as_str(), DOCK_TAB_CLOSE_PREFIX));
+    let Some(row) = row else {
         return true;
     };
     tabs.row_data(row).is_some_and(|tab| tab.closeable)

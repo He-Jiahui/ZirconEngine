@@ -15,8 +15,7 @@ impl RuntimeEntryApp {
             self.viewport,
             scale_factor,
         );
-        if self.session.handle_event(backend_event).is_err() {
-            event_loop.exit();
+        if !self.dispatch_runtime_event(event_loop, backend_event) {
             return;
         }
 
@@ -25,8 +24,6 @@ impl RuntimeEntryApp {
             self.viewport,
             scale_factor,
         );
-        if self.session.handle_event(logical_event).is_err() {
-            event_loop.exit();
-        }
+        self.dispatch_runtime_event(event_loop, logical_event);
     }
 }

@@ -1,4 +1,4 @@
-use super::fixture::{EventBusSources, assert_absent, assert_contains};
+use super::fixture::{assert_absent, assert_contains, EventBusSources};
 
 #[test]
 fn event_bus_root_stays_folder_backed_and_structural() {

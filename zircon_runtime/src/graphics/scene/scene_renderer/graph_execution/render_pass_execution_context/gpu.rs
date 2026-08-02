@@ -5,7 +5,6 @@ use crate::core::framework::render::{
 use crate::core::math::UVec2;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
-use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
@@ -50,11 +49,11 @@ pub struct RenderPassGpuExecutionContext<'a> {
     target_format: wgpu::TextureFormat,
     depth_format: wgpu::TextureFormat,
     pub scene_bind_group: &'a wgpu::BindGroup,
-    pub resources: &'a mut RenderGraphExecutionResources,
+    pub resources: &'a RenderGraphExecutionResources,
     pub plugin_outputs: &'a mut RenderPluginRendererOutputs,
     resource_resolver: Option<RgResourceResolver<'a>>,
     pub(in crate::graphics::scene::scene_renderer) screen_space_ui_renderer:
-        &'a mut ScreenSpaceUiRenderer,
+        Option<&'a mut ScreenSpaceUiRenderer>,
     post_process_stack: Option<RenderPassPostProcessStackContext<'a>>,
     overlay_renderer: Option<&'a mut ViewportOverlayRenderer>,
     prepared_overlays: Option<&'a PreparedOverlayBuffers>,
@@ -68,8 +67,6 @@ pub struct RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) streamer: Option<&'a ResourceStreamer>,
     pub(in crate::graphics::scene::scene_renderer) mesh_pipelines:
         Option<&'a mut MeshPipelineCache>,
-    pub(in crate::graphics::scene::scene_renderer) ibl_bake_pipeline_cache:
-        Option<&'a mut IblBakeWgpuPipelineCache>,
     pub(in crate::graphics::scene::scene_renderer) mesh_draw_lists:
         Option<RenderPassMeshCommandLists<'a>>,
     hzb_occlusion_culler: Option<&'a HzbOcclusionCuller>,
@@ -85,6 +82,10 @@ impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
             .debug_struct("RenderPassGpuExecutionContext")
             .field("viewport_size", &self.frame.viewport_size)
             .field("has_post_process_stack", &self.post_process_stack.is_some())
+            .field(
+                "has_screen_space_ui_renderer",
+                &self.screen_space_ui_renderer.is_some(),
+            )
             .field("has_overlay_renderer", &self.overlay_renderer.is_some())
             .field(
                 "has_shadow_map_renderer",
@@ -108,9 +109,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         target_format: wgpu::TextureFormat,
         depth_format: wgpu::TextureFormat,
         scene_bind_group: &'a wgpu::BindGroup,
-        resources: &'a mut RenderGraphExecutionResources,
+        resources: &'a RenderGraphExecutionResources,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
-        screen_space_ui_renderer: &'a mut ScreenSpaceUiRenderer,
+        screen_space_ui_renderer: Option<&'a mut ScreenSpaceUiRenderer>,
     ) -> Self {
         Self {
             device,
@@ -136,7 +137,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             deferred: None,
             streamer: None,
             mesh_pipelines: None,
-            ibl_bake_pipeline_cache: None,
             mesh_draw_lists: None,
             hzb_occlusion_culler: None,
             compute_dispatches: Vec::new(),
@@ -156,7 +156,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         target_format: wgpu::TextureFormat,
         depth_format: wgpu::TextureFormat,
         scene_bind_group: &'a wgpu::BindGroup,
-        resources: &'a mut RenderGraphExecutionResources,
+        resources: &'a RenderGraphExecutionResources,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
         screen_space_ui_renderer: &'a mut ScreenSpaceUiRenderer,
     ) -> Self {
@@ -171,7 +171,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_bind_group,
             resources,
             plugin_outputs,
-            screen_space_ui_renderer,
+            Some(screen_space_ui_renderer),
         )
     }
 
@@ -342,14 +342,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     ) -> Self {
         self.mesh_pipelines = Some(mesh_pipelines);
         self.mesh_draw_lists = Some(mesh_draw_lists);
-        self
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn with_ibl_bake_pipeline_cache(
-        mut self,
-        ibl_bake_pipeline_cache: &'a mut IblBakeWgpuPipelineCache,
-    ) -> Self {
-        self.ibl_bake_pipeline_cache = Some(ibl_bake_pipeline_cache);
         self
     }
 

@@ -2,7 +2,7 @@ use zircon_runtime::plugin::{CapabilityStatus, PluginMaturity, RuntimePlugin};
 
 use crate::{
     runtime_plugin, NET_DIST_CRATE_NAME, NET_DIST_RUNTIME_ENTRY, NET_FLUSH_EGRESS_SYSTEM,
-    NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET, RUNTIME_CAPABILITIES,
+    NET_MAIN_SYSTEM_SET, NET_POLL_INGRESS_SYSTEM, NET_TRANSPORT_SYSTEM_SET, RUNTIME_CAPABILITIES,
 };
 
 #[test]
@@ -65,7 +65,7 @@ fn net_plugin_manifest_advertises_layered_optional_features() {
     );
     assert_eq!(
         manifest.modules[0].system_sets,
-        vec![NET_SYSTEM_SET.to_string()]
+        [NET_MAIN_SYSTEM_SET, NET_TRANSPORT_SYSTEM_SET].map(str::to_string)
     );
     assert_eq!(
         manifest.modules[0].system_anchors,

@@ -1,43 +1,5 @@
-const ZR_PBR_EXTRAS_PI: f32 = 3.141592653589793;
-const ZR_PBR_EXTRAS_EPSILON: f32 = 0.000001;
-
 @group(1) @binding(31) var zr_transmission_scene_color: texture_2d<f32>;
 @group(1) @binding(32) var zr_transmission_scene_color_sampler: sampler;
-
-fn zr_pbr_fresnel_schlick(cos_theta: f32, f0: vec3<f32>) -> vec3<f32> {
-    let grazing = pow(1.0 - clamp(cos_theta, 0.0, 1.0), 5.0);
-    return f0 + (vec3<f32>(1.0) - f0) * grazing;
-}
-
-fn zr_pbr_smith_visibility(no_v: f32, no_l: f32, alpha: f32) -> f32 {
-    let alpha_squared = alpha * alpha;
-    let gv = no_l * sqrt(max(no_v * no_v * (1.0 - alpha_squared) + alpha_squared, 0.0));
-    let gl = no_v * sqrt(max(no_l * no_l * (1.0 - alpha_squared) + alpha_squared, 0.0));
-    return 0.5 / max(gv + gl, ZR_PBR_EXTRAS_EPSILON);
-}
-
-fn zr_pbr_isotropic_ggx(
-    normal: vec3<f32>,
-    view_dir: vec3<f32>,
-    light_dir: vec3<f32>,
-    perceptual_roughness: f32,
-    f0: vec3<f32>,
-) -> vec3<f32> {
-    let half_dir = zr_normalize_or_zero(view_dir + light_dir);
-    let no_v = max(dot(normal, view_dir), ZR_PBR_EXTRAS_EPSILON);
-    let no_l = max(dot(normal, light_dir), ZR_PBR_EXTRAS_EPSILON);
-    let no_h = max(dot(normal, half_dir), 0.0);
-    let vo_h = max(dot(view_dir, half_dir), 0.0);
-    let alpha = max(perceptual_roughness * perceptual_roughness, 0.001);
-    let alpha_squared = alpha * alpha;
-    let denominator = no_h * no_h * (alpha_squared - 1.0) + 1.0;
-    let distribution = alpha_squared / max(
-        ZR_PBR_EXTRAS_PI * denominator * denominator,
-        ZR_PBR_EXTRAS_EPSILON,
-    );
-    let visibility = zr_pbr_smith_visibility(no_v, no_l, alpha);
-    return zr_pbr_fresnel_schlick(vo_h, f0) * distribution * visibility;
-}
 
 fn zr_pbr_rotated_tangent(
     tangent: vec3<f32>,
@@ -119,10 +81,30 @@ fn zr_transmission_btdf(
 }
 
 fn zr_pbr_clearcoat_base_energy_scale(surface: ZrSurfaceOutput, view_dir: vec3<f32>) -> vec3<f32> {
-    if (!ZR_FEATURE_PBR_CLEARCOAT) {
+    if (!ZR_FEATURE_PBR_CLEARCOAT || surface.clearcoat <= 0.0) {
         return vec3<f32>(1.0);
     }
-    let no_v = max(dot(zr_normalize_or_zero(surface.clearcoat_normal_ws), view_dir), 0.0);
+    let coat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);
+    let normalized_view_dir = zr_normalize_or_zero(view_dir);
+    return zr_pbr_clearcoat_base_energy_scale_normalized(
+        surface,
+        coat_normal,
+        normalized_view_dir,
+    );
+}
+
+fn zr_pbr_clearcoat_base_energy_scale_normalized(
+    surface: ZrSurfaceOutput,
+    coat_normal: vec3<f32>,
+    normalized_view_dir: vec3<f32>,
+) -> vec3<f32> {
+    if (!ZR_FEATURE_PBR_CLEARCOAT || surface.clearcoat <= 0.0) {
+        return vec3<f32>(1.0);
+    }
+    if (all(coat_normal == vec3<f32>(0.0)) || all(normalized_view_dir == vec3<f32>(0.0))) {
+        return vec3<f32>(1.0);
+    }
+    let no_v = max(dot(coat_normal, normalized_view_dir), 0.0);
     let coat_fresnel = zr_pbr_fresnel_schlick(no_v, vec3<f32>(0.04));
     return vec3<f32>(1.0) - coat_fresnel * clamp(surface.clearcoat, 0.0, 1.0);
 }
@@ -136,13 +118,34 @@ fn zr_pbr_advanced_environment(
         return vec3<f32>(0.0);
     }
     let coat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);
+    let normalized_view_dir = zr_normalize_or_zero(view_dir);
+    return zr_pbr_advanced_environment_normalized(
+        surface,
+        world_position,
+        coat_normal,
+        normalized_view_dir,
+    );
+}
+
+fn zr_pbr_advanced_environment_normalized(
+    surface: ZrSurfaceOutput,
+    world_position: vec3<f32>,
+    coat_normal: vec3<f32>,
+    normalized_view_dir: vec3<f32>,
+) -> vec3<f32> {
+    if (!ZR_FEATURE_PBR_CLEARCOAT || surface.clearcoat <= 0.0) {
+        return vec3<f32>(0.0);
+    }
+    if (all(coat_normal == vec3<f32>(0.0)) || all(normalized_view_dir == vec3<f32>(0.0))) {
+        return vec3<f32>(0.0);
+    }
     let reflected = zr_environment_reflection_color(
         world_position,
         coat_normal,
-        view_dir,
+        normalized_view_dir,
         surface.clearcoat_roughness,
     );
-    let no_v = max(dot(coat_normal, view_dir), 0.0);
+    let no_v = max(dot(coat_normal, normalized_view_dir), 0.0);
     return reflected
         * zr_environment_env_brdf_lut(vec3<f32>(0.04), surface.clearcoat_roughness, no_v)
         * clamp(surface.clearcoat, 0.0, 1.0)

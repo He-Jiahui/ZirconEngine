@@ -204,6 +204,32 @@ pub applyHealingThreat(
     }
 }
 
+// A resolved heal has already selected its amount and critical outcome. It
+// keeps the ordinary absorb, cap and threat rules but deliberately consumes no
+// random value and cannot invoke a second on-heal weapon proc.
+pub applyResolvedHeal(
+    source: HealEntity,
+    target: HealEntity,
+    amount: float,
+    mobs: AwareMobProjection,
+    events: HealEvents
+): int {
+    if (target.dead) { return 0; }
+    var healed = roundPositive(
+        amount * productReduction(source, "hex") *
+            productReduction(target, "mortal_wound")
+    );
+    healed = consumeHealAbsorb(target, healed);
+    var missing = target.maxHp - target.hp;
+    if (healed > missing) { healed = missing; }
+    target.hp = target.hp + healed;
+    events.healEvents = events.healEvents + 1;
+    events.lastHealed = healed;
+    events.lastCrit = false;
+    applyHealingThreat(source, target, healed, mobs);
+    return healed;
+}
+
 pub applyHeal(
     source: HealEntity,
     target: HealEntity,
@@ -214,18 +240,10 @@ pub applyHeal(
     if (target.dead) { return 0; }
     var crit = takeRandomUnit(events) < source.spellCritChance;
     var critMultiplier = crit ? 1.5 + source.critDamageHealBonus : 1.0;
-    var healed = roundPositive(
-        <float>amount * critMultiplier * productReduction(source, "hex") *
-            productReduction(target, "mortal_wound")
+    var healed = applyResolvedHeal(
+        source, target, amount * critMultiplier, mobs, events
     );
-    healed = consumeHealAbsorb(target, healed);
-    var missing = target.maxHp - target.hp;
-    if (healed > missing) { healed = missing; }
-    target.hp = target.hp + healed;
-    events.healEvents = events.healEvents + 1;
-    events.lastHealed = healed;
     events.lastCrit = crit;
-    applyHealingThreat(source, target, healed, mobs);
     events.weaponProcCalls = events.weaponProcCalls + 1;
     return healed;
 }
@@ -357,6 +375,16 @@ pub contractTest(): int {
     ) != 79 || fractionalTarget.hp != 79 || events.randomIndex != 1 ||
         !events.lastCrit) {
         return -7;
+    }
+    var copySource = makeEntity(<uint>11, "player", 100, 100);
+    var copyTarget = makeEntity(<uint>12, "player", 900, 1000);
+    copyTarget.addAura("wound", "mortal_wound", 0.5);
+    events = new HealEvents();
+    if (applyResolvedHeal(
+        copySource, copyTarget, 300.0, new AwareMobProjection(), events
+    ) != 100 || copyTarget.hp != 1000 || events.randomIndex != 0 ||
+        events.healEvents != 1 || events.lastCrit || events.weaponProcCalls != 0) {
+        return -8;
     }
     return 1;
 }

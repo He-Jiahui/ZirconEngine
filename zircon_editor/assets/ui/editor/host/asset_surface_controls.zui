@@ -8,89 +8,122 @@ display_name = "asset surface controls"
 node = "root"
 
 [nodes.root]
-component = "HorizontalGroup"
+component = "VerticalGroup"
 control_id = "AssetSurfaceControls"
 classes = ["editor-surface-controls", "asset-surface-controls"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
-  { node = "select_folder" },
-  { node = "select_item" },
+  { node = "filter_row" },
+  { node = "display_row" },
+  { node = "navigation_row" },
+  { node = "pointer_routes" },
+]
+
+[nodes.filter_row]
+component = "HorizontalGroup"
+control_id = "AssetFilterRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
   { node = "search" },
   { node = "kind_filter" },
+]
+
+[nodes.display_row]
+component = "HorizontalGroup"
+control_id = "AssetDisplayRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
   { node = "view_mode" },
   { node = "utility_tab" },
-  { node = "activate_reference" },
+]
+
+[nodes.navigation_row]
+component = "HorizontalGroup"
+control_id = "AssetNavigationRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
   { node = "open_browser" },
   { node = "locate_asset" },
   { node = "import_model" },
 ]
 
+[nodes.pointer_routes]
+component = "VerticalGroup"
+control_id = "AssetPointerRoutes"
+props = { visibility = "collapsed", visible = false }
+layout = { clip = true, container = { kind = "VerticalBox" }, width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [
+  { node = "select_folder" },
+  { node = "select_item" },
+  { node = "activate_reference" },
+]
+
 [nodes.select_folder]
 component = "IconButton"
 control_id = "SelectFolder"
-props = { label = "Folder", icon = "editor_pages/asset_browser/navigation/folder.svg" }
-layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Folder", icon = "editor_pages/asset_browser/navigation/folder.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SelectFolder", event = "Change", route = "workbench.asset.select_folder" }]
 
 [nodes.select_item]
 component = "IconButton"
 control_id = "SelectItem"
-props = { label = "Asset", icon = "cube-outline" }
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Asset", icon = "cube-outline", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SelectItem", event = "Change", route = "workbench.asset.select_item" }]
 
 [nodes.search]
 component = "InputField"
 control_id = "SearchEdited"
-props = { placeholder = "Search", value_text = "" }
-layout = { width = { min = 120.0, preferred = 180.0, max = 280.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { placeholder = "Search", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workbench.asset.set_search_query" }]
 
 [nodes.kind_filter]
 component = "ComboBox"
 control_id = "SetKindFilter"
-props = { label = "Kind", options = ["all", "scene", "mesh", "material", "ui"] }
-layout = { width = { min = 92.0, preferred = 92.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Kind", value = "all", value_text = "all", options = ["all", "scene", "mesh", "material", "ui"], surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
 
 [nodes.view_mode]
 component = "IconButton"
 control_id = "SetViewMode"
-props = { label = "View", icon = "list-outline" }
-layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "View", icon = "list-outline", icon_placement = "leading", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.utility_tab]
 component = "IconButton"
 control_id = "SetUtilityTab"
-props = { label = "Tools", icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg" }
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Tools", icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg", icon_placement = "leading", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "workbench.asset.set_utility_tab" }]
 
 [nodes.activate_reference]
 component = "IconButton"
 control_id = "ActivateReference"
-props = { label = "Use", icon = "editor_pages/asset_browser/references/reference.svg" }
-layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Use", icon = "editor_pages/asset_browser/references/reference.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/ActivateReference", event = "Click", route = "workbench.asset.activate_reference" }]
 
 [nodes.open_browser]
 component = "IconButton"
 control_id = "OpenAssetBrowser"
-props = { label = "Browser", icon = "editor_pages/asset_browser/navigation/folder.svg" }
-layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Browser", icon = "editor_pages/asset_browser/navigation/folder.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "workbench.asset.open_asset_browser" }]
 
 [nodes.locate_asset]
 component = "IconButton"
 control_id = "LocateSelectedAsset"
-props = { label = "Locate", icon = "editor_pages/asset_browser/navigation/search.svg" }
-layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Locate", icon = "editor_pages/asset_browser/navigation/search.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "workbench.asset.locate_selected_asset" }]
 
 [nodes.import_model]
 component = "IconButton"
 control_id = "ImportModel"
-props = { label = "Import", icon = "editor_pages/asset_browser/import_pipeline/import.svg" }
-layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Import", icon = "editor_pages/asset_browser/import_pipeline/import.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "workbench.asset.import_model" }]

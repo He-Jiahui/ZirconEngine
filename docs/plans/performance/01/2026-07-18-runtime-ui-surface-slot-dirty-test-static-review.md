@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/ui/tests/surface_slot_dirty_domains.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
-  - zircon_runtime/src/ui/surface/arranged_tree.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/layout/pass/slot.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

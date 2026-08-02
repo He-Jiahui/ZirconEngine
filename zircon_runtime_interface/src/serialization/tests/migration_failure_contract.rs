@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::super::{
-    Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
-    load_versioned,
+    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
+    VersionedSchema,
 };
 
 #[derive(Debug, Serialize, Deserialize)]

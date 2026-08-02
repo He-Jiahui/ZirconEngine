@@ -4,7 +4,7 @@ use crate::scene::components::{
     ActiveSelf, AmbientLight, CameraComponent, DirectionalLight, LocalTransform, MeshRenderer,
     Mobility, Name, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SpotLight,
 };
-use crate::scene::{derived_component_registration, TypeRegistry};
+use crate::scene::{TypeRegistry, derived_component_registration};
 
 use super::{active_in_hierarchy, hierarchy};
 

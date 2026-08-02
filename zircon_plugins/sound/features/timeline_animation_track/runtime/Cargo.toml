@@ -5,4 +5,5 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true }

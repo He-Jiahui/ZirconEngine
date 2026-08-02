@@ -11,8 +11,8 @@ use super::compute_workload::{
     EXPOSURE_RESOLVE_PIPELINE_LABEL, EXPOSURE_RESOLVE_WORKGROUP_SIZE,
 };
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
--> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
+) -> RenderFeatureDescriptor {
     let motion_vector_tile_max_plan = motion_vector_tile_max_pass_plan();
 
     RenderFeatureDescriptor::new(

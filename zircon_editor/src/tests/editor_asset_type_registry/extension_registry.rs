@@ -2,6 +2,7 @@ use crate::core::asset::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypePresentation,
     ThumbnailProviderDescriptor,
 };
+use crate::core::editor_authoring_extension::SceneModeDescriptor;
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorExtensionRegistryError};
 use crate::core::editor_operation::EditorOperationPath;
 
@@ -27,6 +28,29 @@ fn editor_extension_registry_exposes_one_typed_asset_contribution_family() {
     let encoded = serde_json::to_string(&registry).unwrap();
     let decoded: EditorExtensionRegistry = serde_json::from_str(&encoded).unwrap();
     assert_eq!(decoded.asset_type_contributions(), contributions);
+}
+
+#[test]
+fn editor_extension_registry_serde_excludes_executable_scene_modes_as_one_unit() {
+    let mut registry = EditorExtensionRegistry::default();
+    registry
+        .register_scene_mode(crate::tests::support::pass_through_scene_mode_registration(
+            SceneModeDescriptor::new(
+                "scene.nonserializable",
+                "Nonserializable",
+                "test.scene",
+                EditorOperationPath::parse("scene.nonserializable.activate").unwrap(),
+            ),
+        ))
+        .unwrap();
+
+    let encoded = serde_json::to_string(&registry).unwrap();
+    assert!(!encoded.contains("scene_mode_descriptors"));
+    assert!(!encoded.contains("scene.nonserializable"));
+
+    let decoded: EditorExtensionRegistry = serde_json::from_str(&encoded).unwrap();
+    assert!(decoded.scene_mode_descriptors().is_empty());
+    assert!(decoded.scene_mode_registrations().is_empty());
 }
 
 #[test]

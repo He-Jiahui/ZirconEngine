@@ -206,8 +206,8 @@ struct QueuedRuntimeEventPayload {
 }
 
 /// A payload stays in its producer-side JSON representation until a consumer chooses how to
-/// materialize it. The runtime ABI encoder consumes these bytes directly, while the legacy
-/// scene-facing drain keeps its existing `serde_json::Value` contract.
+/// materialize it. The runtime ABI encoder consumes these bytes directly, while the scene-facing
+/// drain keeps its existing `serde_json::Value` contract.
 pub(crate) struct RuntimeEventMirrorPayload {
     bytes: Vec<u8>,
 }

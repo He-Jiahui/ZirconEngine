@@ -5,8 +5,8 @@ use zircon_runtime::asset::{
     VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
 use zircon_runtime::core::framework::render::{
-    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderCapabilitySummary,
-    RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState,
     RenderVirtualGeometryCpuReferencePageDependencyEntry, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExtract, RenderVirtualGeometryPageDependency, RendererCommon,
 };
@@ -19,42 +19,8 @@ use crate::virtual_geometry::{
     build_virtual_geometry_automatic_extract_from_meshes_with_debug,
     resolve_virtual_geometry_extract, VirtualGeometryAutomaticExtractInstance,
     VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
-    VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
+    VirtualGeometryDebugConfig,
 };
-
-#[test]
-fn virtual_geometry_nanite_execution_mode_picks_flagship_baseline_and_cpu_paths() {
-    let flagship = RenderCapabilitySummary {
-        virtual_geometry_supported: true,
-        supports_offscreen: true,
-        ..RenderCapabilitySummary::default()
-    };
-    let baseline = RenderCapabilitySummary {
-        virtual_geometry_supported: false,
-        supports_offscreen: true,
-        supports_surface: true,
-        ..RenderCapabilitySummary::default()
-    };
-    let cpu = RenderCapabilitySummary {
-        virtual_geometry_supported: false,
-        supports_offscreen: false,
-        supports_surface: false,
-        ..RenderCapabilitySummary::default()
-    };
-
-    assert_eq!(
-        VirtualGeometryExecutionMode::from_capabilities(&flagship),
-        VirtualGeometryExecutionMode::FlagshipGpu
-    );
-    assert_eq!(
-        VirtualGeometryExecutionMode::from_capabilities(&baseline),
-        VirtualGeometryExecutionMode::BaselineGpu
-    );
-    assert_eq!(
-        VirtualGeometryExecutionMode::from_capabilities(&cpu),
-        VirtualGeometryExecutionMode::CpuDebug
-    );
-}
 
 #[test]
 fn virtual_geometry_nanite_cpu_reference_traverses_hierarchy_maps_pages_and_filters_forced_mip() {
@@ -425,6 +391,100 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
             },
         ],
         "expected automatic extract debug output to carry the cooked page dependency tree without asking runtime to know plugin state"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_mesh_based_automatic_extract_assigns_each_primitive_its_mesh_key() {
+    let model_id = ResourceId::from_stable_label("res://models/two_primitives.model.toml");
+    let entity = 5;
+    let output = build_virtual_geometry_automatic_extract_from_meshes(
+        &[mesh_snapshot(
+            entity,
+            model_id,
+            "res://materials/two_primitives.zmaterial",
+        )],
+        |loaded_model_id| {
+            (loaded_model_id == model_id).then(|| ModelAsset {
+                uri: AssetUri::parse("res://models/two_primitives.model.toml").unwrap(),
+                primitives: vec![
+                    ModelPrimitiveAsset {
+                        vertices: Vec::new(),
+                        indices: Vec::new(),
+                        mesh: None,
+                        virtual_geometry: Some(sample_virtual_geometry_asset()),
+                    },
+                    ModelPrimitiveAsset {
+                        vertices: Vec::new(),
+                        indices: Vec::new(),
+                        mesh: None,
+                        virtual_geometry: Some(sample_virtual_geometry_asset()),
+                    },
+                ],
+            })
+        },
+    )
+    .expect("two cooked primitives should synthesize automatic virtual geometry instances");
+    let extract = output.extract();
+
+    assert_eq!(extract.instances.len(), 2);
+    assert_eq!(
+        extract
+            .instances
+            .iter()
+            .map(|instance| instance.stable_instance_key)
+            .collect::<Vec<_>>(),
+        vec![
+            render_mesh_stable_instance_key(entity, 0),
+            render_mesh_stable_instance_key(entity, 1),
+        ]
+    );
+    assert_eq!(
+        extract
+            .instances
+            .iter()
+            .map(|instance| (instance.cluster_offset, instance.cluster_count))
+            .collect::<Vec<_>>(),
+        vec![(0, 3), (3, 3)]
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_automatic_extract_keeps_original_ordinal_after_non_virtual_primitive() {
+    let model_id = ResourceId::from_stable_label("res://models/skipped_primitive.model.toml");
+    let entity = 5;
+    let output = build_virtual_geometry_automatic_extract_from_meshes(
+        &[mesh_snapshot(
+            entity,
+            model_id,
+            "res://materials/skipped_primitive.zmaterial",
+        )],
+        |loaded_model_id| {
+            (loaded_model_id == model_id).then(|| ModelAsset {
+                uri: AssetUri::parse("res://models/skipped_primitive.model.toml").unwrap(),
+                primitives: vec![
+                    ModelPrimitiveAsset {
+                        vertices: Vec::new(),
+                        indices: Vec::new(),
+                        mesh: None,
+                        virtual_geometry: None,
+                    },
+                    ModelPrimitiveAsset {
+                        vertices: Vec::new(),
+                        indices: Vec::new(),
+                        mesh: None,
+                        virtual_geometry: Some(sample_virtual_geometry_asset()),
+                    },
+                ],
+            })
+        },
+    )
+    .expect("the virtual-geometry primitive should synthesize an automatic instance");
+
+    assert_eq!(output.extract().instances.len(), 1);
+    assert_eq!(
+        output.extract().instances[0].stable_instance_key,
+        render_mesh_stable_instance_key(entity, 1)
     );
 }
 

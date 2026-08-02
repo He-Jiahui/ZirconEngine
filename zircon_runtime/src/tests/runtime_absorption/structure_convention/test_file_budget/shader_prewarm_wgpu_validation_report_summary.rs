@@ -10,6 +10,7 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
     let render_mod = read_runtime_src("core/framework/render/mod.rs");
     let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
+    let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
@@ -60,8 +61,16 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
         ],
     );
     assert_contains_all(
-        "dynamic setup failure path records validation failure counts",
+        "dynamic API re-exports WGPU validation",
         &dynamic_api,
+        &[
+            "mod wgpu_validation;",
+            "prewarm_shader_variants_with_wgpu_module_validation,",
+        ],
+    );
+    assert_contains_all(
+        "WGPU setup failure path records validation failure counts",
+        &wgpu_validation,
         &[
             "report.enable_wgpu_module_validation(manifest.variants.len())",
             "report.record_wgpu_module_validation_failed()",
@@ -98,6 +107,10 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
         (
             "zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs",
             prewarm.as_str(),
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/shader_prewarm/wgpu_validation.rs",
+            wgpu_validation.as_str(),
         ),
         (
             "tools/zircon_build_shader_prewarm.py",

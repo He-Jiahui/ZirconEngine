@@ -177,8 +177,8 @@ pub(super) fn test_host_context(
     });
     let data_root = package_root.as_ref().map(|root| root.join("data"));
 
-    VmPluginHostContext {
-        plugin: PluginContext {
+    VmPluginHostContext::new(
+        PluginContext {
             plugin_name: plugin_name.to_string(),
             core: runtime.handle().downgrade(),
             package_root,
@@ -186,16 +186,15 @@ pub(super) fn test_host_context(
             data_root,
         },
         capabilities,
-        backend_selector: backend_selector.to_string(),
-        package_source: source,
-        host_registry: HostRegistry::default(),
-        host_exports: HostExportRegistry::default(),
-        host_interfaces: VmHostInterfaceRegistry::default(),
-        reflection_catalog: VmReflectionCatalog::default(),
-        reflection_schema_installer: Default::default(),
-        slot_lifecycle: Arc::new(NoopSlotLifecycle),
-        vm_owner: None,
-    }
+        backend_selector.to_string(),
+        source,
+        HostRegistry::default(),
+        HostExportRegistry::default(),
+        VmHostInterfaceRegistry::default(),
+        VmReflectionCatalog::default(),
+        Default::default(),
+        Arc::new(NoopSlotLifecycle),
+    )
 }
 
 pub(super) struct PluginFixture {

@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::project::{AssetRef, RelPath};
 use crate::serialization::{
-    Format, LoadError, MigrationChain, SchemaId, VersionedSchema, load_versioned,
+    load_versioned, Format, LoadError, MigrationChain, SchemaId, VersionedSchema,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -166,14 +166,18 @@ impl Error for ExportPresetValidationError {}
 pub fn load_export_preset(bytes: &[u8]) -> Result<ExportPreset, ExportPresetLoadError> {
     let document = serde_json::from_slice::<StrictPresetDocument>(bytes)
         .map_err(ExportPresetLoadError::Envelope)?;
-    if document.envelope.header.schema_id != ExportPreset::SCHEMA.as_str() {
+    let StrictPresetEnvelope {
+        header,
+        payload: _validated_payload,
+    } = document.envelope;
+    if header.schema_id != ExportPreset::SCHEMA.as_str() {
         return Err(ExportPresetLoadError::Schema {
-            actual: document.envelope.header.schema_id,
+            actual: header.schema_id,
         });
     }
-    if document.envelope.header.schema_version != ExportPreset::VERSION {
+    if header.schema_version != ExportPreset::VERSION {
         return Err(ExportPresetLoadError::Version {
-            actual: document.envelope.header.schema_version,
+            actual: header.schema_version,
         });
     }
     let loaded = load_versioned::<ExportPreset>(bytes, Format::Text)
@@ -196,7 +200,6 @@ struct StrictPresetDocument {
 #[serde(deny_unknown_fields)]
 struct StrictPresetEnvelope {
     header: StrictPresetHeader,
-    #[allow(dead_code)]
     payload: Value,
 }
 

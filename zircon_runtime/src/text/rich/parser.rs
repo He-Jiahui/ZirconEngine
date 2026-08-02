@@ -2,8 +2,8 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::text::TextAlign;
 use crate::text::{
-    InlineObjectRef, LinkRef, ParagraphOverride, RichParseResult, RichTextFormat, StyleOverride,
-    StyledRun,
+    InlineObjectRef, LinkRef, ParagraphOverride, RichParseResult, RichTable, RichTextFormat,
+    StyleOverride, StyledRun,
 };
 
 use super::bbcode::{literal_tag_text, token_at, BbCodeToken};
@@ -12,6 +12,25 @@ use super::bbcode_table::BbCodeTableState;
 use super::decorator::{DecoratorRegistry, RichTextDecoration};
 use super::emoji_shortcode::EmojiShortcodeRegistry;
 use super::html_subset::{self, HtmlToken};
+
+#[derive(Default)]
+struct RichParseBuilder {
+    text: String,
+    runs: Vec<StyledRun>,
+    paragraphs: Vec<((u32, u32), ParagraphOverride)>,
+    tables: Vec<RichTable>,
+}
+
+impl RichParseBuilder {
+    fn finish(self) -> RichParseResult {
+        RichParseResult {
+            text: self.text.into(),
+            runs: self.runs,
+            paragraphs: self.paragraphs,
+            tables: self.tables,
+        }
+    }
+}
 
 pub(super) fn parse(
     markup: &str,
@@ -28,7 +47,7 @@ pub(super) fn parse(
 }
 
 fn parse_html(markup: &str) -> RichParseResult {
-    let mut result = RichParseResult::default();
+    let mut result = RichParseBuilder::default();
     let mut active_tags: Vec<ActiveTag> = Vec::new();
     let mut index = 0;
     let mut text_start = 0;
@@ -111,11 +130,11 @@ fn parse_html(markup: &str) -> RichParseResult {
         current_link(&active_tags),
     );
     result.runs = align_runs_to_graphemes(&result.text, &result.runs);
-    result
+    result.finish()
 }
 
 fn append_html_text(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     text: &str,
     style: StyleOverride,
     link: Option<LinkRef>,
@@ -149,16 +168,16 @@ fn current_link(active_tags: &[ActiveTag]) -> Option<LinkRef> {
 }
 
 fn plain(text: &str) -> RichParseResult {
-    let mut result = RichParseResult {
+    let mut result = RichParseBuilder {
         text: text.to_string(),
-        ..RichParseResult::default()
+        ..RichParseBuilder::default()
     };
     if !text.is_empty() {
         result
             .runs
             .push(styled_run(0, text.len(), StyleOverride::default()));
     }
-    result
+    result.finish()
 }
 
 fn parse_bbcode(
@@ -166,7 +185,7 @@ fn parse_bbcode(
     decorators: &DecoratorRegistry,
     emoji_shortcodes: &EmojiShortcodeRegistry,
 ) -> RichParseResult {
-    let mut result = RichParseResult::default();
+    let mut result = RichParseBuilder::default();
     let mut active_tags: Vec<ActiveTag> = Vec::new();
     let mut active_paragraphs: Vec<ActiveParagraph> = Vec::new();
     let mut block_state = BbCodeBlockState::default();
@@ -392,11 +411,11 @@ fn parse_bbcode(
             .cmp(&right.0 .0)
             .then_with(|| right.0 .1.cmp(&left.0 .1))
     });
-    result
+    result.finish()
 }
 
 fn append_bbcode_text(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     text: &str,
     style: StyleOverride,
     link: Option<LinkRef>,
@@ -412,7 +431,7 @@ fn append_bbcode_text(
 }
 
 fn ensure_block_boundary(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     pending_block_break: &mut bool,
     style: StyleOverride,
     link: Option<LinkRef>,
@@ -426,7 +445,7 @@ fn ensure_block_boundary(
 }
 
 fn ensure_pending_block_break(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     pending_block_break: &mut bool,
     style: StyleOverride,
     link: Option<LinkRef>,
@@ -456,7 +475,7 @@ fn bbcode_paragraph_align(name: &str) -> Option<TextAlign> {
 }
 
 fn close_paragraph_override(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     name: &str,
     active_paragraphs: &mut Vec<ActiveParagraph>,
 ) {
@@ -475,7 +494,7 @@ fn close_paragraph_override(
 }
 
 fn close_open_paragraph_overrides(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     active_paragraphs: Vec<ActiveParagraph>,
 ) {
     let end = u32::try_from(result.text.len()).unwrap_or(u32::MAX);
@@ -487,7 +506,7 @@ fn close_open_paragraph_overrides(
 }
 
 fn parse_markdown(markup: &str) -> RichParseResult {
-    let mut result = RichParseResult::default();
+    let mut result = RichParseBuilder::default();
     let mut index = 0;
     let mut text_start = 0;
     while index < markup.len() {
@@ -513,7 +532,7 @@ fn parse_markdown(markup: &str) -> RichParseResult {
     }
     append_text(&mut result, &markup[text_start..], StyleOverride::default());
     result.runs = align_runs_to_graphemes(&result.text, &result.runs);
-    result
+    result.finish()
 }
 
 fn markdown_marker(input: &str) -> Option<(&'static str, &'static str, StyleOverride)> {
@@ -549,12 +568,12 @@ fn markdown_marker(input: &str) -> Option<(&'static str, &'static str, StyleOver
     }
 }
 
-fn append_text(result: &mut RichParseResult, text: &str, style: StyleOverride) {
+fn append_text(result: &mut RichParseBuilder, text: &str, style: StyleOverride) {
     append_text_with_metadata(result, text, style, None, None);
 }
 
 fn append_text_with_metadata(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     text: &str,
     style: StyleOverride,
     inline: Option<InlineObjectRef>,
@@ -572,7 +591,7 @@ fn append_text_with_metadata(
 }
 
 fn append_inline_object(
-    result: &mut RichParseResult,
+    result: &mut RichParseBuilder,
     style: StyleOverride,
     link: Option<LinkRef>,
     inline: InlineObjectRef,

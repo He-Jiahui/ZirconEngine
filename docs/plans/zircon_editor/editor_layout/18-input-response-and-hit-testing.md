@@ -1,6 +1,10 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/ui/event_ui/mod.rs
+  - zircon_runtime_interface/src/ui/tree/node/pointer_events.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+  - zircon_runtime/src/ui/tree/hit_test.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/surface/input
   - zircon_editor/src/ui/retained_host/host_contract
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
@@ -9,7 +13,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/12-widget-slot-componentization.md
   - docs/plans/zircon_editor/editor_layout/13-taffy-css-constraint-language.md
   - docs/plans/zircon_editor/editor_layout/19-focus-and-navigation-model.md
-status: planned
+status: in_progress
 ---
 # 18 输入响应与命中测试模型(事件相位 / pointer-events / 指针捕获 / 拖拽)
 
@@ -21,9 +25,9 @@ status: planned
 
 ## 2. 现状(按代码核实)
 
-- `editor_ui/01` 已有事件归一化(对应 `GenericApplicationMessageHandler`)、路由策略枚举、`FReply` 式回复,但:**路由次序未单点固化**(capture→popup→preview→direct→bubble→focus-path 散在 dispatch.rs/route_policy.rs,`editor_ui/01` §2.2.4);**11 个 pointer bridge 自带命中/hover/press**(`editor_ui/01` §2.2.5);**无统一命中测试单源**(无 hit-test grid / 命中树)。
-- `event_ui.rs` 有 `UiNodeId` 与事件 DTO,但缺**节点级 `pointer-events`/命中可见性**位与**相位(capture/target/bubble)**契约。
-- 触摸/多指针、双击/tooltip 计时、指针捕获无统一 owner(`editor_ui/01` §2.2.2/2.2.3)。
+- runtime 已有事件归一化、`UiDispatchPhase::hit_path_sequence()`、`UiDispatchReply` 与 `ui/tree/hit_test.rs` 统一命中 owner；retained host 仍保留按业务域拆分的 pointer bridge，后续重点是证明这些 bridge 只消费权威 hit path、逐步移除自带矩形/hover/press 状态机，而不是再建第二套命中实现。
+- interface 已把节点命中声明拆到 `ui/tree/node/pointer_events.rs`（`UiPointerEvents`/`UiCursor`），把相位与回复拆到 `ui/dispatch/input/reply.rs`（`UiDispatchPhase`/`UiDispatchReply`），runtime 的统一命中 owner 位于 `ui/tree/hit_test.rs`；当前缺口已从“无契约”收窄为 bridge 收编、捕获/拖拽统一和端到端行为验收。
+- `UiDispatchEffect::{CapturePointer,ReleasePointerCapture}`、surface input effect 与 touch/pointer reply routes 已形成捕获链；`UiInputManager` 的 `timers.rs` 已拥有 double-click/tooltip deadline 与清理状态。当前剩余缺口是跨 bridge 拖拽阈值/状态统一、retained 私有命中状态清退和完整多指针端到端验收。
 
 ## 3. 设计
 
@@ -103,17 +107,17 @@ wheel 是编辑器最高频输入之一(滚动区/树/日志/可缩放视口),�
 ## 4. 接口与数据结构草案(Rust,规范形态)
 
 ```rust
-// 节点命中位(进 event_ui 或 layout 节点)
+// 当前节点命中位（zircon_runtime_interface/src/ui/tree/node/pointer_events.rs）
 pub enum UiPointerEvents { Auto, None, SelfNone, Pass }
 pub enum UiCursor { Default, Pointer, Text, ResizeEw, ResizeNs, Grab, Grabbing, /* … */ }
 
 // 命中测试单源:已排布树 → 命中路径(deepest→root)
 pub fn hit_test(arranged: &ArrangedTree, point: UiPoint) -> Vec<UiNodeId>;
 
-// 三相派发结果
-pub enum UiEventPhase { Capture, Target, Bubble }
-pub enum UiEventReply { Handled, Unhandled }
-pub struct UiPointerCaptureRequest { pub node: UiNodeId }
+// 当前三相/回复 owner（zircon_runtime_interface/src/ui/dispatch/input/reply.rs）
+pub enum UiDispatchPhase { /* … */ Capture, Target, Bubble, /* … */ }
+pub struct UiDispatchReply { /* disposition / handler / phase / effects */ }
+// 捕获/释放通过 ui/dispatch/input/effect.rs::UiDispatchEffect 发出。
 ```
 
 ## 5. 模块与文件落点
@@ -122,15 +126,15 @@ pub struct UiPointerCaptureRequest { pub node: UiNodeId }
 | --- | --- | --- |
 | 新增(契约) | `docs/ui-and-layout/input-response-contract.md` | 命中单源 + 三相 + pointer-events + 捕获 + 拖拽 + cursor |
 | 运行时实现 | `editor_ui/01` 的 dispatch/route owner(不在本计划) | 把全链次序固化为单实现 + 命中单源,迁出 11 个 bridge 的命中 |
-| DTO | `zircon_runtime_interface/src/ui/event_ui/mod.rs` | 增 `UiPointerEvents`/`UiCursor`/相位/Reply 契约 |
+| DTO | `zircon_runtime_interface/src/ui/tree/node/pointer_events.rs`、`ui/dispatch/input/{reply,effect}.rs` | 维护 `UiPointerEvents`/`UiCursor`、相位/Reply 与捕获 effect 契约 |
 
 ## 6. 里程碑切片化
 
 | # | 切片 | 验证命令 |
 | -- | --- | --- |
-| S1 | pointer-events/cursor DTO + 命中单源契约 + 三相次序文档 | `cargo test -p zircon_runtime_interface --lib input_response --locked` |
-| S2 | 11 个 pointer bridge 命中迁到命中单源(衔接 editor_ui/01) | `cargo test -p zircon_editor --lib --locked` |
-| S3 | 指针捕获 + 拖拽阈值统一机(收编 tab_drag/drawer_resize) | `cargo test -p zircon_editor --lib drag_capture --locked` |
+| S1 | pointer-events/cursor DTO + 命中单源契约 + 三相次序文档 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests -TestFilter input_response` |
+| S2 | retained pointer bridge 命中迁到命中单源(衔接 editor_ui/01) | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` |
+| S3 | 指针捕获 + 拖拽阈值统一机(收编 tab_drag/drawer_resize) | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter drag_capture` |
 
 ## 7. 测试矩阵
 
@@ -169,4 +173,4 @@ pub struct UiPointerCaptureRequest { pub node: UiNodeId }
 
 ## 12. 状态与产出记录
 
-planned。后续项:S1 pointer-events/cursor DTO + 命中单源契约 + 三相次序文档。
+in_progress。S1 的 pointer-events/cursor、统一 hit-test 与 capture/target/bubble DTO，以及 double-click/tooltip timer owner 已有当前源码落点；后续继续完成 bridge 收编、拖拽状态统一和端到端验收，不据此宣称里程碑完成。

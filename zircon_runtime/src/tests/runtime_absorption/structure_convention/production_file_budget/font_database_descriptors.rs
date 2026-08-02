@@ -19,6 +19,7 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
     let sdf_offline_source = read_runtime_src("text/sdf/font_bake/offline_source.rs");
     let native_bitmap_atlas = read_runtime_src("text/native_bitmap_atlas.rs");
     let native_bitmap_raster_key = read_runtime_src("text/native_bitmap_atlas/raster_key.rs");
+    let native_bitmap_source_image = read_runtime_src("text/native_bitmap_atlas/source_image.rs");
     let composite_resolve = read_runtime_src("text/font/composite_resolve.rs");
     let fallback = read_runtime_src("text/font/fallback.rs");
     let fallback_cache = read_runtime_src("text/font/fallback_cache.rs");
@@ -234,6 +235,22 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
         native_bitmap_atlas.contains("mod raster_key;")
             && !native_bitmap_atlas.contains("fn native_bitmap_atlas_subpixel_bin_index("),
         "native bitmap atlas root must delegate stable raster-key construction"
+    );
+    assert_contains_all(
+        "native bitmap source-image projection is a focused child owner",
+        &native_bitmap_source_image,
+        &[
+            "pub(super) struct NativeBitmapGlyphImage",
+            "pub(super) fn native_bitmap_atlas_source_from_image(",
+            "pub(super) fn native_bitmap_atlas_format(",
+            "pub(super) fn text_bounds_clipped_screen_rect(",
+        ],
+    );
+    assert!(
+        native_bitmap_atlas.contains("mod source_image;")
+            && !native_bitmap_atlas.contains("struct NativeBitmapGlyphImage")
+            && !native_bitmap_atlas.contains("fn native_bitmap_atlas_source_from_image("),
+        "native bitmap atlas root must delegate source-image projection"
     );
     assert_contains_all(
         "matching owns stable family identity and linear dedupe",

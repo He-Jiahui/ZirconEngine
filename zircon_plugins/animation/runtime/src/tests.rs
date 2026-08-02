@@ -1,3 +1,4 @@
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::framework::animation::{
     AnimationIkCommand, AnimationIkCommandError, AnimationLookAtCommand, AnimationManager,
     AnimationTargetId,
@@ -5,7 +6,6 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::*;
@@ -60,26 +60,32 @@ fn animation_registration_contributes_runtime_module() {
     let report = plugin_registration();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert!(report
-        .extensions
-        .modules()
-        .iter()
-        .any(|module| module.name == ANIMATION_MODULE_NAME));
-    assert!(report
-        .extensions
-        .plugin_runtime_systems()
-        .any(|(owner, system)| {
-            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
-                && system.id == ANIMATION_EVALUATE_SYSTEM
-                && system.stage == zircon_runtime::scene::SystemStage::PostUpdate
-        }));
-    assert!(report
-        .extensions
-        .plugin_resources()
-        .any(|(owner, resource)| {
-            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
-                && resource.type_name() == std::any::type_name::<AnimationEvaluationPipeline>()
-        }));
+    assert!(
+        report
+            .extensions
+            .modules()
+            .iter()
+            .any(|module| module.name == ANIMATION_MODULE_NAME)
+    );
+    assert!(
+        report
+            .extensions
+            .plugin_runtime_systems()
+            .any(|(owner, system)| {
+                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                    && system.id == ANIMATION_EVALUATE_SYSTEM
+                    && system.stage == zircon_runtime::scene::SystemStage::PostUpdate
+            })
+    );
+    assert!(
+        report
+            .extensions
+            .plugin_resources()
+            .any(|(owner, resource)| {
+                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                    && resource.type_name() == std::any::type_name::<AnimationEvaluationPipeline>()
+            })
+    );
     assert!(report.extensions.plugin_events().any(|(owner, event)| {
         report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
             && event.type_name() == std::any::type_name::<AnimationClipEvent>()
@@ -92,17 +98,19 @@ fn animation_registration_contributes_runtime_module() {
         report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
             && event.type_name() == std::any::type_name::<AnimationStateMachineLayerDiagnostic>()
     }));
-    assert!(report
-        .extensions
-        .plugin_event_catalogs()
-        .iter()
-        .any(|catalog| {
-            catalog.namespace == "animation.events"
-                && catalog.events.iter().any(|event| {
-                    event.id == ANIMATION_CLIP_EVENT
-                        && event.payload_schema == ANIMATION_CLIP_EVENT_SCHEMA
-                })
-        }));
+    assert!(
+        report
+            .extensions
+            .plugin_event_catalogs()
+            .iter()
+            .any(|catalog| {
+                catalog.namespace == "animation.events"
+                    && catalog.events.iter().any(|event| {
+                        event.id == ANIMATION_CLIP_EVENT
+                            && event.payload_schema == ANIMATION_CLIP_EVENT_SCHEMA
+                    })
+            })
+    );
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
         vec![ANIMATION_SYSTEM_SET.to_string()]
@@ -124,26 +132,30 @@ fn animation_registration_contributes_runtime_module() {
         report.package_manifest.maturity,
         zircon_runtime::plugin::PluginMaturity::Beta
     );
-    assert!(report
-        .package_manifest
-        .capability_statuses
-        .iter()
-        .any(|status| {
-            status.capability == ANIMATION_RUNTIME_CAPABILITY
-                && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
-                && status
-                    .bevy_references
-                    .iter()
-                    .any(|reference| reference == "dev/bevy/crates/bevy_animation/src/lib.rs")
-        }));
-    assert!(report
-        .package_manifest
-        .capability_statuses
-        .iter()
-        .any(|status| {
-            status.capability == ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY
-                && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
-        }));
+    assert!(
+        report
+            .package_manifest
+            .capability_statuses
+            .iter()
+            .any(|status| {
+                status.capability == ANIMATION_RUNTIME_CAPABILITY
+                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                    && status
+                        .bevy_references
+                        .iter()
+                        .any(|reference| reference == "dev/bevy/crates/bevy_animation/src/lib.rs")
+            })
+    );
+    assert!(
+        report
+            .package_manifest
+            .capability_statuses
+            .iter()
+            .any(|status| {
+                status.capability == ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY
+                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+            })
+    );
 }
 
 #[test]
@@ -185,9 +197,11 @@ fn animation_module_resolves_manager() {
 fn animation_package_manifest_declares_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(manifest
-        .default_packaging
-        .contains(&ExportPackagingStrategy::NativeDynamic));
+    assert!(
+        manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic)
+    );
 
     let distribution = manifest
         .distribution
@@ -226,10 +240,12 @@ fn animation_package_manifest_declares_dist_contract() {
         assert!(native_module.capabilities.contains(&capability.to_string()));
     }
 
-    assert!(manifest
-        .modules
-        .iter()
-        .any(|module| module.name == "animation.runtime"));
+    assert!(
+        manifest
+            .modules
+            .iter()
+            .any(|module| module.name == "animation.runtime")
+    );
     assert_eq!(
         manifest.modules[0].system_sets,
         vec![ANIMATION_SYSTEM_SET.to_string()]
@@ -238,4 +254,24 @@ fn animation_package_manifest_declares_dist_contract() {
         manifest.modules[0].system_anchors,
         vec![ANIMATION_EVALUATE_SYSTEM.to_string()]
     );
+}
+
+#[test]
+fn property_sequence_pipeline_caches_compiled_projection_by_asset_revision() {
+    let pipeline_source = include_str!("evaluation/pipeline/animation_evaluation_pipeline.rs");
+    let request_source = include_str!("evaluation/pipeline/requests.rs");
+    let scan_source = include_str!("evaluation/pipeline/parameter_apply.rs");
+    let tick_source = include_str!("evaluation/pipeline/tick.rs");
+    let sequence_source = include_str!("evaluation/pipeline/sequences.rs");
+
+    assert!(pipeline_source.contains("sequence_cache"));
+    assert!(request_source.contains("asset_revision: Option<u64>"));
+    assert!(scan_source.contains("asset_revision: revision.asset_revision"));
+    assert!(tick_source.contains("asset_revision: pending.asset_revision"));
+    assert!(sequence_source.contains("struct CachedCompiledSequence"));
+    assert!(sequence_source.contains("compile_sequence_for_world"));
+    assert!(sequence_source.contains("apply_compiled_sequence_to_world"));
+    assert!(sequence_source.contains("compiled.is_current_for(world)"));
+    assert!(sequence_source.contains("sample.asset_revision.is_none()"));
+    assert!(!sequence_source.contains("apply_sequence_to_world"));
 }

@@ -55,12 +55,15 @@ F0 必须覆盖以下产品输入：
 
 `target-server` 继续由全局 profile contract 保护，但不要求它产生桌面窗口；不得用 server/headless 成功代替两个桌面产品。
 
+`zircon_shader_pbr_viewer` 与 runtime binary 一样由 `target-client` 启用，但它不是 F0 的 runtime/editor 产品启动验收对象；profile contract 仍必须覆盖该 binary，防止它经 default feature 或额外 authoring 依赖泄漏。
+
 ## 3. 非目标
 
 - 不验收项目创建、资产扫描、场景渲染或编辑器 authoring。
 - 不要求高级插件、export wizard 或非默认 editor panels 加载。
 - 不接受只构建 `zircon_editor` library crate 而未构建 `zircon_app --bin zircon_editor`。
 - 不从 Cargo target 目录直接把零散 EXE 当作完整 staged product。
+- 不用 `zircon_shader_pbr_viewer` 的构建或启动结果替代 runtime/editor 产品门禁。
 
 ## 4. M1.1 Profile 与二进制构建合同
 
@@ -70,7 +73,7 @@ F0 必须覆盖以下产品输入：
 
 ### 实现切片
 
-- [ ] 核对 `zircon_app/Cargo.toml` 中 binary `required-features` 与 profile matrix，确保 editor binary 只在 `target-editor-host` 下构建，runtime binary 使用声明的 client/platform/input feature。
+- [ ] 验证 `zircon_app/Cargo.toml` 的现有 binary `required-features` 合同：editor 为 `target-editor-host`，runtime 与 `zircon_shader_pbr_viewer` 为 `target-client`；profile matrix 必须覆盖三者且不得引入隐式 default feature。
 - [ ] 扩充 profile contract：禁止 `target-editor-host` 依赖 server-only surface，禁止 runtime desktop profile 静默依赖 editor crate 的 authoring owner。
 - [ ] 确认 runtime dynamic library、first-party plugin registration 和 editor gateway 所需 DLL/asset 清单可以由 staging owner枚举，而不是运行时猜测 Cargo target 布局。
 - [ ] 对 profile 不兼容、缺少 required feature 和 ABI/version mismatch 保留 typed/actionable build or startup error。
@@ -100,7 +103,7 @@ F0 必须覆盖以下产品输入：
 - [ ] 在批准的 `D:\ZirconBuilds`、`E:\ZirconBuilds` 或 `F:\ZirconBuilds` 根下定义 source-bound F0 staging 目录；不得覆盖其他 validation run。
 - [ ] stage runtime/editor EXE、runtime library、必需 first-party plugin、editor/runtime UI asset、项目 template 和启动所需配置。
 - [ ] 增加 staging manifest，列出逻辑产物、源 build artifact、目标相对路径和内容 hash；运行时不解析该 manifest 作为 fallback。
-- [ ] runtime 使用 `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME=1`，editor 使用 `ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME=1`；两者都必须先完成实际 presented-frame 路径再退出。
+- [ ] 使用现有 `ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME=1` 与 `ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME=1` 入口，验证两者只在实际 presented-frame 路径之后退出；环境变量存在或配置值为 true 本身不构成首帧证据。
 - [ ] process harness 捕获 stdout、stderr、exit code、启动耗时、窗口创建/首帧诊断和 teardown 完成标记。
 - [ ] 运行结束后确认无残留子进程，staging 目录可重命名并删除验证副本，证明没有持久文件句柄。
 
@@ -160,13 +163,8 @@ F0 必须覆盖以下产品输入：
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-### 与代码现状不符，需修订
-
-- M1.2 引用的环境变量名与源码一致，可直接核对：`ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME` 定义于 `zircon_app/src/entry/entry_runner/runtime.rs:27`，`ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME` 定义于 `zircon_app/src/entry/entry_runner/editor.rs:50`，并有 source guard 测试 `zircon_app/src/entry/tests/runtime_entry_source_guards/config.rs:113`。首帧退出机制已实现，M1.2 应从「加入」调整为「验证首帧退出确在 presented-frame 后触发」。
-- M1.1「核对 `zircon_app/Cargo.toml` 中 binary `required-features`」已可确认现状：`zircon_app/Cargo.toml:10-18` 中 `zircon_editor` bin `required-features = ["target-editor-host"]`、`zircon_runtime` bin `required-features = ["target-client"]`，与支持矩阵一致。此外还存在第三个 bin `zircon_shader_pbr_viewer`（`required-features = ["target-client"]`，`Cargo.toml:20-23`），F0 §2 支持矩阵未提及它；建议在非目标或矩阵注记中说明该 viewer bin 不属于 F0 桌面产品验收范围，避免执行者误将其纳入或漏判 profile 泄漏。
-
-### 验证缺口
-
-- §2 支持矩阵与 M1.1 都未把 `zircon_shader_pbr_viewer` bin 纳入 profile feature 泄漏检查。既然它同样 gate 在 `target-client`，建议在 M1.1 的 profile contract 断言里显式覆盖或显式排除该 bin，防止后续新增 default feature 时它成为隐式泄漏来源。
+- 已按当前 `zircon_app/Cargo.toml` 固定三项 binary feature 合同，并明确 `zircon_shader_pbr_viewer` 只进入 profile 泄漏检查、不替代 runtime/editor 产品启动门禁。
+- 已把 M1.2 收敛为验证现有环境变量入口确实在 presented-frame 后退出；source guard 或配置布尔值不能替代窗口呈现证据。
+- 当前 source 只证明机制和声明存在，尚无同一 current-source validation copy 的 build/stage/run 证据，因此 F0 继续保持 `blocked_by_00`，所有验收复选框保持未完成。

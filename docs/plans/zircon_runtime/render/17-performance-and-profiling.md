@@ -452,11 +452,16 @@ PF-M4:
 
 ## 状态与产出记录
 
+- open/待修复：[gpu-readback-queue-owner-missing](16/failure-2026-08-01-gpu-readback-queue-owner-missing.md)
+
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`17/2026-07-09-performance-and-profiling-output-records.md`](17/2026-07-09-performance-and-profiling-output-records.md)
+
+## 性能审阅交接
+
 - 2026-07-18 core diagnostics交接：`render_stats_store/**` 30/30文件确认一次采集约写541条series；四类helper、5条遗漏product leaf与collect root 5条metric现均走static metadata快路。Render17仍须联动Runtime07交付RenderStats整体/domain generation、dense token、packed delta与editor同generation snapshot缓存，避免可见pane按UI刷新率重复全批；预算与证据见PERF-MVP-324及`docs/plans/performance/01/2026-07-18-runtime-core-render-stats-store-static-review.md`。
 - 2026-07-18 profiler本身性能交接：capture inactive的recorder锁/静态name/动态payload和frame stream临时key已止损；active scope/frame/counter仍由单个全局Mutex串行，snapshot/hotspot/Perfetto/Markdown导出仍深clone、全排序并同步写盘。Render17需联动Runtime07把采集改为thread-local bounded chunks+static IDs，封存后后台聚合/导出，并记录observer overhead、drop和frame-thread I/O；见PERF-MVP-326及`docs/plans/performance/01/2026-07-18-runtime-core-profiling-static-review.md`。
 - 2026-07-18 gizmo overlay交接：framework extract的per-endpoint matrix、circle/sphere temp points及line realloc已直接止损，但framework gizmos尚无生产caller，Editor05仍有独立interaction/gizmo extract。Render17需先会签唯一overlay owner，再以generation-compiled retained geometry、可复用line-list/strip buffers和transform instancing消除stable rebuild/upload；RenderDoc稳定帧必须记录line upload bytes、draw/pass与1/1k/100k instances，不以未接产品的microbench替代。见PERF-MVP-333及`docs/plans/performance/01/2026-07-18-runtime-core-framework-camera-gizmos-static-review.md`。
@@ -558,4 +563,4 @@ PF-M4:
 - 2026-07-22 texture asset观测补充：Render17联动Runtime04/11、Render13与Editor09记录descriptor normalize/clone、container header parse、format String alloc、source/output/scratch owners、chunk queue age/RSS、GPU object creates及mip/face/layer upload bytes。PERF-MVP-521当前metadata第二次clone/normalize为0且Cube LUT defaults构造1次；522/523最终stable上述全部为0、changed近dirty chunks并受bytes/RSS预算。CPU/allocator/I/O trace验证准备阶段，真实backend用DX12 RenderDoc核对resource/upload/像素parity。
 - 2026-07-22 root/project/UI/sound asset观测补充：Render17联动Runtime04/11、Editor09/10、EditorUI09与Plugins02记录TOML/Value/DTO/string owners、Data text/JSON owners、UI DOM/locator/sprite-index visits、audio source/PCM/decode-ring bytes及caller/audio-thread stall。PERF-MVP-524..526当前局部临时分配已止损；527..529最终stable build/parse/decode=0且峰值受预算。CPU/allocator/I/O/audio trace为主，只有sprite/preview真实resident与draw再用DX12 RenderDoc对拍。
 - 2026-07-22 plugin control-plane观测补充：Render17联动Plugins01/11、Runtime06/11与Editor12记录bridge status/snapshot/String/key-resolve、extension family/owner scans、freeze/thaw/hash/key clone、world plan/system factory build、callback mutex wait/hold、availability reason/id clone与generation hit。PERF-MVP-530/531当前局部冗余为0；532..534最终stable control-plane build=0、per-run shared callback lock=0、changed近owner slots。该路径以CPU/lock/allocator/WPR为主，不误列无GPU工作的RenderDoc证据。
-- 2026-07-31 PF-M2 prepare/queue 前置交接：当前 Render02 command builder 将 variant id 分配、cache mutation 与 command 生成耦合在可变循环中；Render17 已完成 bounded pipelined submission，但不会以 mutex 假装 rayon 并行。见 [`02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md`](02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md)。
+- 2026-07-31 PF-M2 prepare/queue 前置交接：当前 Render02 command builder 将 variant id 分配、cache mutation 与 command 生成耦合在可变循环中；Render17 已完成 bounded pipelined submission，但不会以 mutex 假装 rayon 并行。见 [`02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md`](02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md)（open/待修复）。

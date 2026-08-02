@@ -2,7 +2,14 @@ use std::rc::Rc;
 
 use super::host_value_toml::{notification_text_copy_count, reset_notification_text_copy_count};
 use super::*;
+use crate::ui::retained_host::{
+    WorkbenchContextMenuRequestData,
+    callback_dispatch::{
+        BuiltinWorkbenchWindowTemplateSurfaceBridge, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+    },
+};
 use crate::ui::template_runtime::RetainedUiHostComponentKind;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 #[test]
 fn workbench_projection_uses_a_memoized_node_index() {
@@ -74,6 +81,61 @@ fn mounted_workbench_projection_translates_frames_clips_and_popup_anchors() {
 }
 
 #[test]
+fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
+    let mount_frame = UiFrame::new(11.0, 57.0, 640.0, 400.0);
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
+        mount_frame.width,
+        mount_frame.height,
+    ))
+    .expect("mounted workbench template should project");
+    bridge
+        .recompute_layout_at_mount(mount_frame)
+        .expect("workbench should recompute inside the host mount");
+    let global_anchor = (128.0, 157.0);
+
+    assert!(
+        bridge
+            .open_context_menu(&WorkbenchContextMenuRequestData {
+                target_control_id: "WorkbenchScenePropsItem".into(),
+                target_action_id: "workbench.hierarchy.select_props".into(),
+                target_dispatch_kind: "workbench".into(),
+                target_role: "tree-row".into(),
+                target_value_text: "Props".into(),
+                target_path: "workbench://scene/props".into(),
+                popup_anchor_x: global_anchor.0,
+                popup_anchor_y: global_anchor.1,
+                menu_items: vec!["Open|icon=folder".into(), "Delete|danger,icon=trash".into()],
+            })
+            .expect("mounted context menu should open")
+    );
+
+    let local_projection = bridge.host_projection();
+    let local_menu = local_projection
+        .node_by_control_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("local context menu projection");
+    assert_eq!(
+        local_menu.popup_anchor_x,
+        f64::from(global_anchor.0 - mount_frame.x)
+    );
+    assert_eq!(
+        local_menu.popup_anchor_y,
+        f64::from(global_anchor.1 - mount_frame.y)
+    );
+
+    let mounted = to_host_contract_workbench_window_nodes_with_previous_at_mount(
+        Some(local_projection),
+        None,
+        Some(mount_frame),
+    );
+    let mounted_menu = (0..mounted.row_count())
+        .filter_map(|row| mounted.row_data(row))
+        .find(|node| node.control_id.as_str() == WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("mounted context menu projection");
+    assert_eq!(mounted_menu.popup_anchor_x, global_anchor.0);
+    assert_eq!(mounted_menu.popup_anchor_y, global_anchor.1);
+}
+
+#[test]
 fn notification_rows_are_reused_only_while_the_complete_cache_key_matches() {
     let mut notification = test_host_node("NotificationCenter", "notification-center", None, []);
     notification.properties.extend([
@@ -118,9 +180,11 @@ fn notification_rows_are_reused_only_while_the_complete_cache_key_matches() {
         &first_node.options_text,
         &second_node.options_text
     ));
-    assert!(first_node
-        .structured_options
-        .shares_values_with(&second_node.structured_options));
+    assert!(
+        first_node
+            .structured_options
+            .shares_values_with(&second_node.structured_options)
+    );
     assert_eq!(notification_text_copy_count(), 0);
 
     let mut other_document_projection = projection.clone();
@@ -133,9 +197,11 @@ fn notification_rows_are_reused_only_while_the_complete_cache_key_matches() {
     let other_document_node = other_document
         .get(0)
         .expect("other-document projected notification node");
-    assert!(!second_node
-        .structured_options
-        .shares_values_with(&other_document_node.structured_options));
+    assert!(
+        !second_node
+            .structured_options
+            .shares_values_with(&other_document_node.structured_options)
+    );
     assert_eq!(notification_text_copy_count(), 3);
 
     let mut changed_projection = projection;
@@ -150,12 +216,16 @@ fn notification_rows_are_reused_only_while_the_complete_cache_key_matches() {
     );
     let changed_node = changed.get(0).expect("changed projected notification node");
 
-    assert!(!second_node
-        .options
-        .shares_values_with(&changed_node.options));
-    assert!(!second_node
-        .structured_options
-        .shares_values_with(&changed_node.structured_options));
+    assert!(
+        !second_node
+            .options
+            .shares_values_with(&changed_node.options)
+    );
+    assert!(
+        !second_node
+            .structured_options
+            .shares_values_with(&changed_node.structured_options)
+    );
     assert_eq!(notification_text_copy_count(), 3);
 }
 

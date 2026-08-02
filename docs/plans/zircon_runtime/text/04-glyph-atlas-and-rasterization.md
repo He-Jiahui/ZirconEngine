@@ -52,6 +52,12 @@ related_code:
   - zircon_runtime/src/text/atlas/raster_key/mod.rs
   - zircon_runtime/src/text/atlas/raster_key/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches/auto_route.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/rendering.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache/lru.rs
@@ -63,6 +69,7 @@ related_code:
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache/residency.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/storage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
@@ -95,6 +102,7 @@ related_code:
   - zircon_runtime/src/text/raster/swash/rasterizer.rs
   - zircon_runtime/src/text/raster/swash/tests.rs
   - zircon_runtime/Cargo.toml
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
@@ -391,14 +399,24 @@ bevy 对照:`FontAtlasKey { font_size_bits, variations_hash, hinting, font_smoot
 
 2026-07-31 PERF-MVP-244 前向修复实现完成 / 受管验证待执行：bitmap atlas draw 现只保留一次 clipped occurrence，并将每 glyph 打包为 68 B `GlyphAtlasGpuInstance`（screen rect、UV rect、前景/背景色、atlas layer）；`vertex_index` 在 `glyph_atlas_pipeline.wgsl` 展开固定六个 triangle-list corner，viewport pixel→NDC 已硬切到 16 B vertex-stage uniform，CPU 不再为每 glyph 物化或投影六个 52 B 顶点。renderer 的 WGPU instance buffer 使用 `VertexStepMode::Instance` 和 `draw(0..6, instance_range)`；batch 只合并相邻的相同 page/contract，保留 Alpha/Color/Subpixel painter order。稳定/缩小 instance 帧复用同一 `VERTEX | COPY_DST` buffer，只通过 `Queue::write_buffer` 写入有效字节；仅首次或容量不足时才按至少 4 KiB 的二次幂重新分配，prepare report 记录实际 capacity/reallocation count；显式 idle 则释放所有历史 pass buffer，仅保留一个空 pass，避免 mixed-storage 峰值常驻。旧 `render_gpu_plan/vertex.rs` 与 `atlas_renderer/vertex.rs` 均删除，分别由 `instance.rs` leaf owner 接替；为遵守结构规范，renderer state/prepare DTO 已拆到 `state.rs`，instance-buffer 生命周期拆到 `instance_buffer.rs`，当前 renderer root 为 725 行、state leaf 为 137 行、instance-buffer leaf 为 68 行。atlas resource 异常缺失时不再以生产 `expect` 中断，而是将 upload 降级为 binding failure、禁用 shadow commit，使下一帧前向重传。新/更新的 leaf tests 固定 instance stride、instance range、uniform payload、角点几何、非相邻格式次序、容量增长、idle resource release 与该 forward-retry 合同；新增整页阈值提升回归，将已 shadow-commit 的 8x8 持久槽位与同页 56x64 新槽位组合，要求 full-page staging 回放旧槽位四角像素。screenshot-guard P2 在目录创建前将 output/target 解析为“最深存在祖先”的 canonical identity 并重附缺失尾部，避免 Windows `\\?\` 与普通 DOS 前缀混用；不可解析时 Windows 按组件忽略 ASCII 大小写比较，覆盖 `..` 和 `DOCS` target 别名，独立静态复审已通过。scoped rustfmt 与无索引 diff check 已通过。受管 Cargo/WGPU product framebuffer 尚未收到成功回执，因此全部关联 failure 继续为 open，未生成截图、未声明验证或提交完成。状态维持 `implemented / resolving_failure / managed_validation_pending`。
 
+2026-08-01 PERF-MVP-244 规模证据补齐：新增 1/100/1k/10k glyph 精确门禁，固定 `N` occurrences、`N` 68 B instances、`0` CPU quad vertices、同合同连续场景 `1` draw、`68N` upload bytes，并验证 resizable WGPU instance buffer 在同容量稳态不重新分配；ignored 的 31-sample exporter输出 p50/p95，不把机器时延设为验收阈值。二次静态审查修正 p95 nearest-rank 计算和误导性的三 batch helper 名称，未发现 actionable P0/P1/P2。failure 保持 `open / implementation_complete / resolving_failure / managed_validation_pending`，等待 managed focused/upward/ignored WGPU；未产生新 PNG。
+
+2026-08-01 PERF-MVP-244 current-source 结构计数：`render_gpu_plan.rs` 134 行、plan `instance.rs` 100、`draw_command.rs` 66、atlas renderer root 769、renderer `state.rs` 148、WGPU `instance.rs` 63、`instance_buffer.rs` 75；全部 production owner 低于 800 行 warning。7 月 31 日段落保留的是当时计数，本行是当前权威计数。
+
 2026-07-31 Text04 mixed-storage page-shadow P1 前向修复：连续 `AlphaMask → Color → AlphaMask` split 在同一帧各自持有 atlas clone，因而 pending `zero_initialize_shadow_pages` 不能被后一个 Alpha split 当作已可回放 shadow；否则其 75% dirty threshold full-page upload 会清除前一 split 的同页像素。storage owner 已只以 generation-matched committed shadow 授权 replay；缺少 committed shadow 时，包含其他 split slot 的页维持 partial upload。新回归以 8x8 Alpha、Color、56x64 Alpha 构造共享 Alpha page，并锁定后一个 Alpha command/staging 为 compact partial rect。该 P1 的独立静态复审与受管 Cargo/WGPU 仍待执行；failure 保持 open，未生成 PNG 或声明验证完成。
 
 2026-07-31 Text04 mixed-storage shadow replay follow-up：上一帧 committed shadow 也不能回放同一帧 sibling split 新写入的 slot。storage split 现在若发现同页有当前 range 之外的 upload copy，禁止该 split 将 dirty threshold 升级到 full page；它仍使用 bounded region merge/partial staging，避免退化成每 glyph write。跨帧回归先提交 cached Alpha shadow，再用 `cached Alpha → new Alpha → Color → later Alpha(64x48)` 固定 shared page 与 75% threshold，断言后一个 Alpha 只能 partial upload。独立静态复审已确认 fresh 与 committed-shadow 两条 split 覆盖路径均无 P0/P1/P2；受管 Cargo/WGPU 仍待执行，failure 保持 open，未生成 PNG 或声明验证完成。
 
 2026-07-31 PERF-MVP-242 source-cache 非验收收敛：当前 native bitmap source cache 的空文本帧只刷新 report，不再清除 resident image 或 pending worker；CPU residency 同时受 2048 entry 与 8 MiB hard cap 约束，cached pixels 使用共享 `Arc<[u8]>`，approximate lookup 直接构造最多 3 个 vertical-bin key。LRU 的 head/tail 与双向链接已从 601 行 cache owner 拆到 239 行 `source_cache/lru.rs` leaf，正常 hit/insert/evict 只做常数次 HashMap 操作；链接不一致时不再通过生产 `expect` panic，而是执行一次异常 O(n) 索引重建并增加 `lru_repair_count`。回归人为注入 dangling tail，锁定修复后最近使用顺序、逐出结果和 telemetry；二次静态审查未发现 P0/P1/P2，scoped Cargo 尚未执行。跨 source/slot/GPU page 的统一 budget-pressure eviction、300 empty-frame 规模证据及 WGPU/RenderDoc 像素验收仍 open，状态为 `implemented / resolving_failure / managed_validation_pending`。
 
+2026-08-01 PERF-MVP-242 统一 residency 前向收敛：source cache 以 O(1) reverse index 将 exact `CacheKey` 绑定到 neutral `GlyphRasterKey`；source entry/byte pressure 发出的 key 由 `GlyphAtlasSet` page owner 一次提升 generation 并清 page allocator/slots/shadow，同页 raster keys 再定点反向失效 source。atlas LRU eviction 通过显式 run-plan key 列表回传，renderer failed upload 对 page keys 去重后只推进一次 generation，并在下一帧报告失效。产品 telemetry 现包含 CPU resident/max bytes、LRU touch、linked eviction/invalidation 与 logical GPU page bytes。300 empty frames、2048 resident + 1/100/1k misses 和 ignored 31-sample p50/p95 证据代码均已写入；test owner 拆分后 parent 844 行、residency child 216，production source/LRU/page/render-state 为 722/243/527/396。二次静态审查同时修复 instance hard-cut 后两个 stale `.vertices` 消费者、hidden invalidation handoff、duplicate generation bump、stale exact report 与失真 static guard，未留下 actionable P0/P1/P2。状态为 `implementation_complete / resolving_failure / managed_validation_pending`；current-source managed Cargo/WGPU/RenderDoc 仍未验收，不产生新 PNG。
+
+Coordinator handoff（2026-08-01）：Text04 完整 Plan/scope registration 在 coordinator health 阶段超时且没有 receipt；按规则不重试、不查询数据库、不等待 maintenance/validation queue。coordinator wakeup 后提交 source residency focused/scale/ignored p50-p95、instance draw focused/upward 与 exact ignored WGPU product framebuffer；当前没有 queued/running ticket。
+
 2026-07-31 PERF-MVP-245 retry 产品预算 current-source 复核：native bitmap 产品入口不再使用 unlimited policy；Text09 权威的 256 glyph / 2 MiB 确定性帧预算被 old retry 与 new visible work 各分 128 glyph / 1 MiB，retained blocked queue 另有 256 entry / 2 MiB hard cap，超限以独立 overflow/rejected counter fail-closed 到 Glyphon。retry/new 只对 persistent-slot miss 计预算，同 `GlyphRasterKey`/generation 在帧内去重；队列保留旧项顺序并轮转 backpressured 项，300 帧回归固定三项各尝试 100 次。Text09 对 CPU time 的契约仍是只观测不 gate，因此本阶段不新增无标定毫秒/像素常数；current-source Cargo、规模 telemetry 与产品像素尚未执行，failure 保持 open。
 
 2026-07-31 Text04 raster completion API current-source 复核：native atlas/source cache/worker pool 已硬切到唯一 `face_epoch` identity 与 `drain_completed_for_face_epoch(..., TextRasterCompletionDrainBudget)`；旧 `TextRasterWorkTarget`、`drain_completed_for_target` 及 completion-side page-generation 字段在 Text owner 扫描为 0。真实 page generation 仍只由 allocation/staging/upload owner 校验，避免 CPU raster completion 因 page churn 被错误丢弃。7 月 31 日 partial-feature `zircon_runtime --lib` 生产 check 已覆盖这些 owner，但 focused lib-test、Editor09 upward gate、独立复审与受管 commit SHA 仍待完成，接口 failure 不转 fixed。
 
 2026-07-31 Auto raster route current-source 复核：screen-space UI 的 Auto batch 已由 `resolved_auto_text_render_mode(...)` 统一进入 `GlyphRasterPolicyRequest`；无显式 font default 时，小字号 alpha 走 Native，大字号/outline/shadow 走 SDF，true-distance glow 走 MTSDF，font asset 明确指定 Native/Sdf/Msdf/Mtsdf 时保持作者语义。产品与 policy tests 已覆盖这些分支，旧“policy 仅测试消费”描述不再成立。当前 `ScreenSpaceUiTextBatch` 尚无稳定 command/layout identity，因此不能以数组下标或 text hash 错建跨帧 hysteresis；稳定 identity、physical scale 输入、residency-aware hysteresis 与产品 WGPU 仍 open。
+
+2026-08-01 PERF-MVP-241 Auto route identity/hysteresis 实现完成：`ScreenSpaceUiTextBatch` 现在携 `UiTreeId(Arc<str>) + UiNodeId + source_range` 的稳定 fragment identity 与既有 command/layout generation；普通 line、rich run、inline icon 共用一次 command-generation 读取。`AutoTextRasterRouter` 按 generation 只评估一次 policy，并以 warm route 作为 residency hint；`GlyphRasterPolicy` 单源执行 24px threshold 与 22/26px 双向 hysteresis，显式 font mode 和 effects 不被改写。router 以 2048 entry/300 idle frames/tokenized recency 有界维护，产品 report 暴露 hit/evaluation/retain/switch/eviction，1/100/1k 与 ignored 31-sample p50/p95 证据代码已写入。二次审查修复 tree identity、Arc move、visibility、projection duplication 与 eager allocation 后 P0/P1/P2=0；状态为 `implementation_complete / resolving_failure / managed_validation_pending`，managed Cargo/WGPU/RenderDoc 与新 PNG 尚未验收。

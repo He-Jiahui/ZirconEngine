@@ -4,9 +4,9 @@ use std::sync::Arc;
 use crate::rhi::{UiSurfaceDrawList, UiSurfaceRect};
 
 use super::batching::{BatchDrawPlan, DrawOp};
-use super::geometry::{ImageVertex, SolidVertex};
+use super::geometry::{ImageVertex, SolidVertex, UI_QUAD_VERTEX_COUNT};
+use super::image_cache::WgpuUiImageResource;
 use super::text::WgpuUiTextRenderer;
-use super::WgpuUiImageResource;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct WgpuUiDrawBufferStats {
@@ -20,6 +20,7 @@ pub(super) struct WgpuUiRecordedDrawStats {
     pub(super) render_pass_count: u64,
     pub(super) visible_draw_item_count: u64,
     pub(super) solid_vertex_count: u64,
+    pub(super) solid_instance_count: u64,
     pub(super) image_vertex_count: u64,
     pub(super) batch_layer_count: u64,
     last_layer_index: Option<u32>,
@@ -31,6 +32,7 @@ impl WgpuUiRecordedDrawStats {
         layer_index: u32,
         item_count: u32,
         solid_vertex_count: u32,
+        solid_instance_count: u32,
         image_vertex_count: u32,
     ) {
         self.draw_calls = self.draw_calls.saturating_add(1);
@@ -40,6 +42,9 @@ impl WgpuUiRecordedDrawStats {
         self.solid_vertex_count = self
             .solid_vertex_count
             .saturating_add(u64::from(solid_vertex_count));
+        self.solid_instance_count = self
+            .solid_instance_count
+            .saturating_add(u64::from(solid_instance_count));
         self.image_vertex_count = self
             .image_vertex_count
             .saturating_add(u64::from(image_vertex_count));
@@ -53,6 +58,7 @@ impl WgpuUiRecordedDrawStats {
 #[derive(Clone)]
 pub(super) struct WgpuUiDrawBuffers {
     solid: Option<UiVertexBuffer>,
+    solid_instance: Option<UiVertexBuffer>,
     image: Option<UiVertexBuffer>,
 }
 
@@ -83,14 +89,30 @@ impl WgpuUiDrawBuffers {
             bytemuck::cast_slice(draw_plan.image_vertices.as_slice()),
             "zircon-ui-image-vertices",
         );
+        let (solid_instance, solid_instance_created) = upload_ui_vertex_buffer(
+            device,
+            queue,
+            previous.and_then(|buffers| buffers.solid_instance.as_ref()),
+            bytemuck::cast_slice(draw_plan.solid_instances.as_slice()),
+            "zircon-ui-solid-instances",
+        );
         let solid_upload_bytes = std::mem::size_of_val(draw_plan.solid_vertices.as_slice()) as u64;
+        let solid_instance_upload_bytes =
+            std::mem::size_of_val(draw_plan.solid_instances.as_slice()) as u64;
         let image_upload_bytes = std::mem::size_of_val(draw_plan.image_vertices.as_slice()) as u64;
         (
-            Self { solid, image },
+            Self {
+                solid,
+                solid_instance,
+                image,
+            },
             WgpuUiDrawBufferStats {
                 vertex_buffer_create_count: u64::from(solid_created as u8)
+                    .saturating_add(u64::from(solid_instance_created as u8))
                     .saturating_add(u64::from(image_created as u8)),
-                vertex_upload_bytes: solid_upload_bytes.saturating_add(image_upload_bytes),
+                vertex_upload_bytes: solid_upload_bytes
+                    .saturating_add(solid_instance_upload_bytes)
+                    .saturating_add(image_upload_bytes),
             },
         )
     }
@@ -105,34 +127,30 @@ fn upload_ui_vertex_buffer(
     contents: &[u8],
     label: &'static str,
 ) -> (Option<UiVertexBuffer>, bool) {
-    let required_bytes = u64::try_from(contents.len()).expect("UI vertex payload size fits u64");
+    let required_bytes = contents.len() as u64;
     let action =
         ui_vertex_buffer_upload_action(existing.map(|buffer| buffer.capacity), required_bytes);
+    let allocate = || {
+        let capacity = next_ui_vertex_buffer_capacity(required_bytes);
+        UiVertexBuffer {
+            buffer: Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                size: capacity,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            })),
+            capacity,
+        }
+    };
     let (buffer, reallocated) = match action {
         UiVertexBufferUploadAction::RetainExisting => {
             return (existing.cloned(), false);
         }
-        UiVertexBufferUploadAction::ReuseExisting => (
-            existing
-                .expect("a reusable UI vertex buffer must exist")
-                .clone(),
-            false,
-        ),
-        UiVertexBufferUploadAction::Allocate => {
-            let capacity = next_ui_vertex_buffer_capacity(required_bytes);
-            (
-                UiVertexBuffer {
-                    buffer: Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
-                        label: Some(label),
-                        size: capacity,
-                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                        mapped_at_creation: false,
-                    })),
-                    capacity,
-                },
-                true,
-            )
-        }
+        UiVertexBufferUploadAction::ReuseExisting => match existing {
+            Some(existing) => (existing.clone(), false),
+            None => (allocate(), true),
+        },
+        UiVertexBufferUploadAction::Allocate => (allocate(), true),
     };
     queue.write_buffer(&buffer.buffer, 0, contents);
     (Some(buffer), reallocated)
@@ -250,6 +268,7 @@ pub(super) fn record_draw_ops_to_view(
     draw_ops: &[DrawOp],
     buffers: &WgpuUiDrawBuffers,
     solid_pipeline: &wgpu::RenderPipeline,
+    solid_instance_pipeline: &wgpu::RenderPipeline,
     image_pipeline: &wgpu::RenderPipeline,
     image_cache: &HashMap<String, WgpuUiImageResource>,
     text: &mut WgpuUiTextRenderer,
@@ -286,7 +305,7 @@ pub(super) fn record_draw_ops_to_view(
             set_surface_viewport(&mut pass, surface_size);
             pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
             if text.render_batch(draw.batch_index, &mut pass) {
-                stats.record_draw(draw.layer_index, draw.command_indices.len() as u32, 0, 0);
+                stats.record_draw(draw.layer_index, draw.command_indices.len() as u32, 0, 0, 0);
             }
             first_pass = false;
             op_index += 1;
@@ -312,16 +331,32 @@ pub(super) fn record_draw_ops_to_view(
                     if !draw_bounds_intersect_scissor(draw.bounds, scissor) {
                         continue;
                     }
-                    let Some(buffer) = buffers.solid.as_ref() else {
-                        continue;
-                    };
-                    pass.set_pipeline(solid_pipeline);
-                    pass.set_vertex_buffer(0, buffer.buffer.slice(..));
-                    pass.draw(draw.vertex_start..draw.vertex_end, 0..1);
+                    let vertex_count = draw.vertex_end.saturating_sub(draw.vertex_start);
+                    let instance_count = draw.instance_end.saturating_sub(draw.instance_start);
+                    if instance_count > 0 {
+                        let Some(buffer) = buffers.solid_instance.as_ref() else {
+                            continue;
+                        };
+                        pass.set_pipeline(solid_instance_pipeline);
+                        pass.set_vertex_buffer(0, buffer.buffer.slice(..));
+                        pass.draw(
+                            0..UI_QUAD_VERTEX_COUNT,
+                            draw.instance_start..draw.instance_end,
+                        );
+                    } else {
+                        let Some(buffer) = buffers.solid.as_ref() else {
+                            continue;
+                        };
+                        pass.set_pipeline(solid_pipeline);
+                        pass.set_vertex_buffer(0, buffer.buffer.slice(..));
+                        pass.draw(draw.vertex_start..draw.vertex_end, 0..1);
+                    }
                     stats.record_draw(
                         draw.layer_index,
                         draw.item_count,
-                        draw.vertex_end.saturating_sub(draw.vertex_start),
+                        vertex_count
+                            .saturating_add(instance_count.saturating_mul(UI_QUAD_VERTEX_COUNT)),
+                        instance_count,
                         0,
                     );
                 }
@@ -340,6 +375,7 @@ pub(super) fn record_draw_ops_to_view(
                         stats.record_draw(
                             draw.layer_index,
                             draw.item_count,
+                            0,
                             0,
                             draw.vertex_end.saturating_sub(draw.vertex_start),
                         );
@@ -379,6 +415,8 @@ fn begin_ui_surface_pass<'encoder>(
             depth_slice: None,
         })],
         depth_stencil_attachment: None,
+        // The presenter wraps the complete retained-UI submission in encoder timestamps so one
+        // sample covers all material/text passes without requiring inside-pass query support.
         timestamp_writes: None,
         occlusion_query_set: None,
         multiview_mask: None,
@@ -452,10 +490,26 @@ mod tests {
     use crate::rhi::{UiSurfaceDrawList, UiSurfaceRect};
 
     use super::{
-        damage_scissor, draw_bounds_intersect_scissor, next_ui_vertex_buffer_capacity,
+        UiVertexBufferUploadAction, WgpuUiDrawBufferCache, WgpuUiRecordedDrawStats, damage_scissor,
+        draw_bounds_intersect_scissor, next_ui_vertex_buffer_capacity,
         ui_vertex_buffer_upload_action, vertex_buffer_needs_reallocation,
-        UiVertexBufferUploadAction, WgpuUiDrawBufferCache,
     };
+
+    #[test]
+    fn recorded_draw_stats_count_only_submitted_work_and_unique_layers() {
+        let mut stats = WgpuUiRecordedDrawStats::default();
+
+        stats.record_draw(2, 3, 18, 3, 0);
+        stats.record_draw(2, 1, 0, 0, 6);
+        stats.record_draw(5, 2, 0, 0, 0);
+
+        assert_eq!(stats.draw_calls, 3);
+        assert_eq!(stats.visible_draw_item_count, 6);
+        assert_eq!(stats.solid_vertex_count, 18);
+        assert_eq!(stats.solid_instance_count, 3);
+        assert_eq!(stats.image_vertex_count, 6);
+        assert_eq!(stats.batch_layer_count, 2);
+    }
 
     #[test]
     fn draw_buffer_cache_key_allows_a_versioned_damage_projection() {

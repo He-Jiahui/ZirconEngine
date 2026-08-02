@@ -58,13 +58,16 @@ fn zr_standard_pbr_shade_standard_light_vector_normalized(
     }
     let base_lighting = (direct_diffuse_brdf + specular) * radiance * no_l * direct_base_energy;
     var clearcoat = vec3<f32>(0.0);
-    if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat != 0.0) {
-        clearcoat = zr_clearcoat_lobe(
-            direct_clearcoat_normal,
-            world_view,
-            light_vector,
-            surface.clearcoat_roughness,
-        ) * radiance * no_l * surface.clearcoat;
+    if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {
+        let clearcoat_no_l = max(dot(direct_clearcoat_normal, light_vector), 0.0);
+        if (clearcoat_no_l > 0.0) {
+            clearcoat = zr_clearcoat_lobe(
+                direct_clearcoat_normal,
+                world_view,
+                light_vector,
+                surface.clearcoat_roughness,
+            ) * radiance * clearcoat_no_l * clamp(surface.clearcoat, 0.0, 1.0);
+        }
     }
     var transmission = vec3<f32>(0.0);
     if (ZR_FEATURE_PBR_TRANSMISSION && surface.diffuse_transmission != 0.0) {
@@ -235,7 +238,8 @@ fn zr_standard_pbr_gpu_light_lighting(
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
     ctx: ZrShadingContext,
-    view_dir_ws: vec3<f32>,
+    world_view: vec3<f32>,
+    clearcoat_normal: vec3<f32>,
 ) -> vec3<f32> {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return vec3<f32>(0.0);
@@ -249,7 +253,6 @@ fn zr_standard_pbr_gpu_light_lighting(
     }
 
     let world_normal = zr_normalize_or_zero(surface.normal_ws);
-    let world_view = zr_normalize_or_zero(view_dir_ws);
     var direct_f0 = vec3<f32>(0.0);
     var direct_diffuse_brdf = vec3<f32>(0.0);
     var direct_base_energy = vec3<f32>(1.0);
@@ -263,9 +266,15 @@ fn zr_standard_pbr_gpu_light_lighting(
         );
         direct_diffuse_brdf =
             diffuse_color * (1.0 - direct_metallic) / ZR_PBR_EXTRAS_PI;
-        if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat != 0.0) {
-            direct_base_energy = zr_pbr_clearcoat_base_energy_scale(surface, world_view);
-            direct_clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);
+        if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {
+            if (any(clearcoat_normal != vec3<f32>(0.0)) && any(world_view != vec3<f32>(0.0))) {
+                direct_clearcoat_normal = clearcoat_normal;
+                direct_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(
+                    surface,
+                    clearcoat_normal,
+                    world_view,
+                );
+            }
         }
     }
     let tile_base = zr_light_tile_base(ctx.frag_coord, zr_light_grid_params);
@@ -301,11 +310,16 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     let ambient = scene.ambient_color.rgb * surface.occlusion;
     let diffuse_color = zr_standard_pbr_diffuse_color(surface);
     let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);
+    var clearcoat_normal = vec3<f32>(0.0);
+    if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {
+        clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);
+    }
     let direct_lights = zr_standard_pbr_gpu_light_lighting(
         surface,
         diffuse_color,
         ctx,
         view_dir_ws,
+        clearcoat_normal,
     );
     let environment_lights = zr_environment_pbr_indirect(
         ctx.position_ws,
@@ -320,13 +334,22 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     );
     var clearcoat_base_energy = vec3<f32>(1.0);
     var clearcoat_environment = vec3<f32>(0.0);
-    if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat != 0.0) {
-        clearcoat_base_energy = zr_pbr_clearcoat_base_energy_scale(surface, view_dir_ws);
-        if (surface.clearcoat > 0.0) {
-            clearcoat_environment = zr_pbr_advanced_environment(surface, ctx.position_ws, view_dir_ws);
+    if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {
+        if (any(clearcoat_normal != vec3<f32>(0.0)) && any(view_dir_ws != vec3<f32>(0.0))) {
+            clearcoat_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(
+                surface,
+                clearcoat_normal,
+                view_dir_ws,
+            );
+            clearcoat_environment = zr_pbr_advanced_environment_normalized(
+                surface,
+                ctx.position_ws,
+                clearcoat_normal,
+                view_dir_ws,
+            );
         }
     }
-    let opaque_lighting = diffuse_color * zr_standard_pbr_diffuse_energy_scale(surface) * ambient
+    let opaque_lighting = diffuse_color * zr_standard_pbr_diffuse_energy_scale(surface) * ambient * clearcoat_base_energy
         + direct_lights
         + environment_lights * clearcoat_base_energy
         + clearcoat_environment;

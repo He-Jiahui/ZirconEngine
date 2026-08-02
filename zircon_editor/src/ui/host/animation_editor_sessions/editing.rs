@@ -251,7 +251,7 @@ impl EditorUiHost {
         ) -> Result<bool, EditorError>,
     {
         self.ensure_animation_editor_session(instance_id)?;
-        let (changed, title, dirty) = {
+        let (changed, title) = {
             let mut sessions = self.lock_animation_editor_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!(
@@ -260,15 +260,16 @@ impl EditorUiHost {
                 ))
             })?;
             let changed = mutator(&mut entry.session)?;
-            (
-                changed,
-                entry.session.display_name(),
-                entry.session.is_dirty(),
-            )
+            (changed, entry.session.display_name())
         };
         if !changed {
             return Ok(false);
         }
+        self.ensure_document_external_effect(
+            instance_id,
+            crate::core::asset::DirtyExternalEffectId::animation_document(),
+        )?;
+        let dirty = self.document_dirty(instance_id)?;
         self.update_view_instance_metadata(instance_id, Some(title), Some(dirty), None)?;
         Ok(changed)
     }

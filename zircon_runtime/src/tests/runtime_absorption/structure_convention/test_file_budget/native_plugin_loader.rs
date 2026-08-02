@@ -94,7 +94,7 @@ fn runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed() {
         ("asset importer doc", asset_importer_doc.as_str()),
         ("status-output scene/script row data", status_rows.as_str()),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[

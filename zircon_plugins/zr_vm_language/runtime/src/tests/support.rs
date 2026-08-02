@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ZR_VM_PROJECT_BACKEND_SELECTOR;
 use zircon_runtime::script::{
-    VmStateBlob, VmStateSchema, VmStateTypeSchema, VM_STATE_SCHEMA_VERSION_V2,
+    VM_STATE_SCHEMA_VERSION_V2, VmStateBlob, VmStateSchema, VmStateTypeSchema,
 };
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectFieldInfo, ReflectSerializationStrategy, ReflectTypeInfo,
@@ -34,19 +34,18 @@ pub(super) fn build_real_backend_host(
         .or_else(|| package_root.clone());
     plugin.data_root = package_root.as_ref().map(|root| root.join("data"));
 
-    zircon_runtime::script::VmPluginHostContext {
+    zircon_runtime::script::VmPluginHostContext::new_for_tests(
         plugin,
-        capabilities: package.package.manifest.capabilities.clone(),
-        backend_selector: ZR_VM_PROJECT_BACKEND_SELECTOR.to_string(),
-        package_source: source,
-        host_registry: manager.host_registry(),
-        host_exports: manager.host_exports(),
-        host_interfaces: manager.host_interfaces(),
-        reflection_catalog: manager.reflection_catalog(),
-        reflection_schema_installer: Default::default(),
-        slot_lifecycle: Arc::new(NoopSlotLifecycle),
-        vm_owner: None,
-    }
+        package.package.manifest.capabilities.clone(),
+        ZR_VM_PROJECT_BACKEND_SELECTOR.to_string(),
+        source,
+        manager.host_registry(),
+        manager.host_exports(),
+        manager.host_interfaces(),
+        manager.reflection_catalog(),
+        Default::default(),
+        Arc::new(NoopSlotLifecycle),
+    )
 }
 
 struct NoopSlotLifecycle;

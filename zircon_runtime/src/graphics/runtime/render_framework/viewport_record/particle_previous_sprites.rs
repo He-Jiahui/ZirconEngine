@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderParticlePreviousSpriteSnapshot;
 
-use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
+use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn particle_previous_sprites(
@@ -51,11 +51,9 @@ mod tests {
 
         assert_eq!(record.particle_previous_sprites(&left_key)[0].entity, 10);
         assert_eq!(record.particle_previous_sprites(&right_key)[0].entity, 20);
-        assert!(
-            record
-                .particle_previous_sprites(&camera_key(2, UVec2::ZERO))
-                .is_empty()
-        );
+        assert!(record
+            .particle_previous_sprites(&camera_key(2, UVec2::ZERO))
+            .is_empty());
     }
 
     #[test]

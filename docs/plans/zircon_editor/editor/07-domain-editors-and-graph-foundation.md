@@ -47,7 +47,7 @@ status: in_progress
 
 **theatre**：轨道折叠/关键帧聚合/吸附交互由 `editor_ui/07` 引入为 UX 参照，本计划直接消费结论。
 
-## 现状与证据（zircon，2026-07-05 实读）
+## 现状与证据（zircon，2026-08-01 实读）
 
 ### 图/时间轴注册词汇已定型（v3 补全字段）
 
@@ -72,27 +72,27 @@ pub struct TimelineEditorDescriptor { asset_kind, view_id, display_name, open_op
 
 ### 编辑器实体
 
-- `ui/animation_editor/` **合计仅 78 行**（mod 5 / presentation 16 / session 57，`AnimationEditorSession` + Error 两类型）——是占位骨架非半成品。
+- `ui/animation_editor/` 已有 `graph/lifecycle/parameters/presentation/sequence/state_machine/support/tests` 八个 session 子模块，`AnimationEditorSession` 已直接承载 sequence/graph/state-machine 文档；仍缺共享 track list、curve、ruler、thumbnail 与 preview 联动。
 - `ui/material_editor/`：`{mod, projection, renderer_data_projection}` 同级占位。
 - `ui/asset_editor/`：最成熟样板（session/undo/journal/theme/presentation_state 齐备），session 生命周期范式取自它。
 - `template_runtime/component_adapter` 已有资源编辑器/动画编辑器/检查器适配位。
 
 ### runtime 侧
 
-`zircon_plugins/animation` 有 runtime 动画插件（`runtime_physics_animation_tick_contract` 契约测试在案）；importer 含 `import_animation_asset.rs`。**montage/absm/BT 三资产族的 runtime 模型与求值器不存在。**
+`zircon_plugins/animation` 有 runtime 动画插件（`runtime_physics_animation_tick_contract` 契约测试在案）；importer 含 `import_animation_asset.rs`。`zircon_runtime::core::framework::animation::asset` 已有 `AnimationGraphAsset`、`AnimationSequenceAsset` 与 `AnimationStateMachineAsset`；仍缺 montage/BT 资产族，相关运行时求值能力仍需在实现切片前逐项核实和补齐。
 
 ### 缺口
 
-无图画布/连线/布线实体；无时间轴实体；无预览场景框架；三资产族缺失。
+无共享图画布/连线/布线基座；无共享时间轴实体；无预览场景框架；montage/BT 资产族缺失。动画编辑器已有私有 graph/state-machine session 逻辑，M1 必须先裁决其与未来共享基座的归属，避免重复实现。
 
 ## 目标
 
 1. **GraphEditorFoundation**：画布（平移/缩放/网格）、节点（端口/标题/体区委托/**附着子项**）、连线（`value_type` 默认校验 + 领域覆写/正交或贝塞尔布线）、选择/框选/复制粘贴/对齐、迷你图；数据模型 `GraphModel` trait；编辑全走 03 事务；物化经 `graph_editors/graph_node_palettes` 表；`validate/compile_operation` 接 08 命令（图工具栏「校验/编译」按钮=操作投影）。
 2. **TimelineFoundation**：标尺/播放头/轨道列表/关键帧+区段双元素/框选/吸附；`timeline_*` 两表注册，`value_kind` 决定 lane 渲染器。
 3. **PreviewSceneFramework**（Persona 等价）：复用 04 副 session 机制 + 预览体注入 + `invalidate_views/focus_views`；动画族编辑器共享同一预览 session。
-4. **动画编辑器成型**：78 行骨架扩为 `DocumentToolkit` 实例（Fyrox 件清单：track_list+curve+ruler+thumb）+ 预览联动。
+4. **动画编辑器成型**：在既有 `AnimationEditorSession` 与 graph/sequence/state-machine 子模块上形成 `DocumentToolkit` 实例，补齐 Fyrox 件清单中的 track_list+curve+ruler+thumb 与预览联动。
 5. **Montage 编辑器**：资产模型（runtime 侧 `slots/sections（可重排跳转）/segments（引 clip）/notify tracks`，UE 词汇直译）；编辑器=三层 lane 时间轴实例。
-6. **状态机编辑器**：absm 资产模型（states/transitions{条件}/layers/blend space）；编辑器复刻五件套（双 GraphModel 联动 + ParameterPanel + 活跃态高亮经 02 watch）。
+6. **状态机编辑器**：复用并按需演进既有 `AnimationStateMachineAsset`/`AnimationGraphAsset`，不得平行新建 absm authority；编辑器复刻五件套（双 GraphModel 联动 + ParameterPanel + 活跃态高亮经 02 watch）。
 7. **行为树编辑器**：BT 资产模型（四类节点）；`StructureConstraint::Tree` + 附着子项；PIE 活跃分支高亮预留。
 
 ## 非目标
@@ -111,10 +111,10 @@ zircon_editor/src/ui/timeline/
 zircon_editor/src/ui/curve/          # 曲线组件（动画曲线视图与 06 曲线字段编辑器共用底层）
 zircon_editor/src/ui/preview_scene/
   mod.rs / preview_scene.rs / preview_subject.rs
-zircon_editor/src/ui/animation_editor/   # 骨架扩为 toolkit 实例
+zircon_editor/src/ui/animation_editor/   # 复用既有 session 子模块并补齐 toolkit
 zircon_editor/src/ui/absm_editor/        # 新
 zircon_editor/src/ui/behavior_tree_editor/  # 新
-# montage/absm/bt 资产模型住 zircon_plugins/animation（或 ai）runtime 资产族；编辑器只持创作投影
+# graph/sequence/state-machine 复用 zircon_runtime 既有 animation::asset authority；montage/bt 归插件 runtime 资产族；编辑器只持创作投影
 ```
 
 ### 关键类型
@@ -156,7 +156,7 @@ impl PreviewScene {
 | --- | --- | --- | --- | --- |
 | 动画 clip | — | 轨道+关键帧+曲线 | 必需 | 既有 animation 资产 |
 | Montage | — | slot/section/notify 三层 lane | 必需 | `zircon_plugins/animation` 新增 |
-| absm | StateGraph(Free)+BlendTree(Dag) 双实例 | — | 必需（活跃态高亮） | 同上新增 |
+| absm | StateGraph(Free)+BlendTree(Dag) 双实例 | — | 必需（活跃态高亮） | 复用既有 `animation::asset::{graph,state_machine}` |
 | 行为树 | Tree+附着子项 | — | PIE attach 预留 | animation 或新 ai 插件（M4 裁决） |
 | 材质图（远期） | Dag | — | 材质球 | shader 计划集 |
 
@@ -181,20 +181,20 @@ impl PreviewScene {
 
 ### M3 动画编辑器与 Montage
 
-- 切片 3.1：animation_editor 78 行骨架扩 toolkit（`AnimationEditorSession` 保留为 toolkit 的 session 层）；轨道时间轴+曲线视图（`ui/curve/` 落地，06 曲线字段编辑器同底）+ 预览联动。
+- 切片 3.1：在既有 `AnimationEditorSession` 及其 graph/sequence/state-machine 子模块上补齐 toolkit；增加轨道时间轴+曲线视图（`ui/curve/` 落地，06 曲线字段编辑器同底）+ 预览联动。
 - 切片 3.2：montage 资产模型（runtime 侧 + serde + 11 版本头）+ importer 接线；编辑器三层 lane；notify 与 runtime tick 契约对齐。
 - 测试阶段：`cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked`（资产族往返 + tick 契约不回归）+ toolkit 测试；section 重排→运行序契约测试。
 
 ### M4 状态机与行为树
 
-- 切片 4.1：absm 资产模型 + 五件套编辑器（双 GraphModel 联动 + ParameterPanel + 活跃态高亮经 02 `WatchKey::ComponentType`）；`validate_operation` 实装（悬空转移/不可达态诊断）。
+- 切片 4.1：复用并补全既有 `AnimationStateMachineAsset`/`AnimationGraphAsset` + 五件套编辑器（双 GraphModel 联动 + ParameterPanel + 活跃态高亮经 02 `WatchKey::ComponentType`）；`validate_operation` 实装（悬空转移/不可达态诊断）。
 - 切片 4.2：BT 资产模型 + 归属裁决（倾向新 `zircon_plugins/ai`，按 frameworks 计划 crate 化方向定）；Tree 实例 + 附着编辑；PIE 高亮接口预留。
 - 测试阶段：absm 转移求值契约（runtime 侧）+ 图编辑撤销矩阵；BT 零改动验收断言；证据记状态节。
 
 ## 风险与开放问题
 
 - 预览副 session 与 PIE 并存的图形资源预算：预览默认 30fps 上限纾解；04 设备共享风险同源，证据记状态节。
-- montage/absm **求值器**是 runtime 侧计划外工作量——执行前与 `zircon_plugins/animation` owner 会签排期；编辑器按资产模型先行，预览联动降级 clip 级直至求值器落地。
+- montage 与状态机缺失的**求值能力**是 runtime 侧计划外工作量——执行前按 current source 逐项核实并与 `zircon_plugins/animation` owner 会签排期；编辑器复用既有资产模型先行，预览联动降级 clip 级直至求值器落地。
 - 附着子项经 palette category 约定承载是轻量方案；若 BT 实装时表达力不足（附着需独立端口/参数 schema），再提 `GraphNodeDescriptor` 扩字段的描述符演进案（11 迁移链配套），不预先扩。
 
 ## 产出记录与时间
@@ -215,12 +215,12 @@ impl PreviewScene {
 | 2026-07-22 | Performance handoff：UI asset generation/delta projection | 待实现（PERF-MVP-082） | `zircon_editor/src/tests/editing` 40/40复核确认inspector/tree/style/preview/binding/theme的每个细粒度动作都能触发完整source/document replay、递归schema/表达式图/cascade projection，而夹具仅2–3 nodes/rules/imports。本轮只止损palette move完整catalog重建；本计划须以domain dirty generation和frame coalescing让同一generation的document→reflection→retained projection至多一次，并补1/100/10k nodes/rules/imports与125/500/1000 Hz typing/drag的build/visit/allocation/p95门。实现参考`dev/slint/internal/core/properties.rs`的`PropertyTracker::evaluate_if_dirty`，不得把cache分散到consumer私有authority。 |
 - fixed 已修复：[irradiance-volume-shader-ide-validation-dependency](07/fixed-2026-07-15-irradiance-volume-shader-ide-validation-dependency.md)
 
-## Code Review 建议 (2026-07-31)
+## Code Review 同步结论 (2026-08-01)
 
-### 与代码现状不符，需修订
+### 已同步到主计划
 
-- 「现状与证据 §编辑器实体」称 `ui/animation_editor/` **合计仅 78 行**、是占位骨架。当前实读为 `mod.rs / presentation.rs / session.rs` 三根文件外加 `session/{graph, lifecycle, parameters, presentation, sequence, state_machine, support, tests}.rs` 八个子模块，`zircon_editor/src/ui/animation_editor/**` 合计约 1910 行；`session.rs:31-42` 已定义 `AnimationSequenceDocument` 且导入 `AnimationGraphAsset/AnimationSequenceAsset/AnimationStateMachineAsset`（`session.rs:2-6`）。M3 切片 3.1「78 行骨架扩 toolkit」的前提已过时，宜改为「在既有 session 子模块基础上补 track_list+curve+ruler+thumb 与预览联动」，并更新该节行数证据。
-- 「现状与证据 §runtime 侧」称「montage/absm/BT 三资产族的 runtime 模型与求值器不存在」。当前 `zircon_runtime/src/core/framework/animation/asset/` 已含 `graph.rs:278 AnimationGraphAsset`、`sequence.rs:65 AnimationSequenceAsset`、`state_machine.rs:125 AnimationStateMachineAsset`——absm 与动画图的 runtime 资产模型**已存在**。目标 6（状态机编辑器「absm 资产模型…」）与「领域→基座映射表」的「资产模型归属 = 同上新增」应据实修订为「复用既有 `animation::asset` 模型，仅补 montage/BT 缺失族」。仅 montage、behavior-tree 资产族与求值器仍缺，可保留为待办。
+- 动画编辑器现状、目标 4、M3.1 与模块布局已改为复用既有 session 子模块，不再以“78 行占位骨架”为前提。
+- runtime 资产现状、目标 6、映射表与 M4.1 已改为复用既有 graph/sequence/state-machine authority，仅把 montage/BT 资产族和经 current-source 核实后仍缺的求值能力保留为待办。
 
 ### 实现风险 / 技术债
 

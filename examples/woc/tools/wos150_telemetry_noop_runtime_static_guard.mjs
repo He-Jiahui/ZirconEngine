@@ -25,8 +25,8 @@ requireText(sourceServer,
   'source telemetry command is no longer an accepted no-op');
 
 const contract = JSON.parse(read('contracts', 'command_payloads.json'));
-if (contract.schema_version !== 39) {
-  throw new Error('WOS150 command payload schema must be 39');
+if (contract.schema_version !== 51) {
+  throw new Error('WOS150 command payload schema must be 44');
 }
 const telemetry = contract.entries.find((entry) => entry.id === 125 && entry.name === 'telemetry');
 if (!telemetry || telemetry.kind !== 'telemetry_numeric_fields' ||
@@ -44,6 +44,11 @@ requireText(generated,
   /payloadKind\(<uint>125, 1\) == 49[\s\S]*?payloadMinLength\(<uint>125, true\) == 6[\s\S]*?payloadMaxLength\(<uint>125, true\) == 65536/,
   'generated telemetry payload kind or bounds are missing');
 
+const generatedRust = read('native', 'crates', 'woc_protocol', 'src', 'generated_command_payloads.rs');
+requireText(generatedRust,
+  /name: "telemetry"[\s\S]*?kind: CommandPayloadKind::TelemetryNumericFields[\s\S]*?max_collection_entries: 256/,
+  'generated Rust telemetry descriptor is missing the collection bound');
+
 const protocol = read('native', 'crates', 'woc_protocol', 'src', 'telemetry_payload.rs');
 requireText(protocol,
   /pub struct TelemetryPayload[\s\S]*?pub kind: String[\s\S]*?pub data: BTreeMap<String, f64>/,
@@ -51,6 +56,9 @@ requireText(protocol,
 requireText(protocol,
   /validate_telemetry_payload[\s\S]*?decode_payload/,
   'native telemetry payload validator is missing');
+requireText(protocol,
+  /validate_field_count\([^\n]*descriptor\.max_collection_entries/,
+  'native telemetry payload does not consume its generated collection bound');
 
 const intent = read('native', 'apps', 'woc_client', 'src', 'input', 'intent.rs');
 requireText(intent,

@@ -13,11 +13,19 @@ fn disabled_forward_volumetric_params_buffer_is_cache_owned() {
     let construct_source = include_str!("../../../mesh/mesh_pipeline_cache/construct.rs");
     let binding_source =
         include_str!("../../../mesh/mesh_pipeline_cache/forward_shadow_receiver.rs");
-    let per_pass_buffer_creation = ["create_disabled_params_", "buffer(device"].concat();
+    let cache_field = cache_source
+        .lines()
+        .zip(cache_source.lines().skip(1))
+        .any(|(field, ty)| {
+            field
+                .trim_end()
+                .ends_with("forward_volumetric_disabled_params_buffer:")
+                && ty.trim() == "wgpu::Buffer,"
+        });
 
-    assert!(cache_source.contains("forward_volumetric_disabled_params_buffer: wgpu::Buffer"));
+    assert!(cache_field);
     assert!(construct_source.contains("let forward_volumetric_disabled_params_buffer ="));
     assert!(construct_source.contains("forward_volumetric_disabled_params_buffer,"));
     assert!(binding_source.contains("&self.forward_volumetric_disabled_params_buffer"));
-    assert!(!binding_source.contains(&per_pass_buffer_creation));
+    assert!(!binding_source.contains("create_disabled_params_buffer("));
 }

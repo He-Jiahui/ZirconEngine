@@ -9,6 +9,13 @@ pub(super) struct VerticalGlyphMetrics {
     pub(super) offset_x: f32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::text::shaping) enum VerticalShapeOrientation {
+    Upright,
+    Sideways,
+    TransformOrRotate,
+}
+
 pub(super) fn vertical_glyph_metrics(
     mode: VerticalMode,
     cluster_text: &str,
@@ -26,6 +33,30 @@ pub(super) fn vertical_glyph_metrics(
     }
 
     let rotation = vertical_glyph_rotation(mode, cluster_text);
+    vertical_glyph_metrics_for_rotation(
+        cluster_text,
+        rotation,
+        horizontal_advance,
+        font_size,
+        native_vertical_advance,
+    )
+}
+
+pub(super) fn vertical_glyph_metrics_for_rotation(
+    cluster_text: &str,
+    rotation: ShapedGlyphRotation,
+    horizontal_advance: f32,
+    font_size: f32,
+    native_vertical_advance: Option<f32>,
+) -> VerticalGlyphMetrics {
+    let horizontal_advance = horizontal_advance.max(0.0);
+    if horizontal_advance == 0.0 || cluster_text.chars().all(char::is_control) {
+        return VerticalGlyphMetrics {
+            rotation: ShapedGlyphRotation::None,
+            advance: 0.0,
+            offset_x: 0.0,
+        };
+    }
     if !matches!(rotation, ShapedGlyphRotation::None) {
         return VerticalGlyphMetrics {
             rotation,
@@ -51,17 +82,48 @@ pub(super) fn vertical_glyph_rotation(
     if cluster_text.is_empty() || cluster_text.chars().all(char::is_control) {
         return ShapedGlyphRotation::None;
     }
-    let upright = match mode {
-        VerticalMode::Upright => true,
-        VerticalMode::Sideways => false,
-        VerticalMode::Mixed => cluster_text.chars().any(|character| {
-            matches!(
-                char_orientation(character),
-                Orientation::Upright | Orientation::TransformedOrUpright
-            )
-        }),
-    };
-    if upright {
+    match vertical_shape_orientation(mode, cluster_text) {
+        VerticalShapeOrientation::Upright => ShapedGlyphRotation::None,
+        VerticalShapeOrientation::Sideways | VerticalShapeOrientation::TransformOrRotate => {
+            ShapedGlyphRotation::Cw90
+        }
+    }
+}
+
+pub(in crate::text::shaping) fn vertical_shape_orientation(
+    mode: VerticalMode,
+    cluster_text: &str,
+) -> VerticalShapeOrientation {
+    if cluster_text.is_empty() || cluster_text.chars().all(char::is_control) {
+        return VerticalShapeOrientation::Upright;
+    }
+    match mode {
+        VerticalMode::Upright => VerticalShapeOrientation::Upright,
+        VerticalMode::Sideways => VerticalShapeOrientation::Sideways,
+        VerticalMode::Mixed => {
+            let mut transform_or_rotate = false;
+            for character in cluster_text.chars() {
+                match char_orientation(character) {
+                    Orientation::Upright | Orientation::TransformedOrUpright => {
+                        return VerticalShapeOrientation::Upright;
+                    }
+                    Orientation::TransformedOrRotated => transform_or_rotate = true,
+                    Orientation::Rotated => {}
+                }
+            }
+            if transform_or_rotate {
+                VerticalShapeOrientation::TransformOrRotate
+            } else {
+                VerticalShapeOrientation::Sideways
+            }
+        }
+    }
+}
+
+pub(super) const fn transform_or_rotate_rotation(
+    vertical_substituted: bool,
+) -> ShapedGlyphRotation {
+    if vertical_substituted {
         ShapedGlyphRotation::None
     } else {
         ShapedGlyphRotation::Cw90
@@ -70,7 +132,10 @@ pub(super) fn vertical_glyph_rotation(
 
 #[cfg(test)]
 mod tests {
-    use super::vertical_glyph_metrics;
+    use super::{
+        transform_or_rotate_rotation, vertical_glyph_metrics, vertical_shape_orientation,
+        VerticalShapeOrientation,
+    };
     use crate::text::{ShapedGlyphRotation, VerticalMode};
 
     #[test]
@@ -118,5 +183,21 @@ mod tests {
         assert_eq!(metrics.rotation, ShapedGlyphRotation::None);
         assert_eq!(metrics.advance, 24.5);
         assert_eq!(metrics.offset_x, 3.25);
+    }
+
+    #[test]
+    fn transformed_or_rotated_prefers_vertical_substitution_before_rotation() {
+        assert_eq!(
+            vertical_shape_orientation(VerticalMode::Mixed, "（"),
+            VerticalShapeOrientation::TransformOrRotate
+        );
+        assert_eq!(
+            transform_or_rotate_rotation(true),
+            ShapedGlyphRotation::None
+        );
+        assert_eq!(
+            transform_or_rotate_rotation(false),
+            ShapedGlyphRotation::Cw90
+        );
     }
 }

@@ -8,6 +8,12 @@ struct SolidVertexOutput {
     @location(0) color: vec4<f32>,
 };
 
+struct SolidInstanceInput {
+    @location(0) min_position: vec2<f32>,
+    @location(1) max_position: vec2<f32>,
+    @location(2) color: vec4<f32>,
+};
+
 struct ImageVertexInput {
     @location(0) position: vec2<f32>,
     @location(1) uv: vec2<f32>,
@@ -47,6 +53,26 @@ fn material_image_color(color: vec4<f32>) -> vec4<f32> {
 fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     var output: SolidVertexOutput;
     output.position = vec4<f32>(input.position, 0.0, 1.0);
+    output.color = input.color;
+    return output;
+}
+
+@vertex
+fn solid_instance_vs_main(
+    input: SolidInstanceInput,
+    @builtin(vertex_index) vertex_index: u32,
+) -> SolidVertexOutput {
+    let corners = array<vec2<f32>, 6>(
+        vec2<f32>(0.0, 1.0),
+        vec2<f32>(1.0, 1.0),
+        vec2<f32>(0.0, 0.0),
+        vec2<f32>(0.0, 0.0),
+        vec2<f32>(1.0, 1.0),
+        vec2<f32>(1.0, 0.0),
+    );
+    let corner = corners[vertex_index];
+    var output: SolidVertexOutput;
+    output.position = vec4<f32>(mix(input.min_position, input.max_position, corner), 0.0, 1.0);
     output.color = input.color;
     return output;
 }

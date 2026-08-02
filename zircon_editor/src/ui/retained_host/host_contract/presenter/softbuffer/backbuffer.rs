@@ -1,9 +1,9 @@
 use super::super::super::chrome_command_stream::{
-    paint_chrome_command_stream_to_frame, repaint_chrome_command_stream_region, ChromeCommandStream,
+    ChromeCommandStream, paint_chrome_command_stream_to_frame, repaint_chrome_command_stream_region,
 };
 use super::super::super::data::FrameRect;
-use super::surface_io::damage_pixel_count;
 use super::SoftbufferHostPresenter;
+use super::surface_io::damage_pixel_count;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) struct RepaintOutcome {

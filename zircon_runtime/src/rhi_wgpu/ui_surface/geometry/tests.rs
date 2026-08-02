@@ -86,6 +86,7 @@ fn wgpu_ui_surface_draw_items_sort_by_stable_z_order() {
                 kind: UiSurfaceCommandKind::Image {
                     payload: UiSurfaceImagePayload {
                         resource_key: "viewport".to_string(),
+                        resource_generation: 0,
                         width: 2,
                         height: 2,
                         upload_bytes: 16,
@@ -115,9 +116,12 @@ fn wgpu_ui_surface_draw_items_sort_by_stable_z_order() {
     let DrawItem::Solid(second_solid) = &items[2] else {
         panic!("expected second z=20 command to remain after first z=20 command");
     };
-    assert_eq!(first_solid.vertices[0].color, [20.0 / 255.0, 0.0, 0.0, 1.0]);
     assert_eq!(
-        second_solid.vertices[0].color,
+        first_solid.instance().expect("plain quad instance").color,
+        [20.0 / 255.0, 0.0, 0.0, 1.0]
+    );
+    assert_eq!(
+        second_solid.instance().expect("plain quad instance").color,
         [30.0 / 255.0, 0.0, 0.0, 1.0]
     );
 }
@@ -153,10 +157,10 @@ fn wgpu_ui_surface_generates_rounded_solid_vertices_for_quad_and_border() {
     let items = solid_items(&draw_list);
 
     assert_eq!(items.len(), 2);
-    assert!(items[0].vertices.len() > 6);
-    assert!(items[1].vertices.len() > 6);
+    assert!(items[0].vertices().len() > 6);
+    assert!(items[1].vertices().len() > 6);
     assert!(items.iter().all(|item| {
-        item.vertices
+        item.vertices()
             .iter()
             .all(|vertex| vertex.position[0].is_finite() && vertex.position[1].is_finite())
     }));
@@ -196,29 +200,37 @@ fn wgpu_ui_surface_clip_does_not_rebuild_rounded_geometry_at_the_clip_edge() {
     };
 
     assert_eq!(solid.rect, UiSurfaceRect::new(10.0, 0.0, 10.0, 20.0));
-    assert!(solid
-        .vertices
-        .iter()
-        .all(|vertex| vertex.position[0] >= -0.800_001));
-    assert!(solid
-        .vertices
-        .iter()
-        .any(|vertex| (vertex.position[0] + 0.8).abs() < 0.000_001
-            && (vertex.position[1] - 1.0).abs() < 0.000_001));
+    assert!(
+        solid
+            .vertices()
+            .iter()
+            .all(|vertex| vertex.position[0] >= -0.800_001)
+    );
+    assert!(
+        solid
+            .vertices()
+            .iter()
+            .any(|vertex| (vertex.position[0] + 0.8).abs() < 0.000_001
+                && (vertex.position[1] - 1.0).abs() < 0.000_001)
+    );
 
     let DrawItem::Solid(border) = &items[1] else {
         panic!("expected clipped rounded border item");
     };
     assert_eq!(border.rect, UiSurfaceRect::new(40.0, 0.0, 10.0, 20.0));
-    assert!(border
-        .vertices
-        .iter()
-        .all(|vertex| vertex.position[0] >= -0.200_001));
-    assert!(border
-        .vertices
-        .iter()
-        .any(|vertex| (vertex.position[0] + 0.2).abs() < 0.000_001
-            && (vertex.position[1] - 1.0).abs() < 0.000_001));
+    assert!(
+        border
+            .vertices()
+            .iter()
+            .all(|vertex| vertex.position[0] >= -0.200_001)
+    );
+    assert!(
+        border
+            .vertices()
+            .iter()
+            .any(|vertex| (vertex.position[0] + 0.2).abs() < 0.000_001
+                && (vertex.position[1] - 1.0).abs() < 0.000_001)
+    );
 }
 
 #[test]
@@ -271,7 +283,7 @@ fn wgpu_ui_surface_fractional_rounded_rect_uses_the_unclipped_geometry_path() {
 
     assert!(!effective.clipped);
     assert_eq!(items.len(), 1);
-    assert_eq!(items[0].vertices, expected);
+    assert_eq!(items[0].vertices(), expected);
 }
 
 #[test]
@@ -290,7 +302,7 @@ fn wgpu_ui_surface_clipped_rounded_triangles_remain_finite_non_degenerate_and_co
         }],
     );
     let items = solid_items(&draw_list);
-    let triangles = items[0].vertices.chunks_exact(3).collect::<Vec<_>>();
+    let triangles = items[0].vertices().chunks_exact(3).collect::<Vec<_>>();
     let signed_areas = triangles
         .iter()
         .map(|triangle| {
@@ -309,9 +321,11 @@ fn wgpu_ui_surface_clipped_rounded_triangles_remain_finite_non_degenerate_and_co
     }));
     assert!(signed_areas.iter().all(|area| area.abs() > 1.0e-10));
     let winding = signed_areas[0].is_sign_positive();
-    assert!(signed_areas
-        .iter()
-        .all(|area| area.is_sign_positive() == winding));
+    assert!(
+        signed_areas
+            .iter()
+            .all(|area| area.is_sign_positive() == winding)
+    );
 }
 
 #[test]
@@ -326,6 +340,7 @@ fn wgpu_ui_surface_image_uvs_follow_clipped_rect() {
             kind: UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: "viewport".to_string(),
+                    resource_generation: 0,
                     width: 2,
                     height: 2,
                     upload_bytes: 16,
@@ -358,6 +373,7 @@ fn wgpu_ui_surface_image_uvs_preserve_subpixel_frame_proportions() {
             kind: UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: "subpixel-image".to_string(),
+                    resource_generation: 0,
                     width: 1,
                     height: 1,
                     upload_bytes: 4,
@@ -390,6 +406,7 @@ fn wgpu_ui_surface_image_uvs_compose_clipped_rect_with_atlas_uv() {
             kind: UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: "atlas://editor/icons".to_string(),
+                    resource_generation: 0,
                     width: 64,
                     height: 64,
                     upload_bytes: 0,
@@ -424,6 +441,7 @@ fn wgpu_ui_surface_skips_image_with_invalid_atlas_uv() {
             kind: UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: "atlas://editor/icons".to_string(),
+                    resource_generation: 0,
                     width: 64,
                     height: 64,
                     upload_bytes: 0,

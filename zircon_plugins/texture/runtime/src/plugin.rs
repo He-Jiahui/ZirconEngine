@@ -2,7 +2,6 @@ use crate::capability::{
     RUNTIME_CAPABILITIES, TEXTURE_PLUGIN_DECLARATION, TEXTURE_RUNTIME_CRATE_NAME,
 };
 use crate::module::module_descriptor;
-use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
     PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest, RuntimePlugin,
@@ -63,7 +62,7 @@ impl RuntimePlugin for TextureRuntimePlugin {
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     TEXTURE_PLUGIN_DECLARATION
-        .runtime_declaration(RuntimePluginId::Texture, TEXTURE_RUNTIME_CRATE_NAME)
+        .runtime_declaration(TEXTURE_RUNTIME_CRATE_NAME)
         .with_module_descriptor(module_descriptor())
         .into_descriptor()
 }

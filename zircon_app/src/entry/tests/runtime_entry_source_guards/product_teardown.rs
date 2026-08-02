@@ -18,9 +18,11 @@ fn product_binaries_log_teardown_completion_before_process_log_shutdown() {
         runtime,
         &[
             "EntryRunner::run_runtime_with_args",
-            "runtime_process_teardown_complete",
+            "let failure_teardown_diagnostic = runtime_process_failure_teardown_diagnostic(&result)",
+            "let exit_code = runtime_process_exit_code(result)",
+            "eprintln!(\"{diagnostic}\")",
             "let _ = shutdown_process_log",
         ],
-        "runtime binary must report teardown only after its entry runner returns and before log shutdown",
+        "runtime binary must report the startup error and top-level failure teardown before log shutdown",
     );
 }

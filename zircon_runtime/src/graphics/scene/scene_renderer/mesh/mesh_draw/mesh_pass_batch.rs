@@ -20,7 +20,11 @@ impl MeshDraw {
             self.mesh_draw_args(),
         )
         .with_source_draw_index(source_draw_index)
-        .with_cache_identity(self.source_entity(), self.source_draw_ordinal())
+        .with_cache_identity(
+            self.source_entity(),
+            self.stable_instance_key(),
+            self.source_draw_ordinal(),
+        )
         .with_static_state(self.static_state())
         .with_casts_shadow(self.casts_shadow())
         .with_disabled_passes(self.disabled_passes)

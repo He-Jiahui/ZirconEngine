@@ -12,7 +12,7 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/surface_present/redraw.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
 tests:
-  - managed cargo test -p zircon_runtime --lib render_product_post_full_chain_all_effects_on --locked -- --exact --test-threads=1
+  - managed cargo test -p zircon_runtime --lib graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on --locked -- --exact --test-threads=1
 ---
 
 # MVP 03：runtime frame capture sibling module projection
@@ -54,4 +54,14 @@ MVP F2 新增的产品截图写出调用未从 `surface_present` 正确投影到
 
 ## 修复结果与回传
 
-Open state: `待 MVP 03 修复 sibling module projection`; no pass is claimed.
+Open state: `MVP03 source repair complete; managed upward validation pending`; no pass is claimed.
+
+- `surface_present::redraw` now calls the one root-owned writer through
+  `super::super::frame_capture::write_runtime_frame_png(...)`; it does not create a
+  `surface_present` alias, duplicate writer, or test-only capture fallback.
+- Current-source static review confirms the root `frame_capture` module exports the writer and
+  the redraw call resolves through the sibling path. The local source guard covers that call
+  shape; this is not Cargo evidence.
+- The declared managed Render17 exact gate must still rebuild `zircon_app` from a fresh source
+  snapshot and run past the previous E0433 boundary. Only its terminal result can determine the
+  downstream render outcome or move this canonical handoff to `fixed-*`.

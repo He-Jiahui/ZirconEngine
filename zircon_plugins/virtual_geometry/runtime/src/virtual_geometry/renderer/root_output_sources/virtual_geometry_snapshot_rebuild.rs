@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use zircon_runtime::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugSnapshot,
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExtract,
-    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
-    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
-    RenderVirtualGeometryVisBufferMark,
+    render_mesh_stable_instance_key, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExtract, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
+    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
 };
 
 pub(super) fn rebuild_selected_clusters_from_execution_segments(
@@ -21,25 +21,28 @@ pub(super) fn rebuild_selected_clusters_from_execution_segments(
     let mut emitted_clusters = HashSet::<(u64, u32)>::new();
 
     for segment in execution_segments {
-        let entity_clusters =
-            clusters_for_entity_in_execution_order(virtual_geometry_extract, segment.entity);
-        if entity_clusters.is_empty() {
+        let stable_instance_key = segment.stable_instance_key_or_legacy();
+        let instance_clusters = clusters_for_stable_instance_key_in_execution_order(
+            virtual_geometry_extract,
+            stable_instance_key,
+        );
+        if instance_clusters.is_empty() {
             continue;
         }
 
         let start = usize::try_from(segment.cluster_start_ordinal).unwrap_or(usize::MAX);
         let span = usize::try_from(segment.cluster_span_count).unwrap_or(0);
-        let end = start.saturating_add(span).min(entity_clusters.len());
+        let end = start.saturating_add(span).min(instance_clusters.len());
         if start >= end {
             continue;
         }
 
-        for (cluster_ordinal, cluster) in entity_clusters[start..end]
+        for (cluster_ordinal, cluster) in instance_clusters[start..end]
             .iter()
             .enumerate()
             .map(|(index, cluster)| (start.saturating_add(index), cluster))
         {
-            if !emitted_clusters.insert((cluster.entity, cluster.cluster_id)) {
+            if !emitted_clusters.insert((stable_instance_key, cluster.cluster_id)) {
                 continue;
             }
 
@@ -48,7 +51,7 @@ pub(super) fn rebuild_selected_clusters_from_execution_segments(
                     instance_index_for_cluster(
                         snapshot,
                         virtual_geometry_extract,
-                        cluster.entity,
+                        stable_instance_key,
                         cluster.cluster_id,
                     )
                 }),
@@ -172,22 +175,24 @@ pub(super) fn resolve_visbuffer64_buffer_source(
     }
 }
 
-fn clusters_for_entity_in_execution_order(
+fn clusters_for_stable_instance_key_in_execution_order(
     extract: &RenderVirtualGeometryExtract,
-    entity: u64,
+    stable_instance_key: u64,
 ) -> Vec<RenderVirtualGeometryCluster> {
     let mut clusters = if extract.instances.is_empty() {
         extract
             .clusters
             .iter()
             .copied()
-            .filter(|cluster| cluster.entity == entity)
+            .filter(|cluster| {
+                render_mesh_stable_instance_key(cluster.entity, 0) == stable_instance_key
+            })
             .collect::<Vec<_>>()
     } else {
         extract
             .instances
             .iter()
-            .filter(|instance| instance.entity == entity)
+            .filter(|instance| instance.stable_instance_key_or_legacy() == stable_instance_key)
             .flat_map(|instance| {
                 let start = instance.cluster_offset as usize;
                 let end = start.saturating_add(instance.cluster_count as usize);
@@ -208,7 +213,7 @@ fn clusters_for_entity_in_execution_order(
 fn instance_index_for_cluster(
     snapshot: &RenderVirtualGeometryDebugSnapshot,
     extract: &RenderVirtualGeometryExtract,
-    entity: u64,
+    stable_instance_key: u64,
     cluster_id: u32,
 ) -> Option<u32> {
     if snapshot.instances.is_empty() {
@@ -220,7 +225,7 @@ fn instance_index_for_cluster(
         .iter()
         .enumerate()
         .find(|(_, instance)| {
-            if instance.entity != entity {
+            if instance.stable_instance_key_or_legacy() != stable_instance_key {
                 return false;
             }
 
@@ -278,6 +283,7 @@ mod tests {
             page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform::default(),
                 cluster_offset: 0,
@@ -318,6 +324,7 @@ mod tests {
             original_index: 0,
             instance_index: Some(0),
             entity,
+            stable_instance_key: 0,
             page_id: 300,
             draw_ref_index: 0,
             submission_index: Some(0),
@@ -352,6 +359,92 @@ mod tests {
     }
 
     #[test]
+    fn rebuild_selected_clusters_keeps_same_entity_instances_in_their_stable_key_domain() {
+        let entity = 91_u64;
+        let first_key = entity << 16;
+        let second_key = first_key | 1;
+        let extract = RenderVirtualGeometryExtract {
+            cluster_budget: 2,
+            page_budget: 0,
+            clusters: vec![
+                cluster(entity, 10, 100, 0, Vec3::ZERO, 9.0),
+                cluster(entity, 20, 200, 0, Vec3::ZERO, 8.0),
+            ],
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
+            pages: vec![page(100, true), page(200, true)],
+            page_dependencies: Vec::new(),
+            instances: vec![
+                RenderVirtualGeometryInstance {
+                    entity,
+                    stable_instance_key: first_key,
+                    source_model: None,
+                    transform: Transform::default(),
+                    cluster_offset: 0,
+                    cluster_count: 1,
+                    page_offset: 0,
+                    page_count: 1,
+                    mesh_name: None,
+                    source_hint: None,
+                },
+                RenderVirtualGeometryInstance {
+                    entity,
+                    stable_instance_key: second_key,
+                    source_model: None,
+                    transform: Transform::default(),
+                    cluster_offset: 1,
+                    cluster_count: 1,
+                    page_offset: 1,
+                    page_count: 1,
+                    mesh_name: None,
+                    source_hint: None,
+                },
+            ],
+            debug: RenderVirtualGeometryDebugState::default(),
+        };
+        let snapshot = RenderVirtualGeometryDebugSnapshot {
+            instances: extract.instances.clone(),
+            debug: extract.debug,
+            ..RenderVirtualGeometryDebugSnapshot::default()
+        };
+        let execution_segments = vec![RenderVirtualGeometryExecutionSegment {
+            original_index: 0,
+            instance_index: Some(1),
+            entity,
+            stable_instance_key: second_key,
+            page_id: 200,
+            draw_ref_index: 0,
+            submission_index: Some(0),
+            draw_ref_rank: Some(0),
+            cluster_start_ordinal: 0,
+            cluster_span_count: 1,
+            cluster_total_count: 1,
+            submission_slot: Some(0),
+            state: RenderVirtualGeometryExecutionState::Resident,
+            lineage_depth: 0,
+            lod_level: 0,
+            frontier_rank: 0,
+        }];
+
+        assert_eq!(
+            rebuild_selected_clusters_from_execution_segments(
+                &snapshot,
+                Some(&extract),
+                &execution_segments,
+            ),
+            vec![RenderVirtualGeometrySelectedCluster {
+                instance_index: Some(1),
+                entity,
+                cluster_id: 20,
+                cluster_ordinal: 0,
+                page_id: 200,
+                lod_level: 0,
+                state: RenderVirtualGeometryExecutionState::Resident,
+            }]
+        );
+    }
+
+    #[test]
     fn resolve_selected_clusters_for_store_prefers_pass_owned_selected_clusters() {
         let entity = 77_u64;
         let extract = RenderVirtualGeometryExtract {
@@ -367,6 +460,7 @@ mod tests {
             page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform::default(),
                 cluster_offset: 0,
@@ -396,6 +490,7 @@ mod tests {
             original_index: 0,
             instance_index: Some(0),
             entity,
+            stable_instance_key: 0,
             page_id: 300,
             draw_ref_index: 0,
             submission_index: Some(0),

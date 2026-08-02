@@ -1,7 +1,7 @@
 use crate::core::framework::render::RenderVirtualGeometryExtract;
 use crate::graphics::{
-    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
-    VisibilityVirtualGeometryPageUploadPlan, runtime_provider::RuntimeProviderPrepareInput,
+    runtime_provider::RuntimeProviderPrepareInput, VisibilityVirtualGeometryCluster,
+    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryPageUploadPlan,
 };
 
 pub struct VirtualGeometryRuntimePrepareInput<'a> {

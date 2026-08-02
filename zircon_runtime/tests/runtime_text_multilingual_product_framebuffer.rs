@@ -1,7 +1,7 @@
 #![cfg(feature = "ui")]
 
 use glyphon::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache, SwashContent};
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
@@ -27,6 +27,8 @@ mod product_project_fixture;
 mod proof_assertions;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_commands.rs"]
 mod proof_commands;
+#[path = "runtime_text_multilingual_product_framebuffer/proof_path.rs"]
+mod proof_path;
 mod support;
 use product_project_fixture::product_fixture_asset_manager;
 use proof_commands::{
@@ -35,6 +37,9 @@ use proof_commands::{
     proof_rich_text_with_direction, proof_rich_text_with_overflow, proof_rich_text_with_wrap,
     proof_text, proof_vertical_bbcode_paragraphs, proof_vertical_rich_table,
     proof_vertical_rich_text, proof_vertical_text,
+};
+use proof_path::{
+    assert_product_proof_is_outside_target, configured_cargo_target_dir, proof_path, workspace_root,
 };
 
 const TEXT_RASTER_SETTLE_MAX_FRAMES: u64 = 120;
@@ -233,6 +238,22 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         stats.last_ui_text_raster_worker_failed_count, 0,
         "the settled product framebuffer must not leave failed native raster work: {stats:#?}"
     );
+    assert_eq!(
+        stats.last_ui_text_missing_raster_image_count, 0,
+        "the settled product framebuffer must not capture missing native-atlas images: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_visible_raster_placeholder_count, 0,
+        "the settled product framebuffer must not capture transparent native-atlas placeholders: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_renderer_upload_requeued_count, 0,
+        "the settled product framebuffer must not capture requeued native-atlas uploads: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_renderer_upload_failure_count, 0,
+        "the settled product framebuffer must not capture failed native-atlas uploads: {stats:#?}"
+    );
     for sample in &samples {
         let changed = count_changed_pixels_in_frame(
             &capture.rgba,
@@ -389,6 +410,11 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     }
 
     let output = proof_path();
+    let workspace_root = workspace_root();
+    assert_product_proof_is_outside_target(&output, &workspace_root.join("target"));
+    if let Some(target_dir) = configured_cargo_target_dir() {
+        assert_product_proof_is_outside_target(&output, &target_dir);
+    }
     std::fs::create_dir_all(output.parent().expect("proof output directory"))
         .expect("create runtime text proof directory");
     image::save_buffer(
@@ -400,13 +426,6 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     )
     .expect("save runtime multilingual text product framebuffer");
     assert!(output.is_file());
-    assert!(
-        output
-            .components()
-            .all(|component| component.as_os_str() != "target"),
-        "runtime text proof must not be written into target: {}",
-        output.display()
-    );
     eprintln!(
         "runtime multilingual product framebuffer={}",
         output.display()
@@ -534,6 +553,7 @@ fn render_ui_extract_frame(
     };
     let mut final_stats = None;
     let mut raster_was_settled = false;
+    let mut capture_is_stable = false;
     for frame_index in 0..settle_frame_limit {
         server
             .submit_frame_extract_with_ui(
@@ -543,26 +563,62 @@ fn render_ui_extract_frame(
             )
             .expect("submit multilingual text settle frame");
         let stats = server.query_stats().expect("text proof render stats");
-        let raster_is_settled = stats.last_ui_text_raster_worker_pending_count == 0
-            || stats.last_ui_text_raster_worker_failed_count > 0;
+        let raster_is_settled = text_raster_frame_is_settled(
+            stats.last_ui_text_raster_worker_pending_count,
+            stats.last_ui_text_raster_worker_failed_count,
+            stats.last_ui_text_missing_raster_image_count,
+            stats.last_ui_text_visible_raster_placeholder_count,
+            stats.last_ui_text_raster_renderer_upload_requeued_count,
+            stats.last_ui_text_raster_renderer_upload_failure_count,
+        );
         final_stats = Some(stats);
-        if contains_text && raster_was_settled {
+        capture_is_stable = text_raster_capture_is_stable(raster_was_settled, raster_is_settled);
+        if contains_text && capture_is_stable {
             break;
         }
         raster_was_settled = contains_text && raster_is_settled;
-        // This only yields CPU time between fresh statistics polls; the raster condition above
-        // decides completion, and the bounded frame limit remains the failure guard.
-        std::thread::sleep(std::time::Duration::from_millis(
-            TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS,
-        ));
+        // Yield only between fresh statistics polls. Two consecutive successful raster frames
+        // prevent capture while a newly submitted glyph is still pending.
+        if frame_index + 1 < settle_frame_limit {
+            std::thread::sleep(std::time::Duration::from_millis(
+                TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS,
+            ));
+        }
     }
 
     let stats = final_stats.expect("the settle loop submits at least one frame");
+    assert!(
+        !contains_text || capture_is_stable,
+        "multilingual text framebuffer must observe two consecutive successful raster frames before capture: {stats:#?}"
+    );
     let capture = server
         .capture_frame(viewport)
         .expect("capture multilingual text frame")
         .expect("submitted frame must be capturable");
     (capture, stats)
+}
+
+fn text_raster_frame_is_settled(
+    pending_count: usize,
+    failed_count: usize,
+    missing_image_count: usize,
+    visible_placeholder_count: usize,
+    renderer_upload_requeued_count: usize,
+    renderer_upload_failure_count: usize,
+) -> bool {
+    pending_count == 0
+        && failed_count == 0
+        && missing_image_count == 0
+        && visible_placeholder_count == 0
+        && renderer_upload_requeued_count == 0
+        && renderer_upload_failure_count == 0
+}
+
+fn text_raster_capture_is_stable(
+    previous_frame_settled: bool,
+    current_frame_settled: bool,
+) -> bool {
+    previous_frame_settled && current_frame_settled
 }
 
 fn dominant_checker_channel_counts(
@@ -790,12 +846,16 @@ fn changed_pixel_bounds_in_frame(
     (bounds.4 > 0).then_some(bounds)
 }
 
-fn proof_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("docs")
-        .join("tests")
-        .join("runtime")
-        .join("text")
-        .join("runtime_text_mvp_foundation_product_framebuffer_20260729.png")
+#[test]
+fn product_framebuffer_capture_requires_two_consecutive_successful_raster_frames() {
+    assert!(text_raster_frame_is_settled(0, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(1, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 1, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 1, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 1, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 1, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 1));
+    assert!(!text_raster_capture_is_stable(false, true));
+    assert!(!text_raster_capture_is_stable(true, false));
+    assert!(text_raster_capture_is_stable(true, true));
 }

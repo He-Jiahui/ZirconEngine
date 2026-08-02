@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_template_nodes::material_primitives::resolved_style_color;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_background_color(

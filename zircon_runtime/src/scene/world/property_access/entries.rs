@@ -8,8 +8,8 @@ use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::scene::{
     ComponentPropertyPath, ScenePropertyEntry, ScenePropertyValue,
 };
-use crate::scene::components::Mobility;
 use crate::scene::EntityId;
+use crate::scene::components::Mobility;
 
 use super::super::World;
 use super::value_conversion::normalized_identifier_matches;

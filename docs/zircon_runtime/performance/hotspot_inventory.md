@@ -21,12 +21,11 @@ related_code:
   - zircon_runtime/src/scene/world/mod.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_runtime/src/animation/scene_hook/diagnostics.rs
-  - zircon_runtime/src/animation/scene_hook/events.rs
-  - zircon_runtime/src/animation/scene_hook/node_pose.rs
-  - zircon_runtime/src/animation/scene_hook/pending.rs
-  - zircon_runtime/src/animation/scene_hook/scan.rs
-  - zircon_runtime/src/animation/scene_hook/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
@@ -67,12 +66,11 @@ implementation_files:
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/dynamic_api/session/extract_cache.rs
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
-  - zircon_runtime/src/animation/scene_hook/diagnostics.rs
-  - zircon_runtime/src/animation/scene_hook/events.rs
-  - zircon_runtime/src/animation/scene_hook/node_pose.rs
-  - zircon_runtime/src/animation/scene_hook/pending.rs
-  - zircon_runtime/src/animation/scene_hook/scan.rs
-  - zircon_runtime/src/animation/scene_hook/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
   - zircon_runtime_interface/src/profiling.rs
@@ -205,8 +203,8 @@ This means extract, ECS, asset, UI, render, and editor candidates must stay in t
 | ECS QueryState cache reuse | `query_state_reuses_archetype_matches_across_unchanged_frames` uses 128 entities and 8 repeated runs; the unchanged path records 8 cache hits, 1 miss, and no additional rebuild. | Not currently an optimization target. The local evidence says the cache is reusing unchanged archetype matches. | Only promote if the vampire runtime sample shows low hit rate, excessive candidate counts, or repeated structural invalidation. |
 | Change detection mark scanning | `change_detection_scan_skips_unmarked_archetypes` scans three stale marks twice and records 6 scanned marks with 0 added and 0 changed matches. | Not currently an optimization target. The local evidence is a baseline that proves the diagnostic path, not a measured runtime hotspot. | Promote only with scene-level scan counts showing frame cost or excessive mark volume. |
 | Asset worker per-frame cost | `AssetWorkerPoolDiagnostics` exposes in-flight/completed/failed/queue peak plus `asset.worker.budgeted_threads`; `AssetWorkerPoolFrameSampler` now converts cumulative completions/failures into per-frame `asset.worker.frame_completed` and `asset.worker.frame_failed` deltas. | Not eligible for Runtime 07 M2 yet. Runtime 04/11 own the worker architecture; the new frame sampler is an evidence entry point, not a measured runtime hotspot. | Re-run worker-pool/runtime profiling gates and compare frame deltas against authoritative scene captures before creating any Runtime 07 optimization slice. |
-| Animation scene hook per-frame cost | `AnimationSceneFrameDiagnostics` records `animation.scene.scanned_entities`, sequence/clip/graph/state-machine sample counts, `animation.scene.output_poses`, `animation.scene.applied_transforms`, `animation.scene.published_events`, and `animation.scene.state_transitions` from the scene hook tick path. | Not eligible for Runtime 07 M2 yet. This is an evidence entry point for the previous UI/animation suspicion, not a measured runtime hotspot or optimization. | Capture authoritative vampire/runtime frames and compare animation scene counters against frame-time spans before creating an animation optimization slice. |
-| Generic profiling counters | `CounterHotspotReport` and `counter_hotspots.json` aggregate finite positive counters such as `extract.*`, `ecs.*`, `asset.worker.*`, `animation.scene.*`, `time.*`, `schedule.*`, and `tasks.*` into total/avg/p95/max/latest/count/frame_count rows, and `ProfileControlResponse.counter_hotspot_report` returns the same report from `export_report`. | Eligible as evidence routing only. This bridges existing counter rows into profile artifacts without declaring a top list or changing counter ownership. | Use the ranked counter rows to choose which owner diagnostics and frame spans to inspect; only promote an M2 slice after authoritative FPS/profile evidence confirms the cost. |
+| Animation evaluation per-frame cost | The current Animation Plugin pipeline owns scan/evaluation, events, pose writeback, requests, and tick orchestration, but the former `AnimationSceneFrameDiagnostics` producer and its `animation.scene.*` counters were removed with Runtime `scene_hook`. | Not eligible for Runtime 07 M2. The missing counter producer is an open Plugins04 behavior gap, not measured hotspot evidence. | Restore the established count and explicit-zero semantics in the current Plugin pipeline, then capture authoritative vampire/runtime frames before creating an optimization slice. |
+| Generic profiling counters | `CounterHotspotReport` and `counter_hotspots.json` aggregate finite positive counters such as `extract.*`, `ecs.*`, `asset.worker.*`, `time.*`, `schedule.*`, and `tasks.*` into total/avg/p95/max/latest/count/frame_count rows, and `ProfileControlResponse.counter_hotspot_report` returns the same report from `export_report`. Historical `animation.scene.*` rows will remain absent until the Plugins04 diagnostics gap is implemented. | Eligible as evidence routing only. This bridges existing counter rows into profile artifacts without declaring a top list or changing counter ownership. | Use the ranked counter rows to choose which owner diagnostics and frame spans to inspect; only promote an M2 slice after authoritative FPS/profile evidence confirms the cost. |
 | Runtime spans | `runtime_frame_time_update`, `runtime_frame_update`, `runtime_frame_extract`, `runtime_frame_submit`, and the per-`SystemStage` `runtime_frame_schedule_stage.<stage>` stage-level span are present in dynamic-session/runtime-loop/`SceneScheduleRunner` source. Direct runtime-frame submit also exposes render-framework `build_submission_context`, `prepare_runtime_submission`, `render_frame_with_pipeline`, and `collect_runtime_feedback` spans under `submit_runtime_frame`. | Eligible as measurement infrastructure, not as an optimization target. The schedule-runner span lets traces split the broad update phase into concrete ECS stage work without changing scheduler semantics, while the direct submit spans keep generated submit/present and `ViewportRenderFrame` submit comparable in profiling artifacts. | Profiling trace must show update/extract/submit, direct render-framework subspans, and stage-level percentages before ranking hotspots. |
 
 ## Profiling Build Entry Points
@@ -278,11 +276,13 @@ Runtime 07 M2 introduces `RuntimeFrameExtractCache` in `dynamic_api/session/extr
 
 `extract.rebuild_clones` now distinguishes a fresh extract from a cache reuse. `RuntimeFrameExtractCacheStatus::Rebuilt` records `1`, and `RuntimeFrameExtractCacheStatus::Reused` records `0`. `frame_extract_rebuild_skips_unchanged_entities` locks the unchanged headless sequence to `[1, 0]`, while `frame_extract_rebuilds_after_scene_change` mutates the active camera transform and locks the changed sequence to `[1, 1]`. This is still a static/headless implementation slice until the broader `extract` Cargo filter, vampire FPS gate, and profiling trace are rerun.
 
-## Animation Scene Frame Diagnostics
+## Animation Scene Frame Diagnostics Gap
 
-Runtime 07 M1.1 adds `AnimationSceneFrameDiagnostics` under `animation/scene_hook/diagnostics.rs`. The scene hook owns this because it is the only frame path that scans animation-bearing scene entities, samples animation assets, publishes animation events, writes pose outputs, and applies pose transforms back to scene nodes.
+Runtime 07 M1.1 historically added `AnimationSceneFrameDiagnostics` under `animation/scene_hook/diagnostics.rs`. The 2026-08-01 hard cut deleted the entire Runtime scene hook while moving evaluation to `zircon_plugins/animation/runtime/src/evaluation/pipeline/`; no current production type or producer preserves those diagnostics.
 
-The diagnostic paths are count-only rows in `DiagnosticStore`: `animation.scene.scanned_entities`, `animation.scene.sequence_samples`, `animation.scene.clip_pose_samples`, `animation.scene.clip_event_samples`, `animation.scene.graph_pose_samples`, `animation.scene.state_machine_pose_samples`, `animation.scene.output_poses`, `animation.scene.applied_transforms`, `animation.scene.published_events`, and `animation.scene.state_transitions`. Empty animation-manager or disabled-playback frames explicitly record zeroes so dashboards can distinguish no animation work from missing instrumentation. The slice status is `animation_scene_frame_diagnostics_static_passed_cargo_deferred`; it supplies evidence for future ranking, not an M2 optimization.
+The former count-only paths were `animation.scene.scanned_entities`, `animation.scene.sequence_samples`, `animation.scene.clip_pose_samples`, `animation.scene.clip_event_samples`, `animation.scene.graph_pose_samples`, `animation.scene.state_machine_pose_samples`, `animation.scene.output_poses`, `animation.scene.applied_transforms`, `animation.scene.published_events`, and `animation.scene.state_transitions`. Their explicit-zero semantics remain an acceptance requirement, but the historical token `animation_scene_frame_diagnostics_static_passed_cargo_deferred` is not current implementation evidence. `docs/plans/zircon_plugins/04/failure-2026-07-29-animation-frame-diagnostics-hardcut-omission.md` owns the open behavior-preserving migration; this inventory does not redirect the missing diagnostics to a nearby file or restore the retired hook.
+
+Later `animation_scene_anchor_count = 19` mirror receipts in this document count static audit anchors from their dated snapshots. They do not prove that `AnimationSceneFrameDiagnostics` or the `animation.scene.*` producers exist in the current production tree.
 
 ## Render-Plan Diversions
 

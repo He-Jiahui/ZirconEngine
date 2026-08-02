@@ -3,10 +3,8 @@ use super::{
     layout::{gamepad_button_label, GamepadKind, BINDABLE_GAMEPAD_BUTTONS, GAMEPAD_NONE_ACTION},
     storage::StoredGamepadBindings,
 };
-use crate::{
-    input::keybind::{KeyBindingKind, KEYBIND_ACTIONS},
-    preferences::PreferenceStorage,
-};
+use crate::input::keybind::{KeyBindingKind, KEYBIND_ACTIONS};
+use zircon_runtime::core::framework::platform::PreferenceStorage;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GamepadActionOption {
@@ -43,7 +41,7 @@ impl GamepadOptionsBindings for GamepadBindings {
 
 impl<S> GamepadOptionsBindings for StoredGamepadBindings<S>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
     fn action_for(&self, button: usize) -> &str {
         GamepadBindings::action_for(self, button)

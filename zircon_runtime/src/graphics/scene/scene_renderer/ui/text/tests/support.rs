@@ -10,12 +10,20 @@ use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
 pub(super) fn text_batch(text: &str, mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
     ScreenSpaceUiTextBatch {
+        route_identity: ScreenSpaceUiTextRouteIdentity::new(
+            "runtime.text.test",
+            UiNodeId::new(1),
+            None,
+        ),
+        command_generation: 1,
         text: text.to_string(),
         frame: UiFrame::new(0.0, 0.0, 128.0, 24.0),
         clip_frame: None,
         source_range: None,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
+        preserve_shaped_glyphs: false,
+        glyph_artifact_line: None,
         layout_error: None,
         color: [1.0, 1.0, 1.0, 1.0],
         background_color: None,

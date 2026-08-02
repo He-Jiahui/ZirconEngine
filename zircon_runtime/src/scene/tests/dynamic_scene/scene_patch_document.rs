@@ -31,9 +31,11 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
         .to_versioned_json_pretty()
         .expect("dynamic scene should serialize");
     let document: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-    assert!(document["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        document["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
     assert!(encoded.contains("\"schema_id\": \"zircon.scene.dynamic-scene\""));
     assert!(encoded.contains(CLOUD_LAYER_TYPE_PATH));
     assert_text_excludes_authoring_tokens(
@@ -165,6 +167,69 @@ fn scene_patch_applies_reflected_resources() {
             .value,
         7
     );
+}
+
+#[test]
+fn dynamic_scene_asset_reload_staging_clones_existing_resource_and_advances_generation() {
+    let mut source = World::empty();
+    register_frame_counter_resource(&mut source);
+    source.insert_resource(FrameCounter { value: 7 });
+    let prepared = PreparedDynamicSceneSpawn::new(
+        DynamicScene::from_world(&source).expect("resource world should export"),
+    )
+    .expect("resource scene should prepare");
+
+    let mut target = World::empty();
+    register_frame_counter_resource(&mut target);
+    target.insert_resource(FrameCounter { value: 3 });
+    let before = target.world_generation();
+
+    prepared
+        .spawn_into(&mut target)
+        .expect("existing reflected resource should stage atomically");
+
+    assert_eq!(
+        target
+            .get_resource::<FrameCounter>()
+            .expect("target resource remains present")
+            .value,
+        7
+    );
+    assert!(target.world_generation() > before);
+}
+
+#[test]
+fn dynamic_scene_asset_reload_resource_staging_is_charged_to_the_target_snapshot_limit() {
+    let mut source = World::empty();
+    register_frame_counter_resource(&mut source);
+    source.insert_resource(FrameCounter { value: 7 });
+    let prepared = PreparedDynamicSceneSpawn::new(
+        DynamicScene::from_world(&source).expect("resource world should export"),
+    )
+    .expect("resource scene should prepare");
+    let mut target = World::empty();
+    register_frame_counter_resource(&mut target);
+    target.insert_resource(FrameCounter { value: 3 });
+    let estimated_preflight_bytes = prepared
+        .capture_world_target(&mut target, usize::MAX)
+        .expect("target preflight projection should estimate")
+        .estimated_bytes();
+    let target_snapshot_limit_bytes = estimated_preflight_bytes
+        .checked_sub(1)
+        .expect("preflight projection must consume bytes");
+
+    let error = prepared
+        .stage_into_with_limit(&mut target, target_snapshot_limit_bytes)
+        .expect_err("affected resource clone bytes must not escape the preflight limit");
+
+    assert!(matches!(
+        error,
+        DynamicSceneError::TargetSnapshotTooLarge {
+            estimated_bytes,
+            limit_bytes,
+        } if estimated_bytes > limit_bytes && limit_bytes == target_snapshot_limit_bytes
+    ));
+    assert_eq!(target.get_resource::<FrameCounter>().unwrap().value, 3);
 }
 
 #[test]
@@ -339,9 +404,11 @@ fn dynamic_scene_migrates_v1_envelope_to_versionless_v2_payload() {
     let current: serde_json::Value =
         serde_json::from_str(&migrated.to_versioned_json_pretty().unwrap()).unwrap();
     assert_eq!(current["$zircon"]["header"]["schema_version"], 2);
-    assert!(current["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        current["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 }
 
 #[test]
@@ -372,9 +439,11 @@ fn versioned_json_migrates_legacy_world_project_documents() {
         .to_versioned_json_pretty()
         .expect("dynamic scene should write versioned JSON");
     let current: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-    assert!(current["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        current["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
     assert_text_excludes_authoring_tokens(
         "versioned dynamic scene JSON",
         &encoded,

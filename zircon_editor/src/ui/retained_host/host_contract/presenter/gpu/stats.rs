@@ -1,7 +1,7 @@
 use zircon_runtime::rhi::{UiSurfacePresentStats, UiSurfacePresenter};
 
 use super::GpuChromePresenter;
-use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
 
 pub(super) fn record_present_stats<P: UiSurfacePresenter>(
     presenter: &mut GpuChromePresenter<P>,
@@ -47,6 +47,13 @@ pub(super) fn record_present_stats<P: UiSurfacePresenter>(
         UiPerfCounter::GpuRenderPasses,
         stats.render_pass_count as f64,
     );
+    if let Some(gpu_time_us) = stats.gpu_time_us {
+        record_current_ui_perf_counter(UiPerfCounter::GpuTimeUs, gpu_time_us as f64);
+        record_current_ui_perf_counter(
+            UiPerfCounter::GpuProfileLatencyFrames,
+            stats.gpu_profile_latency_frames as f64,
+        );
+    }
     record_current_ui_perf_counter(
         UiPerfCounter::GpuVisibleCommands,
         stats.visible_command_count as f64,
@@ -54,6 +61,10 @@ pub(super) fn record_present_stats<P: UiSurfacePresenter>(
     record_current_ui_perf_counter(
         UiPerfCounter::GpuVisibleCommandPayloadBytes,
         stats.visible_command_payload_bytes as f64,
+    );
+    record_current_ui_perf_counter(
+        UiPerfCounter::GpuVisibleCommandStyles,
+        stats.visible_command_style_count as f64,
     );
     record_current_ui_perf_counter(
         UiPerfCounter::GpuVisibleDrawItems,
@@ -78,6 +89,14 @@ pub(super) fn record_present_stats<P: UiSurfacePresenter>(
     record_current_ui_perf_counter(
         UiPerfCounter::GpuCompiledSolidVertices,
         stats.compiled_solid_vertex_count as f64,
+    );
+    record_current_ui_perf_counter(
+        UiPerfCounter::GpuSolidInstances,
+        stats.solid_instance_count as f64,
+    );
+    record_current_ui_perf_counter(
+        UiPerfCounter::GpuCompiledSolidInstances,
+        stats.compiled_solid_instance_count as f64,
     );
     record_current_ui_perf_counter(
         UiPerfCounter::GpuImageVertices,

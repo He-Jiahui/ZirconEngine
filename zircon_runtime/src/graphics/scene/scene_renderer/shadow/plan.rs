@@ -2,20 +2,20 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::render::{
     GpuLightData, LightShadowSettings, LightingExtract, RenderDirectionalLightSnapshot,
-    SHADOW_SLOT_NONE, ViewportCameraSnapshot,
+    ViewportCameraSnapshot, SHADOW_SLOT_NONE,
 };
 use crate::core::math::Mat4;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 
 use super::atlas::{
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasRect,
-    ShadowAtlasResourceConfig, ShadowSlotAllocation, ShadowSlotKey, ShadowSlotRequest,
+    ShadowAtlasAllocator, ShadowAtlasRect, ShadowAtlasResourceConfig, ShadowSlotAllocation,
+    ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
 };
-use super::cascade::{CascadeSplitConfig, compute_cascade_ranges};
+use super::cascade::{compute_cascade_ranges, CascadeSplitConfig};
 use super::slot::{
-    GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE, GPU_SHADOW_SLOT_FLAG_POINT_FACE,
-    GPU_SHADOW_SLOT_FLAG_SPOT, GpuShadowGlobals, GpuShadowSlot,
+    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
+    GPU_SHADOW_SLOT_FLAG_POINT_FACE, GPU_SHADOW_SLOT_FLAG_SPOT,
 };
 use super::view_projection::{
     directional_cascade_view_projection, point_light_face_view_projection,

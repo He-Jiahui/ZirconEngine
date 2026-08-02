@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
-use super::adapter::text_style;
-use crate::text::layout::measured_grapheme_widths;
+use crate::text::{layout::measured_grapheme_widths, text_style};
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
@@ -130,12 +129,9 @@ fn visual_grapheme_boundary_for_x(
         return (0, UiTextVisualBoundaryBias::LeadingCurrent);
     }
 
-    let relative_x = match line.direction {
-        UiTextDirection::RightToLeft => line.frame.right() - point_x,
-        UiTextDirection::LeftToRight | UiTextDirection::Mixed | UiTextDirection::Auto => {
-            point_x - line.frame.x
-        }
-    };
+    // `line.text` and `glyph_advances` are already in post-UAX#9 visual order.
+    // Logical RTL recovery belongs to the source map, not to physical hit coordinates.
+    let relative_x = point_x - line.frame.x;
     let advances = resolved_grapheme_advances(line, style, grapheme_count);
     let advance_width = advances.iter().sum::<f32>();
     let measured_x = relative_x.clamp(0.0, line.measured_width.max(advance_width).max(0.0));

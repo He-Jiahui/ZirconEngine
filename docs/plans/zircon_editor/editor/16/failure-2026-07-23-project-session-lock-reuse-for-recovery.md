@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor/16
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/recovery/autosave.rs
-  - zircon_editor/src/core/recovery/session_guard.rs
 tests:
   - cargo test -p zircon_editor --lib --locked core::recovery::tests -- --test-threads=1
   - zircon_editor integration crash-restart recovery fixture

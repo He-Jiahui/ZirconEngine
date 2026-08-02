@@ -2,7 +2,7 @@
 
 ## Cross-Plan Failure Status
 
-- Open: [Cargo PID reuse identity guard](01/failure-2026-07-14-cargo-pid-reuse-identity-guard.md) is the current failure-priority repair for Editor Layout 15 managed screenshot validation. It must preserve live Cargo descendant protection while rejecting a reused root PID with a different creation identity.
+- fixed 已修复：[Cargo PID reuse identity guard](../../zircon_editor/editor_layout/15/fixed-2026-07-17-cargo-pid-reuse-identity-guard.md)
 - fixed 已修复：[failure-return-plan-table-row-corruption](../../zircon_editor/editor/07/fixed-2026-07-15-failure-return-plan-table-row-corruption.md)
 - fixed 已修复：[plan-output-audit-counts-lifecycle-links](../../zircon_editor/editor/12/fixed-2026-07-15-plan-output-audit-counts-lifecycle-links.md)
 - fixed 已修复：[goal-closeout-counts-terminal-failed-intents](../../zircon_runtime/text/01/fixed-2026-07-18-goal-closeout-counts-terminal-failed-intents.md)
@@ -504,6 +504,7 @@ At each accepted milestone:
 - open / 活跃受管 ephemeral target 被误判为 unmanaged：[live-ephemeral-target-misclassified-unmanaged](01/failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md)
 - open / 原生 slice closeout checker 仍依赖共享暂存区：[native-slice-closeout-checker-staged-index-contract-drift](01/failure-2026-07-16-native-slice-closeout-checker-staged-index-contract-drift.md)
 - open / lifecycle orphan recovery 被 maintenance hold 完整性约束阻断，服务无法启动：[lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock](01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)
+- open / 待修复；accepted `session.register` 必须持久化并最终收敛为 terminal request：[accepted session register durability](01/failure-2026-07-31-accepted-session-register-durability.md)
 - fixed 已修复：[stale-session-pending-cpu-reservation-starvation](../../zircon_editor/editor/07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)
 
 ## 7. Completion Audit

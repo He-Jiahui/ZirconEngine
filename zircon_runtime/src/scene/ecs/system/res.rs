@@ -19,6 +19,8 @@ pub struct Res<'world, T> {
 pub struct ResMut<'world, T> {
     value: &'world mut T,
     ticks: ComponentTicks,
+    changed_tick: &'world mut ComponentTicks,
+    this_run: crate::scene::ecs::ChangeTick,
     window: ChangeTickWindow,
 }
 
@@ -40,7 +42,7 @@ impl<T> Deref for ResMut<'_, T> {
 
 impl<T> DerefMut for ResMut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.value
+        self.as_mut()
     }
 }
 
@@ -58,7 +60,22 @@ impl<T> Res<'_, T> {
     }
 }
 
-impl<T> ResMut<'_, T> {
+impl<'world, T> ResMut<'world, T> {
+    pub fn as_mut(&mut self) -> &mut T {
+        self.set_changed();
+        self.value
+    }
+
+    pub fn into_inner(mut self) -> &'world mut T {
+        self.set_changed();
+        self.value
+    }
+
+    pub fn set_changed(&mut self) {
+        self.changed_tick.set_changed(self.this_run);
+        self.ticks = *self.changed_tick;
+    }
+
     pub fn is_added(&self) -> bool {
         self.ticks.is_added(self.window)
     }
@@ -138,12 +155,14 @@ where
         ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
         let world = &mut *world;
-        let (value, resource_ticks) = world
+        let (value, resource_ticks, this_run) = world
             .resource_mut_with_ticks::<T>()
             .expect("resource mut param must reference an existing resource");
         ResMut {
             value,
-            ticks: resource_ticks,
+            ticks: *resource_ticks,
+            changed_tick: resource_ticks,
+            this_run,
             window: ticks,
         }
     }
@@ -203,10 +222,12 @@ where
         ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
         let world = &mut *world;
-        let (value, resource_ticks) = world.resource_mut_with_ticks::<T>()?;
+        let (value, resource_ticks, this_run) = world.resource_mut_with_ticks::<T>()?;
         Some(ResMut {
             value,
-            ticks: resource_ticks,
+            ticks: *resource_ticks,
+            changed_tick: resource_ticks,
+            this_run,
             window: ticks,
         })
     }

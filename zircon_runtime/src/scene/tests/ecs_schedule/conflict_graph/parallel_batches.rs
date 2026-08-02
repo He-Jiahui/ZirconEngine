@@ -40,8 +40,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(
         graph_source.contains("node_indices_by_system_id: graph_inputs.node_indices_by_system_id")
     );
-    assert!(graph_source
-        .contains("let node_indices_by_stage = node_indices_by_stage(&nodes, &graph_inputs);"));
+    assert!(
+        graph_source
+            .contains("let node_indices_by_stage = node_indices_by_stage(&nodes, &graph_inputs);")
+    );
     assert!(
         graph_source.contains("same_stage_non_barrier_conflict_pair_upper_bound(&graph_inputs)")
     );
@@ -56,8 +58,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         "if can_extend_last_batch {\n                    batch.push_system(node.system_id.clone(), node_index);\n                    continue;\n                }"
     ));
     assert!(graph_source.contains("if nodes.len() <= 1"));
-    assert!(graph_source
-        .contains("let conflict_edge_indices_by_node = empty_node_index_lists(nodes.len());"));
+    assert!(
+        graph_source
+            .contains("let conflict_edge_indices_by_node = empty_node_index_lists(nodes.len());")
+    );
     assert!(
         graph_source.contains("let conflict_node_adjacency = empty_node_index_lists(nodes.len());")
     );
@@ -73,8 +77,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     );
     assert!(graph_source.contains("let left_stage_index = next_stage_positions[stage_index];"));
     assert!(graph_source.contains("next_stage_positions[stage_index] += 1;"));
-    assert!(graph_source
-        .contains("for right_index in &same_stage_node_indices[(left_stage_index + 1)..]"));
+    assert!(
+        graph_source
+            .contains("for right_index in &same_stage_node_indices[(left_stage_index + 1)..]")
+    );
     assert!(
         graph_source
             .matches("empty_node_index_lists(nodes.len())")
@@ -98,15 +104,23 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph_source.contains("struct ScheduleConflictEdges<'graph>"));
     assert!(graph_source.contains("impl<'graph> Iterator for ScheduleConflictEdges<'graph>"));
     assert!(graph_source.contains("let edge_index = self.edge_indices[self.next_index];"));
-    assert!(!graph_source
-        .contains(".map(|node_index| self.conflict_edge_indices_by_node[*node_index].as_slice())"));
+    assert!(
+        !graph_source.contains(
+            ".map(|node_index| self.conflict_edge_indices_by_node[*node_index].as_slice())"
+        )
+    );
     assert!(!graph_source.contains("edge_indices.iter().map(|index| &self.edges[*index])"));
     assert!(!graph_source.contains("&edges[*index]"));
     assert!(graph_source.contains("self.conflict_node_adjacency"));
-    assert!(graph_source
-        .contains("let Some(left_index) = self.node_indices_by_system_id.get(left_system_id)"));
-    assert!(graph_source
-        .contains("let Some(right_index) = self.node_indices_by_system_id.get(right_system_id)"));
+    assert!(
+        graph_source
+            .contains("let Some(left_index) = self.node_indices_by_system_id.get(left_system_id)")
+    );
+    assert!(
+        graph_source.contains(
+            "let Some(right_index) = self.node_indices_by_system_id.get(right_system_id)"
+        )
+    );
     assert!(graph_source.contains("return false;"));
     assert!(graph_source.contains("self.node_indices_conflict(*left_index, *right_index)"));
     assert!(graph_source.contains("struct ScheduleConflictGraphInputs"));
@@ -116,14 +130,18 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph_source.contains(
         "fn schedule_conflict_graph_inputs(nodes: &[ScheduleConflictNode]) -> ScheduleConflictGraphInputs"
     ));
-    assert!(graph_source
-        .contains("let mut node_indices_by_system_id = HashMap::with_capacity(nodes.len())"));
+    assert!(
+        graph_source
+            .contains("let mut node_indices_by_system_id = HashMap::with_capacity(nodes.len())")
+    );
     assert!(
         graph_source.contains("node_indices_by_system_id.insert(node.system_id.clone(), index);")
     );
     assert!(graph_source.contains("let mut node_counts_by_stage = [0_usize; SystemStage::COUNT];"));
-    assert!(graph_source
-        .contains("let mut non_barrier_node_counts_by_stage = [0_usize; SystemStage::COUNT];"));
+    assert!(
+        graph_source
+            .contains("let mut non_barrier_node_counts_by_stage = [0_usize; SystemStage::COUNT];")
+    );
     assert!(graph_source.contains("let stage_index = node.stage.rank();"));
     assert!(graph_source.contains("node_counts_by_stage[stage_index] += 1;"));
     assert!(graph_source.contains("if !node.is_barrier()"));
@@ -157,10 +175,16 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(
         graph_source.contains("Single {\n        system_id: String,\n        node_index: usize,")
     );
-    assert!(graph_source
-        .contains("Pair {\n        system_ids: [String; 2],\n        node_indices: [usize; 2],"));
-    assert!(graph_source
-        .contains("Triple {\n        system_ids: [String; 3],\n        node_indices: [usize; 3],"));
+    assert!(
+        graph_source.contains(
+            "Pair {\n        system_ids: [String; 2],\n        node_indices: [usize; 2],"
+        )
+    );
+    assert!(
+        graph_source.contains(
+            "Triple {\n        system_ids: [String; 3],\n        node_indices: [usize; 3],"
+        )
+    );
     assert!(graph_source.contains(
         "Multiple {\n        system_ids: Vec<String>,\n        node_indices: Vec<usize>,"
     ));
@@ -173,8 +197,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph_source.contains("system_ids: [std::mem::take(first_system_id), system_id]"));
     assert!(graph_source.contains("node_indices: [*first_node_index, node_index]"));
     assert!(graph_source.contains("ScheduleParallelBatchSystems::Triple {"));
-    assert!(graph_source
-        .contains("system_ids: [\n                    std::mem::take(&mut system_ids[0]),"));
+    assert!(
+        graph_source
+            .contains("system_ids: [\n                    std::mem::take(&mut system_ids[0]),")
+    );
     assert!(graph_source.contains("node_indices: [node_indices[0], node_indices[1], node_index]"));
     assert!(graph_source.contains("let mut promoted_system_ids = Vec::with_capacity(4);"));
     assert!(graph_source.contains("promoted_system_ids.push(std::mem::take(&mut system_ids[0]));"));
@@ -203,12 +229,16 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(
         graph_source.contains("let Some(neighbors) = self.conflict_node_adjacency.get(left_index)")
     );
-    assert!(graph_source
-        .contains("let Some(neighbors) = self.conflict_node_adjacency.get(right_index)"));
+    assert!(
+        graph_source
+            .contains("let Some(neighbors) = self.conflict_node_adjacency.get(right_index)")
+    );
     assert!(graph_source.contains("neighbors.binary_search(&right_index).is_ok()"));
     assert!(graph_source.contains("sorted_slices_intersect(node_indices, neighbors)"));
-    assert!(graph_source
-        .contains("fn sorted_slices_intersect(left: &[usize], right: &[usize]) -> bool"));
+    assert!(
+        graph_source
+            .contains("fn sorted_slices_intersect(left: &[usize], right: &[usize]) -> bool")
+    );
     assert!(graph_source.contains("while left_index < left.len() && right_index < right.len()"));
     assert!(graph_source.contains("let left_value = left[left_index];"));
     assert!(graph_source.contains("let right_value = right[right_index];"));
@@ -234,10 +264,14 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!graph_source.contains("let mut batches = Vec::<ScheduleParallelBatch>::new();"));
     assert!(!graph_source.contains(".zip(self.node_indices_by_system_id.get(right_system_id))"));
     assert!(!graph_source.contains(".is_some_and(|(left_index, right_index)|"));
-    assert!(!graph_source
-        .contains(".is_some_and(|neighbors| neighbors.binary_search(&right_index).is_ok())"));
-    assert!(!graph_source
-        .contains(".is_some_and(|neighbors| sorted_slices_intersect(node_indices, neighbors))"));
+    assert!(
+        !graph_source
+            .contains(".is_some_and(|neighbors| neighbors.binary_search(&right_index).is_ok())")
+    );
+    assert!(
+        !graph_source
+            .contains(".is_some_and(|neighbors| sorted_slices_intersect(node_indices, neighbors))")
+    );
     assert!(!graph_source.contains("batches.last().is_some_and"));
     assert!(!graph_source.contains("last batch must exist after is_some_and"));
     assert!(!graph_source.contains("system_ids: vec![node.system_id.clone()]"));
@@ -253,8 +287,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!graph_source.contains(".entry(right.system_id.clone())"));
     assert!(!graph_source.contains("for right_index in (left_index + 1)..nodes.len()"));
     assert!(!graph_source.contains("if left.stage != right.stage"));
-    assert!(!graph_source
-        .contains("let node_indices_by_system_id = node_indices_by_system_id(&nodes);"));
+    assert!(
+        !graph_source
+            .contains("let node_indices_by_system_id = node_indices_by_system_id(&nodes);")
+    );
     assert!(
         !graph_source.contains("let (node_indices_by_stage, non_barrier_node_counts_by_stage) =")
     );
@@ -291,10 +327,14 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(access_source.contains("insert_type_id(&mut self.event_reads, type_id);\n        insert_type_id(&mut self.event_writes, type_id);"));
     assert!(access_source.contains("insert_type_id(&mut self.message_reads, type_id);\n        insert_type_id(&mut self.message_writes, type_id);"));
     assert!(access_source.contains("access_slices_intersect(left_writes, right_reads)"));
-    assert!(access_source
-        .contains("read_only_access_intersects(left_reads, left_writes, right_writes)"));
-    assert!(access_source
-        .contains("let mut conflicts = Vec::with_capacity(system_param_conflict_upper_bound("));
+    assert!(
+        access_source
+            .contains("read_only_access_intersects(left_reads, left_writes, right_writes)")
+    );
+    assert!(
+        access_source
+            .contains("let mut conflicts = Vec::with_capacity(system_param_conflict_upper_bound(")
+    );
     assert!(access_source.contains("fn system_param_conflict_upper_bound("));
     assert!(access_source.contains("fn access_conflict_upper_bound<T>("));
     assert!(access_source.contains("read_only_access_count(left_reads, left_writes)"));
@@ -308,22 +348,30 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         .nth(1)
         .and_then(|text| text.split("fn read_only_access_intersects<T>").next())
         .expect("read system-param access boolean intersection helper");
-    assert!(access_boolean_intersect
-        .contains("while left_index < left.len() && right_index < right.len()"));
+    assert!(
+        access_boolean_intersect
+            .contains("while left_index < left.len() && right_index < right.len()")
+    );
     assert!(access_boolean_intersect.contains("let left_value = &left[left_index];"));
     assert!(access_boolean_intersect.contains("let right_value = &right[right_index];"));
-    assert!(!access_boolean_intersect.contains("while let (Some(left_value), Some(right_value)) ="));
+    assert!(
+        !access_boolean_intersect.contains("while let (Some(left_value), Some(right_value)) =")
+    );
     let access_read_only_intersect = access_source
         .split("fn read_only_access_intersects<T>(")
         .nth(1)
         .and_then(|text| text.split("fn push_resource_conflicts").next())
         .expect("read system-param access read-only intersection helper");
-    assert!(access_read_only_intersect
-        .contains("while read_index < reads.len() && right_index < right.len()"));
+    assert!(
+        access_read_only_intersect
+            .contains("while read_index < reads.len() && right_index < right.len()")
+    );
     assert!(access_read_only_intersect.contains("let read_value = reads[read_index];"));
     assert!(access_read_only_intersect.contains("let right_value = right[right_index];"));
-    assert!(access_read_only_intersect
-        .contains("read_access_is_written(read_value, writes, &mut write_index)"));
+    assert!(
+        access_read_only_intersect
+            .contains("read_access_is_written(read_value, writes, &mut write_index)")
+    );
     assert!(
         !access_read_only_intersect.contains("while let (Some(read_value), Some(right_value)) =")
     );
@@ -335,12 +383,16 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
                 .next()
         })
         .expect("read system-param access diagnostic intersection helper");
-    assert!(access_diagnostic_intersect
-        .contains("while left_index < left.len() && right_index < right.len()"));
+    assert!(
+        access_diagnostic_intersect
+            .contains("while left_index < left.len() && right_index < right.len()")
+    );
     assert!(access_diagnostic_intersect.contains("let left_value = left[left_index];"));
     assert!(access_diagnostic_intersect.contains("let right_value = right[right_index];"));
-    assert!(access_diagnostic_intersect
-        .contains("push_conflict(conflicts, conflict_kind(left_value));"));
+    assert!(
+        access_diagnostic_intersect
+            .contains("push_conflict(conflicts, conflict_kind(left_value));")
+    );
     assert!(
         !access_diagnostic_intersect.contains("while let (Some(left_value), Some(right_value)) =")
     );
@@ -350,14 +402,20 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         .nth(1)
         .and_then(|text| text.split("fn read_access_is_written<T>").next())
         .expect("read system-param read-only diagnostic helper");
-    assert!(access_read_only_diagnostic
-        .contains("while read_index < reads.len() && right_index < right.len()"));
+    assert!(
+        access_read_only_diagnostic
+            .contains("while read_index < reads.len() && right_index < right.len()")
+    );
     assert!(access_read_only_diagnostic.contains("let read_value = reads[read_index];"));
     assert!(access_read_only_diagnostic.contains("let right_value = right[right_index];"));
-    assert!(access_read_only_diagnostic
-        .contains("read_access_is_written(read_value, writes, &mut write_index)"));
-    assert!(access_read_only_diagnostic
-        .contains("push_conflict(conflicts, conflict_kind(read_value));"));
+    assert!(
+        access_read_only_diagnostic
+            .contains("read_access_is_written(read_value, writes, &mut write_index)")
+    );
+    assert!(
+        access_read_only_diagnostic
+            .contains("push_conflict(conflicts, conflict_kind(read_value));")
+    );
     assert!(
         !access_read_only_diagnostic.contains("while let (Some(read_value), Some(right_value)) =")
     );
@@ -388,21 +446,32 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         .split("fn sorted_component_slices_intersect(left: &[ComponentId], right: &[ComponentId]) -> bool")
         .nth(1)
         .expect("read sorted component intersection helper");
-    assert!(sorted_component_intersect
-        .contains("while left_index < left.len() && right_index < right.len()"));
+    assert!(
+        sorted_component_intersect
+            .contains("while left_index < left.len() && right_index < right.len()")
+    );
     assert!(sorted_component_intersect.contains("let left_value = left[left_index];"));
     assert!(sorted_component_intersect.contains("let right_value = right[right_index];"));
     assert!(sorted_component_intersect.contains("if left_value == right_value"));
     assert!(sorted_component_intersect.contains("left_index += 1;"));
     assert!(sorted_component_intersect.contains("right_index += 1;"));
-    assert!(query_access_source
-        .contains("sorted_component_slices_intersect(&self.writes, &other.reads)"));
-    assert!(query_access_source
-        .contains("sorted_component_slices_intersect(&self.reads, &other.writes)"));
-    assert!(!query_access_source
-        .contains("sorted_component_slices_intersect(&self.writes, &other.writes)"));
-    assert!(!query_access_source
-        .contains("left.iter()\n        .any(|component_id| contains_id(right, *component_id))"));
+    assert!(
+        query_access_source
+            .contains("sorted_component_slices_intersect(&self.writes, &other.reads)")
+    );
+    assert!(
+        query_access_source
+            .contains("sorted_component_slices_intersect(&self.reads, &other.writes)")
+    );
+    assert!(
+        !query_access_source
+            .contains("sorted_component_slices_intersect(&self.writes, &other.writes)")
+    );
+    assert!(
+        !query_access_source.contains(
+            "left.iter()\n        .any(|component_id| contains_id(right, *component_id))"
+        )
+    );
     assert!(query_access_source.contains(
         "fn push_sorted_component_intersections(\n    conflicts: &mut Vec<ComponentId>,"
     ));
@@ -414,8 +483,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
                 .next()
         })
         .expect("read sorted component diagnostic helper");
-    assert!(sorted_component_diagnostic
-        .contains("while left_index < left.len() && right_index < right.len()"));
+    assert!(
+        sorted_component_diagnostic
+            .contains("while left_index < left.len() && right_index < right.len()")
+    );
     assert!(sorted_component_diagnostic.contains("let left_value = left[left_index];"));
     assert!(sorted_component_diagnostic.contains("let right_value = right[right_index];"));
     assert!(
@@ -427,10 +498,14 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(query_access_source.contains(
         "let mut conflicts = Vec::with_capacity(component_conflict_upper_bound(self, other));"
     ));
-    assert!(query_access_source
-        .contains("fn component_conflict_upper_bound(left: &QueryAccess, right: &QueryAccess)"));
+    assert!(
+        query_access_source
+            .contains("fn component_conflict_upper_bound(left: &QueryAccess, right: &QueryAccess)")
+    );
     assert!(query_access_source.contains("left.writes.len().min(right.reads.len())"));
-    assert!(query_access_source.contains("read_only_component_count(left).min(right.writes.len())"));
+    assert!(
+        query_access_source.contains("read_only_component_count(left).min(right.writes.len())")
+    );
     assert!(query_access_source.contains("fn read_only_component_count(access: &QueryAccess)"));
     assert!(query_access_source.contains("insert_sorted_component_id(conflicts, left_value);"));
     assert_eq!(
@@ -446,16 +521,24 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         .nth(1)
         .and_then(|text| text.split("fn read_component_is_written").next())
         .expect("read read-only component diagnostic helper");
-    assert!(read_only_component_diagnostic
-        .contains("while read_index < reads.len() && right_index < right.len()"));
+    assert!(
+        read_only_component_diagnostic
+            .contains("while read_index < reads.len() && right_index < right.len()")
+    );
     assert!(read_only_component_diagnostic.contains("let read_value = reads[read_index];"));
     assert!(read_only_component_diagnostic.contains("let right_value = right[right_index];"));
-    assert!(read_only_component_diagnostic
-        .contains("if read_component_is_written(read_value, writes, &mut write_index)"));
-    assert!(read_only_component_diagnostic
-        .contains("insert_sorted_component_id(conflicts, read_value);"));
-    assert!(!read_only_component_diagnostic
-        .contains("while let (Some(read_value), Some(right_value)) ="));
+    assert!(
+        read_only_component_diagnostic
+            .contains("if read_component_is_written(read_value, writes, &mut write_index)")
+    );
+    assert!(
+        read_only_component_diagnostic
+            .contains("insert_sorted_component_id(conflicts, read_value);")
+    );
+    assert!(
+        !read_only_component_diagnostic
+            .contains("while let (Some(read_value), Some(right_value)) =")
+    );
     assert!(query_access_source.contains("read_component_is_written("));
     let written_component_probe = query_access_source
         .split("fn read_component_is_written(")

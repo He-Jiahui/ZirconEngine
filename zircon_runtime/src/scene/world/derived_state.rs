@@ -57,6 +57,7 @@ impl World {
             return;
         }
         if system == InternalSceneSystem::UpdateEvents {
+            self.advance_messages();
             self.update_all_events();
             return;
         }

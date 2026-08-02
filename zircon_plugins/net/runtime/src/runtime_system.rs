@@ -5,7 +5,8 @@ use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistryError}
 use zircon_runtime::scene::ecs::RuntimeSceneSystemContext;
 use zircon_runtime::scene::SystemStage;
 
-pub const NET_SYSTEM_SET: &str = "net.transport";
+pub const NET_MAIN_SYSTEM_SET: &str = "net.main";
+pub const NET_TRANSPORT_SYSTEM_SET: &str = "net.transport";
 pub const NET_POLL_INGRESS_SYSTEM: &str = "net.poll_ingress";
 pub const NET_FLUSH_EGRESS_SYSTEM: &str = "net.flush_egress";
 pub const NET_EVENT_ID: &str = "net.events.runtime_event";
@@ -40,7 +41,8 @@ pub fn register_runtime_systems(
             SystemStage::First,
             run_net_poll_ingress,
         )
-        .in_set(NET_SYSTEM_SET)
+        .in_set(NET_MAIN_SYSTEM_SET)
+        .in_set(NET_TRANSPORT_SYSTEM_SET)
         .register()?;
     module
         .runtime_scene_system(
@@ -48,7 +50,8 @@ pub fn register_runtime_systems(
             SystemStage::Last,
             run_net_flush_egress,
         )
-        .in_set(NET_SYSTEM_SET)
+        .in_set(NET_MAIN_SYSTEM_SET)
+        .in_set(NET_TRANSPORT_SYSTEM_SET)
         .register()
 }
 

@@ -502,11 +502,9 @@ mod tests {
             "pipeline_layout.group3",
             "@group(3)"
         ));
-        assert!(
-            !diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic_path(diagnostic) == Some("pipeline_layout.group1"))
-        );
+        assert!(!diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic_path(diagnostic) == Some("pipeline_layout.group1")));
     }
 
     #[test]

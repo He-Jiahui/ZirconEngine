@@ -1,7 +1,7 @@
 use super::super::support::*;
 
 #[test]
-fn scene_menu_actions_dispatch_placeholder_status_through_callback_runtime_path() {
+fn scene_menu_actions_request_the_authorized_scene_picker_through_callback_runtime_path() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_callback_scene_menu_actions");
@@ -24,13 +24,13 @@ fn scene_menu_actions_dispatch_placeholder_status_through_callback_runtime_path(
         ]
     );
     assert!(open_effects.presentation_dirty);
+    assert!(open_effects.open_scene_picker_requested);
+    assert!(!open_effects.create_scene_picker_requested);
     assert!(!open_effects.layout_dirty);
     assert!(!open_effects.render_dirty);
     assert!(create_effects.presentation_dirty);
+    assert!(!create_effects.open_scene_picker_requested);
+    assert!(create_effects.create_scene_picker_requested);
     assert!(!create_effects.layout_dirty);
     assert!(!create_effects.render_dirty);
-    assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
-        "Scene open/create workflow is not wired yet"
-    );
 }

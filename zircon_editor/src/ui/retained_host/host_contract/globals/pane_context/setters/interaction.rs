@@ -15,7 +15,12 @@ impl PaneSurfaceHostContext<'_> {
             .hovered_hierarchy_index = value;
     }
 
-    pub(crate) fn set_console_scroll_px(&self, _value: f32) {}
+    pub(crate) fn set_console_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .console_scroll_px = value.max(0.0);
+    }
     pub(crate) fn set_inspector_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_browser_asset_details_scroll_px(&self, _value: f32) {}
 

@@ -14,6 +14,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     opacity: f32,
 ) {
     let frame = chip_delete_icon_frame(node, rect);
+    let stroke = chip_delete_dot_stroke(&frame);
+    if stroke <= 0.0 {
+        return;
+    }
     let color = chip_delete_icon_color(node);
     let start_x = frame.x + frame.width * 0.25;
     let end_x = frame.x + frame.width * 0.75;
@@ -33,6 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
             order,
             color,
             opacity,
+            stroke,
         );
         push_chip_delete_dot(
             commands,
@@ -42,6 +47,31 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
             order,
             color,
             opacity,
+            stroke,
         );
+    }
+}
+
+fn chip_delete_dot_stroke(frame: &FrameRect) -> f32 {
+    CHIP_DELETE_STROKE
+        .min(frame.width.min(frame.height) * 0.5)
+        .max(0.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chip_delete_dot_stroke_fits_short_icon_frame() {
+        let frame = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 0.4,
+            height: 0.6,
+        };
+
+        assert!(chip_delete_dot_stroke(&frame) <= frame.width * 0.5);
+        assert!(chip_delete_dot_stroke(&frame) <= frame.height * 0.5);
     }
 }

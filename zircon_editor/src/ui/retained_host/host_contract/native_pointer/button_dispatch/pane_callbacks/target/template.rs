@@ -4,8 +4,8 @@ use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::super::super::super::routing::{PanePointerRoute, PanePointerTarget};
 use super::super::super::super::NativePointerButtonState;
+use super::super::super::super::routing::{PanePointerRoute, PanePointerTarget};
 use super::super::template_nodes::dispatch_template_node_button;
 
 pub(super) fn dispatch_template_pane_target_button(

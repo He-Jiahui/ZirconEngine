@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use zircon_runtime::ui::tree::UiRuntimeTreeLayoutExt;
 use zircon_runtime_interface::ui::{
@@ -9,13 +9,19 @@ use zircon_runtime_interface::ui::{
 use crate::core::asset::AssetTypeId;
 use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use crate::ui::workbench::snapshot::{AssetOperationProjectionSnapshot, AssetWorkspaceSnapshot};
+use crate::ui::workbench::snapshot::AssetWorkspaceSnapshot;
 
-use super::super::popup_primitives::menu_item_action_id;
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 
 const MAIN_MENU_CONTROL_ID: &str = "WorkbenchToolbarMainMenu";
+
+#[derive(Default)]
+pub(super) struct AssetCreationMenuState {
+    generation: Option<Arc<crate::core::asset::AssetCreationMenuGeneration>>,
+    #[cfg(test)]
+    publish_count: usize,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct AssetCreationMenuRequest {
@@ -44,24 +50,49 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         model: &WorkbenchViewModel,
         shell_size: UiSize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let mut menu_items = vec!["Asset Browser|icon=folder".to_string()];
-        let creation_entries = asset_creation_menu_entries(&model.asset_creation_templates);
-        if !creation_entries.is_empty() {
-            menu_items.push("---".to_string());
-            menu_items.extend(creation_entries.into_values().map(|entry| entry.raw_item));
+        let generation = &model.asset_creation_menu;
+        let item_count = if generation.entries().is_empty() {
+            5
+        } else {
+            generation.entries().len() + 6
+        };
+        self.apply_asset_creation_menu_height(item_count, shell_size)?;
+        if self
+            .asset_creation_menu
+            .generation
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, generation))
+        {
+            return Ok(());
+        }
+        let mut menu_items = Vec::with_capacity(item_count);
+        menu_items.push(UiValue::String("Asset Browser|icon=folder".to_string()));
+        if !generation.entries().is_empty() {
+            menu_items.push(UiValue::String("---".to_string()));
+            menu_items.extend(
+                generation
+                    .entries()
+                    .iter()
+                    .map(|entry| UiValue::String(entry.raw_item().to_string())),
+            );
         }
         menu_items.extend([
-            "---".to_string(),
-            "Open Project|icon=folder".to_string(),
-            "Save Project|icon=save".to_string(),
-            "Command Palette|submenu".to_string(),
+            UiValue::String("---".to_string()),
+            UiValue::String("Open Project|icon=folder".to_string()),
+            UiValue::String("Save Project|icon=save".to_string()),
+            UiValue::String("Command Palette|submenu".to_string()),
         ]);
-        self.apply_asset_creation_menu_height(menu_items.len(), shell_size)?;
         self.mutate_control_property(
             MAIN_MENU_CONTROL_ID,
             "menu_items",
-            UiValue::Array(menu_items.into_iter().map(UiValue::String).collect()),
-        )
+            UiValue::Array(menu_items),
+        )?;
+        self.asset_creation_menu.generation = Some(Arc::clone(generation));
+        #[cfg(test)]
+        {
+            self.asset_creation_menu.publish_count += 1;
+        }
+        Ok(())
     }
 
     fn apply_asset_creation_menu_height(
@@ -77,13 +108,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let height = menu_popup_content_height(item_count)
             .min(available_height)
             .max(1.0);
-        let Some(node_id) = self.surface().tree.nodes.values().find_map(|node| {
-            node.template_metadata
-                .as_ref()
-                .and_then(|metadata| metadata.control_id.as_deref())
-                .filter(|control_id| *control_id == MAIN_MENU_CONTROL_ID)
-                .map(|_| node.node_id)
-        }) else {
+        let Some(node_id) = self.control_node_id(MAIN_MENU_CONTROL_ID) else {
             return Ok(());
         };
         let changed = if let Some(node) = self.template_surface.surface.tree.node_mut(node_id) {
@@ -116,14 +141,18 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         if menu_control_id != MAIN_MENU_CONTROL_ID {
             return None;
         }
-        let entry = asset_creation_menu_entries(&snapshot.creation_templates).remove(action_id)?;
-        let asset_type = match AssetTypeId::parse(entry.asset_type_id) {
-            Ok(asset_type) => asset_type,
-            Err(error) => return Some(Err(error.to_string())),
+        let Some(generation) = self.asset_creation_menu.generation.as_ref() else {
+            return None;
         };
+        if !Arc::ptr_eq(generation, &snapshot.creation_menu) {
+            return Some(Err(
+                "asset creation menu generation changed before dispatch".to_string(),
+            ));
+        }
+        let entry = generation.action(action_id)?;
         Some(Ok(AssetCreationMenuRequest {
-            asset_type,
-            template_id: entry.template_id,
+            asset_type: entry.asset_type().clone(),
+            template_id: entry.template_id().to_string(),
             target_folder: snapshot
                 .selected_folder_id
                 .clone()
@@ -136,86 +165,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         menu_control_id: &str,
         action_id: &str,
     ) -> bool {
-        menu_control_id == MAIN_MENU_CONTROL_ID && action_id.starts_with("menu.item.create_")
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct AssetCreationMenuEntry {
-    raw_item: String,
-    asset_type_id: String,
-    template_id: String,
-}
-
-fn asset_creation_menu_entries(
-    templates: &[AssetOperationProjectionSnapshot],
-) -> BTreeMap<String, AssetCreationMenuEntry> {
-    let base_labels = templates
-        .iter()
-        .map(asset_creation_base_label)
-        .collect::<Vec<_>>();
-    let mut action_counts = BTreeMap::<String, usize>::new();
-    for label in &base_labels {
-        *action_counts.entry(menu_item_action_id(label)).or_default() += 1;
+        menu_control_id == MAIN_MENU_CONTROL_ID
+            && self
+                .asset_creation_menu
+                .generation
+                .as_ref()
+                .is_some_and(|generation| generation.action(action_id).is_some())
     }
 
-    let mut entries = BTreeMap::new();
-    let mut used_action_ids = BTreeSet::new();
-    for (template, base_label) in templates.iter().zip(base_labels) {
-        let base_action_id = menu_item_action_id(&base_label);
-        let label = if action_counts
-            .get(&base_action_id)
-            .copied()
-            .unwrap_or_default()
-            > 1
-        {
-            format!(
-                "{base_label} ({}/{})",
-                safe_menu_label(&template.asset_type_id),
-                safe_menu_label(&template.id)
-            )
-        } else {
-            base_label
-        };
-        let (label, action_id) = unique_menu_label(label, &mut used_action_ids);
-        entries.insert(
-            action_id,
-            AssetCreationMenuEntry {
-                raw_item: format!("{label}|icon=plus"),
-                asset_type_id: template.asset_type_id.clone(),
-                template_id: template.id.clone(),
-            },
-        );
-    }
-    entries
-}
-
-fn asset_creation_base_label(template: &AssetOperationProjectionSnapshot) -> String {
-    format!("Create {}", safe_menu_label(&template.display_name))
-}
-
-fn unique_menu_label(
-    mut label: String,
-    used_action_ids: &mut BTreeSet<String>,
-) -> (String, String) {
-    let base_label = label.clone();
-    let mut ordinal = 2usize;
-    loop {
-        let action_id = menu_item_action_id(&label);
-        if used_action_ids.insert(action_id.clone()) {
-            return (label, action_id);
-        }
-        label = format!("{base_label} {ordinal}");
-        ordinal += 1;
-    }
-}
-
-fn safe_menu_label(value: &str) -> String {
-    let label = value.replace('|', " ");
-    let label = label.trim();
-    if label.is_empty() {
-        "Asset".to_string()
-    } else {
-        label.to_string()
+    #[cfg(test)]
+    pub(crate) fn asset_creation_menu_publish_count(&self) -> usize {
+        self.asset_creation_menu.publish_count
     }
 }

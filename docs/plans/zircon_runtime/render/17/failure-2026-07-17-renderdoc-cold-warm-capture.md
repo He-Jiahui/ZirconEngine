@@ -48,4 +48,4 @@ RenderDoc 1.44 已成功 replay 现有 D3D12 capture：4,357 actions、58 draws�
 
 ## 修复结果与回传
 
-Open state: `同进程同viewport的有界连续capture sequence已实现，ZR_RENDERDOC_CAPTURE_FRAME_COUNT=2可依次触发cold与第二稳定帧并在失败/viewport销毁时取消余量；待managed Windows current-source构建、实际PNG/RDC产出及draw/dispatch/copy/upload/GPU timing复盘后回传`。
+Open state: `同进程同viewport的有界连续capture sequence已实现，ZR_RENDERDOC_CAPTURE_FRAME_COUNT=2可依次触发cold与第二稳定帧并在失败/viewport销毁时取消余量；scene与retained UI现共享RHI WGPU timestamp owner，UI样本以Option和异步回读延迟上报，缺失样本不写成0；scene timer使用frame-profiler generation而非mesh-command cache generation，三槽异步回读按generation有序出队；ignored exporter export_render17_pfm1_render_graph_cold_warm_wgpu_png会先渲染cold/history/warm产品帧并写入docs/tests/runtime/render/plan17_pfm1_render_graph_cold_warm_wgpu_current_source_20260801.png，同时请求RenderDoc capture；当前目录仍无2026-08-01 PNG/RDC。最新managed request 4dca61081c8a4e2b88cc857eb66dd89e仅在session.register post-response accepted timeout，未启动Cargo；待current-source构建、实际PNG/RDC产出及draw/dispatch/copy/upload/GPU timing复盘后回传`。

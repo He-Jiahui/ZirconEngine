@@ -11,8 +11,12 @@ related_code:
   - zircon_editor/src/core/project/project_probe.rs
   - zircon_editor/src/core/project/recent_project_entry.rs
   - zircon_editor/src/core/project/recent_project_validation.rs
+  - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/project/stored_recent_project_entry.rs
   - zircon_editor/src/core/project/stored_startup_session.rs
+  - zircon_editor/src/core/document/lifecycle.rs
+  - zircon_editor/src/core/document/scene_route.rs
+  - zircon_editor/src/ui/host/editor_manager_project.rs
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
   - zircon_editor/src/ui/host/project_access.rs
@@ -34,8 +38,12 @@ implementation_files:
   - zircon_editor/src/core/project/project_probe.rs
   - zircon_editor/src/core/project/recent_project_entry.rs
   - zircon_editor/src/core/project/recent_project_validation.rs
+  - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/project/stored_recent_project_entry.rs
   - zircon_editor/src/core/project/stored_startup_session.rs
+  - zircon_editor/src/core/document/lifecycle.rs
+  - zircon_editor/src/core/document/scene_route.rs
+  - zircon_editor/src/ui/host/editor_manager_project.rs
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
   - zircon_editor/src/ui/host/project_access.rs
@@ -50,6 +58,8 @@ tests:
   - zircon_editor/src/ui/host/startup/create_or_open.rs::tests::opened_project_is_not_reopened_just_to_update_recents
   - zircon_editor/src/core/project/tests/template_creation.rs
   - zircon_editor/src/core/project/tests/recent_projects.rs
+  - zircon_editor/src/core/project/tests/scene_document.rs
+  - zircon_editor/src/core/document/scene_route_tests.rs
   - zircon_editor/src/core/project/tests/boundary.rs
   - zircon_editor/src/core/project/tests/mod.rs
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
@@ -85,6 +95,12 @@ Opening accepts either a project root or `zircon-project.toml`, resolves an abso
 `ProjectAuthority::probe_project` and `probe_draft` perform canonical path and typed manifest parsing without mutating the derived layout. The retained welcome host schedules creation-target validation and existing-project probing through the Editor Job System only when the draft changes. `welcome_pane_snapshot` copies the cached result and performs no filesystem validation. A newer draft cancels the old ticket; only the current active probe can update the session projection.
 
 `EditorProjectDocument` loads and saves only from an explicit `&ProjectManager`. The former path-taking entry points and their `_from_path.rs` files were deleted, including test-only use sites; a fixture must create the project through `ProjectAuthority`, open/scan one manager, and pass that generation onward. This prevents a test helper from preserving a production-forbidden reopen architecture.
+
+## Scene source and document routing
+
+`ProjectAuthority` is also the headless owner of project-scene source identity. It accepts only project-owned `res://` scene URIs ending in `.scene.toml`, rejects linked/reparse path components, opens existing sources through the active `ProjectManager` generation, and creates a new scene through a unique staging source that is published without overwriting an existing target. Direct creation synchronizes that generation's registry; a failed import rolls the source back and reconciles the registry before it returns an error.
+
+`SceneDocumentRoute` owns the separate document transition. A picker carries an opaque project-session ticket to the route, which validates the active project session before resolving a scene. For creation, the runtime catalog import and the editor asset-catalog projection refresh must both succeed after staging cleanup and before the host installs the authoring world; only then can the lifecycle activate the document and the host publish its document message. Catalog or installation failure removes the source and reconciles both catalog views. The route deliberately owns neither picker presentation nor menu actions, and host installers receive the resolved `Scene`, never a source filesystem path.
 
 Layout preset name projection uses the Runtime asset manager's manager-owned locator query. The query copies only active registry locators under the project read lock; it does not clone the complete `ProjectManager` or its registry/index maps. Explicit preset save/load may access the file through a generation snapshot and then requests a Runtime import refresh; listing never opens a manager, enumerates a directory, or parses every preset document. Runtime's current refresh is still a full import. Its transactional targeted replacement remains an open Runtime04 failure and is not claimed by this Editor projection slice.
 

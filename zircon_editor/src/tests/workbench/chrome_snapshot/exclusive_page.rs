@@ -12,8 +12,8 @@ use crate::ui::workbench::snapshot::{
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
-    ActivityWindowTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost,
-    ViewInstance, ViewInstanceId, ViewKind,
+    ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance,
+    ViewInstanceId, ViewKind, WorkbenchSlot,
 };
 
 #[test]
@@ -39,21 +39,24 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.asset_browser"),
-        ViewKind::ActivityWindow,
-        "Asset Browser",
-    )
-    .with_activity_window_template(ActivityWindowTemplateSpec::new(
-        "res://ui/editor/windows/asset_window.zui",
-    ))
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.asset_browser"),
+            ViewKind::ActivityWindow,
+            "Asset Browser",
+        )
+        .with_activity_window_template(ActivityWindowTemplateSpec::new(
+            "res://ui/editor/windows/asset_window.zui",
+        ))
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage),
+    ];
 
     let chrome = EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Ready".to_string(),
+            console_output: "Ready".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
@@ -116,12 +119,14 @@ fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.material_component_lab"),
-        ViewKind::ActivityWindow,
-        "Material Component Lab",
-    )
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.material_component_lab"),
+            ViewKind::ActivityWindow,
+            "Material Component Lab",
+        )
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage),
+    ];
 
     let chrome = EditorChromeSnapshot::build(
         empty_editor_data(),
@@ -187,9 +192,10 @@ fn chrome_builder_projects_document_kind_from_the_focused_typed_descriptor() {
 
 fn empty_editor_data() -> EditorDataSnapshot {
     EditorDataSnapshot {
-        scene_entries: Vec::new(),
+        scene_entries: Default::default(),
         inspector: None,
         status_line: "Ready".to_string(),
+        console_output: "Ready".into(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),

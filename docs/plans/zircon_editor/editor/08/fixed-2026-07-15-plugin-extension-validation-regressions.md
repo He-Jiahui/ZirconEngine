@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_editor/editor/12-plugin-management.md
 origin_child_dir: docs/plans/zircon_editor/editor/08
 fixing_child_dir: docs/plans/zircon_editor/editor/12
 related_code:
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/extension_materialization.rs
   - zircon_editor/src/core/editor_event
   - zircon_editor/src/tests/editor_authoring_extension_descriptors.rs
   - zircon_editor/src/tests/editor_event/runtime

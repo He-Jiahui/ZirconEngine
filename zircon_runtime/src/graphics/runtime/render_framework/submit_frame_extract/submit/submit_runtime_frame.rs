@@ -123,15 +123,31 @@ fn submit_selected_runtime_frame(
         state.last_virtual_geometry_debug_snapshot = frame.virtual_geometry_debug_snapshot.clone();
     }
     attach_prepared_sidebands_to_runtime_frame(frame, prepared);
+    state
+        .renderer
+        .set_global_material_mip_bias(context.global_material_mip_bias());
+    let viewport_capture = owns_viewport_submission
+        .then(|| {
+            let generation = state.renderer.next_frame_generation();
+            state
+                .viewports
+                .get(&viewport)
+                .map(|record| record.async_capture_request(generation))
+        })
+        .flatten();
     let rendered_frame = {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
-        match state.renderer.render_frame_with_pipeline(
-            &*frame,
-            context.compiled_pipeline(),
-            context.capabilities(),
-            resolved_history.current_history_handle(),
-            resolved_history.previous_history_available(),
-        ) {
+        match state
+            .renderer
+            .render_frame_with_pipeline_async_capture_task_pool(
+                &*frame,
+                context.compiled_pipeline(),
+                context.capabilities(),
+                resolved_history.current_history_handle(),
+                resolved_history.previous_history_available(),
+                framework.compute_task_pool(),
+                viewport_capture,
+            ) {
             Ok(frame) => frame,
             Err(error) => {
                 let error = render_framework_backend_error(error);
@@ -190,6 +206,7 @@ fn submit_selected_runtime_frame(
     );
     let record_update = record_submission(
         record,
+        viewport,
         &context,
         resolved_history.allocated_history(),
         rendered_frame,

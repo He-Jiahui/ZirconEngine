@@ -6,7 +6,7 @@ use crate::asset::assets::{
     FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
     FontAssetVariationCoord, FontMetadataParseError,
 };
-use ttf_parser::{name_id, Face, Style, Tag};
+use ttf_parser::{Face, Style, Tag, name_id};
 
 pub(super) fn parse_font_metadata(
     source: &DecodedFontSource,

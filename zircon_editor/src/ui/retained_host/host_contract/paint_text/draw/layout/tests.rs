@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::{
 
 use super::{layout_text_run, layout_text_run_with_smoothing, runtime_positioned_glyphs};
 use crate::ui::retained_host::host_contract::data::FrameRect;
-use crate::ui::retained_host::host_contract::paint_text::font::{font_for_face, HostTextFontFace};
+use crate::ui::retained_host::host_contract::paint_text::font::{HostTextFontFace, font_for_face};
 use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
 
 #[test]
@@ -677,10 +677,12 @@ fn retained_text_run_uses_runtime_ellipsis_for_narrow_editor_labels() {
     assert_eq!(layout.display_text, runtime_line.text);
     assert!(layout.display_text.contains('\u{2026}'));
     assert!(!layout.glyphs.is_empty());
-    assert!(layout
-        .glyphs
-        .iter()
-        .all(|glyph| glyph.x.is_finite() && glyph.origin_x.is_finite() && glyph.y.is_finite()));
+    assert!(
+        layout
+            .glyphs
+            .iter()
+            .all(|glyph| glyph.x.is_finite() && glyph.origin_x.is_finite() && glyph.y.is_finite())
+    );
 }
 
 #[test]

@@ -12,10 +12,17 @@ related_code:
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache/lru.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache/residency.rs
   - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
   - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
+  - zircon_runtime/src/text/atlas/page.rs
+  - zircon_runtime/src/text/atlas/page_residency.rs
+  - zircon_runtime/src/text/atlas/slot_cache.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/types.rs
+  - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
 ---
 
 # Native bitmap source cache空帧清空与线性维护
@@ -62,4 +69,20 @@ PERF-MVP-231已覆盖同目录cache-hit bytes clone、retry嵌套匹配/多轮cl
 
 2026-07-31 非验收实现收敛：空文本帧已只刷新 report 并保留 source image/pending worker；source cache 使用 2048 entry + 8 MiB CPU byte hard cap，共享 `Arc<[u8]>` pixels，近似命中直接探测最多 3 个 vertical-bin key。O(1) intrusive LRU 已拆为 `source_cache/lru.rs` leaf；正常 hit/insert/evict 不扫描全表，链接异常不再由生产 `expect` panic，而是一次性重建并通过 `lru_repair_count` 显式报告。face invalidation 会取消可取消 worker、推进 face epoch 并清理 shared font identity/bytes；饱和、取消、unknown/invalid completion 均有独立 counter。新增 dangling-tail 回归锁定 fail-closed 修复、recent ordering 与后续逐出；二次静态审查 P0/P1/P2=0，未运行 Cargo 或产品 WGPU。
 
-Open state: `CPU source-cache MVP implemented / managed_validation_pending；等待跨 source/slot/GPU page 的统一 budget-pressure eviction、300 empty-frame 规模 counter、current-source Cargo 与产品 WGPU/RenderDoc 像素证据，收到成功回执前保持 open`。
+2026-08-01 统一预算压力前向实现：exact source hit 现在以 O(1) `CacheKey <-> GlyphRasterKey` 反向索引绑定 persistent slot identity。source entry/byte hard-cap 的 LRU 淘汰只发出已绑定 key；`GlyphAtlasSet` 以该 key 定位 owner page，一次提升 generation 并原子清 allocator、全部 page slots 与 CPU shadow，再把同页全部 raster keys 定点回传 source cache。反向 atlas page eviction 通过显式 `GlyphAtlasBitmapRunPlan.invalidated_raster_keys` 回传，renderer upload failure 也去重 page keys、仅推进一次 generation，并把失效 source counter 延迟到下一帧报告。正常 hit/touch/evict 仍为 O(1)，跨层压力路径只按受影响 key/page 工作；没有全 cache 扫描。
+
+产品 prepare report 已新增 source resident/max bytes、LRU touches、budget-linked eviction、linked raster invalidation 与 atlas resident page bytes。300 个 empty frames 回归要求 resident sources 保持、submitted/unknown/slot miss/upload copy 均为 0；2048 resident + 1/100/1k new glyph 回归严格锁定每 miss 最多 3 probes、0 LRU touch/eviction，ignored 31-sample exporter输出 p50/p95 而不设机器时间阈值。预算联动与规模测试已拆到 216 行 `tests/source_cache/residency.rs`，父 owner 为 844 行且低于 1000 行测试阈值；production source cache/LRU/page/render-state 为 722/243/527/396 行。
+
+2026-08-01 二次静态审查先后修复：native frame/storage 仍读取已删除 `gpu_draw.vertices` 的 current-source 编译缺口、atlas hidden invalidation keys 跨帧积累风险、同页多个 failed upload copy 重复推进 generation、旧 exact report 漏写既有 capacity/max/resident 字段，以及 LRU guard 搜索不存在 `detach(`。修复后旧 GPU vertex symbol、production panic/unwrap/expect/dead-code allow 扫描为 0，scoped rustfmt/diff check 通过，未留下新的 actionable P0/P1/P2。
+
+Open state: `source/slot/page budget-pressure implementation complete / resolving_failure / managed_validation_pending`。仍需 coordinator 执行 current-source focused/upward Cargo、ignored p50/p95 与真实 WGPU/RenderDoc 像素；成功回执前保持 open，不写成 blocked，不生成或登记占位截图。Text04 Plan registration 本轮在 coordinator health 阶段超时且无 receipt，按 cross-session 规则未重试/轮询，也没有 validation ticket 进入 queued/running；coordinator wakeup 后前向提交上述精确测试与 exact product framebuffer。
+
+2026-08-01 产品捕获状态前向修复：`ScreenSpaceUiTextRasterUploadReport::worker_pending_count` 现在投影 source cache 的持久 `pending_worker_count`，而不是只统计本帧再次遇到的 pending glyph；`worker_failed_count` 同时汇聚 worker request failure、completion error 与 rejected completion bitmap；`missing_raster_image_count` 与 `visible_placeholder_count` 也通过 `RenderStats` 进入 gate。前者表示没有 source raster，后者覆盖 source raster 已存在却因 atlas 页分配受限而输出透明 glyph 的独立路径。prepare-report 回归明确构造本帧 pending 事件为 1、实际 in-flight work 为 3、request/completion/rejected failure 为 2/3/4、visible placeholder 为 1 的情况，并要求产品报告分别为 3/9/1；产品 gate 回归要求 `pending=0`、`failed=0`、`missing=0` 但 `visible_placeholder=1` 仍不可稳定。因此 framebuffer harness 不能因一次可见 glyph 遍历的零/低计数、未上报的 completion/rejection failure、无 source image 或透明 native-atlas placeholder 而提前 capture。此修复不替代受管 Cargo、真实 WGPU/RenderDoc 或新 PNG，failure 继续保持 `open`。
+
+2026-08-01 本轮实现后二次独立静态审查：P0=0、P1=0。复核确认 durable in-flight、三类 raster failure、缺失 native-atlas image 和可见透明 placeholder 均已完整投影到连续两帧稳定门禁；未运行 Cargo、未修改代码、未生成 PNG。实现阶段完成，待 coordinator wakeup 后提交一次受管 Windows WGPU ignored product test；在该回执和实际截图到位前，failure 继续保持 `open`。
+
+2026-08-01 capture gate 前向复核修复：审查发现 `submission.visible_placeholder_count` 原先只按 viewport 统计计划 placeholder，既可能包含 text bounds 外 glyph，也可能在 byte-budget/queue-overflow 选择 Glyphon fallback 后并未实际呈现。pending placeholder 现于创建时复用 `TextArea.bounds` 裁剪；产品报告只在实际 handoff 为 `TransparentPlaceholder` 时计入其数量。renderer upload 的 `requeued_count` 与 `failure_count` 同时投影至 `RenderStats`，因此连续两帧 capture 条件为 pending、worker failure、missing source image、实际 visible placeholder、upload requeue 和 upload failure 均为 0。新增 bounds 外 placeholder 与 Glyphon fallback 两个回归，尚未运行 Cargo 或 WGPU，未生成 PNG，failure 保持 `open`。
+
+2026-08-02 最终独立静态复核：P0=0、P1=0。复核确认 placeholder 创建时的 bounds 裁剪与正常 raster path 一致，`GlyphonFallback` 时产品统计为实际呈现的 0，且 renderer upload requeue/failure 从 prepare report 穿透到连续两帧 capture gate。未运行 Cargo，未修改代码，未生成 PNG；所有非验证实现已完成，failure 继续保持 `open`，待 coordinator wakeup 提交受管 Windows WGPU ignored product test。
+
+2026-08-02 SDF/MSDF capture-path 复核：distance-field atlas 同帧同步提交 GPU texture write；其异步 glyph-generation pending、预算延后或失败会在当前 prepare 转为 native/overlay，由本记录的 durable native worker、source image、actual placeholder 与 renderer-upload 六项稳定条件统一覆盖。没有新增独立 SDF 等待状态，避免已正常可见的 native fallback 把产品帧误判为未稳定；未运行 Cargo 或 WGPU，未生成 PNG，failure 保持 `open`。

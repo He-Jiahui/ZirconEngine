@@ -1,17 +1,18 @@
 use crate::capability::{
-    ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY, RUNTIME_CAPABILITIES,
+    ANIMATION_DECLARATION, ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY,
+    RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
 };
+use crate::module_descriptor;
 use crate::runtime_system::{
-    register_runtime_system, ANIMATION_EVALUATE_SYSTEM, ANIMATION_SYSTEM_SET,
+    ANIMATION_EVALUATE_SYSTEM, ANIMATION_SYSTEM_SET, register_runtime_system,
 };
-use crate::{module_descriptor, PLUGIN_ID};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "animation.runtime";
 pub const ANIMATION_DIST_CRATE_NAME: &str = "zircon_plugin_animation_dist";
@@ -47,9 +48,6 @@ impl RuntimePlugin for AnimationRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("animation.dist", ANIMATION_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -82,33 +80,20 @@ impl RuntimePlugin for AnimationRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Animation",
-        RuntimePluginId::Animation,
-        "zircon_plugin_animation_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("runtime")
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::ServerRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(ANIMATION_RUNTIME_CAPABILITY)
-    .with_capability(ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY)
-    .with_maturity(PluginMaturity::Beta)
-    .with_capability_status(
-        CapabilityStatusManifest::new(ANIMATION_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
-            .with_bevy_reference("dev/bevy/crates/bevy_animation/src/lib.rs"),
-    )
-    .with_capability_status(CapabilityStatusManifest::new(
-        ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_system_sets([ANIMATION_SYSTEM_SET])
-    .with_system_anchors([ANIMATION_EVALUATE_SYSTEM])
-    .build()
+    ANIMATION_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .with_capability_status(
+            CapabilityStatusManifest::new(ANIMATION_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
+                .with_bevy_reference("dev/bevy/crates/bevy_animation/src/lib.rs"),
+        )
+        .with_capability_status(CapabilityStatusManifest::new(
+            ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_system_sets([ANIMATION_SYSTEM_SET])
+        .with_system_anchors([ANIMATION_EVALUATE_SYSTEM])
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(AnimationRuntimePlugin);

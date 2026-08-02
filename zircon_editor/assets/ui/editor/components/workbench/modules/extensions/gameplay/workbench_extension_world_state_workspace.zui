@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/WorldStateValidate", event = "Click", route
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionWorldStateKeyTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "world_state_alarm_active_table_row" }, { node = "world_state_weather_mode_table_row" }, { node = "world_state_ai_alert_table_row" }, { node = "world_state_quest_flag_table_row" }]
 

@@ -24,7 +24,7 @@ tests:
 
 - 来源计划：`docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md`
 - 来源执行切片：current-source Windows WGPU multilingual product framebuffer proof.
-- 修复责任计划：`docs/plans/zircon_runtime/render/17-performance-and-profiling.md`.
+- 修复责任计划：`docs/plans/zircon_runtime/render/17-performance-and-profiling.md`
 - 交接原因：viewport surface 的定义、scene-to-framework handoff 与 graphics facade projection 均落在 Render17 注册的 render-framework/scene-core 边界；Text01 只消费该框架以验证真实文本帧。
 
 ## 失败现象与复现证据

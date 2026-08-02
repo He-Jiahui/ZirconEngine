@@ -1,7 +1,7 @@
 use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::commands::MenuItemModel;
-use crate::core::editor_event::MenuAction;
+use crate::core::editor_event::{ConsoleMessageFilter, MenuAction};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 
@@ -29,6 +29,17 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
         MenuAction::CloseProject => "file.project.close",
         MenuAction::SaveLayout => "window.layout.save",
         MenuAction::ResetLayout => "window.layout.reset",
+        MenuAction::ClearConsole => "view.console.clear",
+        MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::All) => "view.console.filter.all",
+        MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Info) => {
+            "view.console.filter.info"
+        }
+        MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Warning) => {
+            "view.console.filter.warning"
+        }
+        MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Error) => {
+            "view.console.filter.error"
+        }
         MenuAction::EnterPlayMode => "runtime.play_mode.enter",
         MenuAction::ExitPlayMode => "runtime.play_mode.exit",
         MenuAction::Undo => "edit.history.undo",

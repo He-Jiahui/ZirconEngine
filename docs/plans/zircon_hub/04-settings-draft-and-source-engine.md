@@ -24,10 +24,12 @@ plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/zircon_hub/pages/settings-status.md
   - docs/zircon_hub/state/foundations.md
-status: planned
+status: in_progress
 ---
 
 # 04 settings 草稿生命周期与 Source Engine 校验
+
+> 2026-08-01 实仓复核：共享 settings field spec、save 必填校验、discard/restore 动作、picker 注入与取消零副作用、Source Engine workspace 深校验均已落在当前源码。open-editor 对已绑定 active Source Engine 的健康预检已补入 `editor_launch_actions.rs`，避免源码检出失效后仅凭 staged executable 继续启动；状态改为 `in_progress`，等待受管 Hub package gate 后再确认里程碑完成。
 
 ## 现状与证据
 

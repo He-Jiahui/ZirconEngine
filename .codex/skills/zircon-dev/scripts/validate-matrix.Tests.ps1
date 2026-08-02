@@ -390,7 +390,7 @@ Describe "Coordinator Cargo target hard cutover" {
         $result.Output | Should Match "rustc"
         $raw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
         $jobs = (($raw -join "`n") | ConvertFrom-Json).jobs
-        $ownerId = Resolve-OwnerId -RepoRoot $script:ValidateMatrixTestRepoRoot
+        $ownerId = Resolve-ValidationSessionId -RepoRoot $script:ValidateMatrixTestRepoRoot
         $created = @($jobs | Where-Object {
             $beforeIds -notcontains $_.job_id -and $_.session_id -eq $ownerId
         })
@@ -490,6 +490,34 @@ Describe "Cargo compatibility identity" {
     }
 }
 
+Describe "Ignored test Cargo arguments" {
+    It "appends the ignored harness switch after all Cargo arguments" {
+        $previousPackage = $script:Package
+        $previousLibTests = $script:LibTests
+        $previousTestFilter = $script:TestFilter
+        $previousIgnoredTests = $script:IgnoredTests
+        try {
+            $script:Package = "zircon_runtime"
+            $script:LibTests = $true
+            $script:TestFilter = "export_visual_evidence"
+            $script:IgnoredTests = $true
+
+            $arguments = @(Get-CargoArgs `
+                -Subcommand "test" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\test" `
+                -WorkspaceManifest "Cargo.toml")
+
+            ($arguments -join " ") | Should Be "test -p zircon_runtime --locked --lib export_visual_evidence --target-dir D:\cargo-targets\zircon-engine\pool\test -- --ignored"
+        }
+        finally {
+            $script:Package = $previousPackage
+            $script:LibTests = $previousLibTests
+            $script:TestFilter = $previousTestFilter
+            $script:IgnoredTests = $previousIgnoredTests
+        }
+    }
+}
+
 Describe "Validate matrix CLI dry-run parsing" {
     It "allocates a managed drive-root lane for no-stage sanity checks" {
         $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
@@ -519,6 +547,36 @@ Describe "Validate matrix CLI dry-run parsing" {
         $result.Output | Should Match "Workspace manifest: zircon_plugins/Cargo.toml"
         $result.Output | Should Match "Cargo working directory: .*zircon_plugins"
         $result.Output | Should Match "cargo build --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_editor --locked --target-dir $($script:ManagedPoolRegex)"
+    }
+
+    It "runs only an explicitly filtered ignored test through the managed lane" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-Package",
+            "zircon_runtime",
+            "-LibTests",
+            "-TestFilter",
+            "export_render17_pfm1_render_graph_cold_warm_wgpu_png",
+            "-IgnoredTests"
+        )
+
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Match "cargo test -p zircon_runtime --locked --lib export_render17_pfm1_render_graph_cold_warm_wgpu_png --target-dir $($script:ManagedPoolRegex) -- --ignored"
+    }
+
+    It "rejects ignored-test mode without a focused filter" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-Package",
+            "zircon_runtime",
+            "-LibTests",
+            "-IgnoredTests"
+        )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "-IgnoredTests requires -TestFilter"
     }
 
     It "rejects an explicit repo-local TargetDir instead of bypassing the service" {

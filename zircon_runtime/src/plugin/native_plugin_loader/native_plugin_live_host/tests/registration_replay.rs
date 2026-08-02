@@ -1,5 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Instant;
+use std::sync::{mpsc, Arc};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use super::super::super::behavior_calls::NativePluginBehavior;
 use super::super::super::registration_manifest::{
@@ -14,6 +16,8 @@ use crate::scene::{SystemStage, World};
 static DIST_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 static OLD_GENERATION_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RELOADED_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
+static INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
+static INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[test]
 fn native_live_host_uses_typed_borrowed_plugin_keys() {
@@ -25,10 +29,10 @@ fn native_live_host_uses_typed_borrowed_plugin_keys() {
 }
 
 #[test]
-fn native_registration_replay_generation_borrows_build_inputs_without_full_clones() {
+fn native_registration_replay_generation_uses_one_validated_bridge_binding_authority() {
     let source = include_str!("../bridge_methods.rs");
     let start = source
-        .find("pub(super) fn runtime_registration_replay_bridge_context_result")
+        .find("pub(super) fn build_runtime_bridge_generation_result")
         .expect("replay generation context builder must remain defined");
     let end = source[start..]
         .find("pub fn reload_runtime_bridge_provider_and_scope_from_installed_bindings")
@@ -36,9 +40,42 @@ fn native_registration_replay_generation_borrows_build_inputs_without_full_clone
         .expect("replay generation context builder must end before the reload helper");
     let context_builder = &source[start..end];
 
-    assert!(context_builder.contains("avoiding a full package-manifest or binding-vector clone"));
-    assert!(context_builder.contains("bindings.iter().cloned()"));
+    assert!(source.contains("ValidatedRuntimeBridgeMethodBindings"));
+    assert!(context_builder.contains("validated_bindings.descriptors.iter()"));
+    assert!(context_builder.contains("validated_bindings.method_slots.clone()"));
+    assert!(!context_builder.contains("bindings.iter().cloned()"));
     assert!(!context_builder.contains("loaded_runtime_package_manifest_and_callback_owner_result"));
+    assert!(!source.contains("runtime_bridge_call_scope_from_loaded_manifest"));
+}
+
+#[test]
+fn native_registration_replay_reads_manifest_and_callbacks_under_one_loaded_guard() {
+    let source = include_str!("../registration_replay.rs");
+    let start = source
+        .find("fn build_runtime_registration_replay_generation")
+        .expect("registration replay generation builder must remain defined");
+    let end = source[start..]
+        .find("fn replay_runtime_registration_system")
+        .map(|offset| start + offset)
+        .expect("registration replay generation builder must end before system replay");
+    let builder = &source[start..end];
+
+    let loaded_lock = builder
+        .find("lock_loaded_native_plugins(&self.loaded)")
+        .expect("generation build must acquire the loaded-generation guard");
+    let manifest_source = builder
+        .find("runtime_registration_manifest_source(plugin_id, plugin)")
+        .expect("manifest source must be read from the guarded loaded plugin");
+    let bridge_generation = builder
+        .find("runtime_bridge_generation_result(plugin_id, lifecycle)")
+        .expect("bridge generation must be read while the loaded generation is guarded");
+    let loaded_drop = builder
+        .find("drop(loaded)")
+        .expect("generation build must explicitly retain the loaded guard through preparation");
+
+    assert!(loaded_lock < manifest_source);
+    assert!(manifest_source < bridge_generation);
+    assert!(bridge_generation < loaded_drop);
 }
 
 #[test]
@@ -98,6 +135,69 @@ fn dist_system_plugin_loads_and_ticks_via_bridge() {
     );
     assert!(world.run_native_scene_system("physics.runtime_tick"));
     assert_eq!(DIST_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn native_registration_replay_preserves_sets_order_and_before_after_constraints() {
+    let host = NativePluginLiveHost::default();
+    let load_report =
+        NativePluginLoadReport::from_loaded(vec![native_live_host_ordered_systems_plugin()]);
+    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
+        .expect("ordered runtime plugin should load");
+    let lifecycle = native_live_host_bridge_lifecycle_state(false);
+    let mut registry = RuntimeExtensionRegistry::default();
+
+    let replay = host
+        .replay_runtime_registration_manifests_via_bridge(&mut registry, &lifecycle)
+        .expect("ordered registration manifest should replay");
+    assert!(replay.is_clean());
+    assert_eq!(
+        replay
+            .registered_systems
+            .iter()
+            .map(|system| (system.system_id.as_str(), system.order))
+            .collect::<Vec<_>>(),
+        vec![
+            ("physics.bootstrap", 100),
+            ("physics.runtime_tick", 0),
+            ("physics.render", -100),
+        ]
+    );
+    let expected_tick_set = registry
+        .intern_system_set("physics.tick")
+        .expect("replayed set should retain its exact interned identity");
+
+    let mut world = World::default();
+    registry
+        .apply_to_world(&mut world)
+        .expect("ordered replay should compile into the scene schedule");
+    let tick = world
+        .schedule()
+        .native_systems_for_stage(SystemStage::Update)
+        .find(|system| system.id() == "physics.runtime_tick")
+        .expect("runtime tick system should be registered");
+    assert_eq!(tick.order(), 0);
+    assert_eq!(tick.sets(), &[expected_tick_set]);
+    assert_eq!(tick.constraints().len(), 2);
+
+    let scheduled_ids = world
+        .scheduled_native_system_steps_for_stage(SystemStage::Update)
+        .into_iter()
+        .filter_map(|step| match step {
+            crate::scene::ecs::ScheduledSceneStep::Native { id, .. } => Some(id),
+            crate::scene::ecs::ScheduledSceneStep::Runtime { .. }
+            | crate::scene::ecs::ScheduledSceneStep::ApplyDeferred { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        scheduled_ids,
+        vec![
+            "physics.bootstrap".to_string(),
+            "physics.runtime_tick".to_string(),
+            "physics.render".to_string(),
+        ],
+        "before/after constraints must dominate conflicting numeric order values"
+    );
 }
 
 #[test]
@@ -254,8 +354,8 @@ fn native_registration_replay_builds_one_frozen_bridge_context_per_plugin() {
     assert_eq!(replay.registered_systems.len(), 8);
     assert_eq!(counts.registration_manifest_parses, 1);
     assert_eq!(counts.registration_system_preparations, 8);
-    assert_eq!(counts.package_manifest_snapshots, 1);
-    assert_eq!(counts.binding_snapshots, 1);
+    assert_eq!(counts.package_manifest_snapshots, 0);
+    assert_eq!(counts.binding_snapshots, 0);
     assert_eq!(counts.method_lookup_builds, 1);
     assert_eq!(counts.bridge_call_scope_builds, 1);
 }
@@ -278,8 +378,8 @@ fn native_registration_replay_reuses_a_generation_until_its_bindings_change() {
     let first_generation = host.registration_replay_context_build_counts();
     assert_eq!(first_generation.registration_manifest_parses, 1);
     assert_eq!(first_generation.registration_system_preparations, 1);
-    assert_eq!(first_generation.package_manifest_snapshots, 1);
-    assert_eq!(first_generation.binding_snapshots, 1);
+    assert_eq!(first_generation.package_manifest_snapshots, 0);
+    assert_eq!(first_generation.binding_snapshots, 0);
     assert_eq!(first_generation.method_lookup_builds, 1);
     assert_eq!(first_generation.bridge_call_scope_builds, 1);
 
@@ -313,8 +413,8 @@ fn native_registration_replay_reuses_a_generation_until_its_bindings_change() {
     let replacement_generation = host.registration_replay_context_build_counts();
     assert_eq!(replacement_generation.registration_manifest_parses, 2);
     assert_eq!(replacement_generation.registration_system_preparations, 2);
-    assert_eq!(replacement_generation.package_manifest_snapshots, 2);
-    assert_eq!(replacement_generation.binding_snapshots, 2);
+    assert_eq!(replacement_generation.package_manifest_snapshots, 0);
+    assert_eq!(replacement_generation.binding_snapshots, 0);
     assert_eq!(replacement_generation.method_lookup_builds, 2);
     assert_eq!(replacement_generation.bridge_call_scope_builds, 2);
 }
@@ -348,9 +448,9 @@ fn native_registration_replay_rebuilds_generation_for_a_different_lifecycle_brid
     let second_generation = host.registration_replay_context_build_counts();
     assert_eq!(second_generation.registration_manifest_parses, 2);
     assert_eq!(second_generation.registration_system_preparations, 2);
-    assert_eq!(second_generation.package_manifest_snapshots, 2);
-    assert_eq!(second_generation.binding_snapshots, 2);
-    assert_eq!(second_generation.method_lookup_builds, 2);
+    assert_eq!(second_generation.package_manifest_snapshots, 0);
+    assert_eq!(second_generation.binding_snapshots, 0);
+    assert_eq!(second_generation.method_lookup_builds, 1);
     assert_eq!(second_generation.bridge_call_scope_builds, 2);
 }
 
@@ -408,6 +508,172 @@ fn native_registration_replay_keeps_old_binding_generation_alive_after_reinstall
 }
 
 #[test]
+fn native_registration_replay_and_reload_publish_both_consistent_generation_orders() {
+    for order in [
+        ReplayReloadPublicationOrder::CacheBeforeInvalidate,
+        ReplayReloadPublicationOrder::InvalidateBeforeCache,
+    ] {
+        assert_registration_replay_reload_publication_order(order);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ReplayReloadPublicationOrder {
+    CacheBeforeInvalidate,
+    InvalidateBeforeCache,
+}
+
+fn assert_registration_replay_reload_publication_order(order: ReplayReloadPublicationOrder) {
+    INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT.store(0, Ordering::SeqCst);
+    INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT.store(0, Ordering::SeqCst);
+    let host = Arc::new(NativePluginLiveHost::default());
+    host.load_reported_plugins(
+        NativePluginLoadReport::from_loaded(vec![native_registration_replay_interleaved_plugin(
+            false,
+        )]),
+        PluginModuleKind::Runtime,
+    )
+    .expect("initial interleaved generation should load");
+    let lifecycle = Arc::new(native_live_host_bridge_lifecycle_state(false));
+    let mut source_gate = host.install_registration_replay_source_test_gate();
+    let mut before_cache_gate = (order == ReplayReloadPublicationOrder::InvalidateBeforeCache)
+        .then(|| host.install_registration_replay_before_cache_test_gate());
+
+    let replay_host = host.clone();
+    let replay_lifecycle = lifecycle.clone();
+    let replay = thread::spawn(move || {
+        replay_and_run_interleaved_registration(&replay_host, &replay_lifecycle)
+    });
+    source_gate.wait_until_reached("registration replay source capture");
+
+    let lock_attempts_before_reload = host.loaded.lock_attempts();
+    let mut after_lock_gate = (order == ReplayReloadPublicationOrder::CacheBeforeInvalidate)
+        .then(|| host.loaded.install_after_lock_test_gate());
+    let reload_host = host.clone();
+    let (reload_complete_tx, reload_complete_rx) = mpsc::channel();
+    let reload = thread::spawn(move || {
+        let result = reload_host
+            .load_reported_plugins(
+                NativePluginLoadReport::from_loaded(vec![
+                    native_registration_replay_interleaved_plugin(true),
+                ]),
+                PluginModuleKind::Runtime,
+            )
+            .map(|_| ());
+        reload_complete_tx
+            .send(result)
+            .expect("reload completion receiver should remain alive");
+    });
+    let wait_started = Instant::now();
+    while host.loaded.lock_attempts() == lock_attempts_before_reload {
+        assert!(
+            wait_started.elapsed() < Duration::from_secs(5),
+            "reload should attempt the loaded-generation lock while replay is paused"
+        );
+        thread::yield_now();
+    }
+    assert!(
+        matches!(
+            reload_complete_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ),
+        "reload must not publish while replay retains the loaded-generation guard"
+    );
+
+    source_gate.resume();
+    let first_system_id = match order {
+        ReplayReloadPublicationOrder::CacheBeforeInvalidate => {
+            let after_lock_gate = after_lock_gate
+                .as_mut()
+                .expect("cache-first order should install an after-lock gate");
+            after_lock_gate.wait_until_reached("reload loaded-lock acquisition");
+            let system_id = replay.join().expect("replay thread should not panic");
+            assert_eq!(system_id, "physics.old_generation_tick");
+            assert_eq!(
+                (
+                    INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst),
+                    INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst),
+                ),
+                (1, 0),
+                "cache-first replay must pair the old manifest with the still-admitted old callback"
+            );
+            after_lock_gate.resume();
+            reload_complete_rx
+                .recv_timeout(Duration::from_secs(10))
+                .expect("cache-first reload should complete after its loaded-lock gate resumes")
+                .expect("cache-first replacement generation should load");
+            system_id
+        }
+        ReplayReloadPublicationOrder::InvalidateBeforeCache => {
+            let before_cache_gate = before_cache_gate
+                .as_mut()
+                .expect("invalidate-first order should install a before-cache gate");
+            before_cache_gate.wait_until_reached("registration replay cache publication");
+            reload_complete_rx
+                .recv_timeout(Duration::from_secs(10))
+                .expect("invalidate-first reload should complete before replay publishes its cache")
+                .expect("invalidate-first replacement generation should load");
+            before_cache_gate.resume();
+            let system_id = replay.join().expect("replay thread should not panic");
+            assert_eq!(system_id, "physics.reloaded_generation_tick");
+            assert_eq!(
+                (
+                    INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst),
+                    INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst),
+                ),
+                (0, 1),
+                "invalidate-first replay must reject the old cache and pair the new manifest with the new callback"
+            );
+            system_id
+        }
+    };
+    reload.join().expect("reload thread should not panic");
+
+    for _ in 0..2 {
+        assert_eq!(
+            replay_and_run_interleaved_registration(&host, &lifecycle),
+            "physics.reloaded_generation_tick"
+        );
+    }
+    assert_eq!(
+        host.registration_replay_context_build_counts()
+            .registration_manifest_parses,
+        2,
+        "old and replacement generations should each parse once; subsequent replay must hit the cache"
+    );
+    assert_eq!(
+        INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst),
+        usize::from(first_system_id == "physics.old_generation_tick")
+    );
+    assert_eq!(
+        INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst),
+        usize::from(first_system_id == "physics.reloaded_generation_tick") + 2
+    );
+}
+
+fn replay_and_run_interleaved_registration(
+    host: &NativePluginLiveHost,
+    lifecycle: &RuntimePluginBridgeLifecycleState,
+) -> String {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let report = host
+        .replay_runtime_plugin_registration_manifest_via_bridge_result(
+            &mut registry,
+            lifecycle,
+            "physics",
+        )
+        .expect("interleaved registration generation should replay");
+    assert_eq!(report.registered_systems.len(), 1);
+    let system_id = report.registered_systems[0].system_id.clone();
+    let mut world = World::default();
+    registry
+        .apply_to_world(&mut world)
+        .expect("interleaved replay generation should apply");
+    assert!(world.run_native_scene_system(&system_id));
+    system_id
+}
+
+#[test]
 #[ignore = "manual native registration replay scale evidence"]
 fn native_registration_replay_scale_benchmark_builds_one_context_per_plugin() {
     for system_count in [1, 100, 1_000] {
@@ -435,13 +701,13 @@ fn native_registration_replay_scale_benchmark_builds_one_context_per_plugin() {
             assert_eq!(replay.registered_systems.len(), system_count);
             assert_eq!(counts.registration_manifest_parses, 1);
             assert_eq!(counts.registration_system_preparations, system_count);
-            assert_eq!(counts.package_manifest_snapshots, 1);
-            assert_eq!(counts.binding_snapshots, 1);
+            assert_eq!(counts.package_manifest_snapshots, 0);
+            assert_eq!(counts.binding_snapshots, 0);
             assert_eq!(counts.method_lookup_builds, 1);
             assert_eq!(counts.bridge_call_scope_builds, 1);
             eprintln!(
                 "native registration replay: systems={system_count} methods={method_count} \
-                 elapsed_us={} registration_manifest_parses=1 prepared_systems={} manifest_snapshots=1 binding_snapshots=1 method_lookup_builds=1 \
+                 elapsed_us={} registration_manifest_parses=1 prepared_systems={} manifest_snapshots=0 binding_snapshots=0 method_lookup_builds=1 \
                  bridge_call_scope_builds=1",
                 elapsed.as_micros(),
                 system_count,
@@ -496,6 +762,62 @@ bridge_method = "sample_count"
             unload: None,
         });
     }
+    plugin
+}
+
+fn native_live_host_ordered_systems_plugin() -> LoadedNativePlugin {
+    let mut plugin = native_live_host_dist_system_plugin();
+    let report = plugin
+        .runtime_entry_report
+        .as_mut()
+        .expect("ordered test plugin should expose a runtime entry report");
+    let behavior = report
+        .behavior
+        .as_mut()
+        .expect("ordered test plugin should expose runtime behavior");
+    behavior.registration_manifest = Some(
+        r#"
+schema = "zircon.native.registration-manifest/3"
+capabilities = ["runtime.plugin.physics"]
+
+[[modules]]
+name = "runtime"
+kind = "runtime"
+
+[[systems]]
+id = "physics.bootstrap"
+module = "runtime"
+stage = "Update"
+order = 100
+sets = ["physics.bootstrap"]
+access = ["write:world"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+
+[[systems]]
+id = "physics.runtime_tick"
+module = "runtime"
+stage = "Update"
+order = 0
+sets = ["physics.tick"]
+before = ["physics.render"]
+after = ["physics.bootstrap"]
+access = ["write:world"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+
+[[systems]]
+id = "physics.render"
+module = "runtime"
+stage = "Update"
+order = -100
+sets = ["physics.render"]
+access = ["write:world"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+"#
+        .to_string(),
+    );
     plugin
 }
 
@@ -633,6 +955,55 @@ fn native_registration_replay_generation_plugin() -> LoadedNativePlugin {
     plugin
 }
 
+fn native_registration_replay_interleaved_plugin(reloaded: bool) -> LoadedNativePlugin {
+    let mut plugin = native_live_host_dist_system_plugin();
+    let report = plugin
+        .runtime_entry_report
+        .as_mut()
+        .expect("interleaved registration replay fixture report");
+    let (system_id, method) = if reloaded {
+        (
+            "physics.reloaded_generation_tick",
+            native_registration_replay_interleaved_reloaded_bridge_method
+                as fn(NativeBridgeCall) -> ZrStatus,
+        )
+    } else {
+        (
+            "physics.old_generation_tick",
+            native_registration_replay_interleaved_old_bridge_method
+                as fn(NativeBridgeCall) -> ZrStatus,
+        )
+    };
+    report.bridge_method_bindings = vec![NativeBridgeMethodBinding::new(
+        <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+        "sample_count",
+        NativeBridgeMethodFn::from_rust(method),
+    )];
+    report
+        .behavior
+        .as_mut()
+        .expect("interleaved registration replay fixture behavior")
+        .registration_manifest = Some(format!(
+        r#"
+schema = "zircon.native.registration-manifest/3"
+capabilities = ["runtime.plugin.physics"]
+
+[[modules]]
+name = "runtime"
+kind = "runtime"
+
+[[systems]]
+id = "{system_id}"
+module = "runtime"
+stage = "Update"
+access = ["write:world"]
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+"#
+    ));
+    plugin
+}
+
 fn native_live_host_registration_replay_plugin_with_schema(
     plugin_id: &str,
     schema: &str,
@@ -675,6 +1046,28 @@ fn native_registration_replay_old_generation_bridge_method(call: NativeBridgeCal
     let payload = unsafe { call.payload.as_slice() };
     if call.method_slot == 7 && payload.is_empty() {
         OLD_GENERATION_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
+        ZrStatus::ok()
+    } else {
+        ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty())
+    }
+}
+
+fn native_registration_replay_interleaved_old_bridge_method(call: NativeBridgeCall) -> ZrStatus {
+    let payload = unsafe { call.payload.as_slice() };
+    if call.method_slot == 7 && payload.is_empty() {
+        INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
+        ZrStatus::ok()
+    } else {
+        ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty())
+    }
+}
+
+fn native_registration_replay_interleaved_reloaded_bridge_method(
+    call: NativeBridgeCall,
+) -> ZrStatus {
+    let payload = unsafe { call.payload.as_slice() };
+    if call.method_slot == 7 && payload.is_empty() {
+        INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
         ZrStatus::ok()
     } else {
         ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty())

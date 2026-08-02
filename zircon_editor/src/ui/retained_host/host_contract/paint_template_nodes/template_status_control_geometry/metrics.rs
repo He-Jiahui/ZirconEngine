@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -18,8 +18,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub signal_marker_size: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_status_metrics(
-) -> WorkbenchStatusMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_status_metrics()
+-> WorkbenchStatusMetrics {
     workbench_status_metrics_from_host(current_host_metrics())
 }
 
@@ -54,13 +54,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     workbench_status_metrics().radius
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_button_radius(
-) -> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_button_radius()
+-> f32 {
     workbench_status_metrics().radius
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_glyph_size(
-) -> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_glyph_size()
+-> f32 {
     workbench_status_metrics().icon_glyph_size
 }
 

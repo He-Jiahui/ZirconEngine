@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use super::order::compare_slot_summary_update_order;
@@ -7,7 +9,7 @@ use super::summary::RuntimeSessionSlotSummary;
 pub struct RuntimeSessionArchiveManifest {
     pub format_version: u32,
     #[serde(default)]
-    pub slots: Vec<RuntimeSessionSlotSummary>,
+    pub slots: Arc<Vec<RuntimeSessionSlotSummary>>,
 }
 
 impl RuntimeSessionArchiveManifest {

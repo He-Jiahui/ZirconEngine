@@ -3,7 +3,7 @@ use super::super::super::super::*;
 pub(super) struct StartupChangeEvents {
     pub(super) asset_change_events: ChannelReceiver<AssetChange>,
     pub(super) editor_asset_change_events: EditorAssetChangeSubscription,
-    pub(super) resource_change_events: ChannelReceiver<ResourceEvent>,
+    pub(super) resource_change_events: zircon_runtime::core::resource::ResourceEventReceiver,
 }
 
 pub(super) fn subscribe_startup_change_events(

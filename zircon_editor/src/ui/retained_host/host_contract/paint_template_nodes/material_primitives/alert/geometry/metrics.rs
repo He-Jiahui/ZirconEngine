@@ -1,3 +1,4 @@
+pub(super) use super::super::super::bounded_extent as alert_bounded_extent;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 
 pub(super) const ALERT_PADDING_X: f32 = 16.0;

@@ -6046,6 +6046,8 @@ Runtime 15 的 lock-poison 当前状态行只覆盖 Runtime 自有的中立 VM �
 
 验证：scoped rustfmt/static scans、UI template schema 旧枚举名扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
 
+> 2026-08-01 superseded：以上记录描述当时的命名中间态。Runtime09 随后删除了 source-template production converter、`SourceTemplateFixture*` report variants 与 `runtime_15_ui_template_schema_uses_source_fixture_names` 源码字符串门禁；当前行为合同是无 `[asset]` source-template 输入由 `UiAssetLoader` 拒绝。历史状态行继续保留为旧里程碑证据，不是当前 API/结构要求。
+
 ## Runtime 15 M2 input mouse-wheel line-delta naming hard cutover
 
 状态：`runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred`。

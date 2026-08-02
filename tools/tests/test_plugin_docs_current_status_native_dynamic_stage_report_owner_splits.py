@@ -40,11 +40,6 @@ class PluginDocsCurrentStatusNativeDynamicStageReportOwnerSplitTests(unittest.Te
                     "NativeDynamic stage loader manifest owner",
                     "loader manifest package diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_stage_loader_manifest_owner_split",
-                    "pipeline_report_native_dynamic_stage_loader_manifest.py",
-                    "NativeDynamic stage loader manifest owner",
-                ],
             },
             "Current export/plugin docs do not reflect NativeDynamic stage loader manifest owner split",
         )
@@ -75,11 +70,6 @@ class PluginDocsCurrentStatusNativeDynamicStageReportOwnerSplitTests(unittest.Te
                     "pipeline_report_native_dynamic_stage_package_report.py",
                     "NativeDynamic stage package report owner",
                     "NativeDynamic materialized package source/package-report diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_stage_package_report_owner_split",
-                    "pipeline_report_native_dynamic_stage_package_report.py",
-                    "NativeDynamic stage package report owner",
                 ],
             },
             "Current export/plugin docs do not reflect NativeDynamic stage package report owner split",
@@ -112,11 +102,6 @@ class PluginDocsCurrentStatusNativeDynamicStageReportOwnerSplitTests(unittest.Te
                     "NativeDynamic stage payload finalization owner",
                     "package report/loader manifest/file manifest finalization",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_stage_payload_finalize_owner_split",
-                    "native_dynamic_stage_payload_finalize.py",
-                    "NativeDynamic stage payload finalization owner",
-                ],
             },
             "Current export/plugin docs do not reflect NativeDynamic stage payload finalization owner split",
         )
@@ -147,11 +132,6 @@ class PluginDocsCurrentStatusNativeDynamicStageReportOwnerSplitTests(unittest.Te
                     "pipeline_report_native_dynamic_stage_payload_operation_audit.py",
                     "NativeDynamic stage payload operation-audit artifact owner",
                     "operation-audit artifact/package-relative diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_native_dynamic_stage_payload_operation_audit_owner_split",
-                    "pipeline_report_native_dynamic_stage_payload_operation_audit.py",
-                    "NativeDynamic stage payload operation-audit artifact owner",
                 ],
             },
             "Current export/plugin docs do not reflect NativeDynamic stage payload operation-audit owner split",

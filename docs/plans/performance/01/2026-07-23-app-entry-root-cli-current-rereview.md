@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_app/src/entry/*.rs
+  - zircon_app/src/entry/
   - zircon_app/src/entry/cli
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

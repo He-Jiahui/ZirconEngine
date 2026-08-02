@@ -1,13 +1,15 @@
 use crate::core::framework::render::{
     CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
     RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderSubmissionConfig,
-    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
-    RenderVirtualGeometryDebugSnapshot,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
+    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderVisibleSpatialQuerySnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
-use super::super::capture_frame::{capture_frame, capture_frame_if_newer};
+use super::super::capture_frame::{
+    capture_frame, capture_frame_if_newer, poll_captured_frame_if_newer,
+};
 use super::super::create_viewport::create_viewport;
 use super::super::destroy_viewport::destroy_viewport;
 use super::super::graphics_debugger_capture::{
@@ -15,6 +17,7 @@ use super::super::graphics_debugger_capture::{
 };
 use super::super::query_stats::query_stats;
 use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
+use super::super::query_visible_spatial_snapshot::query_visible_spatial_snapshot;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
@@ -111,6 +114,13 @@ impl RenderFramework for WgpuRenderFramework {
         query_stats(self)
     }
 
+    fn query_visible_spatial_snapshot(
+        &self,
+        viewport: RenderViewportHandle,
+    ) -> Result<Option<RenderVisibleSpatialQuerySnapshot>, RenderFrameworkError> {
+        query_visible_spatial_snapshot(self, viewport)
+    }
+
     fn query_virtual_geometry_debug_snapshot(
         &self,
     ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
@@ -143,6 +153,14 @@ impl RenderFramework for WgpuRenderFramework {
         last_generation: Option<u64>,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         capture_frame_if_newer(self, viewport, last_generation)
+    }
+
+    fn poll_captured_frame_if_newer(
+        &self,
+        viewport: RenderViewportHandle,
+        last_generation: Option<u64>,
+    ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        poll_captured_frame_if_newer(self, viewport, last_generation)
     }
 
     fn set_quality_profile(

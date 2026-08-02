@@ -537,12 +537,10 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             && path == "pipeline_layout.group3.binding1"
             && diagnostic.contains("StorageBuffer")
     )));
-    assert!(
-        report
-            .fallback_usages
-            .iter()
-            .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation))
-    );
+    assert!(report
+        .fallback_usages
+        .iter()
+        .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation)));
 }
 
 #[test]
@@ -598,12 +596,10 @@ fn render_product_streamer_reports_unregistered_custom_shading_model() {
         RenderMaterialValidationError::UnregisteredShadingModel { path, token }
             if path == "overrides.lighting_model" && token == "custom:subsurface"
     )));
-    assert!(
-        report
-            .fallback_usages
-            .iter()
-            .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation))
-    );
+    assert!(report
+        .fallback_usages
+        .iter()
+        .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation)));
 }
 
 #[test]
@@ -644,13 +640,11 @@ fn render_product_streamer_dependency_readiness_change_invalidates_material_cach
             ResourceHandle::<MaterialMarker>::new(material_id),
         )
         .expect("initial material prepare");
-    assert!(
-        streamer
-            .material_readiness_report(&material_id)
-            .expect("initial report")
-            .validation_errors
-            .is_empty()
-    );
+    assert!(streamer
+        .material_readiness_report(&material_id)
+        .expect("initial report")
+        .validation_errors
+        .is_empty());
 
     asset_manager
         .assets::<TextureAsset>()

@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
-use zircon_runtime::scene::NodeId;
+use zircon_runtime::scene::{NodeId, WorldInspectionHierarchyRow};
 
 use crate::ui::retained_host::{HostTextInputFocusData, UiHostContext};
 
-use super::{FrameRect, HostInvalidationMask, RetainedEditorHost, SceneEntry, callback_dispatch};
+use super::{FrameRect, HostInvalidationMask, RetainedEditorHost, SceneEntries, callback_dispatch};
 
 pub(in crate::ui::retained_host::app) const HIERARCHY_INLINE_RENAME_CONTROL_ID: &str =
     "HierarchyInlineRename";
@@ -51,7 +51,7 @@ impl RetainedEditorHost {
 
     pub(in crate::ui::retained_host::app) fn track_hierarchy_click_for_rename(
         &mut self,
-        entry: Option<SceneEntry>,
+        entry: Option<WorldInspectionHierarchyRow>,
     ) {
         self.end_hierarchy_rename();
         let Some(entry) = entry else {
@@ -62,14 +62,14 @@ impl RetainedEditorHost {
         let now = Instant::now();
         if is_hierarchy_rename_double_click(
             self.last_hierarchy_rename_click.as_ref(),
-            entry.id,
+            entry.entity,
             now,
         ) {
             self.last_hierarchy_rename_click = None;
-            self.begin_hierarchy_rename(entry.id, &entry.name);
+            self.begin_hierarchy_rename(entry.entity, &entry.display_name);
         } else {
             self.last_hierarchy_rename_click = Some(HierarchyRenameClick {
-                node_id: entry.id,
+                node_id: entry.entity,
                 at: now,
             });
         }
@@ -132,13 +132,15 @@ impl RetainedEditorHost {
     }
 }
 
-fn single_selected_hierarchy_rename_target(entries: &[SceneEntry]) -> Option<(NodeId, String)> {
-    let mut selected_entries = entries.iter().filter(|entry| entry.selected);
+fn single_selected_hierarchy_rename_target(entries: &SceneEntries) -> Option<(NodeId, String)> {
+    let mut selected_entries = entries
+        .iter()
+        .filter(|entry| entries.is_selected(entry.entity));
     let entry = selected_entries.next()?;
     selected_entries
         .next()
         .is_none()
-        .then(|| (entry.id, entry.name.clone()))
+        .then(|| (entry.entity, entry.display_name.clone()))
 }
 
 pub(in crate::ui::retained_host) fn hierarchy_inline_rename_target_id(
@@ -173,32 +175,42 @@ fn is_hierarchy_rename_double_click(
 mod tests {
     use super::*;
 
-    fn entry(id: NodeId, name: &str, selected: bool) -> SceneEntry {
-        SceneEntry {
-            id,
-            name: name.into(),
-            depth: 0,
+    fn scene_entries(values: &[(NodeId, &str, bool)]) -> SceneEntries {
+        let selected = values
+            .iter()
+            .filter(|(_, _, selected)| *selected)
+            .map(|(id, _, _)| *id)
+            .collect::<Vec<_>>();
+        SceneEntries::from_entries(
+            values
+                .iter()
+                .map(|(id, name, _)| SceneEntry {
+                    id: *id,
+                    name: (*name).into(),
+                    depth: 0,
+                })
+                .collect::<Vec<_>>(),
             selected,
-        }
+        )
     }
 
     #[test]
     fn hierarchy_rename_target_requires_exactly_one_selected_entry() {
-        let entries = vec![entry(4, "Camera", true), entry(7, "Light", false)];
+        let entries = scene_entries(&[(4, "Camera", true), (7, "Light", false)]);
 
         assert_eq!(
             single_selected_hierarchy_rename_target(&entries),
             Some((4, "Camera".into()))
         );
         assert_eq!(
-            single_selected_hierarchy_rename_target(&[entry(4, "Camera", false)]),
+            single_selected_hierarchy_rename_target(&scene_entries(&[(4, "Camera", false)])),
             None
         );
         assert_eq!(
-            single_selected_hierarchy_rename_target(&[
-                entry(4, "Camera", true),
-                entry(7, "Light", true),
-            ]),
+            single_selected_hierarchy_rename_target(&scene_entries(&[
+                (4, "Camera", true),
+                (7, "Light", true),
+            ])),
             None
         );
     }

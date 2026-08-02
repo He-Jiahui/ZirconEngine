@@ -23,6 +23,16 @@ mod shader_model;
 mod structure;
 mod typed_toml_ui;
 
+fn virtual_geometry_import_settings() -> toml::Table {
+    toml::from_str(
+        r#"
+            [virtual_geometry]
+            enabled = true
+        "#,
+    )
+    .unwrap()
+}
+
 fn valid_wgsl() -> &'static str {
     r#"
 @vertex

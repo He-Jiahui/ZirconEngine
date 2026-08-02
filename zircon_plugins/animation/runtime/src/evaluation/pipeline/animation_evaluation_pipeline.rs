@@ -17,6 +17,7 @@ use super::interrupted_transition_source::InterruptedTransitionSource;
 use super::machine_instance_key::MachineInstanceKey;
 use super::parameter_apply::AnimationEvaluationProjection;
 use super::pose_target_binding::PoseTargetBindings;
+use super::sequences::CachedCompiledSequence;
 use super::state_machine_cache::CachedCompiledStateMachine;
 
 const GRAPH_EVALUATION_FRAME_CACHE_LIMIT: usize = 256;
@@ -54,6 +55,7 @@ pub struct AnimationEvaluationPipeline {
     presentation_poses: Arc<BTreeMap<EntityId, AnimationPoseOutput>>,
     pub(super) graph_evaluation_cache: Vec<CachedGraphEvaluation>,
     pub(super) graph_evaluation_count: u64,
+    pub(super) sequence_cache: BTreeMap<zircon_runtime::asset::AssetId, CachedCompiledSequence>,
     pub(super) graph_cache: BTreeMap<
         (
             zircon_runtime::asset::AssetId,
@@ -113,6 +115,19 @@ impl AnimationEvaluationPipeline {
         self.graph_evaluation_count
     }
 
+    pub(super) fn take_sequence_cache(
+        &mut self,
+    ) -> BTreeMap<zircon_runtime::asset::AssetId, CachedCompiledSequence> {
+        std::mem::take(&mut self.sequence_cache)
+    }
+
+    pub(super) fn restore_sequence_cache(
+        &mut self,
+        sequence_cache: BTreeMap<zircon_runtime::asset::AssetId, CachedCompiledSequence>,
+    ) {
+        self.sequence_cache = sequence_cache;
+    }
+
     pub(super) fn begin_evaluation_frame(&mut self) {
         self.graph_evaluation_cache.clear();
     }
@@ -166,6 +181,7 @@ impl AnimationEvaluationPipeline {
         self.presentation_poses = Arc::default();
         self.direct_clip_worker_evaluators.clear();
         self.direct_clip_worker_stats = DirectClipWorkerStats::default();
+        self.sequence_cache.clear();
         self.graph_evaluation_cache.clear();
         self.interrupted_transition_sources.clear();
         self.nested_machine_states.clear();

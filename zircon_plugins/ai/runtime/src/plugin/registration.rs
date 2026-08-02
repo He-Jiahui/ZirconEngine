@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use zircon_runtime::core::framework::ai::{
     AiAgentTickReport, AiBehaviorDebugFrame, AiBehaviorDebugSnapshot, AiHearingStimulusEvent,
@@ -16,21 +16,22 @@ use zircon_runtime::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError,
 };
-use zircon_runtime::scene::World;
 use zircon_runtime::scene::ecs::{EventCursor, EventReadIter, Resource};
+use zircon_runtime::scene::World;
 
 use crate::behavior_tree::{
     BehaviorNodeRegistry, BehaviorNodeRegistryService, RuntimeBehaviorIntegrationHost,
 };
 use crate::perception::{
-    AI_HEARING_INGEST_EVENT_LIMIT, AI_HEARING_PENDING_EVENT_CAPACITY, AiTickBudget,
-    HearingStimulusAdapter, PerceivedStimuli, ai_perception_component_descriptors,
-    hearing_event_from_animation, hearing_event_from_sound, perception_receiver, tick_perception,
+    ai_perception_component_descriptors, hearing_event_from_animation, hearing_event_from_sound,
+    perception_receiver, tick_perception, AiTickBudget, HearingStimulusAdapter, PerceivedStimuli,
+    AI_HEARING_INGEST_EVENT_LIMIT, AI_HEARING_PENDING_EVENT_CAPACITY,
 };
-use crate::{AI_MODULE_NAME, AiBehaviorTickLod, DefaultAiManager};
+use crate::{AiBehaviorTickLod, DefaultAiManager, AI_MODULE_NAME};
 
 pub const AI_BEHAVIOR_TICK_SYSTEM: &str = "ai.behavior_tick";
 pub const AI_PERCEPTION_TICK_SYSTEM: &str = "ai.perception_tick";
+pub const AI_MAIN_SYSTEM_SET: &str = "ai.main";
 pub const AI_EVENT_NAMESPACE: &str = "ai.events";
 pub const AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID: &str = "ai.events.behavior_debug_snapshot";
 pub const AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA: &str = "ai.events.behavior_debug_snapshot.v1";
@@ -392,6 +393,7 @@ pub(super) fn register_runtime_extensions(
                     })
             },
         )
+        .in_set(AI_MAIN_SYSTEM_SET)
         .before(zircon_runtime::scene::ecs::SystemRef::System(
             AI_BEHAVIOR_TICK_SYSTEM.to_string(),
         ))
@@ -494,6 +496,7 @@ pub(super) fn register_runtime_extensions(
                 Ok(())
             },
         )
+        .in_set(AI_MAIN_SYSTEM_SET)
         .register()
 }
 

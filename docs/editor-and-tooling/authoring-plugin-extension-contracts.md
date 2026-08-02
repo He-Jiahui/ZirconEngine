@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_plugins/editor_support/src/lib.rs
   - zircon_plugins/animation/editor/src/lib.rs
   - zircon_plugins/animation/editor/src/tests.rs
@@ -46,7 +46,7 @@ implementation_files:
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_plugins/editor_support/src/lib.rs
   - zircon_plugins/animation/editor/src/lib.rs
   - zircon_plugins/animation/editor/src/tests.rs
@@ -159,15 +159,15 @@ Unreal 参照用于拆分生命周期和编辑器表面：Landscape 负责 heigh
 - `TimelineEditorDescriptor`
 - `TimelineTrackDescriptor`
 
-这些 descriptor 都带有 capability gate 字段。`EditorExtensionRegistry` 为每一类 descriptor 提供独立 map 和 `register_*` 方法，并执行重复 ID、空 ID、graph palette 空节点和重复 node ID 校验。可执行 scene mode 必须通过 `register_scene_mode(SceneModeRegistration)` 同时提交 descriptor 与 factory；`EditorPluginCatalog::editor_extensions()` 聚合插件扩展时统一合并 view、drawer、template、operation、menu item、importer、asset editor、component drawer、scene mode、graph/timeline descriptor；workbench 侧应继续消费通用 descriptor，不为单个 Authoring 插件写特殊分支。
+这些 descriptor 都带有 capability gate 字段。`EditorExtensionRegistry` 为尚未迁至 `ContributionBatch` 的 descriptor 提供独立 map 和 `register_*` 方法，并执行重复 ID、空 ID、graph palette 空节点和重复 node ID 校验。`InspectorCustomizationDescriptor` 是 class-level Inspector 定制的唯一声明，随 `ContributionBatch` 进入 capability-filtered `ContributionStore` 责任链。可执行 scene mode 必须通过 `register_scene_mode(SceneModeRegistration)` 同时提交 descriptor 与 factory；`EditorPluginCatalog::editor_extensions()` 聚合插件扩展时统一合并 view、drawer、template、operation、menu item、importer、asset editor、inspector customization、scene mode、graph/timeline descriptor；workbench 侧应继续消费通用 descriptor，不为单个 Authoring 插件写特殊分支。
 
-`zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、component drawer、template、可执行 scene mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
+`zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、inspector customization、template、可执行 scene mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
 
 Authoring surface 的打开操作路径只使用当前 `ViewDescriptor::open_operation_path()` 规则：`view.<view_id>.open`。例如 animation authoring view `animation.authoring` 的菜单项和 operation descriptor 都必须指向 `view.animation.authoring.open`。旧式 `View.animation.authoring.Open` 属于退役操作路径，测试和插件注册不得继续接受或断言它，也不通过兼容 alias 映射。
 
 Authoring batch 测试和插件自定义 command 也只使用当前小写分段 operation path。`zircon_plugins/editor_support` 的支持包测试固定示例为 `support.authoring.import`、`support.authoring.open`、`support.authoring.validate`、`support.authoring.compile`、`support.authoring.create` 和 `support.authoring.activate_tool`。旧式 `Support.Authoring.*` 不再是合法测试输入，也不通过 parser 宽松化或菜单 alias 保留。
 
-Authoring UI document references are `.zui`-only on the production extension path. `EditorUiTemplateDescriptor` and `ComponentDrawerDescriptor` must reference `.zui` component assets; the registry rejects stale `.ui.toml` and `.v2.ui.toml` paths. Plugin packages that ship editor component surfaces should package single-component `.zui` documents backed by `UiV2ComponentAsset` payloads. Runtime `.zui` import is now document-kind aware: the split `ui_document_importer` package manifest and runtime registration expose `ui_document_importer.zui_document`, and the importer materializes component, view, or style payloads from the same `.zui` suffix according to `asset.kind`. The legacy serialized `.ui.json` and `.uidoc` importers plus the old production `.v2.ui.toml` importer have been removed from production packaging. Legacy `.ui.toml` and `.v2.ui.toml` authoring documents are reserved for migration and fixture tests, not for new plugin registrations.
+Authoring UI document references are `.zui`-only on the production extension path. `EditorUiTemplateDescriptor` and `InspectorCustomizationDescriptor` surfaces must reference `.zui` component assets; the contribution batch rejects stale `.ui.toml` and `.v2.ui.toml` paths. Plugin packages that ship editor component surfaces should package single-component `.zui` documents backed by `UiV2ComponentAsset` payloads. Runtime `.zui` import is now document-kind aware: the split `ui_document_importer` package manifest and runtime registration expose `ui_document_importer.zui_document`, and the importer materializes component, view, or style payloads from the same `.zui` suffix according to `asset.kind`. The legacy serialized `.ui.json` and `.uidoc` importers plus the old production `.v2.ui.toml` importer have been removed from production packaging. Legacy `.ui.toml` and `.v2.ui.toml` authoring documents are reserved for migration and fixture tests, not for new plugin registrations.
 
 `EditorOperationDescriptor` 现在有可选 `payload_schema_id`，用于把命令 ID、菜单路径和操作参数 DTO 版本连起来。六个 Authoring editor crate 的用户可触发 operation 都同时声明：
 
@@ -219,7 +219,7 @@ editor 能力名固定为：
 `terrain`、`tilemap_2d`、`prefab_tools` 使用 runtime + editor 双 crate：
 
 - runtime crate 贡献 `RuntimePluginDescriptor`、component type 和 importer descriptor。
-- editor crate 贡献 authoring view、drawer、template、operation、importer、asset editor、component drawer 和插件专属工具描述符。
+- editor crate 贡献 authoring view、drawer、template、operation、importer、asset editor、inspector customization 和插件专属工具描述符。
 - runtime builtin catalog 中三者的 `category` 固定为 `authoring`，并要求 `plugin.toml`、workspace member、runtime module、editor module 和 capability 名完全一致。
 - 每个插件目录有本地 `README.md`，记录 package id、runtime/editor 能力、runtime export 边界、authoring surface 和测试关注点。
 
@@ -227,7 +227,7 @@ editor 能力名固定为：
 
 - `material_editor` 注册 material graph editor、material asset editor、compile/preview/validate/create operation 和 v1 node palette：`output`、`texture_sample`、`scalar_parameter`、`vector_parameter`、`add`、`multiply`。
 - `timeline_sequence` 基于 `animation.sequence` 注册 timeline editor 和 v1 track type：`transform`、`component_property`、`event_marker`，并依赖 animation 插件能力。
-- `animation_graph` 基于 `animation.graph`/`animation.state_machine` 注册 graph editor、validate/compile/open operation、animation player component drawer 和 v1 palette：`clip`、`blend`、`output`、`state`、`transition`、`condition`。
+- `animation_graph` 基于 `animation.graph`/`animation.state_machine` 注册 graph editor、validate/compile/open operation、animation player inspector customization 和 v1 palette：`clip`、`blend`、`output`、`state`、`transition`、`condition`。
 - 这三个 editor-only 包不能出现在 runtime builtin catalog，也不能拥有 `*/runtime` workspace member；export plan 测试固定它们不会进入 runtime registration、linked runtime crate 或 generated Cargo manifest。
 - 每个 editor-only 插件目录同样有本地 `README.md`，明确该包 excluded from runtime export。
 
@@ -257,7 +257,7 @@ editor 能力名固定为：
 
 本轮新增覆盖：
 
-- `EditorAuthoringContributionBatch.menu_items` 批量注册测试，覆盖 menu item、operation payload schema、importer、asset editor、component drawer、asset creation template、可执行 scene mode、graph editor、palette、timeline editor 和 track type。
+- `EditorAuthoringContributionBatch.menu_items` 批量注册测试，覆盖 menu item、operation payload schema、importer、asset editor、inspector customization、asset creation template、可执行 scene mode、graph editor、palette、timeline editor 和 track type。
 - 六个 Authoring editor crate 的 operation/menu/payload schema 可观测测试。
 - `EditorOperationDescriptor.payload_schema_id` getter 与 TOML roundtrip 测试。
 - `EditorOperationRegistry` 对非法 payload schema ID 的拒绝测试，覆盖带空格的 schema ID 不能注册。

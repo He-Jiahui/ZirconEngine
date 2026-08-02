@@ -1,14 +1,15 @@
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
+use crate::capability::RUNTIME_CRATE_NAME;
 use crate::{
-    module_descriptor, solari_runtime_provider_registration, PLUGIN_ID, RUNTIME_CAPABILITIES,
-    RUNTIME_CAPABILITY, SOLARI_CAPABILITY, SOLARI_UNAVAILABLE_MESSAGE,
+    RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY, SOLARI_CAPABILITY, SOLARI_DECLARATION,
+    SOLARI_UNAVAILABLE_MESSAGE, module_descriptor, solari_runtime_provider_registration,
 };
 
 pub const SOLARI_DIST_CRATE_NAME: &str = "zircon_plugin_solari_dist";
@@ -37,9 +38,6 @@ impl RuntimePlugin for SolariRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("solari.dist", SOLARI_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -69,30 +67,18 @@ impl RuntimePlugin for SolariRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Solari",
-        RuntimePluginId::Solari,
-        "zircon_plugin_solari_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("rendering")
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_maturity(PluginMaturity::Experimental)
-    .with_capability(RUNTIME_CAPABILITY)
-    .with_capability(SOLARI_CAPABILITY)
-    .with_capability_status(CapabilityStatusManifest::new(
-        RUNTIME_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(
-        CapabilityStatusManifest::new(SOLARI_CAPABILITY, CapabilityStatus::Partial)
-            .with_note(SOLARI_UNAVAILABLE_MESSAGE),
-    )
-    .build()
+    SOLARI_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .with_capability_status(CapabilityStatusManifest::new(
+            RUNTIME_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(
+            CapabilityStatusManifest::new(SOLARI_CAPABILITY, CapabilityStatus::Partial)
+                .with_note(SOLARI_UNAVAILABLE_MESSAGE),
+        )
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(SolariRuntimePlugin);

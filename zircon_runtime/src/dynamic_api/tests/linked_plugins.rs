@@ -125,7 +125,11 @@ fn linked_plugin_registration_ticks_and_drains_through_runtime_api() {
     let first_generation = drain_plugin_event_batch(drain, session, subscription)
         .expect("linked runtime tick must publish one event");
     assert_eq!(first_generation.deliveries.len(), 1);
-    assert_eq!(first_generation.deliveries[0].payload["frame"], 1);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(first_generation.deliveries[0].payload.get())
+            .unwrap()["frame"],
+        1
+    );
 
     let status = unsafe { tick(session, &mut demand) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
@@ -135,7 +139,11 @@ fn linked_plugin_registration_ticks_and_drains_through_runtime_api() {
     assert_eq!(batch.deliveries.len(), 1);
     assert_eq!(batch.deliveries[0].event_id, EVENT_ID);
     assert_eq!(batch.deliveries[0].payload_schema, PAYLOAD_SCHEMA);
-    assert_eq!(batch.deliveries[0].payload["frame"], 2);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(batch.deliveries[0].payload.get()).unwrap()
+            ["frame"],
+        2
+    );
     destroy_test_session(api, session);
 }
 
@@ -191,7 +199,10 @@ fn linked_plugin_event_drain_pages_a_large_backlog_through_runtime_abi() {
             assert_eq!(delivery.event_id, EVENT_ID);
             assert_eq!(delivery.payload_schema, PAYLOAD_SCHEMA);
             assert_eq!(delivery.sequence, u64::from(delivered));
-            assert_eq!(delivery.payload["frame"], delivered);
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(delivery.payload.get()).unwrap()["frame"],
+                delivered
+            );
         }
         assert_eq!(batch.remaining_deliveries, LINKED_EVENT_BACKLOG - delivered);
         assert!(page_deliveries <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES);

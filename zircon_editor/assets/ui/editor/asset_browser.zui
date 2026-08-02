@@ -19,17 +19,17 @@ props = { text = "Asset Browser", font_weight = 700, overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_locate_button]
-component = "Button"
+component = "IconButton"
 control_id = "LocateSelectedAsset"
-props = { text = "Locate In Assets", dispatch_kind = "asset:browser" }
-layout = { width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Locate selected asset", icon = "editor_pages/asset_browser/navigation/search.svg", icon_placement = "icon_only", dispatch_kind = "asset:browser" }
+layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "workbench.asset.locate_selected_asset" }]
 
 [nodes.toolbar_title_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserToolbarTitleRow"
 layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_title_text" }, { node = "toolbar_locate_button" }]
+children = [{ node = "toolbar_title_text" }]
 
 [nodes.toolbar_subtitle_text]
 component = "Label"
@@ -103,17 +103,17 @@ component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_view_mode_list_button]
-component = "Button"
+component = "IconButton"
 control_id = "AssetBrowserViewModeListButton"
-props = { text = "List", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "list" }
-layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "List view", icon = "list-outline", icon_placement = "icon_only", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "list" }
+layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.toolbar_view_mode_thumb_button]
-component = "Button"
+component = "IconButton"
 control_id = "AssetBrowserViewModeThumbButton"
-props = { text = "Thumb", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
-layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Thumbnail view", icon = "grid-outline", icon_placement = "icon_only", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
+layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.toolbar_kind_primary_row]
@@ -121,7 +121,7 @@ component = "HorizontalBox"
 control_id = "AssetBrowserToolbarKindPrimaryRow"
 props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, z_index = -1 }
 layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }, { node = "toolbar_kind_primary_spacer" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
+children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }, { node = "toolbar_kind_primary_spacer" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }, { node = "toolbar_locate_button" }]
 
 [nodes.toolbar_kind_physics_chip]
 component = "Button"

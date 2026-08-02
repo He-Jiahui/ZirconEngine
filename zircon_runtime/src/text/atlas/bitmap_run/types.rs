@@ -58,6 +58,7 @@ pub(crate) struct GlyphAtlasBitmapRunPlan {
     pub(crate) zero_initialize_shadow_pages: BTreeSet<GlyphAtlasPageKey>,
     pub(crate) rebuilt_pages: Vec<GlyphAtlasPageKey>,
     pub(crate) slot_invalidations: Vec<GlyphAtlasBitmapSlotInvalidation>,
+    pub(crate) invalidated_raster_keys: Vec<GlyphRasterKey>,
     pub(crate) allocation_failures: Vec<GlyphAtlasBitmapAllocationFailure>,
     pub(crate) blocked_glyphs: Vec<GlyphAtlasBitmapQueuedGlyph>,
     pub(crate) placeholder_glyphs: Vec<GlyphAtlasBitmapPlaceholderGlyph>,

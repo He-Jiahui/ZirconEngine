@@ -3,6 +3,7 @@ use crate::core::framework::render::{
     ShaderQualityTier,
 };
 use crate::core::framework::scene::Mobility;
+use crate::core::{TaskPool, TaskPoolDescriptor};
 use crate::graphics::scene::resources::default_pipeline_key;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
@@ -16,8 +17,12 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipel
 use super::builder::{
     build_mesh_pass_command_buffers_from_batches,
     build_mesh_pass_command_buffers_from_batches_cached,
+    build_mesh_pass_command_buffers_from_batches_cached_parallel,
 };
-use super::{MeshDrawCommandList, MeshDrawCommandListStats, MeshPassCommandBufferStats};
+use super::{
+    MeshDrawCommandList, MeshDrawCommandListStats, MeshPassCommandBufferStats,
+    MeshPassCommandBuffers,
+};
 
 mod advanced_materials;
 mod cache;
@@ -101,7 +106,7 @@ fn mesh_draw_command_list_reports_draw_and_instance_sources() {
 #[test]
 fn mesh_batch_ref_emits_gpu_scene_instance_command() {
     let command = batch(MeshDrawQueuePhase::Opaque, 10)
-        .with_cache_identity(42, 0)
+        .with_cache_identity(42, 42 << 16, 0)
         .with_gpu_scene_instance_span(7, 2)
         .command(
             RenderPhase::Opaque3d,

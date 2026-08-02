@@ -2,8 +2,8 @@ use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
 use crate::scene::{
-    ecs::{EntityRegistryError, StorageError},
     EntityId,
+    ecs::{EntityRegistryError, StorageError},
 };
 
 pub type SceneResult<T> = std::result::Result<T, SceneError>;
@@ -55,7 +55,9 @@ pub enum SceneError {
     DuplicateComponentType { type_id: String },
     #[error("dynamic component type `{component_id}` is not registered")]
     UnregisteredDynamicComponentType { component_id: String },
-    #[error("plugin `{plugin_id}` cannot unload while dynamic components are active: {active_components}")]
+    #[error(
+        "plugin `{plugin_id}` cannot unload while dynamic components are active: {active_components}"
+    )]
     PluginComponentsActive {
         plugin_id: String,
         active_components: String,
@@ -106,6 +108,8 @@ pub enum SceneError {
     },
     #[error("property `{property_path}` rejects zero-length quaternion")]
     ZeroLengthQuaternion { property_path: String },
+    #[error("entity {entity} has zero {axis}-scale in its transform")]
+    ZeroScaleTransform { entity: EntityId, axis: &'static str },
     #[error("property `{property_path}` expected finite {expected}")]
     NonFinitePropertyValue {
         property_path: String,

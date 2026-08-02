@@ -36,7 +36,7 @@ related_code:
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
   - zircon_runtime/src/core/framework/physics/world_sync_state.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
@@ -67,7 +67,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
   - zircon_runtime/src/core/framework/physics/tests.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
@@ -136,7 +136,7 @@ The framework is folder-backed. `mod.rs` is only the public re-export surface.
 - `query_filter.rs`, `ray_cast_query.rs`, `shape_overlap_query.rs`, and `shape_cast_query.rs` define backend-neutral query inputs.
 - `ray_cast_hit.rs`, `shape_overlap_hit.rs`, `shape_cast_hit.rs`, `contact_event.rs`, `trigger_event.rs`, and `trigger_event_kind.rs` define neutral query/contact/trigger outputs.
 - `manager.rs` defines the `PhysicsManager` trait used by scene hooks and manager handles.
-- `zircon_runtime/src/scene/components/scene.rs`, `zircon_runtime/src/asset/assets/scene.rs`, `zircon_runtime/src/scene/world/project_io.rs`, and `zircon_runtime/src/scene/dynamic_scene/scene.rs` persist and remap joint metadata without a plugin-local scene format.
+- `zircon_runtime/src/scene/components/scene/physics.rs`, `zircon_runtime/src/asset/assets/scene/physics.rs`, `zircon_runtime/src/scene/world/project_io/physics.rs`, and `zircon_runtime/src/scene/dynamic_scene/scene/mod.rs` persist and remap joint metadata without a plugin-local scene format.
 - `tests.rs` locks default settings, serde shape, sync DTOs, and query DTO round-trips.
 
 ## Behavior Model

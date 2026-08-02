@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use zircon_runtime_interface::reflect::{ReflectFieldValue, ReflectTypeRegistration};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
-use crate::scene::components::{default_render_layer_mask, Mobility, NodeRecord, SceneNode};
+use crate::scene::components::{Mobility, NodeRecord, SceneNode, default_render_layer_mask};
 use crate::scene::{EntityId, World};
 
 use super::DynamicScene;

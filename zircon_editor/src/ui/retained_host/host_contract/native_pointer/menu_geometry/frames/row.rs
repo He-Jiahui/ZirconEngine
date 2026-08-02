@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::menu_popup_metrics::{
-    menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT,
+    MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT, menu_popup_outer_padding, menu_popup_row_stride,
 };
 use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
 

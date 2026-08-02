@@ -1,6 +1,6 @@
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
-    ActivityWindowTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind,
+    ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot,
 };
 
 pub(super) fn workbench_window_view_descriptor() -> ViewDescriptor {
@@ -9,7 +9,7 @@ pub(super) fn workbench_window_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "Workbench",
     )
-    .with_preferred_host(PreferredHost::DocumentCenter)
+    .with_workbench_slot(WorkbenchSlot::DocumentCenter)
     .with_default_constraints(
         crate::ui::workbench::autolayout::default_constraints_for_content(ViewContentKind::Scene),
     )

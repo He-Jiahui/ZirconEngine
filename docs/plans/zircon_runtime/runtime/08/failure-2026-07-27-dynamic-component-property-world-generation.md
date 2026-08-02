@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
   - zircon_runtime/src/scene/world/generation/tests.rs
-  - zircon_plugins/navigation/runtime/src/runtime/state.rs
+  - zircon_plugins/navigation/runtime/src/manager/state.rs
 tests:
   - cargo test -p zircon_runtime --lib dynamic_component_reflection --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib generation --locked --jobs 1 -- --nocapture --test-threads=1
@@ -54,4 +54,9 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `implementation_complete / focused_and_navigation_validation_pending`.
+
+- `scene/world/dynamic_components.rs` 的非 VM 与 VM/JSON changed 写入分支已在 mutation boundary 同时发布 inspection dirty 和 world generation。
+- `scene/world/property_access/write.rs` 只在下层未推进 generation 时补发布，避免一次写入双增量。
+- `scene/tests/ecs_reflect/dynamic_components.rs` 已覆盖 VM/非 VM changed 写入只增一、unchanged 不增的回归合同。
+- 本轮未把记录改为 fixed：当前 Windows coordinator 有其他 owner 的 managed Cargo 作业占用，且最新 runtime lib-test 编译仍有外部 owner 错误；focused Runtime08 与 Navigation gate 实际执行前不声称通过。

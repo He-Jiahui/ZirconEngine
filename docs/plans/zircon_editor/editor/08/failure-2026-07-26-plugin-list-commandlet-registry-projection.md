@@ -13,7 +13,7 @@ related_code:
   - zircon_editor/src/core/commands/descriptor.rs
   - zircon_editor/src/core/commands/registry.rs
   - zircon_editor/src/core/commandlet/runner.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/projection.rs
 tests:
   - cargo test -p zircon_editor --lib --locked commandlet
   - cargo test -p zircon_editor --lib --locked commands

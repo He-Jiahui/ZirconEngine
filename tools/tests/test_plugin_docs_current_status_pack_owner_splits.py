@@ -36,10 +36,6 @@ def _current_doc_sections(repo_root: Path) -> dict[str, str]:
         "export tooling docs": (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8"),
-        "active session notes": (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8"),
     }
 
 
@@ -67,11 +63,6 @@ PACK_DOC_STATUS_CASES = [
                 "pack_stage.py",
                 "Pack stage owner",
                 "pack command/report/path helpers",
-            ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_stage_owner_split",
-                "pack_stage.py",
-                "Pack stage owner",
             ],
         },
     },
@@ -102,11 +93,6 @@ PACK_DOC_STATUS_CASES = [
                 "Pack stage required-fields owner",
                 "non-fatal and delta-publication required-field diagnostics",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_stage_required_fields_owner_split",
-                "pipeline_report_pack_stage_required_fields.py",
-                "Pack stage required-fields owner",
-            ],
         },
     },
     {
@@ -134,11 +120,6 @@ PACK_DOC_STATUS_CASES = [
                 "pipeline_report_pack_file_evidence.py",
                 "Pack file evidence owner",
                 "pack file and binary evidence diagnostics",
-            ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_file_evidence_owner_split",
-                "pipeline_report_pack_file_evidence.py",
-                "Pack file evidence owner",
             ],
         },
     },
@@ -168,11 +149,6 @@ PACK_DOC_STATUS_CASES = [
                 "pipeline_report_pack_manifest_schema_helpers.py",
                 "Pack manifest schema helper owner",
                 "Pack manifest reusable row/path/hash diagnostics",
-            ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_manifest_schema_helper_owner_split",
-                "pipeline_report_pack_manifest_schema_helpers.py",
-                "Pack manifest schema helper owner",
             ],
         },
     },
@@ -205,11 +181,6 @@ PACK_DOC_STATUS_CASES = [
                 "Pack delta report publication/count/target diagnostics",
                 "Pack delta asset-set semantics owner",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_delta_semantics_owner_split",
-                "pipeline_report_pack_delta_semantics.py",
-                "Pack delta semantic diagnostics owner",
-            ],
         },
     },
     {
@@ -239,11 +210,6 @@ PACK_DOC_STATUS_CASES = [
                 "Pack manifest path/hash schema helper owner",
                 "path/hash schema diagnostics",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_manifest_path_hash_schema_helper_owner_split",
-                "pipeline_report_pack_manifest_path_hash_schema_helpers.py",
-                "Pack manifest path/hash schema helper owner",
-            ],
         },
     },
     {
@@ -272,11 +238,6 @@ PACK_DOC_STATUS_CASES = [
                 "pack_stage_paths.py",
                 "Pack stage path/argument owner",
                 "path and argument preflight",
-            ],
-            "active session notes": [
-                "plugins_13_m5_t1_pack_stage_path_owner_split",
-                "pack_stage_paths.py",
-                "Pack stage path/argument owner",
             ],
         },
     },

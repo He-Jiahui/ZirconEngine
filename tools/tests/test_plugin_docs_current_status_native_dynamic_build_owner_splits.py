@@ -40,10 +40,6 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
         export_tool_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         required_by_section = {
             "09 export status": [
@@ -66,18 +62,12 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
                 "NativeDynamic materialization owner",
                 "package copy/finalization helpers",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_native_dynamic_materialize_owner_split",
-                "native_dynamic_materialize.py",
-                "NativeDynamic materialization owner",
-            ],
         }
         sections = {
             "09 export status": export_plan_status,
             "13 standalone status": standalone_plan_status,
             "standalone current contract": standalone_current_contract_section,
             "export tooling docs": export_tool_text,
-            "active session notes": session_text,
         }
 
         failures: list[str] = []
@@ -126,10 +116,6 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
         export_tool_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         required_by_section = {
             "09 export status": [
@@ -152,18 +138,12 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
                 "NativeBuild workspace metadata owner",
                 "NativeBuild TOML/workspace crate diagnostics",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_native_build_workspace_owner_split",
-                "native_build_workspace.py",
-                "NativeBuild workspace metadata owner",
-            ],
         }
         sections = {
             "09 export status": export_plan_status,
             "13 standalone status": standalone_plan_status,
             "standalone current contract": standalone_current_contract_section,
             "export tooling docs": export_tool_text,
-            "active session notes": session_text,
         }
 
         failures: list[str] = []
@@ -213,10 +193,6 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
         export_tool_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         required_by_section = {
             "09 export status": [
@@ -239,18 +215,12 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
                 "NativeBuild Cargo command owner",
                 "Cargo profile/features/command/artifact naming",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_native_build_cargo_command_owner_split",
-                "native_build_command.py",
-                "NativeBuild Cargo command owner",
-            ],
         }
         sections = {
             "09 export status": export_plan_status,
             "13 standalone status": standalone_plan_status,
             "standalone current contract": standalone_current_contract_section,
             "export tooling docs": export_tool_text,
-            "active session notes": session_text,
         }
 
         failures: list[str] = []
@@ -300,10 +270,6 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
         export_tool_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         required_by_section = {
             "09 export status": [
@@ -326,18 +292,12 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
                 "NativeDynamic CLI options owner",
                 "CLI option normalization for build/signing/notarization",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_native_dynamic_cli_options_owner_split",
-                "native_dynamic_cli_options.py",
-                "NativeDynamic CLI options owner",
-            ],
         }
         sections = {
             "09 export status": export_plan_status,
             "13 standalone status": standalone_plan_status,
             "standalone current contract": standalone_current_contract_section,
             "export tooling docs": export_tool_text,
-            "active session notes": session_text,
         }
 
         failures: list[str] = []
@@ -387,10 +347,6 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
         export_tool_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         required_by_section = {
             "09 export status": [
@@ -413,18 +369,12 @@ class PluginDocsCurrentStatusNativeDynamicBuildOwnerSplitTests(unittest.TestCase
                 "NativeDynamic materialization IO/path owner",
                 "directory reset/list/remove, file/tree copy, and stage-child path resolution",
             ],
-            "active session notes": [
-                "plugins_13_m5_t1_native_dynamic_materialize_io_owner_split",
-                "native_dynamic_materialize_io.py",
-                "NativeDynamic materialization IO/path owner",
-            ],
         }
         sections = {
             "09 export status": export_plan_status,
             "13 standalone status": standalone_plan_status,
             "standalone current contract": standalone_current_contract_section,
             "export tooling docs": export_tool_text,
-            "active session notes": session_text,
         }
 
         failures: list[str] = []

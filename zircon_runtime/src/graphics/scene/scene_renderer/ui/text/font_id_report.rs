@@ -51,9 +51,9 @@ mod tests {
 
     use glyphon::{Attrs, Buffer, FontSystem, Metrics, Shaping};
 
-    use super::{ScreenSpaceUiTextFontIdReport, accumulate_text_font_id_report};
-    use crate::text::FontFaceId;
+    use super::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
     use crate::text::font::FontDatabase;
+    use crate::text::FontFaceId;
 
     #[test]
     fn native_font_id_report_uses_actual_layout_glyph_face() {

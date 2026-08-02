@@ -2,14 +2,14 @@ use std::fs;
 use std::path::Path;
 
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, RenderStats, SHADING_MODEL_ID_STANDARD_PBR, ShaderPassType,
-    ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest,
-    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShaderVariantRuntimeDimensionCount,
-    ShadingModelId,
+    RenderStats, ShaderPassType, ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    ShaderVariantRuntimeDimensionCount, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 
 use super::case::RegistryShaderCase;
-use super::manifest::{REGISTRY_MATERIAL_PASS_TYPES, raw_wgsl_hash};
+use super::manifest::{raw_wgsl_hash, REGISTRY_MATERIAL_PASS_TYPES};
 
 pub(super) fn assert_registry_material_pass_prewarm_written(
     manifest: &ShaderVariantPrewarmManifest,
@@ -35,9 +35,19 @@ pub(super) fn assert_registry_material_pass_prewarm_written_for_shading_model(
         let request = manifest
             .variants
             .iter()
-            .find(|request| request.source_label.as_str() == label.as_str())
+            .find(|request| {
+                manifest
+                    .source_for(request)
+                    .is_some_and(|source| source.source_label.as_str() == label.as_str())
+            })
             .unwrap_or_else(|| panic!("registry material-pass prewarm request for {label}"));
-        assert_registry_material_pass_request_key(request, case, pass_type, expected_shading_model);
+        assert_registry_material_pass_request_key(
+            manifest,
+            request,
+            case,
+            pass_type,
+            expected_shading_model,
+        );
         let written = report
             .written_variants
             .iter()
@@ -69,22 +79,26 @@ pub(super) fn assert_registry_material_pass_prewarm_written_for_shading_model(
 }
 
 fn assert_registry_material_pass_request_key(
+    manifest: &ShaderVariantPrewarmManifest,
     request: &ShaderVariantPrewarmRequest,
     case: RegistryShaderCase,
     pass_type: ShaderPassType,
     expected_shading_model: ShadingModelId,
 ) {
+    let source = manifest
+        .source_for(request)
+        .expect("registry material-pass prewarm source");
     assert_eq!(request.key.material_shader, case.shader_id());
     assert_eq!(request.key.material_revision, case.revision);
     assert_eq!(request.key.pass_type, pass_type);
     assert_eq!(request.key.shading_model, expected_shading_model);
-    assert_eq!(request.source_label, case.source_label_for_pass(pass_type));
+    assert_eq!(source.source_label, case.source_label_for_pass(pass_type));
     assert!(
-        request
+        source
             .include_content_hashes
-            .contains(&raw_wgsl_hash(&request.wgsl_source)),
+            .contains(&raw_wgsl_hash(&source.wgsl_source)),
         "template request should retain the final WGSL source hash for {}",
-        request.source_label
+        source.source_label
     );
 }
 

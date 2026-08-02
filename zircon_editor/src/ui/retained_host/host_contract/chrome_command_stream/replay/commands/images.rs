@@ -1,5 +1,6 @@
 use super::super::super::{
-    ChromeCommand, ChromeImagePayload, ChromeImageUvRect, atlas::atlas_subimage_rgba,
+    atlas::atlas_subimage_rgba, ChromeCommand, ChromeCommandStream, ChromeImagePayload,
+    ChromeImageUvRect,
 };
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_primitives::{
@@ -10,10 +11,16 @@ const FALLBACK_IMAGE_COLOR: [u8; 4] = [42, 58, 78, 255];
 
 pub(super) fn paint_image_command(
     frame: &mut HostRgbaFrame,
+    stream: &ChromeCommandStream,
     command: &ChromeCommand,
     payload: &ChromeImagePayload,
 ) {
-    let Some(rgba) = payload.rgba.as_ref() else {
+    let rgba = payload.rgba.as_deref().or_else(|| {
+        stream
+            .image_resource(payload.resource_key.as_str())
+            .map(|resource| resource.rgba.as_slice())
+    });
+    let Some(rgba) = rgba else {
         paint_fallback_image(frame, command);
         return;
     };

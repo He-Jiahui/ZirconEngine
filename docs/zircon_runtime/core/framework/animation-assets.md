@@ -16,10 +16,9 @@ related_code:
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/animation/runtime/tests/animation_state_kind_asset_contract.rs
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
-  - zircon_plugins/animation/runtime/tests/animation_state_kind_asset_contract.rs
 implementation_files:
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/core/framework/animation/asset/binary.rs

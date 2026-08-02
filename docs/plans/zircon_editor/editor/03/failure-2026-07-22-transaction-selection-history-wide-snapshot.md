@@ -4,7 +4,6 @@ status: open
 created_at: 2026-07-22
 summary_slug: transaction-selection-history-wide-snapshot
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
-origin_workflow_node: P3
 fixing_plan: docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/03

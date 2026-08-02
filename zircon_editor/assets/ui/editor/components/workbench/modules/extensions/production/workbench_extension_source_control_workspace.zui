@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/SourceControlSubmit", event = "Click", rout
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSourceControlFiles"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "source_control_runtime_file_row" }, { node = "source_control_editor_file_row" }, { node = "source_control_docs_file_row" }, { node = "source_control_conflict_file_row" }]
 

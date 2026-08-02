@@ -24,7 +24,6 @@ REQUIRED_FILES = [
     REPO_ROOT / "docs/cli-and-tooling/zircon-export-tool.md",
     REPO_ROOT / "docs/plans/engine-code-structure-convention.md",
     REPO_ROOT / "docs/plans/engine-code-review-findings-2026-06.md",
-    REPO_ROOT / ".codex/sessions/20260628-0317-zui-migration-validation.md",
 ]
 
 

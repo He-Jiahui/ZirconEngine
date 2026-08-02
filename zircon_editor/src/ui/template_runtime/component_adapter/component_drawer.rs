@@ -1,7 +1,7 @@
-use crate::core::editor_extension::ComponentDrawerDescriptor;
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
+use crate::core::extension::InspectorCustomization;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::state::EditorState;
 use zircon_runtime_interface::ui::component::{
@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::component::{
 
 pub(crate) fn validate_component_drawer_envelope(
     envelope: &UiComponentEventEnvelope,
-    component_drawer: Option<&ComponentDrawerDescriptor>,
+    customization: Option<&dyn InspectorCustomization>,
 ) -> Result<EditorOperationPath, UiComponentAdapterError> {
     if envelope.target.domain != "component_drawer" {
         return Err(UiComponentAdapterError::UnsupportedTargetDomain {
@@ -24,12 +24,14 @@ pub(crate) fn validate_component_drawer_envelope(
             event_kind: envelope.event_kind,
         });
     }
-    let descriptor = component_drawer.ok_or_else(|| UiComponentAdapterError::MissingSource {
-        domain: envelope.target.domain.clone(),
-        path: envelope.target.path.clone(),
-        source_name: "component_drawer".to_string(),
-    })?;
-    if !descriptor
+    let surface = customization
+        .and_then(|customization| customization.surface())
+        .ok_or_else(|| UiComponentAdapterError::MissingSource {
+            domain: envelope.target.domain.clone(),
+            path: envelope.target.path.clone(),
+            source_name: "inspector_customization".to_string(),
+        })?;
+    if !surface
         .bindings()
         .iter()
         .any(|binding| binding == &envelope.target.path)
@@ -37,7 +39,7 @@ pub(crate) fn validate_component_drawer_envelope(
         return Err(UiComponentAdapterError::RejectedInput {
             domain: envelope.target.domain.clone(),
             path: envelope.target.path.clone(),
-            reason: "operation is not declared by the enabled component drawer".to_string(),
+            reason: "operation is not declared by the enabled inspector customization".to_string(),
         });
     }
     EditorOperationPath::parse(envelope.target.path.clone()).map_err(|error| {
@@ -74,9 +76,9 @@ pub(crate) fn apply_component_drawer_envelope(
     _state: &mut EditorState,
     _manager: &EditorManager,
     envelope: &UiComponentEventEnvelope,
-    component_drawer: Option<&ComponentDrawerDescriptor>,
+    customization: Option<&dyn InspectorCustomization>,
 ) -> Result<UiComponentAdapterResult, UiComponentAdapterError> {
-    let operation_path = validate_component_drawer_envelope(envelope, component_drawer)?;
+    let operation_path = validate_component_drawer_envelope(envelope, customization)?;
     Ok(component_drawer_operation_result(&operation_path))
 }
 

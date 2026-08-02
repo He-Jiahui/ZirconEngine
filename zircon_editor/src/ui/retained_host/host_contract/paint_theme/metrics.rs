@@ -7,7 +7,9 @@ use zircon_runtime_interface::ui::design_tokens::{
 // Shared retained-host control metrics keep Slate-like primitive controls on one
 // spacing, radius, and text scale before higher-level composites consume them.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(in crate::ui::retained_host::host_contract) struct HostControlMetrics {
+pub(crate) struct HostControlMetrics {
+    pub control_default_height: f32,
+    pub control_large_height: f32,
     pub radius_control: f32,
     pub border_width: f32,
     pub font_small: f32,
@@ -33,36 +35,37 @@ pub(in crate::ui::retained_host::host_contract) struct HostControlMetrics {
 }
 
 impl HostControlMetrics {
-    pub(in crate::ui::retained_host::host_contract) fn line_height(&self, font_size: f32) -> f32 {
+    pub(in crate::ui::retained_host) fn line_height(&self, font_size: f32) -> f32 {
         font_size * self.line_height_ratio
     }
 }
 
-pub(in crate::ui::retained_host::host_contract) const METRICS: HostControlMetrics =
-    HostControlMetrics {
-        radius_control: 4.0,
-        border_width: 1.0,
-        font_small: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
-        font_body: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
-        font_large: EditorTypographyTokens::WORKBENCH_TITLE_SIZE,
-        line_height_ratio: 1.2,
-        button_pad_x: 12.0,
-        button_icon_gap: 7.0,
-        button_chevron_reserve: 18.0,
-        text_clip_guard: 6.0,
-        button_pressed_offset_y: 1.0,
-        input_pad: [8.0, 8.0, 3.0, 4.0],
-        segment_text_inset_y: 4.0,
-        segment_selected_inset: 2.0,
-        tab_underline_height: 2.0,
-        selection_indicator_width: 2.0,
-        scrollbar_thickness: 8.0,
-        scrollbar_min_thumb_length: 24.0,
-        gap_s: 4.0,
-        gap_m: 8.0,
-        gap_l: 12.0,
-        row_height: EditorDensityTokens::WORKBENCH_ROW_HEIGHT,
-    };
+pub(crate) const METRICS: HostControlMetrics = HostControlMetrics {
+    control_default_height: 32.0,
+    control_large_height: 48.0,
+    radius_control: 4.0,
+    border_width: 1.0,
+    font_small: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
+    font_body: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
+    font_large: EditorTypographyTokens::WORKBENCH_TITLE_SIZE,
+    line_height_ratio: 1.2,
+    button_pad_x: 12.0,
+    button_icon_gap: 7.0,
+    button_chevron_reserve: 18.0,
+    text_clip_guard: 6.0,
+    button_pressed_offset_y: 1.0,
+    input_pad: [8.0, 8.0, 3.0, 4.0],
+    segment_text_inset_y: 4.0,
+    segment_selected_inset: 2.0,
+    tab_underline_height: 2.0,
+    selection_indicator_width: 2.0,
+    scrollbar_thickness: 8.0,
+    scrollbar_min_thumb_length: 24.0,
+    gap_s: 4.0,
+    gap_m: 8.0,
+    gap_l: 12.0,
+    row_height: EditorDensityTokens::WORKBENCH_ROW_HEIGHT,
+};
 
 pub(crate) fn apply_host_metrics_from_tokens(tokens: &EditorDesignTokens) {
     let next_metrics = project_host_metrics(tokens);
@@ -72,7 +75,7 @@ pub(crate) fn apply_host_metrics_from_tokens(tokens: &EditorDesignTokens) {
     }
 }
 
-pub(in crate::ui::retained_host::host_contract) fn current_host_metrics() -> HostControlMetrics {
+pub(crate) fn current_host_metrics() -> HostControlMetrics {
     match host_metrics().read() {
         Ok(metrics) => *metrics,
         Err(poisoned) => *poisoned.into_inner(),
@@ -86,6 +89,8 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_metrics(
     let density = &tokens.density;
     let typography = &tokens.typography;
     HostControlMetrics {
+        control_default_height: controls.default_height,
+        control_large_height: controls.large_height,
         radius_control: controls.small_radius,
         border_width: controls.border_width,
         font_small: typography.caption_size,
@@ -132,6 +137,8 @@ mod tests {
         let slate_points_to_logical_pixels = 96.0 / 72.0;
         assert_eq!(METRICS.radius_control, 4.0);
         assert_eq!(METRICS.border_width, 1.0);
+        assert_eq!(METRICS.control_default_height, 32.0);
+        assert_eq!(METRICS.control_large_height, 48.0);
         assert!((METRICS.font_small - 8.0 * slate_points_to_logical_pixels).abs() < 0.001);
         assert!((METRICS.font_body - 10.0 * slate_points_to_logical_pixels).abs() < 0.001);
         assert!((METRICS.font_large - 14.0 * slate_points_to_logical_pixels).abs() < 0.001);
@@ -153,6 +160,8 @@ mod tests {
     fn host_control_metrics_project_from_editor_design_tokens() {
         let mut tokens = EditorDesignTokens::workbench_dark();
         tokens.controls.small_radius = 3.0;
+        tokens.controls.default_height = 31.0;
+        tokens.controls.large_height = 45.0;
         tokens.controls.border_width = 1.5;
         tokens.typography.body_size = 11.0;
         tokens.density.gap_medium = 7.0;
@@ -161,6 +170,8 @@ mod tests {
         let metrics = project_host_metrics(&tokens);
 
         assert_eq!(metrics.radius_control, 3.0);
+        assert_eq!(metrics.control_default_height, 31.0);
+        assert_eq!(metrics.control_large_height, 45.0);
         assert_eq!(metrics.border_width, 1.5);
         assert_eq!(metrics.font_body, 11.0);
         assert_eq!(metrics.gap_m, 7.0);

@@ -29,12 +29,16 @@ custom_gain = 2.0
         RenderMaterialLightingModel::Unlit
     );
     assert!(descriptor.unlit);
-    assert!(material
-        .shader_property_override("lighting_model")
-        .is_none());
-    assert!(material
-        .shader_property_overrides()
-        .all(|(name, _)| name != "lighting_model"));
+    assert!(
+        material
+            .shader_property_override("lighting_model")
+            .is_none()
+    );
+    assert!(
+        material
+            .shader_property_overrides()
+            .all(|(name, _)| name != "lighting_model")
+    );
     assert_eq!(
         material.shader_property_override("custom_gain"),
         Some(&toml::Value::Float(2.0))
@@ -76,12 +80,16 @@ custom_gain = 2.0
             .standard_material_descriptor()
             .receive_shadows
     );
-    assert!(no_receive_material
-        .shader_property_override("receive_shadows")
-        .is_none());
-    assert!(no_receive_material
-        .shader_property_overrides()
-        .all(|(name, _)| name != "receive_shadows"));
+    assert!(
+        no_receive_material
+            .shader_property_override("receive_shadows")
+            .is_none()
+    );
+    assert!(
+        no_receive_material
+            .shader_property_overrides()
+            .all(|(name, _)| name != "receive_shadows")
+    );
     assert!(!no_receive_material.receive_shadows());
     assert!(
         !no_receive_material
@@ -133,12 +141,16 @@ custom_gain = 2.0
 
     assert!(default_material.cast_shadows());
     assert!(default_material.standard_material_descriptor().cast_shadows);
-    assert!(no_cast_material
-        .shader_property_override("cast_shadows")
-        .is_none());
-    assert!(no_cast_material
-        .shader_property_overrides()
-        .all(|(name, _)| name != "cast_shadows"));
+    assert!(
+        no_cast_material
+            .shader_property_override("cast_shadows")
+            .is_none()
+    );
+    assert!(
+        no_cast_material
+            .shader_property_overrides()
+            .all(|(name, _)| name != "cast_shadows")
+    );
     assert!(!no_cast_material.cast_shadows());
     assert!(!no_cast_material.standard_material_descriptor().cast_shadows);
     assert_eq!(
@@ -193,9 +205,11 @@ custom_gain = 2.0
     assert_eq!(descriptor.depth_bias, -0.25);
     for name in ["render_queue", "material_queue", "depth_bias"] {
         assert!(material.shader_property_override(name).is_none());
-        assert!(material
-            .shader_property_overrides()
-            .all(|(property, _)| property != name));
+        assert!(
+            material
+                .shader_property_overrides()
+                .all(|(property, _)| property != name)
+        );
     }
     assert_eq!(
         material.shader_property_override("custom_gain"),
@@ -332,12 +346,16 @@ custom_gain = 2.0
 
     assert_eq!(material.taa_reactive_mask_strength(), 0.65);
     assert_eq!(descriptor.taa_reactive_mask_strength, 0.65);
-    assert!(material
-        .shader_property_override("taa_reactive_mask_strength")
-        .is_none());
-    assert!(material
-        .shader_property_overrides()
-        .all(|(property, _)| property != "taa_reactive_mask_strength"));
+    assert!(
+        material
+            .shader_property_override("taa_reactive_mask_strength")
+            .is_none()
+    );
+    assert!(
+        material
+            .shader_property_overrides()
+            .all(|(property, _)| property != "taa_reactive_mask_strength")
+    );
     assert_eq!(
         material.shader_property_override("custom_gain"),
         Some(&toml::Value::Float(2.0))

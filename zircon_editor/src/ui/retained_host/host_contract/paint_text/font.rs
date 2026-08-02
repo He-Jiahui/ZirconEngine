@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::surface::{
 
 use super::sync::lock_recovering_poison;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_text_preferences, HostTextPreferences,
+    HostTextPreferences, current_host_text_preferences,
 };
 
 mod metrics;

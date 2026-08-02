@@ -263,10 +263,12 @@ fn cross_stage_constraint_rejected() {
 #[test]
 fn schedule_maintains_executor_stage_plan_after_registration_and_load() {
     let mut schedule = Schedule::default();
-    assert!(schedule
-        .stage_plan()
-        .internal_systems_for_stage(SystemStage::Update)
-        .is_empty());
+    assert!(
+        schedule
+            .stage_plan()
+            .internal_systems_for_stage(SystemStage::Update)
+            .is_empty()
+    );
 
     schedule
         .register_system(
@@ -278,24 +280,30 @@ fn schedule_maintains_executor_stage_plan_after_registration_and_load() {
             .with_order(7),
         )
         .unwrap();
-    assert!(schedule
-        .stage_plan()
-        .internal_systems_for_stage(SystemStage::Update)
-        .iter()
-        .any(|system| system.id == "zircon.test.cached_update"));
+    assert!(
+        schedule
+            .stage_plan()
+            .internal_systems_for_stage(SystemStage::Update)
+            .iter()
+            .any(|system| system.id == "zircon.test.cached_update")
+    );
 
     let serialized = serde_json::to_string(&schedule).expect("schedule serializes");
     let loaded: Schedule = serde_json::from_str(&serialized).expect("schedule deserializes");
 
-    assert!(loaded
-        .stage_plan()
-        .internal_systems_for_stage(SystemStage::Update)
-        .iter()
-        .any(|system| system.id == "zircon.test.cached_update"));
-    assert!(loaded
-        .stage_plan()
-        .native_steps_for_stage(SystemStage::Update)
-        .is_empty());
+    assert!(
+        loaded
+            .stage_plan()
+            .internal_systems_for_stage(SystemStage::Update)
+            .iter()
+            .any(|system| system.id == "zircon.test.cached_update")
+    );
+    assert!(
+        loaded
+            .stage_plan()
+            .native_steps_for_stage(SystemStage::Update)
+            .is_empty()
+    );
 }
 
 #[test]
@@ -323,29 +331,33 @@ fn schedule_defers_executor_plan_refresh_while_native_system_is_taken() {
         ))
         .unwrap();
 
-    assert!(!world
-        .schedule()
-        .stage_plan()
-        .internal_systems_for_stage(SystemStage::Update)
-        .iter()
-        .any(|system| system.id == "zircon.test.registered_while_native_runs"));
+    assert!(
+        !world
+            .schedule()
+            .stage_plan()
+            .internal_systems_for_stage(SystemStage::Update)
+            .iter()
+            .any(|system| system.id == "zircon.test.registered_while_native_runs")
+    );
 
     world.schedule_mut().restore_native_system(running_system);
 
     let plan = world.schedule().stage_plan();
-    assert!(plan
-        .internal_systems_for_stage(SystemStage::Update)
-        .iter()
-        .any(|system| system.id == "zircon.test.registered_while_native_runs"));
-    assert!(plan
-        .native_steps_for_stage(SystemStage::Update)
-        .iter()
-        .any(|step| match step {
-            crate::scene::ecs::ScheduledSceneStep::Native { id, .. } =>
-                id == "zircon.test.running_native",
-            crate::scene::ecs::ScheduledSceneStep::Runtime { .. } => false,
-            crate::scene::ecs::ScheduledSceneStep::ApplyDeferred { .. } => false,
-        }));
+    assert!(
+        plan.internal_systems_for_stage(SystemStage::Update)
+            .iter()
+            .any(|system| system.id == "zircon.test.registered_while_native_runs")
+    );
+    assert!(
+        plan.native_steps_for_stage(SystemStage::Update)
+            .iter()
+            .any(|step| match step {
+                crate::scene::ecs::ScheduledSceneStep::Native { id, .. } =>
+                    id == "zircon.test.running_native",
+                crate::scene::ecs::ScheduledSceneStep::Runtime { .. } => false,
+                crate::scene::ecs::ScheduledSceneStep::ApplyDeferred { .. } => false,
+            })
+    );
 }
 
 #[test]
@@ -373,9 +385,11 @@ fn schedule_keeps_taken_native_system_ids_reserved() {
         ))
         .unwrap_err();
 
-    assert!(duplicate
-        .to_string()
-        .contains("system zircon.test.reserved_native already registered"));
+    assert!(
+        duplicate
+            .to_string()
+            .contains("system zircon.test.reserved_native already registered")
+    );
 
     world.schedule_mut().restore_native_system(running_system);
 }
@@ -391,9 +405,11 @@ fn schedule_rejects_duplicate_and_blank_system_ids() {
             InternalSceneSystem::NodeCache,
         ))
         .unwrap_err();
-    assert!(duplicate
-        .to_string()
-        .contains("system zircon.scene.node_cache already registered"));
+    assert!(
+        duplicate
+            .to_string()
+            .contains("system zircon.scene.node_cache already registered")
+    );
 
     let blank = schedule
         .register_system(SceneSystemDescriptor::new(
@@ -411,9 +427,11 @@ fn schedule_rejects_duplicate_native_and_builtin_system_ids() {
     let duplicate_builtin = world
         .register_native_system::<(), _>("zircon.scene.node_cache", SystemStage::Update, 0, |_| {})
         .unwrap_err();
-    assert!(duplicate_builtin
-        .to_string()
-        .contains("system zircon.scene.node_cache already registered"));
+    assert!(
+        duplicate_builtin
+            .to_string()
+            .contains("system zircon.scene.node_cache already registered")
+    );
 
     world
         .register_native_system::<(), _>("gameplay.first", SystemStage::Update, 0, |_| {})
@@ -421,9 +439,11 @@ fn schedule_rejects_duplicate_native_and_builtin_system_ids() {
     let duplicate_native = world
         .register_native_system::<(), _>("gameplay.first", SystemStage::Update, 1, |_| {})
         .unwrap_err();
-    assert!(duplicate_native
-        .to_string()
-        .contains("system gameplay.first already registered"));
+    assert!(
+        duplicate_native
+            .to_string()
+            .contains("system gameplay.first already registered")
+    );
 }
 
 #[test]
@@ -438,12 +458,16 @@ fn native_system_registration_reports_missing_required_resources() {
         )
         .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("system gameplay.requires_missing_resource failed to initialize params"));
-    assert!(error
-        .to_string()
-        .contains(std::any::type_name::<MissingScheduleResource>()));
+    assert!(
+        error
+            .to_string()
+            .contains("system gameplay.requires_missing_resource failed to initialize params")
+    );
+    assert!(
+        error
+            .to_string()
+            .contains(std::any::type_name::<MissingScheduleResource>())
+    );
 }
 
 #[derive(Debug, PartialEq, Eq)]

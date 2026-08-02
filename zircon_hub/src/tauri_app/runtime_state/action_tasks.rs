@@ -39,10 +39,12 @@ pub(in crate::tauri_app) fn execute_background_task<T: BackgroundTask>(
     prepare: fn(&mut HubRuntimeSession) -> Result<Option<T>, HubError>,
     complete: fn(&mut HubRuntimeSession, T, Result<T::Output, HubError>) -> Result<(), HubError>,
 ) {
-    let pending = {
+    let (pending, task_id) = {
         let mut session = lock_session(session_handle);
+        let task_id = session.task_status.task_id;
         if let Err(error) = session.apply_request_project_target(request) {
             let _ = session.record_background_action_error(request, error);
+            session.task_status.task_id = task_id;
             let view_model = session.view_model();
             drop(session);
             emit_state(&view_model);
@@ -52,16 +54,18 @@ pub(in crate::tauri_app) fn execute_background_task<T: BackgroundTask>(
             Ok(pending) => pending,
             Err(error) => {
                 let _ = session.record_background_action_error(request, error);
+                session.task_status.task_id = task_id;
                 let view_model = session.view_model();
                 drop(session);
                 emit_state(&view_model);
                 return;
             }
         };
+        session.task_status.task_id = task_id;
         let view_model = session.view_model();
         drop(session);
         emit_state(&view_model);
-        pending
+        (pending, task_id)
     };
 
     let Some(pending) = pending else {
@@ -73,9 +77,13 @@ pub(in crate::tauri_app) fn execute_background_task<T: BackgroundTask>(
     let result = pending.run();
     let mut session = lock_session(session_handle);
     let view_model = match complete(&mut session, pending, result) {
-        Ok(()) => session.view_model(),
+        Ok(()) => {
+            session.task_status.task_id = task_id;
+            session.view_model()
+        }
         Err(error) => {
             let _ = session.record_background_action_error(request, error);
+            session.task_status.task_id = task_id;
             session.view_model()
         }
     };
@@ -155,7 +163,15 @@ pub(in crate::tauri_app) fn run_background_worker_loop(
             emit_state(&view_model);
         }
 
-        let next_request = lock_session(session_handle).take_next_background_action();
+        let (next_request, started_view_model) = {
+            let mut session = lock_session(session_handle);
+            let next_request = session.take_next_background_action();
+            let started_view_model = next_request.as_ref().map(|_| session.view_model());
+            (next_request, started_view_model)
+        };
+        if let Some(view_model) = started_view_model {
+            emit_state(&view_model);
+        }
         match next_request {
             Some(next_request) => request = next_request,
             None => return,
@@ -251,8 +267,16 @@ impl HubRuntimeSession {
         &mut self,
         request: &HubActionRequest,
     ) -> Result<(), HubError> {
+        if self.set_background_action_status(request) {
+            self.persist(None)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn set_background_action_status(&mut self, request: &HubActionRequest) -> bool {
         let Some(action) = BackgroundHubAction::from_request(request) else {
-            return Ok(());
+            return false;
         };
         let target = self.background_action_target(action, request);
         self.background_task_counter += 1;
@@ -263,7 +287,7 @@ impl HubRuntimeSession {
             target,
         )
         .with_task_id(self.background_task_counter);
-        self.persist(None)
+        true
     }
 
     pub(in crate::tauri_app) fn start_background_action_or_record_error(
@@ -296,6 +320,9 @@ impl HubRuntimeSession {
     pub(in crate::tauri_app) fn take_next_background_action(&mut self) -> Option<HubActionRequest> {
         let next_request = self.background_action_queue.pop_front();
         self.background_worker_active = next_request.is_some();
+        if let Some(request) = next_request.as_ref() {
+            self.set_background_action_status(request);
+        }
         next_request
     }
 
@@ -415,19 +442,24 @@ fn path_label(path: &std::ffi::OsStr) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf};
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::{Arc, Mutex},
+    };
 
     use crate::{
         error::HubError,
         projects::RecentProject,
         settings::HubConfig,
         state::{
-            TaskOperationKind, TaskSeverity, TASK_PROGRESS_PREPARED_PERCENT,
-            TASK_PROGRESS_STARTED_PERCENT,
+            HubMessage, TaskOperationKind, TaskSeverity, TaskStatus,
+            TASK_PROGRESS_PREPARED_PERCENT, TASK_PROGRESS_STARTED_PERCENT,
         },
     };
 
     use super::super::HubRuntimeSession;
+    use super::{execute_background_task, BackgroundTask};
     use crate::tauri_app::HubActionRequest;
 
     #[test]
@@ -629,6 +661,63 @@ mod tests {
     }
 
     #[test]
+    fn background_action_lifecycle_dequeued_action_starts_new_running_status() {
+        let temp = temp_test_dir("zircon-hub-background-dequeued-status");
+        let project = temp.join("Game");
+        fs::create_dir_all(&project).unwrap();
+        let mut session = session_with_project(&temp, "Game", &project);
+        let build_request = background_request("build-project");
+        let package_request = background_request("package-project");
+
+        assert!(session
+            .start_background_action_or_record_error(&build_request)
+            .unwrap());
+        let first_task_id = session.task_status.task_id;
+        assert!(!session
+            .start_background_action_or_record_error(&package_request)
+            .unwrap());
+
+        let next_request = session
+            .take_next_background_action()
+            .expect("queued package action should become active");
+
+        assert_eq!(next_request.action_id, "package-project");
+        assert!(session.task_status.running);
+        assert_eq!(session.task_status.label, "Packaging");
+        assert!(session.task_status.task_id > first_task_id);
+        assert_ne!(session.task_status.task_id, 0);
+        let second_task_id = session.task_status.task_id;
+
+        session.mark_background_action_prepared();
+
+        assert_eq!(session.task_status.task_id, second_task_id);
+        assert_eq!(
+            session.task_status.progress_percent,
+            TASK_PROGRESS_PREPARED_PERCENT
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn background_action_lifecycle_success_preserves_running_task_id() {
+        assert_background_completion_preserves_task_id(
+            "zircon-hub-background-success-task-id",
+            complete_immediate_success,
+            TaskSeverity::Success,
+        );
+    }
+
+    #[test]
+    fn background_action_lifecycle_failure_preserves_running_task_id() {
+        assert_background_completion_preserves_task_id(
+            "zircon-hub-background-failure-task-id",
+            complete_immediate_failure,
+            TaskSeverity::Error,
+        );
+    }
+
+    #[test]
     fn background_action_start_localizes_invalid_project_target_failure() {
         let temp = temp_test_dir("zircon-hub-background-invalid-target-localized");
         let selected = temp.join("Selected");
@@ -656,6 +745,76 @@ mod tests {
             model.task_summary.recovery.as_deref(),
             Some("检查操作目标后重试")
         );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    struct ImmediateBackgroundTask;
+
+    impl BackgroundTask for ImmediateBackgroundTask {
+        type Output = ();
+
+        fn run(&self) -> Result<Self::Output, HubError> {
+            Ok(())
+        }
+    }
+
+    fn prepare_immediate_background_task(
+        session: &mut HubRuntimeSession,
+    ) -> Result<Option<ImmediateBackgroundTask>, HubError> {
+        session.mark_background_action_prepared();
+        Ok(Some(ImmediateBackgroundTask))
+    }
+
+    fn complete_immediate_success(
+        session: &mut HubRuntimeSession,
+        _pending: ImmediateBackgroundTask,
+        _result: Result<(), HubError>,
+    ) -> Result<(), HubError> {
+        session.task_status = TaskStatus::success("Completed", HubMessage::raw_text("completed"));
+        Ok(())
+    }
+
+    fn complete_immediate_failure(
+        _session: &mut HubRuntimeSession,
+        _pending: ImmediateBackgroundTask,
+        _result: Result<(), HubError>,
+    ) -> Result<(), HubError> {
+        Err(HubError::message("failed"))
+    }
+
+    fn assert_background_completion_preserves_task_id(
+        temp_prefix: &str,
+        complete: fn(
+            &mut HubRuntimeSession,
+            ImmediateBackgroundTask,
+            Result<(), HubError>,
+        ) -> Result<(), HubError>,
+        expected_severity: TaskSeverity,
+    ) {
+        let temp = temp_test_dir(temp_prefix);
+        let project = temp.join("Game");
+        fs::create_dir_all(&project).unwrap();
+        let mut session = session_with_project(&temp, "Game", &project);
+        let request = background_request("package-project");
+        session.start_background_action_status(&request).unwrap();
+        let task_id = session.task_status.task_id;
+        let session_handle = Arc::new(Mutex::new(session));
+
+        execute_background_task(
+            &request,
+            &session_handle,
+            &|_| {},
+            prepare_immediate_background_task,
+            complete,
+        );
+
+        let session = session_handle.lock().unwrap();
+        assert!(!session.task_status.running);
+        assert_eq!(session.task_status.severity, expected_severity);
+        assert_eq!(session.task_status.task_id, task_id);
+        assert_ne!(session.task_status.task_id, 0);
+        drop(session);
 
         fs::remove_dir_all(temp).unwrap();
     }

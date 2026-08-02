@@ -3,10 +3,11 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use zircon_runtime::core::framework::render::{
-    builtin_geometry_source_descriptors, GeometrySourceId, ShaderQualityTier, ShadingModelId,
     GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
     GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceId, SHADING_MODEL_PLUGIN_ID_START,
+    ShaderQualityTier, ShaderVariantPrewarmExecutionBudget, ShadingModelId,
+    builtin_geometry_source_descriptors,
 };
 
 use super::error::{ShaderPrewarmArgsError, ShaderPrewarmArgsResult};
@@ -28,6 +29,7 @@ pub struct ShaderPrewarmArgs {
     pub builtin_fallback: bool,
     pub validate_wgpu_modules: bool,
     pub validate_wgpu_pipelines: bool,
+    pub execution_budget: ShaderVariantPrewarmExecutionBudget,
     pub pretty: bool,
 }
 
@@ -49,6 +51,7 @@ pub fn parse(
     let mut builtin_fallback = false;
     let mut validate_wgpu_modules = false;
     let mut validate_wgpu_pipelines = false;
+    let mut execution_budget = ShaderVariantPrewarmExecutionBudget::default();
     let mut pretty = false;
 
     let mut args = args.into_iter();
@@ -94,11 +97,23 @@ pub fn parse(
             "--builtin-fallback" => builtin_fallback = true,
             "--validate-wgpu-modules" => validate_wgpu_modules = true,
             "--validate-wgpu-pipelines" => validate_wgpu_pipelines = true,
+            "--max-in-flight-variants" => {
+                execution_budget.max_in_flight_variants =
+                    next_usize(&mut args, "--max-in-flight-variants")?;
+            }
+            "--max-in-flight-source-bytes" => {
+                execution_budget.max_in_flight_source_bytes =
+                    next_usize(&mut args, "--max-in-flight-source-bytes")?;
+            }
+            "--max-resident-source-bytes" => {
+                execution_budget.max_resident_source_bytes =
+                    next_usize(&mut args, "--max-resident-source-bytes")?;
+            }
             "--pretty" => pretty = true,
             unknown => {
                 return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
                     "unknown argument {unknown}"
-                ))))
+                ))));
             }
         }
     }
@@ -132,13 +147,14 @@ pub fn parse(
         builtin_fallback,
         validate_wgpu_modules,
         validate_wgpu_pipelines,
+        execution_budget,
         pretty,
     }))
 }
 
 pub fn usage(message: &str) -> String {
     format!(
-        "{message}\nusage: zircon_shader_prewarm [--project-root <dir>] [--manifest <manifest.json>] [--asset-root <dir>]... [--quality-tier low|medium|high|ultra|all]... [--geometry-source static|skinned|morphed|skinned-morphed|all]... [--geometry-source-id <custom:name>=<4-255>]... [--shading-model-id <custom:name>=<16-255>]... [--shader-permutation-registry <registry.json>]... [--resource-registry <records.json>] [--export-resource-registry <records.json>] [--cache-dir <dir>] [--report <path>] [--builtin-fallback] [--validate-wgpu-modules] [--validate-wgpu-pipelines] [--pretty]"
+        "{message}\nusage: zircon_shader_prewarm [--project-root <dir>] [--manifest <manifest.json>] [--asset-root <dir>]... [--quality-tier low|medium|high|ultra|all]... [--geometry-source static|skinned|morphed|skinned-morphed|all]... [--geometry-source-id <custom:name>=<4-255>]... [--shading-model-id <custom:name>=<16-255>]... [--shader-permutation-registry <registry.json>]... [--resource-registry <records.json>] [--export-resource-registry <records.json>] [--cache-dir <dir>] [--report <path>] [--builtin-fallback] [--validate-wgpu-modules] [--validate-wgpu-pipelines] [--max-in-flight-variants 1] [--max-in-flight-source-bytes <bytes>] [--max-resident-source-bytes <bytes>] [--pretty]"
     )
 }
 
@@ -157,6 +173,18 @@ fn next_string(
         .ok_or_else(|| ShaderPrewarmArgsError::Usage(usage(&format!("missing value for {flag}"))))?
         .into_string()
         .map_err(|_| ShaderPrewarmArgsError::Usage(usage(&format!("{flag} value must be UTF-8"))))
+}
+
+fn next_usize(
+    args: &mut impl Iterator<Item = OsString>,
+    flag: &'static str,
+) -> ShaderPrewarmArgsResult<usize> {
+    let value = next_string(args, flag)?;
+    value.parse::<usize>().map_err(|_| {
+        ShaderPrewarmArgsError::Usage(usage(&format!(
+            "{flag} must be a positive byte or worker count, got {value}"
+        )))
+    })
 }
 
 fn parse_quality_tier(value: &str) -> ShaderPrewarmArgsResult<Vec<ShaderQualityTier>> {
@@ -182,8 +210,9 @@ fn parse_geometry_source(value: &str) -> ShaderPrewarmArgsResult<Vec<GeometrySou
         "static" | "static_mesh" | "static-mesh" => Ok(vec![GEOMETRY_SOURCE_ID_STATIC_MESH]),
         "skinned" | "skinned_mesh" | "skinned-mesh" => Ok(vec![GEOMETRY_SOURCE_ID_SKINNED_MESH]),
         "morphed" | "morphed_mesh" | "morphed-mesh" => Ok(vec![GEOMETRY_SOURCE_ID_MORPHED_MESH]),
-        "skinned_morphed" | "skinned-morphed" | "skinned_morphed_mesh"
-        | "skinned-morphed-mesh" => Ok(vec![GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH]),
+        "skinned_morphed" | "skinned-morphed" | "skinned_morphed_mesh" | "skinned-morphed-mesh" => {
+            Ok(vec![GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH])
+        }
         "all" => Ok(builtin_geometry_source_descriptors()
             .into_iter()
             .map(|descriptor| descriptor.id)
@@ -358,9 +387,9 @@ mod tests {
     use std::ffi::OsString;
 
     use zircon_runtime::core::framework::render::{
-        GeometrySourceId, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
         GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
+        GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceId, SHADING_MODEL_PLUGIN_ID_START,
     };
 
     use super::super::error::ShaderPrewarmArgsError;
@@ -579,9 +608,11 @@ mod tests {
         .unwrap_err();
 
         assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
-        assert!(error
-            .to_string()
-            .contains("plugin shading model ids must be >= 16"));
+        assert!(
+            error
+                .to_string()
+                .contains("plugin shading model ids must be >= 16")
+        );
     }
 
     #[test]
@@ -599,9 +630,11 @@ mod tests {
         .unwrap_err();
 
         assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
-        assert!(error
-            .to_string()
-            .contains("plugin geometry source ids must be >= 4"));
+        assert!(
+            error
+                .to_string()
+                .contains("plugin geometry source ids must be >= 4")
+        );
     }
 
     #[test]

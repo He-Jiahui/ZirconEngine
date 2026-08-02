@@ -85,9 +85,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
@@ -496,6 +494,9 @@ MS-M4(变体缓存与预热):
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`../../_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md`](../../_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md)
+
+## 性能审阅交接
+
 - 2026-07-18 shader 性能交接：mesh每batch/pass重复构造owned variant key/诊断维度，首遇variant在base-scene pass同步disk/zstd/driver compile，prewarm按variant复制WGSL并串行验证写盘，include解析由asset/template/IDE重复全文扫描。Render08联动Render03/17、Runtime04与Editor09交付generation-owned dense variant id、Queued→Ready异步pipeline、content-addressed source-table prewarm及单遍include artifact；见PERF-MVP-355..358与`docs/plans/performance/01/2026-07-18-runtime-core-framework-render-shader-static-review.md`。
 - 2026-07-18 material override性能交接：稳定property override当前每mesh frame重建payload，同entity多primitive重复clone/hash，每draw再clone/pad并创建GPU uniform buffer，同时永久绕开static command cache。Render08联动Render03/17按entity+material revision+override generation+layout hash发布唯一prepared payload/signature/GPU handle，primitives/cameras共享且dirty-range更新；见PERF-MVP-359及material root静态证据。
 - 2026-07-18 material management性能交接：resource streamer getter为全部material深clonereadiness details，随后多轮构建summary/status/issue、clone/sort全量rows后才分页。Render08联动Render17/Editor09按material generation发布唯一compact rows+indices，changed rows增量更新，full details按selected id懒取；当前未确认产品consumer，接线前必须满足stable poll零重建；见PERF-MVP-360。

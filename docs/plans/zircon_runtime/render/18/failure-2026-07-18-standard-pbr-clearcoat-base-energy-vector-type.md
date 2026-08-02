@@ -52,4 +52,8 @@ Standard PBR direct-light accumulator 的默认 base-energy 表达式仍保留�
 
 ## 修复结果与回传
 
-Open state: `待修复`；当前三个相关 shader/test 路径无 lease，本记录只登记确定根因与验收边界，不申领修复或通过。
+Open state: `current-source shader repair present; managed validation pending`.
+
+- Standard PBR initializes `direct_base_energy` as `vec3<f32>(1.0)`, matching the RGB clearcoat Fresnel scale and preserving the existing downstream energy multiplication.
+- The template suite assembles and Naga-validates the complete Standard PBR forward WGSL with clearcoat disabled, clearcoat enabled, and Blinn-Phong selected, so the vector contract is no longer protected only by a text assertion.
+- The Render09 managed product exporter, exact PNG inspection, and DX12 RenderDoc capture remain required before this handoff can close; it remains `open`.

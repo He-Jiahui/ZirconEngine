@@ -37,6 +37,7 @@ mod view_matrix_pair;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 mod virtual_geometry_execution_draw;
+mod visible_spatial_query;
 
 pub use advanced::{
     AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AdvancedProviderReport,
@@ -70,16 +71,16 @@ pub use backend_types::{
     RenderCameraTargetGraphImportStatus, RenderCameraTargetResolutionReport,
     RenderCameraTargetWritebackReport, RenderCameraTargetWritebackStatus, RenderCapabilityClass,
     RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderCommand, RenderDeviceDiagnostics,
-    RenderDeviceLimitDiagnostics, RenderFeatureQualitySettings, RenderGpuSceneUploadPath,
-    RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
-    RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
-    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
-    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
-    RenderHistoryCopyReport, RenderHybridGiPayloadSource, RenderPipelineHandle,
-    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderSceneVelocityReadbackReport,
-    RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
+    RenderCapabilitySummary, RenderCommand, RenderDeviceDiagnostics, RenderDeviceLimitDiagnostics,
+    RenderFeatureQualitySettings, RenderGpuSceneUploadPath, RenderGraphExecutionAliasRecord,
+    RenderGraphExecutionAliasReport, RenderGraphExecutionCoverageReport,
+    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
+    RenderGraphMaterializationReport, RenderGraphPassProfileRecord,
+    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
+    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
+    RenderQueueCapability, RenderSceneVelocityReadbackReport, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
+    RenderingBackendInfo,
 };
 pub use camera::{
     DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER,
@@ -166,7 +167,6 @@ pub use frame_profile::{
 };
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
-pub use submission::RenderSubmissionConfig;
 pub use image::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension,
     RenderImageFallbackKind, RenderImageUsage, RenderSamplerAddressMode, RenderSamplerDescriptor,
@@ -309,9 +309,10 @@ pub use shader::{
     ShaderDispatchBuildDiagnostic, ShaderDispatchExtent, ShaderFeatureBits, ShaderIdeModuleMap,
     ShaderIdeModuleMapEntry, ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewSegment,
     ShaderIdePreviewVariant, ShaderImportPathDerivation, ShaderImportPathDerivationError,
-    ShaderNamedResourceBinding, ShaderParameterValue, ShaderPassType, ShaderQualityTier,
-    ShaderQueueDescriptor, ShaderQueueSegment, ShaderRenderStateDescriptor, ShaderResourceAccess,
-    ShaderResourceDescriptor, ShaderResourceKind, ShaderVariantKey, ShaderVariantMissReport,
+    ShaderNamedResourceBinding, ShaderParameterValue, ShaderPassType, ShaderPipelineDiagnostic,
+    ShaderPipelineDiagnosticStage, ShaderQualityTier, ShaderQueueDescriptor, ShaderQueueSegment,
+    ShaderRenderStateDescriptor, ShaderResourceAccess, ShaderResourceDescriptor,
+    ShaderResourceKind, ShaderVariantKey, ShaderVariantMissReport,
     ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmDimensionSummary,
     ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
     ShaderVariantPrewarmRequest, ShaderVariantPrewarmSourceProvenanceEntry,
@@ -334,6 +335,7 @@ pub use sprite::{
     RenderSpriteRect, RenderSpriteScalingMode, RenderSpriteSliceBorder, RenderSpriteSliceScaleMode,
     RenderSpriteSlicer, RenderSpriteSnapshot, SpriteExtract,
 };
+pub use submission::RenderSubmissionConfig;
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use temporal_jitter::{TemporalJitterSample, TemporalJitterSequence, halton};
 pub use view_matrix_pair::ViewProjectionMatrixPair;
@@ -386,6 +388,12 @@ pub use virtual_geometry_debug_snapshot_streams::{
     RenderVirtualGeometryVisBuffer64ReadbackStreamDecodeError,
 };
 pub use virtual_geometry_execution_draw::RenderVirtualGeometryExecutionDraw;
+pub use visible_spatial_query::{
+    RenderSpatialBounds, RenderSpatialRay, RenderVisibleSpatialQuery,
+    RenderVisibleSpatialQueryResult, RenderVisibleSpatialQuerySnapshot,
+    RenderVisibleSpatialQuerySnapshotId, RenderVisibleSpatialQueryStats,
+    RenderVisibleSpatialQueryView,
+};
 
 pub trait RenderingManager: Send + Sync {
     fn backend_info(&self) -> RenderingBackendInfo;

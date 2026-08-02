@@ -9,7 +9,7 @@ pub(super) fn project_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Project",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::LeftTop)
+    .with_workbench_slot(WorkbenchSlot::LeftTopDrawer)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Project))
     .with_icon_key("project")
 }

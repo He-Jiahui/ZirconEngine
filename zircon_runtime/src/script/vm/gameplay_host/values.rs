@@ -1,13 +1,13 @@
-use crate::core::framework::script::{ScriptHostCallContext, ScriptHostError, ScriptHostValue};
+use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
 use crate::core::math::Vec3;
 use crate::core::resource::{AssetUuid, ResourceHandle, ResourceId};
 
 pub(super) fn expect_string(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
-) -> Result<String, ScriptHostError> {
+) -> Result<&str, ScriptHostError> {
     match context.arguments.get(index) {
-        Some(ScriptHostValue::String(value)) => Ok(value.clone()),
+        Some(ScriptHostValue::String(value)) => Ok(value),
         Some(value) => Err(ScriptHostError::new(format!(
             "argument {index} expected string, received {:?}",
             value.kind()
@@ -19,7 +19,7 @@ pub(super) fn expect_string(
 }
 
 pub(super) fn expect_entity(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<u64, ScriptHostError> {
     match context.arguments.get(index) {
@@ -36,7 +36,7 @@ pub(super) fn expect_entity(
 }
 
 pub(super) fn expect_float(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<f32, ScriptHostError> {
     match context.arguments.get(index) {
@@ -53,7 +53,7 @@ pub(super) fn expect_float(
 }
 
 pub(super) fn expect_bool(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<bool, ScriptHostError> {
     match context.arguments.get(index) {
@@ -69,11 +69,11 @@ pub(super) fn expect_bool(
 }
 
 pub(super) fn expect_vec3_json(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<Vec3, ScriptHostError> {
     let value = expect_string(context, index)?;
-    vec3_from_json(&value)
+    vec3_from_json(value)
 }
 
 pub(super) fn parse_key_code(key: &str) -> Option<u32> {
@@ -111,4 +111,32 @@ pub(super) fn json_error(error: serde_json::Error) -> ScriptHostError {
 
 pub(super) fn script_core_error(error: crate::core::CoreError) -> ScriptHostError {
     ScriptHostError::new(error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostValue};
+
+    use super::expect_string;
+
+    #[test]
+    fn runtime13_string_extractor_borrows_the_argument_payload() {
+        let arguments = vec![ScriptHostValue::String("player.hp".to_string())];
+        let capabilities = Vec::new();
+        let context = ScriptHostCallFrame::new(
+            "zr.gameplay.component",
+            "component_json",
+            &arguments,
+            &capabilities,
+            None,
+        );
+
+        let value = expect_string(&context, 0).expect("string argument is accepted");
+        let ScriptHostValue::String(argument) = &arguments[0] else {
+            panic!("fixture must contain a string argument");
+        };
+
+        assert_eq!(value.as_ptr(), argument.as_ptr());
+        assert_eq!(value.len(), argument.len());
+    }
 }

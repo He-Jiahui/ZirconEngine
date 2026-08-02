@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::Arc;
 
 use super::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeDefinition, AssetTypeId,
@@ -13,6 +14,111 @@ pub(crate) use batch::AssetTypeRegistryBatchReport;
 pub struct AssetTypeRegistry {
     entries: BTreeMap<AssetTypeId, MaterializedEntry>,
     generation: u64,
+    creation_menu: Arc<AssetCreationMenuGeneration>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct AssetCreationMenuGeneration {
+    generation: u64,
+    entries: Arc<[AssetCreationMenuEntry]>,
+    action_index: Arc<HashMap<String, usize>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AssetCreationMenuEntry {
+    action_id: String,
+    raw_item: String,
+    asset_type: AssetTypeId,
+    template_id: String,
+}
+
+impl AssetCreationMenuGeneration {
+    fn compile(generation: u64, entries: &BTreeMap<AssetTypeId, MaterializedEntry>) -> Self {
+        let candidates = entries
+            .values()
+            .flat_map(|entry| {
+                entry
+                    .definition
+                    .creation_templates()
+                    .iter()
+                    .map(|template| {
+                        (
+                            entry.definition.id().clone(),
+                            template.id().to_owned(),
+                            format!("Create {}", safe_menu_label(template.display_name())),
+                        )
+                    })
+            })
+            .collect::<Vec<_>>();
+        let mut label_counts = BTreeMap::<String, usize>::new();
+        for (_, _, label) in &candidates {
+            *label_counts.entry(label.clone()).or_default() += 1;
+        }
+
+        let mut compiled = Vec::with_capacity(candidates.len());
+        let mut action_index = HashMap::with_capacity(candidates.len());
+        let mut used_labels = BTreeSet::new();
+        let mut next_suffix_by_base = BTreeMap::new();
+        for (ordinal, (asset_type, template_id, base_label)) in candidates.into_iter().enumerate() {
+            let label = if label_counts.get(&base_label).copied().unwrap_or_default() > 1 {
+                format!(
+                    "{base_label} ({}/{})",
+                    safe_menu_label(asset_type.as_str()),
+                    safe_menu_label(&template_id)
+                )
+            } else {
+                base_label
+            };
+            let label = unique_menu_label(label, &mut used_labels, &mut next_suffix_by_base);
+            let action_id = format!("menu.item.asset_create.{generation}.{ordinal}");
+            let index = compiled.len();
+            compiled.push(AssetCreationMenuEntry {
+                raw_item: format!("{label}|action={action_id},icon=plus"),
+                action_id: action_id.clone(),
+                asset_type,
+                template_id,
+            });
+            action_index.insert(action_id, index);
+        }
+
+        Self {
+            generation,
+            entries: compiled.into(),
+            action_index: Arc::new(action_index),
+        }
+    }
+
+    pub const fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub fn entries(&self) -> &[AssetCreationMenuEntry] {
+        &self.entries
+    }
+
+    pub fn action(&self, action_id: &str) -> Option<&AssetCreationMenuEntry> {
+        self.action_index
+            .get(action_id)
+            .and_then(|index| self.entries.get(*index))
+    }
+}
+
+impl AssetCreationMenuEntry {
+    pub fn action_id(&self) -> &str {
+        &self.action_id
+    }
+
+    pub fn raw_item(&self) -> &str {
+        &self.raw_item
+    }
+
+    pub fn asset_type(&self) -> &AssetTypeId {
+        &self.asset_type
+    }
+
+    pub fn template_id(&self) -> &str {
+        &self.template_id
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -49,6 +155,10 @@ impl AssetTypeRegistry {
         self.generation
     }
 
+    pub fn creation_menu_generation(&self) -> Arc<AssetCreationMenuGeneration> {
+        Arc::clone(&self.creation_menu)
+    }
+
     pub fn get(&self, asset_type: &AssetTypeId) -> Option<&AssetTypeDefinition> {
         self.entries.get(asset_type).map(|entry| &entry.definition)
     }
@@ -82,7 +192,59 @@ impl AssetTypeRegistry {
         I: IntoIterator<Item = (O, AssetTypeContribution)>,
         O: Into<String>,
     {
-        batch::apply_contributions(self, contributions)
+        let report = batch::apply_contributions(self, contributions);
+        if report.creation_template_entry_count() > 0 {
+            self.creation_menu = Arc::new(AssetCreationMenuGeneration::compile(
+                self.generation,
+                &self.entries,
+            ));
+        }
+        report
+    }
+}
+
+fn unique_menu_label(
+    label: String,
+    used_labels: &mut BTreeSet<String>,
+    next_suffix_by_base: &mut BTreeMap<String, usize>,
+) -> String {
+    if used_labels.insert(label.clone()) {
+        return label;
+    }
+
+    // A base cursor means each occupied suffix is skipped only once, even when many
+    // distinct template identifiers normalize to the same visible label.
+    let next_suffix = next_suffix_by_base.entry(label.clone()).or_insert(2);
+    loop {
+        let ordinal = *next_suffix;
+        *next_suffix = ordinal
+            .checked_add(1)
+            .expect("asset creation menu label suffix exhausted");
+        let candidate = format!("{label} {ordinal}");
+        if used_labels.insert(candidate.clone()) {
+            return candidate;
+        }
+    }
+}
+
+fn safe_menu_label(value: &str) -> String {
+    let mut label = String::with_capacity(value.len());
+    let mut pending_space = false;
+    for character in value.chars() {
+        if character == '|' || character.is_control() || character.is_whitespace() {
+            pending_space |= !label.is_empty();
+            continue;
+        }
+        if pending_space {
+            label.push(' ');
+            pending_space = false;
+        }
+        label.push(character);
+    }
+    if label.is_empty() {
+        "Asset".to_string()
+    } else {
+        label
     }
 }
 

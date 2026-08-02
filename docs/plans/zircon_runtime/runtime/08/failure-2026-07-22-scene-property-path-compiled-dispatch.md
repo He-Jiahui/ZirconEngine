@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/core/framework/scene/entity_path.rs
   - zircon_runtime/src/scene/world/property_access
   - zircon_runtime/src/animation/sequence
-  - zircon_plugins/animation/runtime/src/sequence
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs
 tests:
   - cargo test -p zircon_runtime --lib property_paths --locked --jobs 1 -- --nocapture --test-threads=1
   - animation bindings and scene property scale fixtures

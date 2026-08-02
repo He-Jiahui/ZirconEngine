@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use super::geometry::{
-    draw_items, draw_items_with_stats, full_projection_draw_items_with_stats, DrawItem,
-    ImageVertex, SolidVertex,
+    DrawItem, ImageVertex, SolidGeometry, SolidInstance, SolidVertex, UI_QUAD_VERTEX_COUNT,
+    draw_items, draw_items_with_stats, full_projection_draw_items_with_stats,
 };
 use crate::rhi::{UiSurfaceDrawList, UiSurfacePresentStats, UiSurfaceRect};
 
@@ -17,6 +17,8 @@ pub(super) struct SolidDraw {
     pub(super) item_count: u32,
     pub(super) vertex_start: u32,
     pub(super) vertex_end: u32,
+    pub(super) instance_start: u32,
+    pub(super) instance_end: u32,
     pub(super) bounds: UiSurfaceRect,
 }
 
@@ -53,6 +55,7 @@ pub(super) struct BatchDrawPlanStats {
     pub(super) visible_draw_item_count: u64,
     pub(super) batch_merge_count: u64,
     pub(super) solid_vertex_count: u64,
+    pub(super) solid_instance_count: u64,
     pub(super) image_vertex_count: u64,
     pub(super) batch_layer_count: u64,
     pub(super) batch_dependency_count: u64,
@@ -69,6 +72,8 @@ pub(super) struct BatchDrawPlan {
     pub(super) ops: Vec<DrawOp>,
     /// The sole compiled solid vertex payload; draw ops refer to ranges in this buffer.
     pub(super) solid_vertices: Vec<SolidVertex>,
+    /// Compact ordinary quads; draw ops refer to instance ranges in this buffer.
+    pub(super) solid_instances: Vec<SolidInstance>,
     /// The sole compiled image vertex payload; draw ops refer to ranges in this buffer.
     pub(super) image_vertices: Vec<ImageVertex>,
     /// One ordered source group per image resource for upload preparation.
@@ -203,41 +208,69 @@ fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
 
     let (depths, layer_count, dependency_count, overlap_candidate_count) =
         dependency_depths(&items);
-    let mut layers = vec![Vec::new(); layer_count];
-    for (item_index, depth) in depths.into_iter().enumerate() {
-        layers[depth].push(item_index);
-    }
-    for layer in &mut layers {
-        layer.sort_by_key(|item_index| items[*item_index].order());
-    }
+    let mut layered_item_indices = (0..items.len()).collect::<Vec<_>>();
+    layered_item_indices
+        .sort_unstable_by_key(|item_index| (depths[*item_index], items[*item_index].order()));
 
-    let mut ops = Vec::new();
-    let mut solid_vertices = Vec::new();
-    let mut image_vertices = Vec::new();
+    let (solid_vertex_capacity, solid_instance_capacity, image_vertex_capacity) = items
+        .iter()
+        .fold((0_usize, 0_usize, 0_usize), |capacity, item| match item {
+            DrawItem::Solid(item) => match &item.geometry {
+                SolidGeometry::Vertices(vertices) => (
+                    capacity.0.saturating_add(vertices.len()),
+                    capacity.1,
+                    capacity.2,
+                ),
+                SolidGeometry::Instance(_) => {
+                    (capacity.0, capacity.1.saturating_add(1), capacity.2)
+                }
+            },
+            DrawItem::Image(_) => (
+                capacity.0,
+                capacity.1,
+                capacity.2.saturating_add(UI_QUAD_VERTEX_COUNT as usize),
+            ),
+            DrawItem::Text(_) => capacity,
+        });
+    let mut ops = Vec::with_capacity(items.len());
+    let mut solid_vertices = Vec::with_capacity(solid_vertex_capacity);
+    let mut solid_instances = Vec::with_capacity(solid_instance_capacity);
+    let mut image_vertices = Vec::with_capacity(image_vertex_capacity);
     let mut image_source_indices_by_resource = BTreeMap::<String, Vec<usize>>::new();
     let mut text_batch_index = 0;
 
-    for (layer_index, layer) in layers.into_iter().enumerate() {
-        let layer_index = layer_index as u32;
+    let mut layer_start = 0;
+    while layer_start < layered_item_indices.len() {
+        let layer_depth = depths[layered_item_indices[layer_start]];
+        let layer_end = layered_item_indices[layer_start..]
+            .iter()
+            .position(|item_index| depths[*item_index] != layer_depth)
+            .map_or(layered_item_indices.len(), |offset| layer_start + offset);
+        let layer = &layered_item_indices[layer_start..layer_end];
+        let layer_index = layer_depth as u32;
         push_layer_solid_draw(
             &mut items,
-            &layer,
+            layer,
             layer_index,
             &mut ops,
             &mut solid_vertices,
+            &mut solid_instances,
         );
         push_layer_image_draws(
             &items,
-            &layer,
+            layer,
             layer_index,
             &mut ops,
             &mut image_vertices,
             &mut image_source_indices_by_resource,
         );
-        push_layer_text_draw(&items, &layer, layer_index, &mut ops, &mut text_batch_index);
+        push_layer_text_draw(&items, layer, layer_index, &mut ops, &mut text_batch_index);
+        layer_start = layer_end;
     }
     let image_upload_sources = image_upload_sources(image_source_indices_by_resource);
-    let solid_vertex_count = solid_vertices.len() as u64;
+    let solid_instance_count = solid_instances.len() as u64;
+    let solid_vertex_count = (solid_vertices.len() as u64)
+        .saturating_add(solid_instance_count.saturating_mul(u64::from(UI_QUAD_VERTEX_COUNT)));
     let image_vertex_count = image_vertices.len() as u64;
 
     BatchDrawPlan {
@@ -247,6 +280,7 @@ fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
             visible_draw_item_count: items.len() as u64,
             batch_merge_count: (items.len() as u64).saturating_sub(ops.len() as u64),
             solid_vertex_count,
+            solid_instance_count,
             image_vertex_count,
             batch_layer_count: layer_count as u64,
             batch_dependency_count: dependency_count as u64,
@@ -259,6 +293,7 @@ fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
         },
         ops,
         solid_vertices,
+        solid_instances,
         image_vertices,
         image_upload_sources,
         full_draw_list_stats: None,
@@ -287,34 +322,59 @@ fn push_layer_solid_draw(
     layer_index: u32,
     ops: &mut Vec<DrawOp>,
     solid_vertices: &mut Vec<SolidVertex>,
+    solid_instances: &mut Vec<SolidInstance>,
 ) {
     let vertex_start = solid_vertices.len() as u32;
-    let mut bounds = None;
-    let mut item_count = 0_u32;
+    let instance_start = solid_instances.len() as u32;
+    let mut vertex_bounds = None;
+    let mut instance_bounds = None;
+    let mut vertex_item_count = 0_u32;
+    let mut instance_item_count = 0_u32;
     for item_index in layer {
         let DrawItem::Solid(item) = &mut items[*item_index] else {
             continue;
         };
-        bounds = Some(match bounds {
-            Some(current) => union_rects(current, item.rect),
-            None => item.rect,
-        });
-        item_count = item_count.saturating_add(1);
-        solid_vertices.append(&mut item.vertices);
+        match std::mem::replace(&mut item.geometry, SolidGeometry::Vertices(Vec::new())) {
+            SolidGeometry::Instance(instance) => {
+                instance_bounds = Some(match instance_bounds {
+                    Some(current) => union_rects(current, item.rect),
+                    None => item.rect,
+                });
+                instance_item_count = instance_item_count.saturating_add(1);
+                solid_instances.push(instance);
+            }
+            SolidGeometry::Vertices(mut vertices) => {
+                vertex_bounds = Some(match vertex_bounds {
+                    Some(current) => union_rects(current, item.rect),
+                    None => item.rect,
+                });
+                vertex_item_count = vertex_item_count.saturating_add(1);
+                solid_vertices.append(&mut vertices);
+            }
+        }
     }
-    if solid_vertices.len() == vertex_start as usize {
-        return;
+    if let Some(bounds) = instance_bounds {
+        ops.push(DrawOp::Solid(SolidDraw {
+            layer_index,
+            item_count: instance_item_count,
+            vertex_start,
+            vertex_end: vertex_start,
+            instance_start,
+            instance_end: solid_instances.len() as u32,
+            bounds,
+        }));
     }
-    let Some(bounds) = bounds else {
-        return;
-    };
-    ops.push(DrawOp::Solid(SolidDraw {
-        layer_index,
-        item_count,
-        vertex_start,
-        vertex_end: solid_vertices.len() as u32,
-        bounds,
-    }));
+    if let Some(bounds) = vertex_bounds {
+        ops.push(DrawOp::Solid(SolidDraw {
+            layer_index,
+            item_count: vertex_item_count,
+            vertex_start,
+            vertex_end: solid_vertices.len() as u32,
+            instance_start,
+            instance_end: instance_start,
+            bounds,
+        }));
+    }
 }
 
 fn push_layer_image_draws(

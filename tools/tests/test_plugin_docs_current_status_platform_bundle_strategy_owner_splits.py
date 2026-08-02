@@ -40,11 +40,6 @@ class PluginDocsCurrentStatusPlatformBundleStrategyOwnerTests(unittest.TestCase)
                     "PlatformBundle argument/path owner",
                     "argument origin/path resolution diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_platform_bundle_argument_path_owner_split",
-                    "platform_bundle_arguments.py",
-                    "PlatformBundle argument/path owner",
-                ],
             },
             "Current export/plugin docs do not reflect PlatformBundle argument/path owner split",
         )
@@ -75,11 +70,6 @@ class PluginDocsCurrentStatusPlatformBundleStrategyOwnerTests(unittest.TestCase)
                     "platform_bundle_strategy_handoff.py",
                     "PlatformBundle strategy handoff owner",
                     "Validate strategy/native-dynamic handoff diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_platform_bundle_strategy_handoff_owner_split",
-                    "platform_bundle_strategy_handoff.py",
-                    "PlatformBundle strategy handoff owner",
                 ],
             },
             "Current export/plugin docs do not reflect PlatformBundle strategy handoff owner split",

@@ -13,4 +13,5 @@ default = ["dist"]
 dist = []
 
 [dependencies]
+zircon_plugin_prefab_tools_runtime = { path = "../runtime" }
 zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

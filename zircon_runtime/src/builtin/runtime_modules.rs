@@ -19,7 +19,7 @@ pub use assembly::{
 };
 pub use core_modules::runtime_core_modules;
 
-pub use ids::RuntimePluginId;
+pub use ids::{BuiltinRuntimeModuleId, RuntimePluginId};
 pub use load_report::{RuntimeModuleLoadDiagnostic, RuntimeModuleLoadReport};
 pub use manifest::{
     default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,

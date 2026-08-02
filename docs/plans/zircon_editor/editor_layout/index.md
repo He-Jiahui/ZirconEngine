@@ -21,9 +21,7 @@ related_code:
   - zircon_runtime/src/ui/layout/style_mapping.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
   - zircon_runtime_interface/src/ui/event_ui/mod.rs
-  - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/surface/input
-  - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/labels.rs

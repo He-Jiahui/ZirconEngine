@@ -19,8 +19,7 @@ fn runtime_entry_notifies_runtime_before_applying_close_policy() {
         &[
             "fn handle_window_close_requested",
             "ZrRuntimeEventV1::window_close_requested",
-            "self.session.handle_event(event).is_err()",
-            "event_loop.exit();",
+            "if !self.dispatch_runtime_event(event_loop, event)",
             "return;",
             "self.window_lifecycle_policy.should_close_on_request()",
             "self.close_primary_window_after_request();",

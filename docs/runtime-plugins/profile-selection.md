@@ -20,10 +20,12 @@ related_code:
   - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
+  - zircon_runtime/src/builtin/runtime_modules/ids/module_id.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/profile_selection.rs
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/lib.rs
@@ -62,6 +64,9 @@ related_code:
   - tools/check-runtime-domain-features.ps1
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/plugin_sdk/src/declaration.rs
+  - zircon_plugins/plugin_sdk/src/declaration/macros.rs
+  - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/lib.rs
@@ -103,6 +108,8 @@ implementation_files:
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/profile_selection.rs
+  - zircon_runtime/src/builtin/runtime_modules/ids/module_id.rs
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/lib.rs
@@ -128,6 +135,9 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/mod.rs
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/plugin_sdk/src/declaration.rs
+  - zircon_plugins/plugin_sdk/src/declaration/macros.rs
+  - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/lib.rs
@@ -215,7 +225,7 @@ Profiles are exposed by `RuntimeProfileId`:
 - `Dev`: editor-host diagnostics/dev profile with networking enabled as optional and advanced rendering/VFX plugins available.
 - `Server`: server runtime target; it does not enable UI, rendering, or audio listener defaults.
 
-Each descriptor carries target mode, default plugins, optional plugins, required capabilities, minimum maturity, and whether required externalized plugins are allowed. Stable/default-style profiles use `minimum_maturity = Beta` and do not allow required `Externalized` or `Stub` plugins.
+Each descriptor carries target mode, typed `builtin_modules` membership, default plugins, optional plugins, required capabilities, minimum maturity, and whether required externalized plugins are allowed. Target assembly constructs one built-in candidate registry; profile selection filters that registry by `BuiltinRuntimeModuleId`, completes and validates the selected dependency closure, and then applies the descriptor sorter. Selection freezes each visited built-in descriptor, and the final sorter reuses that cache so a profile generation does not call `EngineModule::descriptor()` twice. Profiles decide membership only, while `ModuleDescriptor` remains the owner of ordering and dependencies. Stable/default-style profiles use `minimum_maturity = Beta` and do not allow required `Externalized` or `Stub` plugins.
 
 ## Compile Feature Presets
 
@@ -255,7 +265,9 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 
 ## Manifest Projection
 
-`RuntimeProfileDescriptor::project_manifest()` converts a profile into a deterministic `ProjectPluginManifest` by preserving default plugin order and assigning each selection to the profile target mode. The legacy `default_manifest_for_target()` behavior is preserved for runtime bootstrap compatibility, while `manifest_for_runtime_profile()` exposes the new profile-driven manifest for export/editor surfaces that opt into M1 profile selection.
+`RuntimeProfileDescriptor::project_manifest()` converts a profile into a deterministic `ProjectPluginManifest` by preserving default plugin order and assigning each selection to the profile target mode. Target-only callers use the target manifest API, while profile-aware bootstrap, export, and editor surfaces use the profile manifest API; neither path is a compatibility alias for the other.
+
+First-party package metadata originates in `zircon_plugin_sdk::declare_plugin!`. Its runtime-independent `PluginDeclaration` projects only `runtime_registration` and `runtime_editor_registration` capabilities into runtime descriptors, while native ABI v3 registration manifests select the matching runtime/editor roles. Generated `plugin.toml` snapshots are distribution artifacts of that declaration; no legacy native manifest macro or parallel capability list remains authoritative.
 
 ## Runtime Plugin Identity Ownership
 
@@ -271,7 +283,7 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 | --- | --- | --- | --- |
 | `MinimalPlugins` | Mirrors Bevy's small runnable core group. | Foundation, tasks, time, frame count, diagnostics core. | Used by `RuntimeProfileId::Minimal`; must stay free of platform/input/asset/render/UI/script modules. |
 | `DefaultPlugins` | Mirrors Bevy's broad default app baseline. | Foundation, log, tasks, time, frame count, diagnostics, platform, input, asset, scene, graphics, script, and UI when `ui` is enabled. | Used by runtime/client/editor profiles that need normal app infrastructure. |
-| `DevPlugins` | Bevy-style default plus verbose development diagnostics. | `DefaultPlugins` plus `LogDiagnosticsModule` inserted after `DiagnosticsCoreModule`. | Used by `Dev`; this is the only built-in group that should enable diagnostic-store log cadence by default. |
+| `DevPlugins` | Bevy-style default plus verbose development diagnostics. | `RuntimeProfileId::Dev` plus explicit UI and `LogDiagnosticsModule` features; descriptor dependencies own final order. | Used by `Dev`; this is the only built-in group that should enable diagnostic-store log cadence by default. |
 | `HeadlessPlugins` | Default-style runtime without visual presentation. | Default core/platform/input/asset/scene/script path without graphics or UI. | Used by server/headless entry modes and export validation. |
 
 `PluginGroupBuilder` is Zircon's equivalent of Bevy's group editing surface. It supports `set`, `disable`, `enable`, `add_before`, `add_after`, duplicate detection, missing-key diagnostics, and built-in membership tests. Zircon deliberately keys ordering by `EngineModule::module_name()` strings instead of Bevy `TypeId` values because modules are trait-object descriptors, not concrete `Plugin` types exposed to users.

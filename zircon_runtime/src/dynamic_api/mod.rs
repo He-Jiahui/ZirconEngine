@@ -18,6 +18,7 @@ pub use shader_prewarm::{
     default_shader_variant_cache_root_for_project,
     default_staged_shader_variant_cache_root_for_project,
     material_surface_shader_prewarm_template_source, prewarm_shader_variants,
+    prewarm_shader_variants_with_execution_budget,
     prewarm_shader_variants_with_wgpu_module_and_pipeline_validation,
     prewarm_shader_variants_with_wgpu_module_validation,
     prewarm_shader_variants_with_wgpu_pipeline_validation, ShaderPrewarmTemplateSource,

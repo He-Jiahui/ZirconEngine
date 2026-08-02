@@ -5,8 +5,7 @@ use toml::Value;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::layout::{
     Anchor, Pivot, Position, UiAlignment, UiAlignment2D, UiCanvasSlotPlacement, UiContainerKind,
-    UiGridSlotPlacement, UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiScrollableBoxConfig,
-    UiSlot, UiSlotKind,
+    UiGridSlotPlacement, UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiSlot, UiSlotKind,
 };
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
@@ -101,19 +100,9 @@ fn parse_canvas_placement(
 }
 
 fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
-    match parent_container {
-        UiContainerKind::Free => UiSlotKind::Free,
-        UiContainerKind::Canvas => UiSlotKind::Canvas,
-        UiContainerKind::Container | UiContainerKind::BlockBox | UiContainerKind::SizeBox(_) => {
-            UiSlotKind::Container
-        }
-        UiContainerKind::Overlay => UiSlotKind::Overlay,
-        UiContainerKind::Space => UiSlotKind::Free,
-        UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => UiSlotKind::Linear,
-        UiContainerKind::WrapBox(_) | UiContainerKind::MasonryBox(_) => UiSlotKind::Flow,
-        UiContainerKind::GridBox(_) => UiSlotKind::Grid,
-        UiContainerKind::ScrollableBox(UiScrollableBoxConfig { .. }) => UiSlotKind::Scrollable,
-    }
+    parent_container
+        .child_slot_kind()
+        .unwrap_or(UiSlotKind::Free)
 }
 
 fn parse_grid_placement(

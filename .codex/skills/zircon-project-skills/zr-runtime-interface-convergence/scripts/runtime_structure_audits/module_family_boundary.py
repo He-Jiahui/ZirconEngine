@@ -7,7 +7,7 @@ MODULE_FAMILY_ROOTS = {
     "animation": {
         "root_module": "animation",
         "doc": "docs/zircon_runtime/animation/runtime.md",
-        "expected_file_count": 28,
+        "expected_file_count": 17,
         "required_doc_anchors": (
             "Root motion",
             "GPU skinning",
@@ -19,7 +19,7 @@ MODULE_FAMILY_ROOTS = {
     "navigation": {
         "root_module": "navigation",
         "doc": "docs/zircon_runtime/navigation/runtime.md",
-        "expected_file_count": 12,
+        "expected_file_count": 15,
         "required_doc_anchors": (
             "built-in fallback implementation",
             "folder-backed runtime owner split",
@@ -30,7 +30,7 @@ MODULE_FAMILY_ROOTS = {
     "diagnostic_log": {
         "root_module": "diagnostic_log",
         "doc": "docs/zircon_runtime/diagnostic_log/mod.md",
-        "expected_file_count": 7,
+        "expected_file_count": 31,
         "required_doc_anchors": (
             "numeric snapshots to process text output",
             "diagnostic_log_snapshot_bridge_stays_single_owner",

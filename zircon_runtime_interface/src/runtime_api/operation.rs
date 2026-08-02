@@ -46,48 +46,126 @@ impl ZrRuntimeOperationSubmitRequestV1 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ZrRuntimeOperationPhase {
-    Queued,
-    Running,
-    Completed,
-    Failed,
+    Queued = 1,
+    Preparing = 2,
+    ReadyToApply = 3,
+    Completed = 4,
+    Failed = 5,
+    Cancelled = 6,
+    Expired = 7,
+    Harvested = 8,
 }
 
 impl ZrRuntimeOperationPhase {
+    pub const fn raw(self) -> u32 {
+        self as u32
+    }
+
+    pub const fn from_raw(value: u32) -> Option<Self> {
+        match value {
+            1 => Some(Self::Queued),
+            2 => Some(Self::Preparing),
+            3 => Some(Self::ReadyToApply),
+            4 => Some(Self::Completed),
+            5 => Some(Self::Failed),
+            6 => Some(Self::Cancelled),
+            7 => Some(Self::Expired),
+            8 => Some(Self::Harvested),
+            _ => None,
+        }
+    }
+
     pub const fn is_terminal(self) -> bool {
-        matches!(self, Self::Completed | Self::Failed)
+        matches!(
+            self,
+            Self::Completed | Self::Failed | Self::Cancelled | Self::Expired | Self::Harvested
+        )
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ZrRuntimeOperationProgressV1 {
-    pub abi_version: u32,
-    pub handle: ZrRuntimeOperationHandle,
-    pub phase: ZrRuntimeOperationPhase,
-    pub completed_work: u64,
-    pub total_work: u64,
-    pub message: String,
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ZrRuntimeOperationDetailKindV2 {
+    None = 0,
+    QueueDepth = 1,
+    AdmissionCountLimit = 2,
+    AdmissionByteLimit = 3,
+    DeadlineElapsed = 4,
+    Cancelled = 5,
+    WorkerPanic = 6,
+    OwnerApplyFailed = 7,
+    TerminalTtlElapsed = 8,
+    Harvested = 9,
+    WorkerChannelLost = 10,
 }
 
-impl ZrRuntimeOperationProgressV1 {
-    pub fn new(
-        abi_version: u32,
+impl ZrRuntimeOperationDetailKindV2 {
+    pub const fn raw(self) -> u32 {
+        self as u32
+    }
+
+    pub const fn from_raw(value: u32) -> Option<Self> {
+        match value {
+            0 => Some(Self::None),
+            1 => Some(Self::QueueDepth),
+            2 => Some(Self::AdmissionCountLimit),
+            3 => Some(Self::AdmissionByteLimit),
+            4 => Some(Self::DeadlineElapsed),
+            5 => Some(Self::Cancelled),
+            6 => Some(Self::WorkerPanic),
+            7 => Some(Self::OwnerApplyFailed),
+            8 => Some(Self::TerminalTtlElapsed),
+            9 => Some(Self::Harvested),
+            10 => Some(Self::WorkerChannelLost),
+            _ => None,
+        }
+    }
+}
+
+/// Fixed-layout, allocation-free operation status returned by the current poll ABI.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrRuntimeOperationStatusV2 {
+    pub abi_version: u32,
+    pub phase: u32,
+    pub detail_kind: u32,
+    pub reserved: u32,
+    pub handle: ZrRuntimeOperationHandle,
+    pub completed_work: u64,
+    pub total_work: u64,
+    pub detail_value: u64,
+}
+
+impl ZrRuntimeOperationStatusV2 {
+    pub const fn new(
         handle: ZrRuntimeOperationHandle,
         phase: ZrRuntimeOperationPhase,
         completed_work: u64,
         total_work: u64,
-        message: impl Into<String>,
+        detail_kind: ZrRuntimeOperationDetailKindV2,
+        detail_value: u64,
     ) -> Self {
         Self {
-            abi_version,
+            abi_version: crate::version::ZIRCON_RUNTIME_ABI_VERSION_V2,
+            phase: phase.raw(),
+            detail_kind: detail_kind.raw(),
+            reserved: 0,
             handle,
-            phase,
             completed_work,
             total_work,
-            message: message.into(),
+            detail_value,
         }
+    }
+
+    pub const fn phase(&self) -> Option<ZrRuntimeOperationPhase> {
+        ZrRuntimeOperationPhase::from_raw(self.phase)
+    }
+
+    pub const fn detail_kind(&self) -> Option<ZrRuntimeOperationDetailKindV2> {
+        ZrRuntimeOperationDetailKindV2::from_raw(self.detail_kind)
     }
 }
 
@@ -157,10 +235,10 @@ pub type ZrRuntimeSubmitOperationFnV1 = unsafe extern "C" fn(
     ZrByteSlice,
     *mut ZrRuntimeOperationHandle,
 ) -> ZrStatus;
-pub type ZrRuntimePollOperationFnV1 = unsafe extern "C" fn(
+pub type ZrRuntimePollOperationFnV2 = unsafe extern "C" fn(
     ZrRuntimeSessionHandle,
     ZrRuntimeOperationHandle,
-    *mut ZrOwnedByteBuffer,
+    *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus;
 pub type ZrRuntimeHarvestOperationFnV1 = unsafe extern "C" fn(
     ZrRuntimeSessionHandle,

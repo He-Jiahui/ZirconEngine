@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/LevelStreamingLoad", event = "Click", route
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLevelStreamingCellTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "level_streaming_cell_a12_table_row" }, { node = "level_streaming_cell_a13_table_row" }, { node = "level_streaming_hlod_04_table_row" }, { node = "level_streaming_cell_b12_table_row" }]
 

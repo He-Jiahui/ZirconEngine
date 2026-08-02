@@ -40,11 +40,6 @@ class PluginDocsCurrentStatusSourceTemplateOwnerSplitTests(unittest.TestCase):
                     "SourceTemplate generated files owner",
                     "generated file diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_source_template_generated_files_owner_split",
-                    "pipeline_report_source_template_generated_files.py",
-                    "SourceTemplate generated files owner",
-                ],
             },
             "Current export/plugin docs do not reflect SourceTemplate generated files owner split",
         )
@@ -76,11 +71,6 @@ class PluginDocsCurrentStatusSourceTemplateOwnerSplitTests(unittest.TestCase):
                     "SourceTemplate build handoff owner",
                     "Validate build-plan/build-validation diagnostics",
                 ],
-                "active session notes": [
-                    "plugins_13_m5_t1_source_template_build_handoff_owner_split",
-                    "pipeline_report_source_template_build_handoff.py",
-                    "SourceTemplate build handoff owner",
-                ],
             },
             "Current export/plugin docs do not reflect SourceTemplate build handoff owner split",
         )
@@ -111,11 +101,6 @@ class PluginDocsCurrentStatusSourceTemplateOwnerSplitTests(unittest.TestCase):
                     "source_template_generated_project.py",
                     "SourceTemplate generated project owner",
                     "generated project materialization diagnostics",
-                ],
-                "active session notes": [
-                    "plugins_13_m5_t1_source_template_generated_project_owner_split",
-                    "source_template_generated_project.py",
-                    "SourceTemplate generated project owner",
                 ],
             },
             "Current export/plugin docs do not reflect SourceTemplate generated project owner split",
@@ -149,11 +134,6 @@ class PluginDocsCurrentStatusSourceTemplateOwnerSplitTests(unittest.TestCase):
                     owner_file,
                     "SourceTemplate plan/command owner",
                     "Validate report/build-plan handoff and command rewriting",
-                ],
-                "active session notes": [
-                    slug,
-                    owner_file,
-                    "SourceTemplate plan/command owner",
                 ],
             },
             "Current plugin docs do not reflect SourceTemplate plan/command owner split",

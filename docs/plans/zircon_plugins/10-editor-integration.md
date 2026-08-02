@@ -18,6 +18,8 @@
 > 关联：`zircon_editor/src/core/editor_plugin.rs`（`EditorPlugin` trait）、`zircon_editor/src/core/editor_extension.rs`（`EditorExtensionRegistry`）
 > UI 参考：`docs/ui-and-layout/ai-workbench-style/`（STYLE-NOTES.md + 62 张 workbench 布局图）
 
+- open failure：[terrain-tilemap-scene-mode-factories-missing](10/failure-2026-08-01-terrain-tilemap-scene-mode-factories-missing.md)
+
 ## 1. 目标
 
 为所有插件的 Editor 部分确立统一的注册约定、面板布局语言与调试设施规范，使每个 runtime 插件的编辑器体验一致、可被 capability gate 管理，并为"editor 部分多为骨架"的现状给出共同验收标准。

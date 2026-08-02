@@ -88,60 +88,88 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
         ScenePropertyValue::Scalar(0.0)
     );
 
-    assert!(world
-        .set_property(
-            hero,
-            &translation_path,
-            ScenePropertyValue::Vec3([4.0, 5.0, 6.0]),
-        )
-        .unwrap());
-    assert!(world
-        .set_property(hero, &mass_path, ScenePropertyValue::Scalar(5.5))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &mass_density_path, ScenePropertyValue::Scalar(3.25),)
-        .unwrap());
-    assert!(world
-        .set_property(
-            hero,
-            &ccd_mode_path,
-            ScenePropertyValue::Enum("linear_cast".to_string()),
-        )
-        .unwrap());
-    assert!(world
-        .set_property(
-            hero,
-            &sleep_policy_path,
-            ScenePropertyValue::Enum("never".to_string()),
-        )
-        .unwrap());
-    assert!(world
-        .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
-        .unwrap());
-    assert!(!world
-        .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &render_queue_path, ScenePropertyValue::Integer(2_450))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &material_queue_path, ScenePropertyValue::Integer(-12))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
-        .unwrap());
-    assert!(!world
-        .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
-        .unwrap());
-    assert!(!world
-        .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &morph_weight_path, ScenePropertyValue::Scalar(0.6))
-        .unwrap());
+    assert!(
+        world
+            .set_property(
+                hero,
+                &translation_path,
+                ScenePropertyValue::Vec3([4.0, 5.0, 6.0]),
+            )
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &mass_path, ScenePropertyValue::Scalar(5.5))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &mass_density_path, ScenePropertyValue::Scalar(3.25),)
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(
+                hero,
+                &ccd_mode_path,
+                ScenePropertyValue::Enum("linear_cast".to_string()),
+            )
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(
+                hero,
+                &sleep_policy_path,
+                ScenePropertyValue::Enum("never".to_string()),
+            )
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
+            .unwrap()
+    );
+    assert!(
+        !world
+            .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &render_queue_path, ScenePropertyValue::Integer(2_450))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &material_queue_path, ScenePropertyValue::Integer(-12))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
+            .unwrap()
+    );
+    assert!(
+        !world
+            .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
+            .unwrap()
+    );
+    assert!(
+        !world
+            .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &morph_weight_path, ScenePropertyValue::Scalar(0.6))
+            .unwrap()
+    );
 
     let node = world.find_node(hero).unwrap();
     assert_eq!(node.transform.translation, Vec3::new(4.0, 5.0, 6.0));

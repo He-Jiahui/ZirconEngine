@@ -103,11 +103,9 @@ fn neural_compute_builtin_slot_compiles_only_with_explicit_feature_opt_in() {
         )
         .unwrap();
 
-    assert!(
-        enabled_compiled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::NeuralCompute)
-    );
+    assert!(enabled_compiled
+        .capability_requirements
+        .contains(&RenderFeatureCapabilityRequirement::NeuralCompute));
     assert!(
         !enabled_compiled
             .graph()
@@ -252,11 +250,9 @@ fn sparse_texture_builtin_slot_requires_feature_and_capability_opt_in() {
             .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture)),
         "feature opt-in without the sparse texture capability should keep the slot out of the graph"
     );
-    assert!(
-        !feature_only
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::SparseTexture)
-    );
+    assert!(!feature_only
+        .capability_requirements
+        .contains(&RenderFeatureCapabilityRequirement::SparseTexture));
 
     let capability_enabled = pipeline
         .compile_with_options(
@@ -266,22 +262,16 @@ fn sparse_texture_builtin_slot_requires_feature_and_capability_opt_in() {
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::SparseTexture),
         )
         .unwrap();
-    assert!(
-        capability_enabled
-            .enabled_features()
-            .iter()
-            .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture))
-    );
-    assert!(
-        capability_enabled
-            .required_extract_sections
-            .contains(&"sparse_texture".to_string())
-    );
-    assert!(
-        capability_enabled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::SparseTexture)
-    );
+    assert!(capability_enabled
+        .enabled_features()
+        .iter()
+        .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture)));
+    assert!(capability_enabled
+        .required_extract_sections
+        .contains(&"sparse_texture".to_string()));
+    assert!(capability_enabled
+        .capability_requirements
+        .contains(&RenderFeatureCapabilityRequirement::SparseTexture));
     assert!(
         !capability_enabled
             .graph()

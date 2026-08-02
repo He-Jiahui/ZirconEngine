@@ -1,5 +1,5 @@
 use super::super::{
-    template_image_tint, ICON_TINT_ACTIVE, ICON_TINT_DISABLED, ICON_TINT_ERROR, ICON_TINT_WARNING,
+    ICON_TINT_ACTIVE, ICON_TINT_DISABLED, ICON_TINT_ERROR, ICON_TINT_WARNING, template_image_tint,
 };
 
 #[test]

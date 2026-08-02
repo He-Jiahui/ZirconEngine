@@ -13,9 +13,6 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - tools/tests/test_zui_docs_suffix_convergence.py
-  - tools/tests/test_zui_docs_suffix_status_guards.py
-  - tools/tests/test_zui_docs_suffix_convergence_test_owner_boundaries.py
-  - tools/tests/test_zui_docs_current_status_suffix_test_owner_budget.py
 governance:
   - docs/editor-and-tooling/zui-asset-governance.md
   - docs/editor-and-tooling/editor-template-compatibility-migration.md

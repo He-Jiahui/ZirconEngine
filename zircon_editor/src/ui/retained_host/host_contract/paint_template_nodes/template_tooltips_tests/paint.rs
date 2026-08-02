@@ -2,7 +2,7 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::Color;
 
 use super::super::super::style_selector::{
-    select_workbench_tooltip_style, WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE,
+    WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE, select_workbench_tooltip_style,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::super::template_tooltip_glyphs::tooltip_arrow_size;

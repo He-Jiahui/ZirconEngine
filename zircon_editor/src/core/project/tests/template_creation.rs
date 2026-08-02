@@ -1,11 +1,11 @@
 use std::fs;
 
 use crate::core::settings::{
-    settings_registry_with_defaults, SettingsLoad, SettingsScope, SettingsStore,
+    SettingsLoad, SettingsScope, SettingsStore, settings_registry_with_defaults,
 };
 use zircon_runtime::asset::{
-    project::ProjectManager, AssetReference, AssetUri, ReferenceResolutionError, SceneAsset,
-    SceneMobilityAsset,
+    AssetReference, AssetRegistryDiagnostic, AssetUri, ReferenceResolutionError, SceneAsset,
+    SceneMobilityAsset, project::ProjectManager,
 };
 use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
 use zircon_runtime_interface::resource::ResourceScheme;
@@ -125,10 +125,37 @@ fn renderable_empty_template_has_the_f2_camera_cube_and_sun_contract() {
         .as_ref()
         .expect("Sun must have a directional light");
     assert!(sun_light.intensity > 0.0);
-    assert!(sun_light
+    assert!(
+        sun_light
+            .direction
+            .iter()
+            .any(|component| *component != 0.0)
+    );
+    let sun_direction_length = sun_light
         .direction
         .iter()
-        .any(|component| *component != 0.0));
+        .map(|component| *component * *component)
+        .sum::<f32>()
+        .sqrt();
+    assert!(
+        (sun_direction_length - 1.0).abs() <= 0.0001,
+        "RenderableEmpty Sun direction must already be normalized before runtime extraction, got length {sun_direction_length}"
+    );
+    let default_sun_direction = [-0.4_f32, -1.0, -0.25];
+    let default_sun_direction_length = default_sun_direction
+        .iter()
+        .map(|component| *component * *component)
+        .sum::<f32>()
+        .sqrt();
+    for (actual_component, default_component) in
+        sun_light.direction.iter().zip(default_sun_direction)
+    {
+        let expected_component = default_component / default_sun_direction_length;
+        assert!(
+            (*actual_component - expected_component).abs() <= 0.000001,
+            "RenderableEmpty Sun direction must match the runtime default orientation; expected {expected_component}, got {actual_component}"
+        );
+    }
     assert_eq!(sun.render_layer_mask, 0x0000_0001);
     assert!(sun.camera.is_none());
     assert!(sun.mesh.is_none());
@@ -217,6 +244,120 @@ fn renderable_empty_template_scene_refs_match_the_project_registry_after_scan() 
 
     drop(manager);
     drop(created);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion() {
+    let location = temp_root("template-derived-state-rebuild");
+    let draft = NewProjectDraft {
+        project_name: "Derived State Rebuild".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: NewProjectTemplate::RenderableEmpty,
+    };
+
+    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let project_root = created.root.clone();
+    let cache_root = created.project().paths().cache_root().to_path_buf();
+    let registry_root = created.project().paths().registry_root().to_path_buf();
+    let expected_registry_entries = [
+        AssetUri::parse("res://models/cube.obj").unwrap(),
+        AssetUri::parse("res://materials/default.zmaterial").unwrap(),
+        AssetUri::parse("res://shaders/pbr_shader").unwrap(),
+    ]
+    .into_iter()
+    .map(|locator| {
+        let uuid = created
+            .project()
+            .asset_registry()
+            .entry_by_path(&locator)
+            .expect("the created template registry must contain every required source asset")
+            .uuid();
+        (locator, uuid)
+    })
+    .collect::<Vec<_>>();
+    drop(created);
+
+    fs::remove_dir_all(&cache_root).unwrap();
+    fs::remove_dir_all(&registry_root).unwrap();
+    assert!(!cache_root.exists());
+    assert!(!registry_root.exists());
+
+    let mut reopened = ProjectManager::open(&project_root).unwrap();
+    assert!(cache_root.is_dir(), "opening must restore the cache layout");
+    assert!(
+        registry_root.join("asset-registry.json").is_file(),
+        "opening must rebuild and persist the asset registry from source metadata"
+    );
+
+    for (locator, expected_uuid) in expected_registry_entries {
+        let rebuilt = reopened
+            .asset_registry()
+            .entry_by_path(&locator)
+            .expect("source asset must return to the rebuilt registry");
+        assert_eq!(
+            rebuilt.uuid(),
+            expected_uuid,
+            "source asset {locator} changed logical identity after regenerable state deletion"
+        );
+    }
+
+    let imported = reopened.scan_and_import().unwrap();
+    assert!(
+        !imported.is_empty(),
+        "a project with deleted regenerable state must import its source assets"
+    );
+
+    drop(reopened);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata() {
+    let location = temp_root("template-corrupt-registry-recovery");
+    let draft = NewProjectDraft {
+        project_name: "Corrupt Registry Recovery".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: NewProjectTemplate::RenderableEmpty,
+    };
+
+    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let project_root = created.root.clone();
+    let registry_path = created
+        .project()
+        .paths()
+        .registry_root()
+        .join("asset-registry.json");
+    let expected_cube_uuid = created
+        .project()
+        .asset_registry()
+        .entry_by_path(&AssetUri::parse("res://models/cube.obj").unwrap())
+        .expect("the created template registry must contain the Cube model")
+        .uuid();
+    drop(created);
+
+    fs::write(&registry_path, b"not-json").unwrap();
+    let reopened = ProjectManager::open(&project_root).unwrap();
+
+    let rebuilt_registry_bytes = fs::read(&registry_path).unwrap();
+    assert_ne!(rebuilt_registry_bytes.as_slice(), b"not-json");
+    assert_eq!(
+        reopened
+            .asset_registry()
+            .entry_by_path(&AssetUri::parse("res://models/cube.obj").unwrap())
+            .expect("the rebuilt registry must contain the Cube model")
+            .uuid(),
+        expected_cube_uuid
+    );
+    assert!(reopened.asset_registry().diagnostics().iter().any(|diagnostic| {
+        matches!(
+            diagnostic,
+            AssetRegistryDiagnostic::CorruptPersistenceRebuilt { path, .. }
+                if path == &registry_path
+        )
+    }));
+
+    drop(reopened);
     fs::remove_dir_all(location).unwrap();
 }
 
@@ -418,9 +559,11 @@ fn conflicting_rendered_entry_rolls_back_staging_and_leaves_no_project() {
         ],
     };
 
-    assert!(ProjectAuthority::default()
-        .create_rendered_project(&target, rendered)
-        .is_err());
+    assert!(
+        ProjectAuthority::default()
+            .create_rendered_project(&target, rendered)
+            .is_err()
+    );
     assert!(!target.exists());
     assert_eq!(staging_entries(&location), Vec::<String>::new());
     fs::remove_dir_all(location).unwrap();
@@ -478,7 +621,7 @@ fn rendered_template_with_corrupt_asset_metadata(
     project_name: &str,
 ) -> zircon_runtime_interface::project::RenderedProjectTemplate {
     use zircon_runtime_interface::project::{
-        render_project_template, RelPath, RenderedProjectTemplateEntry,
+        RelPath, RenderedProjectTemplateEntry, render_project_template,
     };
 
     let mut rendered =

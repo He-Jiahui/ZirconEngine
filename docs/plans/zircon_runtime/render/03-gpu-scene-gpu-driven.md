@@ -135,31 +135,17 @@ tests:
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_scene_tests.rs::runtime_15_gpu_scene_tests_are_child_owner
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_declares_gpu_scene_group
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_scene_instance_data
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs::tests::shadow_mesh_pipeline_declares_template_entries_static_layout_and_depth_bias
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_variant
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_carry_gpu_scene_counts
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_gpu_scene_upload_stats
-  - cargo test -p zircon_runtime --lib render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib fallback_mesh_shader --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib shader_declares_gpu_scene_group --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib prepared_queue_stats_carry_gpu_scene_counts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib mesh_batch_ref_emits_gpu_scene_instance_command --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib shader_is_valid_wgsl --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - E:\cargo-targets\zircon-render-main-chain\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe fallback_mesh_shader --test-threads=1 --nocapture
-  - E:\cargo-targets\zircon-render-main-chain\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe reads_gpu_scene_instance_data --test-threads=1 --nocapture
-  - E:\cargo-targets\zircon-render-main-chain\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe shader_is_valid_wgsl --test-threads=1 --nocapture
-  - E:\cargo-targets\zircon-render-main-chain\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe shader_declares_gpu_scene_group --test-threads=1 --nocapture
-  - E:\cargo-targets\zircon-render-main-chain\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe skinned_joint_palette --test-threads=1 --nocapture
-  - E:\cargo-targets\zircon-render-main-chain\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe mesh_batch_ref_emits_gpu_scene_instance_command --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib render_gpu_scene_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib render_product_diagnostics_record_gpu_scene_upload_stats --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_batch_ref_emits_gpu_scene_instance_command
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_gpu_scene_counts
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs::render_product_diagnostics_record_gpu_scene_upload_stats
+status: in_progress
 doc_type: milestone-detail
 ---
 
@@ -230,8 +216,8 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 2. `resource_streamer` 在 ensure 流程中登记 primitive 条目(替代 per-draw model uniform 的数据来源)。
 
 测试阶段:
-- `cargo check -p zircon_runtime --lib --locked`
-- `cargo test -p zircon_runtime gpu_scene --locked`(布局/分配/回收单测)
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter gpu_scene`（布局/分配/回收单测）
 - 验收证据:缓冲内容与 extract 对拍一致(readback 测试);id 回收无串台。
 
 ### GS-M2 instance index 着色路径
@@ -247,7 +233,7 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 最终槽位切片还把 material textures/samplers 与 `material_properties` 合并为 group2 material set(binding 0-9 为贴图/采样器,binding 10 为材质 uniform),删除旧 material texture 单独绑定路径,并把 material/custom shader ABI 诊断迁移为 group2 material + group3 GPUScene 校验。项目渲染测试生成的自定义 WGSL 已改为拼接 `zr_gpu_scene.wgsl`,通过 `@builtin(instance_index)` 读取 transform/tint,并声明 group2 binding10 material uniform。旧 material-uniform-only bind group owner 也已删除,material uniform 资源现在只保留 uniform buffer,由 group2 material set bind group 引用。已运行的验证包括此前重新编译后的 `shader_is_valid_wgsl`(4 项)、直接 lib-test 二进制 `skinned_joint_palette`(5 项)与 `shader_declares_gpu_scene_group`(4 项)、`fallback_mesh_shader`、`reads_gpu_scene_instance_data`、command span focused test、rustfmt,以及 scene_renderer 静态扫描无剩余 model-uniform/cache/replay、group4/group5、旧 material texture bind helper 或 mesh-compat 引用。最新 scoped `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain` 通过并报告 89 个 warning。最终槽位后的 `cargo test -p zircon_runtime --lib shader_declares_gpu_scene_group ...` 由于其它会话并行链接 lib-test 二进制而在编译阶段超时,未返回测试结果。GS-M3 V1 direct-write 增量上传已完成;GS-M4 已完成 capability gate、CPU indirect batch planning 和诊断统计接线。尚未完成的是 final layout 的 focused shader/ABI lib-test 重跑、GS-M4 WGPU multi-draw replay/args-buffer 执行、real-adapter WGPU pipeline 创建与 render-product 验证。
 
 测试阶段:
-- `cargo test -p zircon_runtime mesh --locked` + `render_product` 全量回归
+- 分别运行 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter mesh` 与同脚本的 `-TestFilter render_product`。
 - 验收证据:渲染产物逐像素不变;draw 间 bind group 切换计数显著下降(统计断言)。
 
 ### GS-M3 增量上传
@@ -257,7 +243,7 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 2. 上传字节数进 RenderStats。
 
 测试阶段:
-- `cargo test -p zircon_runtime gpu_scene --locked`(静态场景第二帧上传字节为 0;单对象移动只传该条目)
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter gpu_scene`（静态场景第二帧上传字节为 0；单对象移动只传该条目）
 - 验收证据:大场景稳态上传量统计记入文档。
 
 ### GS-M4 indirect 提交(capability gate)
@@ -270,7 +256,7 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 5. 后续验证切片:同几何多实例 render-product 场景、回落路径产物一致性、RenderDoc 抓帧确认 multi-draw 调用与真实 adapter coverage。
 
 测试阶段:
-- `cargo test -p zircon_runtime mesh --locked` 与 `cargo test -p zircon_runtime gpu_scene --locked`
+- 分别运行 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter mesh` 与同脚本的 `-TestFilter gpu_scene`。
 - 验收证据:同几何多实例场景 draw call 数按 batch 合并(统计断言);回落路径产物一致;RenderDoc 确认 indirect 调用。
 
 ## 工程落地细化
@@ -537,7 +523,7 @@ indirect args buffer 布局:`array<IndexedIndirectArgs>`(等价 `wgpu::util::Dra
 
 | 切片 | 触碰文件 | 改动要点 | 完成判据 |
 |------|---------|---------|---------|
-| 1.1 | `gpu_scene/{mod,layout,id_allocator}.rs`、`graphics/scene/mod.rs` | Pod 镜像 struct + offset 常量;span free list 分配器 | `cargo check -p zircon_runtime --lib --locked` 过;layout 常量与本章表格一致 |
+| 1.1 | `gpu_scene/{mod,layout,id_allocator}.rs`、`graphics/scene/mod.rs` | Pod 镜像 struct + offset 常量;span free list 分配器 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest` 通过；layout 常量与本章表格一致 |
 | 1.2 | `gpu_scene/gpu_scene.rs`、`update_queue.rs`、`staging_ring.rs`、`upload.rs` | 三缓冲创建、register/write/unregister、整段上传、`gpu_scene_upload` graph 节点 | check 过;节点出现在 compiled graph 统计中 |
 | 1.3 | `scene_extract.rs`、runtime extract 生成处、`build_mesh_draws/build.rs`、`RenderStats` 透传处 | `stable_instance_key`/`transform_revision` 契约字段;mesh draw 扩展后登记 GPUScene 条目并输出统计 | check 过;extract 与统计单测更新 |
 
@@ -611,7 +597,7 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 | `render_product_diagnostics_record_mesh_indirect_batch_stats` | `render.mesh.queue.indirect_*` 四个统计路径投影到 `DiagnosticStore` | `render_stats_store/product.rs` |
 | `render_gpu_scene_skinned_draws_keep_per_draw_palette_binding` | skinned draw 的 command-local scene-data bind group 覆盖真实 palette,非 skinned 共享 frame GPUScene bind group | `create_mesh_draw.rs` tests |
 
-里程碑测试命令:`cargo test -p zircon_runtime gpu_scene --locked`、`cargo test -p zircon_runtime mesh --locked`。
+里程碑测试命令：分别运行 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter <filter>`，其中 `<filter>` 为 `gpu_scene`、`mesh`。
 
 `RenderStats` 新字段(均在 `backend_types.rs`,GS-M3/M4 断言用):`last_gpu_scene_primitive_count`、`last_gpu_scene_instance_count`、`last_gpu_scene_dirty_entry_count`、`last_gpu_scene_uploaded_bytes`、`last_gpu_scene_free_span_count`、`last_indirect_batch_count`、`last_indirect_batched_draw_count`、`last_indirect_fallback_draw_count`、`last_indirect_args_count`。
 
@@ -624,6 +610,9 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`03/2026-07-09-gpu-scene-gpu-driven-output-records.md`](03/2026-07-09-gpu-scene-gpu-driven-output-records.md)
+
+## 性能审阅交接
+
 - 2026-07-18 static batch交接：per-mesh render-layer Vec key与scene空/真实override双build已由borrowed key、一次性constructor止损；稳定scene仍每camera/frame重建BTreeMap、mesh-index/entity Vec。GS owner需把compiled batch membership放进scene/static generation，camera只投影visibility/phase refs，override/layer dirty精确失效；见PERF-MVP-340。
 - 2026-07-18 Virtual Geometry sideband交接：runtime-prepare为注册page-request external buffer而深clone整份prepared readback、随后与原frame sideband重复merge的问题已止损，frame sideband现为唯一feedback owner。GS owner仍须把page-request GPU buffer与capacity纳入generation持久资源，stable frame create=0，并用producer/owner tag与duplicate counter证明每item反馈一次；见PERF-MVP-347及`docs/plans/performance/01/2026-07-18-runtime-core-framework-render-sideband-relevance-static-review.md`。
 - 2026-07-18 lightmap slot 性能交接：`LightmapConsumeContract::slot_for_instance` 线性扫描 slots，GPU Scene 对每个 static pending draw、Hybrid GI 对每个 mesh 各自调用，形成 meshes×slots。Render03 联动 Render11/17在 validate/publish 边界构建唯一 immutable dense/hash id→slot index并由所有消费者共享；记录 probes/builds/CPU，稳定 generation build=0、changed generation build=1；见 PERF-MVP-353。

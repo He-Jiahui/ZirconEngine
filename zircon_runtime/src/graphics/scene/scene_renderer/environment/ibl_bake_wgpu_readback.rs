@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
 };
 use crate::graphics::backend::{
-    IblBakeArtifactWgpuReadbackResources, read_ibl_bake_artifact_wgpu_sections,
+    read_ibl_bake_artifact_wgpu_sections, IblBakeArtifactWgpuReadbackResources,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::graphics::types::GraphicsError;
@@ -117,11 +117,9 @@ mod tests {
         );
         assert!(resources.owned_texture(IBL_BAKE_PMREM_RESOURCE).is_some());
         assert!(resources.buffer(IBL_BAKE_IRRADIANCE_SH9_RESOURCE).is_some());
-        assert!(
-            resources
-                .owned_texture(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
-                .is_some()
-        );
+        assert!(resources
+            .owned_texture(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
+            .is_some());
         resources.release_transient_backings_into_pool(&mut Default::default());
     }
 

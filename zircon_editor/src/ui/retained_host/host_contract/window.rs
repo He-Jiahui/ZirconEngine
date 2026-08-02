@@ -3,10 +3,11 @@ use std::rc::Rc;
 
 use super::globals::HostContractState;
 
-mod constants;
 mod capture;
+mod constants;
 mod diagnostics;
 mod event_loop;
+mod failure;
 mod handle;
 mod lifecycle;
 mod metadata;
@@ -22,6 +23,7 @@ pub(crate) use handle::{HostWindowHandle, HostWindowSnapshot};
 #[derive(Clone)]
 pub(crate) struct UiHostWindow {
     state: Rc<RefCell<HostContractState>>,
+    fatal_failure: Rc<RefCell<Option<failure::EditorHostWindowFailure>>>,
 }
 
 #[cfg(test)]

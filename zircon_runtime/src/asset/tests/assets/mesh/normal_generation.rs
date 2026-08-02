@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::asset::{
-    AssetUri, MeshAsset, MeshAttributeValues, MeshIndexFormat, MeshIndices, MeshValidationError,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    AssetUri, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MeshAsset, MeshAttributeValues,
+    MeshIndexFormat, MeshIndices, MeshValidationError,
 };
 use crate::core::framework::render::RenderMeshTopology;
 
@@ -44,10 +44,11 @@ fn mesh_asset_generates_missing_flat_normals_for_unindexed_triangle_list() {
         .unwrap();
     assert_eq!(normals, expected.as_slice());
     assert_eq!(mesh.validate(), Ok(()));
-    assert!(mesh
-        .attribute_summaries()
-        .iter()
-        .any(|summary| summary.name == MESH_ATTRIBUTE_NORMAL && summary.len == 6));
+    assert!(
+        mesh.attribute_summaries()
+            .iter()
+            .any(|summary| summary.name == MESH_ATTRIBUTE_NORMAL && summary.len == 6)
+    );
 }
 
 #[test]

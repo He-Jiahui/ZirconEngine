@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use crate::project::{
-    AssetRef, RelPath, RetiredAssetRefMigrationError, migrate_retired_asset_references,
-    migrate_retired_asset_references_with,
+    migrate_retired_asset_references, migrate_retired_asset_references_with, AssetRef, RelPath,
+    RetiredAssetRefMigrationError,
 };
 
 #[test]

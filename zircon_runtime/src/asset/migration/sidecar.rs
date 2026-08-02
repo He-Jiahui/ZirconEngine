@@ -81,6 +81,7 @@ pub(super) fn preflight_sidecars(
             }
         };
         let mut register_document = true;
+        let mut matching_current_sidecar = false;
         if retired {
             table.insert("format_version".to_string(), toml::Value::Integer(7));
             let source_hash = table
@@ -94,18 +95,6 @@ pub(super) fn preflight_sidecars(
             .map_err(|error| invalid(&path, error.to_string()))?;
         if !paired_sidecar_source_is_safe(roots, &path, document.unit)? {
             continue;
-        }
-        if document.unit == AssetSourceUnit::Compound {
-            let physical_path = inventory.physical_path_for(&path).ok_or_else(|| {
-                invalid(
-                    &path,
-                    "sidecar is missing from the published migration inventory",
-                )
-            })?;
-            compound_bindings.push(MigrationCompoundBinding::new(
-                document.url.clone(),
-                physical_path.to_path_buf(),
-            ));
         }
         if retired {
             let target = if is_retired_name {
@@ -129,6 +118,7 @@ pub(super) fn preflight_sidecars(
                 // The current v7 target is scanned independently. Registering the
                 // converted retired document as well would duplicate its UUID.
                 register_document = false;
+                matching_current_sidecar = true;
             }
             pending.push(PendingDocument {
                 path: target,
@@ -136,6 +126,23 @@ pub(super) fn preflight_sidecars(
                 reference_count: 0,
                 retired_path: (is_retired_name).then_some(path.clone()),
             });
+        }
+        if document.unit == AssetSourceUnit::Compound && !matching_current_sidecar {
+            let physical_path = inventory.physical_path_for(&path).ok_or_else(|| {
+                invalid(
+                    &path,
+                    "sidecar is missing from the published migration inventory",
+                )
+            })?;
+            let binding = if retired && is_retired_name {
+                MigrationCompoundBinding::from_retired_meta_toml(
+                    document.url.clone(),
+                    physical_path.to_path_buf(),
+                )
+            } else {
+                MigrationCompoundBinding::new(document.url.clone(), physical_path.to_path_buf())
+            };
+            compound_bindings.push(binding);
         }
         if register_document {
             documents.push(document);

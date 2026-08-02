@@ -1,5 +1,5 @@
 use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
-use crate::core::math::{Mat4, Real, view_matrix};
+use crate::core::math::{view_matrix, Mat4, Real};
 
 use crate::graphics::visibility::VisibilityBounds;
 
@@ -83,7 +83,7 @@ impl BoundsVisibilityTest {
 mod tests {
     use super::BoundsVisibilityTest;
     use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
-    use crate::core::math::{Vec3, view_matrix};
+    use crate::core::math::{view_matrix, Vec3};
     use crate::graphics::visibility::VisibilityBounds;
 
     #[test]

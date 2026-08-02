@@ -1,10 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/preferences/mod.rs
-  - zircon_editor/src/ui/preferences/appearance.rs
-  - zircon_editor/src/ui/preferences/persistence.rs
-  - zircon_editor/src/ui/preferences/startup.rs
-  - zircon_editor/src/ui/preferences/typography_migration.rs
+  - zircon_editor/src/core/settings/mod.rs
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
+  - zircon_editor/src/core/settings/tests.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
@@ -24,11 +23,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
   - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
 implementation_files:
-  - zircon_editor/src/ui/preferences/mod.rs
-  - zircon_editor/src/ui/preferences/appearance.rs
-  - zircon_editor/src/ui/preferences/persistence.rs
-  - zircon_editor/src/ui/preferences/startup.rs
-  - zircon_editor/src/ui/preferences/typography_migration.rs
+  - zircon_editor/src/core/settings/mod.rs
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
+  - zircon_editor/src/core/settings/tests.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
@@ -76,56 +74,56 @@ plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
 tests:
-  - cargo fmt -p zircon_editor --check
-  - cargo build -p zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib host_control_metrics_match_unreal_slate_baseline --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
-  - cargo test -p zircon_editor --lib button_label_frame_keeps_raster_guard_for_short_actions --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
-  - cargo test -p zircon_editor --lib template_buttons --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_table_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib workbench_chrome --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_shell_panels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_icon_buttons --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_fields --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_dropdowns --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_axis_value_fields --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_inspector_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_activation_semantics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - cargo test -p zircon_editor --lib template_segmented --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/
-  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture
-  - cargo test -p zircon_editor capture_workbench_component_slate_atlas_visual_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture
-  - D:\cargo-targets\zircon-editor-components-0625\debug\deps\zircon_editor-820618fe5427109a.exe tests::host::retained_menu_pointer::visual_screenshot::capture_workbench_component_slate_atlas_visual_artifact --ignored --exact --nocapture --test-threads=1
-  - S15.1 chrome old-metric-alias source scan
-  - S15.1 touched production debt scan
-  - S15.6 retained palette handwritten RGBA scan
-  - S15.6 touched production debt scan
-  - paint-theme model/token ownership scan
-  - scoped trailing whitespace scan
-  - scoped git diff --check
-  - cargo fmt -p zircon_editor --check (2026-07-02 passed after retained appearance palette preference slice)
-  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never (2026-07-02 latest rerun passed with existing warnings)
-  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)
-  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never (2026-07-02 latest rerun passed with existing warnings)
-  - cargo test -p zircon_editor host_control_metrics_project_from_editor_design_tokens --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 passed 1/1)
-  - cargo test -p zircon_editor asset_browser_toolbar_search_field_ignores_legacy_declared_chrome --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 passed 1/1)
-  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)
-  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)
-  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)
-  - rustfmt --check zircon_editor/src/ui/preferences/mod.rs zircon_editor/src/ui/preferences/appearance.rs zircon_editor/src/ui/preferences/persistence.rs zircon_editor/src/ui/preferences/startup.rs (current-owner replay command)
-  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-03 passed with existing warnings)
-  - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 8/8)
-  - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs)
-  - preferences subtree concrete font/code-style scan (no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
-  - rustfmt --check zircon_editor/src/ui/preferences/mod.rs zircon_editor/src/ui/preferences/appearance.rs zircon_editor/src/ui/preferences/persistence.rs zircon_editor/src/ui/preferences/startup.rs zircon_editor/src/ui/retained_host/app.rs (current-owner replay command after startup appearance load path)
-  - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 11/11 after startup appearance load path)
-  - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs at 08:17)
-  - preferences/app concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
-  - cargo check -p zircon_editor --tests --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-04 passed with existing warnings)
-  - cargo test -p zircon_editor tests::host::retained_menu_pointer::appearance_visual_screenshot::capture_global_appearance_preferences_component_visual_artifact --lib --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never -- --ignored --exact --test-threads=1 --nocapture with CARGO_INCREMENTAL=0 (2026-07-04 passed 1/1, refreshed docs/tests/editor/editor-components-global-appearance-preferences-900x360.png)
-  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-04 passed with existing warnings)
+  - 'cargo fmt -p zircon_editor --check'
+  - 'cargo build -p zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib host_control_metrics_match_unreal_slate_baseline --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never'
+  - 'cargo test -p zircon_editor --lib button_label_frame_keeps_raster_guard_for_short_actions --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never'
+  - 'cargo test -p zircon_editor --lib template_buttons --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_table_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib workbench_chrome --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_shell_panels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_icon_buttons --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_fields --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_dropdowns --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_axis_value_fields --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_inspector_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_activation_semantics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'cargo test -p zircon_editor --lib template_segmented --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never'
+  - 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/'
+  - 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/'
+  - 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/'
+  - 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/'
+  - 'cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture'
+  - 'cargo test -p zircon_editor capture_workbench_component_slate_atlas_visual_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture'
+  - 'D:\cargo-targets\zircon-editor-components-0625\debug\deps\zircon_editor-820618fe5427109a.exe tests::host::retained_menu_pointer::visual_screenshot::capture_workbench_component_slate_atlas_visual_artifact --ignored --exact --nocapture --test-threads=1'
+  - 'S15.1 chrome old-metric-alias source scan'
+  - 'S15.1 touched production debt scan'
+  - 'S15.6 retained palette handwritten RGBA scan'
+  - 'S15.6 touched production debt scan'
+  - 'paint-theme model/token ownership scan'
+  - 'scoped trailing whitespace scan'
+  - 'scoped git diff --check'
+  - 'cargo fmt -p zircon_editor --check (2026-07-02 passed after retained appearance palette preference slice)'
+  - 'cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never (2026-07-02 latest rerun passed with existing warnings)'
+  - 'cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)'
+  - 'cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never (2026-07-02 latest rerun passed with existing warnings)'
+  - 'cargo test -p zircon_editor host_control_metrics_project_from_editor_design_tokens --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 passed 1/1)'
+  - 'cargo test -p zircon_editor asset_browser_toolbar_search_field_ignores_legacy_declared_chrome --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 passed 1/1)'
+  - 'cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)'
+  - 'cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)'
+  - 'cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)'
+  - 'rustfmt --check zircon_editor/src/core/settings/mod.rs zircon_editor/src/core/settings/defaults.rs zircon_editor/src/core/settings/io.rs zircon_editor/src/core/settings/tests.rs (current-owner replay command)'
+  - 'cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-03 passed with existing warnings)'
+  - 'cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 8/8)'
+  - 'D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs)'
+  - 'preferences subtree concrete font/code-style scan (no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)'
+  - 'rustfmt --check zircon_editor/src/core/settings/mod.rs zircon_editor/src/core/settings/defaults.rs zircon_editor/src/core/settings/io.rs zircon_editor/src/core/settings/tests.rs zircon_editor/src/ui/retained_host/app.rs (current-owner replay command after startup appearance load path)'
+  - 'cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 11/11 after startup appearance load path)'
+  - 'D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs at 08:17)'
+  - 'preferences/app concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)'
+  - 'cargo check -p zircon_editor --tests --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-04 passed with existing warnings)'
+  - 'cargo test -p zircon_editor tests::host::retained_menu_pointer::appearance_visual_screenshot::capture_global_appearance_preferences_component_visual_artifact --lib --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never -- --ignored --exact --test-threads=1 --nocapture with CARGO_INCREMENTAL=0 (2026-07-04 passed 1/1, refreshed docs/tests/editor/editor-components-global-appearance-preferences-900x360.png)'
+  - 'cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-04 passed with existing warnings)'
 doc_type: module-detail
 ---
 
@@ -141,7 +139,7 @@ The 2026-06-25 S15.1 hard cutover moved chrome atomic consumers onto `METRICS` d
 
 The 2026-06-25 S15.6 palette cutover extended `EditorPaletteTokens` with retained-host semantic surface, state, separator, popup, track, focus, shadow, and semantic-container roles, mirrored those names in `editor_tokens.zui`, and made `PALETTE` come from `DEFAULT_HOST_PALETTE` in `palette_projection.rs`. Workbench style selector palettes now consume `PALETTE` roles instead of local handwritten RGBA values; the previous retained-host drift in border, primary text, muted text, disabled text, and error colors intentionally converges to the central workbench token values.
 
-The 2026-07-02 retained appearance preference follow-up makes that palette projection runtime-installable. `EditorAppearancePreferences` now exposes replacement hooks for typography, palette, control, density, and state-role tokens; retained-host startup installs both host text preferences and the current host palette from the same design-token source. `palette_projection.rs` owns the `HostMaterialPalette` projection plus the current host palette lock, and TextField/Search is the first style-selector family to consume `current_host_palette()` instead of production `PALETTE` constants. This keeps font family, color theme, and style density switchable through a single preference entry while leaving the actual preference UI and persisted settings for a later slice.
+The retained appearance route makes palette projection runtime-installable. `core/settings/defaults.rs` registers the typed design-token setting, and retained-host startup installs host text preferences, the current host palette, and host metrics from that one resolved token value. `palette_projection.rs` owns the `HostMaterialPalette` projection plus the current host palette lock. This keeps font family, color theme, and style density switchable through one settings entry while leaving the actual preferences UI for a later slice.
 
 The later 2026-07-02 toolbar preference-route pass extends the same appearance entry to retained-host control metrics and button chrome. `metrics.rs` keeps the Slate baseline as the default but adds `project_host_metrics(...)`, `apply_host_metrics_from_tokens(...)`, and `current_host_metrics()` so radius, border width, body/caption/title font sizes, line height, gaps, row height, and input/button geometry come from `EditorDesignTokens`. Retained-host startup now installs metrics, palette, and text preferences together. Button and Search/TextField consumers read the current metric/palette owners instead of writing concrete font families, component-local color themes, or toolbar-specific RGB values.
 
@@ -149,9 +147,9 @@ The 2026-07-13 retained-painter contract repair closes a default-metric drift th
 
 The 2026-07-03 Asset Browser utility-tab follow-up keeps that same global route for selected tab-like buttons. Preview/References/Metadata/Plugins no longer get a filled selected pill from the local button selector; they keep transparent surface plus shared primary text and let the underline use `current_host_palette().accent`. `template_buttons/surface.rs` reads underline height and tab inset from `current_host_metrics()`, while selected toolbar chips still keep a low-emphasis framed surface. This changes selection style without adding a concrete font family, local RGB table, or component-owned theme override.
 
-The 2026-07-03 preference persistence foundation keeps that route global instead of binding fonts in controls. `EditorAppearancePreferencesDocument` is the versioned TOML shape for the active appearance profile plus the full `EditorDesignTokens` payload, and `EditorAppearancePreferenceStore` owns string/path load and save. The default document still uses only logical font families from `EditorTypographyTokens` (`system-ui` and `monospace`); a user-selected concrete font can be stored later as a global token value without touching button, table, tab, or label owners. Unsupported document versions parse and then fall back to the current default tokens rather than partially applying an unknown style payload.
+The current persistence foundation keeps that route global instead of binding fonts in controls. `core/settings/io.rs` stores the typed design-token value inside the canonical `zircon.editor.settings` envelope. The default still uses logical font families from `EditorTypographyTokens` (`system-ui` and `monospace`); a user-selected concrete font can be stored as a global token value without touching button, table, tab, or label owners. Unsupported or retired documents fail closed before registry mutation, and startup retains current defaults.
 
-The 2026-07-10 typography-unit correction advances the appearance document to version 2. Version-1 documents are accepted through `preferences/typography_migration.rs`: only the old 10/8.5/14 point-as-pixel defaults are replaced with the current logical values, while user-custom font sizes, families, weights, smoothing, palette, controls, density, and state roles remain unchanged.
+The old private appearance version-1/version-2 migration path is retired. Current settings reject the old TOML and schema-v0 payloads; the logical 13.33/10.67/18.67 defaults now come from the current design-token contract rather than an on-load typography migration.
 
 The follow-up startup path consumes that persisted shape without introducing a component-local font policy. `editor_startup_appearance_preferences()` reads the optional `ZIRCON_EDITOR_APPEARANCE_PREFERENCES` path and `run_editor_with_startup_request(...)` installs the loaded tokens before constructing the retained host window. Missing, empty, invalid, or unreadable preference files fall back to the default logical-family token set and emit a warning, so a bad user preference cannot strand editor startup. This mirrors the UE `FAppStyle` application-wide style entry: the startup path chooses the active style document, while controls keep reading the current host text, palette, and metric projections.
 

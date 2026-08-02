@@ -2,7 +2,7 @@ use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
     PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PaneTemplateSpec,
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind,
+    ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot,
 };
 
 pub(super) fn debug_observatory_view_descriptor() -> ViewDescriptor {
@@ -11,7 +11,7 @@ pub(super) fn debug_observatory_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "Debug Observatory",
     )
-    .with_preferred_host(PreferredHost::DocumentCenter)
+    .with_workbench_slot(WorkbenchSlot::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::RuntimeDiagnostics,
     ))

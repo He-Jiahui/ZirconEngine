@@ -1,4 +1,5 @@
-use crate::core::editor_event::{MenuAction, ViewDescriptorId};
+use crate::core::editor_event::{ConsoleMessageFilter, MenuAction, ViewDescriptorId};
+use crate::core::play::PlayKind;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::workbench::event::{
     EditorHostEvent, dispatch_editor_host_binding, menu_action_binding,
@@ -39,6 +40,14 @@ fn debug_observatory_window_menu_binding_roundtrips_through_headless_dispatch() 
 fn play_mode_menu_action_bindings_roundtrip_through_headless_dispatch() {
     for (action, expected_binding) in [
         (
+            MenuAction::SelectPlayMode(PlayKind::Play),
+            r#"WorkbenchMenuBar/SelectPlayMode.Play:onClick(MenuAction("workbench.play_mode.select.play"))"#,
+        ),
+        (
+            MenuAction::SelectPlayMode(PlayKind::Simulate),
+            r#"WorkbenchMenuBar/SelectPlayMode.Simulate:onClick(MenuAction("workbench.play_mode.select.simulate"))"#,
+        ),
+        (
             MenuAction::EnterPlayMode,
             r#"WorkbenchMenuBar/EnterPlayMode:onClick(MenuAction("workbench.play_mode.enter"))"#,
         ),
@@ -70,6 +79,24 @@ fn project_close_menu_action_binding_roundtrips_through_headless_dispatch() {
         dispatch_editor_host_binding(&binding).unwrap(),
         EditorHostEvent::Menu(action)
     );
+}
+
+#[test]
+fn console_filter_menu_action_bindings_roundtrip_through_headless_dispatch() {
+    for filter in [
+        ConsoleMessageFilter::All,
+        ConsoleMessageFilter::Info,
+        ConsoleMessageFilter::Warning,
+        ConsoleMessageFilter::Error,
+    ] {
+        let action = MenuAction::SetConsoleMessageFilter(filter);
+        let binding = menu_action_binding(&action);
+
+        assert_eq!(
+            dispatch_editor_host_binding(&binding).unwrap(),
+            EditorHostEvent::Menu(action)
+        );
+    }
 }
 
 #[test]

@@ -33,7 +33,8 @@ pub use hit_target::{HitTarget, PickingAxis, PickingTargetPriority};
 pub use hover_map::PickingHoverMap;
 pub use pickable::Pickable;
 pub use pipeline::{
-    run_picking_pipeline, PickingPipelineInput, PickingPipelineOutput, PickingPipelineStageReport,
+    resolve_picking_outputs, run_picking_pipeline, PickingPipelineInput, PickingPipelineOutput,
+    PickingPipelineStageReport,
 };
 pub use pointer_button::PointerButton;
 pub use pointer_event::{PickingEventKind, PickingEventLabel, PickingPointerEvent};
@@ -49,3 +50,6 @@ pub use ray_map::{CameraRaySource, RayId, RayMap};
 pub use report::{PickingPipelineReport, PickingPointerPipelineReport};
 pub use schedule_label::PickingScheduleLabel;
 pub use settings::PickingSettings;
+
+#[cfg(test)]
+pub(crate) use pointer_hits::{reset_sorted_hit_projection_metrics, sorted_hit_projection_metrics};

@@ -53,17 +53,17 @@ requireText(world, /resolveOfflineLootRoll[\s\S]*?lootRollRuntime\.tiedWinnerCou
   'loot-roll resolution semantics are missing');
 requireText(world, /updateOfflineLootRolls[\s\S]*?pendingLootRollExpiresAtMicros[\s\S]*?resolveOfflineLootRoll/,
   'loot-roll timeout resolution is missing');
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?nextLootRollId[\s\S]*?pendingLootRollIds[\s\S]*?lootRollCandidateRollIds/,
-  'WOS71 loot-roll snapshot tail is missing');
+requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?nextLootRollId[\s\S]*?pendingLootRollIds[\s\S]*?lootRollCandidateRollIds/,
+  'WOS72 loot-roll snapshot tail is missing');
 requireText(world, /if \(schemaVersion >= <uint>70\)[\s\S]*?nextLootRollId[\s\S]*?pendingLootRollIds[\s\S]*?lootRollCandidateRollIds/,
-  'WOS71 loot-roll migration is missing');
+  'WOS72 loot-roll migration is missing');
 requireText(world, /pub lootRollCommandStateTest\(\): int[\s\S]*?encodeState[\s\S]*?updateOfflineLootRolls[\s\S]*?appendLootRollCommandForTest/,
   'loot-roll state regression is missing');
 requireText(world, /if \(lootRollCommandStateTest\(\) != 1\) \{[\s\S]*?return -139;/,
   'world selfTest must execute loot-roll coverage');
 
 const contract = read('contracts', 'world-state.md');
-requireText(contract, /WOS71[\s\S]*?Need\/Greed[\s\S]*?60[\s\S]*?Need[\s\S]*?Greed[\s\S]*?Pass/,
+requireText(contract, /WOS70 appends[\s\S]*?Need\/Greed[\s\S]*?Pending, Need, Greed or Pass[\s\S]*?60 seconds/,
   'world-state contract must document retained Need/Greed state');
 
 process.stdout.write(`WOS145 loot-roll runtime static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

@@ -42,7 +42,7 @@ fn runtime_entry_delegates_window_status_forwarding_to_lifecycle_module() {
             &[
                 helper,
                 constructor,
-                "self.session.handle_event(event).is_err()",
+                "self.dispatch_runtime_event(event_loop, event);",
             ],
             "runtime entry should keep window status event forwarding source-visible",
         );

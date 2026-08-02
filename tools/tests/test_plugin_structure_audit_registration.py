@@ -139,6 +139,122 @@ fn register(registry: &mut RuntimeExtensionRegistry) {
             violations,
         )
 
+    def test_runtime_plugin_descriptor_single_source_rejects_declaration_bypass(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            runtime_src = repo_root / "zircon_plugins" / "sample" / "runtime" / "src"
+            runtime_src.mkdir(parents=True)
+            (runtime_src / "capability.rs").write_text(
+                "zircon_plugin_sdk::declare_plugin! { SAMPLE_DECLARATION {} }\n",
+                encoding="utf-8",
+            )
+            (runtime_src / "plugin.rs").write_text(
+                """
+impl RuntimePlugin for SampleRuntimePlugin {}
+
+fn descriptor() -> RuntimePluginDescriptor {
+    RuntimePluginDescriptor::builder()
+        .with_module_descriptor(module_descriptor())
+}
+""",
+                encoding="utf-8",
+            )
+            audited_roots: list[str] = []
+            violations: list[str] = []
+
+            audit_runtime_plugin_descriptor_single_source(
+                repo_root,
+                runtime_src,
+                audited_roots,
+                violations,
+            )
+
+        self.assertEqual(
+            [
+                "zircon_plugins/sample/runtime/src:stale:RuntimePluginDescriptor::builder(...):declaration-bypass"
+            ],
+            violations,
+        )
+
+    def test_runtime_plugin_descriptor_single_source_accepts_declaration_projection(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            runtime_src = repo_root / "zircon_plugins" / "sample" / "runtime" / "src"
+            runtime_src.mkdir(parents=True)
+            (runtime_src / "capability.rs").write_text(
+                "zircon_plugin_sdk::declare_plugin! { SAMPLE_DECLARATION {} }\n",
+                encoding="utf-8",
+            )
+            (runtime_src / "plugin.rs").write_text(
+                """
+impl RuntimePlugin for SampleRuntimePlugin {}
+
+fn descriptor() -> RuntimePluginDescriptor {
+    SAMPLE_DECLARATION
+        .runtime_declaration()
+        .with_module_descriptor(module_descriptor())
+        .into_descriptor()
+}
+""",
+                encoding="utf-8",
+            )
+            audited_roots: list[str] = []
+            violations: list[str] = []
+
+            audit_runtime_plugin_descriptor_single_source(
+                repo_root,
+                runtime_src,
+                audited_roots,
+                violations,
+            )
+
+        self.assertEqual([], violations)
+
+    def test_runtime_plugin_descriptor_single_source_rejects_manual_packaging_projection(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            runtime_src = repo_root / "zircon_plugins" / "sample" / "runtime" / "src"
+            runtime_src.mkdir(parents=True)
+            (runtime_src / "capability.rs").write_text(
+                "zircon_plugin_sdk::declare_plugin! { SAMPLE_DECLARATION {} }\n",
+                encoding="utf-8",
+            )
+            (runtime_src / "plugin.rs").write_text(
+                """
+impl RuntimePlugin for SampleRuntimePlugin {}
+
+fn descriptor() -> RuntimePluginDescriptor {
+    SAMPLE_DECLARATION
+        .runtime_declaration()
+        .with_module_descriptor(module_descriptor())
+        .into_descriptor()
+}
+
+fn package_manifest() -> PluginPackageManifest {
+    let mut manifest = descriptor().package_manifest();
+    manifest.default_packaging.push(ExportPackagingStrategy::NativeDynamic);
+    manifest
+}
+""",
+                encoding="utf-8",
+            )
+            audited_roots: list[str] = []
+            violations: list[str] = []
+
+            audit_runtime_plugin_descriptor_single_source(
+                repo_root,
+                runtime_src,
+                audited_roots,
+                violations,
+            )
+
+        self.assertEqual(
+            [
+                "zircon_plugins/sample/runtime/src:stale:default_packaging.push(NativeDynamic):declaration-bypass"
+            ],
+            violations,
+        )
+
     def test_global_registration_audit_reports_root_compatibility_tracks(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)

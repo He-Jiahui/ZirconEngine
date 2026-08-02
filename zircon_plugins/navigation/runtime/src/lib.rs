@@ -21,7 +21,9 @@ mod settings_hash;
 mod settings_validation;
 
 pub use capability::{
-    NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, NAVIGATION_DECLARATION, NAVIGATION_RECAST_CAPABILITY,
+    NAVIGATION_RUNTIME_CAPABILITY, PLUGIN_ID, RUNTIME_CAPABILITIES,
 };
 pub use components::navigation_component_descriptors;
 pub use manager::{
@@ -31,10 +33,9 @@ pub use manager::{
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, NavigationRuntimePlugin, NAVIGATION_DIST_CRATE_NAME,
-    NAVIGATION_DIST_RUNTIME_ENTRY,
+    NAVIGATION_DIST_RUNTIME_ENTRY, NAVIGATION_MAIN_SYSTEM_SET,
 };
 
-pub const PLUGIN_ID: &str = "navigation";
 pub const NAVIGATION_MODULE_NAME: &str = "navigation.runtime";
 pub const DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME: &str =
     "navigation.runtime.Driver.DefaultNavigationRuntime";

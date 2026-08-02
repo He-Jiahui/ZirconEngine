@@ -5,8 +5,9 @@ use toml::{map::Map, Value};
 
 use crate::ui::template::{UiPrototypeStore, UiTemplateInstance};
 use zircon_runtime_interface::ui::template::{
-    UiAssetError, UiAssetKind, UiComponentPrototype, UiNodeDefinitionKind, UiNodePrototype,
-    UiPrototypeChildMount, UiPrototypeNodeHandle, UiRawAssetPrototype, UiTemplateNode,
+    parse_component_reference, UiAssetError, UiAssetKind, UiComponentPrototype,
+    UiNodeDefinitionKind, UiNodePrototype, UiPrototypeChildMount, UiPrototypeNodeHandle,
+    UiRawAssetPrototype, UiTemplateNode,
 };
 
 use super::style_apply::{
@@ -245,6 +246,7 @@ impl<'a> PrototypeInstancer<'a> {
                     asset_id: task.asset.asset.id.clone(),
                     detail: format!("reference node {} missing component_ref", node.node_id),
                 })?;
+        let _ = component_name_from_reference(reference)?;
         let (asset, component_name) = self.store.component_prototype(reference)?;
         let component = asset
             .components
@@ -276,7 +278,7 @@ impl<'a> PrototypeInstancer<'a> {
         call_tokens: Option<BTreeMap<String, Value>>,
         frames: &mut Vec<PrototypeFrame>,
     ) -> Result<(), UiAssetError> {
-        validate_prototype_slot_mounts(component_name, &component, &node.children)?;
+        validate_prototype_slot_mounts(&task.asset, component_name, &component, &node.children)?;
 
         let child_mounts = node.children.clone();
         let call_tokens = call_tokens.unwrap_or_else(|| task.tokens.clone());
@@ -640,6 +642,7 @@ fn merge_prototype_instance_layout_override(
 }
 
 fn validate_prototype_slot_mounts(
+    asset: &UiRawAssetPrototype,
     component_name: &str,
     component: &UiComponentPrototype,
     children: &[UiPrototypeChildMount],
@@ -662,6 +665,21 @@ fn validate_prototype_slot_mounts(
                 slot_name,
             });
         }
+        let child_node = asset
+            .node(child.child)
+            .ok_or_else(|| UiAssetError::MissingNode {
+                asset_id: asset.asset.id.clone(),
+                node_id: format!("#{}", child.child.0),
+            })?;
+        let child_component =
+            prototype_child_component_name(child_node)?.unwrap_or("<unresolved>".to_string());
+        if !slot.accepts_component(&child_component) {
+            return Err(UiAssetError::SlotDoesNotAcceptComponent {
+                component: component_name.to_string(),
+                slot_name: child.mount.clone().unwrap_or_default(),
+                child_component,
+            });
+        }
     }
 
     for (slot_name, slot) in &component.slots {
@@ -674,6 +692,21 @@ fn validate_prototype_slot_mounts(
     }
 
     Ok(())
+}
+
+fn prototype_child_component_name(node: &UiNodePrototype) -> Result<Option<String>, UiAssetError> {
+    match node.kind {
+        UiNodeDefinitionKind::Component => Ok(node.component.clone()),
+        UiNodeDefinitionKind::Reference => node
+            .component_ref
+            .as_deref()
+            .map(|reference| {
+                parse_component_reference(reference).map(|(_, component)| component.to_string())
+            })
+            .transpose(),
+        UiNodeDefinitionKind::Native => Ok(node.widget_type.clone()),
+        UiNodeDefinitionKind::Slot => Ok(None),
+    }
 }
 
 fn apply_prototype_styles(

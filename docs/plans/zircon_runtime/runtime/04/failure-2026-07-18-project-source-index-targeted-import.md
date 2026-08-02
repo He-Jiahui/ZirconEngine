@@ -90,11 +90,20 @@ PERF-MVP-494/495已局部删除`.zmeta`第二次TOML syntax parse、dependency U
 | 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据 |
 |---|---|---|---|---|
 | Runtime04 / Editor10 M1 | manager-owned source-path index | `实现完成-独立复审0C/0I/0M-受管行为门待完成` | 2026-07-18 | full scan、artifact payload 与 watcher 都先进入候选准备；成功后才在 project write lock 内整体发布 Runtime manager source-path index、ResourceManager、ProjectManager 与 watcher owner。活动 `res://`/`package://` locator 以 `(scheme, path)` 读内存映射，subasset label 复用同一物理源；失败准备保留上一代。删除 source 后旧 generation 仍返回 indexed path、prepare failure 不污染活动索引、package remove+reimport 后 typed missing，以及 Pending→Draining 顺序、retire 二次核验、失败 scan watcher shutdown 的回归已加入；scoped rustfmt/diff check 与独立终审 `0/0/0` 通过，Cargo 尚未执行。 |
-| Runtime04 / Editor10 M1 | transactional targeted import | `open-独立复审4项Important待架构实现` | 2026-07-18 | partial target path 因原子提交、全局依赖/反向边、duplicate GUID、compound topology 四项不变量未闭合而撤回；当前 production 继续显式 full import，不虚报 targeted。 |
+| Runtime04 / Editor10 M1 | transactional targeted import | `实现候选-二次独立复审和受管验证待终态` | 2026-08-01 | single-source targeted import 现以隔离 candidate 准备 artifact/meta/registry 清单、依赖反向 closure 与 catalog input generation；generation/epoch CAS 通过后才提交文件并发布 ResourceManager/ProjectManager。duplicate GUID preflight 与 compound topology typed rejection 均在 artifact 事务前；单源 watch Added/Modified/Removed 复用延后提交，复杂 batch 保持完整协调。静态检查通过，尚无受管 Cargo terminal。 |
 
 ## 修复结果与回传
 
-Open state：manager-owned source-path index 的首轮 `0C/4I/1M` 已整改并通过独立终审 `0C/0I/0M`，待受管 Windows exact tests；transactional targeted import 仍 open，完成四项不变量后才能整体改写为 fixed 并回传 Editor10 failure。
+Open state：manager-owned source-path index 的首轮 `0C/4I/1M` 已整改并通过独立终审 `0C/0I/0M`，待受管 Windows exact tests；transactional targeted import 的四项不变量已有实现候选，正在进行二次独立复审并等待可创建的受管 focused gate。failure 在这些终态证据存在前保持 `open`。
+
+### 2026-08-01 前向修复候选：deferred targeted generation publish
+
+- `ProjectManager::prepare_targeted_generation` 现在只构造候选 `ResourceRegistry`、`AssetRegistryIndex`、shader reverse-dependency closure、catalog input generation 与 artifact/meta/registry 原子写入清单；准备期间不写入这三类 generation-owned 文件。
+- `AssetManager::import_asset` 先完成候选资源同步准备，再在 project generation 与 preparation epoch 比对通过后提交文件清单，随后无失败地提交 ResourceManager 和 active `ProjectManager`。CAS 拒绝或任何准备错误会丢弃候选，不会留下 source artifact、sidecar 或 asset-registry 的跨代前进。
+- watcher 的单个、完整 Added/Modified/Removed source event 使用相同的延后文件提交；Removed 仅准备 registry 写入清单。标记 `requires_reconciliation`、rename、拆分 move、多 source batch 仍走既有完整协调路径，未把部分路径伪装成完整原子 batch。
+- 新增 `targeted_generation_prepare_defers_disk_publication_until_commit`、`targeted_watch_removal_prepare_defers_registry_publication_until_commit` 与 facade epoch-supersession 回归：真实准备 target v2 或删除候选后，artifact、`.zmeta` 与 `asset-registry.json` 字节仍保持旧 generation；`import_asset` 的 epoch CAS 被 importer 推进后返回 superseded，活动 source hash 也保持旧值。既有 fault-injection rollback、compound membership typed rejection 与 reverse shader dependency tests 保持覆盖。
+- 已执行 scoped `rustfmt +1.94.1 --edition 2024` 与 `git diff --check`（仅工作树行尾提示）；二次独立复审已确认 `0 Critical / 0 Important / 0 Minor`。受管 Windows focused Cargo 尚未生成终态 receipt，本 failure 保持 `open`，不声明 GREEN、fixed 或 accepted。
+- 本候选的 coordinator `cargo acquire test --dry-run` 在创建 ticket 前被共享环境的“unregistered D/E/F artifacts”前置检查拒绝；没有 Cargo 进程、测试计数或 RED/GREEN 结论。该环境维护项不改变本 failure 的 owner、也不把本会话置为 waiting/blocked。
 
 ### Retained-host model/default-scene consumers补充（2026-07-30）
 

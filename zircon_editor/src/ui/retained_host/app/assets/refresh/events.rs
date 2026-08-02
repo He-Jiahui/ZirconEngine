@@ -8,6 +8,7 @@ pub(super) struct AssetRefreshEvents {
     pub(super) asset_changes: Vec<AssetChange>,
     pub(super) editor_asset_changes: Vec<EditorAssetChange>,
     pub(super) resource_changes: Vec<ResourceEvent>,
+    pub(super) resource_generation_lagged: bool,
 }
 
 #[derive(Default)]
@@ -51,5 +52,6 @@ impl AssetRefreshEvents {
         self.asset_changes.is_empty()
             && self.editor_asset_changes.is_empty()
             && self.resource_changes.is_empty()
+            && !self.resource_generation_lagged
     }
 }

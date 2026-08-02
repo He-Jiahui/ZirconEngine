@@ -26,7 +26,6 @@ related_code:
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
@@ -51,7 +50,6 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/command_entry.rs
   - zircon_runtime/src/ui/template/asset/schema/mod.rs
-  - zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
@@ -93,7 +91,7 @@ tests:
   - hard_cutover_migration_smells gate status, explicit count fields, classification count, migration debt, allowed bridge count, and unclassified reference checks
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated
   - rustfmt --edition 2021 --check zircon_plugins/net/features/http/runtime/src/backend.rs zircon_plugins/net/features/http/runtime/src/backend/client.rs zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
-  - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\schema\mod.rs zircon_runtime\src\ui\template\asset\schema\source_template_fixture.rs zircon_runtime\src\ui\template\asset\schema\migrator.rs zircon_runtime\src\ui\template\asset\schema\flat_nodes.rs zircon_runtime\src\ui\template\asset\compiler\style_apply.rs zircon_runtime\src\ui\tests\asset_schema_migration.rs zircon_runtime\src\ui\tests\asset.rs zircon_runtime\src\ui\tests\asset_contract_spine.rs
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\schema\mod.rs zircon_runtime\src\ui\template\asset\schema\migrator.rs zircon_runtime\src\ui\template\asset\schema\flat_nodes.rs zircon_runtime\src\ui\template\asset\compiler\style_apply.rs zircon_runtime\src\ui\tests\asset_schema_migration.rs zircon_runtime\src\ui\tests\asset.rs zircon_runtime\src\ui\tests\asset_contract_spine.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\layout\pass\taffy_arrange.rs
   - rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\pipeline\stage.rs zircon_runtime_interface\src\tests\pipeline_contracts.rs
   - rustfmt --edition 2021 --check zircon_plugins\texture_importer\runtime\src\container\dds.rs
@@ -173,7 +171,7 @@ Any future `unclassified-hard-cutover-smell` is a review blocker. Classify it wi
 
 `legacy-runtime-ui-layout-debt` was cleared on 2026-06-04. `WrapBox` now describes Flow slots as the current runtime contract for order, padding, and alignment only; Taffy-native wrap still ignores Flow slot `linear_sizing` instead of treating it as flex growth.
 
-`legacy-runtime-ui-template-debt` was cleared from production Rust on 2026-06-05 through three direct sub-cuts. The runtime UI asset schema private conversion module moved from `legacy_template.rs` to `source_template_fixture.rs`, `UiAssetSchemaMigrator` now exposes `migrate_source_template_fixture_*` entry points, and flat/source-template helper variables describe the current migration responsibility directly. The public `UiAssetMigrationReport` labels remain unchanged for now because they are cross-crate report DTOs and need a separate interface-versioning cut if renamed.
+`legacy-runtime-ui-template-debt` was cleared from production Rust on 2026-06-05 through three direct sub-cuts. At that milestone the runtime UI asset schema private conversion module moved from `legacy_template.rs` to `source_template_fixture.rs`, `UiAssetSchemaMigrator` exposed `migrate_source_template_fixture_*` entry points, and flat/source-template helper variables described that intermediate migration responsibility. This evidence is historical: the 2026-08-01 Runtime09 cut removed the source-template converter, helpers and report variants entirely; the live loader now requires `[asset]` and keeps only tree/flat migration authority.
 
 The editor UI asset/session source-schema branch was hard-renamed from `UiAssetSourceSchema::Legacy` to `UiAssetSourceSchema::LayoutDocument`, and revalidate, canonical serialization, and undo replay now branch on the current layout document source schema rather than an old-version label. The editor host-template runtime cache assertions now call the non-v2 path the tree-template compile/document cache, so v2 bypass checks no longer preserve old recursive-cache wording.
 

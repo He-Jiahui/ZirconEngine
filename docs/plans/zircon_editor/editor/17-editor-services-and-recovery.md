@@ -1,7 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/preferences.rs
-  - zircon_editor/src/ui/workbench/layout/manager/persistence.rs
+  - zircon_editor/src/core/settings
   - zircon_editor/src/core/editor_event/replay.rs
   - zircon_editor/src/ui/activity
   - zircon_editor/src/core/commands/keymap.rs
@@ -15,10 +14,12 @@ plan_sources:
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
   - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
   - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
-status: planned
+status: in_progress
 ---
 
 # 17 编辑器必要服务：设置分层 / 自动保存 / 崩溃恢复 / 日志诊断 / 通知 / 本地化
+
+> 2026-08-02 实仓复核：M1 的三层 `SettingsRegistry` 与 legacy preferences 硬切、M2 的 autosave 调度骨架，以及 M3 的 Decision 通知中心已经落入当前源码；设置页贡献/热应用、布局真实持久化、session guard/restore flow、Toast/Progress、统一日志和 i18n 仍未完成。计划状态保持 `in_progress`，未落地模块不得据此视为已验收。
 
 ## 参照证据（dev/）
 
@@ -28,17 +29,17 @@ status: planned
 
 ## 现状与证据（zircon）
 
-**设置只有一个孤岛**：`EditorAppearancePreferences`（`preferences.rs`，2026-07-05 复核）——`APPEARANCE_PREFERENCES_VERSION: u32 = 1`（:12）、`APPEARANCE_PREFERENCES_PATH_ENV = "ZIRCON_EDITOR_APPEARANCE_PREFERENCES"`（:13，**路径靠环境变量注入**，无默认用户目录约定）、单字段 `design_tokens: EditorDesignTokens`（:17，token 族=interface 侧 `EditorControlTokens/EditorDensityTokens/EditorPaletteTokens/EditorStateRoleTokens/EditorTypographyTokens` 五类，:7-10——迁 settings 后 schema 按此五类分组）、四方法（:104-141）；两常量均 `pub(crate)`（收编时无外部消费者顾虑）。无工程级/会话级概念，无变更通知，无设置页数据源。
+**设置框架与 legacy preferences 硬切已落地**：`core/settings/` 已包含 `SettingsRegistry`、`SettingsScope::{User, Project, Session}`、definition/defaults、三层 IO、keymap override、设置页 descriptor 与 change drain；`EDITOR_DESIGN_TOKENS_KEY` 以 User scope 注册，`editor_design_tokens_at_startup()` 只经 registry 解析。旧 `EditorAppearancePreferences` 与 `ui/preferences/` owner 已删除，不得恢复第二套 authority；剩余缺口是设置页贡献注册、热应用链和产品级验证。
 
-**布局持久化是空壳**（06 已证）：`workbench/layout/manager/persistence.rs:6-27` 四函数（`load/save_global_default`、`load/save_project_workspace`）**返回克隆、零文件 IO**——但其函数签名已经隐含「全局默认/工程工作区」双层——本计划设置分层与 06 M3 落盘共用同一路径规则。
+**布局持久化空壳已移除**（06 已证）：旧 `workbench/layout/manager/persistence.rs` 四函数只做克隆/透传且零文件 IO，现已从 owner tree 删除。真实 User/Project 布局持久化仍由 EditorLayout06 M3 基于 `SettingsScope` 实现；不得为满足旧路径或旧测试恢复无效壳层。
 
-**恢复素材已有两件**：`EditorEventJournal` + `EditorEventReplay::replay`（`editor_event/replay.rs:3-6`，复核在案）；03 计划将产 `serialize_journal` 事务 journal——两条素材线均已规划，缺**编排者**（会话锁/autosave 触发/启动检测/恢复对话）。
+**恢复已具 autosave 调度骨架**：`core/recovery/autosave.rs` 已有 `AutosavePolicy`、`AutosaveScheduler`、`AutosaveJobPolicy`，并通过 mutex group / job spec 接入后台任务；`EditorEventJournal` + `EditorEventReplay::replay` 仍是第二素材线。当前真正缺口是 session guard、启动残锁检测、restore flow 与逐文档恢复决策，而不是重新实现 autosave 调度器。
 
 **通知呈现件**：`ui/activity/` 实测为 `slot.rs/view.rs/window.rs` 三件（槽位/视图/窗口）——通知中心呈现层的迁移对象即此三件。
 
 **日志分散**：runtime 侧 `tasks/diagnostics.rs`（任务观测）、`ZrHostApiV3.diagnostics{emit, metric}`（插件诊断域）、`--log-level/--log-filter`（CLI 既有）、04 Play 子进程 stdout/stderr、09 导入警告、13 编译诊断——**六个来源无汇聚面**。
 
-**通知雏形**：`ui/activity/` 活动型 UI 存在；14 进度中心、09 导入结果、04 PlayCrashed、11 `migrated_from` 提示均已在各计划声明「投通知中心」——收口者缺位。
+**通知中心已落 Decision 子域**：`core/notifications/service.rs` 与 `notifications/decision/` 已提供 pending/receipt 有界决策通知；`ui/activity/` 呈现层、Toast/Progress 两类生命周期，以及 14/09/04/11/12 的生产者收口仍未完成。
 
 **本地化**：无框架，UI 文案硬编码中英混排。
 
@@ -79,15 +80,17 @@ pub struct SettingDefinition {
 
 ```
 zircon_editor/src/core/settings/
-  mod.rs / registry.rs / scopes.rs / io.rs      # 三层读写（11 壳 + 路径规则）
+  mod.rs / registry.rs / scope.rs / definition.rs / defaults.rs / io.rs
+  keymap_overrides.rs / page.rs                 # 已落地：三层读写、定义与页面描述符
 zircon_editor/src/core/recovery/
-  mod.rs / autosave.rs / session_guard.rs / restore_flow.rs
+  mod.rs / autosave.rs                          # 已落地
+  session_guard.rs / restore_flow.rs             # 待落地
 zircon_editor/src/core/logging/
-  mod.rs / sink.rs / entry.rs / rolling_file.rs
+  mod.rs / sink.rs / entry.rs / rolling_file.rs  # 待创建
 zircon_editor/src/core/notifications/
-  mod.rs / center.rs / kinds.rs
+  mod.rs / service.rs / decision/                # 已落 Decision；Toast/Progress 待补
 zircon_editor/src/core/i18n/
-  mod.rs / catalog.rs / macros.rs
+  mod.rs / catalog.rs / macros.rs                # 待创建
 ```
 
 五服务全挂 `EditorContext`（01）；**全部事件化**——面板只是订阅者，headless（16 commandlet）下 settings/logging 照常运转（commandlet 的 `--diagnostics` 输出即 logging 落盘面）。
@@ -96,9 +99,9 @@ zircon_editor/src/core/i18n/
 
 | 现物 | 去向 |
 | --- | --- |
-| `EditorAppearancePreferences` + 版本常量 + env | `settings/` User 层首批条目（11 M2 收编版本常量；env 降级为根覆盖）；`preferences.rs` 删除 |
-| `persistence.rs` 空实现四函数 | 06 M3 实 IO，路径规则由本计划 `scopes.rs` 提供（global→User 层目录、project→`.zircon/`） |
-| `ui/activity/` | `notifications/` 呈现层（数据源迁 center.rs） |
+| 已删除的 `EditorAppearancePreferences` + 旧版本常量 + env | 已硬切至 `settings/` User 层与 registry-only 启动解析；不得恢复 `preferences.rs` |
+| 已删除的 `persistence.rs` 空实现四函数 | 06 M3 实 IO，路径规则由本计划 `scope.rs` 提供（global→User 层目录、project→`.zircon/`） |
+| `ui/activity/` | `notifications/` 呈现层（数据源接现有 `service.rs`；不再假定不存在的 `center.rs`） |
 | `EditorEventJournal`/replay | 保留（01 M1 已定位事件服务）；`restore_flow.rs` 第二素材线消费者 |
 
 ### 关停顺序（14 收尾协议并入）
@@ -146,15 +149,14 @@ zircon_editor/src/core/i18n/
 - PERF-MVP-591：EditorManager、retained-host design-token启动和viewport当前各自构造/加载registry；`changes: Vec`无生产drain且MRU变化可长期追加，stable `chrome_settings()`还为三个静态key重复分配/查三层BTree。Editor17发布唯一immutable settings generation，注册期把built-in keys编译为typed slots，change delta按entry+bytes+cursor/age有界，no-op set不递增revision/event；Editor05只消费resolved slots。startup每generation每文件read/decode≤1，generic strict-envelope双解析继续归Editor11 PERF-MVP-570。
 - 验收使用definitions/keys `1/1K/100K`、value `0/1KiB/1MiB`、same-key/MRU changes `1/1K/1M`、stable snapshot `60/120Hz`、filesystem `0/10ms/2s`、consumers/writers `1/16`；记录authority、reads/decode passes、full clone bytes、key/String alloc、BTree probes、journal/queue entries+bytes+age、writes/fsync、RSS与UI p95。要求authority=1、stable key parse/lookup=0、journal/queue硬有界、UI filesystem wall=0、单key full-registry clone=0，并保持precedence/restart/keymap/tokens/MRU/snap/crash/flush语义。证据见`../../performance/01/2026-07-30-editor-core-settings-static-review.md`；managed Cargo与F0/F4仍open，不进入`review.md`。
 
-## Code Review 建议 (2026-07-31)
+## Code Review 处理结果 (2026-08-01)
 
-### 与代码现状不符，需修订
+### 已处理
 
-- front-matter `status: planned` 已落后于实现。`zircon_editor/src/core/settings/` 已是完整目录（`registry.rs`、`scope.rs`、`definition.rs`、`defaults.rs`、`keymap_overrides.rs`、`page.rs`、`io.rs`、`mod.rs`、`tests.rs`），其中 `scope.rs:3-7` 的 `SettingsScope::{User, Project, Session}` 与目标 1 完全一致，`registry.rs:64` 的 `SettingsRegistry` 已实现 `register/definition/resolve/set/clear/drain_changes`（:72-174），resolve 覆盖链与变更队列均在案。M1「设置框架」实际已大部分落地，status 与 M1 里程碑叙述宜提升为 `in_progress` 并按已落地内容修订。
-- 「现状与证据 §设置只有一个孤岛」称设置只有 `EditorAppearancePreferences` 一处、无变更通知、无设置页数据源。当前 `settings/page.rs:6 SettingsPageDescriptor`（`new/id/display_name/category_path`）已提供设置页描述符，`registry.rs:8 SettingChange` + `drain_changes` 已提供变更事件源——目标 1 的「设置页 = 06 贡献一类」与「变更事件 SettingChanged 入 bus」已有对应实现。该节应据实收窄为「设置框架已落地，待接线项为 preferences 迁入删除与 06 贡献注册」。
-- 自动保存与通知中心亦已起步：`core/recovery/` 含 `autosave.rs`（`AutosavePolicy`/`AutosaveScheduler`/`AutosaveJobPolicy`，`autosave.rs:77-197`，已按目标 2 用 `MutexGroup` 与 `EditorJobSpec` 接 14 job）、`mod.rs`、`tests.rs`；`core/notifications/` 含 `service.rs` 与 `decision/`（`center.rs`/`model.rs`/`receipt.rs`/`id.rs`）。目标 4「通知中心三类契约」中的 `Decision`（决策回执）已由 `notifications/decision/` 实装。现状节的「恢复素材缺编排者」「通知收口者缺位」应更新为「autosave 调度器与 decision 通知中心已落地，session_guard/restore_flow 与 Toast/Progress 两类待补」。
+- front matter 已提升为 `in_progress`；现状节与模块图已按 `core/settings/`、`core/recovery/autosave.rs`、`core/notifications/service.rs` 和 `notifications/decision/` 的真实落点更新。
+- legacy preferences 硬切已完成；设置页贡献/热应用、真实布局持久化、session guard/restore flow、Toast/Progress 被明确保留为待接线项，没有因 status 提升而误标完成。
 
 ### 实现风险 / 技术债
 
-- 目标 3 `EditorLog`（`core/logging/`）与目标 5 i18n（`core/i18n/`）两个模块目录当前均**不存在**——`core/logging` 与 `core/i18n` 实读缺失。这是 17 计划中真正未动的部分，M3 切片 3.1（日志六来源汇聚）与 3.3（i18n catalog/tr!/回退链）应显式标注为「模块尚未创建」，与已落地的 settings/recovery/notifications 区分开，防止 status 提升后被误判为整篇完成。
-- `notifications/` 已有 `service.rs` + `decision/` 但无 `center.rs`/`kinds.rs`（模块布局图所列文件名），实际拆分与计划命名不一致；「现物迁移映射」中「`ui/activity/` → `notifications/` 呈现层（数据源迁 center.rs）」的落点文件名需按实际结构（`service.rs`）校正，否则 M3 切片 3.2 迁移时会找不到 `center.rs`。
+- 目标 3 `EditorLog`（`core/logging/`）与目标 5 i18n（`core/i18n/`）两个模块目录当前仍不存在；M3 切片 3.1 和 3.3 必须从 owner 创建与消费接线开始，不能复用 settings/notification 的进度宣称。
+- Decision 已落地不代表通知中心三类契约完成；Toast、Progress、`ui/activity/` 呈现迁移和生产者收口仍需单独验收。

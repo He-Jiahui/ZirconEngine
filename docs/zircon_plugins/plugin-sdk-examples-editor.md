@@ -42,7 +42,7 @@ status: in_progress
 - `src/lib.rs` is the public façade. It declares modules and re-exports stable constants, plugin constructors, and report helpers.
 - `src/capability.rs` owns the editor capability constants for the example package.
 - `src/extension_ids.rs` owns view, importer, template, asset-kind, and component identifiers used by the sample extension registrations.
-- `src/extensions.rs` owns `EditorExtensionRegistry` mutation: example window, menu operations, model importer, asset editor, UI templates, asset creation template, and component drawer.
+- `src/extensions.rs` owns `EditorExtensionRegistry` mutation: example window, menu operations, model importer, asset editor, UI templates, asset creation template, and inspector customization.
 - `src/plugin.rs` owns the editor plugin types, consumes `zircon_plugin_sdk::editor::authoring_plugin!` for the primary editor plugin, and keeps fixture-specific extension registration forwarding plus registration report helpers.
 - `src/tests.rs` owns behavior tests for contributed editor extensions and SDK fixture metadata.
 

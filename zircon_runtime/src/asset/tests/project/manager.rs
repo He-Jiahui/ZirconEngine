@@ -25,6 +25,7 @@ use crate::core::resource::ResourceState;
 static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 mod artifact_cache_imports;
+mod catalog_input_generation;
 mod restore_failure_migration;
 mod subassets_errors;
 mod targeted_import;

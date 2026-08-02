@@ -10,7 +10,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_ope
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshPassPipelineKind,
 };
-use crate::graphics::scene::scene_renderer::sprite::{SpriteVertex, build_sprite_vertices};
+use crate::graphics::scene::scene_renderer::sprite::{build_sprite_vertices, SpriteVertex};
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::RenderPassGpuExecutionContext;

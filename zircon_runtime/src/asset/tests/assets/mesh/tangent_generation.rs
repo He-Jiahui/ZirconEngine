@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::asset::{
-    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshValidationError,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    AssetUri, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
+    MESH_ATTRIBUTE_UV0, MeshAsset, MeshAttributeValues, MeshIndices, MeshValidationError,
 };
 use crate::core::framework::render::RenderMeshTopology;
 

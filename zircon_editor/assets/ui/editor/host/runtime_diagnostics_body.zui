@@ -11,19 +11,19 @@ node = "root"
 component = "VerticalGroup"
 control_id = "RuntimeDiagnosticsPaneBodyRoot"
 classes = ["editor-pane", "diagnostics-pane"]
-layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "header" }, { node = "reflector_nodes" }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "RuntimeDiagnosticsHeader"
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "summary" }, { node = "focus" }]
 
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusDiagnostics"
-props = { label = "Focus Diagnostics", icon = "editor_pages/console_profiler/diagnostics/watch.svg" }
+props = { label = "Focus Diagnostics", icon = "editor_pages/console_profiler/diagnostics/watch.svg", icon_placement = "icon_only" }
 layout = { width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "workbench.dock.focus_view" }]
 

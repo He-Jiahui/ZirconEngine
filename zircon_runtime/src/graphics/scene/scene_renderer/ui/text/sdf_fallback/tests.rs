@@ -5,6 +5,64 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 #[test]
+fn sdf_fallback_keeps_stable_frame_vectors_in_place_when_all_runs_are_renderable() {
+    let mut native_texts = vec![text_batch("Native")];
+    let mut sdf_texts = vec![text_batch("Stable")];
+    let mut native_decoration_metrics = vec![TextDecorationMetrics::default()];
+    let mut cpu_runs = vec![SdfRunCpuPreparation::default()];
+    let native_ptr = native_texts.as_ptr();
+    let sdf_ptr = sdf_texts.as_ptr();
+    let metrics_ptr = native_decoration_metrics.as_ptr();
+    let cpu_ptr = cpu_runs.as_ptr();
+
+    let report = apply_sdf_atlas_fallbacks_with_cpu_runs(
+        &mut native_texts,
+        &mut sdf_texts,
+        &[SdfAtlasRun::default()],
+        &mut cpu_runs,
+        &mut native_decoration_metrics,
+    );
+
+    assert_eq!(report, ScreenSpaceUiTextSdfFallbackReport::default());
+    assert_eq!(native_texts.as_ptr(), native_ptr);
+    assert_eq!(sdf_texts.as_ptr(), sdf_ptr);
+    assert_eq!(native_decoration_metrics.as_ptr(), metrics_ptr);
+    assert_eq!(cpu_runs.as_ptr(), cpu_ptr);
+}
+
+#[test]
+fn sdf_fallback_retains_cpu_artifacts_for_surviving_runs_without_reprepare() {
+    let mut native_texts = Vec::new();
+    let mut sdf_texts = vec![text_batch("Stable"), text_batch("Fallback")];
+    let mut native_decoration_metrics = Vec::new();
+    let mut cpu_runs = vec![
+        SdfRunCpuPreparation {
+            glyph_advances: vec![11.0],
+            ..Default::default()
+        },
+        SdfRunCpuPreparation {
+            glyph_advances: vec![22.0],
+            ..Default::default()
+        },
+    ];
+
+    let report = apply_sdf_atlas_fallbacks_with_cpu_runs(
+        &mut native_texts,
+        &mut sdf_texts,
+        &[SdfAtlasRun::default()],
+        &mut cpu_runs,
+        &mut native_decoration_metrics,
+    );
+
+    assert_eq!(report.whole_batch_fallback_text_batch_count, 1);
+    assert_eq!(sdf_texts.len(), 1);
+    assert_eq!(native_texts.len(), 1);
+    assert_eq!(cpu_runs.len(), 1);
+    assert_eq!(cpu_runs[0].glyph_advances, vec![11.0]);
+    assert_eq!(native_decoration_metrics.len(), 1);
+}
+
+#[test]
 fn sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend() {
     let native = text_batch("Native");
     let stable_sdf = text_batch("SdfOk");
@@ -519,12 +577,21 @@ fn sdf_atlas_generation_failure_uses_normal_native_overlay_path() {
 
 fn text_batch(text: &str) -> ScreenSpaceUiTextBatch {
     ScreenSpaceUiTextBatch {
+        route_identity:
+            crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextRouteIdentity::new(
+                "runtime.sdf-fallback.test",
+                zircon_runtime_interface::ui::event_ui::UiNodeId::new(1),
+                None,
+            ),
+        command_generation: 1,
         text: text.to_string(),
         frame: UiFrame::new(0.0, 0.0, 128.0, 24.0),
         clip_frame: None,
         source_range: None,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
+        preserve_shaped_glyphs: false,
+        glyph_artifact_line: None,
         layout_error: None,
         color: [1.0, 1.0, 1.0, 1.0],
         background_color: None,

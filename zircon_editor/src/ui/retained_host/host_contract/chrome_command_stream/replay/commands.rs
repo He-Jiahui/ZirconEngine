@@ -1,4 +1,4 @@
-use super::super::{ChromeCommand, ChromeCommandKind};
+use super::super::{ChromeCommand, ChromeCommandKind, ChromeCommandStream};
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_text::draw_text_with_size_and_style;
 
@@ -8,7 +8,11 @@ mod shapes;
 use images::paint_image_command;
 use shapes::{paint_border_command, paint_quad_command};
 
-pub(super) fn paint_chrome_command(frame: &mut HostRgbaFrame, command: &ChromeCommand) {
+pub(super) fn paint_chrome_command(
+    frame: &mut HostRgbaFrame,
+    stream: &ChromeCommandStream,
+    command: &ChromeCommand,
+) {
     match &command.kind {
         ChromeCommandKind::Quad {
             color,
@@ -35,7 +39,9 @@ pub(super) fn paint_chrome_command(frame: &mut HostRgbaFrame, command: &ChromeCo
             *line_height,
             *style,
         ),
-        ChromeCommandKind::Image { payload } => paint_image_command(frame, command, payload),
+        ChromeCommandKind::Image { payload } => {
+            paint_image_command(frame, stream, command, payload)
+        }
         ChromeCommandKind::Clip => {}
     }
 }

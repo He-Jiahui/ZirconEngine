@@ -1,4 +1,4 @@
-use crate::asset::{project::ProjectManager, AssetUri, SceneAsset};
+use crate::asset::{AssetUri, SceneAsset, project::ProjectManager};
 use crate::scene::dynamic_scene::{DynamicScene, DynamicSceneError, PreparedDynamicSceneSpawn};
 
 impl PreparedDynamicSceneSpawn {

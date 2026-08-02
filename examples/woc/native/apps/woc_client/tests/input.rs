@@ -1,3 +1,6 @@
+#[path = "preference_storage_support.rs"]
+mod preference_storage_support;
+
 #[path = "input/gamepad/bindings.rs"]
 mod gamepad_bindings;
 #[path = "input/gamepad/layout.rs"]

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 
@@ -224,8 +224,8 @@ impl Drop for PendingSubscription {
 mod tests {
     use std::sync::Arc;
 
-    use crate::core::EngineEvent;
     use crate::core::framework::events::EngineEventDeliveryPolicy;
+    use crate::core::EngineEvent;
 
     use super::super::EventBus;
 

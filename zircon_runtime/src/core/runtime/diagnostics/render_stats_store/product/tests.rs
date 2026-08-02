@@ -2,6 +2,7 @@ use crate::core::diagnostics::DiagnosticStore;
 
 mod camera_targets;
 mod mesh_gpu_scene;
+mod readback;
 mod ui;
 mod visibility_hzb_light;
 

@@ -56,8 +56,8 @@ WATCHER_ANCHORS = (
     "pub struct AssetWatcherOptions",
     "pub debounce: Duration",
     "options.debounce",
-    "recv(after(debounce)) -> _ => break",
-    "Ok(Err(error)) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error))",
+    "after(next_wakeup(now, started_at, last_event_at, options))",
+    "Err(error) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error))",
     "pub struct AssetWatchError",
     "watch_error_subscribers",
     "pub(in crate::asset::pipeline::manager) fn broadcast_watch_error",
@@ -65,6 +65,7 @@ WATCHER_ANCHORS = (
 
 ARTIFACT_CACHE_ANCHORS = (
     "mod cache_payload;",
+    "mod chunk_residency;",
     "mod json_value;",
     "mod mesh;",
     "mod scene;",
@@ -74,6 +75,8 @@ ARTIFACT_CACHE_ANCHORS = (
     "ArtifactCacheMeshAsset",
     "ArtifactCacheSceneScriptBindingAsset",
     "ArtifactCacheTomlValue",
+    "ArtifactChunkInventory",
+    "ArtifactChunkResidencyDiagnostics",
     "SceneScriptBindingAsset",
 )
 
@@ -99,6 +102,10 @@ RUNTIME_04_TEST_ANCHORS = (
     "artifact_store_roundtrips_scene_assets_with_camera_targets",
     "artifact_store_roundtrips_scene_assets_with_physics_components",
     "artifact_store_roundtrips_scene_assets_with_script_binding_json_values",
+    "artifact_store_rejects_raw_payload_over_read_budget_before_opening_chunks",
+    "artifact_store_lazily_resides_only_requested_compressed_chunks",
+    "artifact_store_rejects_a_corrupt_requested_chunk_without_residing_it",
+    "artifact_store_unpublished_prepared_generation_keeps_last_good_manifest",
     "asset_worker_pool_matches_runtime_04_and_11_decisions",
     "runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation",
     "runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts",
@@ -125,6 +132,10 @@ RUNTIME_04_BEHAVIOR_TEST_ANCHORS = (
     "artifact_store_roundtrips_scene_assets_with_camera_targets",
     "artifact_store_roundtrips_scene_assets_with_physics_components",
     "artifact_store_roundtrips_scene_assets_with_script_binding_json_values",
+    "artifact_store_rejects_raw_payload_over_read_budget_before_opening_chunks",
+    "artifact_store_lazily_resides_only_requested_compressed_chunks",
+    "artifact_store_rejects_a_corrupt_requested_chunk_without_residing_it",
+    "artifact_store_unpublished_prepared_generation_keeps_last_good_manifest",
 )
 
 MIRROR_DOCS_GUARD = "runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts"
@@ -141,7 +152,7 @@ RUNTIME_04_DOC_ANCHORS = (
     "hot_reload_transitions_through_reloading_state_and_emits_modified_event",
     "reload_failure_emits_reload_failed_event_and_lands_failed_state",
     "artifact_store_roundtrips_scene_assets_with",
-    "behavior_test_anchor_count = 20",
+    "behavior_test_anchor_count = 24",
     "missing_behavior_test_anchors = []",
     "retired_worker_request_sender_references = []",
     "watcher` 7/7",
@@ -151,8 +162,8 @@ RUNTIME_04_DOC_ANCHORS = (
 )
 
 CARGO_GATE_ANCHORS = (
-    "cargo test -p zircon_runtime --lib asset --locked",
-    "cargo test -p zircon_runtime --lib worker_pool --locked -- --nocapture",
-    "cargo test -p zircon_runtime --lib watcher --locked",
-    "cargo test -p zircon_runtime --lib artifact_store_roundtrips_scene_assets_with --locked",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter asset`",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter asset::",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter worker_pool",
+    r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter watch`",
 )

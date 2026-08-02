@@ -44,30 +44,6 @@ fn editor_ui_10_visual_style_owner_tree_is_hard_cut_over() {
     );
 }
 
-#[test]
-fn editor_ui_10_module_convention_mirror_docs_track_audit_entry() {
-    let module_doc = include_str!("../../../../docs/zircon_editor/structure/module-convention.md");
-    let plan = include_str!(
-        "../../../../docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md"
-    );
-
-    for (label, source) in [
-        ("module convention doc", module_doc),
-        ("Editor UI 10 plan", plan),
-    ] {
-        for expected in [
-            "audit_editor_structure.py --json",
-            "module_convention_gate",
-            "editor_ui_10_visual_style_owner_tree_is_hard_cut_over",
-        ] {
-            assert!(
-                source.contains(expected),
-                "{label} should mention `{expected}` for Editor UI 10 structure audit status"
-            );
-        }
-    }
-}
-
 fn editor_structure_audit() -> &'static Value {
     EDITOR_STRUCTURE_AUDIT.get_or_init(|| {
         let repo_root = repo_root();

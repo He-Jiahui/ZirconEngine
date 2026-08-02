@@ -5,11 +5,22 @@ edition.workspace = true
 license.workspace = true
 description = "glTF and GLB asset importer runtime plugin package for Zircon."
 
+[features]
+default = ["runtime"]
+declaration = ["zircon_plugin_sdk/declaration"]
+runtime = [
+    "declaration",
+    "dep:gltf",
+    "dep:serde_json",
+    "dep:zircon_runtime",
+    "zircon_plugin_sdk/runtime",
+]
+
 [dependencies]
-gltf = { version = "1.4.1", features = ["KHR_texture_transform", "extensions"] }
-serde_json = "1.0.149"
-zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
-zircon_runtime = { workspace = true }
+gltf = { version = "1.4.1", features = ["KHR_texture_transform", "extensions"], optional = true }
+serde_json = { version = "1.0.149", optional = true }
+zircon_plugin_sdk = { workspace = true, default-features = false }
+zircon_runtime = { workspace = true, optional = true }
 
 [dev-dependencies]
 toml = "1.1.2"

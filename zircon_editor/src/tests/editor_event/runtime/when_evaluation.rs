@@ -35,7 +35,7 @@ fn register_when_command(
         )
         .unwrap();
     runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register when command");
 }
 
@@ -285,7 +285,7 @@ fn remote_capability_failure_comes_from_effective_when() {
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap();
 
     let response = runtime

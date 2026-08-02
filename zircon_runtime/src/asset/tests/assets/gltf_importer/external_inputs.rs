@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 
 #[test]
 fn importer_decodes_gltf_external_texture_image() {
@@ -13,12 +13,16 @@ fn importer_decodes_gltf_external_texture_image() {
         .unwrap();
 
     let root_entry = outcome.root_entry().expect("root gltf entry");
-    assert!(root_entry
-        .dependencies
-        .contains(&label_uri(&root_uri, "Texture0")));
-    assert!(root_entry
-        .dependencies
-        .contains(&label_uri(&root_uri, "Material0")));
+    assert!(
+        root_entry
+            .dependencies
+            .contains(&label_uri(&root_uri, "Texture0"))
+    );
+    assert!(
+        root_entry
+            .dependencies
+            .contains(&label_uri(&root_uri, "Material0"))
+    );
 
     match &entry_for_locator(&outcome, &label_uri(&root_uri, "Texture0")).asset {
         ImportedAsset::Texture(texture) => {

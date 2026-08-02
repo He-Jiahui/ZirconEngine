@@ -1,6 +1,6 @@
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeEventV1, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1,
+    ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::{RuntimeEntryApp, RuntimeEntryAppConfig, RuntimeEntryAppFailureState};

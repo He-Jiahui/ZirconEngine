@@ -10,7 +10,8 @@ pub(crate) fn import_model(
     let mut model = ModelAsset::from_project_toml_str(&document, |reference| {
         context.resolve_project_asset_ref(reference)
     })?;
-    backfill_virtual_geometry_for_model(&mut model);
+    let virtual_geometry_request = context.virtual_geometry_cook_request()?;
+    backfill_virtual_geometry_for_model(&mut model, &virtual_geometry_request);
     Ok(
         model_outcome_with_mesh_subassets(context.uri.clone(), model)
             .with_reference_repairs(context.reference_repairs()),

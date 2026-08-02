@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 51);
 const expected = [
   [48, 'setLootMaster', 'party_loot_master', 10, 'u8_enabled+f64_le_looter+u8_threshold', 'setPartyLootMaster', ['enabled', 'looter', 'threshold'], 'partySetLootMaster', 'PARTY_SET_LOOT_MASTER_COMMAND_ID'],
   [50, 'setMarker', 'party_marker', 16, 'f64_le_entity_id+f64_le_marker_id', 'setMarker', ['id', 'marker'], 'partySetMarker', 'PARTY_SET_MARKER_COMMAND_ID'],
@@ -78,9 +78,9 @@ for (const intent of [
   assert.match(input, new RegExp(`\\b${intent}\\b`));
 }
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 148);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
+assert.equal(coverage.totals.source_shape_only_commands, 9);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('party command payload contracts are complete\n');

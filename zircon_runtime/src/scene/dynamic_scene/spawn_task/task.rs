@@ -1,11 +1,14 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{
+    Arc, Mutex, MutexGuard,
+    atomic::{AtomicBool, Ordering},
+};
 
-use crate::core::framework::tasks::{AsyncTaskDescriptor, AsyncTaskStatus};
 use crate::core::JobHandle;
+use crate::core::framework::tasks::{AsyncTaskDescriptor, AsyncTaskStatus};
 
 use super::super::DynamicSceneError;
-use super::prepared::PreparedDynamicSceneSpawn;
 use super::SpawnTaskResult;
+use super::prepared::PreparedDynamicSceneSpawn;
 
 /// Background scene-load/preparation task; world mutation stays on the caller thread.
 #[derive(Debug)]
@@ -14,6 +17,7 @@ pub struct DynamicSceneSpawnTask {
     pub(super) status: Arc<Mutex<AsyncTaskStatus>>,
     pub(super) completion: JobHandle,
     pub(super) result: Arc<Mutex<Option<SpawnTaskResult>>>,
+    pub(super) cancel_requested: Arc<AtomicBool>,
 }
 
 impl DynamicSceneSpawnTask {
@@ -39,18 +43,65 @@ impl DynamicSceneSpawnTask {
         self.completion.is_complete()
     }
 
+    pub fn request_cancel(&self) -> bool {
+        let status = lock_spawn_status(&self.status);
+        if status.is_terminal() {
+            return false;
+        }
+        if self.cancel_requested.swap(true, Ordering::AcqRel) {
+            return false;
+        }
+        lock_spawn_result(&self.result).take();
+        true
+    }
+
+    pub fn is_cancellation_requested(&self) -> bool {
+        self.cancel_requested.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn ready_estimated_bytes(&self) -> Option<usize> {
+        if !self.is_ready() {
+            return None;
+        }
+        lock_spawn_result(&self.result).as_ref().map(|result| {
+            result
+                .as_ref()
+                .map_or(0, |prepared| prepared.estimated_bytes())
+        })
+    }
+
     pub fn take_ready(&self) -> Option<Result<PreparedDynamicSceneSpawn, DynamicSceneError>> {
         if !self.is_ready() {
             return None;
         }
-        lock_spawn_result(&self.result).take()
+        if let Some(result) = lock_spawn_result(&self.result).take() {
+            return Some(result);
+        }
+        let label = self.descriptor.label.clone();
+        Some(if self.is_cancellation_requested() {
+            Err(DynamicSceneError::SpawnTaskCancelled { label })
+        } else {
+            Err(DynamicSceneError::SpawnTaskResultUnavailable { label })
+        })
     }
 
     pub fn wait_ready(self) -> Result<PreparedDynamicSceneSpawn, DynamicSceneError> {
         self.completion.wait();
-        let label = self.descriptor.label;
+        let label = self.descriptor.label.clone();
         let result = lock_spawn_result(&self.result).take();
-        result.unwrap_or_else(|| Err(DynamicSceneError::SpawnTaskResultUnavailable { label }))
+        result.unwrap_or_else(|| {
+            if self.is_cancellation_requested() {
+                Err(DynamicSceneError::SpawnTaskCancelled { label })
+            } else {
+                Err(DynamicSceneError::SpawnTaskResultUnavailable { label })
+            }
+        })
+    }
+}
+
+impl Drop for DynamicSceneSpawnTask {
+    fn drop(&mut self) {
+        self.request_cancel();
     }
 }
 
@@ -72,7 +123,7 @@ pub(super) fn lock_spawn_result(
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     use crate::core::framework::tasks::{AsyncTaskHandle, AsyncTaskState};
 

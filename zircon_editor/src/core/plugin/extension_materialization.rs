@@ -45,9 +45,9 @@ pub(super) fn build_editor_extensions<'a>(
                 &mut diagnostic_sequence,
             );
         }
-        for component_drawer in registration.extensions.component_drawers() {
+        for customization in registration.extensions.inspector_customizations() {
             push_editor_extension_result(
-                registry.register_component_drawer((*component_drawer).clone()),
+                registry.register_inspector_customization((*customization).clone()),
                 &mut diagnostics,
                 &mut diagnostic_sequence,
             );

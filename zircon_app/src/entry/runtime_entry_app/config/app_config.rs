@@ -120,11 +120,9 @@ mod tests {
         assert!(config.window_descriptor.visible);
         assert_eq!(config.event_loop_policy, EventLoopPolicy::Game);
         assert!(config.window_lifecycle_policy.should_close_on_request());
-        assert!(
-            config
-                .window_lifecycle_policy
-                .should_exit_after_primary_close()
-        );
+        assert!(config
+            .window_lifecycle_policy
+            .should_exit_after_primary_close());
         assert!(!config.exit_after_first_presented_frame());
     }
 
@@ -144,11 +142,9 @@ mod tests {
         let config = RuntimeEntryAppConfig::default().with_close_when_requested(false);
 
         assert!(!config.window_lifecycle_policy.close_when_requested);
-        assert!(
-            !config
-                .window_lifecycle_policy()
-                .should_exit_after_primary_close()
-        );
+        assert!(!config
+            .window_lifecycle_policy()
+            .should_exit_after_primary_close());
     }
 
     #[test]

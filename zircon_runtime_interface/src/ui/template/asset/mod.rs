@@ -20,12 +20,12 @@ pub use binding::{
     UiBindingTargetKind, UiBindingTargetSchema,
 };
 pub use compiler::{
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UiCompileCacheKey, UiCompiledAssetArtifact,
-    UiCompiledAssetCacheRecord, UiCompiledAssetDependency, UiCompiledAssetDependencyManifest,
-    UiCompiledAssetHeader, UiCompiledAssetPackageArtifactEntry, UiCompiledAssetPackageManifest,
+    UiCompileCacheKey, UiCompiledAssetArtifact, UiCompiledAssetCacheRecord,
+    UiCompiledAssetDependency, UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
+    UiCompiledAssetPackageArtifactEntry, UiCompiledAssetPackageManifest,
     UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
-    UiCompiledAssetPackageValidationReport,
+    UiCompiledAssetPackageValidationReport, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
 };
 pub use component_contract::{
     UiComponentApiVersion, UiComponentBindingContract, UiComponentContractDiagnostic,
@@ -33,10 +33,10 @@ pub use component_contract::{
     UiPublicBindingRoute, UiPublicPart, UiRootClassPolicy,
 };
 pub use document::{
-    UiActionRef, UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetKind,
-    UiChildMount, UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema,
-    UiNodeDefinition, UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleRule, UiStyleScope,
-    UiStyleSheet,
+    parse_component_reference, UiActionRef, UiAssetDocument, UiAssetError, UiAssetHeader,
+    UiAssetImports, UiAssetKind, UiChildMount, UiComponentDefinition, UiComponentParamSchema,
+    UiNamedSlotSchema, UiNodeDefinition, UiNodeDefinitionKind, UiStyleDeclarationBlock,
+    UiStyleRule, UiStyleScope, UiStyleSheet,
 };
 pub use invalidation::{
     UiAssetChange, UiAssetFingerprint, UiInvalidationDiagnostic, UiInvalidationDiagnosticSeverity,
@@ -56,9 +56,9 @@ pub use resource_ref::{
     UiResourceFallbackPolicy, UiResourceKind, UiResourceRef,
 };
 pub use schema::{
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
     UiAssetMigrationOutcome, UiAssetMigrationReport, UiAssetMigrationStep, UiAssetSchemaDiagnostic,
     UiAssetSchemaDiagnosticSeverity, UiAssetSchemaSourceKind, UiAssetSchemaVersionPolicy,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
 };
 pub use style::{
     UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorSpecificity, UiSelectorToken,

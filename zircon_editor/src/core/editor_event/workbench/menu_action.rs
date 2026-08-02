@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use zircon_runtime::scene::components::NodeKind;
 
-use super::ViewDescriptorId;
+use crate::core::play::PlayKind;
+
+use super::{ConsoleMessageFilter, ViewDescriptorId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MenuAction {
@@ -12,6 +14,9 @@ pub enum MenuAction {
     CloseProject,
     SaveLayout,
     ResetLayout,
+    ClearConsole,
+    SetConsoleMessageFilter(ConsoleMessageFilter),
+    SelectPlayMode(PlayKind),
     EnterPlayMode,
     ExitPlayMode,
     Undo,

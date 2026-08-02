@@ -1,5 +1,4 @@
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::write_error;
 
 use super::super::RuntimeEntryApp;
 use super::routing::apply_runtime_host_request;
@@ -12,9 +11,11 @@ impl RuntimeEntryApp {
         let requests = match self.session.drain_host_requests() {
             Ok(requests) => requests,
             Err(error) => {
-                write_error(
+                self.report_fatal_failure(
                     "runtime_host_request",
-                    format!("runtime_host_request_drain_failed error={error}"),
+                    "drain_pending_requests",
+                    format!("runtime host request drain failed: {error}"),
+                    "verify the runtime library ABI and host-request queue, then restart zircon_runtime",
                 );
                 event_loop.exit();
                 return false;

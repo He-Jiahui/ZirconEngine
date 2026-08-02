@@ -7,7 +7,7 @@ pub(crate) fn build_draw_commands(
 ) -> (Vec<EntityId>, Vec<VisibilityDrawCommand>) {
     let visible_instance_count = visible_batches
         .iter()
-        .map(|batch| batch.entities.len())
+        .map(|batch| batch.stable_instance_keys.len())
         .sum();
     let mut visible_instances = Vec::with_capacity(visible_instance_count);
     let mut draw_commands = Vec::with_capacity(visible_batches.len());
@@ -15,9 +15,9 @@ pub(crate) fn build_draw_commands(
     for batch in visible_batches {
         let visible_instance_offset = u32::try_from(visible_instances.len())
             .expect("visible instance count should fit in u32");
-        let visible_instance_count =
-            u32::try_from(batch.entities.len()).expect("batch instance count should fit in u32");
-        visible_instances.extend(batch.entities.iter().copied());
+        let visible_instance_count = u32::try_from(batch.stable_instance_keys.len())
+            .expect("batch instance count should fit in u32");
+        visible_instances.extend(batch.stable_instance_keys.iter().copied());
         draw_commands.push(VisibilityDrawCommand {
             key: batch.key.clone(),
             visible_instance_offset,

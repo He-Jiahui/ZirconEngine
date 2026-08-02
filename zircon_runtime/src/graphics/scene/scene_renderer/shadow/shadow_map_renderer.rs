@@ -4,14 +4,14 @@ use bytemuck::bytes_of;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{Mat4, is_finite_mat4};
+use crate::core::math::{is_finite_mat4, Mat4};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
     MeshSceneDataBindHandle,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::primitives::{SceneEnvironmentSh9, SceneUniform};
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
@@ -393,6 +393,7 @@ fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
         sky_sun_params: [0.0, 0.0, 0.0, 0.0],
         environment_params: [0.0, 0.0, 0.0, 0.0],
         environment_sample_params: [0.0, 0.0, 0.0, 0.0],
+        environment_rotation_sin_cos: [0.0, 1.0, 0.0, 0.0],
     }
 }
 
@@ -471,9 +472,7 @@ mod tests {
         let source = include_str!("shadow_map_renderer.rs");
 
         assert!(source.contains("create_forward_shadow_receiver_bind_group"));
-        assert!(
-            source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])")
-        );
+        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
         assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
     }
 

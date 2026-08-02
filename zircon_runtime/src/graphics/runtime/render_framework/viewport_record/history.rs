@@ -1,6 +1,6 @@
 use crate::graphics::runtime::ViewportFrameHistory;
 
-use super::{ViewportCameraHistoryKey, viewport_record::ViewportRecord};
+use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn history(
@@ -39,9 +39,9 @@ mod tests {
         RenderViewportDescriptor, RenderViewportRect, ViewportCameraSnapshot,
     };
     use crate::core::math::UVec2;
-    use crate::graphics::VisibilityHistorySnapshot;
     use crate::graphics::runtime::{FrameHistoryValidationKey, ViewportFrameHistory};
     use crate::graphics::visibility::VisibilityStaticIndex;
+    use crate::graphics::VisibilityHistorySnapshot;
 
     use super::super::camera_history_key::ViewportCameraHistoryKey;
     use super::ViewportRecord;
@@ -90,6 +90,7 @@ mod tests {
             Vec::new(),
             VisibilityHistorySnapshot::default(),
             static_index,
+            VisibilityStaticIndex::default(),
             std::sync::Arc::new(FrameHistoryValidationKey::default()),
         )
     }

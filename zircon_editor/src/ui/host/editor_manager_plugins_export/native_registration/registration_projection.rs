@@ -1,11 +1,11 @@
 use zircon_runtime::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
 use crate::core::editor_extension::EditorExtensionRegistry;
-use crate::core::plugin::EditorPluginRegistrationReport;
 use crate::core::plugin::sdk::lifecycle::{
     EditorPluginLifecycleEvent, EditorPluginLifecycleRecord, EditorPluginLifecycleReport,
     EditorPluginLifecycleStage,
 };
+use crate::core::plugin::EditorPluginRegistrationReport;
 
 use super::super::package_projection::editor_capabilities_for_package;
 

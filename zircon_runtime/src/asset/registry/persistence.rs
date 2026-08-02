@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::foundation::persistence::atomic_file::{atomic_write_with_fault, AtomicWriteFault};
+use crate::core::resource::io::atomic_file::{AtomicWriteFault, atomic_write_with_fault};
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError, AssetRegistryIndex};
 

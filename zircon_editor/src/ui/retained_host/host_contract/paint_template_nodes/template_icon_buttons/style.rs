@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{
-    select_workbench_icon_button_style, WorkbenchIconButtonContext, WorkbenchIconButtonStyle,
+    WorkbenchIconButtonContext, WorkbenchIconButtonStyle, select_workbench_icon_button_style,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) type IconButtonContext =

@@ -62,6 +62,30 @@ fn wrapping_source_has_no_production_growing_prefix_candidate() {
 }
 
 #[test]
+fn source_segmentation_preserves_all_mandatory_unicode_breaks() {
+    let segments = split_preserving_hard_lines("a\r\nb\u{2028}c", 10);
+
+    assert_eq!(
+        segments
+            .iter()
+            .map(|segment| (
+                segment.text,
+                segment.range.start,
+                segment.range.end,
+                segment.hard_break
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            ("a", 10, 11, false),
+            ("\r\n", 11, 13, true),
+            ("b", 13, 14, false),
+            ("\u{2028}", 14, 17, true),
+            ("c", 17, 18, false),
+        ]
+    );
+}
+
+#[test]
 fn word_wrap_boundary_cache_misses_remain_linear_at_scale() {
     for token_count in [1_usize, 100, 1_000] {
         let source = (0..token_count)

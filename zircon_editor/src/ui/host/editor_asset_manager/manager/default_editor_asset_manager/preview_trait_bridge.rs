@@ -7,7 +7,7 @@ use super::super::super::{
     EditorAssetManager,
 };
 use super::{
-    DefaultEditorAssetManager, editor_asset_error::editor_asset_error, parse_uuid::parse_uuid,
+    editor_asset_error::editor_asset_error, parse_uuid::parse_uuid, DefaultEditorAssetManager,
 };
 impl EditorAssetManager for DefaultEditorAssetManager {
     fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {

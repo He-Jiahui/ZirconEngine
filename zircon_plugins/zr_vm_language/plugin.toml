@@ -1,4 +1,4 @@
-# @generated from Rust descriptor package_manifest(); do not edit by hand.
+# @generated from Rust PluginDeclaration; do not edit by hand.
 id = "zr_vm_language"
 version = "0.1.0"
 sdk_api_version = "0.2.0"
@@ -39,6 +39,7 @@ kind = "runtime"
 crate_name = "zircon_plugin_zr_vm_language_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.zr_vm_language", "runtime.script.backend.zr_vm_project"]
+system_sets = ["zr_vm_language.main"]
 system_anchors = ["zr_vm_language.script.behavior_bridge.bind", "zr_vm_language.systems.fixed_update", "zr_vm_language.systems.update", "zr_vm_language.systems.last", "zr_vm_language.script.gc_step"]
 
 [[modules]]

@@ -64,6 +64,7 @@ impl ShaderFeatureBits {
     pub const PBR_ANISOTROPY: u32 = 1 << 7;
     pub const PBR_TRANSMISSION: u32 = 1 << 8;
     pub const VOLUMETRIC_FOG: u32 = 1 << 9;
+    pub const ENVIRONMENT_ONLY_PBR: u32 = 1 << 10;
 
     pub const fn new(bits: u32) -> Self {
         Self(bits)
@@ -224,6 +225,7 @@ mod tests {
         assert!(features.contains(ShaderFeatureBits::ALPHA_TEST));
         assert!(features.contains(ShaderFeatureBits::INSTANCED_PREV_TRANSFORM));
         assert!(!features.contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+        assert!(!features.contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
     }
 
     #[test]

@@ -60,7 +60,8 @@ fn derived_state_rebuilds_use_single_hierarchy_traversal_index() {
         "world matrix propagation must reuse the traversal index instead of scanning children at each node"
     );
     assert!(
-        traversal_index.contains("HierarchyTraversalIndex::with_entity_capacity(self.entities.len())")
+        traversal_index
+            .contains("HierarchyTraversalIndex::with_entity_capacity(self.entities.len())")
             && traversal_index.contains("for entity in self.entities.iter().copied()")
             && traversal_index.contains("if let Some(parent) = self.parent_of(entity)")
             && traversal_index.contains("index.push_child(parent, entity);")

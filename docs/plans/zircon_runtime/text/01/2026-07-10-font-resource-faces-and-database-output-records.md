@@ -1,7 +1,6 @@
 ---
 related_code:
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
-  - zircon_runtime/src/text/model/font/composite.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/instance.rs

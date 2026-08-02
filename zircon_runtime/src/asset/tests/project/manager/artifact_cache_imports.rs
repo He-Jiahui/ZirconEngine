@@ -51,14 +51,18 @@ fn project_manager_scans_assets_imports_artifact_cache_and_loads_artifacts() {
 
     assert_eq!(manager.manifest().name, "Sandbox");
     assert!(imported.len() >= 5);
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://models/triangle.obj").unwrap())
-        .is_some());
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
-        .is_some());
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://models/triangle.obj").unwrap())
+            .is_some()
+    );
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
+            .is_some()
+    );
 
     let model = manager
         .load_artifact(&AssetUri::parse("res://models/triangle.obj").unwrap())
@@ -173,24 +177,32 @@ fn project_manager_imports_physics_and_animation_assets_into_runtime_artifact_ca
     let imported = manager.scan_and_import().unwrap();
 
     assert!(imported.len() >= 6);
-    assert!(manager
-        .registry()
-        .get_by_locator(
-            &AssetUri::parse("res://physics/materials/default.physics_material.toml").unwrap()
-        )
-        .is_some());
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://animation/hero.sequence.zranim").unwrap())
-        .is_some());
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://animation/hero.graph.zranim").unwrap())
-        .is_some());
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://animation/hero.state_machine.zranim").unwrap())
-        .is_some());
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(
+                &AssetUri::parse("res://physics/materials/default.physics_material.toml").unwrap()
+            )
+            .is_some()
+    );
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://animation/hero.sequence.zranim").unwrap())
+            .is_some()
+    );
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://animation/hero.graph.zranim").unwrap())
+            .is_some()
+    );
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://animation/hero.state_machine.zranim").unwrap())
+            .is_some()
+    );
 
     let physics_material = manager
         .load_artifact(
@@ -230,36 +242,48 @@ fn project_manager_imports_physics_and_animation_assets_into_runtime_artifact_ca
             .unwrap(),
     );
 
-    assert!(paths
-        .asset_artifact_root()
-        .join("physics")
-        .join("materials")
-        .is_dir());
-    assert!(paths
-        .asset_artifact_root()
-        .join("animation")
-        .join("skeletons")
-        .is_dir());
-    assert!(paths
-        .asset_artifact_root()
-        .join("animation")
-        .join("clips")
-        .is_dir());
-    assert!(paths
-        .asset_artifact_root()
-        .join("animation")
-        .join("sequences")
-        .is_dir());
-    assert!(paths
-        .asset_artifact_root()
-        .join("animation")
-        .join("graphs")
-        .is_dir());
-    assert!(paths
-        .asset_artifact_root()
-        .join("animation")
-        .join("state_machines")
-        .is_dir());
+    assert!(
+        paths
+            .asset_artifact_root()
+            .join("physics")
+            .join("materials")
+            .is_dir()
+    );
+    assert!(
+        paths
+            .asset_artifact_root()
+            .join("animation")
+            .join("skeletons")
+            .is_dir()
+    );
+    assert!(
+        paths
+            .asset_artifact_root()
+            .join("animation")
+            .join("clips")
+            .is_dir()
+    );
+    assert!(
+        paths
+            .asset_artifact_root()
+            .join("animation")
+            .join("sequences")
+            .is_dir()
+    );
+    assert!(
+        paths
+            .asset_artifact_root()
+            .join("animation")
+            .join("graphs")
+            .is_dir()
+    );
+    assert!(
+        paths
+            .asset_artifact_root()
+            .join("animation")
+            .join("state_machines")
+            .is_dir()
+    );
 
     let physics_meta = AssetMetaDocument::load(
         paths
@@ -304,10 +328,12 @@ fn project_manager_imports_sound_assets_into_runtime_artifact_cache() {
     let imported = manager.scan_and_import().unwrap();
 
     assert_eq!(imported.len(), 1);
-    assert!(manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://audio/ping.wav").unwrap())
-        .is_some());
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://audio/ping.wav").unwrap())
+            .is_some()
+    );
 
     let sound = manager
         .load_artifact(&AssetUri::parse("res://audio/ping.wav").unwrap())

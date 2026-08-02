@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use crate::core::framework::render::{PrimitiveRelevance, render_mesh_stable_instance_key};
+use crate::core::framework::render::PrimitiveRelevance;
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::gpu_scene::{GpuScene, GpuSceneUploadReport};
 use crate::graphics::scene::resources::{
@@ -18,25 +18,25 @@ use super::super::super::mesh_draw::{
 };
 use super::super::super::mesh_pass::MeshPassCommandBuffers;
 use super::super::super::prepared_queue::{
-    PreparedMeshQueueStats, summarize_prepared_mesh_queue_items,
+    summarize_prepared_mesh_queue_items, PreparedMeshQueueStats,
 };
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
 use super::geometry_source_selection::{
-    PendingMeshSourceSelection, pending_draw_has_enabled_skinned_gpu_source,
-    pending_mesh_draw_geometry_source, pending_mesh_source_selection,
+    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_geometry_source,
+    pending_mesh_source_selection, PendingMeshSourceSelection,
 };
-use super::gpu_scene_sync::{SyncedGpuSceneEntry, sync_gpu_scene_pending_draws};
+use super::gpu_scene_sync::{sync_gpu_scene_pending_draws, SyncedGpuSceneEntry};
 use super::morph_payload_upload::upload_morph_payloads;
 use super::pending_command_cache_extract::{
-    PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
-    PendingMeshDrawRemainder, extract_pending_static_mesh_command_cache_hits,
+    extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
+    PendingMeshCommandCacheExtractionStats, PendingMeshDrawRemainder,
 };
 use super::pending_command_cache_plan::{
-    PendingMeshCommandCachePlanStats, PendingMeshCommandCacheVisibility,
-    summarize_pending_mesh_command_cache_plan,
+    summarize_pending_mesh_command_cache_plan, PendingMeshCommandCachePlanStats,
+    PendingMeshCommandCacheVisibility,
 };
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::phase_ordering::phase_ordered_meshes;
@@ -118,7 +118,7 @@ impl BuiltMeshDraws {
 pub(crate) fn build_mesh_draws(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    _encoder: &mut wgpu::CommandEncoder,
+    encoder: &mut wgpu::CommandEncoder,
     material_texture_layout: &wgpu::BindGroupLayout,
     gpu_scene: &mut GpuScene,
     streamer: &ResourceStreamer,
@@ -171,6 +171,7 @@ pub(crate) fn build_mesh_draws(
     let (gpu_scene_upload_report, gpu_scene_entries) = sync_gpu_scene_pending_draws(
         device,
         queue,
+        encoder,
         gpu_scene,
         &mut pending_draws,
         frame.environment().baked_lighting(),
@@ -180,9 +181,9 @@ pub(crate) fn build_mesh_draws(
         .with_additional_uploaded_bytes(morph_upload_report.uploaded_bytes);
     let visibility_states = mesh_visibility_states(frame);
     let pending_command_cache_plan_stats =
-        summarize_pending_mesh_command_cache_plan(&pending_draws, |entity| {
+        summarize_pending_mesh_command_cache_plan(&pending_draws, |stable_instance_key| {
             visibility_states
-                .get(&entity)
+                .get(&stable_instance_key)
                 .copied()
                 .map(PendingMeshCommandCacheVisibility::from)
         });
@@ -206,15 +207,15 @@ pub(crate) fn build_mesh_draws(
         if let Some(command_cache_extraction) = command_cache_extraction {
             let extraction = extract_pending_static_mesh_command_cache_hits(
                 pending_draws,
-                |entity| {
+                |stable_instance_key| {
                     visibility_states
-                        .get(&entity)
+                        .get(&stable_instance_key)
                         .copied()
                         .map(PendingMeshCommandCacheVisibility::from)
                 },
-                |entity, draw_ordinal| {
+                |stable_instance_key| {
                     gpu_scene_entries
-                        .get(&render_mesh_stable_instance_key(entity, draw_ordinal))
+                        .get(&stable_instance_key)
                         .map(|entry| (entry.entry.first_instance_index, entry.entry.instance_count))
                 },
                 command_cache_extraction,
@@ -276,10 +277,7 @@ pub(crate) fn build_mesh_draws(
                     submission_detail,
                     pending_draw,
                 )| {
-                    let stable_instance_key = render_mesh_stable_instance_key(
-                        pending_draw.source_entity,
-                        pending_draw.source_draw_ordinal,
-                    );
+                    let stable_instance_key = pending_draw.stable_instance_key;
                     let synced_gpu_scene_entry = *gpu_scene_entries
                         .get(&stable_instance_key)
                         .expect("pending mesh draw must have a synchronized GPUScene entry");
@@ -360,6 +358,7 @@ pub(crate) fn build_mesh_draws(
                         geometry_source,
                         pending_draw.mobility,
                         pending_draw.source_entity,
+                        stable_instance_key,
                         pending_draw.source_draw_ordinal,
                         pending_draw.static_state,
                         pending_draw.material_textures,
@@ -390,7 +389,7 @@ pub(crate) fn build_mesh_draws(
                     )
                     .with_command_sort_input(pending_draw.command_sort_input);
                     if let Some(visibility) =
-                        visibility_states.get(&pending_draw.source_entity).copied()
+                        visibility_states.get(&stable_instance_key).copied()
                     {
                         mesh_draw = mesh_draw.with_visibility(
                             visibility.relevance,
@@ -460,10 +459,7 @@ fn prepared_mesh_queue_stats_for_pending_draws(
         let skinned_gpu_skinning_enabled =
             pending_draw_has_enabled_skinned_gpu_source(pending_draw);
         let has_previous_velocity_transform = gpu_scene_entries
-            .get(&render_mesh_stable_instance_key(
-                pending_draw.source_entity,
-                pending_draw.source_draw_ordinal,
-            ))
+            .get(&pending_draw.stable_instance_key)
             .map(|entry| {
                 entry.has_previous_velocity_transform
                     && (!skinned_gpu_skinning_enabled
@@ -549,7 +545,11 @@ fn material_uniform_override_signature(
         unsupported.reason.hash(&mut hasher);
     }
     let hash = hasher.finish();
-    if hash == 0 { 1 } else { hash }
+    if hash == 0 {
+        1
+    } else {
+        hash
+    }
 }
 
 fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDraw) -> usize {
@@ -560,7 +560,7 @@ fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDra
         PendingMeshGeometry::Prepared(mesh) => Arc::as_ptr(mesh) as usize,
         PendingMeshGeometry::GpuMorphed(mesh) => Arc::as_ptr(mesh) as usize,
         PendingMeshGeometry::Dynamic(_) | PendingMeshGeometry::CpuMorphed(_) => {
-            (pending_draw.source_entity as usize).wrapping_mul(31)
+            (pending_draw.stable_instance_key as usize).wrapping_mul(31)
                 ^ pending_draw.source_draw_ordinal as usize
         }
     }
@@ -573,7 +573,7 @@ fn material_texture_identity(
     select(textures).identity()
 }
 
-fn mesh_visibility_states(frame: &ViewportRenderFrame) -> HashMap<EntityId, MeshVisibilityState> {
+fn mesh_visibility_states(frame: &ViewportRenderFrame) -> HashMap<u64, MeshVisibilityState> {
     let Some(frame_visibility) = frame.frame_visibility() else {
         return HashMap::new();
     };
@@ -588,11 +588,17 @@ fn mesh_visibility_states(frame: &ViewportRenderFrame) -> HashMap<EntityId, Mesh
         .collect::<HashSet<_>>();
     let has_shadow_views = !shadow_views.is_empty();
 
+    debug_assert_eq!(
+        frame_visibility.entities.len(),
+        frame_visibility.stable_instance_keys.len(),
+        "frame visibility owner and stable-key arrays must stay aligned"
+    );
+
     frame_visibility
-        .entities
+        .stable_instance_keys
         .iter()
         .enumerate()
-        .map(|(index, entity)| {
+        .map(|(index, stable_instance_key)| {
             let index =
                 u32::try_from(index).expect("frame visibility primitive index exceeds u32 range");
             let relevance = frame_visibility
@@ -601,7 +607,7 @@ fn mesh_visibility_states(frame: &ViewportRenderFrame) -> HashMap<EntityId, Mesh
                 .copied()
                 .unwrap_or_default();
             (
-                *entity,
+                *stable_instance_key,
                 MeshVisibilityState {
                     relevance,
                     main_view_visible: main_visible_indices.contains(&index),
@@ -667,16 +673,19 @@ mod tests {
         RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
         ViewportCameraSnapshot,
     };
+    use crate::core::framework::render::render_mesh_stable_instance_key;
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{UVec2, Vec4};
-    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::visibility::{
         FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
         VisibilityViewKey,
     };
+    use crate::graphics::ViewportRenderFrame;
 
     #[test]
-    fn mesh_visibility_states_preserve_shadow_only_casters() {
+    fn mesh_visibility_states_keep_sibling_primitives_independent() {
+        let main_visible_stable_instance_key = render_mesh_stable_instance_key(1, 0);
+        let shadow_visible_stable_instance_key = render_mesh_stable_instance_key(1, 1);
         let frame = ViewportRenderFrame::from_extract(
             RenderFrameExtract::from_snapshot(
                 RenderWorldSnapshotHandle::new(11),
@@ -704,7 +713,11 @@ mod tests {
             UVec2::new(320, 240),
         )
         .with_frame_visibility(FrameVisibility {
-            entities: vec![1, 2],
+            entities: vec![1, 1],
+            stable_instance_keys: vec![
+                main_visible_stable_instance_key,
+                shadow_visible_stable_instance_key,
+            ],
             bounds: vec![
                 VisibilityBounds {
                     center: crate::core::math::Vec3::new(0.0, 0.0, -5.0),
@@ -742,11 +755,16 @@ mod tests {
 
         let states = super::mesh_visibility_states(&frame);
 
-        let main_receiver = states.get(&1).expect("main-view receiver state");
+        assert_eq!(states.len(), 2);
+        let main_receiver = states
+            .get(&main_visible_stable_instance_key)
+            .expect("main-view receiver state");
         assert!(main_receiver.main_view_visible);
         assert!(!main_receiver.shadow_view_visible);
 
-        let shadow_only_caster = states.get(&2).expect("shadow-only caster state");
+        let shadow_only_caster = states
+            .get(&shadow_visible_stable_instance_key)
+            .expect("shadow-only caster state");
         assert!(!shadow_only_caster.main_view_visible);
         assert!(shadow_only_caster.shadow_view_visible);
         assert!(shadow_only_caster.relevance.shadow_caster());

@@ -1,9 +1,9 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventSource, EditorEventTransient, MenuAction,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
-use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
 use crate::ui::host::EditorManager;
+use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -260,16 +260,17 @@ fn reflection_component_adapter_updates_selected_entity_translation_vector() {
 }
 
 #[test]
-fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn inspector_customization_adapter_invokes_only_enabled_declared_operation_bindings() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_ui_component_drawer_adapter_operation");
+    let harness = EventRuntimeHarness::new("zircon_ui_inspector_customization_adapter_operation");
     let component_type = "weather.Component.CloudLayer";
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 component_type,
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -281,8 +282,8 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
         .unwrap();
     harness
         .runtime
-        .register_editor_extension(extension)
-        .expect("component drawer extension should register");
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
+        .expect("inspector customization extension should register");
 
     let before = harness.runtime.editor_snapshot().scene_entries.len();
     let result = harness
@@ -291,7 +292,7 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
             component_type,
             "scene.node.create_cube",
         ))
-        .expect("declared component drawer operation should dispatch through host");
+        .expect("declared inspector customization operation should dispatch through host");
 
     assert!(result.changed);
     assert_eq!(result.mutation_source.as_deref(), Some("component_drawer"));
@@ -316,22 +317,23 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
         UiComponentAdapterError::RejectedInput {
             domain: "component_drawer".to_string(),
             path: "window.layout.reset".to_string(),
-            reason: "operation is not declared by the enabled component drawer".to_string(),
+            reason: "operation is not declared by the enabled inspector customization".to_string(),
         }
     );
 }
 
 #[test]
-fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn inspector_customization_adapter_accepts_safe_action_events_beyond_press() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_ui_component_drawer_adapter_safe_events");
+    let harness = EventRuntimeHarness::new("zircon_ui_inspector_customization_adapter_safe_events");
     let component_type = "weather.Component.CloudLayer";
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 component_type,
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -341,8 +343,8 @@ fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
         .unwrap();
     harness
         .runtime
-        .register_editor_extension(extension)
-        .expect("component drawer extension should register");
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
+        .expect("inspector customization extension should register");
 
     let before = harness.runtime.editor_snapshot().scene_entries.len();
     let result = harness
@@ -355,7 +357,7 @@ fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
                 value: UiValue::String("apply".to_string()),
             },
         ))
-        .expect("commit should dispatch as a safe component drawer action");
+        .expect("commit should dispatch as a safe inspector customization action");
 
     assert!(result.changed);
     assert_eq!(
@@ -463,9 +465,11 @@ fn command_component_adapter_dispatches_palette_open_command() {
         record.event,
         EditorEvent::Transient(EditorEventTransient::OpenCommandPalette)
     );
-    assert!(record
-        .effects
-        .contains(&EditorEventEffect::CommandPaletteOpenRequested));
+    assert!(
+        record
+            .effects
+            .contains(&EditorEventEffect::CommandPaletteOpenRequested)
+    );
 }
 
 #[test]
@@ -688,10 +692,12 @@ fn editor_component_adapter_registry_advertises_reflection_and_asset_editor_sour
         .iter()
         .find(|source| source.domain == "reflection" && source.source_name == "component")
         .expect("component reflection source should be advertised");
-    assert!(component_reflection
-        .fields
-        .iter()
-        .any(|field| field.path == "transform.translation" && field.writable));
+    assert!(
+        component_reflection
+            .fields
+            .iter()
+            .any(|field| field.path == "transform.translation" && field.writable)
+    );
     assert!(component_reflection.fields.iter().any(|field| {
         field.path == "transform.translation.x"
             && field.writable
@@ -719,14 +725,18 @@ fn editor_component_adapter_registry_advertises_reflection_and_asset_editor_sour
         .iter()
         .find(|source| source.domain == "asset_editor" && source.source_name == "widget")
         .expect("widget asset editor source should be advertised");
-    assert!(widget_source
-        .fields
-        .iter()
-        .any(|field| field.path == "widget.text" && field.writable));
-    assert!(widget_source
-        .fields
-        .iter()
-        .any(|field| { field.path == "component.root_class_policy" && field.writable }));
+    assert!(
+        widget_source
+            .fields
+            .iter()
+            .any(|field| field.path == "widget.text" && field.writable)
+    );
+    assert!(
+        widget_source
+            .fields
+            .iter()
+            .any(|field| { field.path == "component.root_class_policy" && field.writable })
+    );
 }
 
 #[test]
@@ -735,12 +745,16 @@ fn editor_event_runtime_exposes_component_data_sources() {
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_data_sources");
     let sources = harness.runtime.ui_component_data_sources();
 
-    assert!(sources
-        .iter()
-        .any(|source| source.domain == "reflection" && source.source_name == "component"));
-    assert!(sources
-        .iter()
-        .any(|source| source.domain == "asset_editor" && source.source_name == "binding"));
+    assert!(
+        sources
+            .iter()
+            .any(|source| source.domain == "reflection" && source.source_name == "component")
+    );
+    assert!(
+        sources
+            .iter()
+            .any(|source| source.domain == "asset_editor" && source.source_name == "binding")
+    );
 }
 
 #[test]
@@ -890,9 +904,11 @@ fn asset_editor_component_adapter_updates_selected_component_root_class_policy()
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
         .expect("child widget should be selected");
-    assert!(manager
-        .extract_ui_asset_editor_selected_node_to_component(&instance_id)
-        .expect("extract selected node to component"));
+    assert!(
+        manager
+            .extract_ui_asset_editor_selected_node_to_component(&instance_id)
+            .expect("extract selected node to component")
+    );
 
     let envelope = UiComponentEventEnvelope::new(
         "ui_asset.component_root_class_policy",

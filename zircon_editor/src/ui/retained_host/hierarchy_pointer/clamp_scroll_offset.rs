@@ -4,7 +4,7 @@ use super::viewport_frame::viewport_frame;
 
 impl HierarchyPointerBridge {
     pub(super) fn clamp_scroll_offset(&mut self) {
-        let max_offset = (content_height(self.layout.node_ids.len())
+        let max_offset = (content_height(self.layout.node_ids.len(), self.row_metrics)
             - viewport_frame(&self.layout).height)
             .max(0.0);
         self.state.scroll_offset = self.state.scroll_offset.clamp(0.0, max_offset);

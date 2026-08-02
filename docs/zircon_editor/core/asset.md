@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/core/asset/
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_authoring_extension.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/extension_materialization.rs
   - zircon_editor/src/ui/host/editor_asset_manager/
   - zircon_editor/src/ui/layouts/views/asset_browser/
 implementation_files:

@@ -1,14 +1,12 @@
-use std::collections::BTreeMap;
-
 use crate::core::editor_event::{EditorEventEffect, ViewInstanceId};
-use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
 use crate::core::editor_message::{
     EditorMessage, EditorTopic, EditorViewInvalidationMask, EditorViewRefreshReport,
 };
+use crate::core::extension::{CapabilitySet, FieldEditorContainer, InspectorCustomizationChain};
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use crate::ui::control::EditorUiControlService;
-use crate::ui::host::EditorHostEventController;
 use crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reflection::{
     activity_descriptors_from_views, apply_transient_projection, build_workbench_reflection_model,
@@ -44,12 +42,16 @@ impl EditorHostEventController {
         register_activity_descriptors(&mut shell.control_service, views, windows);
 
         let chrome = Self::build_chrome_for_shell(shell, descriptors);
-        let active_extensions = active_extension_registries(shell);
         let enabled_capabilities = shell
             .manager
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
+        let contribution_capabilities = enabled_capabilities
+            .iter()
+            .cloned()
+            .collect::<CapabilitySet>();
+        let contributions = shell.contributions.snapshot();
         shell
             .state
             .viewport_controller
@@ -62,10 +64,11 @@ impl EditorHostEventController {
                 enabled_capabilities.clone(),
             ));
         command_eval.replace(eval_context.clone());
-        let view_model = WorkbenchViewModel::build_with_extensions_and_context(
+        let view_model = WorkbenchViewModel::build_with_contributions_and_context(
             commands,
             &chrome,
-            &active_extensions,
+            &contributions,
+            &contribution_capabilities,
             &eval_context,
         );
         let model = register_workbench_reflection_routes(
@@ -116,10 +119,11 @@ impl EditorHostEventController {
         shell: &mut WorkbenchShellStateData,
         descriptors: Vec<ViewDescriptor>,
     ) -> EditorChromeSnapshot {
-        let component_drawers = Self::active_component_drawers_for_shell(shell);
+        let inspector_customizations = Self::active_inspector_customizations_for_shell(shell);
+        let field_editors = Self::active_field_editors_for_shell(shell);
         let mut editor_snapshot = shell
             .state
-            .snapshot_with_component_drawers(&component_drawers);
+            .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
         Self::project_asset_type_registry_for_shell(shell, &mut editor_snapshot);
         EditorChromeSnapshot::build(
             editor_snapshot,
@@ -130,20 +134,47 @@ impl EditorHostEventController {
         )
     }
 
-    pub(crate) fn active_component_drawers_for_shell(
+    pub(crate) fn active_inspector_customizations_for_shell(
         shell: &WorkbenchShellStateData,
-    ) -> BTreeMap<String, ComponentDrawerDescriptor> {
-        active_extension_registries(shell)
-            .into_iter()
-            .flat_map(|registry| {
-                registry
-                    .component_drawers()
-                    .into_iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-            })
-            .map(|descriptor| (descriptor.component_type().to_string(), descriptor))
-            .collect()
+    ) -> InspectorCustomizationChain {
+        let capabilities = shell
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .iter()
+            .cloned()
+            .collect::<CapabilitySet>();
+        let mut customizations = InspectorCustomizationChain::default();
+        for customization in shell
+            .contributions
+            .snapshot()
+            .inspector_customizations(&capabilities)
+        {
+            customizations
+                .register(customization)
+                .expect("contribution store must only retain valid customization ids");
+        }
+        customizations
+    }
+
+    pub(crate) fn active_field_editors_for_shell(
+        shell: &WorkbenchShellStateData,
+    ) -> FieldEditorContainer {
+        let capabilities = shell
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .iter()
+            .cloned()
+            .collect::<CapabilitySet>();
+        FieldEditorContainer::with_contributions(
+            shell
+                .contributions
+                .snapshot()
+                .field_editors(&capabilities)
+                .cloned(),
+        )
+        .expect("contribution store must only retain valid field editor definitions")
     }
 }
 
@@ -169,7 +200,9 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             | EditorEventEffect::AssetDetailsRefreshRequested
             | EditorEventEffect::AssetPreviewRefreshRequested
             | EditorEventEffect::ImportModelRequested
-            | EditorEventEffect::CommandPaletteOpenRequested => {
+            | EditorEventEffect::CommandPaletteOpenRequested
+            | EditorEventEffect::OpenScenePickerRequested
+            | EditorEventEffect::CreateScenePickerRequested => {
                 mask.insert(EditorViewInvalidationMask::PRESENTATION_DATA);
             }
         }
@@ -179,20 +212,6 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
     } else {
         mask
     }
-}
-
-fn active_extension_registries(shell: &WorkbenchShellStateData) -> Vec<EditorExtensionRegistry> {
-    let enabled_capabilities = shell
-        .manager
-        .capability_snapshot()
-        .enabled_capabilities()
-        .to_vec();
-    shell
-        .editor_extensions
-        .iter()
-        .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-        .map(|registration| registration.registry().clone())
-        .collect()
 }
 
 fn register_activity_descriptors(

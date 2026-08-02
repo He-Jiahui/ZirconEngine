@@ -85,7 +85,12 @@ impl World {
     pub(in crate::scene::world) fn canonical_component_field_key(
         property_path: &ComponentPropertyPath,
     ) -> String {
-        let component = normalized_identifier(property_path.component());
+        let Some(component) = canonical_runtime_property_component(property_path.component())
+        else {
+            // Dynamic type identifiers are schema keys and can be case-sensitive.
+            // Keep them exact so different runtime schemas never intern to one field ID.
+            return property_path.as_str().to_string();
+        };
         let segments = property_path.property_segments();
         let mut key = String::with_capacity(
             component.len() + segments.iter().map(String::len).sum::<usize>() + segments.len(),
@@ -98,6 +103,12 @@ impl World {
         key
     }
 
+    pub(in crate::scene::world) fn is_runtime_property_component(
+        property_path: &ComponentPropertyPath,
+    ) -> bool {
+        canonical_runtime_property_component(property_path.component()).is_some()
+    }
+
     pub(in crate::scene::world) fn compiled_property_expect_scalar(
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
@@ -105,11 +116,39 @@ impl World {
         expect_scalar(value, property_path)
     }
 
+    pub(in crate::scene::world) fn compiled_property_expect_i32(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<i32> {
+        expect_i32(value, property_path)
+    }
+
+    pub(in crate::scene::world) fn compiled_property_expect_bool(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<bool> {
+        expect_bool(value, property_path)
+    }
+
+    pub(in crate::scene::world) fn compiled_property_expect_vec2(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<Vec2> {
+        expect_vec2(value, property_path)
+    }
+
     pub(in crate::scene::world) fn compiled_property_expect_vec3(
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<Vec3> {
         expect_vec3(value, property_path)
+    }
+
+    pub(in crate::scene::world) fn compiled_property_expect_vec4(
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<Vec4> {
+        expect_vec4(value, property_path)
     }
 
     pub(in crate::scene::world) fn compiled_property_expect_quat(
@@ -124,6 +163,31 @@ impl World {
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<()> {
         validate_quat_array(value, property_path)
+    }
+}
+
+fn canonical_runtime_property_component(component: &str) -> Option<&'static str> {
+    match normalized_identifier(component).as_str() {
+        "light" | "directionallight" => Some("directionallight"),
+        "mesh" | "meshrenderer" => Some("meshrenderer"),
+        "renderlayermask" | "renderlayer" => Some("renderlayer"),
+        "name" => Some("name"),
+        "hierarchy" => Some("hierarchy"),
+        "transform" => Some("transform"),
+        "camera" => Some("camera"),
+        "ambientlight" => Some("ambientlight"),
+        "pointlight" => Some("pointlight"),
+        "rectlight" => Some("rectlight"),
+        "spotlight" => Some("spotlight"),
+        "rigidbody" => Some("rigidbody"),
+        "collider" => Some("collider"),
+        "joint" => Some("joint"),
+        "animationskeleton" => Some("animationskeleton"),
+        "animationplayer" => Some("animationplayer"),
+        "animationsequenceplayer" => Some("animationsequenceplayer"),
+        "animationgraphplayer" => Some("animationgraphplayer"),
+        "animationstatemachineplayer" => Some("animationstatemachineplayer"),
+        _ => None,
     }
 }
 

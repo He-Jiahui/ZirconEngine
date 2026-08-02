@@ -18,6 +18,7 @@ impl UiHostWindow {
                 DEFAULT_HOST_WINDOW_WIDTH,
                 DEFAULT_HOST_WINDOW_HEIGHT,
             )))),
+            fatal_failure: Rc::new(RefCell::new(None)),
         })
     }
 
@@ -83,6 +84,28 @@ impl UiHostWindow {
             .borrow_mut()
             .first_presented_frame_capture_error
             .take()
+    }
+
+    pub(in crate::ui::retained_host) fn take_fatal_failure(
+        &self,
+    ) -> Option<super::failure::EditorHostWindowFailure> {
+        self.fatal_failure.borrow_mut().take()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn report_fatal_failure(
+        &self,
+        component: &'static str,
+        requested: impl std::fmt::Display,
+        cause: impl std::fmt::Display,
+        recovery: &'static str,
+    ) {
+        let failure =
+            super::failure::EditorHostWindowFailure::new(component, requested, cause, recovery);
+        zircon_runtime::diagnostic_log::write_error(component, failure.to_string());
+        let mut recorded_failure = self.fatal_failure.borrow_mut();
+        if recorded_failure.is_none() {
+            *recorded_failure = Some(failure);
+        }
     }
 
     pub(in crate::ui::retained_host::host_contract) fn record_first_presented_frame_capture_error(

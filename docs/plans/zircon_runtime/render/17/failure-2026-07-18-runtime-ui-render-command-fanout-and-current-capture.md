@@ -53,4 +53,12 @@ CPU逻辑command没有compact brush/style handle、instance range与可观测bud
 
 ## 修复结果与回传
 
-Open state: `runtime WGPU presenter已落generation compiled batching、稳定资源复用及CPU/GPU submission counters，editor F4 profile已投影command visibility scan/cache hit、image prepare visit/cache hit、render pass、draw、vertex upload及retained-copy counters，且有界ZR_RENDERDOC_CAPTURE_FRAME_COUNT=2可在同一viewport连续触发cold/stable capture；逻辑层compact brush/style handle与instance range、current-source F4 PNG/RDC及GPU counter对拍仍待完成后回传`。
+Open state（2026-08-01 current source）：非验收实现已完成，accepted closeout仍待真实当前源码证据。
+
+- `UiSurfaceDrawList::{with_compact_styles,with_generation_and_compact_styles}`在runtime-owned RHI边界将重复quad/border/text状态收敛为generation-owned `UiSurfaceStyleHandle`/style table；动态text仍独立持有，font family按可见handle只计一次。editor owned chrome stream（含F4 generation路径）已切换到compact构造器，legacy构造器继续兼容。
+- WGPU普通quad与非圆角border叶片不再冷帧分配6顶点Vec，也不再驻留/上传6x24-byte vertex payload；`SolidGeometry::{Instance,Vertices}`互斥保存32-byte `SolidInstance`或复杂tessellation，`SolidDraw.instance_start..instance_end`保存连续range，shader以`vertex_index`生成6个角点。圆角与裁剪三角形继续走原vertex路径，未降低UI内容或丢失clip/z语义。
+- repeated guides/ticks/rows scale guard覆盖1/100/1000/10000 primitive：无依赖行列保持1 draw、N instances、0 retained solid vertices、6N实际vertex invocations；WGPU retained pixel tests继续覆盖实例shader的真实离屏像素路径。
+- RHI/editor F4 profile已新增submitted/compiled `solid_instance_count`与visible compact style count，同时保留command payload bytes、batch merge、vertices、upload bytes、draw/pass/overlap等既有口径。
+- 第二轮实现审查已前向修复read/modify borrow表达式与`SolidItem`空Vec+Option双重元数据；`rhi/ui_surface.rs`按结构规范拆出`rhi/ui_surface/compact_styles.rs`与`rhi/ui_surface/tests.rs`，当前父文件583行、style owner 295行、test owner 375行。
+- 当前完整模块树rustfmt与`git diff --check`通过；拆分测试owner的`#[path = "tests/scale_and_cache.rs"]`已由rustfmt模块解析前向校正，WGPU surface setup生产路径也已移除内部不变量`expect`。最新受管编译入口request `4dca61081c8a4e2b88cc857eb66dd89e`仍只确认`session.register` post-response accepted timeout，validator未启动Cargo或产生validation receipt；按协调规则不轮询该请求。
+- remaining acceptance：当前源码Cargo编译/聚焦测试、F4 cold/stable GPU counter对拍、真实PNG与RDC（含backend/adapter/resolution/build hash）仍待生成后回传；在此之前保持`status: open`且不宣称accepted/fixed。

@@ -1,14 +1,15 @@
-use crate::ui::retained_host::hierarchy_pointer::constants::{
-    ROW_GAP, ROW_HEIGHT, ROW_WIDTH_INSET, ROW_X, ROW_Y,
+use crate::ui::retained_host::hierarchy_pointer::{
+    current_hierarchy_row_metrics, hierarchy_row_width, hierarchy_row_y,
 };
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
 pub(super) fn hierarchy_row_frame(viewport: &FrameRect, index: usize, scroll_px: f32) -> FrameRect {
+    let metrics = current_hierarchy_row_metrics();
     FrameRect {
-        x: viewport.x + ROW_X,
-        y: viewport.y + ROW_Y + index as f32 * (ROW_HEIGHT + ROW_GAP) - scroll_px,
-        width: (viewport.width - ROW_WIDTH_INSET).max(0.0),
-        height: ROW_HEIGHT,
+        x: viewport.x + metrics.row_x,
+        y: viewport.y + hierarchy_row_y(metrics, index, scroll_px),
+        width: hierarchy_row_width(viewport.width, metrics),
+        height: metrics.row_height,
     }
 }

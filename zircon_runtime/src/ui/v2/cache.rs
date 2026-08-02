@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError};
 
+use super::component_reference::{parse_v2_widget_import_reference, UiV2WidgetImportReference};
+
 #[derive(Clone, Debug, Default)]
 pub struct UiV2PrototypeStore {
     assets: BTreeMap<String, Arc<UiV2AssetDocument>>,
@@ -45,6 +47,7 @@ impl UiV2PrototypeStore {
 pub struct UiV2PrototypeStoreBuilder {
     store: UiV2PrototypeStore,
     declared_assets: BTreeSet<String>,
+    invalid_widget_import: Option<UiV2AssetError>,
 }
 
 impl UiV2PrototypeStoreBuilder {
@@ -66,8 +69,14 @@ impl UiV2PrototypeStoreBuilder {
         S: Into<String>,
     {
         for reference in &document.imports.widgets {
-            if let Some((asset_id, _)) = reference.split_once('#') {
-                let _ = self.declared_assets.insert(asset_id.to_string());
+            match parse_v2_widget_import_reference(&document.asset.id, reference) {
+                Ok(UiV2WidgetImportReference::WholeAsset(asset_id))
+                | Ok(UiV2WidgetImportReference::Component { asset_id, .. }) => {
+                    let _ = self.declared_assets.insert(asset_id.to_string());
+                }
+                Err(error) => {
+                    let _ = self.invalid_widget_import.get_or_insert(error);
+                }
             }
         }
         for reference in &document.imports.styles {
@@ -85,6 +94,9 @@ impl UiV2PrototypeStoreBuilder {
     }
 
     pub fn build(self) -> Result<UiV2PrototypeStore, UiV2AssetError> {
+        if let Some(error) = self.invalid_widget_import {
+            return Err(error);
+        }
         for asset_id in self.declared_assets {
             if self.store.get(&asset_id).is_none() {
                 return Err(UiV2AssetError::InvalidDocument {

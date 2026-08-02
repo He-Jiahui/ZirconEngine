@@ -28,6 +28,7 @@ pub(crate) struct TemplatePaneNodeData {
     pub layout_second_cell_offset_x: f32,
     pub layout_third_cell_offset_x: f32,
     pub layout_fourth_cell_offset_x: f32,
+    pub icon_placement: SharedString,
     pub component_role: SharedString,
     pub component_category: SharedString,
     pub component_layout_role: SharedString,

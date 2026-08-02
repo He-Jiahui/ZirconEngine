@@ -4,12 +4,12 @@ from pathlib import Path
 
 
 EXPECTED_FIXED_HOST_MODULES = 6
-EXPECTED_FIXED_HOST_FUNCTIONS = 52
+EXPECTED_FIXED_HOST_FUNCTIONS = 61
 EXPECTED_TYPE_DESCRIPTORS = 2
-EXPECTED_BUILTIN_CALLBACKS = 11
+EXPECTED_BUILTIN_CALLBACKS = 20
 EXPECTED_GAMEPLAY_CALLBACKS = 39
 EXPECTED_MACRO_HOST_FUNCTIONS = 2
-EXPECTED_HOST_CAPABILITIES = 11
+EXPECTED_HOST_CAPABILITIES = 12
 SCRIPT_LEDGER_TEST_MAX_LINES = 700
 GAMEPLAY_TEST_MAX_LINES = 1000
 
@@ -65,13 +65,14 @@ HOST_CAPABILITIES = (
     "scene.query",
     "scene.handle",
     "render.query",
+    "math.scalar",
     "gameplay.input",
     "gameplay.entity",
     "gameplay.navigation",
     "bridge.call",
 )
 LEDGER_DOC_ANCHORS = (
-    "6 host modules, 52 fixed host functions, and 2 fixed script type descriptors",
+    "6 host modules, 61 fixed host functions, and 2 fixed script type descriptors",
     "`zr.zircon.bridge`",
     "dynamic module shape contract",
     "Value descriptors",
@@ -105,10 +106,10 @@ BRIDGE_ANCHORS = (
 GAMEPLAY_FACADE_ANCHORS = (
     "const GAMEPLAY_MODULE: &str = \"zr.zircon.gameplay\";",
     "pub fn register_gameplay_host_module(",
-    "current_script_runtime_call_context()?",
-    "pub struct ScriptRuntimeCallContext",
-    "pub level: LevelSystem",
-    "pub entity: EntityId",
+    "runtime_context_for_frame(frame)?",
+    "pub(crate) struct ScriptRuntimeCallContext",
+    "pub(crate) level: LevelSystem",
+    "pub(crate) entity: EntityId",
 )
 CARGO_GATE_ANCHORS = (
     "cargo test -p zircon_runtime --lib script --locked -- --nocapture",

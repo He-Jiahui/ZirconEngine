@@ -1,12 +1,12 @@
 use crate::core::math::{Mat4, Transform};
 
 use super::{SceneError, SceneResult, World};
+use crate::scene::EntityId;
 use crate::scene::components::{ActiveSelf, Mobility, RenderLayerMask, SceneNode};
 use crate::scene::ecs::{
     ArchetypeId, Component, ComponentId, ComponentStorageLocation, ComponentTicks, InternalEntity,
     QueryAccess, StableEntityLocation,
 };
-use crate::scene::EntityId;
 
 impl World {
     pub(crate) fn query_cache_revision(&self) -> u64 {

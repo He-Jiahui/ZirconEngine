@@ -1,12 +1,12 @@
 use zircon_plugin_sdk::ImporterRuntimeManifestBuilder;
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind, FunctionAssetImporter};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportTargetPlatform;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
     import_obj, IMPORTER_CAPABILITY, OBJ_IMPORTER_DECLARATION, PLUGIN_ID, RUNTIME_CRATE_NAME,
@@ -56,7 +56,7 @@ impl RuntimePlugin for ObjImporterRuntimePlugin {
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     OBJ_IMPORTER_DECLARATION
-        .runtime_declaration(RuntimePluginId::ObjImporter, RUNTIME_CRATE_NAME)
+        .runtime_declaration(RUNTIME_CRATE_NAME)
         .with_module_descriptor(module_descriptor())
         .into_descriptor()
 }

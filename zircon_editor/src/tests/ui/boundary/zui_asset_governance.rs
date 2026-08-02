@@ -22,9 +22,11 @@ mod slot_schema;
 mod style;
 mod workbench_atomic_density;
 mod workbench_composites;
+mod workbench_modules;
 mod workbench_overlay_density;
 mod workbench_primitives;
 mod workbench_shell;
+mod workbench_status_semantics;
 
 use self::metadata::string_metadata_offender;
 use self::support::{

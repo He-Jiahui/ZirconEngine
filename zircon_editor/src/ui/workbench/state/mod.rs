@@ -1,3 +1,4 @@
+pub(in crate::ui::workbench) mod console_history;
 mod editor_state;
 mod editor_state_apply_intent;
 mod editor_state_field_updates;

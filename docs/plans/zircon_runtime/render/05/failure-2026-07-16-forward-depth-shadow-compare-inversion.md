@@ -49,4 +49,8 @@ The focused regression now requires `SHADOW_ATLAS_COMPARE_FUNCTION` to be `LessE
 
 ## 修复结果与回传
 
-Open state: `待修复`; managed red-phase validation is pending the coordinator test lane.
+Open state: `source repair and static fixture review complete; managed validation pending`.
+
+- The shared forward-depth contract is `SHADOW_ATLAS_COMPARE_FUNCTION = LessEqual` with a clear value of `1.0`; the volumetric consumer imports that single constant instead of restating sampler polarity.
+- The Render18 froxel fixture now writes an occluder depth and exercises a receiver exactly at that depth, proving the equality case remains visible under `LessEqual` while preserving the unshadowed comparison region.
+- The scoped Rustfmt check passes and the focused diff check reports only repository CRLF warnings. The required managed Plan05 and Render18 gates, plus real product evidence, remain outstanding, so this handoff remains `open`.

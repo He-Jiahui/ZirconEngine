@@ -14,15 +14,18 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn sync_asset_resources(&mut self) {
-        self.sync_asset_resources_snapshot();
-        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+        if self.sync_asset_resources_snapshot() {
+            self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+        }
     }
 
-    pub(super) fn sync_asset_resources_snapshot(&mut self) {
+    pub(super) fn sync_asset_resources_snapshot(&mut self) -> bool {
         if let Ok(resource_manager) = self.resolve_resource_manager() {
-            self.runtime
-                .sync_asset_resources(resource_manager.list_resources());
+            return self
+                .runtime
+                .sync_asset_resources(resource_manager.resource_management_generation());
         }
+        false
     }
 
     pub(in crate::ui::retained_host::app) fn refresh_selected_asset_details(&mut self) {

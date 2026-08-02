@@ -61,10 +61,10 @@ related_code:
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/ui/host/export_process_support/error.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
-  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cleanup.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
@@ -141,10 +141,10 @@ implementation_files:
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/ui/host/export_process_support/error.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
-  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cleanup.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs

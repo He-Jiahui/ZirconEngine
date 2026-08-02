@@ -1,5 +1,4 @@
-use crate::text::layout::measured_grapheme_widths;
-use crate::ui::text::text_style;
+use crate::text::{layout::measured_grapheme_widths, text_style};
 use crate::ui::text::{hit_test_text_layout, layout_text, measure_text_size};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
@@ -94,6 +93,36 @@ fn text_hit_test_mixed_bidi_maps_rtl_trailing_edge_to_logical_start() {
     assert_eq!(hit.visual_grapheme_index, rtl_visual_index + 1);
     assert_eq!(hit.source_offset, "abc א".len());
     assert_eq!(hit.affinity, UiTextCaretAffinity::Upstream);
+}
+
+#[test]
+fn text_hit_test_pure_rtl_uses_visual_order_from_the_left_frame_edge() {
+    let style = fixed_text_style();
+    let text = "\u{5d0}\u{5d1}";
+    let layout = layout_text(text, &style, UiFrame::new(0.0, 0.0, 120.0, 20.0), None);
+    let line = &layout.lines[0];
+    let left_glyph_before_midpoint = hit_test_text_layout(
+        &layout,
+        UiPoint::new(line.frame.x + line.glyph_advances[0] * 0.25, 4.0),
+    );
+    let left_glyph_after_midpoint = hit_test_text_layout(
+        &layout,
+        UiPoint::new(line.frame.x + line.glyph_advances[0] * 0.75, 4.0),
+    );
+
+    assert_eq!(line.text, "\u{5d1}\u{5d0}");
+    assert_eq!(left_glyph_before_midpoint.visual_grapheme_index, 0);
+    assert_eq!(left_glyph_before_midpoint.source_offset, text.len());
+    assert_eq!(
+        left_glyph_before_midpoint.affinity,
+        UiTextCaretAffinity::Downstream
+    );
+    assert_eq!(left_glyph_after_midpoint.visual_grapheme_index, 1);
+    assert_eq!(left_glyph_after_midpoint.source_offset, "\u{5d0}".len());
+    assert_eq!(
+        left_glyph_after_midpoint.affinity,
+        UiTextCaretAffinity::Upstream
+    );
 }
 
 #[test]

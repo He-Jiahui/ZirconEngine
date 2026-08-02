@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::core::framework::render::{
@@ -6,9 +6,9 @@ use crate::core::framework::render::{
     RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex,
 };
 use crate::graphics::scene::gpu_scene::{
-    GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX, GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
     GpuScene, GpuSceneVirtualGeometryUploadReport, GpuVirtualGeometryClusterWord,
-    GpuVirtualGeometryPage,
+    GpuVirtualGeometryPage, GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX,
+    GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
 };
 
 pub(super) fn upload_virtual_geometry_resident_payloads(
@@ -32,14 +32,16 @@ fn virtual_geometry_payload_rows_from_snapshot(
     Vec<GpuVirtualGeometryPage>,
     Vec<GpuVirtualGeometryClusterWord>,
 ) {
-    let mut pages = Vec::new();
+    let mut pages = Vec::with_capacity(snapshot.execution_segments.len());
     let mut cluster_words = Vec::new();
-    let mut uploaded_pages = BTreeMap::<u32, GpuVirtualGeometryPage>::new();
+    // Segment order owns output ordering; page lookup only needs stable expected-O(1) dedup.
+    let mut uploaded_pages =
+        HashMap::<u32, GpuVirtualGeometryPage>::with_capacity(snapshot.execution_segments.len());
     let payload_by_page = snapshot
         .resident_page_payloads
         .iter()
         .map(|payload| (payload.page_id, payload))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<HashMap<_, _>>();
 
     for segment in &snapshot.execution_segments {
         if segment.state != RenderVirtualGeometryExecutionState::Resident {
@@ -67,7 +69,7 @@ fn virtual_geometry_payload_rows_from_snapshot(
 fn resident_gpu_page_row(
     page_id: u32,
     payload: Option<&RenderVirtualGeometryPagePayload>,
-    uploaded_pages: &mut BTreeMap<u32, GpuVirtualGeometryPage>,
+    uploaded_pages: &mut HashMap<u32, GpuVirtualGeometryPage>,
     cluster_words: &mut Vec<GpuVirtualGeometryClusterWord>,
 ) -> GpuVirtualGeometryPage {
     if let Some(page) = uploaded_pages.get(&page_id).copied() {
@@ -234,6 +236,7 @@ mod tests {
             original_index: 0,
             instance_index: None,
             entity: 0,
+            stable_instance_key: 0,
             page_id,
             draw_ref_index: 0,
             submission_index: submission_slot,

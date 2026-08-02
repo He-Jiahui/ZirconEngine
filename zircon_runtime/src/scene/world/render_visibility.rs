@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
     ParticleExtract, RenderLayerSet, RenderMeshSnapshot, RenderSpriteSnapshot, VisibilityInput,
     VisibilityRenderableInput,
 };
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 pub(super) fn build_visibility_input(
     meshes: &[RenderMeshSnapshot],
@@ -16,11 +16,13 @@ pub(super) fn build_visibility_input(
         .iter()
         .map(|mesh| VisibilityRenderableInput {
             entity: mesh.node_id,
+            stable_instance_key: mesh.stable_instance_key,
             mobility: mesh.mobility,
             render_layer_mask: mesh.common.layer_mask.clone(),
         })
         .chain(sprites.iter().map(|sprite| VisibilityRenderableInput {
             entity: sprite.entity,
+            stable_instance_key: sprite.entity,
             mobility: if sprite.common.is_static {
                 Mobility::Static
             } else {
@@ -31,6 +33,7 @@ pub(super) fn build_visibility_input(
         .chain(particles.emitters.iter().map(|entity| {
             VisibilityRenderableInput {
                 entity: *entity,
+                stable_instance_key: *entity,
                 mobility: Mobility::Dynamic,
                 render_layer_mask: particle_render_layer_masks
                     .get(entity)
@@ -41,20 +44,26 @@ pub(super) fn build_visibility_input(
             }
         }))
         .collect::<Vec<_>>();
-    renderables.sort_by_key(|entry| entry.entity);
+    renderables.sort_by_key(|entry| (entry.stable_instance_key, entry.entity));
     let renderable_entities = renderables
         .iter()
         .map(|entry| entry.entity)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .collect::<Vec<_>>();
     let static_entities = renderables
         .iter()
         .filter(|entry| entry.mobility == Mobility::Static)
         .map(|entry| entry.entity)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .collect::<Vec<_>>();
     let dynamic_entities = renderables
         .iter()
         .filter(|entry| entry.mobility == Mobility::Dynamic)
         .map(|entry| entry.entity)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .collect::<Vec<_>>();
 
     VisibilityInput {

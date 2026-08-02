@@ -31,6 +31,7 @@ class ValidationTicket:
     plan_path: str
     status: str
     source_manifest_hash: str
+    source_manifest: Mapping[str, str]
     command: tuple[str, ...]
     toolchain: Mapping[str, object]
     coverage: Mapping[str, object]
@@ -209,6 +210,83 @@ class ValidationTicketService:
         with self.database.connect() as connection:
             return self._get_in_connection(connection, self._require_text("ticket_id", ticket_id))
 
+    def claim_next(self) -> ValidationTicket | None:
+        """Atomically reserve the oldest queued ticket for one worker."""
+        now = utc_text()
+        with self.database.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT ticket_id FROM validation_tickets
+                WHERE status='queued'
+                ORDER BY created_at, ticket_id
+                LIMIT 1
+                """
+            ).fetchone()
+            if row is None:
+                return None
+            ticket_id = str(row["ticket_id"])
+            cursor = connection.execute(
+                """
+                UPDATE validation_tickets SET status='materializing', updated_at=?
+                WHERE ticket_id=? AND status='queued'
+                """,
+                (now, ticket_id),
+            )
+            if cursor.rowcount != 1:
+                return None
+            self._event(
+                connection,
+                ticket_id,
+                "validation.ticket_status_changed",
+                {"from": "queued", "to": "materializing", "evidence": {"phase": "claimed"}},
+                now,
+            )
+            return self._get_in_connection(connection, ticket_id)
+
+    def active_ticket(self) -> ValidationTicket | None:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT ticket_id FROM validation_tickets
+                WHERE status IN ('materializing', 'running')
+                ORDER BY updated_at, ticket_id
+                LIMIT 1
+                """
+            ).fetchone()
+            if row is None:
+                return None
+            return self._get_in_connection(connection, str(row["ticket_id"]))
+
+    def record_worker_event(
+        self, ticket_id: str, event_type: str, payload: Mapping[str, object]
+    ) -> None:
+        normalized_ticket = self._require_text("ticket_id", ticket_id)
+        normalized_event = self._require_text("event_type", event_type)
+        now = utc_text()
+        with self.database.transaction() as connection:
+            self._get_in_connection(connection, normalized_ticket)
+            self._event(connection, normalized_ticket, normalized_event, payload, now)
+
+    def latest_worker_event(
+        self, ticket_id: str, event_type: str
+    ) -> Mapping[str, object] | None:
+        normalized_ticket = self._require_text("ticket_id", ticket_id)
+        normalized_event = self._require_text("event_type", event_type)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload_json FROM validation_ticket_events
+                WHERE ticket_id=? AND event_type=?
+                ORDER BY event_id DESC
+                LIMIT 1
+                """,
+                (normalized_ticket, normalized_event),
+            ).fetchone()
+        if row is None:
+            return None
+        payload = json.loads(str(row["payload_json"]))
+        return payload if isinstance(payload, dict) else None
+
     @staticmethod
     def _require_text(field: str, value: object) -> str:
         if not isinstance(value, str) or not value.strip():
@@ -261,6 +339,7 @@ class ValidationTicketService:
             plan_path=str(row["plan_path"]),
             status=str(row["status"]),
             source_manifest_hash=str(row["source_manifest_hash"]),
+            source_manifest=json.loads(str(row["source_manifest_json"])),
             command=tuple(json.loads(str(row["command_json"]))),
             toolchain=json.loads(str(row["toolchain_json"])),
             coverage=json.loads(str(row["coverage_json"])),

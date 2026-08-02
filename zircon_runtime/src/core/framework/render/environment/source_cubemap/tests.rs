@@ -173,8 +173,13 @@ fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
 
 #[test]
 fn source_cubemap_pmrem_wgsl_lookup_matches_public_roughness_contract() {
-    const ENVIRONMENT_WGSL: &str =
-        include_str!("../../../../../graphics/shader/wgsl/zr_environment.wgsl");
+    const ENVIRONMENT_WGSL: &str = concat!(
+        include_str!("../../../../../graphics/shader/wgsl/zr_environment_core.wgsl"),
+        "\n",
+        include_str!("../../../../../graphics/shader/wgsl/zr_environment_generic_api.wgsl"),
+        "\n",
+        include_str!("../../../../../graphics/shader/wgsl/zr_environment.wgsl"),
+    );
     let expected = format!(
         "return clamp(max_mip - {SOURCE_CUBEMAP_ROUGHEST_MIP:.1} + {SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE:.1} * log2(clamped_roughness), 0.0, max_mip);"
     );
@@ -264,15 +269,19 @@ fn captured_face_base_level_reuses_source_mips_pmrem_and_sh9() {
             [expected, expected * 0.5, expected * 0.25, 1.0],
         );
     }
-    assert!(cubemap
-        .pmrem_texels()
-        .iter()
-        .all(|texel| texel.iter().all(|value| value.is_finite())));
-    assert!(cubemap
-        .irradiance_sh9()
-        .iter()
-        .flatten()
-        .all(|value| value.is_finite()));
+    assert!(
+        cubemap
+            .pmrem_texels()
+            .iter()
+            .all(|texel| texel.iter().all(|value| value.is_finite()))
+    );
+    assert!(
+        cubemap
+            .irradiance_sh9()
+            .iter()
+            .flatten()
+            .all(|value| value.is_finite())
+    );
 }
 
 #[test]

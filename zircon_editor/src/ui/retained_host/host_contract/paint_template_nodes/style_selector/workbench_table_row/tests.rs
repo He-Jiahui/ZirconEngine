@@ -1,10 +1,10 @@
 use super::identity::is_table_tail;
 use super::palette::{
-    workbench_table_row_palette_from_host, WORKBENCH_TABLE_HOVER_BG, WORKBENCH_TABLE_ROW_BG,
+    WORKBENCH_TABLE_HOVER_BG, WORKBENCH_TABLE_ROW_BG, workbench_table_row_palette_from_host,
 };
 use super::selection::select_workbench_table_row_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
+use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};

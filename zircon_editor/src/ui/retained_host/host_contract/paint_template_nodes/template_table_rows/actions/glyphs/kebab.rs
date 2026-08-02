@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
-use super::segments::{push_segments, GlyphSegmentSpec};
+use super::segments::{GlyphSegmentSpec, push_segments};
 
 const KEBAB_SEGMENTS: [GlyphSegmentSpec; 3] = [
     GlyphSegmentSpec::new(6, 3, 2, 2),

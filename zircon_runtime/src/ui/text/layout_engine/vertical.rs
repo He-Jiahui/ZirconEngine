@@ -1,6 +1,6 @@
-use crate::text::layout::{layout_vertical_rl_columns, TextLineMetrics};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
+use crate::text::layout::{TextLineMetrics, layout_vertical_rl_columns};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
@@ -12,7 +12,7 @@ use super::ellipsis::{
     ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
-use super::line_box::{resolve_line_widths_with_provider, text_advance, MIN_TEXT_FONT_SIZE};
+use super::line_box::{MIN_TEXT_FONT_SIZE, resolve_line_widths_with_provider, text_advance};
 use super::paragraph_layout;
 use super::visual_order;
 use super::wrapping::wrap_source_runs_with_provider;
@@ -26,7 +26,7 @@ pub(super) fn layout_vertical_text_with_provider(
     metrics: TextLineMetrics,
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
-    let text = parsed.text.as_str();
+    let text = parsed.text();
     let direction = resolve_direction(text, style.text_direction);
     if let Some(layout) = super::rich_inline_vertical::layout_inline_vertical_text_with_provider(
         parsed, style, frame, clip_frame, font_size, direction, provider,
@@ -239,5 +239,6 @@ pub(super) fn layout_vertical_text_with_provider(
         boxes: Vec::new(),
         overflow_clipped,
         editable: None,
+        rich_text_artifact: None,
     }
 }

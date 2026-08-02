@@ -1,11 +1,11 @@
 use zircon_plugin_sdk::ImporterRuntimeManifestBuilder;
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportTargetPlatform;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     PluginModuleManifest, PluginPackageManifest, RuntimePlugin, RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
     CONTAINER_IMPORTER_CAPABILITY, PLUGIN_ID, PSD_IMPORTER_CAPABILITY, RUNTIME_CRATE_NAME,
@@ -48,7 +48,7 @@ impl RuntimePlugin for TextureAssetImporterRuntimePlugin {
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     TEXTURE_ASSET_IMPORTER_DECLARATION
-        .runtime_declaration(RuntimePluginId::new(PLUGIN_ID), RUNTIME_CRATE_NAME)
+        .runtime_declaration(RUNTIME_CRATE_NAME)
         .with_module_descriptor(module_descriptor())
         .into_descriptor()
 }

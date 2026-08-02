@@ -6,8 +6,8 @@ use crate::graphics::pipeline::RenderPassStage;
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
--> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
+) -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "deferred_geometry",
         vec![
@@ -93,11 +93,10 @@ mod tests {
             resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
                 && resource.access == RenderFeatureResourceAccess::Read
         }));
-        assert!(
-            !sky.resources
-                .iter()
-                .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR })
-        );
+        assert!(!sky
+            .resources
+            .iter()
+            .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR }));
     }
 
     #[test]

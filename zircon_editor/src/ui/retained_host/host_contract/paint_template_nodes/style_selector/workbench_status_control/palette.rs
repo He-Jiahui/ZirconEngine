@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 
 #[cfg(test)]
@@ -23,6 +23,7 @@ pub(super) struct WorkbenchStatusControlPalette {
     pub success: [u8; 4],
     pub warning: [u8; 4],
     pub info: [u8; 4],
+    pub error: [u8; 4],
     pub icon_color: [u8; 4],
     pub icon_muted: [u8; 4],
     pub no_errors_fill: [u8; 4],
@@ -49,6 +50,7 @@ pub(super) fn workbench_status_control_palette_from_host(
         success: palette.success,
         warning: palette.warning,
         info: palette.info,
+        error: palette.error,
         icon_color: palette.text_muted,
         icon_muted: palette.text_disabled,
         no_errors_fill: palette.success,

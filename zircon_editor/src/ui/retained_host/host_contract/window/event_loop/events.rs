@@ -6,8 +6,8 @@ use crate::ui::retained_host::primitives::CloseRequestResponse;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 
-use super::platform_input::event_uses_platform_input;
 use super::UiHostWindowEventLoop;
+use super::platform_input::event_uses_platform_input;
 
 impl UiHostWindowEventLoop {
     pub(in crate::ui::retained_host::host_contract) fn window_event_impl(

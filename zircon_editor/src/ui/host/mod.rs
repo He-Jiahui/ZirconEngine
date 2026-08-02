@@ -16,6 +16,7 @@ mod editor_event_runtime_reflection;
 mod editor_extension_registration;
 mod editor_extension_views;
 mod editor_host_event_controller;
+mod editor_host_visible_spatial_query;
 mod editor_host_startup;
 mod editor_manager;
 mod editor_manager_animation_editor;
@@ -29,6 +30,7 @@ mod editor_manager_runtime_diagnostics;
 mod editor_manager_startup;
 mod editor_manager_workspace;
 mod editor_operation_dispatch;
+mod editor_scene_document_submission;
 mod editor_scene_mode_lifecycle;
 mod editor_session_state;
 mod editor_subsystems;
@@ -62,6 +64,7 @@ pub use editor_host_event_controller::EditorHostEventController;
 pub(crate) use editor_host_startup::resolve_editor_startup_session;
 pub use editor_host_startup::EditorHostStartupSession;
 pub use editor_manager::EditorManager;
+pub(crate) use editor_manager_layout::DirtyDocumentToolkitView;
 pub use editor_manager_plugins_export::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,
     execute_export_wizard_stage, export_wizard_compile_host_executable_path,

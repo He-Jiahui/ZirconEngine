@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -7,7 +8,7 @@ use zircon_runtime::asset::pipeline::manager::{
     project_asset_manager_handle, AssetManager, ProjectAssetManagerAccess,
 };
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
-use zircon_runtime::asset::AssetUri;
+use zircon_runtime::asset::{AssetUri, ProjectInfo};
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, PreviewEnvironmentExtract, RenderOverlayExtract, RenderSceneSnapshot,
     RenderViewportSurfaceDescriptor, SceneViewportExtractRequest, ViewportRenderSettings,
@@ -19,12 +20,43 @@ use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::graphics::{
     SceneRenderer, SceneRendererStartupOptions, SceneViewportSurface, ViewportFrame,
 };
+use zircon_runtime_interface::project::RelPath;
 
 use crate::camera::{camera_render_descriptor, OrbitCamera};
 use crate::hdri::{decode_viewer_hdri, source_cubemap_environment, SourceCubemapEnvironmentLoad};
-use crate::project_assets::{viewer_project_assets_are_ready, write_viewer_project_assets};
+use crate::project_assets::{
+    viewer_project_assets_are_ready, write_viewer_project_assets,
+    ViewerProjectAssetGenerationReport, VIEWER_PROJECT_ASSET_ROOT,
+};
 
-const VIEWER_PROJECT_CACHE_VERSION: u32 = 2;
+const VIEWER_PROJECT_CACHE_VERSION: u32 = 4;
+
+#[derive(Default)]
+struct ViewerProjectRuntimeOpenReport {
+    project_opens: u32,
+    imported_assets: usize,
+    ready_assets: usize,
+}
+
+impl ViewerProjectRuntimeOpenReport {
+    fn record_open(&mut self, info: &ProjectInfo) {
+        self.project_opens += 1;
+        self.imported_assets = info.asset_count;
+        self.ready_assets = info.ready_asset_count;
+    }
+
+    const fn project_opens(&self) -> u32 {
+        self.project_opens
+    }
+
+    const fn imported_assets(&self) -> usize {
+        self.imported_assets
+    }
+
+    const fn ready_assets(&self) -> usize {
+        self.ready_assets
+    }
+}
 
 pub(crate) struct PbrMirrorScene {
     _project_root: CachedProjectRoot,
@@ -35,6 +67,7 @@ pub(crate) struct PbrMirrorScene {
     environment: EnvironmentExtract,
     preview: PreviewEnvironmentExtract,
     ibl_load_report: PbrMirrorSceneIblLoadReport,
+    base_prewarm_report: PbrMirrorSceneBasePrewarmReport,
     frame_timing_report_requested: bool,
     last_frame_timing: PbrMirrorSceneFrameTimingReport,
     // Keep the cache root alive until runtime teardown releases its file watchers.
@@ -46,6 +79,10 @@ pub(crate) struct PbrMirrorSceneIblLoadReport {
     staging_status: EnvironmentIblSourceStagingStatus,
     staging_elapsed: std::time::Duration,
     total_elapsed: std::time::Duration,
+    source_cubemap_face_size: u32,
+    source_cubemap_mip_count: u32,
+    pmrem_face_size: u32,
+    pmrem_mip_count: u32,
 }
 
 impl PbrMirrorSceneIblLoadReport {
@@ -53,11 +90,19 @@ impl PbrMirrorSceneIblLoadReport {
         staging_status: EnvironmentIblSourceStagingStatus,
         staging_elapsed: std::time::Duration,
         total_elapsed: std::time::Duration,
+        source_cubemap_face_size: u32,
+        source_cubemap_mip_count: u32,
+        pmrem_face_size: u32,
+        pmrem_mip_count: u32,
     ) -> Self {
         Self {
             staging_status,
             staging_elapsed,
             total_elapsed,
+            source_cubemap_face_size,
+            source_cubemap_mip_count,
+            pmrem_face_size,
+            pmrem_mip_count,
         }
     }
 
@@ -71,6 +116,48 @@ impl PbrMirrorSceneIblLoadReport {
 
     pub(crate) const fn total_elapsed(self) -> std::time::Duration {
         self.total_elapsed
+    }
+
+    pub(crate) const fn source_cubemap_face_size(self) -> u32 {
+        self.source_cubemap_face_size
+    }
+
+    pub(crate) const fn source_cubemap_mip_count(self) -> u32 {
+        self.source_cubemap_mip_count
+    }
+
+    pub(crate) const fn pmrem_face_size(self) -> u32 {
+        self.pmrem_face_size
+    }
+
+    pub(crate) const fn pmrem_mip_count(self) -> u32 {
+        self.pmrem_mip_count
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct PbrMirrorSceneBasePrewarmReport {
+    cache_hit: bool,
+    shader_source_resolution: std::time::Duration,
+    pipeline_creation: std::time::Duration,
+    elapsed: std::time::Duration,
+}
+
+impl PbrMirrorSceneBasePrewarmReport {
+    pub(crate) const fn cache_hit(self) -> bool {
+        self.cache_hit
+    }
+
+    pub(crate) const fn shader_source_resolution(self) -> std::time::Duration {
+        self.shader_source_resolution
+    }
+
+    pub(crate) const fn pipeline_creation(self) -> std::time::Duration {
+        self.pipeline_creation
+    }
+
+    pub(crate) const fn elapsed(self) -> std::time::Duration {
+        self.elapsed
     }
 }
 
@@ -123,16 +210,26 @@ impl PbrMirrorScene {
         let hdri_decode_elapsed = scene_load_started.elapsed();
         let project_assets_started = Instant::now();
         let project_root = CachedProjectRoot::new();
+        fs::create_dir_all(project_root.as_path())?;
         let paths = ProjectPaths::from_root(project_root.as_path())?;
         let scene_uri = AssetUri::parse("res://scenes/single_pbr_sphere.scene.toml")?;
-        let manifest = ProjectManifest::new("ShaderPbrMirrorViewer", scene_uri.clone(), 1);
-        paths.ensure_layout(&manifest.asset_roots)?;
-        manifest.save(paths.manifest_path())?;
+        let mut manifest = ProjectManifest::new("ShaderPbrMirrorViewer", scene_uri.clone(), 1);
+        manifest.asset_roots = vec![RelPath::parse(VIEWER_PROJECT_ASSET_ROOT)?];
+        let manifest_needs_publish = !paths.manifest_path().is_file();
+        if manifest_needs_publish {
+            manifest.save(paths.manifest_path())?;
+        }
         let asset_root = manifest.primary_asset_root_path(&paths)?;
         let project_assets_reused = viewer_project_assets_are_ready(&asset_root);
-        if !project_assets_reused {
-            write_viewer_project_assets(&asset_root)?;
-        }
+        let project_asset_generation = if project_assets_reused {
+            ViewerProjectAssetGenerationReport::reused()
+        } else {
+            write_viewer_project_assets(&asset_root)?
+        };
+        paths.ensure_layout(&manifest.asset_roots)?;
+        let project_manifest_writes = u32::from(manifest_needs_publish);
+        let project_startup_filesystem_writes =
+            project_asset_generation.filesystem_writes() + project_manifest_writes;
         let project_assets_elapsed = project_assets_started.elapsed();
 
         let runtime_bootstrap_started = Instant::now();
@@ -150,7 +247,10 @@ impl PbrMirrorScene {
 
         let project_open_started = Instant::now();
         let asset_manager = asset_access.resolve()?;
-        asset_manager.open_project(project_root.as_path().to_string_lossy().as_ref())?;
+        let mut project_runtime_report = ViewerProjectRuntimeOpenReport::default();
+        let project_info =
+            asset_manager.open_project(project_root.as_path().to_string_lossy().as_ref())?;
+        project_runtime_report.record_open(&project_info);
         let project = asset_manager.current_project_manager().ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -178,19 +278,42 @@ impl PbrMirrorScene {
             staging_status,
             staging_elapsed,
             total_elapsed,
+            source_cubemap_face_size,
+            source_cubemap_mip_count,
+            pmrem_face_size,
+            pmrem_mip_count,
         } = source_cubemap_environment(
             decoded_hdri,
             &ibl_cache_root,
             asset_runtime.task_pools().compute(),
         )?;
         let ibl_restore_elapsed = ibl_restore_started.elapsed();
-        let ibl_load_report =
-            PbrMirrorSceneIblLoadReport::new(staging_status, staging_elapsed, total_elapsed);
+        let ibl_load_report = PbrMirrorSceneIblLoadReport::new(
+            staging_status,
+            staging_elapsed,
+            total_elapsed,
+            source_cubemap_face_size,
+            source_cubemap_mip_count,
+            pmrem_face_size,
+            pmrem_mip_count,
+        );
         let environment = EnvironmentExtract::source_cubemap(environment);
         let preview = PreviewEnvironmentExtract::from_environment(&environment, true, Vec4::ZERO);
         let core_startup = renderer_startup_report.core_startup();
-        let environment_only_pbr_base_prewarm =
-            renderer_startup_report.environment_only_pbr_base_prewarm();
+        let base_prewarm_report = renderer_startup_report
+            .environment_only_pbr_base_prewarm()
+            .map(|report| PbrMirrorSceneBasePrewarmReport {
+                cache_hit: report.cache_hit(),
+                shader_source_resolution: report.shader_source_resolution(),
+                pipeline_creation: report.pipeline_creation(),
+                elapsed: report.elapsed(),
+            })
+            .ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "environment-only PBR viewer did not retain its Base prewarm report",
+                )
+            })?;
         let scene = Self {
             _project_root: project_root,
             world: Some(world),
@@ -199,12 +322,21 @@ impl PbrMirrorScene {
             environment,
             preview,
             ibl_load_report,
+            base_prewarm_report,
             frame_timing_report_requested: false,
             last_frame_timing: PbrMirrorSceneFrameTimingReport::default(),
             _asset_runtime: Some(asset_runtime),
         };
         println!(
-            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?}, world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={environment_only_pbr_base_prewarm:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
+            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={environment_only_pbr_base_prewarm:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
+            project_asset_generation.mesh_generation_samples(),
+            project_asset_generation.serialized_source_bytes(),
+            project_asset_generation.filesystem_writes(),
+            project_manifest_writes,
+            project_startup_filesystem_writes,
+            project_runtime_report.project_opens(),
+            project_runtime_report.imported_assets(),
+            project_runtime_report.ready_assets(),
             renderer_startup_report.backend_initialization(),
             renderer_startup_report.core_initialization(),
             core_startup.setup(),
@@ -223,6 +355,7 @@ impl PbrMirrorScene {
             core_startup.scene_effects_post_process(),
             core_startup.overlay_and_ui(),
             renderer_startup_report.resource_streamer_initialization(),
+            base_prewarm_report,
             scene_load_started.elapsed(),
             project_assets_cache = if project_assets_reused {
                 "reused"
@@ -341,6 +474,10 @@ impl PbrMirrorScene {
 
     pub(crate) const fn ibl_load_report(&self) -> PbrMirrorSceneIblLoadReport {
         self.ibl_load_report
+    }
+
+    pub(crate) const fn base_prewarm_report(&self) -> PbrMirrorSceneBasePrewarmReport {
+        self.base_prewarm_report
     }
 
     pub(crate) fn request_next_frame_timing_report(&mut self) {
@@ -490,7 +627,7 @@ mod tests {
         let root = super::CachedProjectRoot::new();
         assert!(
             root.as_path()
-                .ends_with("zircon_shader_pbr_viewer_project_v2"),
+                .ends_with("zircon_shader_pbr_viewer_project_v4"),
             "the viewer cache path must change when its generated asset schema changes"
         );
     }
@@ -593,6 +730,24 @@ mod tests {
     }
 
     #[test]
+    fn ibl_load_report_retains_the_active_cubemap_and_pmrem_layout() {
+        let report = super::PbrMirrorSceneIblLoadReport::new(
+            zircon_runtime::asset::importer::EnvironmentIblSourceStagingStatus::Reused,
+            std::time::Duration::from_millis(3),
+            std::time::Duration::from_millis(7),
+            512,
+            10,
+            256,
+            9,
+        );
+
+        assert_eq!(report.source_cubemap_face_size(), 512);
+        assert_eq!(report.source_cubemap_mip_count(), 10);
+        assert_eq!(report.pmrem_face_size(), 256);
+        assert_eq!(report.pmrem_mip_count(), 9);
+    }
+
+    #[test]
     fn frame_timing_report_preserves_extract_renderer_call_and_readback_boundaries() {
         let report = super::PbrMirrorSceneFrameTimingReport::new(
             std::time::Duration::from_millis(3),
@@ -619,11 +774,12 @@ mod tests {
             "lighting_source_assembly={:.2?}",
             "pipeline_foundation={:.2?}",
             "standard_pso={:.2?}",
-            "base_prewarm={environment_only_pbr_base_prewarm:?}",
+            "base_prewarm={base_prewarm_report:?}",
             "core_startup.deferred_lighting_shader_source_assembly()",
             "core_startup.deferred_lighting_pipeline_foundation()",
             "core_startup.deferred_lighting_standard_pipeline()",
             "renderer_startup_report.environment_only_pbr_base_prewarm()",
+            "base_prewarm_report.cache_hit()",
         ] {
             assert!(
                 source.contains(expected),
@@ -674,9 +830,38 @@ mod tests {
         assert_source_order(&[
             "let asset_root = manifest.primary_asset_root_path(&paths)?;",
             "let project_assets_reused = viewer_project_assets_are_ready(&asset_root);",
-            "if !project_assets_reused {",
-            "write_viewer_project_assets(&asset_root)?;",
+            "let project_asset_generation = if project_assets_reused {",
+            "ViewerProjectAssetGenerationReport::reused()",
+            "write_viewer_project_assets(&asset_root)?",
             "asset_manager.open_project(project_root.as_path().to_string_lossy().as_ref())",
+            "project_runtime_report.record_open(&project_info);",
+        ]);
+    }
+
+    #[test]
+    fn viewer_startup_reports_generated_artifact_and_runtime_open_counts() {
+        let source = production_source();
+        for field in [
+            "mesh_generation_samples={}",
+            "serialized_source_bytes={}",
+            "asset_filesystem_writes={}",
+            "project_manifest_writes={}",
+            "startup_filesystem_writes={}",
+            "project_open_count={}",
+            "imported_assets={}",
+            "ready_assets={}",
+        ] {
+            assert!(
+                source.contains(field),
+                "viewer startup timing must retain `{field}`"
+            );
+        }
+        assert_source_order(&[
+            "let mut manifest = ProjectManifest::new(\"ShaderPbrMirrorViewer\", scene_uri.clone(), 1);",
+            "manifest.asset_roots = vec![RelPath::parse(VIEWER_PROJECT_ASSET_ROOT)?];",
+            "let manifest_needs_publish = !paths.manifest_path().is_file();",
+            "if manifest_needs_publish {",
+            "manifest.save(paths.manifest_path())?;",
         ]);
     }
 }

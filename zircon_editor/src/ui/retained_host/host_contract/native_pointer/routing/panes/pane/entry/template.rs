@@ -11,7 +11,7 @@ pub(super) fn route_template_node_hit(
     y: f32,
     mode: PaneRouteMode,
 ) -> Option<PanePointerRoute> {
-    if !mode.allows_template_hit_for_move(pane) {
+    if !mode.allows_template_hit(pane) {
         return None;
     }
     let hit = surface_hit_test::hit_test_pane_template_node(pane, body, x, y)?;

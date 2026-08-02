@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/MenuFlowValidateFocus", event = "Click", ro
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionMenuFlowGraph"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "menu_flow_start_node_row" }, { node = "menu_flow_options_node_row" }, { node = "menu_flow_match_node_row" }, { node = "menu_flow_exit_route_row" }]
 

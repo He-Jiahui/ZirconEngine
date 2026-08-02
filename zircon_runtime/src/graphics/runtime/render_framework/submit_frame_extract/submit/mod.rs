@@ -17,3 +17,19 @@ pub(in crate::graphics::runtime::render_framework) use present_frame_extract::{
 pub(in crate::graphics::runtime::render_framework) use submit::submit_frame_extract;
 pub(in crate::graphics::runtime::render_framework) use submit::submit_frame_extract_with_ui;
 pub(in crate::graphics::runtime::render_framework) use submit_runtime_frame::submit_runtime_frame;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn retained_viewport_submit_paths_use_async_capture_without_sync_rgba_readback() {
+        let extract_submit = include_str!("submit.rs");
+        let runtime_submit = include_str!("submit_runtime_frame.rs");
+        let present_submit = include_str!("present_frame_extract.rs");
+
+        for source in [extract_submit, runtime_submit, present_submit] {
+            assert!(source.contains("render_frame_with_pipeline_async_capture_task_pool"));
+            assert!(!source.contains("render_frame_with_pipeline_task_pool("));
+            assert!(!source.contains("finish_viewport_frame"));
+        }
+    }
+}

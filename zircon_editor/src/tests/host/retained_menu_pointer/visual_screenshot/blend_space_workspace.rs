@@ -5,6 +5,8 @@ use zircon_runtime_interface::ui::binding::UiEventKind;
 mod composite_contracts;
 mod preview_viewport;
 mod property_editor_rows;
+mod responsive_layout;
+mod toolbar_surface;
 mod transport_actions;
 
 const BLEND_SPACE_NARROW_ARTIFACT: &str = "editor-window-m3-blend-space-workbench-640x520.png";
@@ -596,21 +598,31 @@ fn assert_compact_blend_space_geometry(bridge: &BuiltinWorkbenchWindowTemplateSu
     assert!(output.bottom() <= center.bottom() + 0.5);
     assert!(timeline.x >= output.x && timeline.right() <= output.right() + 0.5);
     assert!(timeline.y >= output.y && timeline.bottom() <= output.bottom() + 0.5);
-    assert!(bridge
-        .control_frame("WorkbenchExtensionBlendSpaceRightPanel")
-        .is_none());
-    assert!(bridge
-        .control_frame("WorkbenchExtensionBlendSpacePreviewCard")
-        .is_none());
-    assert!(bridge
-        .control_frame("WorkbenchExtensionBlendSpacePreviewButton")
-        .is_none());
-    assert!(bridge
-        .control_frame("WorkbenchExtensionBlendSpaceSampleWeights")
-        .is_none());
-    assert!(bridge
-        .control_frame("WorkbenchExtensionBlendSpaceValidationLog")
-        .is_none());
+    assert!(
+        bridge
+            .control_frame("WorkbenchExtensionBlendSpaceRightPanel")
+            .is_none()
+    );
+    assert!(
+        bridge
+            .control_frame("WorkbenchExtensionBlendSpacePreviewCard")
+            .is_none()
+    );
+    assert!(
+        bridge
+            .control_frame("WorkbenchExtensionBlendSpacePreviewButton")
+            .is_none()
+    );
+    assert!(
+        bridge
+            .control_frame("WorkbenchExtensionBlendSpaceSampleWeights")
+            .is_none()
+    );
+    assert!(
+        bridge
+            .control_frame("WorkbenchExtensionBlendSpaceValidationLog")
+            .is_none()
+    );
     assert!(
         canvas.height > 150.0,
         "compact sample canvas should preserve a useful plotting area beside the visible timeline: {canvas:?}"

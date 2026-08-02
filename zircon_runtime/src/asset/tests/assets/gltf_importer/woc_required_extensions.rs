@@ -2,7 +2,7 @@ use super::*;
 use std::path::{Path, PathBuf};
 
 use crate::asset::project::ProjectPaths;
-use crate::asset::{asset_kind_for_imported_asset, ArtifactStore, AssetId};
+use crate::asset::{ArtifactStore, AssetId, asset_kind_for_imported_asset};
 use crate::core::resource::ResourceRecord;
 
 fn import_woc_beach_anchor() -> (AssetUri, AssetImportOutcome) {
@@ -53,26 +53,30 @@ fn woc_meshopt_required_glb_imports() {
     match &outcome.root_entry().expect("root WOC model").asset {
         ImportedAsset::Model(model) => {
             assert!(!model.primitives.is_empty());
-            assert!(model
-                .primitives
-                .iter()
-                .all(|primitive| primitive.vertices.is_empty()
-                    && primitive.indices.is_empty()
-                    && primitive.mesh.is_some()));
+            assert!(
+                model
+                    .primitives
+                    .iter()
+                    .all(|primitive| primitive.vertices.is_empty()
+                        && primitive.indices.is_empty()
+                        && primitive.mesh.is_some())
+            );
         }
         other => panic!("unexpected WOC root asset: {other:?}"),
     }
 
     match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
         ImportedAsset::Mesh(mesh) => {
-            assert!(mesh
-                .attributes
-                .get(MESH_ATTRIBUTE_POSITION)
-                .is_some_and(|positions| !positions.is_empty()));
-            assert!(mesh
-                .indices
-                .as_ref()
-                .is_some_and(|indices| !indices.is_empty()));
+            assert!(
+                mesh.attributes
+                    .get(MESH_ATTRIBUTE_POSITION)
+                    .is_some_and(|positions| !positions.is_empty())
+            );
+            assert!(
+                mesh.indices
+                    .as_ref()
+                    .is_some_and(|indices| !indices.is_empty())
+            );
         }
         other => panic!("unexpected WOC mesh asset: {other:?}"),
     }
@@ -157,10 +161,12 @@ fn woc_unsupported_specular_extension_has_explicit_diagnostic() {
     match &entry_for_label(&outcome, &root_uri, "Material0").asset {
         ImportedAsset::Material(material) => {
             assert_eq!(material.advanced_pbr_features().ior, 1.4500000476837158);
-            assert!(material
-                .validation_diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("KHR_materials_specular")));
+            assert!(
+                material
+                    .validation_diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.contains("KHR_materials_specular"))
+            );
         }
         other => panic!("unexpected WOC specular material: {other:?}"),
     }
@@ -186,9 +192,11 @@ fn gltf_unknown_required_extension_is_not_silently_accepted() {
         .import_with_settings(&source_path, &uri, Default::default())
         .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("requires unsupported extension `VENDOR_future_rendering`"));
+    assert!(
+        error
+            .to_string()
+            .contains("requires unsupported extension `VENDOR_future_rendering`")
+    );
     let _ = fs::remove_dir_all(root);
 }
 

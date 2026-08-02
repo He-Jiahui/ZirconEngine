@@ -505,7 +505,7 @@ fn retained_preset_menu_actions_normalize_to_layout_events_with_expected_names()
 }
 
 #[test]
-fn scene_menu_actions_dispatch_through_runtime_and_only_update_status_line() {
+fn scene_menu_actions_dispatch_through_runtime_and_request_picker_presentation() {
     let _guard = env_lock().lock().unwrap();
 
     let runtime = EventRuntimeHarness::new("zircon_editor_event_scene_menu_actions");
@@ -532,10 +532,12 @@ fn scene_menu_actions_dispatch_through_runtime_and_only_update_status_line() {
         create_record.event,
         EditorEvent::WorkbenchMenu(MenuAction::CreateScene)
     );
-    assert_eq!(
-        runtime.runtime.editor_snapshot().status_line,
-        "Scene open/create workflow is not wired yet"
-    );
+    assert!(open_record
+        .effects
+        .contains(&EditorEventEffect::OpenScenePickerRequested));
+    assert!(create_record
+        .effects
+        .contains(&EditorEventEffect::CreateScenePickerRequested));
     assert!(!open_record
         .effects
         .contains(&EditorEventEffect::LayoutChanged));
@@ -693,7 +695,7 @@ fn asset_open_event_opens_the_indexed_registry_toolkit() {
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap();
     runtime.runtime.sync_asset_catalog(Arc::new(
         EditorAssetCatalogGeneration::from_snapshot_record(

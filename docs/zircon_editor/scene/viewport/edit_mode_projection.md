@@ -9,7 +9,6 @@ related_code:
   - zircon_editor/src/scene/viewport/edit_mode_projection/mod.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_edit_mode_projection.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_hierarchy_row.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field_value.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs
@@ -50,7 +49,6 @@ implementation_files:
   - zircon_editor/src/scene/viewport/edit_mode_projection/mod.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_edit_mode_projection.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_hierarchy_row.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field_value.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs

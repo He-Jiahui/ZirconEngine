@@ -34,9 +34,64 @@ Runtime clocks are fixed by contract:
 - one batch ZrVM transaction per simulation tick;
 - complete rollback on a VM, budget, decode or command-validation failure.
 
-The ZrVM package and native protocol both target the versioned `WOS71` envelope
+The ZrVM package and native protocol both target the versioned `WOS83` envelope
 documented in `contracts/world-state.md`. Its `stateSchema()` and writer select
-WOS71, while the decoder retains WOS2-WOS70 compatibility. WOS71 adds
+WOS83, while the decoder retains WOS2-WOS82 compatibility. WOS83 appends 29
+source-ordered account weapon-skin ownership markers and eight generated-type
+loadout codes. Typed `change_weapon_skin` applies only known owned skins matching
+the displayed mainhand, detaches canonical type entries, refreshes all live
+players and preserves Hunter's crossbow-before-bow rule without a dead or RNG
+gate. WOS82 appends the 15 source-ordered account mech-chroma ownership markers
+and expands the fixed M5 item-discovery ledger from 67 to 82 entries. Typed
+`unequip_mech_chroma` removes
+known owned chromas, resets every matching live player to class skin zero and
+force-grants the protected armor plate; using that plate restores ownership and
+equips the mech appearance. WOS81 appends the two source-ordered Delve companion
+ranks per player plus the historical 67-byte discovery ledger. Typed
+`companion_upgrade` strictly decodes the generated
+companion identity, resolves its source door, applies dead, 12-unit range,
+next-rank Delve Mark and copper gates, then commits the source-ordered debit,
+rank and companion-deed transaction. Every representable `addItem` grant records
+first discovery and evaluates the generated source discovery-deed predicates.
+WOS80 appends each entity's Delve Mark balance and the Normal, Heroic and other-tier
+clear counts for both source shops. The M5 catalog appends their 18 stock identities
+after the stable WOS79 prefix. Typed `delve_buy` strictly decodes `delveId` and `itemId`,
+applies dead, 12-unit door-range, clear-gate and balance admission, then follows
+the source debit-before-force-grant order without a bag-capacity check. WOS79
+keeps the WOS78 byte layout while appending stable M5 item identities for Heroic
+Marks and the ten Heroic Quartermaster jewelry offers. Typed `heroic_buy` applies
+the source dead, seven-unit range, balance and pre-debit bag-capacity gates, then
+atomically debits marks and grants one item. WOS78 appends the
+per-entity Sim chat token bucket and routes bounded `/ready` / `/readycheck`
+chat text into the retained party ready-check state. Other chat routes remain
+explicitly unimplemented. WOS77 appends the
+offline player's bounded alchemy craft skill, rolling throttle, successful-craft
+counter and last craft-result projection. The typed `craft_item` reducer closes
+the source `recipe_minor_healing_potion` transaction over the real M5 inventory,
+copper, shared RNG and XP ledger. The signed rolled-instance output required by
+`recipe_eastbrook_ritual_vestments` is rejected without side effects under an
+explicit internal reason until the engine-owned item-instance persistence ABI is
+available. WOS76 appends the
+offline player's ordered town-focus component keys and positive point values.
+The `set_town_focus` reducer accepts only a well-formed UTF-8 allocation while
+the player is inside the current zone's inclusive town-hub circle, rejects
+negative or over-budget requests without changing the prior allocation, removes
+zero-point entries and preserves request order. It has no dead-state gate and
+consumes no RNG. WOS75 appends the offline player's 193-entry earned-deed ledger
+and nullable active-title code,
+plus the matching entity-title projection. The `deed_set_title` reducer clears
+both projections unconditionally for null and selects only an earned deed whose
+generated reward kind is title; every other id is a silent no-op. WOS74 appends the
+offline player's three gathering proficiencies, pending proficiency gains,
+24 source-node readiness deadlines, visited-node mask and latest personal
+gather-result identity. Its `harvest_node` reducer preserves source ordering:
+range/cooldown/capacity admission precedes the readiness write and exactly one
+rarity draw, then item grant, the current no-op gather-objective hook, discovery,
+XP and the personal result sequence. WOS73 retains the
+closed overhead-emote id, exact 3.2-second expiry and monotonic replay sequence
+for every entity. WOS72 adds one
+signed manual cell hint per dense inventory stack and the authoritative
+`inv_move {from,to}` park/swap reducer. WOS71 adds
 death-time party loot-recipient snapshots, deterministic fair-split copper and
 a rollback-safe poor/common round-robin cursor. WOS70 adds bounded,
 rollback-safe pending Need/Greed and Master Loot records, candidate choices,
@@ -355,18 +410,33 @@ The market domain also carries finite listing-id payloads for `market_buy` and
 simulation responsibilities.
 `delve_rite_choose` carries its exact `easy|medium|hard` source enum as one byte;
 the Delve run, reliquary state, sequence generation and rewards remain simulation responsibilities.
+`inv_move {from,to}` carries two signed little-endian 32-bit integers. Its WOS72
+reducer reconstructs the source fixed-cell layout, normalizes stale hints and
+parks or swaps one dense stack without changing dense inventory order.
+`emote {emote}` carries one closed code for the source's 13 overhead emotes.
+Its WOS73 reducer updates entity presentation identity and expires the active
+code after exactly 3.2 authoritative seconds while retaining the sequence.
+`saveLoadout {name,bar,alloc?}` carries a 24-UTF-16-unit name, an optional
+six-row talent allocation and at most 22 optional ability ids. Its reducer
+applies a supplied allocation before the source ten-name admission check,
+overwrites an exact same-name row, defaults an empty name to `Build`, pads the
+saved action bar to 22 slots and selects the saved row.
+`harvest_node {node}` carries one source node id bounded to 256 UTF-8 bytes. Its
+WOS74 reducer resolves one of the 24 generated gathering nodes, enforces the
+source five-unit horizontal interaction range, per-player 120-second respawn and
+bag capacity, consumes one rarity draw only after admission, grants the mapped
+material, records first discovery and grants the source gathering XP.
 `trade_offer {items,copper}` and `mail_send` remain
 source-shape inventory because their upstream strings/item-id objects have no source-owned
-wire bound. The 29 source-only and 8 unmapped dispatch commands remain source-shape
+wire bound. The 11 source-only and 8 unmapped dispatch commands remain source-shape
 inventory only. The generic protocol envelope can carry bounded opaque bytes for known ids,
-but catalog recognition does not make the remaining 37 rows typed, semantically validated,
+but catalog recognition does not make the remaining 19 rows typed, semantically validated,
 or implemented.
 The two loadout-index payloads reject values outside the source's ten-slot range
 at the native/client boundary. WOS38 retains the WOS16 bounded offline loadout
 projection (name bytes, six-row allocation and 22 action-bar ability codes), and
-its reducer switches or deletes saved rows with the source active-index fallback.
-`saveLoadout` has no canonical typed wire layout yet, so this does not claim a
-normal command path that creates or updates those persisted rows.
+its reducers create, overwrite, switch or delete saved rows with the source
+active-index fallback.
 The fixed `change_skin` payload uses `u8_catalog+u8_skin_index`: WOS38 retains
 the WOS15 class catalog values `0..7`, while a mech catalog request is a deliberate no-op
 until account cosmetic ownership is represented.
@@ -426,15 +496,44 @@ yards of that corpse at 50% health, or at a nearby spirit healer at 20% health
 with a source-level resurrection-sickness duration timer. Arena/delve release
 routing, the sickness stat aura/resource recomputation, and events still require
 their owning systems.
-Command-payload schema 38 covers 135 of 165 source commands. It adds typed
+Command-payload schema 52 covers 149 of 165 source commands. It retains typed
 `qlinkaccept` transport (`quest` plus numeric sharer pid) and typed `equip` /
 `unequip_item` transport over the source's 12 live paperdoll slots. Native client
 mapping and authoritative reducers retain linked-quest same-party availability,
 optional aimed equipment slots, class/level admission, source-ordered inventory
-transfers and stat recomputation. The WOS71 reducer applies its persisted
+transfers and stat recomputation. The equipment reducer applies WOS72's persisted
 `mainhand`, `helmet` and `feet` subset; other legal slot codes remain transport-
-valid and state-neutral until their paperdoll rows exist. The remaining 22 source-shaped client sends
-and eight dispatch-only commands remain a separate migration. Package and native
+valid and state-neutral until their paperdoll rows exist. Schema 40 added
+typed signed `inv_move {from,to}` transport, native intent mapping and WOS72's
+manual-cell normalization/park/swap reducer, and retained
+the source `telemetry` object's kind plus bounded numeric spread fields; the
+authoritative world validates its complete structure and then performs the same
+accepted no-op as the source server, advancing only the command sequence.
+Schema 41 adds the closed `emote` transport, native mapping and WOS73 lifecycle.
+Schema 42 adds bounded `saveLoadout` transport, optional staged talent allocation,
+native mapping and the authoritative persisted-row reducer without changing WOS73.
+Schema 43 adds bounded `harvest_node` transport, native intent mapping and WOS74's
+source-ordered gathering reducer. Schema 44 adds nullable bounded
+`deed_set_title` transport, native intent mapping and WOS75's earned-title gate,
+same-tick meta/entity projection and stale-title migration. Schema 45 adds the
+ordered, bounded `set_town_focus` allocation transport, native intent mapping
+and WOS76's town-gated, ten-point reducer. Schema 46 adds bounded UTF-8
+`craft_item {recipe}` transport and native intent mapping; WOS77 owns the
+currently representable potion transaction and preserves explicit refusal of
+instance-backed output. Schema 47 adds source-bounded `chat {text}` transport,
+native intent mapping and WOS78's token-bucket-backed `/ready` subset. Schema 48
+adds source-bounded `heroic_buy {itemId}` transport, native intent mapping and
+WOS79's Heroic Mark inventory transaction. Schema 49 adds independently bounded
+`delve_buy {delveId,itemId}` transport, native intent mapping and WOS80's
+door-ranged, clear-gated Delve Mark transaction. Schema 50 adds bounded
+`companion_upgrade {companionId}` transport, native intent mapping and WOS81's
+door-ranged, rank-costed Delve companion transaction. Schema 51 adds bounded
+`unequip_mech_chroma {chroma}` transport, native intent mapping and WOS82's
+account-owned cosmetic return/reuse loop. Schema 52 adds the discriminated
+`change_weapon_skin` apply/detach transport, native intent mapping and WOS83's
+account-owned weapon-loadout projection. The remaining 8 source-shaped client
+sends and eight dispatch-only commands remain
+a separate migration. Package and native
 identities report both the command-catalog SHA-256 and payload-schema SHA-256.
 The VM decoder preserves ordered command payload bytes and rejects unknown ids
 before world dispatch.

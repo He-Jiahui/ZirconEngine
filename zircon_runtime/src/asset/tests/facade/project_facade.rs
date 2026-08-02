@@ -33,10 +33,12 @@ fn assets_insert_remove_and_project_manager_helpers_use_typed_facade() {
     assert!(matches!(added, AssetEvent::Added { .. }));
     assert_eq!(added.handle().id(), texture_id);
 
-    assert!(manager
-        .assets::<ShaderAsset>()
-        .remove_by_locator(&texture_locator)
-        .is_none());
+    assert!(
+        manager
+            .assets::<ShaderAsset>()
+            .remove_by_locator(&texture_locator)
+            .is_none()
+    );
     assert_eq!(
         resource_manager.registry().get(texture_id).unwrap().kind,
         ResourceKind::Texture

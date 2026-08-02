@@ -1,4 +1,4 @@
-use super::super::model::{PendingClosePrompt, can_save_dirty_view};
+use super::super::model::PendingClosePrompt;
 use super::layout::close_prompt_layout;
 use super::text::{dirty_details, prompt_message, prompt_title, target_window_id};
 use crate::ui::retained_host::{FrameRect, HostClosePromptData, UiHostWindow};
@@ -14,7 +14,7 @@ pub(super) fn host_prompt_data(
         title: prompt_title(&prompt.target).into(),
         message: prompt_message(prompt.dirty_views.len()).into(),
         details: dirty_details(&prompt.dirty_views).into(),
-        can_save: prompt.dirty_views.iter().all(can_save_dirty_view),
+        can_save: false,
         overlay_frame: FrameRect {
             x: 0.0,
             y: 0.0,

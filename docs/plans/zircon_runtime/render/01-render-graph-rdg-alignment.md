@@ -547,6 +547,9 @@ render_product 对拍场景(`cargo test -p zircon_runtime render_product --locke
 - 迁入记录：[`01/2026-07-09-render-graph-rdg-alignment-output-records.md`](01/2026-07-09-render-graph-rdg-alignment-output-records.md)
 - fixed 已修复：[render-framework-pipeline-registration-test-double-migration](../../zircon_editor/editor/09/fixed-2026-07-13-render-framework-pipeline-registration-test-double-migration.md)
 - fixed 已修复：[editor-viewport-resolve-job-guard-drift](../../zircon_editor/editor/09/fixed-2026-07-14-editor-viewport-resolve-job-guard-drift.md)
+
+## 性能审阅交接
+
 - 2026-07-18 graph execution diagnostics交接：每帧stage去重已改固定表、compute audit临时partition Vec也已删除；但每pass仍把compiled name/executor/dependencies/resources多次clone进context/profile/record，stats又对workload、dispatch、resource、stage、queue多轮扫描并clone alias/profile。RG-M4须让compiled graph保持metadata权威、always-on一次增量累计dense summary，详细String rows只在capture/profile启用并复用workspace，stats借用/Arc共享；见PERF-MVP-343及`docs/plans/performance/01/2026-07-18-graphics-render-graph-execution-record-static-review.md`。
 - 2026-07-18 post-process graph性能交接：frame submission稳定配置仍每帧重建String/Vec stack、clone进compile options、validate/sort graph，再把stack/graph深clone到extract并另存context。Render01联动Render07/17按settings/history/AA/size/feature generations编译唯一dense-ID post artifact，所有消费者共享Arc；stable build/validate/sort/clone=0、changed每variant≤1；见PERF-MVP-362及post-process stack静态证据。
 - 2026-07-18 RenderGraph当前源复核：14/14文件、3,767行已重读；typed lookup indices与transient allocation plan构造期缓存已存在，builder handle scan也已O(1)。剩余PERF-MVP-224聚焦`manual_reachability` HashSet clone、read-producer全图复扫、cull writes临时Vec、per-frame `stats()`多遍扫描、内部String join及realtime IBL稳定拓扑重复compile；核心文件由现有owner租约保护，本性能会话只更新验收预算。

@@ -11,7 +11,7 @@ node = "root"
 component = "SceneViewportToolbar"
 control_id = "SceneViewportToolbarRoot"
 classes = ["viewport-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 children = [
   { node = "left_group" },
   { node = "fill" },
@@ -21,7 +21,7 @@ children = [
 [nodes.left_group]
 component = "HorizontalGroup"
 control_id = "SceneViewportToolbarLeftGroup"
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "activate_scene_mode" },
   { node = "set_transform_space" },
@@ -46,110 +46,110 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.right_group]
 component = "HorizontalGroup"
 control_id = "SceneViewportToolbarRightGroup"
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "set_projection_mode" }, { node = "align_view" }]
 
 [nodes.activate_scene_mode]
 component = "IconButton"
 control_id = "ActivateSceneMode"
-props = { label = "Tool", icon = "editor_pages/scene_viewport/tools/universal-transform.svg" }
+props = { label = "Tool", icon = "editor_pages/scene_viewport/tools/universal-transform.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/ActivateSceneMode", event = "Change", route = "workbench.viewport.activate_scene_mode" }]
 
 [nodes.set_transform_space]
 component = "IconButton"
 control_id = "SetTransformSpace"
-props = { label = "Space", icon = "resize-outline" }
+props = { label = "Space", icon = "resize-outline", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetTransformSpace", event = "Change", route = "workbench.viewport.set_transform_space" }]
 
 [nodes.set_display_mode]
 component = "IconButton"
 control_id = "SetDisplayMode"
-props = { label = "Display", icon = "editor_pages/scene_viewport/display/lit.svg" }
+props = { label = "Display", icon = "editor_pages/scene_viewport/display/lit.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetDisplayMode", event = "Change", route = "workbench.viewport.set_display_mode" }]
 
 [nodes.set_grid_mode]
 component = "IconButton"
 control_id = "SetGridMode"
-props = { label = "Grid", icon = "editor_pages/scene_viewport/display/grid-overlay.svg" }
+props = { label = "Grid", icon = "editor_pages/scene_viewport/display/grid-overlay.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetGridMode", event = "Change", route = "workbench.viewport.set_grid_mode" }]
 
 [nodes.set_translate_snap]
 component = "IconButton"
 control_id = "SetTranslateSnap"
-props = { label = "Move", icon = "editor_pages/scene_viewport/snapping/grid-snap.svg" }
+props = { label = "Move", icon = "editor_pages/scene_viewport/snapping/grid-snap.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetTranslateSnap", event = "Change", route = "workbench.viewport.set_translate_snap" }]
 
 [nodes.set_rotate_snap]
 component = "IconButton"
 control_id = "SetRotateSnapDegrees"
-props = { label = "Rotate", icon = "editor_pages/scene_viewport/snapping/angle-snap.svg" }
+props = { label = "Rotate", icon = "editor_pages/scene_viewport/snapping/angle-snap.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetRotateSnapDegrees", event = "Change", route = "workbench.viewport.set_rotate_snap_degrees" }]
 
 [nodes.set_scale_snap]
 component = "IconButton"
 control_id = "SetScaleSnap"
-props = { label = "Scale", icon = "editor_pages/scene_viewport/snapping/scale-snap.svg" }
+props = { label = "Scale", icon = "editor_pages/scene_viewport/snapping/scale-snap.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetScaleSnap", event = "Change", route = "workbench.viewport.set_scale_snap" }]
 
 [nodes.set_preview_lighting]
 component = "IconButton"
 control_id = "SetPreviewLighting"
-props = { label = "Light", icon = "editor_pages/scene_viewport/display/lit.svg" }
+props = { label = "Light", icon = "editor_pages/scene_viewport/display/lit.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetPreviewLighting", event = "Change", route = "workbench.viewport.set_preview_lighting" }]
 
 [nodes.set_preview_skybox]
 component = "IconButton"
 control_id = "SetPreviewSkybox"
-props = { label = "Sky", icon = "cloud-outline" }
+props = { label = "Sky", icon = "cloud-outline", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetPreviewSkybox", event = "Change", route = "workbench.viewport.set_preview_skybox" }]
 
 [nodes.set_gizmos]
 component = "IconButton"
 control_id = "SetGizmosEnabled"
-props = { label = "Gizmo", icon = "editor_pages/scene_viewport/display/gizmo-visibility.svg" }
+props = { label = "Gizmo", icon = "editor_pages/scene_viewport/display/gizmo-visibility.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetGizmosEnabled", event = "Change", route = "workbench.viewport.set_gizmos_enabled" }]
 
 [nodes.frame_selection]
 component = "IconButton"
 control_id = "FrameSelection"
-props = { label = "Frame", icon = "editor_pages/scene_viewport/camera/frame-selection.svg" }
+props = { label = "Frame", icon = "editor_pages/scene_viewport/camera/frame-selection.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/FrameSelection", event = "Click", route = "workbench.viewport.frame_selection" }]
 
 [nodes.enter_play]
 component = "IconButton"
 control_id = "EnterPlayMode"
-props = { label = "Play", icon = "editor_pages/scene_viewport/play/play.svg" }
+props = { label = "Play", icon = "editor_pages/scene_viewport/play/play.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/EnterPlayMode", event = "Click", route = "workbench.play_mode.enter" }]
 
 [nodes.exit_play]
 component = "IconButton"
 control_id = "ExitPlayMode"
-props = { label = "Stop", icon = "editor_pages/scene_viewport/play/stop.svg" }
+props = { label = "Stop", icon = "editor_pages/scene_viewport/play/stop.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/ExitPlayMode", event = "Click", route = "workbench.play_mode.exit" }]
 
 [nodes.set_projection_mode]
 component = "IconButton"
 control_id = "SetProjectionMode"
-props = { label = "Camera", icon = "editor_pages/scene_viewport/camera/perspective.svg" }
+props = { label = "Camera", icon = "editor_pages/scene_viewport/camera/perspective.svg", icon_placement = "icon_only" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetProjectionMode", event = "Change", route = "workbench.viewport.set_projection_mode" }]
 
 [nodes.align_view]
 component = "IconButton"
 control_id = "AlignView"
-props = { label = "Align", icon = "navigate-outline" }
+props = { label = "Align", icon = "navigate-outline", icon_placement = "icon_only" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/AlignView", event = "Change", route = "workbench.viewport.align_view" }]

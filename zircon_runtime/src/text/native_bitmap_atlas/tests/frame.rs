@@ -209,6 +209,60 @@ fn native_bitmap_atlas_frame_schedules_worker_miss_as_transparent_placeholder() 
 }
 
 #[test]
+fn native_bitmap_atlas_pending_placeholder_respects_text_area_bounds() {
+    let mut font_system = FontSystem::new_with_fonts([fontdb::Source::Binary(
+        std::sync::Arc::new(TEST_FRAME_FONT_BYTES.to_vec()),
+    )]);
+    let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+    buffer.set_size(&mut font_system, Some(128.0), Some(32.0));
+    buffer.set_text(
+        &mut font_system,
+        "P",
+        &Attrs::new(),
+        Shaping::Advanced,
+        None,
+    );
+    buffer.shape_until_scroll(&mut font_system, false);
+    let text_area = TextArea {
+        buffer: &buffer,
+        left: 32.0,
+        top: 16.0,
+        scale: 1.0,
+        bounds: TextBounds {
+            left: 0,
+            top: 0,
+            right: 1,
+            bottom: 1,
+        },
+        default_color: Color::rgba(255, 255, 255, 255),
+        custom_glyphs: &[],
+    };
+    let bitmap_text_area = NativeBitmapAtlasTextArea::new(&text_area, None);
+    let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(1).with_queue_depth(4),
+    );
+    let mut source_cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+    let mut retry_state = GlyphAtlasBitmapRetryFrameState::new();
+
+    let frame = native_bitmap_atlas_frame(
+        &mut font_system,
+        &FontDatabase::default(),
+        Some(&worker_pool),
+        &mut source_cache,
+        &mut retry_state,
+        GlyphAtlasSet::default(),
+        test_viewport_size(),
+        TEST_BITMAP_ATLAS_FRAME_INDEX,
+        &[bitmap_text_area],
+    );
+
+    assert_eq!(
+        frame.prepare_report().submission.visible_placeholder_count,
+        0
+    );
+}
+
+#[test]
 fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pending() {
     let mut font_system = FontSystem::new_with_fonts([fontdb::Source::Binary(
         std::sync::Arc::new(TEST_FRAME_FONT_BYTES.to_vec()),

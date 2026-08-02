@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/core/commandlet
-  - zircon_editor/src/core/editor_plugin_sdk
+  - zircon_editor/src/core/plugin/sdk
   - zircon_editor/src/core/export
   - zircon_editor/src/core/script_build
   - zircon_editor/src/core/sync

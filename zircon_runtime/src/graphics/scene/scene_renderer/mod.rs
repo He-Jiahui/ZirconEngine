@@ -45,8 +45,9 @@ pub(crate) use graph_execution::RenderGraphLightGridReport;
 pub use graph_execution::{
     ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,
     RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
-    RenderPassGpuExecutionContext,
+    RenderPassGpuExecutionContext, RenderPassRecordingPolicy,
 };
+pub use mesh::{RuntimeShaderPipelinePrewarmFailure, RuntimeShaderPipelinePrewarmReport};
 
 pub(crate) use core::{FINAL_COLOR_FORMAT, SCENE_COLOR_HDR_FORMAT, create_depth_texture};
 pub(crate) use deferred::{

@@ -1,10 +1,10 @@
 use crate::core::framework::render::{
-    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapUploadKey,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_face_mip_offset, source_cubemap_mip_size, SourceCubemapEnvironment,
+    SourceCubemapIrradianceCube, SourceCubemapUploadKey,
 };
 
-use super::SceneEnvironmentBrdfLut;
 use super::half_float::push_f16_le_bytes;
+use super::SceneEnvironmentBrdfLut;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentCubemap {
     source_texture: wgpu::Texture,

@@ -1,8 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::framework::render::{
-    LightmapConsumeContract, RendererCommon, render_mesh_stable_instance_key,
-};
+use crate::core::framework::render::{LightmapConsumeContract, RendererCommon};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::RenderVec4;
 use crate::graphics::scene::gpu_scene::{
@@ -28,17 +26,16 @@ pub(super) struct SyncedGpuSceneEntry {
 pub(super) fn sync_gpu_scene_pending_draws(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
+    encoder: &mut wgpu::CommandEncoder,
     gpu_scene: &mut GpuScene,
     pending_draws: &mut [PendingMeshDraw],
     lightmaps: Option<&LightmapConsumeContract>,
 ) -> (GpuSceneUploadReport, HashMap<u64, SyncedGpuSceneEntry>) {
     let mut live_keys = HashSet::new();
     let mut entries = HashMap::new();
+    let lightmap_slots = lightmaps.map(lightmap_slots_by_instance);
     for pending_draw in pending_draws {
-        let stable_instance_key = render_mesh_stable_instance_key(
-            pending_draw.source_entity,
-            pending_draw.source_draw_ordinal,
-        );
+        let stable_instance_key = pending_draw.stable_instance_key;
         live_keys.insert(stable_instance_key);
         let entry = gpu_scene.register(device, stable_instance_key, 1);
         pending_draw.resolved_skinned_gpu_source =
@@ -81,6 +78,7 @@ pub(super) fn sync_gpu_scene_pending_draws(
                 previous_model_matrix,
                 stable_instance_key,
                 lightmaps,
+                lightmap_slots.as_ref(),
             )],
         );
         gpu_scene.set_transform_revision(stable_instance_key, pending_draw.transform_revision);
@@ -93,7 +91,22 @@ pub(super) fn sync_gpu_scene_pending_draws(
         );
     }
     gpu_scene.retain_registered_keys(&live_keys);
-    (gpu_scene.flush_updates(queue), entries)
+    (
+        gpu_scene.flush_updates_with_staging(device, queue, encoder),
+        entries,
+    )
+}
+
+fn lightmap_slots_by_instance(
+    contract: &LightmapConsumeContract,
+) -> HashMap<u64, crate::core::framework::render::LightmapInstanceSlot> {
+    let mut slots = HashMap::with_capacity(contract.slots.len());
+    for (instance_id, slot) in &contract.slots {
+        // Keep the DTO's first-match behavior for malformed duplicate input;
+        // validated contracts reject duplicates before this renderer path.
+        slots.entry(*instance_id).or_insert(*slot);
+    }
+    slots
 }
 
 fn primitive_data_for_pending_draw(
@@ -147,6 +160,7 @@ fn instance_data_for_pending_draw(
     previous_model_matrix: [[f32; 4]; 4],
     stable_instance_key: u64,
     lightmaps: Option<&LightmapConsumeContract>,
+    lightmap_slots: Option<&HashMap<u64, crate::core::framework::render::LightmapInstanceSlot>>,
 ) -> GpuInstanceData {
     let payload_slot = virtual_geometry_payload_slot_for_pending_draw(pending_draw);
     let mut instance = GpuInstanceData {
@@ -163,9 +177,11 @@ fn instance_data_for_pending_draw(
     };
     if let Some((contract, slot)) = lightmaps
         .filter(|_| pending_draw.mobility == Mobility::Static)
-        .and_then(|contract| {
-            contract
-                .slot_for_instance(stable_instance_key)
+        .zip(lightmap_slots)
+        .and_then(|(contract, slots)| {
+            slots
+                .get(&stable_instance_key)
+                .copied()
                 .map(|slot| (contract, slot))
         })
     {
@@ -290,13 +306,20 @@ fn resolve_skinned_gpu_source_mesh(
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{CastShadowsMode, RendererCommon};
+    use crate::core::framework::render::{
+        CastShadowsMode, LightmapAtlasDescriptor, LightmapAtlasFormat, LightmapConsumeContract,
+        LightmapInstanceSlot, RendererCommon,
+    };
+    use crate::core::math::Vec4;
+    use crate::core::resource::ResourceId;
     use crate::graphics::scene::gpu_scene::{
         GPU_PRIMITIVE_FLAG_CAST_SHADOWS, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
         GPU_PRIMITIVE_FLAG_VISIBLE,
     };
 
-    use super::{primitive_flags_for_renderer, velocity_history_is_available};
+    use super::{
+        lightmap_slots_by_instance, primitive_flags_for_renderer, velocity_history_is_available,
+    };
 
     #[test]
     fn render_renderer_common_shadow_modes_project_to_gpu_primitive_flags() {
@@ -328,6 +351,33 @@ mod tests {
         assert!(velocity_history_is_available(false, false));
         assert!(!velocity_history_is_available(true, false));
         assert!(velocity_history_is_available(true, true));
+    }
+
+    #[test]
+    fn gpu_scene_lightmap_slot_index_preserves_the_contract_first_match() {
+        let first = LightmapInstanceSlot {
+            atlas_page: 0,
+            uv_rect: Vec4::new(0.5, 0.5, 0.0, 0.0),
+        };
+        let replacement = LightmapInstanceSlot {
+            atlas_page: 0,
+            uv_rect: Vec4::new(0.25, 0.25, 0.5, 0.5),
+        };
+        let contract = LightmapConsumeContract::new(
+            1,
+            ResourceId::from_stable_label("res://tests/lightmap-array"),
+            LightmapAtlasDescriptor {
+                page_size: 4,
+                page_count: 1,
+                format: LightmapAtlasFormat::Rgba16Float,
+            },
+            vec![(7, first), (7, replacement)],
+        );
+
+        let slots = lightmap_slots_by_instance(&contract);
+
+        assert_eq!(slots.get(&7), Some(&first));
+        assert_eq!(contract.slot_for_instance(7), Some(first));
     }
 
     fn renderer_common(cast_shadows: CastShadowsMode) -> RendererCommon {

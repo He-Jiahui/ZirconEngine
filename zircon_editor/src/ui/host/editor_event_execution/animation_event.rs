@@ -1,5 +1,6 @@
 use crate::core::editor_event::{EditorAnimationEvent, EditorEventEffect};
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
+use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
 
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_animation_event(
@@ -9,9 +10,10 @@ pub(super) fn execute_animation_event(
     let changed = match shell.manager.apply_animation_event(event) {
         Ok(changed) => changed,
         Err(error) if should_tolerate_missing_animation_target(&error.to_string()) => {
-            shell
-                .state
-                .set_status_line(ignored_status_line_for_error(&error.to_string()));
+            shell.state.set_status_line_with_level(
+                ignored_status_line_for_error(&error.to_string()),
+                EditorConsoleMessageLevel::Warning,
+            );
             return Ok(ExecutionOutcome {
                 changed: false,
                 effects: vec![

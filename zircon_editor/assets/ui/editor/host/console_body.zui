@@ -4,6 +4,10 @@ id = "res://ui/editor/host/console_body.zui"
 version = 2
 display_name = "console pane body"
 
+[imports]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"]
+styles = []
+
 [root]
 node = "root"
 
@@ -12,22 +16,74 @@ component = "VerticalGroup"
 control_id = "ConsolePaneBodyRoot"
 classes = ["editor-pane", "console-pane", "panel"]
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "body" }]
+children = [{ node = "header" }, { node = "body" }, { node = "footer" }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "ConsoleHeader"
 layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-children = [{ node = "focus" }]
+children = [{ node = "level_counts" }]
 
-[nodes.focus]
-component = "IconButton"
-control_id = "FocusConsole"
-props = { label = "Focus Console", icon = "editor_pages/console_profiler/logs/log-info.svg" }
-layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ConsolePaneBody/FocusConsole", event = "Click", route = "workbench.dock.focus_view" }]
+[nodes.level_counts]
+component = "HorizontalGroup"
+control_id = "ConsoleLevelCounts"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 186.0, preferred = 204.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_all" }, { node = "level_error" }, { node = "level_warning" }, { node = "level_info" }]
+
+[nodes.level_all]
+component = "WorkbenchButton"
+control_id = "ConsoleLevelAll"
+props = { text = "All", icon = "editor_pages/console_profiler/logs/filter-logs.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "accent", text_align = "center", overflow = "elide" }
+layout = { width = { min = 48.0, preferred = 54.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ConsolePaneBody/FilterAll", event = "Click", route = "view.console.filter.all" }]
+
+[nodes.level_error]
+component = "WorkbenchButton"
+control_id = "ConsoleLevelError"
+props = { text = "0", icon = "editor_pages/console_profiler/logs/log-error.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "error", validation_level = "error", text_align = "center", overflow = "elide" }
+layout = { width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ConsolePaneBody/FilterError", event = "Click", route = "view.console.filter.error" }]
+
+[nodes.level_warning]
+component = "WorkbenchButton"
+control_id = "ConsoleLevelWarning"
+props = { text = "0", icon = "editor_pages/console_profiler/logs/log-warning.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "warning", validation_level = "warning", text_align = "center", overflow = "elide" }
+layout = { width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ConsolePaneBody/FilterWarning", event = "Click", route = "view.console.filter.warning" }]
+
+[nodes.level_info]
+component = "WorkbenchButton"
+control_id = "ConsoleLevelInfo"
+props = { text = "0", icon = "editor_pages/console_profiler/logs/log-info.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "info", validation_level = "info", text_align = "center", overflow = "elide" }
+layout = { width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ConsolePaneBody/FilterInfo", event = "Click", route = "view.console.filter.info" }]
 
 [nodes.body]
-component = "Container"
+component = "VerticalGroup"
 control_id = "ConsoleBodySection"
-layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+children = [{ node = "output_line_prototype", slot = { layout = { padding = { left = 8.0, right = 12.0 } } } }]
+
+[nodes.output_line_prototype]
+component = "Label"
+control_id = "ConsoleOutputLinePrototype"
+props = { text = "No output yet", component_variant = "code", font_size = "$editor.typography.caption.size", text_tone = "muted", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.footer]
+component = "HorizontalGroup"
+control_id = "ConsoleFooter"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "footer_spacer" }, { node = "clear" }]
+
+[nodes.footer_spacer]
+component = "Space"
+control_id = "ConsoleFooterSpacer"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.clear]
+component = "WorkbenchButton"
+control_id = "ClearConsole"
+props = { text = "Clear", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 50.0, preferred = 58.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ConsolePaneBody/ClearConsole", event = "Click", route = "view.console.clear" }]

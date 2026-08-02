@@ -105,6 +105,65 @@ fn local_transform_reads_one_component_without_projecting_a_scene_node() {
 }
 
 #[test]
+fn update_transform_rejects_values_that_cannot_be_persisted() {
+    let mut world = World::new();
+    let entity = world.spawn_node(NodeKind::Mesh);
+    let original = world.local_transform(entity).unwrap();
+
+    let mut zero_scale = original;
+    zero_scale.scale.x = 0.0;
+    assert!(matches!(
+        world.update_transform(entity, zero_scale),
+        Err(crate::scene::SceneError::ZeroScaleTransform { entity: error_entity, axis: "x" })
+            if error_entity == entity
+    ));
+    assert_eq!(world.local_transform(entity), Some(original));
+
+    let mut zero_rotation = original;
+    zero_rotation.rotation = crate::core::math::Quat::from_array([0.0; 4]);
+    assert!(matches!(
+        world.update_transform(entity, zero_rotation),
+        Err(crate::scene::SceneError::ZeroLengthQuaternion { .. })
+    ));
+    assert_eq!(world.local_transform(entity), Some(original));
+}
+
+#[test]
+fn project_load_rejects_invalid_orphan_local_transform() {
+    let world = World::new();
+    let mut document = serde_json::to_value(world).unwrap();
+    let transforms = document["local_transforms"]
+        .as_object_mut()
+        .expect("serialized world must contain local transforms");
+    let mut orphan = transforms
+        .values()
+        .next()
+        .expect("bootstrap world must contain a local transform")
+        .clone();
+    orphan["transform"]["scale"] = serde_json::json!([0.0, 1.0, 1.0]);
+    transforms.insert("999999".to_string(), orphan);
+
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("zircon_invalid_scene_{unique}.json"));
+    fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+
+    assert!(matches!(
+        World::load_project_from_path(&path),
+        Err(crate::scene::world::SceneProjectError::Scene(
+            crate::scene::SceneError::ZeroScaleTransform {
+                entity: 999_999,
+                axis: "x"
+            }
+        ))
+    ));
+
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
 fn project_roundtrip_preserves_imported_meshes() {
     let mut world = World::new();
     let imported = world.spawn_mesh_node(

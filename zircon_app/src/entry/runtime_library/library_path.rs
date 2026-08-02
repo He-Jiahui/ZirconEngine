@@ -92,8 +92,15 @@ fn runtime_library_override_path_from_value(
             "runtime startup diagnostic: component=runtime_library requested_path=<environment override> cause={ZIRCON_RUNTIME_LIBRARY_ENV} is blank recovery=unset {ZIRCON_RUNTIME_LIBRARY_ENV} or set it to a compatible absolute path"
         )));
     }
+    let path = PathBuf::from(value);
+    if !path.is_absolute() {
+        return Err(RuntimeLibraryError::new(format!(
+            "runtime startup diagnostic: component=runtime_library requested_path={} cause={ZIRCON_RUNTIME_LIBRARY_ENV} must be an absolute path recovery=unset {ZIRCON_RUNTIME_LIBRARY_ENV} or set it to a compatible absolute path",
+            runtime_library_environment_override_request(&path)
+        )));
+    }
 
-    Ok(Some(PathBuf::from(value)))
+    Ok(Some(path))
 }
 
 pub(crate) const fn platform_runtime_library_name() -> &'static str {
@@ -134,15 +141,64 @@ mod tests {
     }
 
     #[test]
-    fn runtime_library_override_path_preserves_empty_fallback_and_valid_paths() {
+    fn runtime_library_override_path_preserves_empty_fallback_and_absolute_paths() {
+        let absolute = std::env::temp_dir().join("zircon-runtime-library-test.dll");
+
         assert_eq!(
             runtime_library_override_path_from_value(Some(OsString::new())).unwrap(),
             None
         );
         assert_eq!(
-            runtime_library_override_path_from_value(Some(OsString::from("runtime.dll"))).unwrap(),
-            Some(PathBuf::from("runtime.dll"))
+            runtime_library_override_path_from_value(Some(absolute.clone().into_os_string()))
+                .unwrap(),
+            Some(absolute)
         );
+    }
+
+    #[test]
+    fn runtime_library_override_path_rejects_relative_paths() {
+        let error = runtime_library_override_path_from_value(Some(OsString::from("runtime.dll")))
+            .expect_err(
+                "relative runtime override must not depend on the process working directory",
+            );
+
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_library requested_path=ZIRCON_RUNTIME_LIBRARY=runtime.dll cause=ZIRCON_RUNTIME_LIBRARY must be an absolute path recovery=unset ZIRCON_RUNTIME_LIBRARY or set it to a compatible absolute path"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn runtime_library_override_path_preserves_windows_absolute_path_semantics() {
+        for absolute in [
+            PathBuf::from(r"C:\zircon\zircon_runtime.dll"),
+            PathBuf::from(r"\\server\share\zircon_runtime.dll"),
+        ] {
+            assert_eq!(
+                runtime_library_override_path_from_value(Some(absolute.clone().into_os_string(),))
+                    .unwrap(),
+                Some(absolute)
+            );
+        }
+
+        for relative in [
+            OsString::from(r"C:zircon_runtime.dll"),
+            OsString::from(r"\zircon_runtime.dll"),
+            OsString::from(r"/zircon_runtime.dll"),
+        ] {
+            let error = runtime_library_override_path_from_value(Some(relative.clone()))
+                .expect_err("Windows drive-relative and rooted paths must remain unsupported");
+            let relative = PathBuf::from(relative);
+
+            assert_eq!(
+                error.to_string(),
+                format!(
+                    "runtime startup diagnostic: component=runtime_library requested_path={} cause=ZIRCON_RUNTIME_LIBRARY must be an absolute path recovery=unset ZIRCON_RUNTIME_LIBRARY or set it to a compatible absolute path",
+                    runtime_library_environment_override_request(&relative)
+                )
+            );
+        }
     }
 
     #[cfg(unix)]
@@ -150,7 +206,7 @@ mod tests {
     fn runtime_library_override_path_preserves_non_utf8_value() {
         use std::os::unix::ffi::OsStringExt;
 
-        let value = OsString::from_vec(vec![0xFF]);
+        let value = OsString::from_vec(vec![b'/', b't', b'm', b'p', b'/', 0xFF]);
 
         assert_eq!(
             runtime_library_override_path_from_value(Some(value.clone())).unwrap(),
@@ -169,13 +225,13 @@ mod tests {
 
     #[test]
     fn runtime_library_override_selection_keeps_its_provenance_and_request_label() {
-        let selection =
-            RuntimeLibraryPathSelection::EnvironmentOverride(PathBuf::from("custom.dll"));
+        let path = std::env::temp_dir().join("custom.dll");
+        let selection = RuntimeLibraryPathSelection::EnvironmentOverride(path.clone());
 
-        assert_eq!(selection.path(), std::path::Path::new("custom.dll"));
+        assert_eq!(selection.path(), path);
         assert_eq!(
             runtime_library_environment_override_request(selection.path()),
-            "ZIRCON_RUNTIME_LIBRARY=custom.dll"
+            format!("ZIRCON_RUNTIME_LIBRARY={}", path.display())
         );
     }
 }

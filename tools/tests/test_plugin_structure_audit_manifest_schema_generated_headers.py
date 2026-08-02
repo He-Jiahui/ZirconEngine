@@ -4,18 +4,40 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.plugin_structure_audits.manifest_schema import (
-    NATIVE_GENERATED_MANIFEST_HEADER,
+    PLUGIN_DECLARATION_GENERATED_MANIFEST_HEADER,
     audit_plugin_manifest_schema,
 )
 
 
 class PluginStructureAuditManifestSchemaGeneratedHeadersTests(unittest.TestCase):
-    def test_native_sdk_header_counts_as_generated_manifest(self):
-        audit = audit_single_native_manifest(NATIVE_GENERATED_MANIFEST_HEADER)
+    def test_plugin_declaration_header_counts_as_generated_manifest(self):
+        audit = audit_single_native_manifest(
+            PLUGIN_DECLARATION_GENERATED_MANIFEST_HEADER
+        )
 
         self.assertEqual([], audit.generated_manifest_header_violation_paths)
         self.assertEqual(1, audit.to_json()["generated_manifest_count"])
         self.assertEqual(0, audit.to_json()["hand_written_native_manifest_count"])
+
+    def test_legacy_native_sdk_header_is_rejected(self):
+        audit = audit_single_native_manifest(
+            "# @generated from zircon_plugin_sdk::native_plugin_manifest_v3!; do not edit by hand."
+        )
+
+        self.assertEqual(
+            ["zircon_plugins/native_dynamic_fixture/plugin.toml"],
+            audit.generated_manifest_header_violation_paths,
+        )
+
+    def test_legacy_descriptor_header_is_rejected(self):
+        audit = audit_single_native_manifest(
+            "# @generated from Rust descriptor package_manifest(); do not edit by hand."
+        )
+
+        self.assertEqual(
+            ["zircon_plugins/native_dynamic_fixture/plugin.toml"],
+            audit.generated_manifest_header_violation_paths,
+        )
 
     def test_native_manifest_without_generated_header_is_rejected(self):
         audit = audit_single_native_manifest("")

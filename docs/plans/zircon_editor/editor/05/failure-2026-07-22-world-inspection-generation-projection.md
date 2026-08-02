@@ -55,4 +55,15 @@ World没有发布按hierarchy/name/active/reflection generation封存的inspecti
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `source repair complete; Runtime->Editor boundary, scale, and F4 product validation pending`; no pass is claimed.
+
+- Runtime now publishes one immutable `Arc<WorldInspectionArtifact>` per world generation, reuses
+  the hierarchy allocation for stable and field-only generations, and retains only the current
+  primary-selection field artifact. Its diagnostics expose hierarchy and focused-field build work.
+- The production Editor host retains the runtime artifacts only long enough to publish a
+  generation/delta message; Hierarchy and viewport projections consume the shared row allocation
+  instead of reconstructing an authoritative DTO copy.
+- Current source and focused tests cover stable-generation reuse, field-only deltas, selection
+  changes, removal, and the application-level Hierarchy -> Inspector -> transaction -> save ->
+  reopen flow. The declared Cargo boundary, 1/1k/10k/100k scale batch, and F4 product trace remain
+  required before this handoff can return as `fixed-*`.

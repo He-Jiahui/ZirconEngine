@@ -5,12 +5,12 @@ use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::PixelRect;
-use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
+use super::super::super::paint_theme::{HostTextSmoothing, current_host_text_preferences};
 use super::super::font::HostTextFontFace;
 use super::super::raster::rasterize_cached_glyph;
 use super::layout::RuntimeTextGlyph;
 use super::placement::retained_glyph_placement_for_smoothing;
-use metrics::{logical_raster_extent, TEXT_RASTER_SUPERSAMPLE};
+use metrics::{TEXT_RASTER_SUPERSAMPLE, logical_raster_extent};
 use row::draw_glyph_row;
 
 pub(super) fn draw_layout_glyphs(

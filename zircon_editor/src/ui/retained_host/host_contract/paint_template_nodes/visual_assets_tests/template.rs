@@ -1,6 +1,6 @@
 use super::super::candidates::icon_candidates;
 use super::super::loading::load_image_from_candidates;
-use super::super::{template_image_pixels, ICON_TINT, ICON_TINT_ERROR};
+use super::super::{ICON_TINT, ICON_TINT_ERROR, template_image_pixels};
 use super::support::{has_visible_pixel, solid_preview_image};
 
 #[test]
@@ -51,10 +51,12 @@ fn template_missing_icon_pixels_keep_visible_fallback() {
     .expect("missing template icons should produce deterministic fallback pixels");
 
     assert_eq!((missing.width, missing.height), (20, 20));
-    assert!(missing
-        .rgba
-        .chunks_exact(4)
-        .any(|pixel| pixel == ICON_TINT_ERROR.as_slice()));
+    assert!(
+        missing
+            .rgba
+            .chunks_exact(4)
+            .any(|pixel| pixel == ICON_TINT_ERROR.as_slice())
+    );
 }
 
 #[test]

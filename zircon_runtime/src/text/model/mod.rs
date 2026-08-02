@@ -16,7 +16,7 @@ pub use rich::{
 };
 pub(crate) use shaped_run::BackendShapeRequest;
 pub use shaped_run::{
-    normalized_open_type_features, OpenTypeFeature, ShapedGlyph, ShapedGlyphClusterFlags,
-    ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript, ShapedTextLine, TextOrientation,
-    VerticalMode,
+    normalized_open_type_features, Iso15924Tag, OpenTypeFeature, ShapedGlyph,
+    ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
+    ShapedTextLine, TextOrientation, VerticalMode,
 };

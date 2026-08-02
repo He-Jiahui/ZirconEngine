@@ -6,12 +6,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::core::commands::{EditorKeyChord, EditorKeymap};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::settings::{
-    settings_registry_with_defaults, EditorKeymapOverrides, SettingValue, SettingsKey,
-    SettingsScope, SettingsStore, EDITOR_KEYMAP_OVERRIDES_KEY, SETTINGS_USER_ROOT_ENV,
+    EDITOR_KEYMAP_OVERRIDES_KEY, EditorKeymapOverrides, SETTINGS_USER_ROOT_ENV, SettingValue,
+    SettingsKey, SettingsScope, SettingsStore, settings_registry_with_defaults,
 };
 use crate::ui::host::module::EDITOR_KEYMAP_NAME;
 
-use super::super::support::{env_lock, EventRuntimeHarness};
+use super::super::support::{EventRuntimeHarness, env_lock};
 
 #[test]
 fn host_and_manager_service_share_the_user_settings_keymap() {

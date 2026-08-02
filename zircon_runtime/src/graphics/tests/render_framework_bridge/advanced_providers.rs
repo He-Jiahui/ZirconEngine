@@ -26,16 +26,12 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert!(!stats.capabilities.acceleration_structures_supported);
     assert!(!stats.capabilities.inline_ray_query);
     assert!(!stats.capabilities.ray_tracing_pipeline);
-    assert!(
-        stats
-            .last_effective_features
-            .contains(&"virtual_geometry".to_string())
-    );
-    assert!(
-        stats
-            .last_effective_features
-            .contains(&"hybrid_gi".to_string())
-    );
+    assert!(stats
+        .last_effective_features
+        .contains(&"virtual_geometry".to_string()));
+    assert!(stats
+        .last_effective_features
+        .contains(&"hybrid_gi".to_string()));
     assert_eq!(
         stats
             .advanced_provider_availability
@@ -186,16 +182,12 @@ fn render_framework_degrades_requested_advanced_features_without_runtime_provide
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(
-        !stats
-            .last_effective_features
-            .contains(&"virtual_geometry".to_string())
-    );
-    assert!(
-        !stats
-            .last_effective_features
-            .contains(&"hybrid_gi".to_string())
-    );
+    assert!(!stats
+        .last_effective_features
+        .contains(&"virtual_geometry".to_string()));
+    assert!(!stats
+        .last_effective_features
+        .contains(&"hybrid_gi".to_string()));
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 0);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
     assert_eq!(
@@ -215,19 +207,17 @@ fn render_framework_degrades_requested_advanced_features_without_runtime_provide
         assert!(report.requested);
         assert_eq!(report.provider_id, None);
         assert_eq!(report.status, AdvancedProviderStatus::Degraded);
-        assert!(
-            report
-                .degradations
-                .iter()
-                .any(|degradation| degradation.reason
-                    == AdvancedRenderDegradationReason::ProviderMissing)
-        );
+        assert!(report
+            .degradations
+            .iter()
+            .any(|degradation| degradation.reason
+                == AdvancedRenderDegradationReason::ProviderMissing));
     }
 }
 
 #[test]
-fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_and_hybrid_gi_payload()
- {
+fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_and_hybrid_gi_payload(
+) {
     let server = pluginized_wgpu_render_framework_with_advanced_providers();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))

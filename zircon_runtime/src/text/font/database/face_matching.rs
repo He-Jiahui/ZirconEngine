@@ -1,3 +1,4 @@
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 use crate::text::{
@@ -6,12 +7,73 @@ use crate::text::{
 
 use super::super::fallback_cache::family_candidate_cache_key;
 use super::super::matching::{
-    dedupe_families, font_family_identity, stretch_distance, style_distance, weight_distance,
-    FontFamilyIdentity,
+    FontFamilyIdentity, dedupe_families, font_family_identity, stretch_distance, style_distance,
+    weight_distance,
 };
 use super::FontDatabase;
 
 const MAX_FACE_MATCH_CACHE_ENTRIES: usize = 64;
+
+#[derive(Clone, Debug, Default)]
+pub(super) struct FaceMatchCache {
+    entries: HashMap<FontMatchCacheKey, Option<FontMatch>>,
+    insertion_order: VecDeque<FontMatchCacheKey>,
+}
+
+impl FaceMatchCache {
+    fn get(&self, key: &FontMatchCacheKey) -> Option<Option<FontMatch>> {
+        self.entries.get(key).copied()
+    }
+
+    fn insert(&mut self, key: FontMatchCacheKey, value: Option<FontMatch>) {
+        if self.entries.contains_key(&key) {
+            self.entries.insert(key, value);
+            return;
+        }
+        while self.entries.len() >= MAX_FACE_MATCH_CACHE_ENTRIES {
+            let Some(oldest) = self.insertion_order.pop_front() else {
+                return;
+            };
+            self.entries.remove(&oldest);
+        }
+        self.insertion_order.push_back(key.clone());
+        self.entries.insert(key, value);
+    }
+
+    #[cfg(test)]
+    fn contains(&self, key: &FontMatchCacheKey) -> bool {
+        self.entries.contains_key(key)
+    }
+
+    #[cfg(test)]
+    fn len(&self) -> usize {
+        self.entries.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_font_face_match_cache_evicts_only_its_oldest_entry_at_capacity() {
+        let mut cache = FaceMatchCache::default();
+        let keys = (0..=MAX_FACE_MATCH_CACHE_ENTRIES)
+            .map(|index| {
+                FontMatchCacheKey::from(&FontQuery::single_family(format!("Family {index}")))
+            })
+            .collect::<Vec<_>>();
+
+        for key in keys.iter().take(MAX_FACE_MATCH_CACHE_ENTRIES) {
+            cache.insert(key.clone(), None);
+        }
+        cache.insert(keys[MAX_FACE_MATCH_CACHE_ENTRIES].clone(), None);
+
+        assert_eq!(cache.len(), MAX_FACE_MATCH_CACHE_ENTRIES);
+        assert!(!cache.contains(&keys[0]));
+        assert!(keys[1..].iter().all(|key| cache.contains(key)));
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct FontMatchCacheKey {
@@ -56,7 +118,7 @@ impl FontDatabase {
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             if let Some(cached) = cache.get(&key) {
-                return *cached;
+                return cached;
             }
         }
         let mut families = query.families.clone();
@@ -66,9 +128,6 @@ impl FontDatabase {
             .face_match_cache
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if cache.len() >= MAX_FACE_MATCH_CACHE_ENTRIES {
-            cache.clear();
-        }
         cache.insert(key, matched);
         matched
     }

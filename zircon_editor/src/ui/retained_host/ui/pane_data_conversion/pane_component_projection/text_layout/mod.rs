@@ -12,7 +12,7 @@ use self::label::projected_label_fields;
 pub(super) use self::model::ProjectedTextLayout;
 use self::offsets::projected_layout_offsets;
 use self::selected_segment::projected_selected_segment;
-use self::text::projected_text;
+use self::text::{projected_icon_placement, projected_text};
 use self::typography::projected_typography;
 use super::drag_overlay::ProjectedDragOverlayData;
 
@@ -48,6 +48,7 @@ pub(super) fn projected_text_layout(
         layout_second_cell_offset_x: offsets.layout_second_cell_offset_x,
         layout_third_cell_offset_x: offsets.layout_third_cell_offset_x,
         layout_fourth_cell_offset_x: offsets.layout_fourth_cell_offset_x,
+        icon_placement: projected_icon_placement(attributes),
         selected_segment_border_width: selected_segment.border_width,
         selected_segment_underline_height: selected_segment.underline_height,
         selected_segment_underline_color: selected_segment.underline_color,

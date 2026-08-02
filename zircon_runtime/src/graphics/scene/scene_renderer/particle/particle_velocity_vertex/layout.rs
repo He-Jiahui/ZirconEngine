@@ -1,8 +1,8 @@
 use super::ParticleVelocityVertex;
 
 impl ParticleVelocityVertex {
-    pub(in crate::graphics::scene::scene_renderer::particle) fn layout()
-    -> wgpu::VertexBufferLayout<'static> {
+    pub(in crate::graphics::scene::scene_renderer::particle) fn layout(
+    ) -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as u64,
             step_mode: wgpu::VertexStepMode::Vertex,

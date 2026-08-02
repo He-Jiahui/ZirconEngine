@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::core::framework::{
     picking::{
-        HitData, HitRecord, PickingDebugFeed, PickingPipelineReport, PointerAction, PointerButton,
-        PointerHits, PointerId, PointerInput, PointerLocation, PointerScrollUnit,
-        hovered_hits_for_pointer,
+        HitData, HitRecord, PickingDebugFeed, PickingHoverMap, PickingPipelineReport,
+        PointerAction, PointerButton, PointerHits, PointerId, PointerInput, PointerLocation,
+        PointerScrollUnit, hovered_hits_for_pointer, resolve_picking_outputs,
     },
     render::RenderViewportHandle,
 };
@@ -42,9 +42,24 @@ pub(in crate::scene::viewport::pointer) fn resolve_runtime_route_and_debug_feed(
     stacked: &[UiNodeId],
     point: UiPoint,
 ) -> (Option<ViewportPointerRoute>, PickingDebugFeed) {
-    let outputs = runtime_pointer_hits_for_candidates(candidates, stacked, point);
-    let route = route_from_outputs(&outputs);
-    let debug_feed = PickingDebugFeed::from_report(&PickingPipelineReport::from_outputs(&outputs));
+    resolve_runtime_route_and_debug_feed_with_renderer_candidates(candidates, stacked, point, &[])
+}
+
+pub(in crate::scene::viewport::pointer) fn resolve_runtime_route_and_debug_feed_with_renderer_candidates(
+    candidates: &BTreeMap<UiNodeId, PrecisionCandidate>,
+    stacked: &[UiNodeId],
+    point: UiPoint,
+    renderer_candidates: &[PrecisionCandidate],
+) -> (Option<ViewportPointerRoute>, PickingDebugFeed) {
+    let outputs = runtime_pointer_hits_for_candidates_with_renderer_candidates(
+        candidates,
+        stacked,
+        point,
+        renderer_candidates,
+    );
+    let (hover_map, report) = resolve_picking_outputs(&outputs);
+    let route = route_from_hover_map(&hover_map);
+    let debug_feed = PickingDebugFeed::from_report(&report);
     (route, debug_feed)
 }
 
@@ -55,13 +70,27 @@ fn route_from_outputs(outputs: &[PointerHits]) -> Option<ViewportPointerRoute> {
     Some(ViewportPointerRoute::from_target(target))
 }
 
+fn route_from_hover_map(hover_map: &PickingHoverMap) -> Option<ViewportPointerRoute> {
+    let target = hover_map.get(EDITOR_VIEWPORT_POINTER_ID).first()?.target;
+    Some(ViewportPointerRoute::from_target(target))
+}
+
 pub(in crate::scene::viewport::pointer) fn runtime_pointer_hits_for_candidates(
     candidates: &BTreeMap<UiNodeId, PrecisionCandidate>,
     stacked: &[UiNodeId],
     point: UiPoint,
 ) -> Vec<PointerHits> {
+    runtime_pointer_hits_for_candidates_with_renderer_candidates(candidates, stacked, point, &[])
+}
+
+fn runtime_pointer_hits_for_candidates_with_renderer_candidates(
+    candidates: &BTreeMap<UiNodeId, PrecisionCandidate>,
+    stacked: &[UiNodeId],
+    point: UiPoint,
+    renderer_candidates: &[PrecisionCandidate],
+) -> Vec<PointerHits> {
     let cursor = Vec2::new(point.x, point.y);
-    let hits = stacked
+    let mut hits = stacked
         .iter()
         .filter_map(|node_id| {
             let candidate = candidates.get(node_id)?;
@@ -69,6 +98,10 @@ pub(in crate::scene::viewport::pointer) fn runtime_pointer_hits_for_candidates(
             Some(runtime_hit_record(candidate, score))
         })
         .collect::<Vec<_>>();
+    hits.extend(renderer_candidates.iter().filter_map(|candidate| {
+        let score = candidate.score(cursor)?;
+        Some(runtime_hit_record(candidate, score))
+    }));
     if hits.is_empty() {
         Vec::new()
     } else {

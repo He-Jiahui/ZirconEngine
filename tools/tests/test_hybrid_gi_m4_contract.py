@@ -1,5 +1,4 @@
 import pathlib
-import re
 import unittest
 
 
@@ -7,26 +6,6 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class HybridGiM4ContractTests(unittest.TestCase):
-    def test_graphics_collection_keeps_all_35_unique_article_identities(self) -> None:
-        mapping = (
-            ROOT / ".codex/plans/Hybrid GI 计算机图形学合集工程映射.md"
-        ).read_text(encoding="utf-8")
-        rows = re.findall(
-            r"^\|\s*(\d+)\s*\|\s*\[(.*?)\]"
-            r"\((https://mp\.weixin\.qq\.com/[^)]+)\)",
-            mapping,
-            flags=re.MULTILINE,
-        )
-
-        self.assertEqual([int(article_id) for article_id, _, _ in rows], list(range(1, 36)))
-        self.assertEqual(len({link for _, _, link in rows}), 35)
-        self.assertEqual(
-            rows[-1][1],
-            "烘焙+Lumen混合光照工作流 - 来自拥有0.01秒虚幻开发经验的工程师的告白",
-        )
-        self.assertIn("mid=2247490435", rows[-1][2])
-        self.assertIn("sn=8aa69c2099640d5ee5be3e70ef4a38e2", rows[-1][2])
-
     def test_runtime_manifest_enables_the_graphics_contract_it_imports(self) -> None:
         manifest = (
             ROOT / "zircon_plugins/hybrid_gi/runtime/Cargo.toml"

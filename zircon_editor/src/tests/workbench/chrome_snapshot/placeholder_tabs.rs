@@ -13,8 +13,8 @@ use crate::ui::workbench::snapshot::{
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
-    ViewKind,
+    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
+    WorkbenchSlot,
 };
 
 #[test]
@@ -58,18 +58,21 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.hierarchy"),
-        ViewKind::ActivityView,
-        "Hierarchy",
-    )
-    .with_preferred_host(PreferredHost::Drawer(ActivityDrawerSlot::LeftTop))];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.hierarchy"),
+            ViewKind::ActivityView,
+            "Hierarchy",
+        )
+        .with_workbench_slot(WorkbenchSlot::LeftTopDrawer),
+    ];
 
     let chrome = EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Ready".to_string(),
+            console_output: "Ready".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

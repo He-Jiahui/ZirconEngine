@@ -1,3 +1,4 @@
+use super::super::prepare_report::text_raster_upload_report;
 use super::super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::super::*;
 use super::support::text_batch;
@@ -82,6 +83,13 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             }],
         },
         vertex_count: 12,
+        vertex_buffer_capacity_byte_len: 4 * 1024,
+        vertex_buffer_create_count: 1,
+        vertex_buffer_write_byte_len: 720,
+        cpu_plan_build_count: 1,
+        cpu_plan_reuse_count: 0,
+        vertex_plan_build_count: 1,
+        vertex_plan_reuse_count: 0,
         decoration_vertex_count: 0,
         material_count: 2,
         draw_count: 2,
@@ -141,6 +149,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             input_sdf_text_batch_count: 1,
             resolved_native_text_batch_count: 1,
             resolved_sdf_text_batch_count: 2,
+            auto_route: Default::default(),
             sdf_fallback: ScreenSpaceUiTextSdfFallbackReport::default(),
             native_font_ids: ScreenSpaceUiTextFontIdReport::default(),
             missing_glyphs: MissingGlyphDiagnosticsReport::default(),
@@ -186,7 +195,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
 }
 
 #[test]
-fn text_prepare_report_exposes_raster_upload_scroll_counters() {
+fn text_prepare_report_exposes_all_outstanding_raster_work() {
     let native = [text_batch("Native", UiTextRenderMode::Native)];
     let resolved = ResolvedScreenSpaceUiTextBatches::from_explicit_batches(&native, &[]);
     let native_bitmap_atlas = NativeBitmapAtlasPrepareReport {
@@ -200,17 +209,30 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
             approximate_hit_count: 2,
             miss_count: 3,
             insert_count: 4,
+            resident_byte_count: 4096,
+            max_byte_count: 8192,
+            lru_touch_count: 7,
+            budget_linked_eviction_count: 2,
+            linked_raster_invalidation_count: 3,
             worker_request_submitted_count: 2,
             worker_request_pending_count: 1,
+            pending_worker_count: 3,
             worker_request_deferred_count: 5,
             worker_request_unavailable_count: 1,
             worker_request_failed_count: 2,
+            worker_completion_failed_count: 3,
+            worker_completion_invalid_bitmap_count: 4,
+            worker_completion_drained_byte_count: 4096,
+            worker_completion_byte_budget_deferred_count: 1,
+            worker_completion_oversized_accepted_count: 1,
             ..Default::default()
         },
         submission: crate::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
+            visible_placeholder_count: 1,
             upload_command_count: 3,
             upload_copy_count: 3,
             upload_byte_len: 384,
+            resident_page_byte_len: 16_384,
             ..Default::default()
         },
         ..NativeBitmapAtlasPrepareReport::default()
@@ -240,16 +262,26 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
             visible_raster_glyph_count: 5,
             source_image_count: 4,
             missing_raster_image_count: 1,
+            visible_placeholder_count: 1,
             approximate_raster_image_count: 2,
             source_cache_hit_count: 6,
             source_cache_approximate_hit_count: 2,
             source_cache_miss_count: 3,
             source_cache_insert_count: 4,
+            source_cache_resident_byte_count: 4096,
+            source_cache_max_byte_count: 8192,
+            source_cache_lru_touch_count: 7,
+            source_cache_budget_linked_eviction_count: 2,
+            source_cache_linked_raster_invalidation_count: 3,
+            atlas_resident_page_byte_len: 16_384,
             worker_request_submitted_count: 2,
-            worker_request_pending_count: 1,
+            worker_pending_count: 3,
             worker_request_deferred_count: 5,
             worker_request_unavailable_count: 1,
-            worker_request_failed_count: 2,
+            worker_completion_drained_byte_count: 4096,
+            worker_completion_byte_budget_deferred_count: 1,
+            worker_completion_oversized_accepted_count: 1,
+            worker_failed_count: 9,
             upload_command_count: 3,
             upload_copy_count: 3,
             upload_byte_len: 384,
@@ -260,4 +292,30 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
             renderer_upload_ready_to_write_texture: false,
         }
     );
+}
+
+#[test]
+fn raster_upload_report_excludes_planned_placeholders_when_glyphon_fallback_wins() {
+    let native_bitmap_atlas = NativeBitmapAtlasPrepareReport {
+        visible_raster_glyph_count: 2,
+        source_image_count: 1,
+        storage_submission_visible_glyph_count: 1,
+        submission: crate::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
+            visible_placeholder_count: 1,
+            ..Default::default()
+        },
+        retry_submission: crate::text::atlas::GlyphAtlasBitmapRetryFrameSubmissionReport {
+            rejected_new_source_count: 1,
+            rejected_new_source_byte_count: 1024 * 1024 + 1,
+            ..Default::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    let report = text_raster_upload_report(
+        &native_bitmap_atlas,
+        &GlyphAtlasBitmapRendererPrepareReport::default(),
+    );
+
+    assert_eq!(report.visible_placeholder_count, 0);
 }

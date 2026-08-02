@@ -2,7 +2,7 @@ use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::geometry::pixel_aligned_rect;
 use super::super::identity::is_text_field_node;
-use super::super::variant::{text_field_variant, TextFieldVariant};
+use super::super::variant::{TextFieldVariant, text_field_variant};
 use super::surface::{push_filled_field, push_outlined_field, push_standard_field};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_text_field_surface_commands(

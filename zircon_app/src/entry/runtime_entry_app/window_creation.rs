@@ -5,7 +5,7 @@ use winit::window::Window;
 use zircon_runtime::diagnostic_log::{write_log, write_warn};
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 
-use super::{RuntimeEntryApp, window_attributes::runtime_window_attributes};
+use super::{window_attributes::runtime_window_attributes, RuntimeEntryApp};
 
 impl RuntimeEntryApp {
     pub(super) fn create_primary_window_surface(

@@ -93,14 +93,14 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchRunModeMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
-props = { value = "Play In Editor", value_text = "Play In Editor", menu_items = ["Play In Editor|checked,icon=play", "Simulate|icon=play", "Standalone|icon=grid", "Network Preview|submenu"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "Play In Editor", value_text = "Play In Editor", selection_mode = "single", menu_items = ["Play In Editor|checked,icon=play", "Simulate|icon=play", "Standalone|disabled,icon=grid", "Network Preview|disabled,submenu"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -68.0, y = 72.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_layout_menu]
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchLayoutMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
-props = { value = "Default Layout", value_text = "Default Layout", menu_items = ["Default Layout|checked,icon=grid", "Gameplay Layout|icon=grid", "Rendering Layout|icon=grid", "Reset Layout|danger,icon=trash"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "Default Layout", value_text = "Default Layout", menu_items = ["Default Layout|checked,disabled,icon=grid", "Gameplay Layout|disabled,icon=grid", "Rendering Layout|disabled,icon=grid", "Reset Layout|danger,icon=trash"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -22.0, y = 72.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_module_overflow_menu]

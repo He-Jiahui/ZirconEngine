@@ -4,10 +4,22 @@ use crate::core::framework::scene::ComponentTypeDescriptor;
 
 use super::error::{SceneError, SceneResult};
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default)]
 pub struct ComponentTypeRegistry {
     descriptors: BTreeMap<String, ComponentTypeDescriptor>,
+    next_schema_generation: u64,
+    schema_generations: BTreeMap<String, u64>,
 }
+
+// Schema revisions are runtime cache metadata and do not change persistent
+// component-descriptor equality.
+impl PartialEq for ComponentTypeRegistry {
+    fn eq(&self, other: &Self) -> bool {
+        self.descriptors == other.descriptors
+    }
+}
+
+impl Eq for ComponentTypeRegistry {}
 
 impl ComponentTypeRegistry {
     pub fn register(&mut self, descriptor: ComponentTypeDescriptor) -> SceneResult<()> {
@@ -22,13 +34,34 @@ impl ComponentTypeRegistry {
                 type_id: descriptor.type_id,
             });
         }
-        self.descriptors
-            .insert(descriptor.type_id.clone(), descriptor);
+        let type_id = descriptor.type_id.clone();
+        self.descriptors.insert(type_id.clone(), descriptor);
+        self.advance_schema_generation(&type_id);
         Ok(())
     }
 
     pub fn descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {
         self.descriptors.get(type_id)
+    }
+
+    /// Returns the revision for the declared dynamic component schema.
+    ///
+    /// A compiled dynamic-field writer binds this revision at compile time so a
+    /// registration refresh invalidates only writers for that component type.
+    pub fn schema_generation(&self, type_id: &str) -> u64 {
+        self.schema_generations
+            .get(type_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    /// Returns the revision for the schema catalog as a whole.
+    ///
+    /// This is only needed by a compiled field whose type was undeclared at
+    /// compile time. Once a catalog appears, that writer must rebind rather
+    /// than retain the former permissive empty-registry semantics.
+    pub fn schema_catalog_generation(&self) -> u64 {
+        self.next_schema_generation
     }
 
     pub(super) fn upsert_vm_descriptor(
@@ -48,13 +81,19 @@ impl ComponentTypeRegistry {
                 });
             }
         }
-        self.descriptors
-            .insert(descriptor.type_id.clone(), descriptor);
+        let type_id = descriptor.type_id.clone();
+        if self.descriptors.get(&type_id) == Some(&descriptor) {
+            return Ok(());
+        }
+        self.descriptors.insert(type_id.clone(), descriptor);
+        self.advance_schema_generation(&type_id);
         Ok(())
     }
 
     pub(super) fn remove_vm_descriptor(&mut self, type_id: &str) {
-        self.descriptors.remove(type_id);
+        if self.descriptors.remove(type_id).is_some() {
+            self.advance_schema_generation(type_id);
+        }
     }
 
     pub fn descriptors(&self) -> impl Iterator<Item = &ComponentTypeDescriptor> {
@@ -68,6 +107,12 @@ impl ComponentTypeRegistry {
     pub fn contains(&self, type_id: &str) -> bool {
         self.descriptors.contains_key(type_id)
     }
+
+    fn advance_schema_generation(&mut self, type_id: &str) {
+        self.next_schema_generation = self.next_schema_generation.saturating_add(1);
+        self.schema_generations
+            .insert(type_id.to_string(), self.next_schema_generation);
+    }
 }
 
 fn component_type_belongs_to_plugin(type_id: &str, plugin_id: &str) -> bool {
@@ -75,4 +120,37 @@ fn component_type_belongs_to_plugin(type_id: &str, plugin_id: &str) -> bool {
         return false;
     };
     suffix.starts_with('.')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ComponentTypeRegistry;
+    use crate::core::framework::scene::ComponentTypeDescriptor;
+
+    #[test]
+    fn schema_generation_changes_only_for_updated_component_type() {
+        let mut registry = ComponentTypeRegistry::default();
+        let cloud =
+            ComponentTypeDescriptor::new("weather.Component.CloudLayer", "weather", "Cloud Layer")
+                .with_property("coverage", "Scalar", true);
+        registry.upsert_vm_descriptor(cloud.clone()).unwrap();
+        let cloud_generation = registry.schema_generation(&cloud.type_id);
+
+        registry.upsert_vm_descriptor(cloud.clone()).unwrap();
+        assert_eq!(registry.schema_generation(&cloud.type_id), cloud_generation);
+
+        registry
+            .upsert_vm_descriptor(
+                ComponentTypeDescriptor::new("weather.Component.Wind", "weather", "Wind")
+                    .with_property("speed", "Scalar", true),
+            )
+            .unwrap();
+        assert_eq!(registry.schema_generation(&cloud.type_id), cloud_generation);
+
+        registry
+            .upsert_vm_descriptor(cloud.with_property("density", "Scalar", false))
+            .unwrap();
+        assert!(registry.schema_generation("weather.Component.CloudLayer") > cloud_generation);
+        assert!(registry.schema_catalog_generation() > cloud_generation);
+    }
 }

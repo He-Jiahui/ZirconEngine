@@ -14,17 +14,17 @@ use crate::core::resource::{
 use crate::graphics::WgpuRenderFramework;
 
 use super::{
-    CameraDescriptorTestExt as _, dominant_green_pixels, dominant_red_pixels,
-    empty_extract_with_cameras, empty_extract_with_target, render_target_texture_asset,
-    render_target_texture_descriptor, srgb_render_target_texture_asset, texture_base_camera,
-    texture_base_camera_with_entity, texture_overlay_camera,
-    unsupported_camera_texture_surface_present, unsupported_camera_texture_target,
-    unsupported_camera_texture_target_format, unsupported_camera_texture_target_usage,
+    dominant_green_pixels, dominant_red_pixels, empty_extract_with_cameras,
+    empty_extract_with_target, render_target_texture_asset, render_target_texture_descriptor,
+    srgb_render_target_texture_asset, texture_base_camera, texture_base_camera_with_entity,
+    texture_overlay_camera, unsupported_camera_texture_surface_present,
+    unsupported_camera_texture_target, unsupported_camera_texture_target_format,
+    unsupported_camera_texture_target_usage, CameraDescriptorTestExt as _,
 };
 
 #[test]
-fn graphics_camera_target_texture_missing_asset_reports_unsupported_without_primary_fallback_capture()
- {
+fn graphics_camera_target_texture_missing_asset_reports_unsupported_without_primary_fallback_capture(
+) {
     let framework =
         WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework

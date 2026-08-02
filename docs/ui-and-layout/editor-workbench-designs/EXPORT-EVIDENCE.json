@@ -1,0 +1,1605 @@
+{
+  "schemaVersion": 1,
+  "capture": {
+    "channel": "msedge",
+    "height": 941,
+    "selector": "#design-root > *",
+    "timeoutMs": 120000,
+    "waitMs": 250,
+    "width": 1672
+  },
+  "sources": [
+    {
+      "path": "tools/editor-workbench-preview/design-manifest.mjs",
+      "bytes": 27049,
+      "sha256": "4151230C30E74532328CC5F92BC8607481C2217053E3254F17745F2956EE77C2"
+    },
+    {
+      "path": "tools/editor-workbench-preview/design.css",
+      "bytes": 59990,
+      "sha256": "4B849D7C1995833694836B96FC9758A785A8BB818FFA9925A33EAE70595E1DD2"
+    },
+    {
+      "path": "tools/editor-workbench-preview/design.html",
+      "bytes": 379,
+      "sha256": "9E76BE3EC5A595CF717263AC103C1713D3AE5891AE6682CEB1DC4622EEFBF145"
+    },
+    {
+      "path": "tools/editor-workbench-preview/design.js",
+      "bytes": 527876,
+      "sha256": "05EC9E127B9C92B42F229BDD04072B7C37709D867EA9904B097BAE4CC85C5673"
+    },
+    {
+      "path": "tools/editor-workbench-preview/export-designs.mjs",
+      "bytes": 11256,
+      "sha256": "D392A24EB963BC5747007710584C98F7B14CC141FC2485ABDDE6C481D67338E1"
+    },
+    {
+      "path": "tools/editor-workbench-preview/export-evidence.mjs",
+      "bytes": 3021,
+      "sha256": "00FCC3D613B18D22DDFA01B4AB865E8A98B27D017DECA4A358017DB2BDA9B3BC"
+    },
+    {
+      "path": "tools/editor-workbench-preview/export-options.mjs",
+      "bytes": 2375,
+      "sha256": "288AEF67DEB2354FE4B8CE1642B868B317341A82FE122E0FB64CBC0C8E8D06A7"
+    },
+    {
+      "path": "tools/editor-workbench-preview/package-lock.json",
+      "bytes": 1771,
+      "sha256": "F74E84E815D06A9666D742D1F4626AB36736FA3E88E162073547E4F4BE9DE3D3"
+    },
+    {
+      "path": "tools/editor-workbench-preview/package.json",
+      "bytes": 448,
+      "sha256": "32259157A254FE0046C1FB606042361EA8E8D14514DDCF2B471AE87D90EDDB1A"
+    },
+    {
+      "path": "tools/editor-workbench-preview/preview-sheet.js",
+      "bytes": 4192,
+      "sha256": "3BC98B32CF3A72AB349FA20CEED009462EA4B37A229EDAA9D757D603855A67BD"
+    },
+    {
+      "path": "tools/editor-workbench-preview/server.mjs",
+      "bytes": 1777,
+      "sha256": "CC3C7270150CB671A46AEF90617C958F8659E8FE00E12702387B1B31EF036EF4"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/add-outline.svg",
+      "bytes": 361,
+      "sha256": "EFCFE010E75823F08B783D28689D853D96A9FF0117DCB9DF9AFC2940AC18ED55"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/albums-outline.svg",
+      "bytes": 476,
+      "sha256": "D446A5FC620452595F1BE902B172371AC16F05CED12C2F4BF18B31C0CAD92E7C"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/chevron-back-outline.svg",
+      "bytes": 228,
+      "sha256": "8A6582BF6F5E341536B3CBA70889E3BBA0918C15977B43082EFFF14F9087F7D4"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/chevron-forward-outline.svg",
+      "bytes": 228,
+      "sha256": "867FEFA4D71AE8872BFA4FE4658B0AEF8AA6135C24B95E96F8623C69A93EFA99"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/close-outline.svg",
+      "bytes": 361,
+      "sha256": "4D6F52A25B179F5E6BF26FF20C5B925F06072D4BB4DEFC3D72D0029B390152C5"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/color-fill-outline.svg",
+      "bytes": 645,
+      "sha256": "3716C78D30CAF6BEC7AA82A3232A6CCBA9D4C49344AD52236A6AC77C44FB4206"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/construct-outline.svg",
+      "bytes": 1992,
+      "sha256": "0CF6D661E79235BAD3C17778ED285CEBCC3098142285C04312057756439D5C13"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/cube-outline.svg",
+      "bytes": 682,
+      "sha256": "CA810F817A08EADFEF52C0A3E11F6959E67EAA1A6ECAAFA5E67924439F87DC1C"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/ellipse-outline.svg",
+      "bytes": 219,
+      "sha256": "3F752D4BB217149FB0DCB9894034212BA94DE9D351CE57B124D87D599BB35A9D"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/ellipsis-horizontal-outline.svg",
+      "bytes": 401,
+      "sha256": "690DF7FD0949BC59892971B1C5E9F3CC562F1E8FC128CA8BD2CE8BD131DE2352"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/folder-open-outline.svg",
+      "bytes": 552,
+      "sha256": "39C1D8B4A9A6DF766F2D9C42371FCCC26F3FBF022807A19DFDADD229C287551A"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/folder-outline.svg",
+      "bytes": 491,
+      "sha256": "E7DE1953F414664DA418981BD8AB7B3AB95FDC28CB92BB06F9F1383A7CAE88FB"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/game-controller-outline.svg",
+      "bytes": 970,
+      "sha256": "3D5036615A76948794495E4067C871C3488E0A6CCDC8C74577C557DC73E6A6D7"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/git-branch-outline.svg",
+      "bytes": 864,
+      "sha256": "2E5C123B3E270650EAACDB1F57BB5CDF2F7CBD829EC2BA43BFA991CDCF175F52"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/git-network-outline.svg",
+      "bytes": 871,
+      "sha256": "40837AEAA1002BC274362451CB29B7D3ADA56A7CD0BF010444A9CD60E0CE9478"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/grid-outline.svg",
+      "bytes": 709,
+      "sha256": "2E0AAB0DBEED105DB02B92E503F7C08DB6437FDB70C6FC9E76717F686392EA82"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/layers-outline.svg",
+      "bytes": 846,
+      "sha256": "0B56790430694347E7AB5517EFC6D809FB10D0469732E4694A09BF0CA463D9A7"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/list-outline.svg",
+      "bytes": 867,
+      "sha256": "66DDC93BB8621D1FD53516778EF3E1074949DBD32C0D6C3D9AFD01B558D663ED"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/locate-outline.svg",
+      "bytes": 759,
+      "sha256": "0C7A13A16040EB356FD569309C697E5D1C5B4E846FC9855962E5742B968E47F3"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/menu-outline.svg",
+      "bytes": 489,
+      "sha256": "269B2A3653AB84CEA4495AB8892D52380341EC9B3F479FCFC7B527823F6A03FA"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/move-outline.svg",
+      "bytes": 900,
+      "sha256": "8D5ED9DC419E89382C946CE162A14DDA2F8B9EFF69A8EE3A8EFBD60E631CB200"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/options-outline.svg",
+      "bytes": 1269,
+      "sha256": "0332F5CDCBF7E5675B9121F14575DDFE51A2AF36CFA53D9B897602035646AC1B"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/play-outline.svg",
+      "bytes": 295,
+      "sha256": "01C6D09C42FCE85090AB893A309C8BBEC6DE663CBD02338BB84196D667444DC4"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/refresh-outline.svg",
+      "bytes": 595,
+      "sha256": "E633F455172C556CB9BACADC474BF2A11CCED92E690D47360E686844CE216E8C"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/remove-outline.svg",
+      "bytes": 227,
+      "sha256": "4F79B8C92B364E1D57B721975A480C9C2B5BF72554154BEA219BCF1F8F0FB0F5"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/resize-outline.svg",
+      "bytes": 504,
+      "sha256": "6F887D8A673AB6E24DFA652BA2DB0F1B776E419745479A2BE668847039674F3E"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/save-outline.svg",
+      "bytes": 599,
+      "sha256": "D204E2153E7E21B37DACCDD46DC7785B6ABA348450EF5E9D1DB1B599E9D50219"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/scan-outline.svg",
+      "bytes": 638,
+      "sha256": "611DF869796BFFEBEA3EDE57465D386D5556610CB5DBB48C495B3AE2DD6F3CF0"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/share-outline.svg",
+      "bytes": 737,
+      "sha256": "F1D5D7728C52AE3B84978EAF79EE31D3A72D9CEF7087F79D963103D29EE45220"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/sync-outline.svg",
+      "bytes": 615,
+      "sha256": "DC595DB8C24D42623124300E8B397C44BE5EA51AF504ECAD213EFFBAA4016536"
+    },
+    {
+      "path": "zircon_editor/assets/icons/ionicons/terminal-outline.svg",
+      "bytes": 492,
+      "sha256": "08BCDD782C8A9B31D335B93801733D9C9D798C295E5B6827F6C974870350FC9F"
+    },
+    {
+      "path": "zircon_editor/fixtures/workbench/default-layout.json",
+      "bytes": 2292,
+      "sha256": "37CD333EAB217E579B17633DA8498EDB7EB669C4583BBCB776DA9382370EA3A4"
+    },
+    {
+      "path": "zircon_editor/fixtures/workbench/editor-data.json",
+      "bytes": 251,
+      "sha256": "130EC3A5FD19E25A20127FB7C47988FD62C5477F9ADC86F552DA3117586F1571"
+    },
+    {
+      "path": "zircon_editor/fixtures/workbench/view-descriptors.json",
+      "bytes": 4311,
+      "sha256": "CF50CEA2AFB7C6D8586E622E0DFE1226764C82393FB0703382F1D6A5C3CA9918"
+    },
+    {
+      "path": "zircon_editor/fixtures/workbench/view-instances.json",
+      "bytes": 2308,
+      "sha256": "B5249058A884F85AF34E548F4D126662EFE04C0D4862338C240301C2B8EA7693"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "accessibility-audit-workbench.png",
+      "bytes": 96510,
+      "sha256": "98BF9A78879CDC031CC805386155CF67FB9F55B836691A8C124CF3AFA098678E"
+    },
+    {
+      "path": "achievements-editor-workbench.png",
+      "bytes": 97027,
+      "sha256": "A48B359D0BE132A0F1BD04C3B60F6B9B8C12DD73BBBD8EEC611091F022371521"
+    },
+    {
+      "path": "ai-director-workbench.png",
+      "bytes": 95759,
+      "sha256": "CD97039C275052377DAC48B14F7F8F725C51CD7841BACC594AA44EABA0B6638C"
+    },
+    {
+      "path": "ai-perception-workbench.png",
+      "bytes": 92352,
+      "sha256": "8986598DE7112CB4C39762135B74D84F9796263D4B27290C39289F38B83D9D00"
+    },
+    {
+      "path": "ai-profiler-workbench.png",
+      "bytes": 94154,
+      "sha256": "F7FFC05B0E2B5BAFBF87227C42BDB94E113F039536925E0D81247F552EDCB043"
+    },
+    {
+      "path": "animation-compression-workbench.png",
+      "bytes": 100940,
+      "sha256": "AADD968F2D770C201E556D850263748BEA2E4485C0B0E31A20C326AFE198D917"
+    },
+    {
+      "path": "animation-event-workflow-spec.png",
+      "bytes": 129499,
+      "sha256": "7E7953A67E38F1BE68382854385295D4E770910026832F5250CFEB0E29796F3E"
+    },
+    {
+      "path": "animation-list-drawer-content-spec.png",
+      "bytes": 59956,
+      "sha256": "F9430FB40E8D4714B10F6F1964EFDE715B227C6CA2084B7B390D7E959B217BE9"
+    },
+    {
+      "path": "animation-timeline-focus.png",
+      "bytes": 62670,
+      "sha256": "C3032178DDAE3E24E2E3AF62285040394945FACC0014D98BF4170FBD29D218B4"
+    },
+    {
+      "path": "animation-workbench.png",
+      "bytes": 86383,
+      "sha256": "BD32E9ECA5519A450E0FA5A545F07CDCA5983E3D71940E908DEB82A2ED76C58F"
+    },
+    {
+      "path": "api-browser-workbench.png",
+      "bytes": 100101,
+      "sha256": "A70A96CCCE1BE890EE0FA404BCEA142F869FBBB5E091723ED7E49BFBFDBB4B96"
+    },
+    {
+      "path": "asset-browser-grid-focus.png",
+      "bytes": 87663,
+      "sha256": "DD9A588FE75DD20521A0978DD3C2ACACDE07A3C536FDC8E4017F539C76334F3B"
+    },
+    {
+      "path": "asset-browser-import-focus.png",
+      "bytes": 96682,
+      "sha256": "95456F63303BC86962AD451CE5CD41DAA4F03457611579229E64CF91AFF57DDA"
+    },
+    {
+      "path": "asset-browser-workbench.png",
+      "bytes": 108586,
+      "sha256": "2F48C81C39623B3B5D49505105F728A1147B9F494BC4CA825737FA5938894BE7"
+    },
+    {
+      "path": "asset-dependency-workbench.png",
+      "bytes": 91804,
+      "sha256": "6858CE89A2AA147AC9143BAC05AE2CFA7DE84B935FF6BB37A0280125BFFF1D31"
+    },
+    {
+      "path": "asset-grid-drawer-content-spec.png",
+      "bytes": 72320,
+      "sha256": "52DC473676010587B168995AC0B26333B944DAB4B567F1DE97D4EC5CC171320C"
+    },
+    {
+      "path": "asset-import-workflow-spec.png",
+      "bytes": 147138,
+      "sha256": "F8FB4036382EB5928190D5F3D125E2BEB50E569558931954F2CF988B8B809C31"
+    },
+    {
+      "path": "asset-migration-workbench.png",
+      "bytes": 100680,
+      "sha256": "7559EBAE6A139D08C1F574120675E4487DA7A215B42CFF8F5B13CDEB3FC46FED"
+    },
+    {
+      "path": "asset-picker-window-spec.png",
+      "bytes": 116429,
+      "sha256": "DD7C33AC4DA4F2392706C36B54DF005C092F38C1BCC7EE235CB2E49E991CDB92"
+    },
+    {
+      "path": "asset-validation-workbench.png",
+      "bytes": 96649,
+      "sha256": "1B36A1550BA4B030B3796C2E6C75D88D472B5D4128B855E465B62CB3312A5C0C"
+    },
+    {
+      "path": "audio-editor-workbench.png",
+      "bytes": 84121,
+      "sha256": "663794F007D7139D5547822A2340807CAFAFE8A69775C3BABDE5BF65795603D3"
+    },
+    {
+      "path": "audio-mixer-workbench.png",
+      "bytes": 95787,
+      "sha256": "1548551566CDCE522C17404B70CF6F74A59FE9154228DF82970F62330FD2134B"
+    },
+    {
+      "path": "audio-occlusion-workbench.png",
+      "bytes": 97916,
+      "sha256": "B03EB344B853052D1798B1F1EB2D7E1CBC5B7FDD50E41433CA2EACA5CFCC900A"
+    },
+    {
+      "path": "audio-profiler-workbench.png",
+      "bytes": 94233,
+      "sha256": "41D006FBC339B03A7943E59206EF10EEA60A481EB533516F7605428D0A2EE351"
+    },
+    {
+      "path": "automation-report-workbench.png",
+      "bytes": 96619,
+      "sha256": "644150DB6361128B9955160DAA53B7885538D510D98407F6B64A089DE90B8500"
+    },
+    {
+      "path": "automation-suite-workbench.png",
+      "bytes": 98413,
+      "sha256": "3DF6C5AE1516F732A0E5D945E90E68CE526F0E6DDD89BD89E824D861E49801BD"
+    },
+    {
+      "path": "batch-process-queue-workbench.png",
+      "bytes": 99617,
+      "sha256": "6E42D61236F3532A3CFF4288EF3134E1483898B907420427C223BBBC9C63B735"
+    },
+    {
+      "path": "behavior-tree-workbench.png",
+      "bytes": 85222,
+      "sha256": "5B78B17A36CAEEDEDBBC0519E1DE5372DACB8D37BE4EFCE798E0C53BB02B541D"
+    },
+    {
+      "path": "blackboard-workbench.png",
+      "bytes": 95792,
+      "sha256": "BAB2ED8DA7B158C7ABC526D9A930B0E70B1ED70A0336DC1ACF88F2CB5A8506BA"
+    },
+    {
+      "path": "blend-space-workbench.png",
+      "bytes": 89160,
+      "sha256": "327F0E604220EEEEBBDF7C8E6FF7CC18D0DB8B8D81FD388881A8FD0B5E1D876F"
+    },
+    {
+      "path": "bottom-timeline-console-state-spec.png",
+      "bytes": 57015,
+      "sha256": "DCF7D571F310AFE67B40F0B85483C5876462757E4337130BE24DC0F78D4E4E28"
+    },
+    {
+      "path": "build-config-workbench.png",
+      "bytes": 98923,
+      "sha256": "3A9058178A4E15C5322631788CE7EB9BB8437DE69F1B90FB90CDD6AFE76CBC96"
+    },
+    {
+      "path": "build-export-targets-focus.png",
+      "bytes": 81813,
+      "sha256": "024DB68E9CB0C89C380D49083BEED1B078F43F6CA07F67C073495E13FA1390B8"
+    },
+    {
+      "path": "build-export-workbench.png",
+      "bytes": 97682,
+      "sha256": "38F3D8C5098BD3F2264443208B64B175E07605C7F217D6D28035CD4FCF51EB8F"
+    },
+    {
+      "path": "build-export-workflow-spec.png",
+      "bytes": 137312,
+      "sha256": "1AD3372F9A3C397E5001BD1E602137B504BED9774F88CBAF870F3BD74F5E3EE4"
+    },
+    {
+      "path": "build-farm-workbench.png",
+      "bytes": 91694,
+      "sha256": "747D02007C7F89CB56843AFBF2D276B481C4BDD0E0D5FE702D932C43DBFD1775"
+    },
+    {
+      "path": "camera-rig-workbench.png",
+      "bytes": 91372,
+      "sha256": "571FA77CF72AB6C1266AEEB8DD5CB3CA5C25E782B677DDCC20BB7B3867D26462"
+    },
+    {
+      "path": "cloth-simulation-workbench.png",
+      "bytes": 95505,
+      "sha256": "D53EF68F82D7AF13C1E520EC79496A7FEAE8D2FE9AF3692C00D22071FFB47F5C"
+    },
+    {
+      "path": "collision-matrix-workbench.png",
+      "bytes": 97262,
+      "sha256": "FA149C6C55CEE1A2670004BA382E2F2FFC429DAAFA6638236B4890CA4B5D6916"
+    },
+    {
+      "path": "collision-proxy-workbench.png",
+      "bytes": 93067,
+      "sha256": "5B65CD08D0C5E98D859CCC97F6E7F8E0E5BCCB6CA09F7D6CB3F2B42A7E29307C"
+    },
+    {
+      "path": "command-center-workbench.png",
+      "bytes": 96789,
+      "sha256": "8D6FD07E6E7BB6B8820B45FCC8257CA0A825F88BF590526C31615058EF9BE287"
+    },
+    {
+      "path": "command-palette-window-spec.png",
+      "bytes": 111236,
+      "sha256": "B5FA282701930168E44FA32476EA28E38E30CE286612DBB4731E989863E0DEF6"
+    },
+    {
+      "path": "compact-editor-state-spec.png",
+      "bytes": 56795,
+      "sha256": "7C4E3A901793D9BC2B88424E1E5A266BBC4100E3AB53A44400535BF4FCA6957F"
+    },
+    {
+      "path": "confirm-dialog-window-spec.png",
+      "bytes": 104758,
+      "sha256": "A4BEEFD6BC8BE3B96A417E6D0296B15CB5EE0D97D2355D50433F44BD9AEC9FB3"
+    },
+    {
+      "path": "console-detail-focus.png",
+      "bytes": 97860,
+      "sha256": "F4A41118D2D8073164FE2CDD91B6714573BC54D856FAAFF7C63085F026D24488"
+    },
+    {
+      "path": "console-drawer-content-spec.png",
+      "bytes": 75171,
+      "sha256": "498AE9F9014337D4EC206A39073A701BAF4019ACE268EF2A4300E51C506BA30C"
+    },
+    {
+      "path": "console-log-filter-focus.png",
+      "bytes": 82177,
+      "sha256": "A9E19A2A027494F87C3F98086429A18E3925E472CEAC65825D34D8C0D2182AD7"
+    },
+    {
+      "path": "console-workbench.png",
+      "bytes": 91014,
+      "sha256": "05B244322E5C8284964D93A1C5E323A690DD61EC32F558C3769EB0892D73484B"
+    },
+    {
+      "path": "context-menu-window-spec.png",
+      "bytes": 100565,
+      "sha256": "6CFF426882E5FCB7077156C1049CC59D9D920E8D0EAF7D9AF657E461B4D9F183"
+    },
+    {
+      "path": "control-rig-workbench.png",
+      "bytes": 87498,
+      "sha256": "405FE5D4ED5F25FB999D622D11F4B5E4B7C40286A088E8114230C2260D54D811"
+    },
+    {
+      "path": "cook-package-workbench.png",
+      "bytes": 102664,
+      "sha256": "70A96582D3FAE282636569A3DF9D89BC3134FE135878A14635B2A4A98002AC24"
+    },
+    {
+      "path": "cook-rules-workbench.png",
+      "bytes": 98139,
+      "sha256": "BDBDA815AAFE56D101F9860C15F949EB54EDB9B3D9319151EA10C36557E8852D"
+    },
+    {
+      "path": "cover-system-workbench.png",
+      "bytes": 98895,
+      "sha256": "8F1BECD93A34DF101C9921F0B18C0E18EE1D8DE17C72303261DB5D38941BA12A"
+    },
+    {
+      "path": "crash-report-window-workbench.png",
+      "bytes": 132994,
+      "sha256": "2476AE58D384679237F00EEF985CCF0E63C8384154D080BBF3CF0A95C9685978"
+    },
+    {
+      "path": "crash-session-replay-workbench.png",
+      "bytes": 103522,
+      "sha256": "A1698E132C7433B85EE472A75AB1BAD1CA2057908B6F7ED94F7A6939FA81D762"
+    },
+    {
+      "path": "crash-symbolication-workbench.png",
+      "bytes": 103149,
+      "sha256": "47EE3979A29213DFB59A05C815D884F9AF0E87B5CA3CB2F7A1E97037BD687F6D"
+    },
+    {
+      "path": "crowd-simulation-workbench.png",
+      "bytes": 95640,
+      "sha256": "854DDF14F41C03124A1E3C152C4B2806A140BBF7A66FBB06165054E296B167C9"
+    },
+    {
+      "path": "cutscene-editor-workbench.png",
+      "bytes": 90704,
+      "sha256": "6D160BBF01BA83B5C887D620005BED2438195D52326CC74E8BC947C5C06192DD"
+    },
+    {
+      "path": "data-table-workbench.png",
+      "bytes": 94936,
+      "sha256": "382E5889C6CC78BFE7DE96B0554DA34F234446DD612F96B891601DA778118C01"
+    },
+    {
+      "path": "dcc-live-link-workbench.png",
+      "bytes": 95888,
+      "sha256": "1E9FC26A093EC2DC5D9B8A0C714A249142BBD4FB3378A27D6C6B39423E303F7D"
+    },
+    {
+      "path": "decal-editor-workbench.png",
+      "bytes": 98965,
+      "sha256": "7AC9AEE66CBD1EBA02B49509A98B8C84744DD2A981F00B73FC0F3B35116F4BD2"
+    },
+    {
+      "path": "dependency-cleanup-workbench.png",
+      "bytes": 97450,
+      "sha256": "41979DFC918F3AA7E695652EEEDB8E99C0914386B9D6A998BFFD068280E0EA60"
+    },
+    {
+      "path": "destruction-workbench.png",
+      "bytes": 94056,
+      "sha256": "B3C2684D146190C9AE31C3C6811A8222EF6A8C16FBBD5C2EAD72A63A1823A82D"
+    },
+    {
+      "path": "dialogue-editor-workbench.png",
+      "bytes": 91802,
+      "sha256": "88BCCB22D6E400997C979AB20145704929204124156122B7A10548A22237DEAB"
+    },
+    {
+      "path": "dlc-catalog-workbench.png",
+      "bytes": 96094,
+      "sha256": "381285C607C021055259830A6B4A1AE210248CE8FDF2B4E45D16144746CFA36D"
+    },
+    {
+      "path": "drawer-collapsed-state-spec.png",
+      "bytes": 58701,
+      "sha256": "5EBC513EC4BE158CD36A1D5E9C5E1FD6EE3A67EF4813498280556349B01FE7BD"
+    },
+    {
+      "path": "drawer-expanded-state-spec.png",
+      "bytes": 60462,
+      "sha256": "261529DEB8D25681700A8CEB3E2986B6B12A60E1FE8C71C0B8C45D344C040A9D"
+    },
+    {
+      "path": "editor-update-window-workbench.png",
+      "bytes": 119726,
+      "sha256": "FED852DB4AF95722A97546B07E38E22767EFFD67E607D93D9369F46C752C427D"
+    },
+    {
+      "path": "entitlements-editor-workbench.png",
+      "bytes": 96133,
+      "sha256": "446DB35E055C0A9C6E8ABCB78251E51820B6CDDE3B0E0AD800AA59EB0F64E55F"
+    },
+    {
+      "path": "environment-probes-workbench.png",
+      "bytes": 99508,
+      "sha256": "7CA1A444B2C35A8BA7F787BB6534FA0158DC9180A972B72A8CADE9DDED76B353"
+    },
+    {
+      "path": "eqs-query-workbench.png",
+      "bytes": 96154,
+      "sha256": "5CBE83D634EFCEFF7441275C660CEE97B3497E78E361578A715FFBC459928A25"
+    },
+    {
+      "path": "event-tracks-workbench.png",
+      "bytes": 97284,
+      "sha256": "71D606E85866E51EF17290B30C64448F2CA18D60B1625C5405C66A708028746E"
+    },
+    {
+      "path": "experiment-console-workbench.png",
+      "bytes": 97986,
+      "sha256": "2B966839D11E944291D47168830C52A92C21433F0D9B7913C36E0F63D4D24755"
+    },
+    {
+      "path": "facial-animation-workbench.png",
+      "bytes": 96650,
+      "sha256": "981CBB7C452B0071982069FC9BB9A41EF67640C14CCA9C0CAE5B971AB5E0AD11"
+    },
+    {
+      "path": "feature-flags-workbench.png",
+      "bytes": 95021,
+      "sha256": "CCAD1267FEB673C86ED2E840B4013557170FEE6E06C9B6C64B7A24F7AB8FC423"
+    },
+    {
+      "path": "files-drawer-content-spec.png",
+      "bytes": 55302,
+      "sha256": "990655A40F68D83138A5E8E9C11784617D6CAA54A94FCD6E0E1C5FBBB898450D"
+    },
+    {
+      "path": "find-in-project-window-workbench.png",
+      "bytes": 119049,
+      "sha256": "8578DFA738AAE01D4FFCAAD93BD2E997539EF59F233A49EBA6889ACDE201A342"
+    },
+    {
+      "path": "floating-tool-window-state-spec.png",
+      "bytes": 61500,
+      "sha256": "1AD19F10F93DBCE8B1E9833812EEECE53B22EDAF7A390501BE22068448956BC7"
+    },
+    {
+      "path": "fluid-simulation-workbench.png",
+      "bytes": 93225,
+      "sha256": "6BF56DD43F571724B72C1EB89AE420E66596D68DEC0FE110602D50D828D8E76F"
+    },
+    {
+      "path": "focus-navigation-workbench.png",
+      "bytes": 86136,
+      "sha256": "579A6B41AEC0FE5707B07F336BD750DE30658E77034FF003FEE48D820CEAB461"
+    },
+    {
+      "path": "foliage-editor-workbench.png",
+      "bytes": 93757,
+      "sha256": "83F72D89D745A171639D914C143AED9CFF065C20F2F165AE4B34911FC247DF0B"
+    },
+    {
+      "path": "font-atlas-workbench.png",
+      "bytes": 91840,
+      "sha256": "CDDB1DFA44385C5D54477B8893B07732E4F5EE876B828CCB4D4967C4788902B3"
+    },
+    {
+      "path": "frame-compare-workbench.png",
+      "bytes": 93982,
+      "sha256": "BF18DCD126E3DD8F28334497AFCE4E99F1AB4BD329E98CA067BB551E57AE757F"
+    },
+    {
+      "path": "frame-debugger-workbench.png",
+      "bytes": 96842,
+      "sha256": "1183BDA57AF386241092E21FBB5FBD3910F1E31A229299E156500FF5A1B64EE3"
+    },
+    {
+      "path": "gameplay-ability-workbench.png",
+      "bytes": 93304,
+      "sha256": "F443CB83492B7A0559BC9DC23F1B56B6AD4ADBA51E707F06EA7884DDAEA4C8B4"
+    },
+    {
+      "path": "gameplay-debugger-workbench.png",
+      "bytes": 97354,
+      "sha256": "D8CADBA9D4E7F0C40B3C0AE7BD5EB663476EDFDDB5691A009FBEC01B1CFB2ACC"
+    },
+    {
+      "path": "gameplay-effect-workbench.png",
+      "bytes": 97200,
+      "sha256": "FC7A6A203A620050C148D49E78512279DE54D39A3F049F192A3E2D017471893F"
+    },
+    {
+      "path": "gameplay-tags-workbench.png",
+      "bytes": 95673,
+      "sha256": "642E66766C3CF335D9136A1032CAD9B4F2796D2925860B984FE88A5773EEEF93"
+    },
+    {
+      "path": "gpu-memory-workbench.png",
+      "bytes": 102172,
+      "sha256": "8B8876C294A25C251DDCDB2A96C51941174793CF2BDBC880EE5F40B6C80D7A8F"
+    },
+    {
+      "path": "gpu-profiler-workbench.png",
+      "bytes": 91484,
+      "sha256": "F837CFE58F1F97BBE732E80659C202B85862C6FE8992D8C8A035D726CFC533E9"
+    },
+    {
+      "path": "hierarchy-context-menu-focus.png",
+      "bytes": 103089,
+      "sha256": "D7AAF9215E7D68C9E2D0A59921F767B8A6B1C9DE80465800FB6EEE15DC53F584"
+    },
+    {
+      "path": "hierarchy-drawer-content-spec.png",
+      "bytes": 65335,
+      "sha256": "F30B624EE5378A2B8072BDE9D31C5CC46D3692015AB09AB2871D9C890BB4EBE0"
+    },
+    {
+      "path": "hierarchy-selection-focus.png",
+      "bytes": 80636,
+      "sha256": "73828AD31619B458884058FC5C8F64B50A86FC63E15C9C702A80B76C05C95388"
+    },
+    {
+      "path": "hierarchy-workbench.png",
+      "bytes": 99169,
+      "sha256": "78C5B6E7317003DB7F9134A40AA07BAAE948F5793A61C798F390335566AA9317"
+    },
+    {
+      "path": "hlod-builder-workbench.png",
+      "bytes": 96370,
+      "sha256": "156BBC9FDF1B19574EBD73C10777FDE8B5932D38D5B701CD907516355B22E871"
+    },
+    {
+      "path": "hot-reload-workbench.png",
+      "bytes": 90301,
+      "sha256": "CA02ADE06646B70E9F187C99F7333595C1B386CB497D40CFEAD6F01E0AD89DA5"
+    },
+    {
+      "path": "hud-editor-workbench.png",
+      "bytes": 100810,
+      "sha256": "388D38A248871333CE251DB8B630FC0A614A008948091628E4EA6C240BF1786A"
+    },
+    {
+      "path": "icon-library-workbench.png",
+      "bytes": 90460,
+      "sha256": "77B5F97866D7178346ED82344716FA22D804CA155C65D55F979ABFF80A8A5C69"
+    },
+    {
+      "path": "ik-solver-workbench.png",
+      "bytes": 92692,
+      "sha256": "9A7A44BA2906D4B22AE7D8E66A8332F0FD6CD053AD9906DBDF81C2F0CC23C8E7"
+    },
+    {
+      "path": "import-wizard-window-spec.png",
+      "bytes": 109877,
+      "sha256": "DB4F09E7303B0E50E3501CFC0B07C8FFC45DCF750A6A8E193C3C50F7A3A2E6AC"
+    },
+    {
+      "path": "input-glyph-mapper-workbench.png",
+      "bytes": 98303,
+      "sha256": "E16E769A11DF67E0CB020F0A0FA4DD6F916521DCD0FDC720EA769DAE26DDDEAD"
+    },
+    {
+      "path": "input-mapping-workbench.png",
+      "bytes": 96794,
+      "sha256": "8E44A887C4D33CC8AA97B84889D4FDE970D67DB868A18FE85D2F02BD2C4A4A1B"
+    },
+    {
+      "path": "input-prompts-workbench.png",
+      "bytes": 98415,
+      "sha256": "3D772EC787C3AB9DC2A4EE8D037718FCD86CFF2C9F6CE22BDE3959FD4795AC8A"
+    },
+    {
+      "path": "input-trace-workbench.png",
+      "bytes": 97694,
+      "sha256": "18228370ADF3CE5DFDCF7612876D050605536C4B314590F1E1CE1B0BC69DE3BC"
+    },
+    {
+      "path": "inspector-drawer-content-spec.png",
+      "bytes": 81157,
+      "sha256": "2DB1A0C617A9ABED46887CBBFD797C88D666E654AABD1A1753D7342561C2E538"
+    },
+    {
+      "path": "inspector-material-focus.png",
+      "bytes": 100416,
+      "sha256": "9884F9D30ED82E504CD9D5DEF4C28A326CAF33F395DBCA1E704EE825433CF63A"
+    },
+    {
+      "path": "inspector-transform-focus.png",
+      "bytes": 96111,
+      "sha256": "CC2B3D7E057C23EF9DAD20E2F8A6165121C12BD06DBE54083A9FE10FAAE6465B"
+    },
+    {
+      "path": "inspector-workbench.png",
+      "bytes": 96920,
+      "sha256": "38F6B0CB503AA4E9E3CE5049A44C2C8A87640DB4F05DA1E4BCBF1BA3283CCE9C"
+    },
+    {
+      "path": "keyboard-shortcuts-window-workbench.png",
+      "bytes": 133361,
+      "sha256": "E51E8C19FBFCF003AAA4CA3840393CCAF650EACB732696A3270C4A7E5CD02C65"
+    },
+    {
+      "path": "latency-map-workbench.png",
+      "bytes": 92191,
+      "sha256": "B50F6806933544B9BE643212E2EAFFF42F79B14ECCA5585886AC11474D9E7D98"
+    },
+    {
+      "path": "layout-constraint-solver-workbench.png",
+      "bytes": 98483,
+      "sha256": "0F1ADC8F484BF84B1A10DCF5402B657042CDF3DEE2F5DEE04247F4B7369AE8AC"
+    },
+    {
+      "path": "layout-manager-workbench.png",
+      "bytes": 94207,
+      "sha256": "B7B5A6D622F9DC784D02D6BD72A023B5EA11953ECF1CED4F1CF835331DCEA689"
+    },
+    {
+      "path": "level-audit-workbench.png",
+      "bytes": 95273,
+      "sha256": "03C52DC877A33F148DF3E34FAC6E6D4D385C7020B89930788FFEC621CB0FFB8B"
+    },
+    {
+      "path": "level-instance-workbench.png",
+      "bytes": 103620,
+      "sha256": "3AB7799883EAA2F7155F8BA684452E9135B5E411AFE5F1EFAEA3451D08789380"
+    },
+    {
+      "path": "level-streaming-workbench.png",
+      "bytes": 96366,
+      "sha256": "CBFAAC2D8D9A1F266DD3BAFF7958E6D1D3883E7EE3290A987174998B0C9150C4"
+    },
+    {
+      "path": "level-variant-workbench.png",
+      "bytes": 96971,
+      "sha256": "9092C525B548F09AD4CDA94A72D6CBDEB917AFDCB87C16338DCA3A8243588B7E"
+    },
+    {
+      "path": "light-probes-workbench.png",
+      "bytes": 96900,
+      "sha256": "97FC25D28054BA3A7FACBDE86CD14C0190ACB6D921030B60F391411502377DCA"
+    },
+    {
+      "path": "lighting-bake-workbench.png",
+      "bytes": 89830,
+      "sha256": "8026E12711FB21D83BFCA6A4691328E8FC4F567BCC98FD21C96E9735DA6D0BE9"
+    },
+    {
+      "path": "lighting-bake-workflow-spec.png",
+      "bytes": 137472,
+      "sha256": "B0883FF34D5FF9D4A5B01DFE5A62FE3385A970784DAEFA398F6677CDCFFB5D17"
+    },
+    {
+      "path": "lip-sync-workbench.png",
+      "bytes": 95742,
+      "sha256": "4B02917ED0B3CDD5F86B81973046670D91F3CE6953A0776FC0B5A9819FEE6500"
+    },
+    {
+      "path": "lobby-editor-workbench.png",
+      "bytes": 94607,
+      "sha256": "0664C5A06F0634D1D4BF671455117230C31422FD0205FD263981E9F447C4E391"
+    },
+    {
+      "path": "localization-preview-workbench.png",
+      "bytes": 97638,
+      "sha256": "D762E17DC58B608B789885F931A39FDCD62150AE2B0D5CAE871D1D464A4CB787"
+    },
+    {
+      "path": "localization-workbench.png",
+      "bytes": 96193,
+      "sha256": "345042A8FC07479C30726C4DAC6645DE92F139A72B34C88A73D57F1B0C53A0D4"
+    },
+    {
+      "path": "lod-chain-workbench.png",
+      "bytes": 95525,
+      "sha256": "06D3BB994408B114C4D85BDD911FD132F21D171BF5F115EEC69FD9690EBEE956"
+    },
+    {
+      "path": "log-analysis-workbench.png",
+      "bytes": 97995,
+      "sha256": "B72B853CB5C5CB7D0E16AD9E8C1770DAEF269CA6D161A98DA40A8FE2C5352C2B"
+    },
+    {
+      "path": "main-tabs-layout-spec.png",
+      "bytes": 63737,
+      "sha256": "CAD3ADD14B16E54E07ADF192C51A2ECD12F68F055C3BCB9B2068497AC506AA5C"
+    },
+    {
+      "path": "matchmaking-editor-workbench.png",
+      "bytes": 96119,
+      "sha256": "619CBF8E39224449336B37FA5CAEF3273AB491C9B08333677892E0EF193EA695"
+    },
+    {
+      "path": "material-audit-workbench.png",
+      "bytes": 97906,
+      "sha256": "5307DD5DB4DABB636FBFBC3ED863F624DD4027649299A7C8DD88A8DF08929FAF"
+    },
+    {
+      "path": "material-drawer-layout-spec.png",
+      "bytes": 84043,
+      "sha256": "A8F183C54225AC963230060656E00DD11390D9D54893D32B0F9B52841F74ECDD"
+    },
+    {
+      "path": "material-instance-workbench.png",
+      "bytes": 98140,
+      "sha256": "1119F33B7A695F066C1EE0A603E44277D3F8D95C2C98F4F140FB6372418AFBA7"
+    },
+    {
+      "path": "material-lab-components-focus.png",
+      "bytes": 106297,
+      "sha256": "51318F52BF2F7C8A45C8563219C38606DBEABB909B62F7F404B89546C6C7B152"
+    },
+    {
+      "path": "material-lab-workbench.png",
+      "bytes": 117427,
+      "sha256": "B84B14195B9FB458BC5DC2D4781BBBA75AA8F823E011D4AA9B2EE4C112FCE759"
+    },
+    {
+      "path": "material-layers-workbench.png",
+      "bytes": 96958,
+      "sha256": "76119F23BB7218C10CFFC7A805C58BC2A3B7B48663868E70A9B7F640BFDCEA96"
+    },
+    {
+      "path": "memory-budget-workbench.png",
+      "bytes": 100862,
+      "sha256": "4957975CCD2659AC4331F07E333388DC25EA95566400D8539D6BBDC0A786B0E5"
+    },
+    {
+      "path": "memory-profiler-workbench.png",
+      "bytes": 96825,
+      "sha256": "24DB8564D72DB35336A1A763DFFD6486D7637E56BDFBF1FB436C6AC9C0ABA2B6"
+    },
+    {
+      "path": "menu-flow-workbench.png",
+      "bytes": 89233,
+      "sha256": "5F1FB457A85C89C1BFCAEC467DC4C85E0BE8E352DDE2C4C279FD19A050211758"
+    },
+    {
+      "path": "mesh-import-workbench.png",
+      "bytes": 101114,
+      "sha256": "529905A1885C9F0DF66A87177A5943539A57192832313C4F6A35252DEFD6B6CF"
+    },
+    {
+      "path": "metadata-editor-workbench.png",
+      "bytes": 98191,
+      "sha256": "33DBBBAD7BB7E57C9B456B5DA7100CD059FA2DD6B32A31458A0865A44373E4D3"
+    },
+    {
+      "path": "mocap-cleanup-workbench.png",
+      "bytes": 95148,
+      "sha256": "364769E0ABB09A90FD6820C4BE17E219730BC1D84F65558FB08AC55722A7190F"
+    },
+    {
+      "path": "module-graph-workbench.png",
+      "bytes": 93698,
+      "sha256": "70FC459411446C9145BE84D154B3FFFF59C518F2719C7C1CE9EC287D13054057"
+    },
+    {
+      "path": "module-settings-workbench.png",
+      "bytes": 99656,
+      "sha256": "FE7F01067D2387E87B26FE2A6B4F9B681125129990E5DBE6D86DF8BE6C290DE8"
+    },
+    {
+      "path": "montage-debugger-workbench.png",
+      "bytes": 102995,
+      "sha256": "929F989133BEE12303D3036B4234656E3BF51D78B994B2E1CFFE106934EFDBA8"
+    },
+    {
+      "path": "montage-drawer-layout-spec.png",
+      "bytes": 78545,
+      "sha256": "480CF3083D82F0EE67B3636E98170705F9CDF55FE8B9F85E24E7208F071B5995"
+    },
+    {
+      "path": "motion-matching-workbench.png",
+      "bytes": 98192,
+      "sha256": "D906B24CBAE47C4BB7A19D3A4A95D2AD67373B8962539322D9E459DF1AE3C5D4"
+    },
+    {
+      "path": "music-system-workbench.png",
+      "bytes": 88100,
+      "sha256": "543C820E29A0268F1D5BC0EC61DE80525382E68A506C3DF6DC873B399606424B"
+    },
+    {
+      "path": "naming-rules-workbench.png",
+      "bytes": 97006,
+      "sha256": "46CE0194BDBDEDD98DC72A5ED62F0B7B3897D3602104690B2087750E3F08E396"
+    },
+    {
+      "path": "navmesh-ai-workbench.png",
+      "bytes": 90326,
+      "sha256": "28E170316FE5FFC0702D166B52404B87DD7B589BC768CFDA93209787715F8996"
+    },
+    {
+      "path": "network-packet-inspector-workbench.png",
+      "bytes": 98431,
+      "sha256": "B103C39FC30E578E0B694A5AC058021068056A46DFCEFA6345B48EC3CDF5A3EF"
+    },
+    {
+      "path": "network-replication-workbench.png",
+      "bytes": 93297,
+      "sha256": "C69D0B07755C3C25CF8272B6A92782E48DF7FAB88A6457BDA7391E3E0061ADFA"
+    },
+    {
+      "path": "notification-center-window-spec.png",
+      "bytes": 99430,
+      "sha256": "196DF2627B7EB8F7CFCC3B0E6F0558D47CCF169323C6B91D621FF170D948F2E1"
+    },
+    {
+      "path": "occlusion-culling-workbench.png",
+      "bytes": 97679,
+      "sha256": "62288C02A162201D3E12B96D2CD39025E98F73BA83CC81B9A64298A9FC1EC943"
+    },
+    {
+      "path": "online-diagnostics-workbench.png",
+      "bytes": 95705,
+      "sha256": "B2A6FD4EF3855327C8D1245A2FCFEAB868B16D97CF05B435A395609DB57E7651"
+    },
+    {
+      "path": "particle-library-workbench.png",
+      "bytes": 95840,
+      "sha256": "D6B7EF0FBBA31DBC8634E441FFAC48C12B9B8D3710B1E8D236AB7F9702CCAE23"
+    },
+    {
+      "path": "patch-planner-workbench.png",
+      "bytes": 96189,
+      "sha256": "CAFE4A4A983ECF64CFC2D5A3F60926F432B0983A617B029F907ACB7D0BAF4BBC"
+    },
+    {
+      "path": "patrol-routes-workbench.png",
+      "bytes": 92647,
+      "sha256": "39DB9CD4FED7B05AF2E2FE53D6F05496B6FF7DA87DD285244FDA91A7BA0E6F6F"
+    },
+    {
+      "path": "performance-budget-workbench.png",
+      "bytes": 96975,
+      "sha256": "D516F706F564E92B2A8621CCDBF7255AD2C3A83040C3141C3FD997FDFEB09ACF"
+    },
+    {
+      "path": "performance-frame-focus.png",
+      "bytes": 100281,
+      "sha256": "5CE7C5B5FD1C79B3F138961129792472E5B820AF5B725BE60E3BADAD40F70B55"
+    },
+    {
+      "path": "performance-workbench.png",
+      "bytes": 103479,
+      "sha256": "CE4EE073DB4E5C75987F348B35A9064D2D3377B84EAD6837AF85E40C2F562703"
+    },
+    {
+      "path": "physics-collision-workbench.png",
+      "bytes": 90966,
+      "sha256": "A6FC22D8E8CEEFDC999535FC52F9A1BCC97BA58A6966EB672C154BFC4D6E7211"
+    },
+    {
+      "path": "physics-constraints-workbench.png",
+      "bytes": 87915,
+      "sha256": "1B98C300A8E970036E7E45C424188A9449547AE96332015A5511E974E19233A0"
+    },
+    {
+      "path": "physics-profiler-workbench.png",
+      "bytes": 95261,
+      "sha256": "40B4FF16B8E18DC7485A0AD16D583CD1861C402E4D9EC0482D9BB2E9038C2768"
+    },
+    {
+      "path": "player-segment-workbench.png",
+      "bytes": 98323,
+      "sha256": "65765CC5F561DF33D50F437B8D66B405F130AD226DE68C61D91E6C37B105A7DF"
+    },
+    {
+      "path": "plugin-development-workbench.png",
+      "bytes": 89856,
+      "sha256": "8062ADAF00FC00DAE2B67D8A904C1BFF3ED31B212A34956C09E52BC6F990FBBB"
+    },
+    {
+      "path": "plugin-manager-detail-focus.png",
+      "bytes": 68625,
+      "sha256": "268C702433EC3AAF58A0B991AC57A997F4E7ECB09EB08B786DBDE00994F67DEE"
+    },
+    {
+      "path": "plugin-manager-workbench.png",
+      "bytes": 89681,
+      "sha256": "A16E11025C0206DD7E9821FF2EEA361FCF0868FC04ACD29D55C8E28064A3184E"
+    },
+    {
+      "path": "plugin-packaging-workbench.png",
+      "bytes": 101461,
+      "sha256": "F2D921168262F05D408BAFEB14CA9BD3D8E2993219EFCA254BC4B130DE33B66A"
+    },
+    {
+      "path": "pose-library-workbench.png",
+      "bytes": 94541,
+      "sha256": "22719FCC8E68E7B642C088383432B2CA80F74AD21075C36E6350269352FBB17F"
+    },
+    {
+      "path": "post-process-workbench.png",
+      "bytes": 92373,
+      "sha256": "96415A5F70427AD5B3BF3EC2A817C27C4825E177A44549727BAC1DD1D2689760"
+    },
+    {
+      "path": "prefab-diff-workbench.png",
+      "bytes": 96112,
+      "sha256": "02569D965F97B90880A54695D811AEF57F04A79B82951754C465CFB4F1DDA3B9"
+    },
+    {
+      "path": "prefab-drawer-content-spec.png",
+      "bytes": 60768,
+      "sha256": "8B8CCA3E0C06CF7B669A8CF38A4F4625344BB5413A11D191CCE41EE261CC3E11"
+    },
+    {
+      "path": "prefab-editor-workbench.png",
+      "bytes": 93697,
+      "sha256": "6DDC61DDB7B04C1FBC39B84C01B844593A957A64B7F17B40F7BF071AAE7DE224"
+    },
+    {
+      "path": "prefab-placement-workflow-spec.png",
+      "bytes": 134946,
+      "sha256": "EDDAF69D213D44AFFB8BB49B3B9111B56AC0EAB389513822DE055E1EB761E27C"
+    },
+    {
+      "path": "prefab-variant-workbench.png",
+      "bytes": 93822,
+      "sha256": "C3D8798B6586AC1570830AB8240BF08A1D1DAE91739B4CC3D3A33E02CBDA2ED0"
+    },
+    {
+      "path": "preferences-window-workbench.png",
+      "bytes": 130722,
+      "sha256": "E89624B18510A349A8B8F01912F8683358029CC69889C0EFA2E29FBF2C0646E1"
+    },
+    {
+      "path": "preview-sheet.png",
+      "bytes": 301953,
+      "sha256": "48760666D312A9960330C1DC61BAB5446A3B29DBDE09427E5E2A305C77FE4EF9"
+    },
+    {
+      "path": "project-history-workbench.png",
+      "bytes": 100399,
+      "sha256": "429DC285D3C1C2887BFDBBB2360B50255CE0E3F6F0D23BC960C4066F1373C5AD"
+    },
+    {
+      "path": "project-overview-actions-focus.png",
+      "bytes": 92505,
+      "sha256": "3E7B0BAE74706CF2ABBBBD879DCF38352E462C974D2736E3F6A321485136DD28"
+    },
+    {
+      "path": "project-overview-dashboard-focus.png",
+      "bytes": 94734,
+      "sha256": "FB2EB9CC607F43135CAE88621C0FE086D300E5A9FD2CCC8088FE2F1634FD224A"
+    },
+    {
+      "path": "project-overview-workbench.png",
+      "bytes": 117047,
+      "sha256": "1FD945DFEE174ED21D41B92AF70DCE80EE03A35CDE572617921DFD3E9F11F27B"
+    },
+    {
+      "path": "project-settings-window-spec.png",
+      "bytes": 112267,
+      "sha256": "DB653BDF85A969C7B792350E6070EA4AEE92E69427B50D7A9974931CA1360A44"
+    },
+    {
+      "path": "project-settings-workbench.png",
+      "bytes": 99457,
+      "sha256": "4669D51ABF2AC7226B5F6FB3C8C3EEC9DEC1BE5E86042466A4700D2D14C5FF8A"
+    },
+    {
+      "path": "qa-triage-workbench.png",
+      "bytes": 96826,
+      "sha256": "3EE41BAF39DD4AF25B2393D39C590474F2B965D005C6D94B70271C55522C7629"
+    },
+    {
+      "path": "quest-editor-workbench.png",
+      "bytes": 95455,
+      "sha256": "B11A5CEC9A28909057C0B101D0E0057F0F6665F1B29DA5BBCE3930035112CF98"
+    },
+    {
+      "path": "redirect-map-workbench.png",
+      "bytes": 98983,
+      "sha256": "CC60EBEFCA556C261DDE24F49C88386C2589A97F990C312A879DE2B56475E4AF"
+    },
+    {
+      "path": "reference-finder-workbench.png",
+      "bytes": 98236,
+      "sha256": "C3701043E31EF42A417DF5C6377151DAC4BD862A3AE656AEFC5817726327E3D3"
+    },
+    {
+      "path": "reflection-capture-workbench.png",
+      "bytes": 99779,
+      "sha256": "38E6EFE99D0141D27B27928D27DE9864679179923ECE4F3D47803D1E92DEC66D"
+    },
+    {
+      "path": "reimport-conflict-window-workbench.png",
+      "bytes": 140478,
+      "sha256": "793869FB569D977987D7B2D268F2B8AD7AB71287C46A984B11989155E78C1C87"
+    },
+    {
+      "path": "release-checklist-workbench.png",
+      "bytes": 98948,
+      "sha256": "D960DE3C19F563D1FB0DDF303C197C342981CAADD024578953DE2B901E129CC9"
+    },
+    {
+      "path": "release-notes-workbench.png",
+      "bytes": 96236,
+      "sha256": "F9DF43ECD16E5457CB0B9BB5D0DAA52F9A58DFD454EE7BE99D9098EB6710D1CD"
+    },
+    {
+      "path": "remote-config-workbench.png",
+      "bytes": 97616,
+      "sha256": "B88779348A6D89F98A56362C874EED3B5ADB7785EF79D6ADC6594611CEE8ECC4"
+    },
+    {
+      "path": "remote-device-workbench.png",
+      "bytes": 97201,
+      "sha256": "4B665FC1FE4389580ADEA11DD0C4D12CA0EA6D73066C1586EA7B80B88C66DBB1"
+    },
+    {
+      "path": "render-graph-workbench.png",
+      "bytes": 89197,
+      "sha256": "DF4902AFE015982C79D0EF7B05AC3ED4E855272F032E2BD9E74CCFDFC086DD89"
+    },
+    {
+      "path": "render-pipeline-workbench.png",
+      "bytes": 94414,
+      "sha256": "6BC14E377464D15FAECCB3283B1195C81FB359D22904BFEE1DD463EDD66B1029"
+    },
+    {
+      "path": "render-target-workbench.png",
+      "bytes": 100611,
+      "sha256": "0359E0DEF4C9C514EEF7F46458EC67D48254C53B9EFF986828D1EF0E7A9C15D3"
+    },
+    {
+      "path": "replay-browser-workbench.png",
+      "bytes": 101973,
+      "sha256": "84AB3E6D419F54142A31389CEBD04EE7FE6020CE33EC8595E21AFDD6182D13E0"
+    },
+    {
+      "path": "replay-timeline-workbench.png",
+      "bytes": 91630,
+      "sha256": "69214B5578B7CC47E19CCB28BB3C85448426987A0506B50F8A2703D2AB8A037D"
+    },
+    {
+      "path": "repro-recorder-workbench.png",
+      "bytes": 99390,
+      "sha256": "C43035325B6E5806A837E2A574ABA9F10323A8A0FEC2E8CFD3AB46D62EB8CC5F"
+    },
+    {
+      "path": "retarget-workbench.png",
+      "bytes": 97955,
+      "sha256": "7003A0ABDC960EF819D67B6EB6DCB8A0AD13EDBF356B86D8AF528F7AF3786998"
+    },
+    {
+      "path": "review-comments-workbench.png",
+      "bytes": 100361,
+      "sha256": "96A0AE51DFCC409495A8218D899DA098CA4BA9F9E0D26B966C6559FCB1F5CAA3"
+    },
+    {
+      "path": "rigid-body-workbench.png",
+      "bytes": 96922,
+      "sha256": "94207E6CFA505B1A35263998753183BD698CB50AE170F7C114B6218D084C55CF"
+    },
+    {
+      "path": "root-motion-workbench.png",
+      "bytes": 92725,
+      "sha256": "3F4A41485DADE4190FE53E66FD8D1722D84709772407FBAE14C6D12D047E1F80"
+    },
+    {
+      "path": "rope-cable-workbench.png",
+      "bytes": 89409,
+      "sha256": "0688C90D5E31152BF974A8FAA269038F5B36168DF615BF788008E97BC50C7909"
+    },
+    {
+      "path": "runtime-commands-workbench.png",
+      "bytes": 98823,
+      "sha256": "EB76C309708A7EE01D61B1103C6FD83F4E759846A232376D57FDCAAFFB7B23EA"
+    },
+    {
+      "path": "runtime-debug-workflow-spec.png",
+      "bytes": 158016,
+      "sha256": "6D3FAD46A8CD03C0322260474DCED990354DBD41EF05440554071582402A9AB1"
+    },
+    {
+      "path": "runtime-diagnostics-events-focus.png",
+      "bytes": 98121,
+      "sha256": "537359E461B6AFDD6A36EB8092B9DB313FB14D91D6ACA212B05073F5A3551AF4"
+    },
+    {
+      "path": "runtime-diagnostics-workbench.png",
+      "bytes": 115080,
+      "sha256": "3BDB09E98C9A7A8C43EEE1C77A60A69CC2006F8F84878DA978AF81DC568E2DD3"
+    },
+    {
+      "path": "save-data-workbench.png",
+      "bytes": 95112,
+      "sha256": "3155699493FB24F39337F856CA304A66B28DBA6EE6E2ACDD1E1FE43D0539E568"
+    },
+    {
+      "path": "save-state-diff-workbench.png",
+      "bytes": 97013,
+      "sha256": "072203083CF13AF86F98A477284187608E629E6A43CADE1503A2B44613880C92"
+    },
+    {
+      "path": "scatter-editor-workbench.png",
+      "bytes": 91456,
+      "sha256": "8386B78ECA1B3D8303080780F1D3789A04A8EFB29BA0C5D2C4912E43628930F7"
+    },
+    {
+      "path": "scene-bookmarks-workbench.png",
+      "bytes": 98557,
+      "sha256": "E84CBBCC8DB3F22A78B23D8B6A5DD705D230F166C066ED9F18E35B3A98903348"
+    },
+    {
+      "path": "scene-diff-workbench.png",
+      "bytes": 96534,
+      "sha256": "1FE23945BB293E97B65A0341CABA37EFEB4760091400E5CCCB934E2953D26309"
+    },
+    {
+      "path": "scene-drawer-layout-spec.png",
+      "bytes": 77680,
+      "sha256": "C6897F7B595AA6F8B7D562331049081740B581291BDAC69781F04E6267816556"
+    },
+    {
+      "path": "scene-gizmo-focus.png",
+      "bytes": 80903,
+      "sha256": "44F6AD0B752A28F7147B7401F210048EB4CB0539BF22B00A74DCBD0E56DDB359"
+    },
+    {
+      "path": "scene-toolbar-focus.png",
+      "bytes": 78646,
+      "sha256": "E24A2203C5FC8CCC7A04EC516DDB53B21A7B6745D0557BEA6576F453BFA9625D"
+    },
+    {
+      "path": "scene-workbench.png",
+      "bytes": 95795,
+      "sha256": "5B406960BBE00D19F76B0712AFF2AD88A802C1889E31C90ED564924D5D92BA89"
+    },
+    {
+      "path": "script-editor-workbench.png",
+      "bytes": 107153,
+      "sha256": "80B0AB61399ED8D0E0BA37BFFBA80074FC73262B19F5C6CA3AFEBECD7B5A188D"
+    },
+    {
+      "path": "sequencer-workbench.png",
+      "bytes": 86728,
+      "sha256": "45D27B3E1BFB8266E704B18735B734B4FB9130E70188BB11D408602394A0F1D6"
+    },
+    {
+      "path": "server-browser-workbench.png",
+      "bytes": 94078,
+      "sha256": "40AB50B56D9850753DA6319B678D77A9C5949DD27E989B2C320922A4718DA279"
+    },
+    {
+      "path": "session-sync-workbench.png",
+      "bytes": 86752,
+      "sha256": "C9F11FC84C854D35FD665B0E2F452AE728CC958FA72B1B0FFFA06E5099B049A3"
+    },
+    {
+      "path": "shader-debugger-workbench.png",
+      "bytes": 114853,
+      "sha256": "70045B7B32E37C9956A28DD3E896E3DC134D3BFA5CB37C48C2B33F606EFF6849"
+    },
+    {
+      "path": "shader-editor-workbench.png",
+      "bytes": 107857,
+      "sha256": "35442E2183613C8D9507F098245F93E79E1A5F09F6A5095913FF7F6BCF4BE280"
+    },
+    {
+      "path": "shader-error-workflow-spec.png",
+      "bytes": 150653,
+      "sha256": "3B9D82337AD39EF620827FBF2AEB5D825E5116E68E3271FBE5C53833E5D6F9E8"
+    },
+    {
+      "path": "shader-permutations-workbench.png",
+      "bytes": 105711,
+      "sha256": "A9007A2E76790C774A96696F4CA580677F868F5F8695219CF6B2F1274E98D362"
+    },
+    {
+      "path": "shadow-map-workbench.png",
+      "bytes": 94863,
+      "sha256": "F4D557CDD14C9255E93680730F0C3E8661E714A329C835A5D0A9AC74EBD140E8"
+    },
+    {
+      "path": "skeleton-mesh-workbench.png",
+      "bytes": 96376,
+      "sha256": "B693FC5FBFD3A1002231697A38779D139CABED4E9C0E3218A43EE8E1E78136B6"
+    },
+    {
+      "path": "smart-objects-workbench.png",
+      "bytes": 100395,
+      "sha256": "AFAE904C0C03E891162342E183E88DD2332B78983B1AD8F8DB1BEB7B4AB8C0F5"
+    },
+    {
+      "path": "sound-cue-workbench.png",
+      "bytes": 89978,
+      "sha256": "A34B42C767FE5DE61DE55BF81662F920C49EA4EBD65CBDAA492D09701492F1C1"
+    },
+    {
+      "path": "source-asset-trace-workbench.png",
+      "bytes": 94526,
+      "sha256": "2D0393DD681E0B74E111EDF410FC4B85321EC898B6CBAB5FD22BBE5FCB982D01"
+    },
+    {
+      "path": "source-control-submit-window-workbench.png",
+      "bytes": 123888,
+      "sha256": "ED982EB21D69331D1AE2EECC510E4B37C644364D9D13D7950521F0FEB1E32DEC"
+    },
+    {
+      "path": "source-control-workbench.png",
+      "bytes": 97573,
+      "sha256": "B8CDEF42402D8890B1A03EFC952E0BC4749A37869357C9D0C072B12542F84E29"
+    },
+    {
+      "path": "spawn-point-editor-workbench.png",
+      "bytes": 99208,
+      "sha256": "34767B1581D644F39168794E463B709DDD1FBB99EFBE0FAD8C446CBC74BE9CCE"
+    },
+    {
+      "path": "spawn-rules-workbench.png",
+      "bytes": 90912,
+      "sha256": "9AD39EB6C0F123466A2644030C2A4B163A1354BBF5AE87ACC31D504D2FAF74A2"
+    },
+    {
+      "path": "split-editor-state-spec.png",
+      "bytes": 56511,
+      "sha256": "540CE1BF2C1E306E9E985E4B838069AE26CD930A2BEC8BB5DBE79FF1140DF466"
+    },
+    {
+      "path": "startup-tasks-window-workbench.png",
+      "bytes": 116948,
+      "sha256": "B7E68F1D64D1AD66A3910EDF527A429420605BC70A9303331F89EFEBF826384B"
+    },
+    {
+      "path": "state-machine-workbench.png",
+      "bytes": 87525,
+      "sha256": "8BCF46A766BD75C8A82E5177825A3400441FE3B738F2A83842883ED104668895"
+    },
+    {
+      "path": "streaming-profiler-workbench.png",
+      "bytes": 95763,
+      "sha256": "5F3894FA1C359DD6AAEB462E515AE9F4D93DBFB224D9FDB7433DC7686089E4CF"
+    },
+    {
+      "path": "subtitle-timing-workbench.png",
+      "bytes": 96586,
+      "sha256": "2AECFA0C649E5F6FD4255EDA212AC21DF7DF860AAD80CD8092AE0FB3603613A0"
+    },
+    {
+      "path": "tab-overflow-window-spec.png",
+      "bytes": 112218,
+      "sha256": "481D7E8FBA5DC4E1231F7413F02D0F76234F7FA87905810EADA7EF5F879378E0"
+    },
+    {
+      "path": "task-board-workbench.png",
+      "bytes": 94447,
+      "sha256": "F7E0A95ADD2EFD4150BA7B601F646B44617D79E457ED462497445386B4D873B5"
+    },
+    {
+      "path": "telemetry-dashboard-workbench.png",
+      "bytes": 95369,
+      "sha256": "9A02A4F56D79CA509FCC625032CC3A219E3CE07F2CD54B0F8C6D469BA8830E5E"
+    },
+    {
+      "path": "telemetry-query-workbench.png",
+      "bytes": 95472,
+      "sha256": "9C466F265D132A987751A12A46EB7B76C937832E2FC455DC05AFE94F770AE797"
+    },
+    {
+      "path": "terrain-editor-workbench.png",
+      "bytes": 83250,
+      "sha256": "9074389D1B86431BE985B3414DBE4F732A10CDA74D65438A7C6199C158DF1FAB"
+    },
+    {
+      "path": "test-runner-workbench.png",
+      "bytes": 94023,
+      "sha256": "1333E0198183198D58EA9B3B670819533606F4E15C8E5B503D4C00A77786968A"
+    },
+    {
+      "path": "texture-compression-queue-workbench.png",
+      "bytes": 97649,
+      "sha256": "8AFB5344AE6710219F4F2F086CE4486F94A0048948C8433B7398EA0A714BD231"
+    },
+    {
+      "path": "texture-editor-workbench.png",
+      "bytes": 92864,
+      "sha256": "EEC7A624411CD28A6848AA0D00D3DF5B762ED995A73AB30499D742C5949AD6EA"
+    },
+    {
+      "path": "texture-streaming-workbench.png",
+      "bytes": 97181,
+      "sha256": "C67B3AE0B85A973842C8E852763F4F7FBB60B61D5AA92B2E531D0F1E85EBEC66"
+    },
+    {
+      "path": "theme-token-workbench.png",
+      "bytes": 98626,
+      "sha256": "2859B297EB81F7FC81E6213E39DE8D96663AA76242447C02E72BA21893833686"
+    },
+    {
+      "path": "theme-variant-preview-workbench.png",
+      "bytes": 101011,
+      "sha256": "B2A5E80DAA74C604114C680FEAE0F4193CD5D03FCE41BB6E44B3A92565518293"
+    },
+    {
+      "path": "timeline-drawer-content-spec.png",
+      "bytes": 60609,
+      "sha256": "57011E1FCC8025884D204A515BC9017A6A754CA55AD5C034D3BADA3E107FEA03"
+    },
+    {
+      "path": "tool-drawers-layout-spec.png",
+      "bytes": 83081,
+      "sha256": "48E5A17218A53A90B2949946AB4CE0889B7761C4719318D696690639B44330BD"
+    },
+    {
+      "path": "ui-asset-drawer-layout-spec.png",
+      "bytes": 82389,
+      "sha256": "CF6F6A8B9FDC1D49DF7BC4C81A262EF87B4C752BCFDEA126D4DE03E10DA84FD7"
+    },
+    {
+      "path": "ui-asset-editor-workbench.png",
+      "bytes": 109062,
+      "sha256": "1E8C1AEE6E3FFC98F69FDCC862C8774A8F2E8C4D325118935C12B4D4DA7219E3"
+    },
+    {
+      "path": "ui-asset-tree-focus.png",
+      "bytes": 97587,
+      "sha256": "BA74F11B783E215DBAA6163D72BE21A90EB826BB4CFA1B2B0BDD76B8335F2497"
+    },
+    {
+      "path": "ui-binding-workbench.png",
+      "bytes": 97941,
+      "sha256": "3B01B916C380072F72FD39BBBF00D5BAE98E7D0BA76A7C8FE7C2295C5D009242"
+    },
+    {
+      "path": "ui-binding-workflow-spec.png",
+      "bytes": 142567,
+      "sha256": "2AED48EBEDA3814258CF73EEEEE524C65265CF2CEFA06AC32EBFE0A3565349FC"
+    },
+    {
+      "path": "ui-motion-workbench.png",
+      "bytes": 86600,
+      "sha256": "A5A8C2F9F93A041A85CCA584BD68F3EC64C572F5658E7212D7A1BA59A7C3B42A"
+    },
+    {
+      "path": "ui-snapshot-diff-workbench.png",
+      "bytes": 97563,
+      "sha256": "8A4B7D28DAEAC79ACCA803E07F909DEF21F5557A90E69A5026D2F44956EDA99E"
+    },
+    {
+      "path": "user-profile-editor-workbench.png",
+      "bytes": 97286,
+      "sha256": "E5BD89FD2D8CB36400ABE417FB1738560352C2034F987A49FF9C3D58F7D17BEC"
+    },
+    {
+      "path": "vehicle-physics-workbench.png",
+      "bytes": 96798,
+      "sha256": "C1B0514D30FCDC8AD2D4906EAC4CA2C9223E9F17A8C5ECDF4A8E10B1AD86DE1E"
+    },
+    {
+      "path": "vfx-editor-workbench.png",
+      "bytes": 85615,
+      "sha256": "7755097E91849FA7E4F12010EE7BA1540C09554B717BDD841330F49B0752EE50"
+    },
+    {
+      "path": "virtual-texture-workbench.png",
+      "bytes": 99748,
+      "sha256": "3520D4E915E7F038A57A1156D934BB18DB54AC522631EB69BF32F663668C6B14"
+    },
+    {
+      "path": "visual-script-workbench.png",
+      "bytes": 90123,
+      "sha256": "76C3EDA60F3E92455820DB298B2A0E76BE81BF3B5C41E3F72F8D6270D7BBDAA6"
+    },
+    {
+      "path": "voice-bank-workbench.png",
+      "bytes": 96324,
+      "sha256": "63140603B37D62D126CF194A487C8C3DDED61A9A395B94FD8C01DB82989C3012"
+    },
+    {
+      "path": "volume-editor-workbench.png",
+      "bytes": 95777,
+      "sha256": "C695558BEE8C7DA67278A89D31800BBF386BC6D86EA622AD08F413F1DCD05D59"
+    },
+    {
+      "path": "weather-editor-workbench.png",
+      "bytes": 95051,
+      "sha256": "F6AB50AF29A2EB2BEB06B77BB3433E11ADD05D9037B293CD947D0680080D72AF"
+    },
+    {
+      "path": "welcome-new-project-focus.png",
+      "bytes": 81066,
+      "sha256": "47DCC601809A81F68433C51A8A87C424D57B63F96F989AE358A7310A959B765E"
+    },
+    {
+      "path": "welcome-workbench.png",
+      "bytes": 96211,
+      "sha256": "2FA457A2DC164AE6CB25999C8C274C42704CE735E751BB858A43E208F6E8577C"
+    },
+    {
+      "path": "widget-performance-workbench.png",
+      "bytes": 100361,
+      "sha256": "7FA89C042FF390962D23DF68F80ABDE37F9C2EAB470646BD79DA8F908E1F78FB"
+    },
+    {
+      "path": "widget-tree-debugger-workbench.png",
+      "bytes": 101508,
+      "sha256": "6AD3441EE19CE0E3E60958B64FBC86542DC9C6D201173EDFB944CEC49BE045BD"
+    },
+    {
+      "path": "world-partition-workbench.png",
+      "bytes": 96917,
+      "sha256": "92D599842831A24B73DB2DFB898F608D247D9E6D1B1A727F423EF21BE5138960"
+    },
+    {
+      "path": "world-state-workbench.png",
+      "bytes": 91854,
+      "sha256": "89D8ADA26F6D4CD197BDE62BC604C131B8675869521C05938B1C372151E45F43"
+    }
+  ],
+  "styleNotes": {
+    "path": "STYLE-NOTES.md",
+    "bytes": 19544,
+    "sha256": "78644AB4EC72C6AF630575CD4A3DDE1206804792439A68FDF7929245CD2B8106"
+  }
+}

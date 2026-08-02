@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiComponentApiVersion, UiComponentContractDiagnostic,
-    UiComponentContractDiagnosticCode, UiComponentDefinition, UiNodeDefinition, UiRootClassPolicy,
-    UiSelector, UiSelectorToken, UiStyleSheet,
+    parse_component_reference, UiAssetDocument, UiAssetError, UiComponentApiVersion,
+    UiComponentContractDiagnostic, UiComponentContractDiagnosticCode, UiComponentDefinition,
+    UiNodeDefinition, UiRootClassPolicy, UiSelector, UiSelectorToken, UiStyleSheet,
 };
 
 pub(crate) fn validate_document_component_contracts(
@@ -196,22 +196,21 @@ fn validate_component_instances_from_node(
     }
 
     if let Some(reference) = &node.component_ref {
-        if let Some((_, component_name)) = reference.split_once('#') {
-            let imported =
-                widget_imports
-                    .get(reference)
-                    .ok_or_else(|| UiAssetError::UnknownImport {
-                        reference: reference.clone(),
-                    })?;
-            let component = imported.components.get(component_name).ok_or_else(|| {
-                UiAssetError::UnknownComponent {
-                    asset_id: imported.asset.id.clone(),
-                    component: component_name.to_string(),
-                }
-            })?;
-            if let Some(diagnostic) = validate_instance_contract(component_name, component, node) {
-                return Ok(Some(diagnostic));
+        let (_, component_name) = parse_component_reference(reference)?;
+        let imported =
+            widget_imports
+                .get(reference)
+                .ok_or_else(|| UiAssetError::UnknownImport {
+                    reference: reference.clone(),
+                })?;
+        let component = imported.components.get(component_name).ok_or_else(|| {
+            UiAssetError::UnknownComponent {
+                asset_id: imported.asset.id.clone(),
+                component: component_name.to_string(),
             }
+        })?;
+        if let Some(diagnostic) = validate_instance_contract(component_name, component, node) {
+            return Ok(Some(diagnostic));
         }
     }
 
@@ -272,7 +271,7 @@ fn validate_reference_privacy(
     widget_imports: &BTreeMap<String, UiAssetDocument>,
     style_imports: &BTreeMap<String, UiAssetDocument>,
 ) -> Result<Option<UiComponentContractDiagnostic>, UiAssetError> {
-    let referenced = collect_reference_components(document);
+    let referenced = collect_reference_components(document)?;
     if referenced.is_empty() {
         return Ok(None);
     }
@@ -399,35 +398,37 @@ fn validate_public_target(
     ))
 }
 
-fn collect_reference_components(document: &UiAssetDocument) -> Vec<ReferenceComponent> {
+fn collect_reference_components(
+    document: &UiAssetDocument,
+) -> Result<Vec<ReferenceComponent>, UiAssetError> {
     let mut references = Vec::new();
     if let Some(root) = &document.root {
-        collect_reference_components_from_node(root, &mut references);
+        collect_reference_components_from_node(root, &mut references)?;
     }
     for component in document.components.values() {
-        collect_reference_components_from_node(&component.root, &mut references);
+        collect_reference_components_from_node(&component.root, &mut references)?;
     }
-    references
+    Ok(references)
 }
 
 fn collect_reference_components_from_node(
     node: &UiNodeDefinition,
     references: &mut Vec<ReferenceComponent>,
-) {
+) -> Result<(), UiAssetError> {
     if let Some(reference) = &node.component_ref {
-        if let Some((_, component_name)) = reference.split_once('#') {
-            references.push(ReferenceComponent {
-                reference: reference.clone(),
-                component_name: component_name.to_string(),
-                required_api_version: node.component_api_version,
-                node_id: node.node_id.clone(),
-                path: format!("nodes.{}.component_ref", node.node_id),
-            });
-        }
+        let (_, component_name) = parse_component_reference(reference)?;
+        references.push(ReferenceComponent {
+            reference: reference.clone(),
+            component_name: component_name.to_string(),
+            required_api_version: node.component_api_version,
+            node_id: node.node_id.clone(),
+            path: format!("nodes.{}.component_ref", node.node_id),
+        });
     }
     for child in &node.children {
-        collect_reference_components_from_node(&child.node, references);
+        collect_reference_components_from_node(&child.node, references)?;
     }
+    Ok(())
 }
 
 fn collect_document_selector_targets(

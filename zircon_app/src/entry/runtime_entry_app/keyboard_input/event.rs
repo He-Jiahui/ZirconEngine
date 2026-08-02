@@ -24,9 +24,7 @@ impl RuntimeEntryApp {
                 0,
                 payload,
             );
-            if self.session.handle_event(runtime_event).is_err() {
-                event_loop.exit();
-            }
+            self.dispatch_runtime_event(event_loop, runtime_event);
         }
     }
 }

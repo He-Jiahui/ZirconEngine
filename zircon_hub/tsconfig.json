@@ -17,6 +17,5 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["web/src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["web/src"]
 }

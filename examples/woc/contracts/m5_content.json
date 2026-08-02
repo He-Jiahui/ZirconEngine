@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 6,
   "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
   "generated_by": "examples/woc/tools/m5_content_codegen.mjs",
   "scenarios": [
@@ -37,6 +37,31 @@
         "path": "src/sim/content/items.ts",
         "bytes": 47704,
         "sha256": "d3c5791f88973956b651eeab71d4020d9e3697803cddc007ccae214f6738d37b"
+      },
+      {
+        "path": "src/sim/content/heroic_vendor.ts",
+        "bytes": 4982,
+        "sha256": "27373daef10050d55ded31768a670a6a23c5d98548cbd246e55c3c1efe0b0367"
+      },
+      {
+        "path": "src/sim/content/dungeon_difficulty.ts",
+        "bytes": 5435,
+        "sha256": "942d1140a565cf07626e67116b027a09afd589b70c61358b86d611b5d84dab2c"
+      },
+      {
+        "path": "src/sim/content/delves/shop.ts",
+        "bytes": 6002,
+        "sha256": "ce46a3f5f8bbb86d2903f54aaa84f4c709a9825e0c5f76fa9f004d1822e43552"
+      },
+      {
+        "path": "src/sim/content/delves/collapsed_reliquary.ts",
+        "bytes": 4984,
+        "sha256": "f12a3538da887f8e7dd2fcf804287df7609f0c706284be51a377e70ea5e1b00d"
+      },
+      {
+        "path": "src/sim/content/delves/drowned_litany.ts",
+        "bytes": 8227,
+        "sha256": "8f747166e6a63d36b8c20bae0d4feb43ba592376d2df0eb6139f4489aab1acb3"
       },
       {
         "path": "src/sim/content/talents.ts",
@@ -97,6 +122,256 @@
     "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
   },
   "market_cut": 0.05,
+  "heroic_vendor": {
+    "npc_id": "heroic_quartermaster",
+    "currency_item_id": "heroic_mark",
+    "stock": [
+      {
+        "item_id": "seal_of_the_nine_oaths",
+        "marks": 12
+      },
+      {
+        "item_id": "nielas_coldlight_band",
+        "marks": 12
+      },
+      {
+        "item_id": "sutils_gambit",
+        "marks": 12
+      },
+      {
+        "item_id": "oath_of_the_round_table",
+        "marks": 12
+      },
+      {
+        "item_id": "zyzzs_deathless_signet",
+        "marks": 12
+      },
+      {
+        "item_id": "architects_cornerstone",
+        "marks": 12
+      },
+      {
+        "item_id": "yumis_keepsake_locket",
+        "marks": 16
+      },
+      {
+        "item_id": "zense_meridian",
+        "marks": 16
+      },
+      {
+        "item_id": "swiftfang_talisman",
+        "marks": 16
+      },
+      {
+        "item_id": "medallion_of_endless_profit",
+        "marks": 16
+      }
+    ]
+  },
+  "delve_shops": [
+    {
+      "id": "collapsed_reliquary",
+      "auto_companion_id": "companion_tessa",
+      "door_pos": {
+        "x": -5,
+        "z": -52
+      },
+      "stock": [
+        {
+          "item_id": "reliquary_legs",
+          "marks": 8,
+          "gate": "available"
+        },
+        {
+          "item_id": "reliquary_shoulder",
+          "marks": 8,
+          "gate": "available"
+        },
+        {
+          "item_id": "reliquary_gloves_rog",
+          "marks": 8,
+          "gate": "available"
+        },
+        {
+          "item_id": "reliquary_cloth_chest",
+          "marks": 10,
+          "gate": "available"
+        },
+        {
+          "item_id": "reliquary_leather_chest",
+          "marks": 10,
+          "gate": "available"
+        },
+        {
+          "item_id": "reliquary_plate_chest",
+          "marks": 10,
+          "gate": "available"
+        },
+        {
+          "item_id": "reliquary_helm",
+          "marks": 12,
+          "gate": "clears:3"
+        },
+        {
+          "item_id": "deacon_reliquary_helm",
+          "marks": 28,
+          "gate": "heroicClear"
+        },
+        {
+          "item_id": "varric_shadow_cowl",
+          "marks": 28,
+          "gate": "heroicClear"
+        }
+      ]
+    },
+    {
+      "id": "drowned_litany",
+      "auto_companion_id": "companion_edda",
+      "door_pos": {
+        "x": -95,
+        "z": 505
+      },
+      "stock": [
+        {
+          "item_id": "litany_legs",
+          "marks": 16,
+          "gate": "available"
+        },
+        {
+          "item_id": "litany_shoulder",
+          "marks": 16,
+          "gate": "available"
+        },
+        {
+          "item_id": "litany_gloves_rog",
+          "marks": 16,
+          "gate": "available"
+        },
+        {
+          "item_id": "litany_cloth_chest",
+          "marks": 20,
+          "gate": "available"
+        },
+        {
+          "item_id": "litany_leather_chest",
+          "marks": 20,
+          "gate": "available"
+        },
+        {
+          "item_id": "litany_plate_chest",
+          "marks": 20,
+          "gate": "available"
+        },
+        {
+          "item_id": "litany_helm",
+          "marks": 24,
+          "gate": "clears:3"
+        },
+        {
+          "item_id": "sister_nhalia_choir_plate",
+          "marks": 56,
+          "gate": "heroicClear"
+        },
+        {
+          "item_id": "drowned_choir_fang",
+          "marks": 56,
+          "gate": "heroicClear"
+        }
+      ]
+    }
+  ],
+  "mech_chromas": [
+    {
+      "id": "amber_crimson",
+      "rank": "uncommon",
+      "skin_index": 0,
+      "item_id": "amber_crimson_armor_plate"
+    },
+    {
+      "id": "crimson_amber",
+      "rank": "uncommon",
+      "skin_index": 1,
+      "item_id": "crimson_amber_armor_plate"
+    },
+    {
+      "id": "cyan_magenta",
+      "rank": "uncommon",
+      "skin_index": 2,
+      "item_id": "cyan_magenta_armor_plate"
+    },
+    {
+      "id": "magenta_cyan",
+      "rank": "uncommon",
+      "skin_index": 3,
+      "item_id": "magenta_cyan_armor_plate"
+    },
+    {
+      "id": "orange_steel",
+      "rank": "uncommon",
+      "skin_index": 4,
+      "item_id": "orange_steel_armor_plate"
+    },
+    {
+      "id": "steel_orange",
+      "rank": "uncommon",
+      "skin_index": 5,
+      "item_id": "steel_orange_armor_plate"
+    },
+    {
+      "id": "forest_pink",
+      "rank": "uncommon",
+      "skin_index": 6,
+      "item_id": "forest_pink_armor_plate"
+    },
+    {
+      "id": "pink_forest",
+      "rank": "uncommon",
+      "skin_index": 7,
+      "item_id": "pink_forest_armor_plate"
+    },
+    {
+      "id": "amethyst_silver",
+      "rank": "rare",
+      "skin_index": 8,
+      "item_id": "amethyst_silver_armor_plate"
+    },
+    {
+      "id": "ivory_copper",
+      "rank": "rare",
+      "skin_index": 9,
+      "item_id": "ivory_copper_armor_plate"
+    },
+    {
+      "id": "onyx_gold",
+      "rank": "rare",
+      "skin_index": 10,
+      "item_id": "onyx_gold_armor_plate"
+    },
+    {
+      "id": "imperial_crimson",
+      "rank": "epic",
+      "skin_index": 11,
+      "item_id": "imperial_crimson_armor_plate"
+    },
+    {
+      "id": "imperial_gold",
+      "rank": "epic",
+      "skin_index": 12,
+      "item_id": "imperial_gold_armor_plate"
+    },
+    {
+      "id": "vanguard_azure",
+      "rank": "epic",
+      "skin_index": 13,
+      "item_id": "vanguard_azure_armor_plate"
+    },
+    {
+      "id": "vanguard_chrome",
+      "rank": "epic",
+      "skin_index": 14,
+      "item_id": "vanguard_chrome_armor_plate"
+    }
+  ],
   "constants": {
     "max_level": 20,
     "prestige_xp_per_rank": 23200,
@@ -870,6 +1145,1037 @@
         "sellValue": 25,
         "buyValue": 150
       }
+    },
+    {
+      "id": "bone_fragments",
+      "scenarios": [
+        "harvest_node"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.bone_fragments",
+      "definition": {
+        "id": "bone_fragments",
+        "name": "Bone Fragments",
+        "kind": "junk",
+        "quality": "common",
+        "sellValue": 7
+      }
+    },
+    {
+      "id": "linen_scrap",
+      "scenarios": [
+        "harvest_node"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.linen_scrap",
+      "definition": {
+        "id": "linen_scrap",
+        "name": "Linen Scrap",
+        "kind": "junk",
+        "quality": "common",
+        "sellValue": 3
+      }
+    },
+    {
+      "id": "spider_leg",
+      "scenarios": [
+        "harvest_node"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.spider_leg",
+      "definition": {
+        "id": "spider_leg",
+        "name": "Twitching Spider Leg",
+        "kind": "junk",
+        "quality": "common",
+        "sellValue": 4
+      }
+    },
+    {
+      "id": "heroic_mark",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.heroic_mark",
+      "definition": {
+        "id": "heroic_mark",
+        "name": "Heroic Mark",
+        "kind": "tool",
+        "quality": "rare",
+        "stackSize": 20,
+        "sellValue": 0,
+        "soulbound": true,
+        "noDiscard": true
+      }
+    },
+    {
+      "id": "seal_of_the_nine_oaths",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.seal_of_the_nine_oaths",
+      "definition": {
+        "id": "seal_of_the_nine_oaths",
+        "name": "Seal of the Nine Oaths",
+        "kind": "armor",
+        "slot": "ring",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "str": 7,
+          "sta": 4
+        },
+        "hitRating": 25,
+        "sellValue": 4500
+      }
+    },
+    {
+      "id": "nielas_coldlight_band",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.nielas_coldlight_band",
+      "definition": {
+        "id": "nielas_coldlight_band",
+        "name": "Niela's Coldlight Band",
+        "kind": "armor",
+        "slot": "ring",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "int": 7,
+          "sta": 4
+        },
+        "hitRating": 25,
+        "sellValue": 4500
+      }
+    },
+    {
+      "id": "sutils_gambit",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.sutils_gambit",
+      "definition": {
+        "id": "sutils_gambit",
+        "name": "Sutil's Gambit",
+        "kind": "armor",
+        "slot": "ring",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "agi": 7,
+          "sta": 4
+        },
+        "critRating": 25,
+        "sellValue": 4500
+      }
+    },
+    {
+      "id": "oath_of_the_round_table",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.oath_of_the_round_table",
+      "definition": {
+        "id": "oath_of_the_round_table",
+        "name": "Oath of the Round Table",
+        "kind": "armor",
+        "slot": "ring",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "sta": 6,
+          "str": 5
+        },
+        "hitRating": 25,
+        "sellValue": 4500
+      }
+    },
+    {
+      "id": "zyzzs_deathless_signet",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.zyzzs_deathless_signet",
+      "definition": {
+        "id": "zyzzs_deathless_signet",
+        "name": "Zyzz's Deathless Signet",
+        "kind": "armor",
+        "slot": "ring",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "spi": 6,
+          "int": 5
+        },
+        "hasteRating": 25,
+        "sellValue": 4500
+      }
+    },
+    {
+      "id": "architects_cornerstone",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.architects_cornerstone",
+      "definition": {
+        "id": "architects_cornerstone",
+        "name": "The Architect's Cornerstone",
+        "kind": "armor",
+        "slot": "ring",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "int": 6,
+          "spi": 5
+        },
+        "hasteRating": 25,
+        "sellValue": 4500
+      }
+    },
+    {
+      "id": "yumis_keepsake_locket",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.yumis_keepsake_locket",
+      "definition": {
+        "id": "yumis_keepsake_locket",
+        "name": "Yumi's Keepsake Locket",
+        "kind": "armor",
+        "slot": "neck",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "agi": 7,
+          "sta": 5
+        },
+        "hasteRating": 25,
+        "sellValue": 6000
+      }
+    },
+    {
+      "id": "zense_meridian",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.zense_meridian",
+      "definition": {
+        "id": "zense_meridian",
+        "name": "Zense Meridian",
+        "kind": "armor",
+        "slot": "neck",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "int": 7,
+          "spi": 5
+        },
+        "critRating": 25,
+        "sellValue": 6000
+      }
+    },
+    {
+      "id": "swiftfang_talisman",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.swiftfang_talisman",
+      "definition": {
+        "id": "swiftfang_talisman",
+        "name": "Swiftfang Talisman",
+        "kind": "armor",
+        "slot": "neck",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "str": 6,
+          "agi": 6
+        },
+        "hitRating": 25,
+        "sellValue": 6000
+      }
+    },
+    {
+      "id": "medallion_of_endless_profit",
+      "scenarios": [
+        "heroic_vendor"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.medallion_of_endless_profit",
+      "definition": {
+        "id": "medallion_of_endless_profit",
+        "name": "Medallion of Endless Profit",
+        "kind": "armor",
+        "slot": "neck",
+        "quality": "epic",
+        "requiredLevel": 20,
+        "stats": {
+          "str": 7,
+          "sta": 5
+        },
+        "critRating": 25,
+        "sellValue": 6000
+      }
+    },
+    {
+      "id": "reliquary_legs",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_legs",
+      "definition": {
+        "id": "reliquary_legs",
+        "name": "Vaultbound Legwraps",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "legs",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 48,
+          "sta": 2
+        },
+        "sellValue": 195
+      }
+    },
+    {
+      "id": "reliquary_shoulder",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_shoulder",
+      "definition": {
+        "id": "reliquary_shoulder",
+        "name": "Crumbled Spaulders",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "shoulder",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 36,
+          "sta": 2
+        },
+        "sellValue": 175
+      }
+    },
+    {
+      "id": "reliquary_gloves_rog",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_gloves_rog",
+      "definition": {
+        "id": "reliquary_gloves_rog",
+        "name": "Bonewarden Grips",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "gloves",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 36,
+          "agi": 2,
+          "sta": 1
+        },
+        "sellValue": 190,
+        "requiredClass": [
+          "rogue",
+          "hunter"
+        ]
+      }
+    },
+    {
+      "id": "reliquary_cloth_chest",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_cloth_chest",
+      "definition": {
+        "id": "reliquary_cloth_chest",
+        "name": "Shroud of the Reliquary",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "chest",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 30,
+          "int": 2,
+          "spi": 1
+        },
+        "sellValue": 205,
+        "requiredClass": [
+          "mage",
+          "priest",
+          "warlock",
+          "druid"
+        ]
+      }
+    },
+    {
+      "id": "reliquary_leather_chest",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_leather_chest",
+      "definition": {
+        "id": "reliquary_leather_chest",
+        "name": "Dustwarden Jerkin",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "chest",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 55,
+          "agi": 2,
+          "sta": 1
+        },
+        "sellValue": 215,
+        "requiredClass": [
+          "rogue",
+          "hunter"
+        ]
+      }
+    },
+    {
+      "id": "reliquary_plate_chest",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_plate_chest",
+      "definition": {
+        "id": "reliquary_plate_chest",
+        "name": "Reliquary Guard Hauberk",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "chest",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 90,
+          "sta": 2,
+          "str": 1
+        },
+        "sellValue": 240,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "reliquary_helm",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.reliquary_helm",
+      "definition": {
+        "id": "reliquary_helm",
+        "name": "Ossuary Watch Helm",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "helmet",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 48,
+          "sta": 2,
+          "str": 1
+        },
+        "sellValue": 220,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "deacon_reliquary_helm",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.deacon_reliquary_helm",
+      "definition": {
+        "id": "deacon_reliquary_helm",
+        "name": "Deacon's Reliquary Helm",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "helmet",
+        "quality": "rare",
+        "stats": {
+          "armor": 105,
+          "sta": 4,
+          "str": 3
+        },
+        "sellValue": 540,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "varric_shadow_cowl",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.varric_shadow_cowl",
+      "definition": {
+        "id": "varric_shadow_cowl",
+        "name": "Varric's Shadow Cowl",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "helmet",
+        "quality": "rare",
+        "stats": {
+          "armor": 42,
+          "int": 4,
+          "spi": 3
+        },
+        "sellValue": 540,
+        "requiredClass": [
+          "mage",
+          "priest",
+          "warlock",
+          "druid"
+        ]
+      }
+    },
+    {
+      "id": "litany_legs",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_legs",
+      "definition": {
+        "id": "litany_legs",
+        "name": "Silt-Walker Greaves",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "legs",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 58,
+          "sta": 3
+        },
+        "sellValue": 235
+      }
+    },
+    {
+      "id": "litany_shoulder",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_shoulder",
+      "definition": {
+        "id": "litany_shoulder",
+        "name": "Blackwater Drift Mantle",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "shoulder",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 44,
+          "sta": 3
+        },
+        "sellValue": 215
+      }
+    },
+    {
+      "id": "litany_gloves_rog",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_gloves_rog",
+      "definition": {
+        "id": "litany_gloves_rog",
+        "name": "Reed-Bound Handwraps",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "gloves",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 44,
+          "agi": 2,
+          "sta": 2
+        },
+        "sellValue": 225,
+        "requiredClass": [
+          "rogue",
+          "hunter"
+        ]
+      }
+    },
+    {
+      "id": "litany_cloth_chest",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_cloth_chest",
+      "definition": {
+        "id": "litany_cloth_chest",
+        "name": "Choir-Drowned Raiment",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "chest",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 36,
+          "int": 3,
+          "spi": 2
+        },
+        "sellValue": 250,
+        "requiredClass": [
+          "mage",
+          "priest",
+          "warlock",
+          "druid"
+        ]
+      }
+    },
+    {
+      "id": "litany_leather_chest",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_leather_chest",
+      "definition": {
+        "id": "litany_leather_chest",
+        "name": "Silt-Deep Vestment",
+        "kind": "armor",
+        "armorType": "leather",
+        "slot": "chest",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 66,
+          "agi": 3,
+          "sta": 2
+        },
+        "sellValue": 265,
+        "requiredClass": [
+          "rogue",
+          "hunter"
+        ]
+      }
+    },
+    {
+      "id": "litany_plate_chest",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_plate_chest",
+      "definition": {
+        "id": "litany_plate_chest",
+        "name": "Sump-Warden Cuirass",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "chest",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 108,
+          "sta": 3,
+          "str": 2
+        },
+        "sellValue": 290,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "litany_helm",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.litany_helm",
+      "definition": {
+        "id": "litany_helm",
+        "name": "Reliquant's Drowned Cowl",
+        "kind": "armor",
+        "armorType": "cloth",
+        "slot": "helmet",
+        "quality": "uncommon",
+        "stats": {
+          "armor": 32,
+          "int": 3,
+          "spi": 2
+        },
+        "sellValue": 255,
+        "requiredClass": [
+          "mage",
+          "priest",
+          "warlock",
+          "druid"
+        ]
+      }
+    },
+    {
+      "id": "sister_nhalia_choir_plate",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.sister_nhalia_choir_plate",
+      "definition": {
+        "id": "sister_nhalia_choir_plate",
+        "name": "Sister Nhalia's Choir-Forged Plate",
+        "kind": "armor",
+        "armorType": "mail",
+        "slot": "chest",
+        "quality": "rare",
+        "stats": {
+          "armor": 150,
+          "str": 5,
+          "sta": 4
+        },
+        "sellValue": 650,
+        "requiredClass": [
+          "warrior",
+          "paladin",
+          "shaman"
+        ]
+      }
+    },
+    {
+      "id": "drowned_choir_fang",
+      "scenarios": [
+        "delve_shop"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.drowned_choir_fang",
+      "definition": {
+        "id": "drowned_choir_fang",
+        "name": "Drowned Choir-Fang",
+        "kind": "weapon",
+        "slot": "mainhand",
+        "quality": "rare",
+        "weapon": {
+          "min": 20,
+          "max": 32,
+          "speed": 1.7,
+          "dagger": true
+        },
+        "stats": {
+          "agi": 4,
+          "sta": 3
+        },
+        "sellValue": 620,
+        "requiredClass": [
+          "rogue",
+          "hunter"
+        ]
+      }
+    },
+    {
+      "id": "amber_crimson_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.amber_crimson_armor_plate",
+      "definition": {
+        "id": "amber_crimson_armor_plate",
+        "name": "Amber Crimson",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "amber_crimson"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "crimson_amber_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.crimson_amber_armor_plate",
+      "definition": {
+        "id": "crimson_amber_armor_plate",
+        "name": "Crimson Amber",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "crimson_amber"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "cyan_magenta_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.cyan_magenta_armor_plate",
+      "definition": {
+        "id": "cyan_magenta_armor_plate",
+        "name": "Cyan Magenta",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "cyan_magenta"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "magenta_cyan_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.magenta_cyan_armor_plate",
+      "definition": {
+        "id": "magenta_cyan_armor_plate",
+        "name": "Magenta Cyan",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "magenta_cyan"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "orange_steel_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.orange_steel_armor_plate",
+      "definition": {
+        "id": "orange_steel_armor_plate",
+        "name": "Orange Steel",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "orange_steel"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "steel_orange_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.steel_orange_armor_plate",
+      "definition": {
+        "id": "steel_orange_armor_plate",
+        "name": "Steel Orange",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "steel_orange"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "forest_pink_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.forest_pink_armor_plate",
+      "definition": {
+        "id": "forest_pink_armor_plate",
+        "name": "Forest Pink",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "forest_pink"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "pink_forest_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.pink_forest_armor_plate",
+      "definition": {
+        "id": "pink_forest_armor_plate",
+        "name": "Pink Forest",
+        "kind": "tool",
+        "quality": "uncommon",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "pink_forest"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "amethyst_silver_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.amethyst_silver_armor_plate",
+      "definition": {
+        "id": "amethyst_silver_armor_plate",
+        "name": "Amethyst Silver",
+        "kind": "tool",
+        "quality": "rare",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "amethyst_silver"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "ivory_copper_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.ivory_copper_armor_plate",
+      "definition": {
+        "id": "ivory_copper_armor_plate",
+        "name": "Ivory Copper",
+        "kind": "tool",
+        "quality": "rare",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "ivory_copper"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "onyx_gold_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.onyx_gold_armor_plate",
+      "definition": {
+        "id": "onyx_gold_armor_plate",
+        "name": "Onyx Gold",
+        "kind": "tool",
+        "quality": "rare",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "onyx_gold"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "imperial_crimson_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.imperial_crimson_armor_plate",
+      "definition": {
+        "id": "imperial_crimson_armor_plate",
+        "name": "Imperial Crimson",
+        "kind": "tool",
+        "quality": "epic",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "imperial_crimson"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "imperial_gold_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.imperial_gold_armor_plate",
+      "definition": {
+        "id": "imperial_gold_armor_plate",
+        "name": "Imperial Gold",
+        "kind": "tool",
+        "quality": "epic",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "imperial_gold"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "vanguard_azure_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.vanguard_azure_armor_plate",
+      "definition": {
+        "id": "vanguard_azure_armor_plate",
+        "name": "Vanguard Azure",
+        "kind": "tool",
+        "quality": "epic",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "vanguard_azure"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
+    },
+    {
+      "id": "vanguard_chrome_armor_plate",
+      "scenarios": [
+        "mech_chroma"
+      ],
+      "source_owner": "src/sim/data.ts#ITEMS.vanguard_chrome_armor_plate",
+      "definition": {
+        "id": "vanguard_chrome_armor_plate",
+        "name": "Vanguard Chrome",
+        "kind": "tool",
+        "quality": "epic",
+        "use": {
+          "type": "mechChroma",
+          "chromaId": "vanguard_chrome"
+        },
+        "sellValue": 0,
+        "noVendorSell": true,
+        "noDiscard": true,
+        "noMarketList": true
+      }
     }
   ],
   "quests": [
@@ -1341,5 +2647,5 @@
       }
     }
   ],
-  "catalog_sha256": "3f4443c0e11ec3546fe6c70019cb45a016d6c025faec7b9ba0a54d290f13925a"
+  "catalog_sha256": "2d3f83997b3632935cbc0333475f21338fdb428b9dde921be8874535e9ab5298"
 }

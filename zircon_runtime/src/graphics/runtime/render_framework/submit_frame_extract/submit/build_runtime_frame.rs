@@ -309,8 +309,8 @@ mod tests {
     };
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
+    use crate::graphics::types::{ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL};
     use crate::graphics::VisibilityContext;
-    use crate::graphics::types::{FRAMEWORK_OUTPUT_FORMAT_LABEL, ViewportTextureWritebackStatus};
     use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
     use crate::render_graph::RenderGraphBuilder;
 
@@ -426,11 +426,9 @@ mod tests {
                 .status(),
             ViewportTextureWritebackStatus::ReadyForSrgbCopy
         );
-        assert!(
-            !frame
-                .camera_stack_output_policy()
-                .owns_final_target_output()
-        );
+        assert!(!frame
+            .camera_stack_output_policy()
+            .owns_final_target_output());
         assert_eq!(
             frame.previous_motion_vector_camera(),
             Some(&previous_camera)

@@ -39,7 +39,7 @@ struct IndirectDrawBatchKey {
     pipeline_kind: MeshPassPipelineKind,
     pipeline_variant_id: MeshPipelineVariantId,
     pipeline_key: PipelineKey,
-    geometry_id: u64,
+    geometry_bind_key: (u64, u64),
     material_textures_id: Option<u64>,
     base_color_texture_id: Option<u64>,
     material_id: Option<u64>,
@@ -86,7 +86,7 @@ impl IndirectDrawBatcher {
                     pipeline_kind: key.pipeline_kind,
                     pipeline_variant_id: key.pipeline_variant_id,
                     pipeline_key: key.pipeline_key.clone(),
-                    geometry_id: key.geometry_id,
+                    geometry_id: key.geometry_bind_key.0,
                     first_command_index: command_index,
                     first_args: next_arg_index,
                     args_count: 1,
@@ -129,7 +129,7 @@ impl IndirectDrawBatchKey {
             pipeline_kind: command.pipeline_kind,
             pipeline_variant_id: command.pipeline_variant_id,
             pipeline_key: command.pipeline_key().clone(),
-            geometry_id: command.geometry.id(),
+            geometry_bind_key: command.geometry_bind_key(),
             material_textures_id: command.material_textures.as_ref().map(|handle| handle.id()),
             base_color_texture_id: command
                 .base_color_texture
@@ -284,6 +284,23 @@ mod tests {
         assert_eq!(batcher.batches()[0].draw_count_index, 0);
     }
 
+    #[test]
+    fn render_gpu_scene_indirect_batcher_splits_velocity_draws_by_previous_geometry() {
+        let commands = vec![
+            velocity_command(10, 1),
+            velocity_command(10, 2),
+            velocity_command(20, 3),
+        ];
+
+        let batcher = IndirectDrawBatcher::build(&commands, &gpu_driven_capabilities());
+
+        assert_eq!(batcher.fallback_draw_count(), 0);
+        assert_eq!(batcher.args_cpu().len(), 3);
+        assert_eq!(batcher.batches().len(), 2);
+        assert_eq!(batcher.batches()[0].args_count, 2);
+        assert_eq!(batcher.batches()[1].args_count, 1);
+    }
+
     fn command(
         index_count: u32,
         first_index: u32,
@@ -311,6 +328,28 @@ mod tests {
         .with_material_textures(MeshBindHandle::test(101))
         .with_material(MeshBindHandle::test(201))
         .with_standard_material(MeshBindHandle::test(301))
+    }
+
+    fn velocity_command(previous_geometry_id: u64, first_instance: u32) -> MeshDrawCommand {
+        MeshDrawCommand::new(
+            RenderPhase::Opaque3d,
+            MeshPassPipelineKind::Velocity,
+            default_pipeline_key(),
+            MeshPipelineVariantId::new(1),
+            u64::from(first_instance),
+            DrawInstanceSource::GpuSceneInstance {
+                first_instance_index: first_instance,
+                instance_count: 1,
+            },
+            MeshGeometryHandle::test(7),
+            MeshDrawArgs::DirectIndexed {
+                first_index: 0,
+                index_count: 3,
+                first_instance,
+                instance_count: 1,
+            },
+        )
+        .with_previous_velocity_geometry(MeshGeometryHandle::test(previous_geometry_id))
     }
 
     fn gpu_driven_capabilities() -> RenderCapabilitySummary {

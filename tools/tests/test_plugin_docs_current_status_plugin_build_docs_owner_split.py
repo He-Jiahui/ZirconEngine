@@ -12,7 +12,6 @@ class PluginBuildDocsStatusOwnerSplitDocsTests(unittest.TestCase):
             "docs/cli-and-tooling/zircon-export-tool.md",
             "docs/plans/engine-code-structure-convention.md",
             "docs/plans/engine-code-review-findings-2026-06.md",
-            ".codex/sessions/20260628-0317-zui-migration-validation.md",
         ]
         required_phrases = [
             "plugins_13_m5_t1_plugin_build_docs_status_owner_split",

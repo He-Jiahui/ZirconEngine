@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const INSPECTOR_ROW_TEXT_Y:
@@ -47,8 +47,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Ins
     pub shadow_check_default_content_offset_x: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn inspector_row_metrics(
-) -> InspectorRowMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn inspector_row_metrics()
+-> InspectorRowMetrics {
     inspector_row_metrics_from_host(current_host_metrics())
 }
 

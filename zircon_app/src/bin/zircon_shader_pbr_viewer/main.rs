@@ -12,7 +12,7 @@ mod scene;
 use std::error::Error;
 
 use app::PbrMirrorViewerApp;
-use args::{ViewerConfig, print_help};
+use args::{print_help, ViewerConfig};
 use winit::event_loop::EventLoop;
 
 fn main() -> Result<(), Box<dyn Error>> {

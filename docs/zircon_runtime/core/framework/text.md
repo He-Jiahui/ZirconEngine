@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/core/framework/text/layout_error.rs
   - zircon_runtime/src/core/framework/text/layout_metrics.rs
   - zircon_runtime/src/core/framework/text/layout_service.rs
+  - zircon_runtime/src/core/framework/text/open_type_feature.rs
   - zircon_runtime/src/core/framework/text/render_mode.rs
   - zircon_runtime/src/core/framework/text/shape_request.rs
   - zircon_runtime/src/core/framework/text/shape_result.rs
@@ -23,6 +24,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/text/layout_error.rs
   - zircon_runtime/src/core/framework/text/layout_metrics.rs
   - zircon_runtime/src/core/framework/text/layout_service.rs
+  - zircon_runtime/src/core/framework/text/open_type_feature.rs
   - zircon_runtime/src/core/framework/text/render_mode.rs
   - zircon_runtime/src/core/framework/text/shape_request.rs
   - zircon_runtime/src/core/framework/text/shape_result.rs
@@ -62,7 +64,8 @@ The root `mod.rs` is structural wiring only. Each contract concept has a narrow 
 - `direction.rs`, `writing_mode.rs`, and `render_mode.rs` define portable policy enums.
 - `font_request.rs` describes logical family, asset, size, weight, stretch, italic, and render-mode intent without exposing a font database.
 - `font_face_handle.rs` carries typed index+generation identity for a resolved face without exposing a font database slot implementation.
-- `shape_request.rs` combines source text, language, direction, writing mode, and font intent.
+- `shape_request.rs` combines source text, language, direction, writing mode, font intent, and borrowed OpenType feature settings.
+- `open_type_feature.rs` defines the serializable feature tag/value DTO without exposing backend shaping types.
 - `glyph.rs`, `shape_run.rs`, `layout_metrics.rs`, and `shape_result.rs` describe backend-neutral results.
 - `layout_service.rs` defines the consumer-facing service trait.
 - `layout_error.rs` preserves typed failures at the contract boundary.

@@ -5,8 +5,8 @@ use super::super::data::{
     TemplatePaneNodeData,
 };
 use super::super::presenter::HostPresenterBackend;
-use super::geometry::collect_surface_frame_controls;
 use super::UiProfileGeometry;
+use super::geometry::collect_surface_frame_controls;
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
@@ -63,10 +63,12 @@ fn profile_geometry_exports_absolute_splitter_and_tab_frames() {
     assert_eq!(geometry.document_tabs.len(), 1);
     assert_eq!(geometry.document_tabs[0].frame.x, 132.0);
     assert_eq!(geometry.document_tabs[0].frame.y, 84.0);
-    assert!(geometry
-        .hit_samples
-        .iter()
-        .any(|sample| sample.id == "scene-tab" && sample.expected_hit));
+    assert!(
+        geometry
+            .hit_samples
+            .iter()
+            .any(|sample| sample.id == "scene-tab" && sample.expected_hit)
+    );
 }
 
 #[test]
@@ -115,14 +117,18 @@ fn profile_geometry_omits_template_controls_disjoint_from_clip() {
         HostPresenterBackend::Gpu,
     );
 
-    assert!(geometry
-        .template_controls
-        .iter()
-        .all(|frame| { frame.id != "template.document.OffClipAction" }));
-    assert!(geometry
-        .hit_samples
-        .iter()
-        .all(|sample| sample.id != "template.document.OffClipAction"));
+    assert!(
+        geometry
+            .template_controls
+            .iter()
+            .all(|frame| { frame.id != "template.document.OffClipAction" })
+    );
+    assert!(
+        geometry
+            .hit_samples
+            .iter()
+            .all(|sample| sample.id != "template.document.OffClipAction")
+    );
 }
 
 #[test]
@@ -173,12 +179,16 @@ fn profile_geometry_omits_viewport_toolbar_controls_not_top_hit_at_center() {
         &mut controls,
     );
 
-    assert!(controls
-        .iter()
-        .all(|frame| frame.id != "viewport_toolbar_control.document.covered"));
-    assert!(controls
-        .iter()
-        .any(|frame| frame.id == "viewport_toolbar_control.document.top"));
+    assert!(
+        controls
+            .iter()
+            .all(|frame| frame.id != "viewport_toolbar_control.document.covered")
+    );
+    assert!(
+        controls
+            .iter()
+            .any(|frame| frame.id == "viewport_toolbar_control.document.top")
+    );
 }
 
 fn viewport_toolbar_surface_frame_for_test(nodes: Vec<(u64, &str, UiFrame)>) -> UiSurfaceFrame {

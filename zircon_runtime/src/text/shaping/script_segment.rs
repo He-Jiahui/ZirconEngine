@@ -1,9 +1,9 @@
 use crate::text::TextRange;
 use unicode_script::{Script, UnicodeScript};
 
-use crate::text::{FontScript, ShapedGlyphScript};
+use crate::text::{FontScript, Iso15924Tag, ShapedGlyphScript};
 
-const EMOJI_SCRIPT_TAG: &str = "Zsye";
+const EMOJI_SCRIPT_TAG: Iso15924Tag = Iso15924Tag::EMOJI;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ScriptSegment {
@@ -84,7 +84,7 @@ pub(crate) fn script_for_range(segments: &[ScriptSegment], range: TextRange) -> 
                 .get(segments.partition_point(|segment| segment.range.end <= range.start))
                 .filter(|segment| range.start < segment.range.end)
         })
-        .map(|segment| segment.script.clone())
+        .map(|segment| segment.script)
         .unwrap_or_default()
 }
 
@@ -123,7 +123,10 @@ fn script_for_char(ch: char) -> Script {
 
 fn shaped_script(script: Script) -> ShapedGlyphScript {
     ShapedGlyphScript {
-        iso15924: script.short_name().to_string(),
+        iso15924: match Iso15924Tag::parse(script.short_name()) {
+            Some(tag) => tag,
+            None => Iso15924Tag::COMMON,
+        },
     }
 }
 
@@ -140,7 +143,7 @@ pub(crate) fn shaped_script_for_cluster(
 ) -> ShapedGlyphScript {
     if cluster_text.chars().any(is_emoji_script) {
         ShapedGlyphScript {
-            iso15924: EMOJI_SCRIPT_TAG.to_string(),
+            iso15924: EMOJI_SCRIPT_TAG,
         }
     } else {
         fallback

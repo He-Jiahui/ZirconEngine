@@ -36,12 +36,12 @@ pub(crate) use welcome_surface::BuiltinWelcomeSurfaceTemplateBridge;
 pub(crate) use workbench::{
     BuiltinHostOuterShellFrames, BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
     BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
-    WorkbenchCommandPaletteOpenState, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
-    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
+    WORKBENCH_CONTEXT_MENU_CONTROL_ID, WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+    WORKBENCH_TOAST_CONTROL_ID, WorkbenchCommandPaletteOpenState,
 };
 
-pub(crate) fn load_startup_builtin_template_runtime(
-) -> Result<EditorUiHostRuntime, EditorUiHostRuntimeError> {
+pub(crate) fn load_startup_builtin_template_runtime()
+-> Result<EditorUiHostRuntime, EditorUiHostRuntimeError> {
     projection_support::load_builtin_runtime_for_documents(&[
         BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID,
         BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID,

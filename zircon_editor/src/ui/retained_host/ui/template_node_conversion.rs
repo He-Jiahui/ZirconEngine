@@ -44,6 +44,7 @@ pub(crate) fn to_host_contract_template_node(
         layout_second_cell_offset_x: 0.0,
         layout_third_cell_offset_x: 0.0,
         layout_fourth_cell_offset_x: 0.0,
+        icon_placement: SharedString::default(),
         component_role: data.component_role.clone(),
         component_category: "".into(),
         component_layout_role: "".into(),
@@ -216,8 +217,8 @@ pub(crate) fn to_host_contract_template_nodes(
 #[cfg(test)]
 mod tests {
     use std::sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     };
 
     use super::*;

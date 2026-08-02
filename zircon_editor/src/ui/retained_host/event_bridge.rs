@@ -1,10 +1,10 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventRecord, LayoutCommand, MenuAction,
 };
-use crate::ui::retained_host::HostInvalidationMask;
 use crate::ui::retained_host::workbench_notifications::{
-    WorkbenchNotification, workbench_notifications_for_record,
+    workbench_notifications_for_record, WorkbenchNotification,
 };
+use crate::ui::retained_host::HostInvalidationMask;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiHostEventEffects {
@@ -21,6 +21,8 @@ pub(crate) struct UiHostEventEffects {
     pub import_model_requested: bool,
     pub reset_active_layout_preset: bool,
     pub open_command_palette_requested: bool,
+    pub open_scene_picker_requested: bool,
+    pub create_scene_picker_requested: bool,
     pub workbench_notifications: Vec<WorkbenchNotification>,
 }
 
@@ -127,6 +129,14 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
                 target.open_command_palette_requested = true;
                 target.request_presentation();
             }
+            EditorEventEffect::OpenScenePickerRequested => {
+                target.open_scene_picker_requested = true;
+                target.request_presentation();
+            }
+            EditorEventEffect::CreateScenePickerRequested => {
+                target.create_scene_picker_requested = true;
+                target.request_presentation();
+            }
             EditorEventEffect::ReflectionChanged => {}
         }
     }
@@ -151,7 +161,7 @@ mod tests {
         EditorEventSequence, EditorEventSource, EditorEventUndoPolicy, MenuAction,
     };
 
-    use super::{UiHostEventEffects, apply_record_effects};
+    use super::{apply_record_effects, UiHostEventEffects};
 
     #[test]
     fn project_close_effect_requests_retained_close_and_empty_asset_sync() {

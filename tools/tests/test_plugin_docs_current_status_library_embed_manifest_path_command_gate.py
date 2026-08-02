@@ -43,10 +43,6 @@ class PluginDocsCurrentStatusLibraryEmbedManifestPathCommandGateTests(
         review = (
             REPO_ROOT / "docs/plans/engine-code-review-findings-2026-06.md"
         ).read_text(encoding="utf-8")
-        session = (
-            REPO_ROOT
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         sections = {
             "09 export status": _section(
@@ -65,7 +61,6 @@ class PluginDocsCurrentStatusLibraryEmbedManifestPathCommandGateTests(
             "export tooling docs": export_tool,
             "structure convention": structure,
             "review findings": review,
-            "active session notes": session,
         }
 
         failures: list[str] = []

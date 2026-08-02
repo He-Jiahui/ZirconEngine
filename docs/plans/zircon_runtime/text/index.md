@@ -125,14 +125,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/vertex.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
-  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
@@ -140,12 +139,12 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
-- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - docs/zircon_runtime/graphics/text.md
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
@@ -202,13 +201,12 @@ related_code:
   - zircon_runtime/src/text/layout/line_break/greedy.rs
   - zircon_runtime/src/text/atlas/page.rs
   - zircon_runtime/src/text/atlas/shelf_allocator.rs
-  - zircon_runtime/src/text/atlas/dirty.rs
   - zircon_runtime/src/text/font/descriptors.rs
   - zircon_runtime/src/text/font/matching.rs
   - zircon_runtime/src/text/font/default_families.rs
   - zircon_runtime/src/text/font/asset_registration.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
-- zircon_runtime/src/text/sdf/params.rs
+  - zircon_runtime/src/text/sdf/params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/Cargo.toml

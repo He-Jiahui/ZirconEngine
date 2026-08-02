@@ -21,6 +21,8 @@ fn native_hot_reload_owned_identity_reinserts_into_its_module_kind_partition() {
     let mut registry = super::super::keys::NativePluginLiveRegistry::default();
     registry.insert(live_key(PluginModuleKind::Runtime, "physics"), 1_u8);
     registry.insert(live_key(transition.module_kind, &transition.key), 2_u8);
+    registry.insert(live_key(PluginModuleKind::Native, "physics"), 3_u8);
+    registry.insert(live_key(PluginModuleKind::Vm, "physics"), 4_u8);
 
     assert_eq!(
         registry.get(&live_key(PluginModuleKind::Runtime, "physics")),
@@ -29,6 +31,26 @@ fn native_hot_reload_owned_identity_reinserts_into_its_module_kind_partition() {
     assert_eq!(
         registry.get(&live_key(PluginModuleKind::Editor, "physics")),
         Some(&2)
+    );
+    assert_eq!(
+        registry.remove(&live_key(PluginModuleKind::Editor, "physics")),
+        Some(2)
+    );
+    assert_eq!(
+        registry.get(&live_key(PluginModuleKind::Editor, "physics")),
+        None
+    );
+    assert_eq!(
+        registry.get(&live_key(PluginModuleKind::Runtime, "physics")),
+        Some(&1)
+    );
+    assert_eq!(
+        registry.get(&live_key(PluginModuleKind::Native, "physics")),
+        Some(&3)
+    );
+    assert_eq!(
+        registry.get(&live_key(PluginModuleKind::Vm, "physics")),
+        Some(&4)
     );
 
     let lifecycle = include_str!("../lifecycle.rs");
@@ -58,6 +80,14 @@ fn native_live_host_editor_hot_reload_keeps_same_id_runtime_plugin() {
     }
 
     let mut replacement = native_live_host_test_plugin("physics", PluginModuleKind::Editor);
+    assert!(replacement.runtime_entry_report.is_none());
+    assert_eq!(
+        replacement
+            .editor_entry_report
+            .as_ref()
+            .map(|report| report.module_kind),
+        Some(PluginModuleKind::Editor)
+    );
     replacement.library_path = std::path::PathBuf::from("physics.editor.reloaded.test.dll");
     let report = NativePluginLoadReport::from_loaded(vec![replacement]);
 
@@ -146,6 +176,48 @@ fn native_live_host_keeps_existing_runtime_handle_when_reload_finds_no_replaceme
         host.loaded_plugin_ids(PluginModuleKind::Runtime).unwrap(),
         vec!["physics".to_string()]
     );
+    host.unload_runtime_plugin("physics")
+        .expect("rollback must cancel the retained generation transition");
+    assert!(host
+        .loaded_plugin_ids(PluginModuleKind::Runtime)
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
+fn native_live_host_failed_reload_reopens_the_retained_generation_for_callbacks() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+
+    let project_root = std::env::temp_dir().join(format!(
+        "zircon-runtime-rollback-callback-lease-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock should be after unix epoch")
+            .as_nanos()
+    ));
+    let error = host
+        .hot_reload_runtime_plugin(&project_root, "physics")
+        .unwrap_err();
+
+    assert!(error.contains("rolled back to the previously loaded runtime native package"));
+    let loaded = lock_loaded_native_plugins(&host.loaded)
+        .expect("failed reload should leave the native live host lock usable");
+    let retained = loaded
+        .get(&live_key(PluginModuleKind::Runtime, "physics"))
+        .expect("failed reload should retain the previous runtime generation");
+    let callback_lease = retained
+        .callback_owner_lease()
+        .expect("rollback must reopen callback admission for the retained generation");
+    drop(callback_lease);
 }
 
 #[test]

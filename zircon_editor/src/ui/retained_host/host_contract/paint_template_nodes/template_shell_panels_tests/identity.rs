@@ -1,4 +1,4 @@
-use super::super::identity::{shell_panel_kind, ShellPanelKind};
+use super::super::identity::{ShellPanelKind, shell_panel_kind};
 use super::support::panel_node;
 
 #[test]

@@ -1,4 +1,7 @@
-use super::super::{icon_button_context, icon_button_paint_rect, icon_glyph_rect};
+use super::super::super::super::data::FrameRect;
+use super::super::{
+    icon_button_context, icon_button_paint_rect, icon_button_surface_radius, icon_glyph_rect,
+};
 use super::support::{frame_rect, icon_node};
 
 #[test]
@@ -78,4 +81,16 @@ fn rail_icon_button_defaults_to_unreal_large_icon24_size() {
     assert!((glyph.y - 18.0).abs() < 0.001);
     assert_eq!(glyph.width, 24.0);
     assert_eq!(glyph.height, 24.0);
+}
+
+#[test]
+fn icon_button_surface_radius_stays_inside_a_narrow_button() {
+    let rect = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 0.5,
+        height: 30.0,
+    };
+
+    assert_eq!(icon_button_surface_radius(&rect, 4.0), 0.25);
 }

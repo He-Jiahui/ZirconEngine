@@ -177,15 +177,13 @@ mod tests {
                     "plugin.virtual_geometry.capability_validation",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::DepthPrepass,
-                            "plugin-virtual-geometry-capability-validation",
-                            QueueLane::Graphics,
-                        )
-                        .with_executor_id("plugin.virtual-geometry.capability-validation")
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::DepthPrepass,
+                        "plugin-virtual-geometry-capability-validation",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.virtual-geometry.capability-validation")
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
             ));
@@ -233,15 +231,13 @@ mod tests {
                     "plugin.rt.capability_validation",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::PostProcess,
-                            "plugin-rt-capability-validation",
-                            QueueLane::Graphics,
-                        )
-                        .with_executor_id("plugin.rt.capability-validation")
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "plugin-rt-capability-validation",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.rt.capability-validation")
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(
                     RenderFeatureCapabilityRequirement::AccelerationStructures,
@@ -300,20 +296,18 @@ mod tests {
                     "plugin.neural.capability_validation",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::PostProcess,
-                            "plugin-neural-capability-validation",
-                            QueueLane::AsyncCompute,
-                        )
-                        .with_executor_id("plugin.neural.capability-validation")
-                        .with_compute_workload(RenderGraphComputeWorkload::fixed(
-                            "plugin-neural-capability-validation",
-                            [1, 1, 1],
-                            [1, 1, 1],
-                        ))
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "plugin-neural-capability-validation",
+                        QueueLane::AsyncCompute,
+                    )
+                    .with_executor_id("plugin.neural.capability-validation")
+                    .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                        "plugin-neural-capability-validation",
+                        [1, 1, 1],
+                        [1, 1, 1],
+                    ))
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute),
             ));

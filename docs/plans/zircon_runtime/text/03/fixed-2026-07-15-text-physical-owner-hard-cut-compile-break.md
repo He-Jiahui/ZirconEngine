@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/text
-  - zircon_runtime/src/text
   - zircon_runtime/src/core/framework/text
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/lib.rs

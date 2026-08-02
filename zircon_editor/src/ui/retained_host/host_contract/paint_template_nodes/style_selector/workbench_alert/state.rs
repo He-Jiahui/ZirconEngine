@@ -1,6 +1,6 @@
 use super::model::{WorkbenchAlertStyle, WorkbenchAlertTone};
 use super::palette::{
-    alert_tone_style_from_palette, workbench_alert_palette, WorkbenchAlertPalette,
+    WorkbenchAlertPalette, alert_tone_style_from_palette, workbench_alert_palette,
 };
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

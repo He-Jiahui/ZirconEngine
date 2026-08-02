@@ -265,10 +265,22 @@ pub(super) fn update_base_stats(
         ui_text_report.raster_upload.visible_raster_glyph_count;
     state.stats.last_ui_text_raster_source_image_count =
         ui_text_report.raster_upload.source_image_count;
+    state.stats.last_ui_text_missing_raster_image_count =
+        ui_text_report.raster_upload.missing_raster_image_count;
+    state.stats.last_ui_text_visible_raster_placeholder_count =
+        ui_text_report.raster_upload.visible_placeholder_count;
     state.stats.last_ui_text_raster_worker_pending_count =
-        ui_text_report.raster_upload.worker_request_pending_count;
+        ui_text_report.raster_upload.worker_pending_count;
     state.stats.last_ui_text_raster_worker_failed_count =
-        ui_text_report.raster_upload.worker_request_failed_count;
+        ui_text_report.raster_upload.worker_failed_count;
+    state
+        .stats
+        .last_ui_text_raster_renderer_upload_requeued_count =
+        ui_text_report.raster_upload.renderer_upload_requeued_count;
+    state
+        .stats
+        .last_ui_text_raster_renderer_upload_failure_count =
+        ui_text_report.raster_upload.renderer_upload_failure_count;
     state.stats.last_ui_text_layout_fallback_count = ui_text_report.layout_fallbacks.fallback_count;
     state.stats.last_ui_text_invalid_font_size_count =
         ui_text_report.layout_fallbacks.invalid_font_size_count;
@@ -297,6 +309,17 @@ pub(super) fn update_base_stats(
         state.renderer.last_material_validation_error_count();
     state.stats.last_material_diagnostic_count = state.renderer.last_material_diagnostic_count();
     state.stats.last_shader_variant_miss_report = state.renderer.last_shader_variant_miss_report();
+    state.stats.last_pipeline_async_pending_count =
+        state.renderer.last_pipeline_async_pending_count();
+    state.stats.last_variant_first_frame_miss_count =
+        state.renderer.last_variant_first_frame_miss_count();
+    let readback_stats = state.renderer.last_readback_poll_stats();
+    state.stats.last_readback_in_flight_count = readback_stats.in_flight_count;
+    state.stats.last_readback_bytes = readback_stats.in_flight_bytes;
+    state.stats.last_readback_completed_count = readback_stats.completed_request_count;
+    state.stats.last_readback_completed_bytes = readback_stats.completed_bytes;
+    state.stats.last_readback_slot_reuse_rejection_count =
+        readback_stats.slot_reuse_rejection_count;
     let prepared_mesh_queue_stats = state.renderer.last_prepared_mesh_queue_stats();
     state.stats.last_mesh_draw_count = prepared_mesh_queue_stats.draw_count;
     state.stats.last_mesh_opaque_draw_count = prepared_mesh_queue_stats.opaque_draw_count;
@@ -588,11 +611,16 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
         stats.last_hzb_occlusion_dispatched_phase_count = 0;
         stats.last_hzb_occlusion_history_available = false;
         stats.last_hzb_occlusion_readback_available = false;
+        stats.last_hzb_occlusion_readback_source_frame_index = None;
+        stats.last_hzb_occlusion_readback_pending_count = 0;
+        stats.last_hzb_occlusion_readback_dropped_count = 0;
+        stats.last_hzb_occlusion_readback_oldest_pending_age_frames = None;
         stats.last_hzb_occlusion_tested_arg_count = 0;
         stats.last_hzb_occlusion_tested_instance_count = 0;
         stats.last_hzb_occlusion_culled_arg_count = 0;
         stats.last_hzb_occlusion_culled_instance_count = 0;
         stats.last_hzb_occlusion_indirect_args_readback_available = false;
+        stats.last_hzb_occlusion_indirect_args_readback_source_frame_index = None;
         stats.last_hzb_occlusion_readback_arg_count = 0;
         stats.last_hzb_occlusion_compacted_draw_count = 0;
         stats.last_hzb_occlusion_zero_instance_arg_count = 0;
@@ -606,8 +634,14 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
     stats.last_hzb_occlusion_dispatch_group_count = report.dispatch_group_count as usize;
     stats.last_hzb_occlusion_dispatched_phase_count = report.dispatched_phase_count as usize;
     stats.last_hzb_occlusion_history_available = report.history_available;
+    stats.last_hzb_occlusion_readback_pending_count = report.readback_pending_count as usize;
+    stats.last_hzb_occlusion_readback_dropped_count = report.readback_dropped_count as usize;
+    stats.last_hzb_occlusion_readback_oldest_pending_age_frames =
+        report.readback_oldest_pending_age_frames;
     if let Some(indirect_args_readback) = report.indirect_args_readback {
         stats.last_hzb_occlusion_indirect_args_readback_available = true;
+        stats.last_hzb_occlusion_indirect_args_readback_source_frame_index =
+            report.indirect_args_readback_source_frame_index;
         stats.last_hzb_occlusion_readback_arg_count =
             indirect_args_readback.readback_arg_count as usize;
         stats.last_hzb_occlusion_compacted_draw_count =
@@ -618,6 +652,7 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
             indirect_args_readback.remaining_instance_count as usize;
     } else {
         stats.last_hzb_occlusion_indirect_args_readback_available = false;
+        stats.last_hzb_occlusion_indirect_args_readback_source_frame_index = None;
         stats.last_hzb_occlusion_readback_arg_count = 0;
         stats.last_hzb_occlusion_compacted_draw_count = 0;
         stats.last_hzb_occlusion_zero_instance_arg_count = 0;
@@ -625,6 +660,7 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
     }
     let Some(readback_stats) = report.readback_stats else {
         stats.last_hzb_occlusion_readback_available = false;
+        stats.last_hzb_occlusion_readback_source_frame_index = None;
         stats.last_hzb_occlusion_tested_arg_count = 0;
         stats.last_hzb_occlusion_tested_instance_count = 0;
         stats.last_hzb_occlusion_culled_arg_count = 0;
@@ -633,6 +669,7 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
     };
 
     stats.last_hzb_occlusion_readback_available = true;
+    stats.last_hzb_occlusion_readback_source_frame_index = report.readback_stats_source_frame_index;
     stats.last_hzb_occlusion_tested_arg_count = readback_stats.tested_arg_count as usize;
     stats.last_hzb_occlusion_tested_instance_count = readback_stats.tested_instance_count as usize;
     stats.last_hzb_occlusion_culled_arg_count = readback_stats.culled_arg_count as usize;

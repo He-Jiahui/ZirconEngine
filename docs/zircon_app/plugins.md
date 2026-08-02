@@ -4,6 +4,7 @@ related_code:
   - zircon_app/src/plugins/mod.rs
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/groups.rs
+  - zircon_app/src/plugins/groups/resolution.rs
   - zircon_app/tests/plugin_group_error_contract.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
@@ -27,6 +28,9 @@ related_code:
   - zircon_runtime/src/core/runtime/descriptors/module_order.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_plugins/plugin_sdk/src/declaration.rs
+  - zircon_plugins/plugin_sdk/src/declaration/macros.rs
+  - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_plugins/virtual_geometry/plugin.toml
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
@@ -63,6 +67,9 @@ implementation_files:
   - zircon_runtime/src/core/runtime/descriptors/module_order.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_plugins/plugin_sdk/src/declaration.rs
+  - zircon_plugins/plugin_sdk/src/declaration/macros.rs
+  - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_plugins/virtual_geometry/plugin.toml
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
@@ -139,13 +146,13 @@ Fallible composition paths are explicit instead of panic-driven. Duplicate modul
 
 ## Built-In Groups
 
-Frameworks 03 makes App composition follow the same compile-time domain vocabulary as Runtime. `animation`, `diagnostic-log`, `dynamic-api`, `graphics`, `navigation`, `script`, `text`, and `ui` are forwarding features, while target-client/editor-host explicitly compose them and target-server keeps only diagnostics plus the headless platform. `default_modules(...)` declares GraphicsModule only with `graphics` and ScriptModule only with `script`; Headless/server builds do not retain unreachable client module references. WSL App checks pass for both `target-server` and the default client combination after this hard cutover; the default check used a command-local `/tmp` libudev development package because the base WSL image lacks `libudev.pc`.
+Frameworks 03 makes App composition follow the same compile-time domain vocabulary as Runtime. `animation`, `diagnostic-log`, `dynamic-api`, `graphics`, `navigation`, `script`, `text`, and `ui` are forwarding features, while target-client/editor-host explicitly compose them and target-server keeps only diagnostics plus the headless platform. Frameworks 02 makes `groups.rs` a pure declaration owner: each built-in group selects one `RuntimeProfileId` plus explicit app features, and `groups/resolution.rs` resolves the profile through the Runtime-owned profile manifest API. App no longer constructs or maintains a second list of built-in runtime modules. WSL App checks pass for both `target-server` and the default client combination after this hard cutover; the default check used a command-local `/tmp` libudev development package because the base WSL image lacks `libudev.pc`.
 
-`MinimalPlugins` maps to the available lower shared descriptors needed for a headless core loop: foundation, tasks, time, frame count, and diagnostics core. The task/time/frame-count/diagnostics entries are runtime-owned descriptor modules under `zircon_runtime::core::modules`; they do not install duplicate services because the actual scheduler, runtime clock bundle, frame clock, diagnostic store, and diagnostics collection primitives remain owned by `CoreRuntime` and existing runtime modules.
+`MinimalPlugins` selects `RuntimeProfileId::Minimal`, whose Runtime-owned descriptor declares the exact lower shared set needed for a core loop: foundation, tasks, time, frame count, and diagnostics core. The task/time/frame-count/diagnostics entries are runtime-owned descriptor modules under `zircon_runtime::core::modules`; they do not install duplicate services because the actual scheduler, runtime clock bundle, frame clock, diagnostic store, and diagnostics collection primitives remain owned by `CoreRuntime` and existing runtime modules.
 
-`DefaultPlugins` maps to the current default runtime stack: foundation, log, platform, input, asset, scene, graphics, script, and feature-gated UI. `HeadlessPlugins` resolves the same lower runtime stack without graphics/UI presentation modules, but keeps platform/input descriptors for capability reporting and synthetic input state plus the default log descriptor so headless tools retain the same diagnostic policy surface.
+`DefaultPlugins` selects `RuntimeProfileId::Client3d` and adds feature-gated UI. `HeadlessPlugins` selects `RuntimeProfileId::Server`, whose descriptor omits graphics/UI presentation modules but keeps platform/input descriptors for capability reporting and synthetic input state plus the default log descriptor so headless tools retain the same diagnostic policy surface.
 
-`DevPlugins` starts from `DefaultPlugins` and inserts `LogDiagnosticsModule` after `DiagnosticsCoreModule`. This mirrors Bevy's pattern where detailed log diagnostics are a development add-on layered over the default app stack instead of being part of the minimal core loop. The runtime diagnostic store and `diagnostic_log::write_diagnostic_store_snapshot(...)` provide the lower-level data/logging surface; app runners still own when to emit those lines.
+`DevPlugins` selects `RuntimeProfileId::Dev` and adds feature-gated UI plus `LogDiagnosticsModule`. This mirrors Bevy's pattern where detailed log diagnostics are a development add-on layered over the default app stack instead of being part of the minimal core loop. The runtime diagnostic store and `diagnostic_log::write_diagnostic_store_snapshot(...)` provide the lower-level data/logging surface; app runners still own when to emit those lines.
 
 ## Bootstrap Flow
 
@@ -156,7 +163,7 @@ Frameworks 03 makes App composition follow the same compile-time domain vocabula
 - `RuntimeProfileId::Dev` starts from `DevPlugins`.
 - `Headless` profile starts from `HeadlessPlugins`.
 
-For default, dev, editor, runtime, and headless groups, modules returned by project manifests, linked runtime plugin registrations, native plugin reports, and optional editor insertion are appended when they are not already present in the selected group. For `RuntimeProfileId::Minimal`, unmatched modules are intentionally ignored: the runtime modules returned by the wider resolver may still describe the full client baseline, but the minimal profile keeps only modules already present in `MinimalPlugins`.
+For every group, modules returned by project manifests, linked runtime plugin registrations, native plugin reports, and optional editor insertion replace matching entries or append when absent. Minimal membership is already fixed by `RuntimeProfileDescriptor::builtin_modules`; App does not filter a wider client baseline or discard unmatched modules after Runtime selection.
 
 Frameworks 02 moves final ordering out of the app group layer. `PluginGroupBuilder` still records the selected membership for diagnostics and replacement policy, but `BuiltinEngineEntry` hands the full descriptor set to the runtime kernel before activation. The runtime sorts by `ModuleDescriptor::init_level` and declared module dependencies, so app profiles no longer preserve a manual "list order is startup order" contract. Ordering errors stay fatal through `RuntimeModuleLoadReport`; the app must reject them instead of falling back to legacy group order.
 
@@ -171,6 +178,8 @@ The 2026-07-13 Frameworks 02 diagnostic hard cut makes `RuntimeModuleLoadReport`
 When `BuiltinEngineEntry` is built from linked runtime plugin registration reports, `builtin_modules_for_config_with_runtime_plugin_registrations(...)` and the feature-aware variant also build a plugin-owned `RuntimePluginBridgeLifecycleState` from the same effective project/runtime-profile manifest. `BuiltinEngineEntry::bootstrap` erases that state behind `Arc<dyn RuntimeModuleLifecycleObserver>` and installs the neutral observer into Core before module activation. Explicit provider enable/disable/reload remains on the plugin-owned state exposed by `BuiltinEngineEntry::runtime_plugin_bridge_lifecycle_state()`; Core no longer exposes plugin lifecycle state or event facades.
 
 Frameworks 02 M3 removes the former test-only RuntimePlugin lifecycle dispatcher. Linked SDK/first-party/native reports carry package runtime-module rows; the project-filtered catalog validates and sorts those rows before extension merge, and `builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(...)` turns the accepted extension descriptors into normal `EngineModule` entries. `CoreRuntime` is therefore the only owner of build/ready/finish/cleanup. Invalid plugin dependency graphs produce fatal selection diagnostics before bootstrap installs extensions or registers modules, with no legacy registration-order fallback.
+
+Plugin packages declare metadata once through `zircon_plugin_sdk::declare_plugin!`. The resulting runtime-independent `PluginDeclaration` projects runtime-provided capability roles into `RuntimePluginDescriptor`, and projects runtime/editor roles into ABI v3 registration manifests for native packages. Checked-in `plugin.toml` files remain generated declaration snapshots for distribution; the retired `native_plugin_manifest_v3!` path is deleted rather than retained as a second metadata authority.
 
 `BuiltinEngineEntry::module_selection_report()` exposes the selected entry profile, run mode, optional runtime profile, target mode, plugin group name, platform capability diagnostics, selected window descriptor, and module descriptor counts. The report is read-only diagnostics for tooling and tests; it does not become a second bootstrap path or bypass runtime descriptor registration. `EntryModuleSelectionReport::diagnostic_lines()` and `format_diagnostics()` render the same data into stable text lines so profile/module choices can be captured in logs, CLI output, or test artifacts without reaching into the plugin builder internals. `EntryRunner::module_selection_report(...)` and `EntryRunner::module_selection_diagnostics(...)` expose the same report at the runner boundary before `CoreRuntime` bootstrap, so tools can explain a profile's module composition without registering or activating services.
 

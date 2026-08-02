@@ -1,5 +1,5 @@
 use crate::core::asset::{
-    builtin_asset_type_definition, AssetSourceWritePolicy, AssetTypeDefinition,
+    AssetSourceWritePolicy, AssetTypeDefinition, builtin_asset_type_definition,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 

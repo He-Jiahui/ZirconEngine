@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
     PrimitiveRelevance, RenderFrameExtract, RenderMaterialAlphaMode,
@@ -6,7 +6,7 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 
 use super::super::super::culling::{
-    mesh_bounds::mesh_bounds, visibility_entries::visibility_entries,
+    mesh_bounds::mesh_bounds, visibility_entries::visibility_mesh_indices,
 };
 use super::super::super::declarations::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBvhInstance, VisibilityHistoryEntry,
@@ -15,34 +15,26 @@ use super::super::super::declarations::{
 use super::batching_result::BatchingResult;
 
 pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingResult {
-    let mesh_lookup = value
-        .geometry
-        .meshes
-        .iter()
-        .map(|mesh| (mesh.node_id, mesh))
-        .collect::<HashMap<_, _>>();
-    let phase_inputs_by_entity = value
-        .geometry
-        .phase_inputs
-        .iter()
-        .map(|input| (input.entity, input))
-        .collect::<HashMap<_, _>>();
-    let mut entries_by_entity = BTreeMap::new();
-    for (entity, mobility) in visibility_entries(value) {
-        entries_by_entity.insert(entity, mobility);
+    let mut material_alpha_modes =
+        vec![RenderMaterialAlphaMode::Opaque; value.geometry.meshes.len()];
+    for phase_input in &value.geometry.phase_inputs {
+        if let Some(alpha_mode) = material_alpha_modes.get_mut(phase_input.mesh_index) {
+            *alpha_mode = phase_input.material_alpha_mode;
+        }
     }
+    let mesh_indices = visibility_mesh_indices(value);
     let mut renderable_entities = BTreeSet::new();
     let mut static_entities = BTreeSet::new();
     let mut dynamic_entities = BTreeSet::new();
     let mut primitive_relevance = Vec::new();
-    let mut batches = BTreeMap::<VisibilityBatchKey, Vec<_>>::new();
+    let mut batches = BTreeMap::<VisibilityBatchKey, Vec<(u64, _)>>::new();
     let mut bvh_instances = Vec::new();
     let mut history_entries = Vec::new();
 
-    for (entity, mobility) in entries_by_entity {
-        let Some(mesh) = mesh_lookup.get(&entity) else {
-            continue;
-        };
+    for mesh_index in mesh_indices {
+        let mesh = &value.geometry.meshes[mesh_index];
+        let entity = mesh.node_id;
+        let mobility = mesh.mobility;
         renderable_entities.insert(entity);
         match mobility {
             Mobility::Static => {
@@ -52,10 +44,7 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
                 dynamic_entities.insert(entity);
             }
         }
-        let material_alpha_mode = phase_inputs_by_entity
-            .get(&entity)
-            .map(|input| input.material_alpha_mode)
-            .unwrap_or(RenderMaterialAlphaMode::Opaque);
+        let material_alpha_mode = material_alpha_modes[mesh_index];
         let relevance = PrimitiveRelevance::for_mesh_view(
             value.view.selected_camera_layers(),
             value.view.core_pipeline,
@@ -63,7 +52,11 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
             mobility,
             material_alpha_mode,
         );
-        primitive_relevance.push(VisibilityRelevanceEntry { entity, relevance });
+        primitive_relevance.push(VisibilityRelevanceEntry {
+            entity,
+            stable_instance_key: mesh.stable_instance_key,
+            relevance,
+        });
 
         let key = VisibilityBatchKey {
             render_layer_mask: mesh.common.layer_mask.clone(),
@@ -74,15 +67,20 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         let bounds = mesh_bounds(mesh);
         bvh_instances.push(VisibilityBvhInstance {
             entity,
+            stable_instance_key: mesh.stable_instance_key,
             key: key.clone(),
             bounds,
         });
         history_entries.push(VisibilityHistoryEntry {
             entity,
+            stable_instance_key: mesh.stable_instance_key,
             key: key.clone(),
             bounds,
         });
-        batches.entry(key).or_default().push(entity);
+        batches
+            .entry(key)
+            .or_default()
+            .push((mesh.stable_instance_key, entity));
     }
 
     BatchingResult {
@@ -92,7 +90,14 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         primitive_relevance,
         batches: batches
             .into_iter()
-            .map(|(key, entities)| VisibilityBatch { key, entities })
+            .map(|(key, members)| {
+                let (stable_instance_keys, entities) = members.into_iter().unzip();
+                VisibilityBatch {
+                    key,
+                    stable_instance_keys,
+                    entities,
+                }
+            })
             .collect(),
         bvh_instances,
         history_entries,
@@ -107,5 +112,7 @@ mod tests {
 
         assert!(!source.contains(concat!("frustum_", "candidates")));
         assert!(!source.contains(concat!("bounds_by_", "entity")));
+        assert!(!source.contains(concat!("mesh_lookup", " =")));
+        assert!(!source.contains(concat!("phase_inputs_by_", "entity")));
     }
 }

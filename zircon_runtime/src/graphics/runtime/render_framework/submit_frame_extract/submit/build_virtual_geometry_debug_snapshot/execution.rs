@@ -2,9 +2,9 @@ use std::collections::BTreeSet;
 
 use super::support::saturated_u32_len;
 use crate::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExecutionSegment,
-    RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryHardwareRasterizationRecord,
+    render_mesh_stable_instance_key, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryHardwareRasterizationRecord,
     RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryInstance,
     RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
@@ -66,6 +66,7 @@ pub(super) fn build_execution_snapshot(
             original_index: index_u32,
             instance_index,
             entity: segment.entity,
+            stable_instance_key: segment.stable_instance_key,
             page_id: segment.page_id,
             draw_ref_index: index_u32,
             submission_index: Some(submission_index),
@@ -130,8 +131,13 @@ fn instance_index_for_draw_segment(
         .clusters
         .iter()
         .enumerate()
-        .find(|(_, cluster)| {
+        .find(|(cluster_array_index, cluster)| {
             cluster.entity == segment.entity
+                && stable_instance_key_for_cluster_array_index(
+                    &extract.instances,
+                    cluster_array_index,
+                    cluster.entity,
+                ) == segment.stable_instance_key_or_legacy()
                 && cluster.cluster_id == segment.cluster_id
                 && cluster.page_id == segment.page_id
                 && cluster.lod_level == segment.lod_level
@@ -205,30 +211,46 @@ fn cluster_for_execution_ordinal<'a>(
     segment: &RenderVirtualGeometryExecutionSegment,
     cluster_ordinal: u32,
 ) -> Option<(usize, &'a RenderVirtualGeometryCluster)> {
-    extract.clusters.iter().enumerate().find(|(_, cluster)| {
-        cluster.entity == segment.entity
-            && cluster.page_id == segment.page_id
-            && cluster.lod_level == segment.lod_level
-            && cluster_ordinal_for_entity(extract, cluster) == cluster_ordinal
-    })
+    extract
+        .clusters
+        .iter()
+        .enumerate()
+        .find(|(cluster_array_index, cluster)| {
+            cluster.entity == segment.entity
+                && stable_instance_key_for_cluster_array_index(
+                    &extract.instances,
+                    *cluster_array_index,
+                    cluster.entity,
+                ) == segment.stable_instance_key_or_legacy()
+                && cluster.page_id == segment.page_id
+                && cluster.lod_level == segment.lod_level
+                && cluster_ordinal_for_stable_instance_key(
+                    extract,
+                    cluster,
+                    segment.stable_instance_key_or_legacy(),
+                ) == cluster_ordinal
+        })
 }
 
-fn cluster_ordinal_for_entity(
+fn cluster_ordinal_for_stable_instance_key(
     extract: &RenderVirtualGeometryExtract,
     cluster: &RenderVirtualGeometryCluster,
+    stable_instance_key: u64,
 ) -> u32 {
     let mut cluster_ids = if extract.instances.is_empty() {
         extract
             .clusters
             .iter()
-            .filter(|candidate| candidate.entity == cluster.entity)
+            .filter(|candidate| {
+                render_mesh_stable_instance_key(candidate.entity, 0) == stable_instance_key
+            })
             .map(|candidate| candidate.cluster_id)
             .collect::<Vec<_>>()
     } else {
         extract
             .instances
             .iter()
-            .filter(|instance| instance.entity == cluster.entity)
+            .filter(|instance| stable_instance_key_for_instance(instance) == stable_instance_key)
             .flat_map(|instance| {
                 let start = instance.cluster_offset as usize;
                 let end = start.saturating_add(instance.cluster_count as usize);
@@ -248,6 +270,21 @@ fn cluster_ordinal_for_entity(
         .iter()
         .position(|cluster_id| *cluster_id == cluster.cluster_id)
         .unwrap_or_default() as u32
+}
+
+fn stable_instance_key_for_cluster_array_index(
+    instances: &[RenderVirtualGeometryInstance],
+    cluster_array_index: usize,
+    entity: u64,
+) -> u64 {
+    instance_index_for_cluster_array_index(instances, cluster_array_index)
+        .and_then(|instance_index| instances.get(instance_index as usize))
+        .map(stable_instance_key_for_instance)
+        .unwrap_or_else(|| render_mesh_stable_instance_key(entity, 0))
+}
+
+fn stable_instance_key_for_instance(instance: &RenderVirtualGeometryInstance) -> u64 {
+    instance.stable_instance_key_or_legacy()
 }
 
 pub(super) fn build_visbuffer_debug_marks_from_selected_clusters(

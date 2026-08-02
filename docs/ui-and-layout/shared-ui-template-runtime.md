@@ -227,7 +227,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/activity_rail.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs
   - zircon_editor/build.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
@@ -444,7 +444,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/activity_rail.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
@@ -558,7 +558,7 @@ tests:
   - zircon_editor/src/tests/host/retained_animation_template_body.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/retained_window/activity_rail_template_boundary.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
   - zircon_editor/src/tests/host/retained_window/native_mode.rs

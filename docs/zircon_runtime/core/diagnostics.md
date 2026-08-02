@@ -58,7 +58,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -69,7 +68,9 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
-  - zircon_runtime/src/animation/scene_hook/diagnostics.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
 implementation_files:
@@ -127,7 +128,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -137,7 +137,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
-  - zircon_runtime/src/animation/scene_hook/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
 plan_sources:
@@ -293,7 +292,9 @@ The diagnostics store is not a global singleton. This keeps tests, runtime previ
 
 ## Animation Scene Diagnostics
 
-`AnimationSceneFrameDiagnostics` is owned by `animation/scene_hook/diagnostics.rs` and records count-only rows for `animation.scene.scanned_entities`, sequence/clip/graph/state-machine sampling, `animation.scene.output_poses`, `animation.scene.applied_transforms`, `animation.scene.published_events`, and `animation.scene.state_transitions`. These rows are Runtime 07 evidence inputs for animation scene-hook frame cost, not a new core diagnostics domain model. The current slice status is `animation_scene_frame_diagnostics_static_passed_cargo_deferred`; package Cargo validation stays with the broader Runtime 07 extract/ecs_query/profiling/FPS gates.
+`AnimationSceneFrameDiagnostics` and its `animation.scene.scanned_entities`, sampling, `animation.scene.output_poses`, `animation.scene.applied_transforms`, `animation.scene.published_events`, and `animation.scene.state_transitions` counters were removed with the 2026-08-01 Runtime `animation/scene_hook` hard cut. Current evaluation work is owned by the Animation Plugin pipeline, including `tick.rs`, `events.rs`, and `pose_apply.rs`, but no production frame-counter owner currently replaces the deleted diagnostics behavior.
+
+The historical status token `animation_scene_frame_diagnostics_static_passed_cargo_deferred` therefore identifies retired static evidence, not current instrumentation. `docs/plans/zircon_plugins/04/failure-2026-07-29-animation-frame-diagnostics-hardcut-omission.md` remains the open owner-routed gap; the deleted Runtime hook must not be restored as a facade or compatibility path.
 
 ## Scene Asset Reload Diagnostics
 

@@ -54,6 +54,7 @@ impl MeshDraw {
             entity: detail
                 .map(|detail| detail.entity())
                 .unwrap_or(fallback_key.0),
+            stable_instance_key: self.stable_instance_key(),
             page_id,
             draw_ref_index: self.virtual_geometry_execution_draw_ref_index(),
             submission_index: detail.map(|detail| detail.submission_index()),
@@ -133,7 +134,7 @@ fn execution_draw_ref_index(
 
 #[cfg(test)]
 mod tests {
-    use super::{VirtualGeometrySubmissionDetail, execution_draw_ref_index};
+    use super::{execution_draw_ref_index, VirtualGeometrySubmissionDetail};
 
     #[test]
     fn execution_draw_ref_index_prefers_explicit_submission_detail_source() {

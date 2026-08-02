@@ -21,9 +21,13 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/12-widget-slot-componentization.md
   - docs/plans/zircon_editor/editor_layout/16-relative-layout-and-resolution-adaptation.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
-status: planned
+status: in_progress
 ---
 # 13 Taffy 类 CSS 约束语言规范(flex / grid / block + 约束 token)
+
+> 2026-08-01 实仓复核：`UiLayoutStyle` DTO、完整 Taffy 字段映射和容器/legacy 约束投影已经落入当前源码，求解基础不再处于待规划状态；作者侧类 CSS/token parser、slot 接线与 T3 扩展候选仍未完成。计划状态由 `planned` 修正为 `in_progress`，现有映射不等价于作者语言端到端验收。
+
+> 2026-08-01 执行记录：S1 已实现于 `css_like_constraint.rs`，覆盖 `UiLayoutStyle` 映射、设计 token 解析、family 路由、取值拒绝与 T3 诊断；默认工作台抽屉/底部尺寸已通过该边界进入 retained-host shell 重算，按 DPI 转换，并按“活动拖拽 > 持久 drawer extent > 当前安装 token 默认值”取值。token cache 以完整 V2 token 快照比较刷新。S3 的作者向覆盖矩阵已写入 `docs/ui-and-layout/css-constraint-language.md`。S2 仍待 chrome 资产 token 审计及 `.zui` slot 接线，不能提前关闭。
 
 ## 1. 目标
 
@@ -337,4 +341,10 @@ pub fn family_for_slot_kind(kind: UiSlotKind) -> UiLayoutEngineFamily;
 
 ## 12. 状态与产出记录
 
-planned。本次细化产出:§3.1 完备词汇映射表(带 `style_mapping.rs` 现状证据)、§3.6 T1/T2/T3 CSS 覆盖矩阵(带跨引擎依据)、§3.7 取值规范化边界、§11 已核实的多引擎源码对照表。后续项:S1 约束词汇映射 + token 化 + family 决策表;S3 覆盖矩阵成文 + T3 各项独立立项。
+`in_progress`。
+
+- [x] S1: `CssLikeConstraint` 已将作者侧 Flex/Grid/Block 约束、token、slot family 与取值规范化映射到共享 `UiLayoutStyle`；默认 shell 区域消费该边界，DPI 与临时拖拽优先级已明确。
+- [ ] S2: `UiSlotKind` family 映射已提供；根 `workbench_shell.zui` 的 gap、页签/分隔线、活动栏和图标控制件，以及菜单、状态栏、抽屉头和工具条动作宽度均已收敛到 runtime cascade token。严格主题已将通用按钮/字段的边框和 4px Unreal 风格圆角接入同一 token，消除其对原子组件的覆盖；通用 slot 接线仍未完成，不能提前关闭。
+- [x] S3: T1/T2/T3 覆盖矩阵与已知不支持诊断已写入 `docs/ui-and-layout/css-constraint-language.md`；T3 不在本计划扩展 DTO/求解器。
+
+本次细化产出保留:§3.1 完备词汇映射表(带 `style_mapping.rs` 现状证据)、§3.6 T1/T2/T3 CSS 覆盖矩阵(带跨引擎依据)、§3.7 取值规范化边界、§11 已核实的多引擎源码对照表。

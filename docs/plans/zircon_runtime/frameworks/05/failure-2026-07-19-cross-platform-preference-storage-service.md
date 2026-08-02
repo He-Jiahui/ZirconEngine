@@ -30,9 +30,9 @@ tests:
 - 来源计划：`docs/plans/woc/01-woc-zrvm-one-to-one-replication.md`
 - 来源执行切片：M8 desktop client keybind/gamepad preference persistence and M13 platform preparation
 - 修复责任计划：`docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md`
-- 交接原因（2026-07-19）：最低共享原因是 runtime platform 域当时尚未提供中立偏好存储契约及各平台实现；该契约同时服务 native、mobile、browser 游戏角色，不能由 WOC、Editor 私有持久化或单一 host 调用点分别定义。
+- 交接原因：2026-07-19 的最低共享原因是 runtime platform 域当时尚未提供中立偏好存储契约及各平台实现；该契约同时服务 native、mobile、browser 游戏角色，不能由 WOC、Editor 私有持久化或单一 host 调用点分别定义。
 
-## 2026-07-19 失败现象与复现证据
+## 失败现象与复现证据
 
 交接时 WOC 已在项目内完成目标兼容的键盘与 gamepad 纯存储语义，但无法把 `PreferenceStorage` 接到一个 ZirconEngine 拥有、覆盖 Windows/Linux/macOS/Android/iOS/WebGPU/WASM 的运行时服务：
 
@@ -44,7 +44,7 @@ tests:
 
 这不是 Cargo 队列失败，也没有产品通过声明。2026-07-19 交接时 WOC 受管 Cargo 预约仍未获显式绑定，以上证据仅证明当时的接口缺席与归属边界。
 
-## 2026-07-19 最低共享层根因
+## 最低共享层根因
 
 交接时 Platform 域已拥有目标枚举、capability matrix、module/manager 名义入口，却没有持久用户偏好的中立服务合同、backend capability 或 host 注入路径。若各游戏自行选择 OS 目录、浏览器 Web Storage 或移动端 app-data API，会复制平台政策并让同一项目在不同 host 上产生不一致的错误、生命周期和隔离语义；复用 Editor 私有 store 则会反转 runtime/editor 依赖并把 TOML appearance 文档误当通用游戏偏好服务。
 

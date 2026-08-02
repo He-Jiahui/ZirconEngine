@@ -1,5 +1,5 @@
 {
-  "schema_version": 39,
+  "schema_version": 60,
   "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
   "command_catalog_sha256": "3660a0d84f3f85ab20324564b0f60773101cca421511e3f1859542e9e4b32700",
   "entries": [
@@ -120,6 +120,36 @@
       "source_shape": { "kind": "client_send", "method": "interact", "fields": [] }
     },
     {
+      "id": 13,
+      "name": "harvestCorpse",
+      "kind": "corpse_harvest",
+      "min_byte_length": 9,
+      "max_byte_length": 12,
+      "max_collection_entries": 3,
+      "encoding": "u64_le_target+u8_component_count_0_to_3+component_codes",
+      "source_shape": { "kind": "client_send", "method": "harvestCorpse", "fields": ["id", "components"] }
+    },
+    {
+      "id": 112,
+      "name": "enter_dungeon",
+      "kind": "utf8_id",
+      "min_byte_length": 4,
+      "max_byte_length": 260,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "enterDungeon", "fields": ["dungeon"] }
+    },
+    {
+      "id": 115,
+      "name": "enter_delve",
+      "kind": "utf8_id_pair",
+      "min_byte_length": 8,
+      "max_byte_length": 520,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8+u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "enterDelve", "fields": ["delveId", "tierId"] }
+    },
+    {
       "id": 16,
       "name": "accept",
       "kind": "utf8_id_optional_utf8_id",
@@ -173,6 +203,15 @@
         "fields": ["item"],
         "alternates": [{ "method": "equipItemToSlot", "fields": ["item", "slot"] }]
       }
+    },
+    {
+      "id": 21,
+      "name": "inv_move",
+      "kind": "i32_pair",
+      "min_byte_length": 8,
+      "max_byte_length": 8,
+      "encoding": "i32_le_from+i32_le_to",
+      "source_shape": { "kind": "client_send", "method": "moveInventoryItem", "fields": ["from", "to"] }
     },
     {
       "id": 22,
@@ -243,6 +282,16 @@
       "source_shape": { "kind": "client_send", "method": "changeSkin", "fields": ["skin", "catalog"] }
     },
     {
+      "id": 32,
+      "name": "unequip_mech_chroma",
+      "kind": "utf8_id",
+      "min_byte_length": 4,
+      "max_byte_length": 260,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "unequipMechChroma", "fields": ["chroma"] }
+    },
+    {
       "id": 35,
       "name": "release",
       "kind": "empty",
@@ -250,6 +299,26 @@
       "max_byte_length": 0,
       "encoding": "empty",
       "source_shape": { "kind": "client_send", "method": "releaseSpirit", "fields": [] }
+    },
+    {
+      "id": 37,
+      "name": "chat",
+      "kind": "chat_text",
+      "min_byte_length": 4,
+      "max_byte_length": 1024,
+      "max_utf8_bytes": 1020,
+      "max_utf16_code_units": 255,
+      "encoding": "u32_le_utf8_max_255_utf16",
+      "source_shape": { "kind": "client_send", "method": "chat", "fields": ["text"] }
+    },
+    {
+      "id": 38,
+      "name": "emote",
+      "kind": "emote_id",
+      "min_byte_length": 1,
+      "max_byte_length": 1,
+      "encoding": "u8_emote_id",
+      "source_shape": { "kind": "client_send", "method": "playEmote", "fields": ["emote"] }
     },
     {
       "id": 39,
@@ -708,6 +777,27 @@
       "source_shape": { "kind": "client_send", "method": "arenaAugmentPick", "fields": ["augment"] }
     },
     {
+      "id": 128,
+      "name": "mail_send",
+      "kind": "mail_send",
+      "min_byte_length": 21,
+      "max_byte_length": 16384,
+      "max_utf8_bytes": 16384,
+      "max_collection_entries": 3,
+      "encoding": "u32_le_utf8_to+u32_le_utf8_subject+u32_le_utf8_body+f64_le_copper+u8_attachment_count+repeated_u32_le_utf8_item_id_f64_le_count",
+      "source_shape": {
+        "kind": "client_send",
+        "method": "mailSend",
+        "fields": [
+          "to",
+          "subject",
+          "body",
+          "copper",
+          "items"
+        ]
+      }
+    },
+    {
       "id": 129,
       "name": "mail_take",
       "kind": "mail_id",
@@ -993,6 +1083,19 @@
       "source_shape": { "kind": "client_send", "method": "setSpec", "fields": ["spec"] }
     },
     {
+      "id": 98,
+      "name": "saveLoadout",
+      "kind": "save_loadout",
+      "min_byte_length": 6,
+      "max_byte_length": 5858,
+      "max_utf8_bytes": 256,
+      "max_utf16_code_units": 24,
+      "max_collection_entries": 22,
+      "max_name_utf8_bytes": 96,
+      "encoding": "u32_le_utf8_name+u8_optional_talent_allocation+u8_bar_count+bar_optional_u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "saveLoadout", "fields": ["name", "bar", "alloc"] }
+    },
+    {
       "id": 99,
       "name": "switchLoadout",
       "kind": "u32_index",
@@ -1200,6 +1303,27 @@
       "source_shape": { "kind": "client_send", "method": "dungeonFinderApplicationRespond", "fields": ["applicant", "accept"] }
     },
     {
+      "id": 159,
+      "name": "deed_set_title",
+      "kind": "optional_utf8_id",
+      "min_byte_length": 1,
+      "max_byte_length": 261,
+      "max_utf8_bytes": 256,
+      "encoding": "u8_presence+u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "setActiveTitle", "fields": ["deedId"] }
+    },
+    {
+      "id": 140,
+      "name": "set_town_focus",
+      "kind": "town_focus_allocation",
+      "min_byte_length": 2,
+      "max_byte_length": 65536,
+      "max_utf8_bytes": 256,
+      "max_collection_entries": 256,
+      "encoding": "u16_le_entry_count+repeated_u32_le_utf8_component+i32_le_points",
+      "source_shape": { "kind": "client_send", "method": "setTownFocus", "fields": ["allocation"] }
+    },
+    {
       "id": 162,
       "name": "stow_weapon",
       "kind": "empty",
@@ -1281,6 +1405,26 @@
       "source_shape": { "kind": "client_send", "method": "sellAllJunk", "fields": [] }
     },
     {
+      "id": 29,
+      "name": "harvest_node",
+      "kind": "utf8_id",
+      "min_byte_length": 4,
+      "max_byte_length": 260,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "harvestNode", "fields": ["node"] }
+    },
+    {
+      "id": 30,
+      "name": "craft_item",
+      "kind": "utf8_id",
+      "min_byte_length": 4,
+      "max_byte_length": 260,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "craftItem", "fields": ["recipe"] }
+    },
+    {
       "id": 105,
       "name": "market_collect",
       "kind": "empty",
@@ -1306,6 +1450,47 @@
       "max_byte_length": 0,
       "encoding": "empty",
       "source_shape": { "kind": "client_send", "method": "leaveDelve", "fields": [] }
+    },
+    {
+      "id": 36,
+      "name": "challengeResponse",
+      "kind": "challenge_response",
+      "min_byte_length": 12,
+      "max_byte_length": 780,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8_nonce+u32_le_utf8_response+u32_le_utf8_signature",
+      "source_shape": { "kind": "client_send", "method": "onMessage", "fields": ["n", "r", "sig"] }
+    },
+    {
+      "id": 66,
+      "name": "trade_offer",
+      "kind": "trade_offer",
+      "min_byte_length": 9,
+      "max_byte_length": 1617,
+      "max_utf8_bytes": 256,
+      "max_collection_entries": 6,
+      "encoding": "u8_count+repeated_u32_le_utf8_item_id+f64_le_count+f64_le_copper",
+      "source_shape": { "kind": "client_send", "method": "tradeSetOffer", "fields": ["items", "copper"] }
+    },
+    {
+      "id": 101,
+      "name": "market_search",
+      "kind": "market_search",
+      "min_byte_length": 24,
+      "max_byte_length": 1048,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8_q+u32_le_utf8_item_type+u32_le_utf8_subtype+u32_le_utf8_rarity+f64_le_page",
+      "source_shape": { "kind": "client_send", "method": "marketSearch", "fields": ["q", "itemType", "subtype", "rarity", "page"] }
+    },
+    {
+      "id": 102,
+      "name": "market_list",
+      "kind": "utf8_id_f64_pair",
+      "min_byte_length": 20,
+      "max_byte_length": 276,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8+f64_le_x+f64_le_z",
+      "source_shape": { "kind": "client_send", "method": "marketList", "fields": ["item", "count", "price"] }
     },
     {
       "id": 103,
@@ -1360,6 +1545,46 @@
       "max_byte_length": 8,
       "encoding": "f64_le_event_skin_id",
       "source_shape": { "kind": "client_send", "method": "claimEventSkin", "fields": ["skin"] }
+    },
+    {
+      "id": 142,
+      "name": "heroic_buy",
+      "kind": "utf8_id",
+      "min_byte_length": 4,
+      "max_byte_length": 260,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "buyHeroicVendorItem", "fields": ["itemId"] }
+    },
+    {
+      "id": 118,
+      "name": "companion_upgrade",
+      "kind": "utf8_id",
+      "min_byte_length": 4,
+      "max_byte_length": 260,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "companionUpgrade", "fields": ["companionId"] }
+    },
+    {
+      "id": 119,
+      "name": "delve_buy",
+      "kind": "utf8_id_pair",
+      "min_byte_length": 8,
+      "max_byte_length": 520,
+      "max_utf8_bytes": 256,
+      "encoding": "u32_le_utf8+u32_le_utf8",
+      "source_shape": { "kind": "client_send", "method": "delveBuyShopItem", "fields": ["delveId", "itemId"] }
+    },
+    {
+      "id": 34,
+      "name": "change_weapon_skin",
+      "kind": "weapon_skin_change",
+      "min_byte_length": 2,
+      "max_byte_length": 261,
+      "max_utf8_bytes": 256,
+      "encoding": "u8_mode+(u32_le_utf8_skin|u8_weapon_type)",
+      "source_shape": { "kind": "client_send", "method": "changeWeaponSkin", "fields": ["skin", "wtype"] }
     }
   ]
 }

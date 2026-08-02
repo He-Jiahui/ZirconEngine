@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::core::framework::platform::PLATFORM_MODULE_NAME;
 use crate::core::framework::render::{
-    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, RenderFramework, RenderingManager,
-    ShadingModelDescriptor,
+    GeometrySourceDescriptor, RenderFramework, RenderingManager, ShadingModelDescriptor,
+    GRAPHICS_MODULE_NAME,
 };
 use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
@@ -18,6 +18,7 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
+use crate::plugin::PluginShaderModuleSource;
 
 use super::super::create::create_render_framework_with_render_features;
 use super::super::driver::WgpuDriver;
@@ -36,6 +37,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     )
 }
 
@@ -43,6 +45,7 @@ pub fn module_descriptor_with_render_features(
     render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
     plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
     plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+    plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
     render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
@@ -54,6 +57,8 @@ pub fn module_descriptor_with_render_features(
     let render_features = Arc::new(render_features.into_iter().collect::<Vec<_>>());
     let plugin_geometry_sources = Arc::new(plugin_geometry_sources.into_iter().collect::<Vec<_>>());
     let plugin_shading_models = Arc::new(plugin_shading_models.into_iter().collect::<Vec<_>>());
+    let plugin_shader_module_sources =
+        Arc::new(plugin_shader_module_sources.into_iter().collect::<Vec<_>>());
     let render_pass_executors = Arc::new(render_pass_executors.into_iter().collect::<Vec<_>>());
     let runtime_prepare_collectors =
         Arc::new(runtime_prepare_collectors.into_iter().collect::<Vec<_>>());
@@ -96,6 +101,7 @@ pub fn module_descriptor_with_render_features(
             let render_features = Arc::clone(&render_features);
             let plugin_geometry_sources = Arc::clone(&plugin_geometry_sources);
             let plugin_shading_models = Arc::clone(&plugin_shading_models);
+            let plugin_shader_module_sources = Arc::clone(&plugin_shader_module_sources);
             let render_pass_executors = Arc::clone(&render_pass_executors);
             let runtime_prepare_collectors = Arc::clone(&runtime_prepare_collectors);
             let hybrid_gi_runtime_providers = Arc::clone(&hybrid_gi_runtime_providers);
@@ -108,6 +114,7 @@ pub fn module_descriptor_with_render_features(
                     render_features.to_vec(),
                     plugin_geometry_sources.to_vec(),
                     plugin_shading_models.to_vec(),
+                    plugin_shader_module_sources.to_vec(),
                     render_pass_executors.to_vec(),
                     runtime_prepare_collectors.to_vec(),
                     hybrid_gi_runtime_providers.to_vec(),

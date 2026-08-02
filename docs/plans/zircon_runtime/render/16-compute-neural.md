@@ -508,3 +508,4 @@ runtime 侧(`zircon_runtime/src/graphics/tests/render_compute.rs`、`gpu_readbac
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`16/2026-07-09-compute-neural-output-records.md`](16/2026-07-09-compute-neural-output-records.md)
+- open 待修复：[GPU readback queue owner missing](16/failure-2026-08-01-gpu-readback-queue-owner-missing.md)

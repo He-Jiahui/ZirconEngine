@@ -1,11 +1,11 @@
-use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::IrradianceVolumeResources;
 use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::LightCookieAtlasResources;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::shadow::atlas::{
-    SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
-    SHADOW_GLOBALS_BINDING, ShadowAtlasResources,
+    ShadowAtlasResources, SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING,
+    SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
 };
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -305,10 +305,8 @@ mod tests {
             .next()
             .expect("deferred lighting implementation");
 
-        assert!(
-            implementation
-                .contains("const DEFERRED_LIGHTING_BIND_GROUP_ENTRY_CAPACITY: usize = 28")
-        );
+        assert!(implementation
+            .contains("const DEFERRED_LIGHTING_BIND_GROUP_ENTRY_CAPACITY: usize = 28"));
         assert!(implementation.contains("ENVIRONMENT_ONLY_PBR_BIND_GROUP_ENTRY_CAPACITY"));
         assert!(
             implementation.contains("Vec::with_capacity(execution_plan.bind_group_entry_capacity)")
@@ -343,12 +341,25 @@ mod tests {
 
         assert!(!plan.full_lighting_bind_group);
         assert_eq!(
-            plan.bind_group_entry_capacity,
-            ENVIRONMENT_ONLY_PBR_BIND_GROUP_ENTRY_CAPACITY
+            plan.bind_group_entry_capacity, 10,
+            "environment-only lighting must retain local reflection bindings for provider upgrades"
         );
         assert!(!plan.subsurface_mrt);
         assert_eq!(plan.color_attachment_count, 1);
         assert!(!plan.uses_gpu_scene);
+    }
+
+    #[test]
+    fn environment_only_lighting_retains_local_reflection_bind_group_entries() {
+        let source = include_str!("execute_lighting.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("deferred lighting implementation");
+
+        assert!(implementation
+            .contains("entries.extend(self.reflection_probe_bindings.bind_group_entries());"));
+        assert!(!implementation.contains("uses_local_reflection_provider"));
     }
 
     #[test]

@@ -3,7 +3,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::script::{
-    ScriptHostCallContext, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
+    ScriptHostCallFrame, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
     ScriptHostResult, ScriptHostTypeRef, ScriptHostValue,
 };
 
@@ -11,8 +11,9 @@ use super::super::{CapabilitySet, HostHandle, VmError};
 use super::script_call_table::{ScriptCallTable, ScriptCallTableBuilder};
 use super::HostRegistry;
 
-pub type HostExportCallback =
-    Arc<dyn Fn(&ScriptHostCallContext) -> ScriptHostResult + Send + Sync + 'static>;
+pub type HostExportCallback = Arc<
+    dyn for<'frame> Fn(&ScriptHostCallFrame<'frame>) -> ScriptHostResult + Send + Sync + 'static,
+>;
 
 #[derive(Clone)]
 pub struct HostExportFunction {
@@ -23,7 +24,7 @@ pub struct HostExportFunction {
 impl HostExportFunction {
     pub fn new<F>(name: impl Into<String>, callback: F) -> Self
     where
-        F: Fn(&ScriptHostCallContext) -> ScriptHostResult + Send + Sync + 'static,
+        F: for<'frame> Fn(&ScriptHostCallFrame<'frame>) -> ScriptHostResult + Send + Sync + 'static,
     {
         Self {
             name: name.into(),

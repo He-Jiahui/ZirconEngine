@@ -4,7 +4,7 @@ use zircon_runtime_interface::reflect::{
 
 use crate::scene::ecs::Component;
 
-use super::{derived_component_registration, ZrReflect};
+use super::{ZrReflect, derived_component_registration};
 
 #[derive(Clone, Debug, PartialEq, zircon_reflect_derive::ZrReflect)]
 #[zr_reflect(component, script_visibility = "public", display_name = "Health")]
@@ -55,13 +55,17 @@ fn derive_generated_field_accessors_round_trip_values() {
             .expect("derived getter should read current health"),
         ReflectedValue::Scalar(25.0)
     );
-    assert!(health
-        .write_reflected_field("current", ReflectedValue::Scalar(40.0))
-        .expect("derived setter should update current health"));
+    assert!(
+        health
+            .write_reflected_field("current", ReflectedValue::Scalar(40.0))
+            .expect("derived setter should update current health")
+    );
     assert_eq!(health.current, 40.0);
-    assert!(!health
-        .write_reflected_field("current", ReflectedValue::Scalar(40.0))
-        .expect("writing the same reflected value should be a no-op"));
+    assert!(
+        !health
+            .write_reflected_field("current", ReflectedValue::Scalar(40.0))
+            .expect("writing the same reflected value should be a no-op")
+    );
     assert_eq!(
         health
             .write_reflected_field("maximum", ReflectedValue::Scalar(120.0))

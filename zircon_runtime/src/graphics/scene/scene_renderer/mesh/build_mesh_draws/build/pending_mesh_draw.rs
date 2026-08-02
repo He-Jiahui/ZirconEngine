@@ -65,6 +65,8 @@ pub(super) struct PendingMorphPayload {
 pub(super) struct PendingMeshDraw {
     pub(super) mesh: PendingMeshGeometry,
     pub(super) source_entity: EntityId,
+    /// Render-instance identity from scene extraction; distinct primitives may share an entity.
+    pub(super) stable_instance_key: u64,
     pub(super) source_draw_ordinal: u32,
     pub(super) transform_revision: u64,
     pub(super) mobility: Mobility,
@@ -108,6 +110,7 @@ pub(super) struct VirtualGeometryIndirectSegmentKey {
     pub(super) submission_index: u32,
     pub(super) instance_index: Option<u32>,
     pub(super) entity: EntityId,
+    pub(super) stable_instance_key: u64,
     pub(super) page_id: u32,
     pub(super) cluster_start_ordinal: u32,
     pub(super) cluster_span_count: u32,

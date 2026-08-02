@@ -1,14 +1,16 @@
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderPassType,
-    builtin_geometry_source_descriptor,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderFeatureBits,
+    ShaderPassType, builtin_geometry_source_descriptor,
 };
 use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 use crate::graphics::shader::{
     DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, ShaderTemplateValidationError,
     TaaReactiveMaskShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
     assemble_material_shader_template, assemble_taa_reactive_mask_shader_template,
     standard_material_surface_source_for_features,
+    validate_material_shader_template_wgsl_with_segments,
 };
 
 const MESH_SHADER_TEMPLATE_REVISION: &str = "mesh-template-v1";
@@ -20,6 +22,8 @@ fn fs_oit(input: ZrVertexOutput) {
     oit_draw(input.clip_position, zr_fs_main_impl(input));
 }
 "#;
+const OIT_DRAW_SHADER_MODULE_ID: &str = "zircon::oit::draw";
+const OIT_FRAGMENT_ENTRY_MODULE_ID: &str = "zircon::oit::fragment_store_entry";
 const SURFACE_SHADER_ENTRY_POINT: &str = "zr_material_surface";
 const DEFAULT_SURFACE_SHADER_MODULE_ID: &str = "self::surface";
 
@@ -29,6 +33,7 @@ pub(crate) struct MeshPipelineShaderSource {
     pub(crate) source_hash: String,
     pub(crate) cache_content_hashes: Vec<String>,
     pub(crate) template_revision: String,
+    pub(crate) segments: Vec<ShaderAssemblySegment>,
 }
 
 impl MeshPipelineShaderSource {
@@ -41,6 +46,7 @@ impl MeshPipelineShaderSource {
             source_hash,
             cache_content_hashes,
             template_revision: assembly.template_revision,
+            segments: assembly.segments,
         }
     }
 
@@ -51,7 +57,43 @@ impl MeshPipelineShaderSource {
             source_hash: source_hash.clone(),
             cache_content_hashes: vec![source_hash],
             template_revision: MESH_SHADER_TEMPLATE_REVISION.to_string(),
+            segments: Vec::new(),
         }
+    }
+
+    #[cfg(test)]
+    pub(super) fn validate_wgsl(&self, wgsl_source: &str) -> Result<(), String> {
+        Self::validate_wgsl_with_segments(wgsl_source, &self.segments)
+    }
+
+    pub(super) fn validate_wgsl_with_segments(
+        wgsl_source: &str,
+        segments: &[ShaderAssemblySegment],
+    ) -> Result<(), String> {
+        validate_material_shader_template_wgsl_with_segments(wgsl_source, segments)
+            .map(|_| ())
+            .map_err(|error| match error {
+                ShaderTemplateValidationError::Parse { message }
+                | ShaderTemplateValidationError::Validate { message } => message,
+            })
+    }
+
+    #[cfg(test)]
+    pub(super) fn validation_cache_key(&self) -> String {
+        use std::fmt::Write;
+
+        let mut key = self.source_hash.clone();
+        for segment in &self.segments {
+            let _ = write!(
+                key,
+                "|{}:{}:{}:{}",
+                segment.module_id,
+                segment.assembled_start_line,
+                segment.assembled_line_count,
+                segment.source_line_offset
+            );
+        }
+        key
     }
 
     pub(crate) fn into_oit_fragment_store_source(mut self) -> Option<Self> {
@@ -62,10 +104,26 @@ impl MeshPipelineShaderSource {
             return None;
         }
 
-        self.wgsl_source = format!(
-            "{}\n{}\n{}",
-            self.wgsl_source, OIT_DRAW_SHADER_SOURCE, OIT_FRAGMENT_ENTRY_SOURCE
-        );
+        let oit_draw_start_line = shader_source_append_start_line(&self.wgsl_source);
+        self.wgsl_source.push('\n');
+        self.wgsl_source.push_str(OIT_DRAW_SHADER_SOURCE);
+        self.segments.push(ShaderAssemblySegment {
+            module_id: OIT_DRAW_SHADER_MODULE_ID.to_string(),
+            kind: ShaderAssemblySegmentKind::Include,
+            assembled_start_line: oit_draw_start_line,
+            assembled_line_count: shader_source_line_count(OIT_DRAW_SHADER_SOURCE),
+            source_line_offset: 0,
+        });
+        let oit_entry_start_line = shader_source_append_start_line(&self.wgsl_source);
+        self.wgsl_source.push('\n');
+        self.wgsl_source.push_str(OIT_FRAGMENT_ENTRY_SOURCE);
+        self.segments.push(ShaderAssemblySegment {
+            module_id: OIT_FRAGMENT_ENTRY_MODULE_ID.to_string(),
+            kind: ShaderAssemblySegmentKind::PassTemplate,
+            assembled_start_line: oit_entry_start_line,
+            assembled_line_count: shader_source_line_count(OIT_FRAGMENT_ENTRY_SOURCE),
+            source_line_offset: 0,
+        });
         self.source_hash = mesh_pipeline_wgsl_hash(&self.wgsl_source);
         self.cache_content_hashes
             .push(mesh_pipeline_wgsl_hash(OIT_DRAW_SHADER_SOURCE));
@@ -78,16 +136,43 @@ impl MeshPipelineShaderSource {
     }
 }
 
+fn shader_source_line_count(source: &str) -> u32 {
+    (!source.is_empty())
+        .then(|| source.lines().count() as u32)
+        .unwrap_or(0)
+}
+
+fn shader_source_append_start_line(source: &str) -> u32 {
+    shader_source_line_count(source)
+        .saturating_add(1)
+        .saturating_add(u32::from(source.ends_with('\n')))
+}
+
 pub(crate) fn mesh_pipeline_shader_source_for_geometry_descriptor(
     streamer: &ResourceStreamer,
     key: &PipelineKey,
     geometry_source: &GeometrySourceDescriptor,
 ) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
+    mesh_pipeline_shader_source_for_geometry_descriptor_with_features(
+        streamer,
+        key,
+        geometry_source,
+        key.shader_feature_bits(),
+    )
+}
+
+pub(crate) fn mesh_pipeline_shader_source_for_geometry_descriptor_with_features(
+    streamer: &ResourceStreamer,
+    key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+    features: ShaderFeatureBits,
+) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
     if key.uses_fallback_shader() {
-        mesh_pipeline_standard_material_template_source_for_geometry_descriptor_with_streamer(
+        mesh_pipeline_standard_material_template_source_for_geometry_descriptor_with_streamer_and_features(
             streamer,
             key,
             geometry_source,
+            features,
         )
     } else if shader_source_uses_runtime_material_surface(streamer, key) {
         mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass_with_streamer(
@@ -146,12 +231,32 @@ fn mesh_pipeline_standard_material_template_source_for_geometry_descriptor_with_
     key: &PipelineKey,
     geometry_source: &GeometrySourceDescriptor,
 ) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
-    mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass_with_streamer(
+    mesh_pipeline_standard_material_template_source_for_geometry_descriptor_with_streamer_and_features(
         streamer,
         key,
+        geometry_source,
+        key.shader_feature_bits(),
+    )
+}
+
+fn mesh_pipeline_standard_material_template_source_for_geometry_descriptor_with_streamer_and_features(
+    streamer: &ResourceStreamer,
+    key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+    features: ShaderFeatureBits,
+) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
+    let material_surface =
+        standard_material_surface_source_for_features(features, mesh_pipeline_alpha_cutoff(key));
+    let request = MaterialShaderTemplateRequest::new(
         geometry_source.clone(),
         ShaderPassType::Forward,
+        material_surface.source,
+        material_surface.entry_point,
     )
+    .with_features(material_surface.features);
+    let request = with_runtime_shading_model_sources(request, streamer, key)?;
+
+    assemble_material_shader_template(request).map(MeshPipelineShaderSource::from_template)
 }
 
 pub(crate) fn mesh_pipeline_standard_material_template_source_for_shader_pass(

@@ -6,6 +6,6 @@ pub(crate) mod slot;
 mod view_projection;
 
 pub(crate) use plan::{
-    ShadowFramePlan, ShadowLightSlotAssignment, ShadowLightSlotAssignments, build_shadow_frame_plan,
+    build_shadow_frame_plan, ShadowFramePlan, ShadowLightSlotAssignment, ShadowLightSlotAssignments,
 };
 pub(crate) use shadow_map_renderer::ShadowMapRenderer;

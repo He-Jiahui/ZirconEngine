@@ -1,16 +1,31 @@
-use crate::scene::ecs::{
-    EventReaderParam, EventWriterParam, Message, MessageReaderParam, MessageWriterParam,
-    SystemStage, SystemState,
-};
 use crate::scene::World;
+use crate::scene::ecs::{
+    EventReaderParam, EventWriterParam, Message, MessageReaderParam, MessageRetention,
+    MessageWriterParam, SystemStage, SystemState,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 struct FrameEvent(u32);
 
 #[derive(Debug, PartialEq, Eq)]
+struct IdleEvent;
+
+#[derive(Debug, PartialEq, Eq)]
 struct RetainedMessage(u32);
 
 impl Message for RetainedMessage {}
+
+#[derive(Debug, PartialEq, Eq)]
+struct WeightedMessage {
+    value: u32,
+    retention_bytes: usize,
+}
+
+impl Message for WeightedMessage {
+    fn retained_byte_size(&self) -> usize {
+        self.retention_bytes
+    }
+}
 
 #[test]
 fn events_require_explicit_update_and_keep_next_queue_hidden() {
@@ -62,6 +77,25 @@ fn first_stage_updates_all_registered_event_channels() {
 }
 
 #[test]
+fn event_store_updates_only_dirty_channels_and_retires_delivered_generation() {
+    let mut world = World::empty();
+    world.register_event::<FrameEvent>();
+    world.register_event::<IdleEvent>();
+
+    world.update_all_events();
+    assert_eq!(world.event_store().last_update_channel_visits(), 0);
+
+    assert!(world.send_event(FrameEvent(11)));
+    world.update_all_events();
+    assert_eq!(world.event_store().last_update_channel_visits(), 1);
+    assert_eq!(world.events::<FrameEvent>().unwrap().len(), 1);
+
+    world.update_all_events();
+    assert_eq!(world.event_store().last_update_channel_visits(), 1);
+    assert!(world.events::<FrameEvent>().unwrap().is_empty());
+}
+
+#[test]
 fn event_store_send_by_id_uses_registered_channel_guard_source() {
     let source = event_store_source();
     let send_by_id = event_store_section(source, "pub fn send_by_id", "pub fn send_batch");
@@ -75,11 +109,20 @@ fn event_store_send_by_id_uses_registered_channel_guard_source() {
         event_store_section(source, "pub fn send_batch_by_id", "pub fn update<T: Event>");
     assert!(send_batch_by_id.contains("if self.channel(event_type_id).is_none()"));
     assert!(send_batch_by_id.contains("return 0;"));
-    assert!(
-        send_batch_by_id.contains("self.events_mut_by_id::<T>(event_type_id).send_batch(events)")
-    );
+    assert!(send_batch_by_id.contains("if written > 0"));
+    assert!(send_batch_by_id.contains("self.active_channels.insert(event_type_id);"));
     assert!(!send_batch_by_id.contains("is_active"));
     assert!(!send_batch_by_id.contains("reader_count"));
+}
+
+#[test]
+fn event_store_update_all_uses_the_canonical_active_channel_worklist() {
+    let source = event_store_source();
+    let update_all = event_store_section(source, "pub fn update_all", "pub fn drain<T: Event>");
+    assert!(update_all.contains("std::mem::take(&mut self.active_channels)"));
+    assert!(update_all.contains("self.last_update_channel_visits = active_channels.len();"));
+    assert!(update_all.contains("channel.events.requires_maintenance_erased()"));
+    assert!(!update_all.contains("for channel in &mut self.channels"));
 }
 
 #[test]
@@ -220,6 +263,129 @@ fn messages_are_retained_until_explicit_clear_independent_of_event_updates() {
 }
 
 #[test]
+fn message_retention_budget_reports_slow_cursor_lag_without_replaying_evicted_entries() {
+    let mut world = World::empty();
+    world.configure_message_retention::<RetainedMessage>(MessageRetention::new(2, usize::MAX, 60));
+    let mut reader = SystemState::<MessageReaderParam<RetainedMessage>>::new(&mut world).unwrap();
+
+    world.send_message(RetainedMessage(1));
+    world.send_message(RetainedMessage(2));
+    world.send_message(RetainedMessage(3));
+
+    let observed = reader.run(&mut world, |mut messages| {
+        assert_eq!(messages.dropped_count(), 0);
+        let observed = messages
+            .read()
+            .map(|(id, message)| (id.id(), message.0))
+            .collect::<Vec<_>>();
+        assert_eq!(messages.dropped_count(), 1);
+        observed
+    });
+    assert_eq!(observed, vec![(1, 2), (2, 3)]);
+
+    let metrics = world
+        .message_retention_metrics::<RetainedMessage>()
+        .unwrap();
+    assert_eq!(metrics.retained_entries, 2);
+    assert_eq!(
+        metrics.retained_bytes,
+        2 * std::mem::size_of::<RetainedMessage>()
+    );
+    assert_eq!(metrics.budget_dropped_entries, 1);
+    assert_eq!(metrics.age_dropped_entries, 0);
+}
+
+#[test]
+fn message_retention_byte_budget_uses_the_message_declared_charge() {
+    let mut world = World::empty();
+    world.configure_message_retention::<WeightedMessage>(MessageRetention::new(8, 10, 60));
+
+    assert_eq!(
+        world
+            .send_message(WeightedMessage {
+                value: 1,
+                retention_bytes: 6,
+            })
+            .id(),
+        0
+    );
+    assert_eq!(
+        world
+            .send_message(WeightedMessage {
+                value: 2,
+                retention_bytes: 6,
+            })
+            .id(),
+        1
+    );
+
+    let retained = world
+        .messages::<WeightedMessage>()
+        .unwrap()
+        .iter()
+        .map(|(id, message)| (id.id(), message.value))
+        .collect::<Vec<_>>();
+    assert_eq!(retained, vec![(1, 2)]);
+
+    let metrics = world
+        .message_retention_metrics::<WeightedMessage>()
+        .unwrap();
+    assert_eq!(metrics.retained_entries, 1);
+    assert_eq!(metrics.retained_bytes, 6);
+    assert_eq!(metrics.budget_dropped_entries, 1);
+    assert_eq!(metrics.budget_dropped_bytes, 6);
+}
+
+#[test]
+fn first_stage_is_the_single_message_age_retirement_authority() {
+    let mut world = World::empty();
+    world.configure_message_retention::<RetainedMessage>(MessageRetention::new(8, usize::MAX, 0));
+    let mut reader = SystemState::<MessageReaderParam<RetainedMessage>>::new(&mut world).unwrap();
+
+    world.send_message(RetainedMessage(1));
+    world.update_events::<FrameEvent>();
+    assert_eq!(world.messages::<RetainedMessage>().unwrap().len(), 1);
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    let observed = reader.run(&mut world, |mut messages| {
+        let observed = messages
+            .read()
+            .map(|(_id, message)| message.0)
+            .collect::<Vec<_>>();
+        assert_eq!(messages.dropped_count(), 1);
+        observed
+    });
+    assert!(observed.is_empty());
+    assert_eq!(
+        world
+            .message_retention_metrics::<RetainedMessage>()
+            .unwrap()
+            .age_dropped_entries,
+        1
+    );
+}
+
+#[test]
+fn message_store_advances_only_active_retention_channels() {
+    let mut world = World::empty();
+    world.configure_message_retention::<RetainedMessage>(MessageRetention::new(8, usize::MAX, 60));
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 0);
+
+    world.send_message(RetainedMessage(1));
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+
+    world.clear_messages::<RetainedMessage>();
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 0);
+}
+
+#[test]
 fn event_and_message_clear_boundaries_do_not_cross_channels() {
     let mut world = World::empty();
     let _event_reader = SystemState::<EventReaderParam<FrameEvent>>::new(&mut world).unwrap();
@@ -250,6 +416,32 @@ fn event_and_message_clear_boundaries_do_not_cross_channels() {
             .map(|messages| messages.len()),
         Some(0)
     );
+}
+
+#[test]
+fn message_retention_source_has_single_first_stage_lifecycle_owner() {
+    let queue_source = include_str!("../ecs/messages/queue.rs");
+    assert!(queue_source.contains("VecDeque<MessageInstance<T>>"));
+    assert!(queue_source.contains("enforce_budget"));
+    assert!(queue_source.contains("retire_expired"));
+
+    let message_id_source = include_str!("../ecs/messages/id.rs");
+    assert!(message_id_source.contains("fn retained_byte_size(&self) -> usize"));
+
+    let store_source = include_str!("../ecs/messages/store.rs");
+    assert!(store_source.contains("pub fn advance_frame(&mut self)"));
+    assert!(store_source.contains("advance_message_queue::<T>"));
+    assert!(store_source.contains("std::mem::take(&mut self.active_channels)"));
+    assert!(store_source.contains("last_advance_channel_visits"));
+
+    let derived_state_source = world_derived_state_source();
+    let run_internal = event_store_section(
+        derived_state_source,
+        "if system == InternalSceneSystem::UpdateEvents",
+        "if !self.derived_state_dirty.should_run(system)",
+    );
+    assert!(run_internal.contains("self.advance_messages();"));
+    assert!(run_internal.contains("self.update_all_events();"));
 }
 
 fn event_store_source() -> &'static str {

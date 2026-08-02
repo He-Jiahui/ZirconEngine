@@ -1,4 +1,5 @@
 mod builtin_global_shader_contracts;
+mod fullscreen_pass_parameters;
 mod global_pipeline_layout;
 mod ide_env_generation;
 mod ide_preview;
@@ -32,16 +33,20 @@ pub fn builtin_shader_ide_module_sources() -> Vec<ShaderIdeModuleSource> {
 
 pub(crate) use template::{
     DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError, ShaderTemplateInclude,
-    TaaReactiveMaskShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
-    assemble_material_shader_template, assemble_taa_reactive_mask_shader_template,
-    standard_material_surface_source_for_features,
+    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderTemplateAssemblyError,
+    ShaderTemplateInclude, ShaderTemplateValidationError, TaaReactiveMaskShaderTemplateRequest,
+    assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
+    assemble_taa_reactive_mask_shader_template, standard_material_surface_source_for_features,
+    validate_material_shader_template_wgsl_with_segments,
 };
 
 pub(crate) use builtin_global_shader_contracts::{
     HZB_BUILD_PIPELINE_LABEL, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
-    MOTION_VECTOR_SOURCE_RESOURCE, hzb_build_dispatch_plan, hzb_build_msaa_dispatch_plan,
-    motion_vector_tile_max_pass_plan,
+    MOTION_VECTOR_SOURCE_RESOURCE, MOTION_VECTOR_TILE_SPAN_PARAMETER, hzb_build_dispatch_plan,
+    hzb_build_msaa_dispatch_plan, motion_vector_tile_max_pass_plan,
+};
+pub(crate) use fullscreen_pass_parameters::{
+    FullscreenPassParameterBindings, create_fullscreen_pass_parameter_bind_group_layout,
 };
 pub(crate) use global_pipeline_layout::{
     ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout,
@@ -49,8 +54,11 @@ pub(crate) use global_pipeline_layout::{
 };
 pub(crate) use variant_cache::{
     ShaderVariantCacheDisk, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup,
-    prewarm_shader_variants_to_disk,
+    prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_budget,
     prewarm_shader_variants_to_disk_with_module_and_pipeline_validation,
+    prewarm_shader_variants_to_disk_with_module_and_pipeline_validation_and_budget,
     prewarm_shader_variants_to_disk_with_module_validation,
+    prewarm_shader_variants_to_disk_with_module_validation_and_budget,
     prewarm_shader_variants_to_disk_with_pipeline_validation,
+    prewarm_shader_variants_to_disk_with_pipeline_validation_and_budget,
 };

@@ -1,4 +1,5 @@
 use crate::scene::viewport::{ProjectionMode, ViewportCameraSnapshot};
+use zircon_runtime::core::framework::render::RenderSpatialRay;
 use zircon_runtime_interface::math::{Mat4, UVec2, Vec2, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -74,6 +75,39 @@ impl<'a> ViewportProjectionContext<'a> {
             }
         }
     }
+
+    pub(crate) fn spatial_ray_at(&self, point: Vec2) -> RenderSpatialRay {
+        let viewport_width = self.viewport.x.max(1) as f32;
+        let viewport_height = self.viewport.y.max(1) as f32;
+        let ndc_x = point.x / viewport_width * 2.0 - 1.0;
+        let ndc_y = 1.0 - point.y / viewport_height * 2.0;
+        let transform = self.camera.transform;
+        let forward = transform.forward();
+        let (origin, direction) = match self.camera.projection_mode {
+            ProjectionMode::Perspective => {
+                let half_height = (self.camera.fov_y_radians * 0.5).tan();
+                let half_width = half_height * (viewport_width / viewport_height);
+                (
+                    transform.translation,
+                    (forward
+                        + transform.right() * (ndc_x * half_width)
+                        + transform.up() * (ndc_y * half_height))
+                        .normalize_or_zero(),
+                )
+            }
+            ProjectionMode::Orthographic => {
+                let half_height = self.camera.ortho_size.max(0.01);
+                let half_width = half_height * (viewport_width / viewport_height);
+                (
+                    transform.translation
+                        + transform.right() * (ndc_x * half_width)
+                        + transform.up() * (ndc_y * half_height),
+                    forward,
+                )
+            }
+        };
+        RenderSpatialRay::new(origin, direction, self.camera.z_far.max(self.camera.z_near))
+    }
 }
 
 pub(crate) fn project_point(
@@ -120,6 +154,27 @@ mod tests {
         assert!((center.position.x - 400.0).abs() < 0.01);
         assert!((center.position.y - 300.0).abs() < 0.01);
         assert!(context.world_units_per_pixel(Vec3::new(0.0, 0.0, -5.0)) > 0.0);
+    }
+
+    #[test]
+    fn shared_projection_context_builds_a_center_cursor_ray_from_the_camera() {
+        let camera = ViewportCameraSnapshot::default();
+        let context = ViewportProjectionContext::new(&camera, UVec2::new(800, 600));
+        let ray = context.spatial_ray_at(Vec2::new(400.0, 300.0));
+
+        assert_eq!(ray.origin, camera.transform.translation);
+        assert!(ray.direction.dot(camera.transform.forward()) > 0.999);
+        assert!(ray.max_distance >= camera.z_near);
+    }
+
+    #[test]
+    fn shared_projection_context_fails_closed_for_an_invalid_perspective_ray() {
+        let mut camera = ViewportCameraSnapshot::default();
+        camera.fov_y_radians = f32::NAN;
+        let ray = ViewportProjectionContext::new(&camera, UVec2::new(800, 600))
+            .spatial_ray_at(Vec2::new(400.0, 300.0));
+
+        assert_eq!(ray.direction, Vec3::ZERO);
     }
 
     #[test]

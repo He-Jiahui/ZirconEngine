@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/text/model/font/composite.rs
   - zircon_runtime/src/text/font/asset_registration.rs
   - zircon_runtime/src/text/font/test_font_fixtures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -39,7 +38,6 @@ implementation_files:
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/text/model/font/composite.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs

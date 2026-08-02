@@ -259,7 +259,7 @@ impl<'a> GltfHierarchyIndex<'a> {
         }
         let depth_by_node = hierarchy_depths(&parent_by_node)?;
         let skins = document.skins().collect::<Vec<_>>();
-        let mut skin_by_joint = vec![None; nodes.len()];
+        let mut skin_by_joint: Vec<Option<usize>> = vec![None; nodes.len()];
         for skin in &skins {
             for joint in skin.joints() {
                 let owner = &mut skin_by_joint[joint.index()];

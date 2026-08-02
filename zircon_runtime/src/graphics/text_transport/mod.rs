@@ -1,12 +1,11 @@
 //! Transport adapters between public UI DTOs and neutral runtime text contracts.
 
-use crate::core::framework::text::{TextDirection, TextRenderMode, TextWritingMode};
-use crate::text::{RichTextFormat, TextAlign, TextFrame, TextRange, TextSize, TextStyle, TextWrap};
+use crate::core::framework::text::{TextRenderMode, TextWritingMode};
+use crate::text::{RichTextFormat, TextAlign, TextFrame, TextRange, TextSize, TextWrap};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
-        UiResolvedStyle, UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextRange,
-        UiTextRenderMode, UiTextWrap, UiTextWritingMode,
+        UiRichTextFormat, UiTextAlign, UiTextRange, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
     },
 };
 
@@ -24,28 +23,6 @@ impl From<TextRange> for UiTextRange {
         Self {
             start: value.start,
             end: value.end,
-        }
-    }
-}
-
-impl From<UiTextDirection> for TextDirection {
-    fn from(value: UiTextDirection) -> Self {
-        match value {
-            UiTextDirection::Auto => Self::Auto,
-            UiTextDirection::LeftToRight => Self::LeftToRight,
-            UiTextDirection::RightToLeft => Self::RightToLeft,
-            UiTextDirection::Mixed => Self::Mixed,
-        }
-    }
-}
-
-impl From<TextDirection> for UiTextDirection {
-    fn from(value: TextDirection) -> Self {
-        match value {
-            TextDirection::Auto => Self::Auto,
-            TextDirection::LeftToRight => Self::LeftToRight,
-            TextDirection::RightToLeft => Self::RightToLeft,
-            TextDirection::Mixed => Self::Mixed,
         }
     }
 }
@@ -168,22 +145,6 @@ impl From<TextSize> for UiSize {
     }
 }
 
-impl From<&UiResolvedStyle> for TextStyle {
-    fn from(value: &UiResolvedStyle) -> Self {
-        Self {
-            font: value.font.clone(),
-            font_family: value.font_family.clone(),
-            language: value.language.clone(),
-            font_weight: value.font_weight,
-            font_size: value.font_size,
-            line_height: value.line_height,
-            tab_size: value.tab_size,
-            text_align: value.text_align.into(),
-            wrap: value.wrap.into(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,21 +161,6 @@ mod tests {
         for (transport, neutral) in cases {
             assert_eq!(RichTextFormat::from(transport), neutral);
             assert_eq!(UiRichTextFormat::from(neutral), transport);
-        }
-    }
-
-    #[test]
-    fn text_direction_transport_round_trips_every_variant() {
-        let cases = [
-            (UiTextDirection::Auto, TextDirection::Auto),
-            (UiTextDirection::LeftToRight, TextDirection::LeftToRight),
-            (UiTextDirection::RightToLeft, TextDirection::RightToLeft),
-            (UiTextDirection::Mixed, TextDirection::Mixed),
-        ];
-
-        for (transport, neutral) in cases {
-            assert_eq!(TextDirection::from(transport), neutral);
-            assert_eq!(UiTextDirection::from(neutral), transport);
         }
     }
 

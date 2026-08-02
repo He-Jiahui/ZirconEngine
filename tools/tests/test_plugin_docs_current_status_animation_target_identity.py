@@ -12,8 +12,8 @@ POSE_STATUS_ID = "plugins_04_m1_t2_weighted_pose_formal_cargo_4_of_4_passed"
 DOC_PATHS = (
     "docs/plans/zircon_plugins/04-animation.md",
     "docs/plans/zircon_plugins/04/2026-07-10-animation-output-records.md",
+    "docs/plans/zircon_plugins/04/2026-07-10-animation-m1-output-records.md",
     "docs/zircon_plugins/animation-runtime-evaluation.md",
-    ".codex/sessions/20260710-0554-plugin12-audit-contract.md",
 )
 CODE_PATHS = (
     "zircon_runtime/src/core/framework/animation/target_id.rs",
@@ -29,7 +29,7 @@ CODE_PATHS = (
     "zircon_plugins/animation/runtime/src/evaluation/pose_pool.rs",
     "zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/animation_clip_evaluator.rs",
     "zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/channel_validation.rs",
-    "zircon_plugins/animation/runtime/src/scene_hook/pose.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs",
     "zircon_runtime/src/core/resource/snapshot.rs",
     "zircon_runtime/tests/resource_snapshot_contract.rs",
     "zircon_plugins/animation/runtime/tests/animation_target_table_contract.rs",
@@ -74,7 +74,6 @@ class PluginDocsCurrentStatusAnimationTargetIdentityTests(unittest.TestCase):
             "remove/re-add",
             "bind-reference",
             "19/19",
-            "zero-string",
             "零字符串",
             "零分配",
         )

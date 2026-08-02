@@ -12,7 +12,7 @@ use crate::ui::workbench::snapshot::{
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewKind,
+    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewKind, WorkbenchSlot,
 };
 use zircon_runtime_interface::math::UVec2;
 
@@ -39,14 +39,14 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
             ViewKind::ActivityView,
             "Scene",
         )
-        .with_preferred_host(PreferredHost::DocumentCenter)
+        .with_workbench_slot(WorkbenchSlot::DocumentCenter)
         .with_icon_key("scene"),
         ViewDescriptor::new(
             ViewDescriptorId::new("editor.hierarchy"),
             ViewKind::ActivityView,
             "Hierarchy",
         )
-        .with_preferred_drawer_slot(ActivityDrawerSlot::LeftTop)
+        .with_workbench_slot(WorkbenchSlot::LeftTopDrawer)
         .with_icon_key("hierarchy"),
     ];
     let layout = WorkbenchLayout {
@@ -82,9 +82,10 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
 
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Editor booted".to_string(),
+            console_output: "Editor booted".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
@@ -117,19 +118,22 @@ pub(super) fn sample_exclusive_chrome() -> EditorChromeSnapshot {
         dirty: true,
         host: ViewHost::ExclusivePage(MainPageId::new("page:prefab")),
     };
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.prefab"),
-        ViewKind::ActivityWindow,
-        "Prefab Editor",
-    )
-    .with_multi_instance(true)
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)
-    .with_icon_key("prefab")];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.prefab"),
+            ViewKind::ActivityWindow,
+            "Prefab Editor",
+        )
+        .with_multi_instance(true)
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
+        .with_icon_key("prefab"),
+    ];
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Prefab mode".to_string(),
+            console_output: "Prefab mode".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1024, 768),
@@ -199,7 +203,7 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
             ViewKind::ActivityView,
             "Scene",
         )
-        .with_preferred_host(PreferredHost::DocumentCenter)
+        .with_workbench_slot(WorkbenchSlot::DocumentCenter)
         .with_icon_key("scene"),
         ViewDescriptor::new(
             ViewDescriptorId::new("editor.prefab"),
@@ -207,15 +211,16 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
             "Prefab Editor",
         )
         .with_multi_instance(true)
-        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
         .with_icon_key("prefab"),
     ];
 
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Floating prefab".to_string(),
+            console_output: "Floating prefab".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

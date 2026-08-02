@@ -22,9 +22,9 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
 
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (family, expected_count) in [
-        ("animation", 28usize),
-        ("navigation", 12),
-        ("diagnostic_log", 7),
+        ("animation", 17usize),
+        ("navigation", 15),
+        ("diagnostic_log", 31),
         ("engine_module", 8),
     ] {
         let family_dir = runtime_root.join("src").join(family);
@@ -82,9 +82,9 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
         for required_anchor in [
             "module_family_boundary",
             "expected_family_count = 4",
-            "animation = 28",
-            "navigation = 12",
-            "diagnostic_log = 7",
+            "animation = 17",
+            "navigation = 15",
+            "diagnostic_log = 31",
             "engine_module = 8",
             "root_seat_guard_present = true",
             "animation_status_json_guard_present = true",
@@ -107,7 +107,7 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
     let navigation_doc =
         include_str!("../../../../../../docs/zircon_runtime/navigation/runtime.md");
     for required_anchor in [
-        "12 Rust owner files",
+        "15 Rust owner files",
         "operation/{mod,handler,registration}.rs",
         "runtime_navigation_boundary_file_set_requires_doc_update",
     ] {

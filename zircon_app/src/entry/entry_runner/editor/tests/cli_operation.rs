@@ -1,5 +1,6 @@
 use super::super::{
-    editor_startup_argument_error, editor_startup_argument_summary, EditorCliOperationRequest,
+    editor_operation_startup_error, editor_startup_argument_error, editor_startup_argument_summary,
+    finish_editor_host, finish_editor_operation, EditorCliOperationRequest,
 };
 use zircon_editor::core::editor_operation::EditorOperationControlRequest;
 
@@ -149,19 +150,189 @@ fn editor_operation_startup_conflict_reports_an_actionable_product_error() {
 
 #[test]
 fn editor_startup_argument_summary_redacts_operation_payloads() {
-    let summary = editor_startup_argument_summary(&[
-        "--operation".to_string(),
-        "project.export".to_string(),
-        "--args".to_string(),
-        r#"{"token":"secret"}"#.to_string(),
-        "--headless".to_string(),
-    ]);
+    for (args, expected) in [
+        (
+            vec![
+                "--operation".to_string(),
+                "project.export".to_string(),
+                "--args".to_string(),
+                r#"{"token":"secret"}"#.to_string(),
+                "--headless".to_string(),
+            ],
+            "--operation project.export --args <redacted> --headless",
+        ),
+        (
+            vec![
+                "--operation".to_string(),
+                "project.export".to_string(),
+                r#"--args={"token":"secret"}"#.to_string(),
+                "--headless".to_string(),
+            ],
+            "--operation project.export --args=<redacted> --headless",
+        ),
+    ] {
+        let summary = editor_startup_argument_summary(&args);
+
+        assert_eq!(summary, expected);
+        assert!(!summary.contains("secret"));
+    }
+}
+
+#[test]
+fn editor_startup_argument_error_redacts_payloads_from_requested_and_cause() {
+    let secret = r#"{"token":"secret"}"#;
+    for args in [
+        vec!["--args".to_string(), secret.to_string()],
+        vec![format!("--args={secret}")],
+    ] {
+        let source: Box<dyn std::error::Error> =
+            format!("unknown editor argument `{}`", args.last().unwrap()).into();
+        let diagnostic = editor_startup_argument_error(&args, source).to_string();
+
+        assert!(!diagnostic.contains("secret"));
+        assert!(diagnostic.contains("<redacted>"));
+    }
+}
+
+#[test]
+fn editor_cli_operation_startup_request_identifies_the_selected_mode() {
+    for (args, expected) in [
+        (
+            vec![
+                "--operation".to_string(),
+                "window.layout.reset".to_string(),
+                "--args".to_string(),
+                r#"{"token":"secret"}"#.to_string(),
+                "--headless".to_string(),
+            ],
+            "operation:window.layout.reset",
+        ),
+        (
+            vec!["--list-operations".to_string(), "--headless".to_string()],
+            "operation:list",
+        ),
+        (
+            vec!["--operation-history".to_string(), "--headless".to_string()],
+            "operation:history",
+        ),
+    ] {
+        let request = EditorCliOperationRequest::parse(args).unwrap().unwrap();
+
+        assert_eq!(request.startup_request(), expected);
+        assert!(!request.startup_request().contains("secret"));
+    }
+}
+
+#[test]
+fn editor_cli_operation_startup_failure_reports_an_actionable_product_error() {
+    let error = editor_operation_startup_error(
+        "operation:window.layout.reset",
+        "runtime session rejected the editor ABI",
+    );
 
     assert_eq!(
-        summary,
-        "--operation project.export --args <redacted> --headless"
+        error.to_string(),
+        "editor startup diagnostic: component=editor_operation requested=operation:window.layout.reset cause=editor operation startup failed: runtime session rejected the editor ABI recovery=verify the staged runtime ABI, editor operation registrations, and selected operation before retrying zircon_editor"
     );
-    assert!(!summary.contains("secret"));
+}
+
+#[test]
+fn editor_cli_operation_finish_reports_teardown_after_success() {
+    let error = finish_editor_operation(
+        Ok::<_, Box<dyn std::error::Error>>(()),
+        Some("destroy failed"),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "runtime session teardown failed: destroy failed"
+    );
+}
+
+#[test]
+fn editor_cli_operation_finish_preserves_primary_and_teardown_failures() {
+    let error = finish_editor_operation::<(), _>(
+        Err("gateway attach failed".into()),
+        Some("destroy failed"),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor operation failed: gateway attach failed; runtime session teardown also failed: destroy failed"
+    );
+}
+
+#[test]
+fn editor_gui_finish_covers_host_and_teardown_outcomes() {
+    assert!(finish_editor_host(
+        "builtin_view:editor.scene",
+        Ok::<_, Box<dyn std::error::Error>>(()),
+        None::<&str>,
+    )
+    .is_ok());
+
+    let host_error = finish_editor_host::<(), &str>(
+        "builtin_view:editor.scene",
+        Err("host failed".into()),
+        None,
+    )
+    .unwrap_err();
+    assert_eq!(host_error.to_string(), "host failed");
+
+    let teardown_error = finish_editor_host(
+        "builtin_view:editor.scene",
+        Ok::<_, Box<dyn std::error::Error>>(()),
+        Some("destroy failed"),
+    )
+    .unwrap_err();
+    assert_eq!(
+        teardown_error.to_string(),
+        "editor startup diagnostic: component=runtime_session requested=builtin_view:editor.scene cause=runtime session teardown failed: destroy failed recovery=verify the runtime session lifecycle and staged runtime ABI before retrying zircon_editor"
+    );
+
+    let combined_error = finish_editor_host::<(), _>(
+        "builtin_view:editor.scene",
+        Err("host failed".into()),
+        Some("destroy failed"),
+    )
+    .unwrap_err();
+    assert_eq!(
+        combined_error.to_string(),
+        "editor startup diagnostic: component=editor_host requested=builtin_view:editor.scene cause=editor host failed: host failed; runtime session teardown also failed: destroy failed recovery=inspect both the editor host and runtime session failures before retrying zircon_editor"
+    );
+}
+
+#[test]
+fn editor_cli_operation_entry_wraps_post_parse_startup_failures() {
+    let source = include_str!("../../editor.rs");
+    let request_summary = source
+        .find("let requested_operation = request.startup_request();")
+        .expect("editor operation entry must summarize the parsed request");
+    let operation_run = source[request_summary..]
+        .find("Self::run_editor_operation(request)")
+        .map(|offset| request_summary + offset)
+        .expect("editor operation entry must execute the parsed request");
+    let diagnostic_wrap = source[operation_run..]
+        .find("editor_operation_startup_error(&requested_operation, error)")
+        .map(|offset| operation_run + offset)
+        .expect("editor operation entry must wrap post-parse startup failures");
+
+    assert!(request_summary < operation_run);
+    assert!(operation_run < diagnostic_wrap);
+}
+
+#[test]
+fn editor_startup_diagnostics_have_one_private_module_owner() {
+    let entry = include_str!("../../editor.rs");
+    let diagnostics = include_str!("../startup_diagnostics.rs");
+
+    assert!(entry.contains("mod startup_diagnostics;"));
+    assert!(!entry.contains("struct EditorStartupDiagnosticError"));
+    assert!(diagnostics.contains("pub(super) struct EditorStartupDiagnosticError"));
+    assert!(diagnostics.contains("pub(super) fn finish_editor_host"));
+    assert!(diagnostics.contains("pub(super) fn finish_editor_operation"));
 }
 
 #[test]

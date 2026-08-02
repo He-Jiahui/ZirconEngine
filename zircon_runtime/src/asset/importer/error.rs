@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 use super::AssetImporterRegistryError;
+use crate::asset::ReferenceResolutionError;
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::assets::{
     FontAssetError, UiAssetDocumentError, UiIconAssetDocumentError, UiThemeAssetDocumentError,
@@ -10,7 +11,6 @@ use crate::asset::assets::{
 use crate::asset::assets::{FontMetadataParseError, FontSourceDecodeError};
 use crate::asset::project::ProjectManifestError;
 use crate::asset::registry::AssetRegistryError;
-use crate::asset::ReferenceResolutionError;
 use crate::core::framework::animation::AnimationAssetError;
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
@@ -34,6 +34,10 @@ pub enum AssetImportError {
     },
     #[error("asset parse failed: {0}")]
     Parse(String),
+    #[error(
+        "artifact raw payload requires {raw_bytes} bytes, exceeding the {limit_bytes}-byte read limit"
+    )]
+    ArtifactRawPayloadLimitExceeded { raw_bytes: u64, limit_bytes: u64 },
     #[error("authoring asset {path} requires an explicit project registry resolver")]
     ProjectContextRequired { path: std::path::PathBuf },
     #[error("project has no registered manifest asset roots")]

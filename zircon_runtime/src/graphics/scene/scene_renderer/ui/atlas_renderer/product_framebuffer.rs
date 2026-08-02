@@ -4,11 +4,11 @@ use std::{
 };
 
 use crate::core::math::UVec2;
-use crate::graphics::backend::{read_texture_rgba, RenderBackend};
+use crate::graphics::backend::{RenderBackend, read_texture_rgba};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan, GlyphAtlasBitmapSource,
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
+    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
+    glyph_atlas_bitmap_render_submission_plan,
 };
 
 use super::GlyphAtlasBitmapRenderer;
@@ -19,6 +19,14 @@ const PROOF_HEIGHT: u32 = 220;
 const ATLAS_SIZE: u32 = 128;
 const GLYPH_WIDTH: u32 = 24;
 const GLYPH_HEIGHT: u32 = 32;
+
+#[cfg(test)]
+#[path = "product_framebuffer/cjk_layout_contract.rs"]
+mod cjk_layout_contract;
+
+#[cfg(test)]
+#[path = "product_framebuffer/native_layout.rs"]
+mod native_layout;
 
 #[test]
 fn native_bitmap_product_proof_path_is_workspace_docs_not_target() {
@@ -77,6 +85,12 @@ fn native_bitmap_product_proof_rejects_target_directories_that_overlap_docs() {
         &output,
         &workspace_root.join("DOCS"),
     ));
+}
+
+#[test]
+#[should_panic(expected = "CARGO_TARGET_DIR must be an absolute coordinator path")]
+fn native_bitmap_product_proof_rejects_relative_cargo_target_directory() {
+    let _ = require_absolute_cargo_target_dir(PathBuf::from("cargo-targets").join("native-proof"));
 }
 
 #[test]
@@ -192,15 +206,9 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
     assert!(output.components().all(|part| part.as_os_str() != "target"));
     let workspace_target = workspace_root().join("target");
     assert_product_proof_is_outside_target(&output, &workspace_target);
-    assert_no_named_file_under(&workspace_target, PROOF_FILE_NAME);
     if let Some(target_dir) = std::env::var_os("CARGO_TARGET_DIR") {
-        let target_dir = PathBuf::from(target_dir);
-        let target_dir = target_dir
-            .is_absolute()
-            .then_some(target_dir.clone())
-            .unwrap_or_else(|| workspace_root().join(target_dir));
+        let target_dir = require_absolute_cargo_target_dir(PathBuf::from(target_dir));
         assert_product_proof_is_outside_target(&output, &target_dir);
-        assert_no_named_file_under(&target_dir, PROOF_FILE_NAME);
     }
     std::fs::create_dir_all(output.parent().expect("text proof output parent"))
         .expect("create text proof output directory");
@@ -315,12 +323,16 @@ fn changed_pixels(rgba: &[u8], rect: GlyphAtlasScreenRect, background: [u8; 4]) 
 }
 
 fn proof_path() -> PathBuf {
+    proof_path_for(PROOF_FILE_NAME)
+}
+
+fn proof_path_for(file_name: &str) -> PathBuf {
     workspace_root()
         .join("docs")
         .join("tests")
         .join("runtime")
         .join("text")
-        .join(PROOF_FILE_NAME)
+        .join(file_name)
 }
 
 fn workspace_root() -> PathBuf {
@@ -331,23 +343,6 @@ fn workspace_root() -> PathBuf {
         .unwrap_or(crate_root)
 }
 
-fn assert_no_named_file_under(root: &Path, file_name: &str) {
-    let Ok(entries) = std::fs::read_dir(root) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            assert_no_named_file_under(&path, file_name);
-        } else if path.file_name().is_some_and(|name| name == file_name) {
-            panic!(
-                "product framebuffer proof must not be written to {}",
-                path.display()
-            );
-        }
-    }
-}
-
 fn assert_product_proof_is_outside_target(output: &Path, target_dir: &Path) {
     assert!(
         glyph_atlas_product_proof_is_outside_target(output, target_dir),
@@ -355,6 +350,15 @@ fn assert_product_proof_is_outside_target(output: &Path, target_dir: &Path) {
         output.display(),
         target_dir.display(),
     );
+}
+
+fn require_absolute_cargo_target_dir(target_dir: PathBuf) -> PathBuf {
+    assert!(
+        target_dir.is_absolute(),
+        "CARGO_TARGET_DIR must be an absolute coordinator path before exporting a framebuffer proof: {}",
+        target_dir.display(),
+    );
+    target_dir
 }
 
 fn glyph_atlas_product_proof_is_outside_target(output: &Path, target_dir: &Path) -> bool {

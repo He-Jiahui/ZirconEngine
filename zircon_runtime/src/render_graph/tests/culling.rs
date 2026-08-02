@@ -145,3 +145,58 @@ fn render_graph_missing_cull_root_is_compile_error() {
         RenderGraphError::MissingCullRoot { graph_name } if graph_name == "missing-root"
     ));
 }
+
+#[test]
+fn compiled_graph_stats_are_materialized_during_graph_construction() {
+    let graph_source = include_str!("../graph.rs");
+    let stats_accessor = graph_source
+        .split("    pub fn stats(&self) -> CompiledRenderGraphStats {")
+        .nth(1)
+        .expect("compiled graph exposes stats");
+
+    assert!(graph_source.contains("    stats: CompiledRenderGraphStats,"));
+    assert!(stats_accessor.starts_with("\n        self.stats\n    }"));
+}
+
+#[test]
+fn compile_reachability_uses_a_bounded_bitset_closure() {
+    let compile_source = include_str!("../builder/compile.rs");
+
+    assert!(compile_source.contains("struct ManualPassReachability"));
+    assert!(compile_source.contains("Vec<Vec<u64>>"));
+    assert!(!compile_source.contains("let additions = reachable[intermediate].clone();"));
+}
+
+#[test]
+fn compile_lifetime_analysis_reuses_resource_declaration_metadata() {
+    let compile_source = include_str!("../builder/compile.rs");
+
+    assert!(compile_source.contains("resource_declarations: &[RenderGraphResourceDeclaration],"));
+    assert!(!compile_source.contains("let resource_descs = self"));
+    assert!(!compile_source.contains("let resource_usages = self"));
+    assert!(!compile_source.contains("let external_bindings = self"));
+}
+
+#[test]
+fn compile_writer_validation_checks_the_topological_writer_chain() {
+    let compile_source = include_str!("../builder/compile.rs");
+
+    assert!(compile_source.contains("writer_ids.sort_by_key"));
+    assert!(compile_source.contains("writer_ids.windows(2)"));
+    assert!(!compile_source.contains("writer_ids.iter().skip(index + 1)"));
+}
+
+#[test]
+fn compile_culling_does_not_allocate_a_write_list_per_pass() {
+    let compile_source = include_str!("../builder/compile.rs");
+    let culling_start = compile_source
+        .find("    fn cull_passes(")
+        .expect("render graph pass culling implementation");
+    let culling_end = compile_source[culling_start..]
+        .find("    fn resource_lifetimes(")
+        .map(|offset| culling_start + offset)
+        .expect("render graph lifetime analysis follows culling");
+    let culling = &compile_source[culling_start..culling_end];
+
+    assert!(!culling.contains(".collect::<Vec<_>>()"));
+}

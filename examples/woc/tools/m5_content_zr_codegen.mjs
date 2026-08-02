@@ -30,10 +30,13 @@ main();
 
 function main() {
   const document = JSON.parse(readFileSync(inputPath, 'utf8'));
-  invariant(document.schema_version === 2, 'unsupported M5 content schema');
+  invariant(document.schema_version === 6, 'unsupported M5 content schema');
   const fingerprint = hashText(JSON.stringify({
     scenarios: document.scenarios,
     market_cut: document.market_cut,
+    heroic_vendor: document.heroic_vendor,
+    delve_shops: document.delve_shops,
+    mech_chromas: document.mech_chromas,
     constants: document.constants,
     specs: document.specs,
     items: document.items,
@@ -54,7 +57,7 @@ function main() {
 
 function validate(document) {
   const expectedCounts = {
-    items: 35,
+    items: 82,
     quests: 2,
     mobs: 1,
     npcs: 6,
@@ -76,6 +79,29 @@ function validate(document) {
     'M5 XP table length drifted');
   invariant(document.constants.bank_expansion_prices.length === 12,
     'M5 bank expansion table length drifted');
+  invariant(document.heroic_vendor?.npc_id === 'heroic_quartermaster',
+    'M5 heroic vendor NPC drifted');
+  invariant(document.heroic_vendor?.currency_item_id === 'heroic_mark',
+    'M5 heroic vendor currency drifted');
+  invariant(document.heroic_vendor?.stock?.length === 10,
+    'M5 heroic vendor stock drifted');
+  invariant(document.delve_shops?.length === 2 &&
+    document.delve_shops.every((shop) => shop.stock?.length === 9) &&
+    document.delve_shops[0].auto_companion_id === 'companion_tessa' &&
+    document.delve_shops[1].auto_companion_id === 'companion_edda',
+  'M5 Delve shop stock drifted');
+  invariant(document.mech_chromas?.length === 15 &&
+    document.mech_chromas[0].id === 'amber_crimson' &&
+    document.mech_chromas[14].id === 'vanguard_chrome',
+  'M5 mech chroma order drifted');
+  document.mech_chromas.forEach((chroma, index) => {
+    invariant(chroma.skin_index === index, `M5 mech chroma skin index drifted at ${chroma.id}`);
+    const item = document.items.find((entry) => entry.id === chroma.item_id);
+    invariant(item, `M5 mech chroma item is missing: ${chroma.item_id}`);
+    invariant(item.definition.use?.type === 'mechChroma' &&
+      item.definition.use.chromaId === chroma.id,
+    `M5 mech chroma item use drifted: ${chroma.item_id}`);
+  });
 }
 
 function render(document) {
@@ -109,7 +135,10 @@ function render(document) {
   lines.push('');
   renderValueFunction(lines, document, 'flag', flagValues, 'bool', 'false');
   lines.push('', ...renderItemAllowsClass(document));
-  lines.push('', ...renderVendor(document), '', ...renderMobLoot(document), '',
+  lines.push('', ...renderVendor(document), '', ...renderHeroicVendor(document), '',
+    ...renderDelveShops(document), '',
+    ...renderMechChromas(document), '',
+    ...renderMobLoot(document), '',
     'pub maxLevel(): int {',
     `    return ${document.constants.max_level};`,
     '}',
@@ -248,6 +277,7 @@ function metricValues(kind, definition) {
       statSpi: definition.stats?.spi,
       statArmor: definition.stats?.armor,
       bagSlots: definition.bagSlots,
+      stackSize: definition.stackSize,
       elixirValue: definition.elixir?.value,
       elixirDuration: definition.elixir?.duration,
     }),
@@ -279,12 +309,123 @@ function metricValues(kind, definition) {
   return byKind[kind];
 }
 
+function renderHeroicVendor(document) {
+  const lines = [
+    'pub heroicVendorNpcId(): string {',
+    `    return ${zrString(document.heroic_vendor.npc_id)};`,
+    '}',
+    '',
+    'pub heroicVendorCurrencyItemId(): string {',
+    `    return ${zrString(document.heroic_vendor.currency_item_id)};`,
+    '}',
+    '',
+    'pub heroicVendorOfferCount(): int {',
+    `    return ${document.heroic_vendor.stock.length};`,
+    '}',
+    '',
+    'pub heroicVendorOfferItemIndex(index: int): int {',
+  ];
+  document.heroic_vendor.stock.forEach((entry, index) => {
+    const itemIndex = document.items.findIndex((item) => item.id === entry.item_id);
+    invariant(itemIndex >= 0, `heroic vendor item ${entry.item_id} is outside M5 scope`);
+    lines.push(`    if (index == ${index}) { return ${itemIndex}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 heroic vendor offer";', '}', '',
+    'pub heroicVendorOfferMarks(index: int): int {');
+  document.heroic_vendor.stock.forEach((entry, index) => {
+    lines.push(`    if (index == ${index}) { return ${entry.marks}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 heroic vendor offer";', '}');
+  return lines;
+}
+
+function renderDelveShops(document) {
+  const offers = document.delve_shops.flatMap((shop, shopIndex) =>
+    shop.stock.map((offer, offerIndex) => ({ ...offer, shopIndex, offerIndex })));
+  const lines = [
+    'pub delveShopCount(): int {',
+    `    return ${document.delve_shops.length};`,
+    '}',
+    '',
+    'pub delveShopIndex(id: string): int {',
+  ];
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (id == ${zrString(shop.id)}) { return ${index}; }`);
+  });
+  lines.push('    return -1;', '}', '', 'pub delveShopId(index: int): string {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) { return ${zrString(shop.id)}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 Delve shop";', '}', '',
+    'pub delveShopIdUtf8Length(index: int): int {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) { return ${Buffer.byteLength(shop.id, 'utf8')}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 Delve shop";', '}', '',
+    'pub delveShopIdUtf8Byte(index: int, byteIndex: int): uint {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) {`);
+    [...Buffer.from(shop.id, 'utf8')].forEach((byte, byteIndex) => {
+      lines.push(`        if (byteIndex == ${byteIndex}) { return <uint>${byte}; }`);
+    });
+    lines.push('        throw "unknown WOC M5 Delve shop id byte";', '    }');
+  });
+  lines.push('    throw "unknown WOC M5 Delve shop";', '}', '',
+    'pub delveShopCompanionId(index: int): string {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) { return ${zrString(shop.auto_companion_id)}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 Delve shop";', '}', '',
+    'pub delveShopDoorX(index: int): float {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) { return ${zrNumber(shop.door_pos.x)}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 Delve shop";', '}', '',
+    'pub delveShopDoorZ(index: int): float {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) { return ${zrNumber(shop.door_pos.z)}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 Delve shop";', '}', '',
+    'pub delveShopOfferCount(index: int): int {');
+  document.delve_shops.forEach((shop, index) => {
+    lines.push(`    if (index == ${index}) { return ${shop.stock.length}; }`);
+  });
+  lines.push('    return 0;', '}', '',
+    'pub delveShopOfferItemIndex(shopIndex: int, offerIndex: int): int {');
+  for (const offer of offers) {
+    const itemIndex = document.items.findIndex((item) => item.id === offer.item_id);
+    invariant(itemIndex >= 0, `Delve shop item ${offer.item_id} is outside M5 scope`);
+    lines.push(`    if (shopIndex == ${offer.shopIndex} && offerIndex == ${offer.offerIndex}) { return ${itemIndex}; }`);
+  }
+  lines.push('    throw "unknown WOC M5 Delve shop offer";', '}', '',
+    'pub delveShopOfferMarks(shopIndex: int, offerIndex: int): int {');
+  for (const offer of offers) {
+    lines.push(`    if (shopIndex == ${offer.shopIndex} && offerIndex == ${offer.offerIndex}) { return ${offer.marks}; }`);
+  }
+  lines.push('    throw "unknown WOC M5 Delve shop offer";', '}', '',
+    'pub delveShopOfferGateKind(shopIndex: int, offerIndex: int): int {');
+  for (const offer of offers) {
+    const gateKind = offer.gate === 'available' ? 1 :
+      offer.gate.startsWith('clears:') ? 2 : 3;
+    lines.push(`    if (shopIndex == ${offer.shopIndex} && offerIndex == ${offer.offerIndex}) { return ${gateKind}; }`);
+  }
+  lines.push('    throw "unknown WOC M5 Delve shop offer";', '}', '',
+    'pub delveShopOfferRequiredClears(shopIndex: int, offerIndex: int): int {');
+  for (const offer of offers) {
+    const clears = offer.gate.startsWith('clears:') ? Number(offer.gate.slice(7)) : 0;
+    lines.push(`    if (shopIndex == ${offer.shopIndex} && offerIndex == ${offer.offerIndex}) { return ${clears}; }`);
+  }
+  lines.push('    throw "unknown WOC M5 Delve shop offer";', '}');
+  return lines;
+}
+
 function flagValues(kind, definition) {
   const byKind = {
     item: {
       requiredLevelPresent: Number.isFinite(definition.requiredLevel),
       noDiscard: definition.noDiscard === true,
       noVendorSell: definition.noVendorSell === true,
+      noMarketList: definition.noMarketList === true,
       soulbound: definition.soulbound === true,
       weaponDagger: definition.weapon?.dagger === true,
     },
@@ -299,6 +440,47 @@ function flagValues(kind, definition) {
     spec: {},
   };
   return byKind[kind];
+}
+
+function renderMechChromas(document) {
+  const lines = [
+    'pub mechChromaCount(): int {',
+    `    return ${document.mech_chromas.length};`,
+    '}',
+    '',
+    'pub mechChromaId(index: int): string {',
+  ];
+  document.mech_chromas.forEach((chroma, index) => {
+    lines.push(`    if (index == ${index}) { return ${zrString(chroma.id)}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 mech chroma";', '}', '',
+    'pub mechChromaIdUtf8Length(index: int): int {');
+  document.mech_chromas.forEach((chroma, index) => {
+    lines.push(`    if (index == ${index}) { return ${Buffer.byteLength(chroma.id, 'utf8')}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 mech chroma";', '}', '',
+    'pub mechChromaIdUtf8Byte(index: int, byteIndex: int): uint {');
+  document.mech_chromas.forEach((chroma, index) => {
+    lines.push(`    if (index == ${index}) {`);
+    [...Buffer.from(chroma.id, 'utf8')].forEach((byte, byteIndex) => {
+      lines.push(`        if (byteIndex == ${byteIndex}) { return <uint>${byte}; }`);
+    });
+    lines.push('        throw "unknown WOC M5 mech chroma UTF-8 byte";', '    }');
+  });
+  lines.push('    throw "unknown WOC M5 mech chroma";', '}', '',
+    'pub mechChromaItemIndex(index: int): int {');
+  document.mech_chromas.forEach((chroma, index) => {
+    const itemIndex = document.items.findIndex((entry) => entry.id === chroma.item_id);
+    invariant(itemIndex >= 0, `M5 mech chroma item is outside scope: ${chroma.item_id}`);
+    lines.push(`    if (index == ${index}) { return ${itemIndex}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 mech chroma";', '}', '',
+    'pub mechChromaSkinIndex(index: int): int {');
+  document.mech_chromas.forEach((chroma, index) => {
+    lines.push(`    if (index == ${index}) { return ${chroma.skin_index}; }`);
+  });
+  lines.push('    throw "unknown WOC M5 mech chroma";', '}');
+  return lines;
 }
 
 function renderVendor(document) {

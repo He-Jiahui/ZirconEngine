@@ -243,8 +243,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let driver_source = include_str!("../module/world_driver.rs");
     assert!(driver_source.contains("hooks: Mutex<SceneRuntimeHookSet>"));
     assert!(driver_source.contains("let hooks = self.scene_runtime_hook_stage_plan_snapshot();"));
-    assert!(driver_source
-        .contains("let schedule = level.with_world(|world| world.schedule().stage_plan());"));
+    assert!(
+        driver_source
+            .contains("let schedule = level.with_world(|world| world.schedule().stage_plan());")
+    );
     assert!(driver_source.contains("schedule.internal_systems_for_stage(stage)"));
     assert!(driver_source.contains("schedule.native_steps_for_stage(stage)"));
     assert!(driver_source.contains("hooks.hooks_for_stage(*stage)"));
@@ -260,11 +262,15 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(hook_state_source.contains("stage_plan: Arc<SceneRuntimeHookStagePlan>"));
     assert!(hook_state_source.contains("Arc::new(SceneRuntimeHookStagePlan::from_ordered"));
     assert!(hook_state_source.contains("Arc::clone(&self.stage_plan)"));
-    assert!(hook_state_source
-        .contains("fn from_ordered(ordered: &[SceneRuntimeHookRegistration]) -> Self"));
+    assert!(
+        hook_state_source
+            .contains("fn from_ordered(ordered: &[SceneRuntimeHookRegistration]) -> Self")
+    );
     assert!(hook_state_source.contains("let stage_hook_counts = hook_counts_by_stage(ordered);"));
-    assert!(hook_state_source
-        .contains("let mut by_stage = hook_groups_with_capacity(&stage_hook_counts);"));
+    assert!(
+        hook_state_source
+            .contains("let mut by_stage = hook_groups_with_capacity(&stage_hook_counts);")
+    );
     assert!(hook_state_source.contains("fn hook_counts_by_stage("));
     assert!(hook_state_source.contains("counts[hook.descriptor().stage.rank()] += 1;"));
     assert!(hook_state_source.contains("fn hook_groups_with_capacity("));
@@ -274,8 +280,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     ));
     assert!(!hook_state_source.contains("let mut by_stage = empty_hook_groups();"));
     assert!(!hook_state_source.contains("by_stage: self.by_stage.clone()"));
-    assert!(!hook_state_source
-        .contains("#[derive(Clone, Debug)]\npub(crate) struct SceneRuntimeHookStagePlan"));
+    assert!(
+        !hook_state_source
+            .contains("#[derive(Clone, Debug)]\npub(crate) struct SceneRuntimeHookStagePlan")
+    );
     assert!(hook_state_source.contains("HashSet::with_capacity("));
     assert!(hook_state_source.contains("drop(hook_ids);"));
     assert!(!hook_state_source.contains("ordered.iter().any("));
@@ -338,18 +346,25 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_source.contains("struct SceneScheduleStagePlan"));
     assert!(schedule_source.contains("from_registry("));
     assert!(!schedule_source.contains("from_schedule("));
-    assert!(schedule_source
-        .contains("internal_systems_by_stage: [Vec<SceneSystemDescriptor>; SystemStage::COUNT]"));
-    assert!(schedule_source
-        .contains("native_steps_by_stage: [Vec<ScheduledSceneStep>; SystemStage::COUNT]"));
+    assert!(
+        schedule_source.contains(
+            "internal_systems_by_stage: [Vec<SceneSystemDescriptor>; SystemStage::COUNT]"
+        )
+    );
+    assert!(
+        schedule_source
+            .contains("native_steps_by_stage: [Vec<ScheduledSceneStep>; SystemStage::COUNT]")
+    );
     assert!(schedule_source.contains("let systems = registry.systems();"));
     assert!(schedule_source.contains("let mut stage_order = Vec::with_capacity(stages.len());"));
     assert!(schedule_source.contains("for stage in stages.iter().copied()"));
     assert!(schedule_source.contains("stage_order.push(stage);"));
     assert!(schedule_source.contains("stages: stage_order,"));
     assert!(!schedule_source.contains("stages: stages.to_vec(),"));
-    assert!(schedule_source
-        .contains("let internal_system_counts = internal_system_counts_by_stage(systems);"));
+    assert!(
+        schedule_source
+            .contains("let internal_system_counts = internal_system_counts_by_stage(systems);")
+    );
     assert!(schedule_source.contains(
         "let mut internal_systems_by_stage =\n            internal_system_groups_with_capacity(&internal_system_counts);"
     ));
@@ -363,27 +378,39 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let schedule_owner_source = include_str!("../ecs/schedule.rs");
     assert!(schedule_owner_source.contains("executor_plan: Arc<SceneScheduleStagePlan>"));
     assert!(schedule_owner_source.contains("Arc::clone(&self.executor_plan)"));
-    assert!(schedule_owner_source
-        .contains("fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError>"));
+    assert!(
+        schedule_owner_source
+            .contains("fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError>")
+    );
     assert!(schedule_owner_source.contains("fn refresh_executor_plan(&mut self)"));
     assert!(schedule_owner_source.contains("self.refresh_executor_plan()?;"));
     assert!(schedule_owner_source.contains("self.executor_plan_dirty = true;"));
     assert!(schedule_owner_source.contains("taken_native_system_ids: Vec<String>"));
     assert!(schedule_owner_source.contains("taken_runtime_system_ids: Vec<String>"));
-    assert!(schedule_owner_source
-        .contains("self.taken_native_system_ids.push(system.id().to_string());"));
-    assert!(schedule_owner_source
-        .contains("self.taken_runtime_system_ids.push(system.id().to_string());"));
+    assert!(
+        schedule_owner_source
+            .contains("self.taken_native_system_ids.push(system.id().to_string());")
+    );
+    assert!(
+        schedule_owner_source
+            .contains("self.taken_runtime_system_ids.push(system.id().to_string());")
+    );
     assert!(schedule_owner_source.contains("let system_id = system.id();"));
-    assert!(schedule_owner_source
-        .contains("remove_taken_system_id(&mut self.taken_native_system_ids, system_id);"));
-    assert!(schedule_owner_source
-        .contains("remove_taken_system_id(&mut self.taken_runtime_system_ids, system_id);"));
+    assert!(
+        schedule_owner_source
+            .contains("remove_taken_system_id(&mut self.taken_native_system_ids, system_id);")
+    );
+    assert!(
+        schedule_owner_source
+            .contains("remove_taken_system_id(&mut self.taken_runtime_system_ids, system_id);")
+    );
     assert!(schedule_owner_source.contains("taken_native_system_ids: Vec::new()"));
     assert!(schedule_owner_source.contains("taken_runtime_system_ids: Vec::new()"));
     assert!(schedule_owner_source.contains("taken_system_id_exists("));
-    assert!(schedule_owner_source
-        .contains("fn taken_system_id_exists(taken_system_ids: &[String], id: &str)"));
+    assert!(
+        schedule_owner_source
+            .contains("fn taken_system_id_exists(taken_system_ids: &[String], id: &str)")
+    );
     assert!(schedule_owner_source.contains("fn remove_taken_system_id("));
     assert!(schedule_owner_source.contains("for taken_id in taken_system_ids"));
     assert!(schedule_owner_source.contains("if taken_id.as_str() == id"));
@@ -415,8 +442,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!schedule_owner_source.contains("BTreeSet::new()"));
     assert!(!schedule_owner_source.contains("self.taken_native_system_ids.insert("));
     assert!(!schedule_owner_source.contains("self.taken_native_system_ids.remove(&system_id)"));
-    assert!(!schedule_owner_source
-        .contains("taken_native_system_ids.retain(|taken_id| taken_id.as_str() != id);"));
+    assert!(
+        !schedule_owner_source
+            .contains("taken_native_system_ids.retain(|taken_id| taken_id.as_str() != id);")
+    );
     assert!(!schedule_owner_source.contains("SceneScheduleStagePlan::from_schedule(self)"));
     let restore_native_system_body = schedule_owner_source
         .split("pub(crate) fn restore_native_system(&mut self, system: BoxedSceneSystem)")
@@ -435,10 +464,14 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let registry_source = include_str!("../ecs/scene_system_registry.rs");
     assert!(registry_source.contains("native_system_steps_by_stage("));
     assert!(registry_source.contains("let native_step_counts ="));
-    assert!(registry_source
-        .contains("native_step_counts_by_stage(&self.native_systems, &self.runtime_systems);"));
-    assert!(registry_source
-        .contains("let mut by_stage = native_step_groups_with_capacity(&native_step_counts);"));
+    assert!(
+        registry_source
+            .contains("native_step_counts_by_stage(&self.native_systems, &self.runtime_systems);")
+    );
+    assert!(
+        registry_source
+            .contains("let mut by_stage = native_step_groups_with_capacity(&native_step_counts);")
+    );
     assert!(registry_source.contains("fn native_step_counts_by_stage("));
     assert!(registry_source.contains("runtime_systems: &[BoxedRuntimeSceneSystem]"));
     assert!(registry_source.contains("let step_count = if system.has_deferred_commands() {"));
@@ -534,8 +567,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!native_conflict_graph_body.contains(".flat_map(|system|"));
 
     let graph_source = include_str!("../ecs/schedule_conflict_graph.rs");
-    assert!(graph_source
-        .contains("pub(crate) fn from_node_vec(nodes: Vec<ScheduleConflictNode>) -> Self"));
+    assert!(
+        graph_source
+            .contains("pub(crate) fn from_node_vec(nodes: Vec<ScheduleConflictNode>) -> Self")
+    );
     assert!(graph_source.contains("Self::from_node_vec(nodes)"));
 }
 

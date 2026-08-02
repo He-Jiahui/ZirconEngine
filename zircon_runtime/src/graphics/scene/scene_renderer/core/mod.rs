@@ -11,6 +11,7 @@ mod scene_renderer_core_render_scene;
 mod scene_renderer_core_write_scene_uniform;
 mod scene_renderer_hdr_capture;
 mod scene_renderer_history;
+mod scene_renderer_pipeline_prewarm;
 mod scene_renderer_realtime_ibl_diagnostics;
 mod scene_renderer_render;
 mod scene_renderer_render_capture;
@@ -28,3 +29,6 @@ pub use scene_renderer_surface::SceneViewportSurface;
 
 pub(crate) use constants::{DEPTH_FORMAT, FINAL_COLOR_FORMAT, SCENE_COLOR_HDR_FORMAT};
 pub(crate) use create_depth_texture::create_depth_texture;
+pub(crate) use scene_renderer_render_with_pipeline::{
+    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
+};

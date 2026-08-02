@@ -1,4 +1,7 @@
-use std::path::Path;
+use std::{
+    ffi::OsString,
+    path::{Component, Path, PathBuf},
+};
 
 use zircon_runtime_interface::ui::layout::UiFrame;
 
@@ -94,28 +97,75 @@ impl FramebufferProof<'_> {
     }
 }
 
-pub(super) fn assert_no_named_file_under(root: &Path, file_name: &str) {
-    if !root.is_dir() {
-        return;
-    }
-    let mut pending = vec![root.to_path_buf()];
-    while let Some(directory) = pending.pop() {
-        let Ok(entries) = std::fs::read_dir(directory) else {
-            continue;
+pub(super) fn assert_framebuffer_proof_is_outside_target(output: &Path, target_dir: &Path) {
+    assert!(
+        framebuffer_proof_is_outside_target(output, target_dir),
+        "runtime text framebuffer proof must not be written under cargo target: output={}, target={}",
+        output.display(),
+        target_dir.display(),
+    );
+}
+
+pub(super) fn framebuffer_proof_is_outside_target(output: &Path, target_dir: &Path) -> bool {
+    let output = canonicalize_or_normalize_path(output);
+    let target_dir = canonicalize_or_normalize_path(target_dir);
+    !path_starts_with(&output, &target_dir)
+}
+
+fn canonicalize_or_normalize_path(path: &Path) -> PathBuf {
+    let normalized = normalize_path_lexically(path);
+    let mut existing_ancestor = normalized.as_path();
+    let mut missing_components = Vec::<OsString>::new();
+    while !existing_ancestor.exists() {
+        let Some(component) = existing_ancestor.file_name() else {
+            return normalized;
         };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                pending.push(path);
-            } else if path.file_name().is_some_and(|name| name == file_name) {
-                panic!(
-                    "runtime text framebuffer proof must not be copied under {}: {}",
-                    root.display(),
-                    path.display()
-                );
+        missing_components.push(component.to_os_string());
+        let Some(parent) = existing_ancestor.parent() else {
+            return normalized;
+        };
+        existing_ancestor = parent;
+    }
+
+    let Ok(mut canonical) = existing_ancestor.canonicalize() else {
+        return normalized;
+    };
+    for component in missing_components.iter().rev() {
+        canonical.push(component);
+    }
+    canonical
+}
+
+fn path_starts_with(path: &Path, prefix: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        let mut path_components = path.components();
+        return prefix.components().all(|prefix_component| {
+            path_components.next().is_some_and(|path_component| {
+                path_component
+                    .as_os_str()
+                    .to_string_lossy()
+                    .eq_ignore_ascii_case(&prefix_component.as_os_str().to_string_lossy())
+            })
+        });
+    }
+
+    #[cfg(not(windows))]
+    path.starts_with(prefix)
+}
+
+fn normalize_path_lexically(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
             }
+            _ => normalized.push(component.as_os_str()),
         }
     }
+    normalized
 }
 
 fn max_channel_delta(lhs: &[u8], rhs: &[u8; 4]) -> u8 {

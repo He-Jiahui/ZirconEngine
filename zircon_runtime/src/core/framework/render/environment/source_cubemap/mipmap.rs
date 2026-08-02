@@ -4,7 +4,7 @@ use super::{
     source_cubemap_face_mip_offset, source_cubemap_mip_size,
 };
 use crate::core::framework::render::environment::{
-    cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,
+    CubemapFace, cubemap_texel_direction, cubemap_texel_solid_angle,
 };
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;

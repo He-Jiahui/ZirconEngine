@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::core::resource::ResourceId;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
-use super::super::OutputTargetTextureResource;
 use super::super::prepared::PreparedOutputTargetTexture;
+use super::super::OutputTargetTextureResource;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {

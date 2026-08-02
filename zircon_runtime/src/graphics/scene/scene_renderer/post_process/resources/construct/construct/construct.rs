@@ -1,13 +1,45 @@
-use super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
+use super::super::super::super::scene_post_process_resources::{
+    FullScenePostProcessResources, SceneOutputTransferResources, ScenePostProcessResources,
+};
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::terminal_resource_cache::TerminalPostProcessResourceCache;
 use super::super::bind_group_layouts;
 use super::super::create_buffer_bundle::create_buffer_bundle;
 use super::super::create_fallback_texture_views::create_fallback_texture_views;
-use super::super::create_pipeline_bundle::create_pipeline_bundle;
+use super::super::create_pipeline_bundle::{create_pipeline_bundle, output_transfer_pipeline};
+use crate::graphics::shader::{motion_vector_tile_max_pass_plan, FullscreenPassParameterBindings};
 
 impl ScenePostProcessResources {
     pub(crate) fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        final_color_format: wgpu::TextureFormat,
+        backend_name: &str,
+    ) -> Self {
+        Self::Full(FullScenePostProcessResources::new(
+            device,
+            queue,
+            final_color_format,
+            backend_name,
+        ))
+    }
+
+    pub(crate) fn output_transfer_only(
+        device: &wgpu::Device,
+        final_color_format: wgpu::TextureFormat,
+    ) -> Self {
+        let bind_group_layout = bind_group_layouts::output_transfer(device);
+        let pipeline = output_transfer_pipeline(device, final_color_format, &bind_group_layout);
+        Self::OutputTransferOnly(SceneOutputTransferResources {
+            terminal_resource_cache: TerminalPostProcessResourceCache::new(),
+            bind_group_layout,
+            pipeline,
+        })
+    }
+}
+
+impl FullScenePostProcessResources {
+    fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         final_color_format: wgpu::TextureFormat,
@@ -30,6 +62,15 @@ impl ScenePostProcessResources {
             bind_group_layouts::velocity_camera(device, depth_sampling_mode);
         let motion_vector_tile_max_bind_group_layout =
             bind_group_layouts::motion_vector_tile_max(device);
+        let motion_vector_tile_max_parameter_bind_group_layout =
+            bind_group_layouts::motion_vector_tile_max_parameters(device);
+        let motion_vector_tile_max_parameter_bindings = FullscreenPassParameterBindings::new(
+            device,
+            queue,
+            motion_vector_tile_max_pass_plan(),
+            &motion_vector_tile_max_parameter_bind_group_layout,
+        )
+        .expect("motion-vector tile-max fullscreen plan must declare parameters");
         let motion_vector_neighbor_max_bind_group_layout =
             bind_group_layouts::motion_vector_neighbor_max(device);
         let post_process_bind_group_layout =
@@ -51,6 +92,7 @@ impl ScenePostProcessResources {
             &taa_resolve_bind_group_layout,
             &velocity_camera_bind_group_layout,
             &motion_vector_tile_max_bind_group_layout,
+            &motion_vector_tile_max_parameter_bind_group_layout,
             &motion_vector_neighbor_max_bind_group_layout,
             &post_process_bind_group_layout,
             &upscale_bind_group_layout,
@@ -75,6 +117,7 @@ impl ScenePostProcessResources {
             taa_resolve_bind_group_layout,
             velocity_camera_bind_group_layout,
             motion_vector_tile_max_bind_group_layout,
+            motion_vector_tile_max_parameter_bindings,
             motion_vector_neighbor_max_bind_group_layout,
             post_process_bind_group_layout,
             upscale_bind_group_layout,

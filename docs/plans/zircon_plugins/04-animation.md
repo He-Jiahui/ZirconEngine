@@ -3,15 +3,16 @@
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
 > 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/animation/runtime.md`
 > 参考实现：Bevy `bevy_animation`（AnimationGraph/AnimationTarget/mask 位掩码）、Fyrox ABSM（多层状态机 + Layer Mask）、Unreal AnimGraph（蒙太奇/同步组仅作形态参考）
-> 最新进度（2026-06-14 00:21 +08:00）：`runtime_physics_animation_tick_contract` 通过临时 manifest 与外部 target-dir 复跑，16 项全通过。timeline event 相关测试已在 tick 前显式连接 `EventSubscription<AnimationClipEvent>`，与 [11](11-plugin-call-bridge.md) M2 dormant event channel 语义一致：无订阅者不写缓冲，有订阅者时 clip/graph/state-machine/transition 事件均可观测。
+> 历史进度（2026-06-14 00:21 +08:00）：`runtime_physics_animation_tick_contract` 通过临时 manifest 与外部 target-dir 复跑，16 项全通过。该回执只描述当时快照，不代替当前受管验收。
+> 当前状态（2026-08-01）：`in_progress / resolving_failure`。M1-M6 的历史实现与验证证据仍有效，但协调器仍有 3 个开放 failure；在它们返回并完成当前源码受管验证前，不进入 closeout。
 
 ## 1. 目标
 
 把 `zircon_plugins/animation` 推进到完整动画系统：骨骼 clip 采样与混合、动画图（blend tree）、多层状态机、avatar mask、GPU skinning、timeline tracks 闭环、动画事件，并为 physics ragdoll 与 sound 自动化提供稳定姿态/事件通道。
 
-## 2. 现状基线（实查）
+## 2. 历史基线与当前源码校准
 
-成熟度 Beta / Partial。
+以下 A1-A7 是 M1-M6 实施前的历史基线，用于解释设计动机，不再代表 2026-08-01 当前缺口。
 
 中立契约 `zircon_runtime/src/core/framework/animation/` 已有（DTO 层比早期假设完整）：`avatar_mask.rs`（`AnimationAvatarMask`：**字符串 target 寻址** `allows_target(&str)` + `normalized_weight()`）、`gpu_skinning.rs`（`AnimationSkinningBackend` / `AnimationGpuSkinningReadiness` readiness 契约）、`graph_blend_mode.rs`、`graph_evaluation.rs`、`graph_clip_instance.rs`、`state_machine_evaluation.rs`（`AnimationStateMachineEvaluation` / `AnimationStateTransitionEvaluation`）、`parameter_map.rs`/`parameter_value.rs`、`pose_bone.rs`/`pose_output.rs`/`pose_source.rs`、`event.rs`、`timeline.rs`、`track_path.rs`、`playback_settings.rs`、`manager.rs`（`AnimationManager` trait）。
 
@@ -28,6 +29,13 @@
 | A5 | IK 无（TwoBoneIk/LookAt） | runtime 无 ik 模块 |
 | A6 | Ragdoll 姿态读写通道未定义（与 [03 Physics](03-physics.md) §3.4 对偶） | — |
 | A7 | scene hook 9 文件形态，无 `animation.evaluate` 系统锚点（01-M1 首批迁移对象） | `scene_hook/` |
+
+### 2.1 2026-08-01 当前源码
+
+- `zircon_plugins/animation/runtime/src/evaluation/` 已拥有 `TargetTable`、`PosePool`、compiled clip/graph、pose buffer 与 folder-backed pipeline；A1/A7 的“完全缺失”描述已被实现取代。
+- `mask/`、`state_machine/`、`gpu_skinning/` 与 `ik/` 已存在，`SkinningPalette`、dense `MaskWeights`、`AnimationIkCommand` 和有界逐 World 队列均有生产 owner。
+- `runtime_system.rs` 已注册 `AnimationClipEvent`，`evaluation/pipeline/events.rs` 提供事件投影；M1-M6 的详细历史结果已迁入编号记录，不在父计划重复展开。
+- 当前剩余关闭条件以 3 个 canonical failure 为准：[`runtime-animation-fallback-evaluator-divergence`](04/failure-2026-07-22-runtime-animation-fallback-evaluator-divergence.md)、[`animation-frame-diagnostics-hardcut-omission`](04/failure-2026-07-29-animation-frame-diagnostics-hardcut-omission.md)、[`animation-sequence-caller-root-drift`](04/failure-2026-07-29-animation-sequence-caller-root-drift.md)。三者保持 `open`。
 
 ## 3. 架构设计
 
@@ -200,9 +208,9 @@ zircon_plugins/animation/runtime/src/
 
 ## 6. 验收命令
 
-```bash
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_graph_editor --locked
+```powershell
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -ManifestPath zircon_plugins/Cargo.toml -Package zircon_plugin_animation_runtime -SkipBuild -LibTests
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -ManifestPath zircon_plugins/Cargo.toml -Package zircon_plugin_animation_graph_editor -SkipBuild -LibTests
 ```
 
 ## 7. 风险
@@ -227,17 +235,6 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 - fixed 已修复：[animation-state-machine-infallible-conversion](../zircon_editor/editor/14/fixed-2026-07-11-animation-state-machine-infallible-conversion.md)
-
-- M1：M1-T1/T2 的正式 WSL Cargo 已通过 target table 10/10、weighted SoA/PosePool 4/4，生产 clip/graph/state-machine 姿态采样已接入 revision-aware compiled evaluator。M1-T3 已硬切 folder-backed 五阶段 pipeline；graph topology、parameter、skeleton mask 与 state/transition condition 已编译为 dense slot/row 并接入生产有界 revision cache。最终 `AnimationPoseOutput`/LevelSystem handoff 现按稳定 entity/topology 原位复用 bone Vec 与 bone-name String 容量，graph base blend 也改为消费首个 owned pose，避免首姿态整包 clone。Windows nightly locked/offline allocation contract 2/2 通过，证明 PosePool 256 次稳定循环和 final-pose copy 均为零分配。M1 实现闭环；post-hard-cut Windows/WSL 全套仍是最终里程碑门。具体事实见 [Plugins 04 M1 编号产出记录](04/2026-07-10-animation-m1-output-records.md)。
-- 当前状态锚点：`plugins_04_m1_final_pose_reuse_allocation_2_of_2_passed`；M1-T2 正式测试锚点：`plugins_04_m1_t2_weighted_pose_formal_cargo_4_of_4_passed`。
-- M2：M2-T1 已实现 `.avatar_mask.toml` typed 解析与 skeleton-scoped dense `MaskWeights`，subtree 继承/覆写和边界渐变 focused 合同 2/2 通过；M2-T2 已实现 layers × masks × override/additive 的 dense `PoseBuffer` 分层混合，focused 4/4 与全 tests type-check 通过。M2-T3 已按 03/04 对偶计划新增 Physics 中立 `SkeletalPoseTargets`/`SimulatedPoseFeed`，由 Physics 注册双资源，Animation 在 `animation.evaluate` 发布局部骨骼目标姿态；定向桥 1/1、Animation 全量 78/78、Physics 默认全量 43/43 通过。Animation 侧已在最终 layer blend 后、IK 前按 mode × mask × interpolation alpha 消费 feed。Physics 侧已完成严格 `.ragdoll.toml` profile、拓扑化 body/collider/Generic6Dof 生成、Animated/Simulated/Blended 三模式、Animated→物理无跳变速度继承，以及 `physics.sync_to_scene` parent-local feed writer。计划精确命名的 `ragdoll_drop_golden_snapshot` 与 profile/rollback/mode/blend 合同在 Windows nightly locked/offline 聚焦复跑 5/5 通过；生产模块 `cargo check --lib` 先行通过。M2-T3 尚待 Animation 跨插件生产 Tick 场景取得 executable 后最终关闭。当前增量锚点 `plugins_04_m2_t3_physics_ragdoll_focused_5_of_5_passed`。
-- M3：M3-T1 的 compiled state/Condition-AND-OR-NOT 已完成；M3-T2 的 duration/crossfade、normalized exit-time gate 和四种 interruption policy 已从资产进入 compiled representation 与生产路径。M3-T3 的五种 StateKind 均已闭环；SubMachine 实例键加入父状态 owner，并允许父 machine 从嵌套状态迁出。多层已硬切为唯一 `AnimationStateMachineAsset.layers`，current/v3/v2/v1 迁移、binary roundtrip、dense layer compile 与生产 `PoseLayer` stack 均已接线；每层复用主状态机 interruption policy、已混合源姿态连续性与独立事件时间窗，完成/退出时清理 interruption source。Layer 骨数/骨名、pose transform 与 mask/blend shape 错误不再静默丢层，而是发布 typed `AnimationStateMachineLayerDiagnostic`。layer 合同 4/4、Windows 完整 `cargo check --tests` 通过；最新完整 production Tick executable 34/34 中，masked layer、SubMachine parent-transition 与 layer-interruption continuity 均通过。M3 实现与 Windows 定向行为已闭环，post-hard-cut Windows/WSL 全套仍是最终里程碑门。当前增量锚点 `plugins_04_m3_production_tick_34_of_34_passed`；详见 [Plugins 04 M3 编号产出记录](04/2026-07-11-animation-m3-output-records.md)。
-- M4：M4-T1/T2 已完成 256-joint `SkinningPalette`、readiness 判定、CPU fallback 及诊断，focused 4/4 通过。M4-T3 已将 Render ABI 从旧 uniform 硬切为 group3 bindings 3/4 read-only storage，并按 stable instance 实现两个 `STORAGE | COPY_DST` WGPU buffer 的持久双槽：仅成功 submit 后交换，第三帧复用第一槽；source 未就绪但 palette 合法的 CPU fallback 帧仍会 stage/commit 当帧 palette（仅不绑定 draw），保证下一帧恢复 GPU 时 previous buffer 不陈旧；palette 本身缺失时则丢弃失败帧暂存槽。fallback 边界修正后的 Windows Runtime nightly locked/offline production lib check 已通过（3 分 06 秒）；无 GPU slots 3/3、真实 WGPU `Arc` 双槽/CPU fallback previous 连续性 1/1（7611 filtered，且无 adapter skip）、Naga 生产 shader 拼接验证均通过；真实 WGPU 1000 实例/2000 buffers/32,800,000 bytes 基准为 123,884 µs。结构/审查聚焦门已通过：生产 owner 最大 766 行、root/mod 只做接线、storage 固定 ABI 生产路径无 `expect/panic`，独立类型编译通过。通过后的协调器复跑因共享资产迁移再次变化，被 `migrate_legacy_persisted_asset_reference_with` 导出漂移与 `AssetReference::guid()` 测试漂移抢先阻断，未运行 M4 测试；不覆盖此前实际 1/1 结果。当前锚点 `plugins_04_m4_wgpu_palette_cpu_fallback_1_of_1_passed`；具体事实见 [Plugins 04 M4 编号产出记录](04/2026-07-11-animation-m4-output-records.md)。
-- M5：M5-T1 已补齐 Runtime 中立 `AnimationIkCommand`、逐 World 有界 Manager 队列、稳定 `AnimationTargetId` → skeleton-scoped dense `TargetSlot` 编译，以及 `PoseBlend/StateMachine Layer → IK → SkeletalPoseTargets/PoseApply` 生产后处理顺序；TwoBoneIK 与 LookAt 使用 skeleton model-space target，失败通过 `AnimationIkDiagnostic` typed event 上报。低内存独立 target 的 Windows nightly locked/offline 行为复验已取得数学 3 条 + Manager 队列 1 条共 4/4 绿灯；最新完整 production Tick executable 34/34 中，两条真实 TwoBone/LookAt 场景均通过。M5-T2 已正式注册 `AnimationClipEvent` 与 `animation.events.clip` catalog，注册 focused 1/1 通过。M5 实现与 Windows 定向行为已闭环，post-hard-cut Windows/WSL 全套仍是最终里程碑门。当前增量锚点 `plugins_04_m5_production_tick_34_of_34_passed`；具体事实见 [Plugins 04 M5 编号产出记录](04/2026-07-11-animation-m5-output-records.md)。
-- M6：Animation Graph 已闭环 graph/state-machine editor、node palette 与 BlendSpace1D/2D graph node；Timeline Sequence 已闭环 sequence editor 与 transform/component-property/event-marker 三类 track。通用 Animation Editor 现独占 BlendSpace1D、BlendSpace2D、AvatarMask 三类资产 drawer，graph editor 不再反向拥有通用动画资产。Windows nightly locked/offline 三包实际 unit test 为 Animation Editor 2/2、Animation Graph Editor 9/9、Timeline Sequence Editor 9/9，合计 20/20；M6-T1/T2/T3 实现及 Windows 定向验收闭环，最终仅保留 Plugins 04 跨平台全套门。当前锚点 `plugins_04_m6_editor_packages_windows_20_of_20_passed`；具体事实见 [Plugins 04 M6 编号产出记录](04/2026-07-11-animation-m6-output-records.md)。
-- 正式测试阶段：hard-cut 前 Animation runtime Windows/WSL nightly locked/offline 全套均 75/75 通过；transition 与姿态桥接入后，Windows nightly/offline 全套更新为 78/78，Physics 默认全量 43/43 同步通过。post-hard-cut Windows 与 WSL 现均在各自专属 D: target 执行相同的 16 个 executable，分别 101/101 通过、0 failed；跨平台最终锚点更新为 `plugins_04_post_hard_cut_cross_platform_101_of_101_passed`。WSL 日志保存在 `D:\cargo-targets\plugins04-post-hardcut-wsl-20260712\wsl-full-abcdc380a79c498885c5c9f113a2d0d0.{out,err}`。早期事实见 [Plugins 04 正式测试阶段记录](04/2026-07-11-animation-testing-stage.md)，最终门见 [Plugins 04 post-hard-cut 产出记录](04/2026-07-12-animation-post-hard-cut-output-records.md)。M1-M6 实现及 post-hard-cut 跨平台测试门已闭环，进入里程碑 closeout。
-- 2026-07-18 Runtime skin/morph性能交接：render submission当前会为每instance/frame线性查pose，重建bone-name表、bind world/inverse bind并在GPU palette路径前CPU skin/clone全部primitive；morph静态delta和current/previous weights也全量重建上传。Plugins04须发布compiled skeleton dense index/parent topo/inverse-bind与per-instance pose/weight generation，只让Render03准备palette/dirty weight slots；CPU skin仅能力/关节上限fallback并进入有界worker。见PERF-MVP-385/386及`docs/plans/performance/01/2026-07-18-graphics-build-mesh-draws-root-static-review.md`。
-- 2026-07-18 palette ABI补充交接：Runtime storage固定256×mat4约16 KiB，64骨也初始化/复制/上传全块；current+previous×1k实例约32.8 MiB。Plugins04发布的pose generation必须携带active joint count/dirty identity，不能要求render把ABI最大容量当有效payload；与Render03共同验收stable bytes=0、changed bytes近active bones。见PERF-MVP-386及mesh root静态证据。
-- 2026-07-18 GPUScene animation history交接：current/previous palette、skinned source与morph weights当前分散在多张HashMap，每成功帧全量扫描/clone，weights还深拷贝。Plugins04须发布pose/weight generation与active dirty ranges，Render03以dense slot/buffer epoch翻转历史；stable history scan/clone/upload=0，changed近dirty joints/weights，失败帧保持committed epoch。见PERF-MVP-405及GPUScene静态证据。
-- 2026-07-22 property binding热路径交接：Runtime/Plugins04 sequence target fallback仍按binding全entity×ancestor×同名扫描，apply每track/frame让World重新规范化component/segments并字符串分派；segment compare临时String已止损但根因未解。Plugins04在clip compile产物持Runtime08发布的generation-bound dense entity/property accessor，stable frame禁止字符串resolve/normalized alloc，generation mismatch只增量rebind；见PERF-MVP-329与Runtime08 `08/failure-2026-07-22-scene-property-path-compiled-dispatch.md`。
-- 2026-07-30 framework animation性能交接：PERF-MVP-581要求binary writer借用payload、current格式header-first单次schema dispatch，删除source/DTO/document/bytes多owner和兼容解码多遍扫描；PERF-MVP-582要求sequence target/property、avatar mask和runtime status复用现有compiled generation，stable editor/debug不得重复track/String/full snapshot clone。规模与current/legacy save-load门见`docs/plans/performance/01/2026-07-30-runtime-framework-animation-ai-navigation-tasks-static-review.md`。
+- 当前状态：M1-M6 实现与历史跨平台验收均已有编号记录，但 3 个开放 failure 尚未返回，因此计划保持 `in_progress / resolving_failure`。
+- 开放 failure：[`runtime-animation-fallback-evaluator-divergence`](04/failure-2026-07-22-runtime-animation-fallback-evaluator-divergence.md)、[`animation-frame-diagnostics-hardcut-omission`](04/failure-2026-07-29-animation-frame-diagnostics-hardcut-omission.md)、[`animation-sequence-caller-root-drift`](04/failure-2026-07-29-animation-sequence-caller-root-drift.md)。
+- 历史 M1-M6、测试阶段和性能交接的 13 条直接记录已无损迁入 [`04/2026-08-01-current-state-and-performance-handoffs.md`](04/2026-08-01-current-state-and-performance-handoffs.md)。

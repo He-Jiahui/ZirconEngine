@@ -35,17 +35,15 @@ fn render_planar_filter_shader_parses_and_owns_roughness_mip_contract() {
 
 #[test]
 fn render_planar_filter_rejects_invalid_extent_and_mip_count() {
-    assert!(
-        validate_filter_request(
-            wgpu::Extent3d {
-                width: 0,
-                height: 8,
-                depth_or_array_layers: 1,
-            },
-            1,
-        )
-        .is_err()
-    );
+    assert!(validate_filter_request(
+        wgpu::Extent3d {
+            width: 0,
+            height: 8,
+            depth_or_array_layers: 1,
+        },
+        1,
+    )
+    .is_err());
     assert!(validate_filter_request(test_extent(), 0).is_err());
     assert!(validate_filter_request(test_extent(), MIP_COUNT + 1).is_err());
     assert!(validate_filter_request(test_extent(), MIP_COUNT).is_ok());

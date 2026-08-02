@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
@@ -128,9 +130,9 @@ pub(crate) struct InspectorPaneViewData {
 pub(crate) struct InspectorPluginComponentViewData {
     pub component_id: String,
     pub display_name: String,
-    pub drawer_available: bool,
-    pub drawer_ui_document: Option<String>,
-    pub drawer_template_id: Option<String>,
+    pub customization_available: bool,
+    pub customization_ui_document: Option<String>,
+    pub customization_template_id: Option<String>,
     pub diagnostic: Option<String>,
     pub properties: Vec<InspectorPluginComponentPropertyViewData>,
 }
@@ -147,7 +149,7 @@ pub(crate) struct InspectorPluginComponentPropertyViewData {
 #[derive(Clone, Default)]
 pub(crate) struct ConsolePaneViewData {
     pub nodes: ModelRc<ViewTemplateNodeData>,
-    pub status_text: SharedString,
+    pub status_text: Arc<str>,
 }
 
 #[derive(Clone, Default)]

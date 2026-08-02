@@ -17,6 +17,7 @@ mod root_frame;
 mod sync;
 mod tab_node_id;
 mod tab_strip_geometry;
+mod update_measured_frame;
 
 pub(crate) use build_host_page_pointer_layout::build_host_page_pointer_layout;
 pub(crate) use constants::HOST_PAGE_OVERFLOW_POINTER_INDEX;

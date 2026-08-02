@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::value::{to_raw_value, RawValue};
 
 use crate::{ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeSessionHandle, ZrStatus};
 
@@ -53,7 +54,7 @@ impl ZrRuntimePluginEventSubscribeRequestV1 {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ZrRuntimePluginEventDeliveryV1 {
     pub play_session_id: u64,
@@ -61,7 +62,8 @@ pub struct ZrRuntimePluginEventDeliveryV1 {
     pub event_id: String,
     pub payload_schema: String,
     pub sequence: u64,
-    pub payload: serde_json::Value,
+    /// Owned JSON bytes forwarded to the typed consumer without an intermediate value tree.
+    pub payload: Box<RawValue>,
 }
 
 impl ZrRuntimePluginEventDeliveryV1 {
@@ -79,8 +81,23 @@ impl ZrRuntimePluginEventDeliveryV1 {
             event_id: event_id.into(),
             payload_schema: payload_schema.into(),
             sequence,
-            payload,
+            payload: to_raw_value(&payload)
+                .expect("serde_json::Value always serializes to raw JSON payloads"),
         }
+    }
+}
+
+impl PartialEq for ZrRuntimePluginEventDeliveryV1 {
+    fn eq(&self, other: &Self) -> bool {
+        self.play_session_id == other.play_session_id
+            && self.subscription == other.subscription
+            && self.event_id == other.event_id
+            && self.payload_schema == other.payload_schema
+            && self.sequence == other.sequence
+            && serde_json::from_str::<serde_json::Value>(self.payload.get())
+                .expect("RawValue always contains valid JSON")
+                == serde_json::from_str::<serde_json::Value>(other.payload.get())
+                    .expect("RawValue always contains valid JSON")
     }
 }
 

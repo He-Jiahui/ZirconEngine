@@ -19,17 +19,17 @@ props = { text = "Assets", font_size = 12.0, font_weight = 700 }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_open_browser_button]
-component = "Button"
+component = "IconButton"
 control_id = "OpenAssetBrowser"
-props = { label = "Browser", dispatch_kind = "asset" }
-layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Open Asset Browser", icon = "folder-open-outline", icon_placement = "icon_only", dispatch_kind = "asset" }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "workbench.asset.open_asset_browser" }]
 
 [nodes.toolbar_title_row]
 component = "HorizontalBox"
 control_id = "AssetsActivityToolbarTitleRow"
 layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_title_text" }, { node = "toolbar_open_browser_button" }]
+children = [{ node = "toolbar_title_text" }]
 
 [nodes.toolbar_subtitle_text]
 component = "Label"
@@ -51,24 +51,24 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workbench.asset.set_search_query" }]
 
 [nodes.toolbar_view_mode_list_button]
-component = "Button"
+component = "IconButton"
 control_id = "AssetsActivityViewModeListButton"
-props = { label = "List", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "list" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "List view", icon = "list-outline", icon_placement = "icon_only", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "list" }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.toolbar_view_mode_thumb_button]
-component = "Button"
+component = "IconButton"
 control_id = "AssetsActivityViewModeThumbButton"
-props = { label = "Thumb", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
-layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Thumbnail view", icon = "grid-outline", icon_placement = "icon_only", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.toolbar_search_row]
 component = "HorizontalBox"
 control_id = "AssetsActivityToolbarSearchRow"
 layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_search_field" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
+children = [{ node = "toolbar_search_field" }, { node = "toolbar_open_browser_button" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
 
 [nodes.toolbar_kind_all_chip]
 component = "Button"

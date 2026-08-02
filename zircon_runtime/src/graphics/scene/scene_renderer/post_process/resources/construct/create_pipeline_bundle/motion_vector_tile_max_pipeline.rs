@@ -9,6 +9,7 @@ const MOTION_VECTOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Flo
 pub(super) fn motion_vector_tile_max_pipeline(
     device: &wgpu::Device,
     motion_vector_tile_max_bind_group_layout: &wgpu::BindGroupLayout,
+    motion_vector_tile_max_parameter_bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::RenderPipeline {
     let plan = motion_vector_tile_max_pass_plan();
     let shader_source =
@@ -19,7 +20,11 @@ pub(super) fn motion_vector_tile_max_pipeline(
     });
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-motion-vector-tile-max-pipeline-layout"),
-        bind_group_layouts: &[None, Some(motion_vector_tile_max_bind_group_layout)],
+        bind_group_layouts: &[
+            None,
+            Some(motion_vector_tile_max_bind_group_layout),
+            Some(motion_vector_tile_max_parameter_bind_group_layout),
+        ],
         immediate_size: 0,
     });
 
@@ -71,20 +76,20 @@ mod tests {
         let assembled =
             format!("{FULLSCREEN_TRIANGLE_SHADER}\n{MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER}");
         validate_shader_source("motion_vector_tile_max.wgsl", &assembled);
-        assert!(
-            MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER
-                .contains("@group(1) @binding(0) var motion_vector_source_tex")
-        );
+        assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER
+            .contains("@group(1) @binding(0) var motion_vector_source_tex"));
+        assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER
+            .contains("@group(2) @binding(0) var<uniform> motion_vector_tile_max_parameters"));
         assert!(!MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("@vertex"));
         assert!(FULLSCREEN_TRIANGLE_SHADER.contains("fn zr_fullscreen_triangle_vs"));
         assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("textureDimensions"));
-        assert!(
-            MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("fn choose_motion_vector_tile_max")
-        );
+        assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("fn choose_motion_vector_tile_max"));
         assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("fn motion_vector_tile_max"));
         assert!(
             MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("textureLoad(motion_vector_source_tex")
         );
-        assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("tile_coord * vec2<u32>(2u, 2u)"));
+        assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER
+            .contains("motion_vector_tile_max_parameters.tile_span.xy"));
+        assert!(MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER.contains("tile_coord * tile_span"));
     }
 }

@@ -74,7 +74,7 @@ events = [{ id = "WorkbenchModule/TagsSourcesTab", event = "Click", route = "wor
 component = "WorkbenchButton"
 control_id = "WorkbenchTagsAddButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Add Tag", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Add Tag", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/TagsAdd", event = "Click", route = "workbench.module.tags.add" }]
 
@@ -82,7 +82,7 @@ events = [{ id = "WorkbenchModule/TagsAdd", event = "Click", route = "workbench.
 component = "WorkbenchButton"
 control_id = "WorkbenchTagsRenameButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Rename", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Rename", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/TagsRename", event = "Click", route = "workbench.module.tags.rename" }]
 

@@ -1,20 +1,20 @@
 use std::collections::BTreeSet;
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     CameraRenderDescriptor, LightShadowSettings, LightingExtract, ProjectionMode,
     RenderCameraTarget, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
     RenderSpotLightSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{Real, Transform, Vec3, is_finite_vec3};
+use crate::core::math::{is_finite_vec3, Real, Transform, Vec3};
+use crate::core::TaskPool;
 use crate::graphics::scene::{
-    CascadeRange, CascadeSplitConfig, cascade_shadow_bounds_from_camera_slice,
-    compute_cascade_ranges,
+    cascade_shadow_bounds_from_camera_slice, compute_cascade_ranges, CascadeRange,
+    CascadeSplitConfig,
 };
 
-use super::super::culling::parallel_frustum::{MeshFrustumCandidate, mesh_frustum_visibility};
+use super::super::culling::parallel_frustum::{mesh_frustum_visibility, MeshFrustumCandidate};
 use super::super::declarations::{VisibilityBvhInstance, VisibilityRelevanceEntry};
 use super::{FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey};
 
@@ -36,11 +36,16 @@ impl FrameVisibility {
         lighting: &LightingExtract,
         bvh_instances: &[VisibilityBvhInstance],
         primitive_relevance: &[VisibilityRelevanceEntry],
-        visible_entities: &BTreeSet<EntityId>,
+        visible_stable_instance_keys: &BTreeSet<u64>,
         task_pool: Option<&TaskPool>,
     ) -> Self {
         let mut frame_visibility =
-            Self::from_main_view(camera, bvh_instances, primitive_relevance, visible_entities);
+            Self::from_main_view(
+                camera,
+                bvh_instances,
+                primitive_relevance,
+                visible_stable_instance_keys,
+            );
         let extra_view_capacity =
             extra_view_capacity(scene_camera_entity, camera_descriptors, lighting);
         if extra_view_capacity == 0 {
@@ -272,11 +277,11 @@ fn shadow_view_from_camera(
 
 fn build_frustum_candidates(frame_visibility: &FrameVisibility) -> Vec<MeshFrustumCandidate> {
     frame_visibility
-        .entities
+        .stable_instance_keys
         .iter()
         .zip(frame_visibility.bounds.iter())
-        .map(|(entity, bounds)| MeshFrustumCandidate {
-            entity: *entity,
+        .map(|(stable_instance_key, bounds)| MeshFrustumCandidate {
+            stable_instance_key: *stable_instance_key,
             bounds: *bounds,
         })
         .collect()

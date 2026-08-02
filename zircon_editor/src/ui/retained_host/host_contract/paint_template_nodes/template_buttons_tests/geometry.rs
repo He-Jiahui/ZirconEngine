@@ -1,5 +1,5 @@
 use super::super::button_paint_rect;
-use super::support::{positioned_button_node, TemplatePaneNodeDataTestExt};
+use super::support::{TemplatePaneNodeDataTestExt, positioned_button_node};
 
 #[test]
 fn workbench_button_honors_declared_layout_offset() {

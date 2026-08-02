@@ -55,8 +55,9 @@ error: cannot update the lock file E:\Git\ZirconEngine\zircon_plugins\Cargo.lock
 
 ## 修复结果与回传
 
-Open state: `Cargo-owned offline materialization complete / locked consumer validation pending`;
-the failure remains open and no Plugin08 or real-fixture pass is claimed yet.
+Open state: `Cargo-owned current lock materialization, locked metadata, and SDK native dynamic consumer GREEN /
+original Plugin08 exact target remains external ZrVM import-library gate pending`; the failure remains open and no
+Plugin08 or real-fixture pass is claimed yet.
 
 ### 2026-07-22 Plugins01 broad 复现
 
@@ -118,3 +119,38 @@ metadata 时的 `AEF339...` 不同；本 Session 未改写该 lockfile。
 `command_manifest_v4_is_current_and_dense`，实际执行 1 个 whitespace-only payload schema
 回归并得到 `1 passed; 0 failed`；主 lock 前后哈希不变。该 1/1 只证明 SDK 生产函数行为，不替代本
 failure 的 canonical locked metadata 与原 consumer 门，也不把本记录改为 fixed。
+
+### 2026-08-01 current-source lock materialization 与消费者边界
+
+- Cargo-owned reservation `1147f7e6903b46f48595d7190bff928b` 由 job
+  `dd616e3d12504f7c90c2ff995e14c63e` / run `d7e75c1ad830419ca2dfae2c33f7ee98`
+  执行完整离线 metadata，终态 `exit 0`。Cargo 生成的 current lock diff 仅在
+  `zircon_runtime` dependency list 新增 `"self_cell"`；没有 package/version 增删升级，
+  `git diff --check` 通过，`zircon_plugins/Cargo.lock` SHA-256 为
+  `59124B5E301273487C6821E5C4032CFAE75336ECC659B5DE45EAD08434403412`。
+- 新 lock 随后由 reservation `42379f970ed94857b8faf29aa5764736`、job
+  `b348fd63fb1a470885f585b66c363b65` / run `1abb2cbdae9c46c09e84bf0ecbfafd74`
+  执行 `cargo +1.94.1 metadata --manifest-path zircon_plugins/Cargo.toml --offline --locked
+  --format-version 1`，终态 `exit 0`、stderr 为空；current-source fingerprint 为
+  `da83f13c3fca56ba04ac52d927bc043655d340f6b4b501151d0a28548e3d9a41`。
+- 原 Plugin08 exact consumer 以 reservation `7b936ef53d29461c92a8657a7bc80676`、job
+  `1675f32b71894e8b87a4ba674bbfc97d` / run `b677133ba294445fb0ebbe4f851774ef`
+  重新执行。该 run 已跨过 lock resolution 并编译到 `zircon_runtime`、
+  `zircon_runtime_interface` 与 `zr_vm_rust_binding_sys`，未再出现 `cannot update Cargo.lock`；
+  随后仅因外部 `ZR_VM_RUST_BINDING_LIB_DIR` 未设置而 `exit 101`，目标测试执行数仍为 0。
+- 不依赖外部 ZrVM import library 的 SDK native exact gate 首先绑定 80-path reservation
+  `c00216aadc1a4c9b99baee33df63cf1a`。其 job `e2f4364d6c46492ba570291a2371090c`
+  在 Cargo 启动前因根 `Cargo.toml` 合法加入 `serde/rc` 与 `self_cell` 而终止为
+  `cargo_cpu_reservation_source_manifest_stale`；该 job 无命令、无 PID、无 run，不构成测试失败或通过。
+- 按 current source 重新冻结的 reservation `367ae75461d1408dbf69f19ab5641f2e`
+  （80-path fingerprint `3db5ce865e4b5ebfc1cc5ec635a0fa88c01d83ee40e6ef4f95b2ac95db570d05`）
+  由 job `2e916e20ee204f44a28084b6cc307442` / run
+  `fe21286d5d36457e9a891a80a014dda7` 执行 native SDK exact gate。受管命令保留 `--locked`
+  与 test-harness `--`，终态 `exit 0`、live PID 为空；raw output 实际进入
+  `running 1 test`，目标 `native_command_manifest_v4_rejects_whitespace_only_payload_schema`
+  为 `ok`，结果 `1 passed / 0 failed / 16 filtered`。终态后 80-path manifest 复算无变化，
+  canonical lock SHA-256 仍为
+  `59124B5E301273487C6821E5C4032CFAE75336ECC659B5DE45EAD08434403412`。
+- 该 GREEN 证明 canonical plugin workspace lock 已支持真实 `--locked` native SDK consumer；
+  原 Plugin08 exact gate 仍因外部 `ZR_VM_RUST_BINDING_LIB_DIR` 缺失而目标测试数为 0，故本 failure
+  继续保持 `open`，不创建 `fixed-*` 或回传记录。

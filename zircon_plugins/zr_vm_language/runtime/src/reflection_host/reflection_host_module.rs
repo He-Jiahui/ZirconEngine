@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use zircon_runtime::scene::{EntityId, TypeRegistry};
 use zircon_runtime::script::{
-    current_script_runtime_call_context, VmReflectionCatalog, VmReflectionRegistrySnapshot,
+    VmReflectionCatalog, VmReflectionRegistrySnapshot, VmReflectionWorldAccess,
 };
 use zircon_runtime_interface::reflect::ReflectedValue;
 
@@ -11,13 +11,23 @@ use super::ReflectionHostError;
 use crate::ScriptCallTable;
 
 /// Package-owned reflection bridge captured by native backend callbacks.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ReflectionHostModule {
     table: Arc<RwLock<Option<ScriptCallTable>>>,
     catalog: Arc<RwLock<Option<VmReflectionCatalog>>>,
+    runtime_world_access: VmReflectionWorldAccess,
 }
 
 impl ReflectionHostModule {
+    /// Constructs the package-owned reflection bridge from the runtime-issued access token.
+    pub fn new(runtime_world_access: VmReflectionWorldAccess) -> Self {
+        Self {
+            table: Arc::new(RwLock::new(None)),
+            catalog: Arc::new(RwLock::new(None)),
+            runtime_world_access,
+        }
+    }
+
     /// Rebuilds the immutable dense table from the canonical public host and VM registry.
     pub fn install_type_registry(
         &self,
@@ -51,14 +61,19 @@ impl ReflectionHostModule {
         token: u64,
         entity: EntityId,
     ) -> Result<ReflectedValue, ReflectionHostError> {
-        let runtime = current_script_runtime_call_context()
-            .map_err(|error| ReflectionHostError::RuntimeContext(error.message))?;
-        self.with_table(|table| {
-            runtime
-                .level
-                .with_world(|world| table.read_token(token, world, entity))
-                .map_err(Into::into)
-        })
+        self.runtime_world_access
+            .with_reflection_operation(|operation| {
+                operation.with_world(|world| {
+                    self.with_table(|table| {
+                        table.read_token(token, world, entity).map_err(Into::into)
+                    })
+                })
+            })
+            .ok_or_else(|| {
+                ReflectionHostError::RuntimeContext(
+                    "script runtime reflection operation is not active".to_string(),
+                )
+            })?
     }
 
     /// Writes a reflected field in the active script scene context using only numeric slots.
@@ -68,14 +83,21 @@ impl ReflectionHostModule {
         entity: EntityId,
         value: ReflectedValue,
     ) -> Result<bool, ReflectionHostError> {
-        let runtime = current_script_runtime_call_context()
-            .map_err(|error| ReflectionHostError::RuntimeContext(error.message))?;
-        self.with_table(|table| {
-            runtime
-                .level
-                .with_world_mut(|world| table.write_token(token, world, entity, value))
-                .map_err(Into::into)
-        })
+        self.runtime_world_access
+            .with_reflection_operation(|operation| {
+                operation.with_world_mut(|world| {
+                    self.with_table(|table| {
+                        table
+                            .write_token(token, world, entity, value)
+                            .map_err(Into::into)
+                    })
+                })
+            })
+            .ok_or_else(|| {
+                ReflectionHostError::RuntimeContext(
+                    "script runtime reflection operation is not active".to_string(),
+                )
+            })?
     }
 
     /// Encodes a numeric reflected read for the string-only ZrVM native ABI.

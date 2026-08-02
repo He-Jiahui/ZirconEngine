@@ -6,7 +6,8 @@ use std::sync::{Mutex, OnceLock};
 use crate::plugin::{PluginModuleKind, PluginModuleManifest};
 
 use super::abi_declarations::{
-    NativePluginHostFunctionTableV3, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
     ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
@@ -16,6 +17,26 @@ use super::native_strings::{parse_native_string_list, read_optional_c_string};
 
 pub(super) unsafe extern "C" fn native_host_abi_version_v3() -> u32 {
     catch_native_plugin_host_callback_panic(|| ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3)
+}
+
+pub(super) unsafe extern "C" fn native_host_abi_version_v2() -> u32 {
+    catch_native_plugin_host_callback_panic(|| ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2)
+}
+
+pub(super) unsafe extern "C" fn native_host_has_capability_v2(
+    host_functions: *const NativePluginHostFunctionTableV2,
+    capability: *const std::ffi::c_char,
+) -> u32 {
+    catch_native_plugin_host_callback_panic(|| unsafe {
+        if host_functions.is_null() {
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
+        } else {
+            native_host_has_capability_from_grants(
+                (*host_functions).granted_capabilities,
+                capability,
+            )
+        }
+    })
 }
 
 pub(super) unsafe extern "C" fn native_host_has_capability_v3(
@@ -34,10 +55,22 @@ unsafe fn native_host_has_capability_v3_inner(
     if host_functions.is_null() || capability.is_null() {
         return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
     }
+    native_host_has_capability_from_grants(
+        unsafe { (*host_functions).granted_capabilities },
+        capability,
+    )
+}
+
+unsafe fn native_host_has_capability_from_grants(
+    granted_capabilities: *const std::ffi::c_char,
+    capability: *const std::ffi::c_char,
+) -> u32 {
+    if capability.is_null() {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    }
     let Some(capability) = unsafe { CStr::from_ptr(capability) }.to_str().ok() else {
         return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
     };
-    let granted_capabilities = unsafe { (*host_functions).granted_capabilities };
     if granted_capabilities.is_null() {
         return ZIRCON_NATIVE_PLUGIN_STATUS_DENIED;
     }
@@ -161,8 +194,8 @@ unsafe fn native_host_callback_capture(
     })
 }
 
-fn lock_native_host_callback_captures(
-) -> std::sync::MutexGuard<'static, BTreeMap<u64, NativePluginHostCallbackCapture>> {
+fn lock_native_host_callback_captures()
+-> std::sync::MutexGuard<'static, BTreeMap<u64, NativePluginHostCallbackCapture>> {
     native_host_callback_captures()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -251,18 +284,40 @@ pub(super) fn granted_capabilities_for_entry(
         .iter()
         .map(String::as_str)
         .collect::<HashSet<_>>();
+    let Some(manifest) = descriptor.package_manifest.as_ref() else {
+        return Vec::new();
+    };
     let mut granted_capabilities = HashSet::new();
     let mut granted = Vec::new();
-    for capability in descriptor
-        .package_manifest
-        .as_ref()
-        .into_iter()
-        .flat_map(|manifest| manifest.modules.iter())
+    let mut grant_requested = |capability: &str| {
+        if requested.contains(capability) && granted_capabilities.insert(capability.to_string()) {
+            granted.push(capability.to_string());
+        }
+    };
+    for capability in manifest
+        .modules
+        .iter()
         .filter(|module| module.kind == module_kind)
         .flat_map(module_capabilities)
     {
-        if requested.contains(capability) && granted_capabilities.insert(capability) {
-            granted.push(capability.to_string());
+        grant_requested(capability);
+    }
+    for feature in &manifest.feature_extensions {
+        let mut has_entry_module = false;
+        for module in feature
+            .modules
+            .iter()
+            .filter(|module| module.kind == module_kind)
+        {
+            has_entry_module = true;
+            for capability in module_capabilities(module) {
+                grant_requested(capability);
+            }
+        }
+        if has_entry_module {
+            for dependency in &feature.dependencies {
+                grant_requested(&dependency.capability);
+            }
         }
     }
     granted
@@ -274,7 +329,15 @@ fn module_capabilities(module: &PluginModuleManifest) -> impl Iterator<Item = &s
 
 #[cfg(test)]
 mod tests {
-    use super::native_capability_list_contains;
+    use crate::plugin::{
+        PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind,
+        PluginModuleManifest, PluginPackageManifest,
+    };
+
+    use super::{
+        NativePluginDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        granted_capabilities_for_entry, native_capability_list_contains,
+    };
 
     #[test]
     fn native_host_capability_probe_streams_delimited_tokens_without_owned_list_projection() {
@@ -309,8 +372,54 @@ mod tests {
             .0;
         assert!(grants.contains("collect::<HashSet<_>>()"));
         assert!(grants.contains("requested.contains(capability)"));
-        assert!(grants.contains("granted_capabilities.insert(capability)"));
+        assert!(grants.contains("granted_capabilities.insert(capability.to_string())"));
+        assert!(grants.contains("manifest.feature_extensions"));
+        assert!(grants.contains("feature.dependencies"));
         assert!(!grants.contains("requested.iter().any"));
         assert!(!grants.contains("granted.iter().any"));
+    }
+
+    #[test]
+    fn feature_extension_runtime_entry_grants_module_and_dependency_capabilities() {
+        let manifest = PluginPackageManifest::new("sound_feature", "Sound Feature")
+            .as_feature_extension()
+            .with_feature_extension(
+                PluginFeatureBundleManifest::new("sound.feature", "Sound Feature", "sound")
+                    .with_dependency(PluginFeatureDependency::primary(
+                        "sound",
+                        "runtime.plugin.sound",
+                    ))
+                    .with_dependency(PluginFeatureDependency::required(
+                        "physics",
+                        "runtime.plugin.physics.unrequested",
+                    ))
+                    .with_runtime_module(
+                        PluginModuleManifest::runtime("sound.feature.runtime", "sound_feature")
+                            .with_capabilities([
+                                "runtime.feature.sound.feature",
+                                "runtime.feature.sound.unrequested",
+                            ]),
+                    ),
+            );
+        let descriptor = NativePluginDescriptor {
+            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            plugin_id: "sound_feature".to_string(),
+            package_manifest: Some(manifest),
+            runtime_entry_name: Some("sound_feature_runtime_entry_v3".to_string()),
+            editor_entry_name: None,
+            requested_capabilities: vec![
+                "runtime.plugin.sound".to_string(),
+                "runtime.feature.sound.feature".to_string(),
+            ],
+        };
+
+        assert_eq!(
+            granted_capabilities_for_entry(&descriptor, PluginModuleKind::Runtime),
+            [
+                "runtime.feature.sound.feature".to_string(),
+                "runtime.plugin.sound".to_string(),
+            ]
+        );
+        assert!(granted_capabilities_for_entry(&descriptor, PluginModuleKind::Editor).is_empty());
     }
 }

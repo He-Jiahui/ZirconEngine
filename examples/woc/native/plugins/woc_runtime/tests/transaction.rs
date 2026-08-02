@@ -1,7 +1,7 @@
 use woc_protocol::{
     event_stream_digest, fnv1a_bytes, Command, EntityRef, FixedTickInput, MovementFrame,
-    MovementInputFlags, OfflineSessionBootstrap, WorldSnapshot, OFFLINE_SESSION_BOOTSTRAP_VERSION,
-    STANDARD_OFFLINE_WORLD_SEED,
+    MovementInputFlags, OfflineSessionBootstrap, OfflineWeaponSkinAccount, WorldSnapshot,
+    OFFLINE_SESSION_BOOTSTRAP_VERSION, STANDARD_OFFLINE_WORLD_SEED,
 };
 use woc_runtime::{
     BudgetKind, RuntimeRole, RuntimeStatus, TickBudgets, TickUsage, VmTickError, VmTickResult,
@@ -146,6 +146,7 @@ fn offline_bootstrap_reaches_only_the_first_successful_tick() {
         player_class: 1,
         player_name: "Vale".to_string(),
         skin_variant: 2,
+        weapon_skin_account: OfflineWeaponSkinAccount::default(),
     };
     runtime
         .install_offline_bootstrap(bootstrap.clone())

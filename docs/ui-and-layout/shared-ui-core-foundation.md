@@ -128,8 +128,7 @@ related_code:
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/mod.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/host/retained_detail_pointer/mod.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
   - zircon_editor/src/tests/host/retained_list_pointer/
@@ -297,8 +296,7 @@ tests:
   - zircon_editor/src/tests/host/retained_tab_drag/
   - zircon_editor/src/ui/retained_host/app/tests/floating_window_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
@@ -369,6 +367,8 @@ doc_type: module-detail
 ---
 
 # Shared UI Core Foundation
+
+> Current-source note: historical references below to `workbench_projection.rs` identify the folder-backed regression suite now rooted at `workbench_projection/mod.rs`.
 
 ## Purpose
 

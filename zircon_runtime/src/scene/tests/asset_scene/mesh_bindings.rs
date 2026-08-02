@@ -28,7 +28,10 @@ fn scene_asset_save_reopens_with_exact_transform_and_asset_references() {
     reopened_project.scan_and_import().unwrap();
     let reopened_world = World::load_scene_from_uri(&reopened_project, &scene_uri).unwrap();
 
-    assert_eq!(reopened_world.to_scene_asset(&reopened_project).unwrap(), expected_scene);
+    assert_eq!(
+        reopened_world.to_scene_asset(&reopened_project).unwrap(),
+        expected_scene
+    );
     assert_eq!(
         reopened_world.find_node(2).unwrap().transform,
         expected_transform
@@ -61,6 +64,85 @@ fn unresolved_scene_reference_returns_typed_dangling_error() {
         SceneProjectError::DanglingAssetReference { uuid, locator }
             if uuid == missing_uuid && locator == missing_uri
     ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_asset_rejects_invalid_transforms_with_typed_errors() {
+    let root = unique_temp_project_root("scene_zero_scale_transform");
+    let project = create_test_project(&root);
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let ImportedAsset::Scene(scene) = project.load_artifact(&scene_uri).unwrap() else {
+        panic!("fixture should import a scene");
+    };
+    let entity_id = scene
+        .entities
+        .first()
+        .expect("fixture scene must contain an entity")
+        .entity;
+
+    let mut non_finite_translation = scene.clone();
+    non_finite_translation.entities[0].transform.translation[0] = f32::NAN;
+    let error = World::from_scene_asset(&project, &non_finite_translation).unwrap_err();
+    assert!(matches!(
+        error,
+        SceneProjectError::Scene(crate::scene::SceneError::NonFinitePropertyValue {
+            property_path,
+            expected: "translation",
+        }) if property_path == format!("entities[{entity_id}].transform.translation")
+    ));
+
+    let mut zero_rotation = scene.clone();
+    zero_rotation.entities[0].transform.rotation = [0.0; 4];
+    let error = World::from_scene_asset(&project, &zero_rotation).unwrap_err();
+    assert!(matches!(
+        error,
+        SceneProjectError::Scene(crate::scene::SceneError::ZeroLengthQuaternion { property_path })
+            if property_path == format!("entities[{entity_id}].transform.rotation")
+    ));
+
+    let mut zero_scale = scene.clone();
+    zero_scale.entities[0].transform.scale[0] = 0.0;
+    let error = World::from_scene_asset(&project, &zero_scale).unwrap_err();
+
+    assert!(matches!(
+        error,
+        SceneProjectError::Scene(crate::scene::SceneError::ZeroScaleTransform { entity, axis: "x" })
+            if entity == entity_id
+    ));
+
+    let mut world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    world
+        .get_mut::<crate::scene::components::LocalTransform>(entity_id)
+        .expect("loaded entity must have a local transform")
+        .transform
+        .scale
+        .x = 0.0;
+    assert!(matches!(
+        world.to_scene_asset(&project),
+        Err(SceneProjectError::Scene(crate::scene::SceneError::ZeroScaleTransform { entity, axis: "x" }))
+            if entity == entity_id
+    ));
+
+    let mut persisted_scene = scene;
+    persisted_scene.entities[0].transform.scale[0] = 0.0;
+    let document = persisted_scene
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
+        .unwrap();
+    fs::write(root.join("assets/scenes/main.scene.toml"), document).unwrap();
+    drop(project);
+
+    let mut reopened_project = crate::asset::project::ProjectManager::open(&root).unwrap();
+    reopened_project
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    reopened_project.scan_and_import().unwrap();
+    assert!(matches!(
+        World::load_scene_from_uri(&reopened_project, &scene_uri),
+        Err(SceneProjectError::Scene(crate::scene::SceneError::ZeroScaleTransform { entity, axis: "x" }))
+            if entity == entity_id
+    ));
+    drop(reopened_project);
     let _ = fs::remove_dir_all(root);
 }
 
@@ -151,11 +233,13 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
     assert!(extract.overlays.selection.is_empty());
-    assert!(extract
-        .scene
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == mesh_node));
+    assert!(
+        extract
+            .scene
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == mesh_node)
+    );
 
     let _ = fs::remove_dir_all(root);
 }

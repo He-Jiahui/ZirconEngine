@@ -4,7 +4,7 @@ use crate::ui::workbench::{
     view::ViewInstanceId,
 };
 
-use super::super::{RetainedEditorHost, callback_dispatch};
+use super::super::{callback_dispatch, RetainedEditorHost};
 
 impl RetainedEditorHost {
     pub(super) fn close_floating_window_without_prompt(

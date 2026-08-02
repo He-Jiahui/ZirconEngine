@@ -233,7 +233,7 @@ impl EventRuntimeHarness {
             .unwrap();
         self.runtime
             .register_editor_extension_with_required_capabilities(
-                timeline,
+                timeline.into_contribution_batch().unwrap(),
                 vec![TIMELINE_CAPABILITY.to_string()],
             )
             .expect("timeline sequence registry fixture should register");
@@ -267,7 +267,7 @@ impl EventRuntimeHarness {
         }
         self.runtime
             .register_editor_extension_with_required_capabilities(
-                graph,
+                graph.into_contribution_batch().unwrap(),
                 vec![GRAPH_CAPABILITY.to_string()],
             )
             .expect("animation graph registry fixture should register");

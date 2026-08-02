@@ -2,7 +2,7 @@ use super::super::super::data::HostWindowPresentationData;
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::menus;
-use super::super::root_frames::{zero_origin, RootFrames};
+use super::super::root_frames::{RootFrames, zero_origin};
 
 pub(super) fn draw_top_chrome_layers(
     frame: &mut HostRgbaFrame,

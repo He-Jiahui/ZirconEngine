@@ -1,8 +1,9 @@
 use crate::container::parse_container_info;
 use zircon_runtime::asset::{
-    decode_texture_source_image, AssetImportContext, AssetImportError, AssetImportOutcome,
-    ImportedAsset, TextureAsset, TextureAssetDescriptor,
+    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, TextureAsset,
+    TextureAssetDescriptor, decode_texture_source_image,
 };
+use zircon_runtime::core::framework::render::TextureMetadataDiagnosticSeverity;
 
 pub fn import_image(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     let image = decode_texture_source_image(context)?;
@@ -78,12 +79,28 @@ pub(crate) fn apply_texture_import_settings(
     context: &AssetImportContext,
     texture: TextureAsset,
 ) -> Result<TextureAsset, AssetImportError> {
-    texture
+    let texture = texture
         .apply_import_settings(&context.import_settings)
         .map_err(|error| {
             AssetImportError::Parse(format!(
                 "apply texture import settings {}: {error}",
                 context.source_path.display()
             ))
-        })
+        })?;
+    let source_path = context.source_path.display().to_string();
+    let errors = texture
+        .texture_descriptor()
+        .validate_metadata(&source_path)
+        .into_iter()
+        .filter(|diagnostic| diagnostic.severity == TextureMetadataDiagnosticSeverity::Error)
+        .map(|diagnostic| diagnostic.message)
+        .collect::<Vec<_>>();
+    if errors.is_empty() {
+        return Ok(texture);
+    }
+
+    Err(AssetImportError::Parse(format!(
+        "validate texture metadata {source_path}: {}",
+        errors.join("; ")
+    )))
 }

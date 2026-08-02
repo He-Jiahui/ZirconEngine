@@ -1,26 +1,42 @@
-use super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError};
-use crate::scene::dynamic_scene::DynamicScene;
 use std::io::Write;
-use zircon_runtime_interface::serialization::write_canonical_text_to;
+
+use super::super::archive::RuntimeSessionArchiveWirePayload;
+use super::super::{
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchive, RuntimeSessionArchiveError,
+};
 
 pub(in crate::scene::dynamic_scene::session) fn from_versioned_json(
     json: &str,
 ) -> Result<RuntimeSessionArchive, RuntimeSessionArchiveError> {
-    let document: serde_json::Value = serde_json::from_str(json)?;
-    validate_embedded_scene_headers(&document)?;
-    let mut archive: RuntimeSessionArchive = serde_json::from_value(document)?;
+    ensure_archive_input_limit(json.len(), MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES)?;
+    let payload: RuntimeSessionArchiveWirePayload = serde_json::from_str(json)?;
+    let mut archive = RuntimeSessionArchive::from_deserialized_payload(payload.into());
     archive.normalize_slot_metadata();
-    archive.ensure_supported()?;
     archive.sort_slots();
+    archive.record_normalized();
+    archive.ensure_supported()?;
+    archive.record_validated();
     Ok(archive)
+}
+
+fn ensure_archive_input_limit(
+    found: usize,
+    limit: usize,
+) -> Result<(), RuntimeSessionArchiveError> {
+    if found > limit {
+        return Err(RuntimeSessionArchiveError::ArtifactTooLarge {
+            estimated_bytes: found,
+            limit_bytes: limit,
+        });
+    }
+    Ok(())
 }
 
 pub(in crate::scene::dynamic_scene::session) fn to_versioned_json_pretty(
     archive: &RuntimeSessionArchive,
 ) -> Result<String, RuntimeSessionArchiveError> {
-    let mut encoded = Vec::new();
-    to_versioned_json_pretty_to(archive, &mut encoded)?;
-    String::from_utf8(encoded)
+    let artifact = archive.sealed_artifact()?;
+    String::from_utf8(artifact.serialized_bytes().to_vec())
         .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error).into())
 }
 
@@ -31,25 +47,23 @@ pub(in crate::scene::dynamic_scene::session) fn to_versioned_json_pretty_to<W>(
 where
     W: Write + ?Sized,
 {
-    let mut archive = archive.clone();
-    archive.normalize_slot_metadata();
-    archive.sort_slots();
-    archive.ensure_supported()?;
-    Ok(write_canonical_text_to(&archive, sink)?)
+    archive.sealed_artifact()?.write_to(sink)
 }
 
-fn validate_embedded_scene_headers(
-    document: &serde_json::Value,
-) -> Result<(), RuntimeSessionArchiveError> {
-    let Some(slots) = document.get("slots").and_then(serde_json::Value::as_array) else {
-        return Ok(());
-    };
-    for slot in slots {
-        let Some(scene) = slot.get("scene") else {
-            continue;
-        };
-        let text = serde_json::to_string(scene)?;
-        DynamicScene::from_versioned_json(&text)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_session_archive_text_input_rejects_before_json_decode_when_oversized() {
+        let error = ensure_archive_input_limit(2, 1).unwrap_err();
+
+        assert!(matches!(
+            error,
+            RuntimeSessionArchiveError::ArtifactTooLarge {
+                estimated_bytes: 2,
+                limit_bytes: 1,
+            }
+        ));
     }
-    Ok(())
 }

@@ -3,13 +3,13 @@ use std::fmt::{Display, Formatter};
 
 use crate::asset::{AssetUri, ShaderAsset};
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderAssetKind, ShaderIdePreviewSegment,
-    ShaderIdePreviewVariant, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, ShaderAssetKind, ShaderIdePreviewSegment,
+    ShaderIdePreviewVariant, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 
 use super::template::{
-    MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
-    ShaderTemplateInclude, assemble_material_shader_template,
+    assemble_material_shader_template, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, ShaderTemplateInclude,
 };
 
 const SURFACE_SHADER_ENTRY_POINT: &str = "zr_material_surface";

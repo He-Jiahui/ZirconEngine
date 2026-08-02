@@ -307,13 +307,13 @@ mod tests {
         RenderFrameExtract, RenderPluginRendererOutputs, RenderWorldSnapshotHandle,
     };
     use crate::core::math::UVec2;
-    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
         TransientResourcePool,
     };
     use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
+    use crate::graphics::ViewportRenderFrame;
     use crate::render_graph::{QueueLane, RenderGraphBuilder, RenderGraphResourceAccessKind};
     use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
     use crate::scene::world::World;

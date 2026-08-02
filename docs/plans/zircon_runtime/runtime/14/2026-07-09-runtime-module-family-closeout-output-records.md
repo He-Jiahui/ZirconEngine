@@ -5,18 +5,19 @@
 Plan: docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
 Milestone: M4
 Status: validating
-Files: ["docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md", "docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md", "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/mirror_docs.rs"]
+Files: [".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_family_boundary.py", "docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md", "docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md", "docs/zircon_runtime/navigation/runtime.md", "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/mirror_docs.rs"]
 
 ## Scope Delivered
 
-The current-source mirror now records the 12-file Navigation family after the committed
-`operation/{mod,handler,registration}.rs` integration split. Historical 9-file evidence remains
-historical; current synchronization is owned by the Runtime14 plan, this numbered record, and the
-Navigation runtime module document. No production behavior or module-family ownership changed in
-this slice.
+The 2026-08-01 current-source mirror records animation/navigation/diagnostic_log/engine_module as
+17/15/31/8 Rust files. The counts include nested tests and folder-backed owners and are only a
+structure-drift tripwire. Historical 28/9/7/8 and 28/12/7/8 evidence remains historical; current
+synchronization is owned by the Runtime14 plan, this numbered record, the structure audit, the Rust
+mirror guard, and the module documents. No production behavior or module-family ownership changed
+in this review slice.
 
-Current `module_family_boundary` anchors are `expected_family_count = 4`, `animation = 28`,
-`navigation = 12`, `diagnostic_log = 7`, `engine_module = 8`, `root_seat_guard_present = true`,
+Current `module_family_boundary` anchors are `expected_family_count = 4`, `animation = 17`,
+`navigation = 15`, `diagnostic_log = 31`, `engine_module = 8`, `root_seat_guard_present = true`,
 `animation_status_json_guard_present = true`, `animation_status_json_anchor_count = 8`,
 `missing_animation_status_json_anchors = []`, `module_family_guard_anchor_count = 7`,
 `missing_module_family_guard_anchors = []`, `cargo_gate_anchor_count = 5`,
@@ -67,7 +68,7 @@ current milestone gate.
 | M4 | 2026-07-12 current architecture acceptance | `runtime_14_current_architecture_static_passed_package_gates_pending` | 2026-07-12 | Fresh direct `module_family_boundary_audit` reports four root families with exact file counts animation/navigation/diagnostic_log/engine_module = 28/9/7/8, root-seat and mirror-doc guards present, guard/status/Cargo anchors 7/8/5 complete, all missing lists empty, and `risks = []`. Package filters for the four families and the full lib remain pending the shared freshly rebuilt binary, so Runtime 14 stays `in_progress`. |
 | M4 | 2026-07-12 current module-family filters | `runtime_14_diagnostic_log_16_engine_module_7_passed_animation_44_1_failed_navigation_114_3_failed` | 2026-07-12 | Fresh current-source Runtime binary passed `diagnostic_log` 16/16 and `engine_module` 7/7. `animation` executed 45 tests with 44 passed and one failed at the shared scene-asset artifact-URI roundtrip fixture (`missing artifact uri for source uri res://scenes/main.scene.toml`). `navigation` executed 117 tests with 114 passed and three failed in colliding UI keyboard/normalized-navigation/text-area tests. These broad-name collisions are recorded rather than bypassed; only the two green families are accepted, and Runtime 14 remains `in_progress` until animation/navigation and full-lib gates pass. |
 | M4 | 2026-07-13 animation family superseding rerun | `runtime_14_animation_45_passed_navigation_collisions_pending` | 2026-07-13 | After the shared scene project fixture adopted explicit plugin importer registration, registry-backed persisted references and dependency-ordered scans, and the scene artifact cache adopted a bincode-safe physics mass-properties proxy, the freshly rebuilt current-source Runtime binary passed `animation` 45/45. This supersedes the prior 44/45 animation result only. Runtime-owned navigation/framework leaf filters pass 4/4 and 9/9, but the unchanged broad `navigation` name filter still has three UI-name collisions from the prior run; full-lib also remains pending, so Runtime 14 stays `in_progress`. |
-当前基线：animation 28 个 `.rs` 文件 / navigation 12 个 `.rs` 文件（folder-backed fallback runtime + shared-operation integration owners）/ diagnostic_log 7 个 `.rs` 文件 / engine_module 8 个 `.rs` 文件（含 `descriptors/names.rs`）；`module_family_boundary.py` 当前为审计数据/风险聚合 owner，`module_family_markdown.py` 为 Markdown 渲染 owner。animation 从 27 增至 28 的差异来自 Runtime 07 `scene_hook/diagnostics.rs` 取证 owner；navigation 从 3 增至 9 的差异来自 Runtime 14 `runtime/{baked_mesh,world_scan,avoidance,state,math,tests}.rs` owner split，再从 9 增至 12 的差异来自 `operation/{mod,handler,registration}.rs` shared-operation integration。Runtime 14 M0/M1 未声明 Cargo 完成；M1 当前落地 navigation、engine_module、diagnostic_log、animation 结构/边界守卫、crate 根四族席位总守卫、Markdown renderer owner split 和静态验证。
+当前基线：animation 17 个 `.rs` 文件 / navigation 15 个 `.rs` 文件（folder-backed fallback runtime + shared-operation integration owners）/ diagnostic_log 31 个 `.rs` 文件（含嵌套测试 owner）/ engine_module 8 个 `.rs` 文件（含 `descriptors/names.rs`）；`module_family_boundary.py` 当前为审计数据/风险聚合 owner，`module_family_markdown.py` 为 Markdown 渲染 owner。历史 28/9/7/8 与 28/12/7/8 基线保留在各自 dated 记录中；2026-08-01 navigation 的 15-file 当前集额外包含 `repath_budget.rs` 与 `runtime/baked_mesh/{query_scratch,spatial_index}.rs`。Runtime 14 M0/M1 未声明 Cargo 完成；M1 当前落地 navigation、engine_module、diagnostic_log、animation 结构/边界守卫、crate 根四族席位总守卫、Markdown renderer owner split 和静态验证。
 
 ## 风险与协调
 

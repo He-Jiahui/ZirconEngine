@@ -25,6 +25,7 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
     let _guard = env_lock().lock().unwrap();
     let mut chrome = default_preview_fixture().build_chrome();
     chrome.status_line = "Saving project".to_string();
+    chrome.console_output = "Saving project".into();
     chrome.scene_viewport_settings.grid_mode = GridMode::VisibleAndSnap;
     chrome.scene_viewport_settings.translate_step = 2.5;
     chrome.status_task_progress = Some(
@@ -133,6 +134,45 @@ fn status_task_progress_uses_semantic_tone_without_local_rgb_overrides() {
 }
 
 #[test]
+fn status_signals_project_semantic_variants_without_local_color_or_spacing_overrides() {
+    let _guard = env_lock().lock().unwrap();
+    let bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+
+    for (control_id, expected_tone) in [
+        ("WorkbenchStatusReady", "primary"),
+        ("WorkbenchStatusErrors", "muted"),
+        ("WorkbenchStatusWarnings", "muted"),
+        ("WorkbenchStatusMessages", "muted"),
+    ] {
+        assert_eq!(
+            control_string(&bridge, control_id, "component_variant").as_deref(),
+            Some("semantic_status_signal"),
+            "{control_id} should use the centralized signal palette"
+        );
+        assert_eq!(
+            control_string(&bridge, control_id, "text_tone").as_deref(),
+            Some(expected_tone),
+            "{control_id} should preserve its semantic text role"
+        );
+        for local_override in [
+            "icon_fill",
+            "icon_size",
+            "layout_gap",
+            "layout_offset_x",
+            "layout_offset_y",
+            "text_color",
+        ] {
+            assert_eq!(
+                control_string(&bridge, control_id, local_override),
+                None,
+                "{control_id} should not project a local `{local_override}` override"
+            );
+        }
+    }
+}
+
+#[test]
 fn componentized_workbench_status_bar_collapses_task_slot_when_idle() {
     let _guard = env_lock().lock().unwrap();
     let chrome = default_preview_fixture().build_chrome();
@@ -219,6 +259,7 @@ fn componentized_workbench_status_bar_adapts_primary_runtime_text_without_shrink
     let _guard = env_lock().lock().unwrap();
     let mut chrome = default_preview_fixture().build_chrome();
     chrome.status_line = "Blend space opened".to_string();
+    chrome.console_output = "Blend space opened".into();
     let required_primary_width = status_signal_required_width(&chrome.status_line);
 
     for surface_width in status_contract_widths() {
@@ -259,6 +300,7 @@ fn componentized_workbench_status_bar_prioritizes_primary_text_and_active_task_b
     let _guard = env_lock().lock().unwrap();
     let mut chrome = default_preview_fixture().build_chrome();
     chrome.status_line = "Blend space opened".to_string();
+    chrome.console_output = "Blend space opened".into();
     chrome.status_task_progress = Some(
         StatusTaskProgressSnapshot::new("desktop_export:7", "Export desktop_windows")
             .with_detail("cargo-build")

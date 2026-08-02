@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use super::super::{RetainedEditorHost, SceneEntry, ViewContentKind};
+use zircon_runtime::scene::WorldInspectionHierarchyRow;
+
+use super::super::{RetainedEditorHost, ViewContentKind};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn prepare_hierarchy_pointer_target(
@@ -8,7 +10,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
         focus_source_window: bool,
-    ) -> Arc<[SceneEntry]> {
+    ) -> Arc<[WorldInspectionHierarchyRow]> {
         self.use_committed_pointer_layout();
         let target_size = self.resolve_callback_surface_size_for_kind(
             width,

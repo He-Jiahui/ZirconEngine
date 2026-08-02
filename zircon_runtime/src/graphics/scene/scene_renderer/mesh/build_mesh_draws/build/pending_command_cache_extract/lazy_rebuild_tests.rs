@@ -11,7 +11,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
 };
 
-use super::{PendingMeshCommandCacheExtractItem, commands_for_extract_item};
+use super::{commands_for_extract_item, PendingMeshCommandCacheExtractItem};
 
 #[test]
 fn pending_command_cache_extract_defers_rebuild_batch_on_full_hit() {
@@ -63,6 +63,7 @@ fn pending_command_cache_extract_does_not_materialize_batch_for_material_phase_m
 fn item() -> PendingMeshCommandCacheExtractItem {
     PendingMeshCommandCacheExtractItem {
         entity: 7,
+        stable_instance_key: (7 << 16) | 1,
         draw_ordinal: 1,
         source_draw_index: 8,
         queue_profile: MeshDrawQueueProfile::new(
@@ -89,7 +90,7 @@ fn store(
 ) {
     cache.store(
         CachedMeshDrawKey {
-            entity: item.entity,
+            stable_instance_key: item.stable_instance_key,
             draw_ordinal: item.draw_ordinal,
             phase,
             disabled_passes: item.disabled_passes,

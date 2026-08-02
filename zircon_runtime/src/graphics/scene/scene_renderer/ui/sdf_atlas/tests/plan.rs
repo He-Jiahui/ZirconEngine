@@ -225,6 +225,49 @@ fn sdf_atlas_plan_preserves_whitespace_advances_without_slots() {
 }
 
 #[test]
+fn sdf_atlas_records_generation_failures_by_verified_bake_slot_index() {
+    let mut atlas = ScreenSpaceUiSdfAtlas::new();
+    atlas.prepare(&[text_batch("AB", UiFrame::new(10.0, 20.0, 40.0, 12.0))]);
+    let first_key = atlas.plan().slots[0].key.clone();
+    let second_key = atlas.plan().slots[1].key.clone();
+    let expected = SdfGlyphGenerationError::MissingGlyphOutline(2);
+
+    let failures: Arc<[SdfAtlasGlyphGenerationFailure]> = vec![
+        SdfAtlasGlyphGenerationFailure {
+            slot_index: 0,
+            key: second_key.clone(),
+            error: SdfGlyphGenerationError::MissingGlyphOutline(99),
+        },
+        SdfAtlasGlyphGenerationFailure {
+            slot_index: 1,
+            key: second_key,
+            error: expected,
+        },
+        SdfAtlasGlyphGenerationFailure {
+            slot_index: usize::MAX,
+            key: first_key,
+            error: SdfGlyphGenerationError::GenerationBudgetDeferred,
+        },
+    ]
+    .into();
+    atlas.record_generation_failures(&failures);
+
+    assert_eq!(
+        atlas.plan().runs[0].glyph_generation_failures,
+        vec![None, Some(expected)]
+    );
+    assert_eq!(atlas.plan().runs[0].generation_failure_count, 1);
+    let first_failure_slots = atlas.plan().runs[0].glyph_generation_failures.as_ptr();
+
+    atlas.record_generation_failures(&failures);
+
+    assert_eq!(
+        atlas.plan().runs[0].glyph_generation_failures.as_ptr(),
+        first_failure_slots
+    );
+}
+
+#[test]
 fn sdf_atlas_plan_keeps_format_controls_out_of_slots() {
     let plan = plan_sdf_atlas(&[text_batch(
         "A\u{200D}\u{FE0F}B",

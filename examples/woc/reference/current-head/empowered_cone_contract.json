@@ -15,6 +15,8 @@
     {
       "id": "glacial_front",
       "code": 129,
+      "learn_level": 17,
+      "resource_cost": 80,
       "school": "frost",
       "cast_time": 2.4,
       "cooldown": 12,
@@ -63,6 +65,8 @@
     {
       "id": "dragons_breath",
       "code": 86,
+      "learn_level": 14,
+      "resource_cost": 90,
       "school": "fire",
       "cast_time": 2.4,
       "cooldown": 20,

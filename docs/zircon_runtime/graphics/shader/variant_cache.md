@@ -6,11 +6,18 @@ related_code:
   - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm/execution_budget.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm/module_validation_cache.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm/wgpu_validation.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/asset_inventory.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/material_sources.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - tools/zircon_build.py
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
@@ -27,10 +34,17 @@ implementation_files:
   - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm/execution_budget.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm/module_validation_cache.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm/wgpu_validation.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/asset_inventory.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/material_sources.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - tools/zircon_build.py
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
@@ -82,11 +96,17 @@ The live WGPU render-pipeline maps still key by the complete `PipelineKey`. That
 
 ## Prewarm
 
-`ShaderVariantPrewarmManifest` and `ShaderVariantPrewarmRequest` are neutral framework DTOs for offline cache population. A request carries the final `ShaderVariantKey`, WGSL source, include/source hashes, template revision, and naga/wgpu version strings. `graphics::shader::variant_cache::prewarm_shader_variants_to_disk(...)` writes those requests through the same disk layout as runtime misses and returns `ShaderVariantPrewarmReport` with requested, written, failed, and per-entry failure data.
+`ShaderVariantPrewarmManifest`, `ShaderVariantPrewarmSource`, and `ShaderVariantPrewarmRequest` are neutral framework DTOs for offline cache population. Schema 2 stores WGSL source, include/source hashes, template revision, and naga/wgpu version strings once in a content-addressed source table; a request carries the final `ShaderVariantKey`, optional pipeline state, and its source id. Repeated resolution builds one borrowed O(1) source-id index without duplicating WGSL. These schema-2 DTOs reject unknown fields, so legacy request-level or manifest-level inline shader payloads fail at deserialization instead of bypassing source-table validation. `validate_integrity()` and `ShaderVariantPrewarmExecutionBudget::validate()` expose typed errors for invalid source identity and invalid serial-worker bounds; only the report boundary renders those failures as text. `graphics::shader::variant_cache::prewarm_shader_variants_to_disk(...)` resolves that id through the validated table, writes the same disk layout used by runtime misses, and returns `ShaderVariantPrewarmReport` with requested, written, failed, execution-budget, and per-entry failure data.
+
+Manifest-level preflight failures are stored in `ShaderVariantPrewarmReport.preflight_error`. They do not invent a variant index or affect per-variant counts, but the command-line wrapper still returns its failure exit code.
 
 `zircon_runtime::dynamic_api::prewarm_shader_variants(...)` is the Rust-side headless entry point. The first implemented producer is `builtin_fallback_shader_prewarm_manifest()`, which emits the base forward fallback mesh variant using the same key/source/hash contract as `MeshPipelineCache::ensure_pipeline(...)`.
 
+When WGPU module validation is enabled, the headless prewarm entry points cache both pass and failure outcomes once per source id for the current batch. Render-pipeline validation remains request-scoped because pipeline state is part of its contract.
+
 `zircon_shader_prewarm` is the command-line wrapper used by `tools/zircon_build.py --prewarm-shaders`. It can read an explicit manifest JSON, add the built-in fallback manifest, and write cache entries into the staged payload at `ZirconEngine/cache/shader_variants` with a sibling JSON report. Runtime mesh cache lookup now checks the writable runtime cache first and then that staged prewarm cache.
+
+For asset roots, the wrapper persists a bounded inventory snapshot under `<cache-root>/asset_inventories`. File length and modification time only decide whether that snapshot can be reused; source and variant identity remain content-derived. The compact-index fast path also refuses a symlink or Windows reparse point before it can classify an asset tree as unchanged. Schema 4 writes a compact index beside the hydrated payload, so an unchanged warm run with only default local dimensions checks compact file and directory stats and skips asset projection without deserializing cached WGSL or metadata bodies. External quality, geometry, permutation, resource-registry, or registry-export inputs conservatively hydrate and rebuild as required. A changed source is projected through the SCC-condensed include graph's reverse-dependency closure. External include content hashes are interned once per graph batch; graph edges retain only scalar table indices, avoiding a content-hash allocation for every high-fanout import. Snapshot writes stream to a temporary file and rename it only after a complete write. A nested cache root is excluded before scanning and is part of the snapshot scan-shape identity, so cache writes cannot invalidate or contaminate the asset inventory. A cache root equal to an asset root is rejected because it cannot safely distinguish generated entries from source assets.
 
 The custom-id fallback contract uses that same lookup chain for plugin-range
 shader dimensions. `render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root`
@@ -96,4 +116,4 @@ then requires `ShaderVariantCacheDisk::with_fallback_roots(&runtime_root, [&stag
 to hit the same canonical key without creating or writing the runtime root.
 Status: `render_plan08_runtime_custom_id_staged_fallback_lookup_static_passed_cargo_deferred`.
 
-The current prewarm scope covers the built-in base forward fallback mesh shader and manifest-driven writes. Velocity, TAA reactive, deferred/template variants, asset-scanned material manifests, actual device compilation, and the final "second startup compile miss = 0" product acceptance remain future slices.
+The current prewarm scope covers built-in fallback permutations, manifest-driven writes, and asset-root material manifests assembled from the bounded inventory. Optional headless WGPU module and render-pipeline validation consume the same manifest source table. The final product gate remains a real second startup with zero runtime compilation misses against a rendered scene.

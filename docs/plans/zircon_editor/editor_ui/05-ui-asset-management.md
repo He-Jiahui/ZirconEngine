@@ -24,7 +24,7 @@ plan_sources:
   - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
-status: planned
+status: in_progress
 ---
 
 # 05 UI 资产管理收束
@@ -52,17 +52,17 @@ status: planned
 
 ### 2.2 真实缺口
 
-1. **类型缺两个**：`UiThemeAsset`（计划 04 需要，grep 无命中）、`UiIconAsset`（图标无统一资产通道，web 原型用内联 SVG）。
-2. **依赖索引未成查询面**：引用收集与 graph classify 存在，但无「谁引用我 / 我引用谁」双向查询 API，editor resource browser 无数据面；node 治理脚本仍是 `.zui` import 图的事实来源之一。
-3. **resource refs 只到路径级**：`UiResourcePathResolver` 解析到文件路径；「icon → atlas slot、texture → GPU handle、font → font_id」的消费级解析（M15 主体）与占位/诊断未完成。
-4. **热重载链未全类型贯通**：watch → 级联指纹失效 → 重编译 → restyle/重建受影响子树 → damage 的端到端验收未达成（theme/icon 类型尚不存在）。
-5. **无 persistent compiled cache**：file cache 只缓存源加载，冷启动全量编译；staged build payload 不含 compiled artifact。
+1. **资产类型已存在但载体硬切未闭环**：`UiThemeAsset`、`UiIconAsset` 已在统一 UI asset 模块落地；theme importer 仍需完全经过 `.zui` `theme_tokens` profile 与 `asset.kind` 校验，避免裸 TOML 入口重新成为第二载体。
+2. **依赖索引已存在但查询与规模合同未闭环**：`UiAssetDependencyIndex` 已提供依赖数据面；editor resource browser、watch 级联的有界扫描，以及与 node 治理脚本的一致性仍需验收。
+3. **消费级 resolver 已有落点但产品覆盖未闭环**：resource resolver、resolution report 与热重载计划已存在；icon atlas slot、GPU handle、font face 与 theme 的实际消费、占位资源和可查询诊断仍需端到端证据。
+4. **热重载链已有实现但全类型闭环未达成**：watch、依赖索引与 invalidation 路径已存在；仍需证明 `.zui`/theme/icon/font 变更只重编译并 damage 受影响节点，不发生全图扫描或无关子树重建。
+5. **persistent compiled store 已存在但生命周期未收束**：`UiCompiledArtifactStore` 与 v2 file cache 已接线；仍需解决重复解析/owned artifact、无界 stale artifact、generation 所有权和 staged build payload 验收。
 
 ## 3. 设计
 
 ### 3.1 资产类型与引用图
 
-- 类型收口：补注册 `UiThemeAsset`（包 `UiThemeDocument`，04 M1 类型）与 `UiIconAsset`（SVG 源 → tessellation 或 SDF 位图，栅格策略衔接 03）；既有 `UiV2ComponentAsset`/`UiV2ViewAsset`/`FontAsset`/`TextureAsset` 维持。
+- 类型收口：复核并收束现有 `UiThemeAsset`（包 `UiThemeDocument`，04 M1 类型）与 `UiIconAsset`（SVG 源 → tessellation 或 SDF 位图，栅格策略衔接 03）的 importer/facade/消费链；既有 `UiV2ComponentAsset`/`UiV2ViewAsset`/`FontAsset`/`TextureAsset` 维持。
 - 权威依赖索引归 runtime：编译期把 `imports`（组件→组件）、`resource_refs`（组件→icon/font/texture/theme）、`localization_refs` 写入 prototype store 旁的 `UiAssetDependencyIndex`；watch 事件沿索引做级联指纹失效（叶子改动只重编译受影响者）。
 - node 治理脚本继续作 CI 把关，但 runtime 索引是运行时事实来源；CI 增加双跑一致性对比。
 
@@ -97,14 +97,14 @@ impl UiThemeAssetDocument {
     pub fn from_zui_theme_tokens(document: &str) -> Result<Self, UiAssetDocumentError>;   // 经 .zui profile 分派
 }
 
-// 新增 zircon_runtime/src/asset/assets/ui_icon.rs
+// 现有 zircon_runtime/src/asset/assets/ui.rs 中的 UiIconAsset
 pub struct UiIconAsset {
     pub source: UiIconSource,                   // Svg { text: String } | Bitmap { ... }
     pub default_size: f32,
     pub semantic_id: String,                    // "icons/scene" 等稳定 id
 }
 
-// 新增 zircon_runtime/src/ui/template/asset/dependency_index.rs
+// 现有 zircon_runtime/src/ui/template/asset/dependency_index.rs
 pub struct UiAssetDependencyIndex {
     /* imports / resource_refs / localization_refs 正反向表，编译期填充 */
 }
@@ -130,7 +130,7 @@ impl UiResourceResolver {
     pub fn diagnostics(&self) -> &[UiResourceResolveDiagnostic];
 }
 
-// 新增 zircon_runtime/src/ui/template/asset/compiler/cache/persistent.rs
+// 现有 zircon_runtime/src/ui/template/asset/compiler/cache/persistent.rs
 pub struct UiCompiledArtifactStore { root: PathBuf /* 工作区缓存目录约定 */ }
 pub struct UiCompiledArtifactKey { pub asset_id: String, pub fingerprint: u64, pub schema_version: u32, pub compiler_version: u32 }
 impl UiCompiledArtifactStore {
@@ -141,7 +141,7 @@ impl UiCompiledArtifactStore {
 
 ## 5. 模块与文件落点
 
-**新增**：`zircon_runtime/src/asset/assets/{ui_theme.rs, ui_icon.rs}`、`zircon_runtime/src/ui/template/asset/dependency_index.rs`、`zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs`、`zircon_runtime/src/ui/template/asset/compiler/cache/persistent.rs`、`zircon_runtime/src/ui/icon_atlas/{mod.rs, raster.rs, atlas.rs}`（M4 图标通道）、`zircon_editor/assets/ui/editor/icons/`（默认图标包）
+**已有并待收束**：`zircon_runtime/src/asset/assets/ui.rs`、`zircon_runtime/src/ui/template/asset/dependency_index.rs`、`zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs`、`zircon_runtime/src/ui/template/asset/compiler/cache/persistent.rs`。**仍待新增或完成产品接线**：`zircon_runtime/src/ui/icon_atlas/{mod.rs, raster.rs, atlas.rs}`（仅在 M4 复用 graphics/text 图集评估否定后）、`zircon_editor/assets/ui/editor/icons/`（默认图标包）。
 
 **修改**：
 
@@ -172,24 +172,24 @@ impl UiCompiledArtifactStore {
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
-| M1.S1 | `UiThemeAsset` + `UiIconAsset` 类型与注册（照 font.rs 样板：assets + facade + importer ingest）。（2026-07-02 评审收口）theme 侧改为：为 `asset.kind = theme_tokens` 补物化/facade 注册，**复用 `.zui` importer 分派**，不引入第二载体；`UiThemeAssetDocument::from_toml_str` 草案作废。M1 **不含字体切片**（原 03 弱依赖改指向 text/01 FR-M2） | ui_theme.rs、ui_icon.rs、facade/impls.rs | `cargo test -p zircon_runtime --lib asset --locked` | 无删除 |
-| M1.S2 | `UiAssetDependencyIndex`：编译期收集三类引用写入（复用 ui_v2_asset_references + resource_ref/collect） | dependency_index.rs、loader.rs | `cargo test -p zircon_runtime --lib dependency_index --locked` | 无删除 |
+| M1.S1 | 收束现有 `UiThemeAsset` + `UiIconAsset` 类型与注册（照 font.rs 样板：assets + facade + importer ingest）。（2026-07-02 评审收口）theme 侧要求 `asset.kind = theme_tokens` 物化/facade 注册，**复用 `.zui` importer 分派**，不引入第二载体；裸 `from_toml_str` 入口不得成为公开载体。M1 **不含字体切片**（原 03 弱依赖改指向 text/01 FR-M2） | assets/ui.rs、facade/impls.rs、importer/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter asset` | 裸 TOML 载体入口硬切 |
+| M1.S2 | 收束现有 `UiAssetDependencyIndex`：编译期收集三类引用写入（复用 ui_v2_asset_references + resource_ref/collect） | dependency_index.rs、loader.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter dependency_index` | 无删除 |
 | M1.S3 | 双向查询测试 + 与 node 脚本结论一致性对比（CI 双跑） | 测试 + CI 脚本 | 同上 + node 脚本 | node 脚本降级为把关 |
-| M2.S1 | watch → classify → 级联指纹失效贯通（fold_events 接 dependency_index） | watch 消费侧、invalidation/ | `cargo test -p zircon_runtime --lib invalidation --locked` | 无删除 |
-| M2.S2 | 全类型热重载：`.zui`/template/theme/icon/font 改文件 → 即时生效 | 各类型分流路径 | 实机 + `cargo test -p zircon_runtime --lib hot_reload --locked` | 无删除 |
+| M2.S1 | watch → classify → 级联指纹失效贯通（fold_events 接 dependency_index） | watch 消费侧、invalidation/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter invalidation` | 无删除 |
+| M2.S2 | 全类型热重载：`.zui`/template/theme/icon/font 改文件 → 即时生效 | 各类型分流路径 | 实机 + `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter hot_reload` | 无删除 |
 | M2.S3 | 级联范围测试：叶子改动只重编译受影响者（编译计数断言） | 测试 | 同上 | 无删除 |
-| M3.S1 | `UiResourceResolver` 消费级解析（icon/texture/font/theme 四类） | resource_ref/resolver.rs | `cargo test -p zircon_runtime --lib resource_resolver --locked` | resolve 职责收口 |
+| M3.S1 | `UiResourceResolver` 消费级解析（icon/texture/font/theme 四类） | resource_ref/resolver.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter resource_resolver` | resolve 职责收口 |
 | M3.S2 | 占位资源 + 诊断：缺失引用不 panic、不空白、诊断可查询 | resolver.rs | 同上 | 无删除 |
-| M3.S3 | resource browser 数据面：双向查询暴露给 editor（供 09 批次 3） | editor 消费接口 | `cargo test -p zircon_editor --lib --locked` | 无删除 |
-| M4.S1 | （2026-07-02 评审收口）先评估**复用 graphics/text 图集设施**（R8/Rgba8 格式分组分页、脏矩形上传、页 LRU，text/04/05），避免重复建设；评估通过则图标通道挂其图集，仅在结论否定时才自建 icon_atlas。其余：SVG 解析（限定子集）→ 栅格（tessellation/SDF，衔接 03 raster 策略）→ atlas slot | ui/icon_atlas/（或 graphics/text 图集复用点） | `cargo test -p zircon_runtime --lib icon_atlas --locked` | 无删除 |
-| M4.S2 | 默认图标包 + 图标渲染对拍 + asset 测试 | editor assets/icons/ | `cargo test -p zircon_editor --lib --locked` + 实机 | 模板内联 icon 路径切资产引用 |
-| M5.S1 | `UiCompiledArtifactStore` 落盘（指纹含 schema/编译器版本，失配即弃） | cache/persistent.rs | `cargo test -p zircon_runtime --lib persistent_cache --locked` | 无删除 |
+| M3.S3 | resource browser 数据面：双向查询暴露给 editor（供 09 批次 3） | editor 消费接口 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` | 无删除 |
+| M4.S1 | （2026-07-02 评审收口）先评估**复用 graphics/text 图集设施**（R8/Rgba8 格式分组分页、脏矩形上传、页 LRU，text/04/05），避免重复建设；评估通过则图标通道挂其图集，仅在结论否定时才自建 icon_atlas。其余：SVG 解析（限定子集）→ 栅格（tessellation/SDF，衔接 03 raster 策略）→ atlas slot | ui/icon_atlas/（或 graphics/text 图集复用点） | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter icon_atlas` | 无删除 |
+| M4.S2 | 默认图标包 + 图标渲染对拍 + asset 测试 | editor assets/icons/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` + 实机 | 模板内联 icon 路径切资产引用 |
+| M5.S1 | 收束现有 `UiCompiledArtifactStore` 落盘生命周期（指纹含 schema/编译器版本，失配即弃） | cache/persistent.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter persistent_cache` | 无删除 |
 | M5.S2 | 冷启动接缓存：v2 loader 先查 store；冷启动时间对比基准记录 | v2/loader.rs、file_cache.rs | 同上 + 启动计时 | 无删除 |
 | M5.S3 | staged build 集成：compiled artifact 进 payload + M16 包验证通过 | tools/zircon_build.py | `python tools/zircon_build.py --targets editor --out <tmp> --mode debug` | 无删除 |
 
 ## 8. 测试矩阵（代表性用例）
 
-- **M1**：`ui_theme_asset_round_trips_toml`、`ui_icon_asset_registers_in_facade`、`dependency_index_resolves_bidirectional_refs`、`runtime_index_matches_node_script_graph`
+- **M1**：`ui_theme_tokens_zui_profile_round_trips`、`ui_icon_asset_registers_in_facade`、`dependency_index_resolves_bidirectional_refs`、`runtime_index_matches_node_script_graph`
 - **M2**：`leaf_zui_change_invalidates_only_dependents`、`theme_file_touch_triggers_restyle_not_rebuild`、`icon_change_damages_referencing_nodes_only`
 - **M3**：`missing_icon_ref_yields_placeholder_with_diagnostic`、`resolver_caches_handle_per_reference`、`browser_query_lists_dependents_of_texture`
 - **M4**：`svg_icon_rasterizes_into_atlas_slot`、`icon_render_extract_matches_native_painter`
@@ -223,7 +223,7 @@ impl UiCompiledArtifactStore {
 - 依赖索引双向查询可用且与 CI 脚本一致；缺失引用产生占位 + 诊断。
 - 图标走资产通道渲染（对拍通过）；冷启动命中 persistent cache（时间对比有记录）。
 - `python tools/zircon_build.py` 产物含 compiled artifact 且包验证通过。
-- 验收命令组：`cargo test -p zircon_runtime --lib --locked`（asset/dependency_index/resource_resolver/icon_atlas/persistent_cache 过滤）、`cargo test -p zircon_editor --lib --locked`、staged build 实跑。
+- 验收命令组：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter asset`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`、staged build 实跑。
 
 ## 12. 边界约束
 
@@ -247,15 +247,14 @@ impl UiCompiledArtifactStore {
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-- 当前失败交接（`open / 待修复`）：[`05/failure-2026-07-11-ui-asset-v2-projection-drift.md`](05/failure-2026-07-11-ui-asset-v2-projection-drift.md)
-- 已修复回传 Plugins 06 AI 的共享编译交接：[`../../zircon_plugins/06/fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md`](../../zircon_plugins/06/fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md)
+本计划仍处于 `in_progress`；UI asset 类型、索引、resolver 与 compiled store 已有实现基础，产品接线、规模合同和运行时验收仍待闭环。
 
-| 日期 | 范围 | 状态 | 完成项目 | 验证 |
-| --- | --- | --- | --- | --- |
-| 2026-06-28 | Plan 11 M5 UI asset management `.zui` scope guard | editor_ui_11_m5_ui_asset_management_plan_zui_scope_guard_passed | §1 当前目标已从 `.zui` 单组件 + `.v2.ui.toml` 页面模板改为 `.zui` UI 文档统一入口，并明确 component / view / style / theme_tokens 由 `asset.kind` profile 承载；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前页面模板或布局描述入口。 | 新增 `test_ui_asset_management_plan_uses_zui_for_current_asset_scope`；RED 先失败列出旧 `.v2.ui.toml` 页面模板口径，GREEN 后通过。该切片不改生产代码、不运行 Cargo。 |
-| 2026-07-02 | 评审收口（文档修订） | editor_ui_05_review_alignment_recorded | M1.S1 theme 侧改为 theme_tokens profile 物化/facade 注册（U6，from_toml_str 草案作废）；`UiResourceResolver::Font` 改用 text/01 `FontFaceId`；§3.4 补字体资产 schema 演进归 text/01 FR-M2；M4.S1 改为先评估复用 graphics/text 图集设施（text/04/05）；M1 明确不含字体切片。 | 文档修订，无代码变更。 |
-| 2026-07-22 | Performance handoff：authoring projection与drag storm | partial direct fix / 动态闭环待办 | `editing`测试40/40静态复核确认UI asset authoring规模合同仍缺失。已在session选择/revalidate时缓存`selected_palette_entry`，palette move不再重建完整native/component/import catalog，源码合同3/3通过；但每次target resolve仍重建preview projection，`pane_presentation()`仍重建source outline、mock/schema/state graph、binding与theme compare/cascade。M2/M3验收补1/100/10k nodes/rules/imports、125/500/1000 Hz drag/typing的full projection count、visited nodes、allocated bytes和主线程p95；stable generation build=0、同frame/domain build≤1，并保留slot chooser/undo/source cursor/像素语义。 | current-source Cargo、F4产品trace、Softbuffer/GPU像素与RenderDoc待办；继续归PERF-MVP-081/082/305–311。 |
-| 2026-07-23 | Runtime interface component template handoff | editor_ui_05_component_template_generation_performance_pending | `ui/component/**`确认`UiDefaultNodeTemplate::instantiate`为每node深cloneclasses/props/layout，descriptor还把同一template clone到palette；UiValue在TOML↔typed递归重建。EditorUI05按PERF-MVP-274/305让compiled asset generation长期拥有canonical template/value graph，palette insert只提交node identity/override handle，不复制模板全量；stable preview不得重复TOML conversion。参考Slint `ItemRc=shared ItemTree+u32 index`与静态ItemTreeNode数组的owner原则。 | instances/templates/props 1/100/10k、value depth 1/8/64记录template/TOML clone bytes、node writes、owners、RSS与p95；每generation payload owner=1、每instance工作随override、stable parse/clone=0，Cargo/F4 palette/preview待验收。 |
-| 2026-07-23 | Runtime interface template package/validation handoff | editor_ui_05_template_package_generation_performance_pending | `ui/template/**`确认cache snapshot clone fingerprint maps，package/cache record重复metadata且对同一artifact双hash；binding/selector/resource/action反复lex/parse/lowercase/path format并无规模预算；invalidation impact把resource/selector变化过宽升级。EditorUI05按PERF-MVP-308/309/311发布single artifact metadata owner、single-pass fingerprint、budgeted typed validation arena及asset/dependent/node reverse index；参考Slint typed-index lowering与Bevy `AssetInfos`反向依赖owner。 | assets/imports/nodes/rules/dependencies各1/100/10k、artifact 1 KiB/1/100 MiB记录hash passes/bytes、metadata owners/clone、parse/index builds、dirty nodes/domains、RSS与p95；每artifact hash=1、generation owner=1、stable parse/hash=0、resource-only不重建树，Cargo/F4 preview/edit/hot-reload待验收。 |
-| 2026-07-23 | Runtime interface v2 compiled graph clean handoff | editor_ui_05_v2_compiled_graph_owner_performance_pending | `ui/v2/{arena,compiled,graph}.rs`确认u32 dense handle正确，但runtime compiler从arena再复制source id、component与children建立第二份component graph，compiled document还持String→handle map。EditorUI05按PERF-MVP-274/312让canonical arena只存一次identity/topology，以dense parent/child/component side table服务preview/surface，不重建wide graph。参考Slint typed index lowering的single state/owner。 | nodes/components 1/100/10k、id 0/64/4KiB记录String/children clone bytes、owners、RSS与compile/preview p95；identity/topology owner=1、stable preview graph rebuild=0，Cargo/F4 `.zui`待验收。 |
-| 2026-07-23 | Runtime interface tree paint-order build handoff | editor_ui_05_tree_bulk_paint_order_performance_pending | `UiTree::insert_root/insert_child`每次全扫已有nodes求max，template tree builder逐节点插入使大`.zui`构树O(N²)。EditorUI05按PERF-MVP-573让compiled arena/canonical output order直接喂bulk tree build，禁止每node回扫；dynamic insert由Runtime09唯一derived cursor处理。参考Slint lowering一次生成typed item-tree index。 | nodes 1/100/10k/100k记录paint-order visits/comparisons、tree writes、build/preview p95与RSS；bulk max scans=0、总work非O(N²)，paint/hit/navigation order及serde/Cargo/F4 large preview等价。 |
+- 迁入产出记录：[UI asset output/performance handoffs](05/2026-08-01-ui-asset-output-performance-handoffs.md)
+- open / 待修复：[UI asset v2 projection drift](05/failure-2026-07-11-ui-asset-v2-projection-drift.md)
+- open / 待修复：[template projection deep-copy and cache generation](05/failure-2026-07-17-template-projection-deep-copy-and-cache-generation.md)
+- open / 待修复：[runtime UI template authoring linear index and style copy](05/failure-2026-07-18-runtime-ui-template-authoring-linear-index-and-style-copy.md)
+- open / 待修复：[runtime UI template hot-reload resolver full scan](05/failure-2026-07-18-runtime-ui-template-hot-reload-resolver-full-scan.md)
+- open / 待修复：[runtime UI v2 file-cache fs poll and stale artifacts](05/failure-2026-07-18-runtime-ui-v2-file-cache-fs-poll-and-unbounded-stale-artifacts.md)
+- open / 待修复：[runtime UI v2 instancing and compile full projection](05/failure-2026-07-18-runtime-ui-v2-instancing-and-compile-full-projection.md)
+- open / 待修复：[runtime UI v2 persistent-cache reparse and owned artifacts](05/failure-2026-07-18-runtime-ui-v2-persistent-cache-reparse-and-owned-artifacts.md)
+- fixed / 已修复：[runtime interface UI resource-ref hard cutover](../../zircon_plugins/06/fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md)

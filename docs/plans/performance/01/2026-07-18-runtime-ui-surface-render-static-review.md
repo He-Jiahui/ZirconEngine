@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/ui/surface/render/**/*.rs
-  - zircon_runtime/src/ui/tests/render_*.rs
+  - zircon_runtime/src/ui/surface/render/
+  - zircon_runtime/src/ui/tests/
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/03-text-and-font-stack.md

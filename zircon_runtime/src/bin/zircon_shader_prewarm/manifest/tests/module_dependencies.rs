@@ -62,18 +62,15 @@ wgsl_files = ["noise.wgsl"]
     .unwrap();
 
     let first = asset_root_manifest(&root).unwrap();
-    let hero_first = first
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("hero/hero.zshader"))
-        .expect("hero surface request");
-    let observer_first = first
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("observer/observer.zshader"))
-        .expect("observer surface request");
+    let hero_first = super::request_for_source_label(&first, "hero/hero.zshader");
+    let observer_first = super::request_for_source_label(&first, "observer/observer.zshader");
     assert!(
-        hero_first.include_content_hashes.len() > observer_first.include_content_hashes.len(),
+        super::source_for(&first, hero_first)
+            .include_content_hashes
+            .len()
+            > super::source_for(&first, observer_first)
+                .include_content_hashes
+                .len(),
         "imported include content hashes must be attached to the referencing surface"
     );
 
@@ -83,16 +80,8 @@ wgsl_files = ["noise.wgsl"]
     )
     .unwrap();
     let second = asset_root_manifest(&root).unwrap();
-    let hero_second = second
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("hero/hero.zshader"))
-        .expect("hero surface request after include edit");
-    let observer_second = second
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("observer/observer.zshader"))
-        .expect("observer surface request after include edit");
+    let hero_second = super::request_for_source_label(&second, "hero/hero.zshader");
+    let observer_second = super::request_for_source_label(&second, "observer/observer.zshader");
 
     assert_ne!(
         hero_first.key.material_revision, hero_second.key.material_revision,
@@ -101,6 +90,90 @@ wgsl_files = ["noise.wgsl"]
     assert_eq!(
         observer_first.key.material_revision, observer_second.key.material_revision,
         "non-referencing shader must keep its revision when an unrelated include module changes"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn shader_prewarm_asset_root_manifest_tracks_transitive_include_module_revisions() {
+    let root = std::env::temp_dir().join(format!(
+        "zircon_shader_prewarm_transitive_include_revision_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("shaders/materials/hero")).unwrap();
+    fs::create_dir_all(root.join("shaders/includes/mid")).unwrap();
+    fs::create_dir_all(root.join("shaders/includes/leaf")).unwrap();
+    fs::write(
+        root.join("shaders/materials/hero/hero.zshader"),
+        r#"version = 2
+kind = "surface"
+wgsl_files = ["surface.wgsl"]
+shading_model = "standard_pbr"
+
+[[imports]]
+source = "project::includes::mid"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/materials/hero/surface.wgsl"),
+        "#include <project::includes::mid>\nfn hero_surface() {}\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/includes/mid/mid.zshader"),
+        r#"version = 2
+kind = "include"
+import_path = "project::includes::mid"
+wgsl_files = ["mid.wgsl"]
+
+[[imports]]
+source = "project::includes::leaf"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/includes/mid/mid.wgsl"),
+        "#include <project::includes::leaf>\nfn mid_value() -> f32 { return leaf_value(); }\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/includes/leaf/leaf.zshader"),
+        r#"version = 2
+kind = "include"
+import_path = "project::includes::leaf"
+wgsl_files = ["leaf.wgsl"]
+"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/includes/leaf/leaf.wgsl"),
+        "fn leaf_value() -> f32 { return 0.25; }\n",
+    )
+    .unwrap();
+
+    let first = asset_root_manifest(&root).unwrap();
+    let hero_first = super::request_for_source_label(&first, "hero/hero.zshader");
+    assert!(
+        super::source_for(&first, hero_first)
+            .include_content_hashes
+            .len()
+            >= 3,
+        "the root surface should retain its own, intermediate, and leaf dependency hashes"
+    );
+
+    fs::write(
+        root.join("shaders/includes/leaf/leaf.wgsl"),
+        "fn leaf_value() -> f32 { return 0.75; }\n",
+    )
+    .unwrap();
+    let second = asset_root_manifest(&root).unwrap();
+    let hero_second = super::request_for_source_label(&second, "hero/hero.zshader");
+
+    assert_ne!(
+        hero_first.key.material_revision, hero_second.key.material_revision,
+        "a transitive include edit must invalidate every referencing shader revision"
     );
     let _ = fs::remove_dir_all(root);
 }
@@ -161,18 +234,15 @@ shading_model = "standard_pbr"
         None,
     )
     .unwrap();
-    let hero_first = first
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("hero/hero.zshader"))
-        .expect("hero surface request");
-    let observer_first = first
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("observer/observer.zshader"))
-        .expect("observer surface request");
+    let hero_first = super::request_for_source_label(&first, "hero/hero.zshader");
+    let observer_first = super::request_for_source_label(&first, "observer/observer.zshader");
     assert!(
-        hero_first.include_content_hashes.len() > observer_first.include_content_hashes.len(),
+        super::source_for(&first, hero_first)
+            .include_content_hashes
+            .len()
+            > super::source_for(&first, observer_first)
+                .include_content_hashes
+                .len(),
         "registry shader module hash must be attached to the referencing surface"
     );
 
@@ -191,16 +261,8 @@ shading_model = "standard_pbr"
         None,
     )
     .unwrap();
-    let hero_second = second
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("hero/hero.zshader"))
-        .expect("hero surface request after registry module edit");
-    let observer_second = second
-        .variants
-        .iter()
-        .find(|request| request.source_label.ends_with("observer/observer.zshader"))
-        .expect("observer surface request after registry module edit");
+    let hero_second = super::request_for_source_label(&second, "hero/hero.zshader");
+    let observer_second = super::request_for_source_label(&second, "observer/observer.zshader");
 
     assert_ne!(
         hero_first.key.material_revision, hero_second.key.material_revision,

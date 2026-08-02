@@ -55,4 +55,9 @@ events/messages没有统一World/schedule lifecycle authority：messages把reten
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `前向修复中`; no pass is claimed.
+
+- 已完成的底层收敛：`EventStore` 以单一 `active_channels` 工作集合推进队列；仅写入、尚有 current/next payload 或仍处于 capacity-shrink debounce 的 channel 会进入下一帧。稳定 idle channel 不再随全部注册类型逐帧扫描。`last_update_channel_visits` 与回归测试覆盖 idle 0 visits、写入后推进及递送后退休。
+- 已完成的消息下层收敛：`Messages<T>` 改为单调 `MessageId` 的 `VecDeque` 日志；`MessageRetention` 对 entry、消息自身声明的 retained-byte charge 与 age 设置硬上限。预算/age 逐出保留累计 entries/bytes telemetry；`MessageCursor` 用 sequence window 而非 Vec 下标读取，报告 slow-reader `dropped_count`，并以 explicit-clear generation 边界避免把主动清理误计为 lag。`MessageStore` 以单一 active-retention-channel worklist 推进，只有仍有 retained payload 的类型会留在下一帧；`World::last_message_advance_channel_visits()` 公开当前 First-stage worklist visit 计数；`advance_frame` 只由 First-stage `UpdateEvents` owner 调用，统一 age 回收。
+- 保持未完成：10k idle / 1M retained-message 的受管计数器与 p95/RSS probe 尚未执行；在其真实结果返回前，此 failure 仍不得关闭，也不能声称完整运行时验收通过。
+- 当前证据仅为消息/events 精确路径的 `rustfmt --check`、`git diff --check`、source invariant audit 与行为测试源码；尚未申请 Cargo 或受管 performance probe。

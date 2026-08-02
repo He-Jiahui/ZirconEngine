@@ -6,6 +6,17 @@ use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::project_access::normalize_ui_asset_asset_id;
+use crate::core::extension::{SaveCtx, SaveReason, ToolkitSaveFailure};
+
+pub(super) fn save_ui_asset_document(
+    host: &EditorUiHost,
+    instance_id: &ViewInstanceId,
+    context: &mut SaveCtx,
+) -> Result<(), ToolkitSaveFailure> {
+    let written_bytes = host.save_ui_asset_editor_canonical(instance_id)?;
+    context.record_written_bytes(written_bytes)?;
+    Ok(())
+}
 
 impl EditorUiHost {
     pub fn save_ui_asset_editor(
@@ -13,6 +24,18 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<String, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        self.save_document_toolkit(instance_id, SaveReason::Explicit)?;
+        let sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        Ok(entry.disk_source.clone())
+    }
+
+    fn save_ui_asset_editor_canonical(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<u64, EditorError> {
         let (saved, asset_id, source_path) = {
             let mut sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
@@ -45,7 +68,8 @@ impl EditorUiHost {
         }
         self.hydrate_ui_asset_editor_imports(instance_id)?;
         self.sync_ui_asset_editor_instance(instance_id)?;
-        Ok(saved)
+        u64::try_from(saved.len())
+            .map_err(|_| EditorError::UiAsset("saved ui asset size exceeds u64".to_string()))
     }
 
     pub fn save_ui_asset_editor_local_copy(

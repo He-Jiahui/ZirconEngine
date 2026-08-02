@@ -6,9 +6,10 @@ use crate::core::framework::render::{
     AdvancedRenderFeature, CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract,
     RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderHybridGiExtract,
     RenderHybridGiPayloadSource, RenderLayerSet, RenderMeshSnapshot, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, UVec2, Vec3, Vec4};
@@ -40,16 +41,12 @@ fn render_product_advanced_submits_vg_hgi_only_with_runtime_providers() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(
-        stats
-            .last_effective_features
-            .contains(&"virtual_geometry".to_string())
-    );
-    assert!(
-        stats
-            .last_effective_features
-            .contains(&"hybrid_gi".to_string())
-    );
+    assert!(stats
+        .last_effective_features
+        .contains(&"virtual_geometry".to_string()));
+    assert!(stats
+        .last_effective_features
+        .contains(&"hybrid_gi".to_string()));
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 5);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 4);
     assert_eq!(
@@ -85,16 +82,12 @@ fn render_product_advanced_degrades_without_runtime_providers() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(
-        !stats
-            .last_effective_features
-            .contains(&"virtual_geometry".to_string())
-    );
-    assert!(
-        !stats
-            .last_effective_features
-            .contains(&"hybrid_gi".to_string())
-    );
+    assert!(!stats
+        .last_effective_features
+        .contains(&"virtual_geometry".to_string()));
+    assert!(!stats
+        .last_effective_features
+        .contains(&"hybrid_gi".to_string()));
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 0);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
     assert_eq!(
@@ -114,13 +107,11 @@ fn render_product_advanced_degrades_without_runtime_providers() {
         assert!(report.requested);
         assert_eq!(report.provider_id, None);
         assert_eq!(report.status, AdvancedProviderStatus::Degraded);
-        assert!(
-            report
-                .degradations
-                .iter()
-                .any(|degradation| degradation.reason
-                    == AdvancedRenderDegradationReason::ProviderMissing)
-        );
+        assert!(report
+            .degradations
+            .iter()
+            .any(|degradation| degradation.reason
+                == AdvancedRenderDegradationReason::ProviderMissing));
     }
 }
 
@@ -180,6 +171,24 @@ fn render_product_hzb_occlusion_wall_scene() {
         &fallback_frame,
         "HZB occlusion should match the occlusion-disabled product baseline",
     );
+}
+
+#[test]
+fn render_product_hzb_occlusion_default_keeps_indirect_args_gpu_resident() {
+    let (_, stats) = render_hzb_occlusion_wall_scene_with_submission_config(
+        hzb_occlusion_wall_capabilities(),
+        UVec2::new(320, 240),
+        RenderSubmissionConfig::synchronous(),
+    );
+
+    assert!(stats.last_hzb_occlusion_reported);
+    assert!(stats.last_hzb_occlusion_readback_available);
+    assert!(
+        !stats.last_hzb_occlusion_indirect_args_readback_available,
+        "the default pipeline must not copy HZB indirect arguments back to the CPU"
+    );
+    assert_eq!(stats.last_hzb_occlusion_readback_arg_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 0);
 }
 
 #[test]
@@ -370,8 +379,23 @@ fn render_hzb_occlusion_wall_scene(
     capabilities: RenderCapabilitySummary,
     viewport_size: UVec2,
 ) -> (CapturedFrame, RenderStats) {
+    render_hzb_occlusion_wall_scene_with_submission_config(
+        capabilities,
+        viewport_size,
+        RenderSubmissionConfig::synchronous().with_hzb_indirect_args_readback(),
+    )
+}
+
+fn render_hzb_occlusion_wall_scene_with_submission_config(
+    capabilities: RenderCapabilitySummary,
+    viewport_size: UVec2,
+    submission_config: RenderSubmissionConfig,
+) -> (CapturedFrame, RenderStats) {
     let server =
         WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    server
+        .set_submission_config(submission_config)
+        .unwrap();
     server.override_capabilities_for_tests(capabilities);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

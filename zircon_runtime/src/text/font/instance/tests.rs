@@ -3,7 +3,7 @@ use super::*;
 use std::path::Path;
 
 use crate::text::font::face_metadata::FontFaceMetadata;
-use crate::text::{FontFaceId, VariationCoords};
+use crate::text::{FontFaceId, InstancedFaceId, VariationCoords};
 
 const WGHT: u32 = u32::from_be_bytes(*b"wght");
 const WDTH: u32 = u32::from_be_bytes(*b"wdth");
@@ -64,6 +64,67 @@ fn text_font_instance_identity_separates_faces_and_coordinates() {
 
     assert_ne!(regular, bold);
     assert_ne!(regular, other_face);
+}
+
+#[test]
+fn text_font_effective_instance_cache_evicts_lru_without_a_full_table_scan() {
+    let source = include_str!("../instance.rs");
+    assert!(
+        !source.contains(".min_by_key("),
+        "effective-instance eviction must use its linked LRU owner rather than scan every entry"
+    );
+
+    let cache = EffectiveInstanceCache::default();
+    for value in 0..EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64 {
+        cache.insert(
+            effective_instance_key(value),
+            effective_instance_value(value),
+        );
+    }
+
+    assert!(cache.get(effective_instance_key(0)).is_some());
+    cache.insert(
+        effective_instance_key(0),
+        effective_instance_value(EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64 + 1),
+    );
+    cache.insert(
+        effective_instance_key(EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64),
+        effective_instance_value(EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64),
+    );
+
+    assert!(cache.get(effective_instance_key(0)).is_some());
+    assert!(cache.get(effective_instance_key(1)).is_none());
+    assert_eq!(
+        cache.get(effective_instance_key(0)).map(|value| value.id),
+        Some(InstancedFaceId(
+            EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64 + 1
+        ))
+    );
+    assert!(
+        cache
+            .get(effective_instance_key(
+                EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64
+            ))
+            .is_some()
+    );
+    let report = cache.report();
+    assert_eq!(report.entry_count, EFFECTIVE_INSTANCE_CACHE_CAPACITY);
+    assert_eq!(report.eviction_count, 1);
+}
+
+fn effective_instance_key(value: u64) -> EffectiveInstanceCacheKey {
+    EffectiveInstanceCacheKey {
+        face: FontFaceId(value),
+        instance: InstancedFaceId(value),
+        font_weight: 400,
+    }
+}
+
+fn effective_instance_value(value: u64) -> EffectiveInstanceCacheValue {
+    EffectiveInstanceCacheValue {
+        id: InstancedFaceId(value),
+        variations: std::sync::Arc::new(VariationCoords::default()),
+    }
 }
 
 #[test]

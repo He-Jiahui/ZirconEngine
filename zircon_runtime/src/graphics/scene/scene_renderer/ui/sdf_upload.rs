@@ -1,11 +1,11 @@
 use crate::text::atlas::{
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasUploadCommand,
-    GlyphAtlasUploadMode, glyph_atlas_upload_command,
+    glyph_atlas_upload_command, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
+    GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
 };
-use crate::text::sdf::SdfAtlasRect;
+use crate::text::sdf::{SdfAtlasBakeDirtyPage, SdfAtlasRect};
 
 use super::sdf_atlas::{
-    SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, distance_field_atlas_page_keys,
+    distance_field_atlas_page_keys, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -35,6 +35,32 @@ pub(super) struct SdfAtlasUploadPageReport {
 }
 
 pub(super) type SdfAtlasUploadCommand = GlyphAtlasUploadCommand;
+
+pub(super) fn merge_sdf_bake_dirty_pages(
+    atlas_cache: &mut SdfAtlasCacheReport,
+    bake_dirty_pages: &[SdfAtlasBakeDirtyPage],
+) {
+    for bake_page in bake_dirty_pages {
+        if let Some(cache_page) = atlas_cache
+            .dirty_pages
+            .iter_mut()
+            .find(|cache_page| cache_page.page_key == bake_page.page_key)
+        {
+            cache_page.dirty_rect = union_rect(cache_page.dirty_rect, bake_page.dirty_rect);
+        } else {
+            atlas_cache.dirty_pages.push(SdfAtlasDirtyPageReport {
+                page_key: bake_page.page_key,
+                dirty_rect: bake_page.dirty_rect,
+            });
+        }
+    }
+    atlas_cache.dirty_pages.sort_by_key(|page| page.page_key);
+    atlas_cache.dirty_rect = atlas_cache
+        .dirty_pages
+        .iter()
+        .find(|page| page.page_key == GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0))
+        .map(|page| page.dirty_rect);
+}
 
 pub(super) fn sdf_atlas_upload_report(
     atlas_plan: &SdfAtlasPlan,
@@ -211,6 +237,25 @@ fn sdf_upload_page_report(page: &SdfAtlasDirtyPageReport) -> SdfAtlasUploadPageR
         byte_len: page.dirty_rect.width as usize
             * page.dirty_rect.height as usize
             * bytes_per_pixel,
+    }
+}
+
+fn union_rect(left: SdfAtlasRect, right: SdfAtlasRect) -> SdfAtlasRect {
+    let x = left.x.min(right.x);
+    let y = left.y.min(right.y);
+    let right_edge = left
+        .x
+        .saturating_add(left.width)
+        .max(right.x.saturating_add(right.width));
+    let bottom_edge = left
+        .y
+        .saturating_add(left.height)
+        .max(right.y.saturating_add(right.height));
+    SdfAtlasRect {
+        x,
+        y,
+        width: right_edge.saturating_sub(x),
+        height: bottom_edge.saturating_sub(y),
     }
 }
 

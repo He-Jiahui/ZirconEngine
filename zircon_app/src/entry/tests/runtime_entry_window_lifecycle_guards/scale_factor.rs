@@ -19,10 +19,10 @@ fn runtime_entry_forwards_backend_scale_factor_before_logical_scale_factor() {
         &[
             "fn handle_window_scale_factor_changed",
             "ZrRuntimeEventV1::window_backend_scale_factor_changed",
-            "self.session.handle_event(backend_event).is_err()",
+            "if !self.dispatch_runtime_event(event_loop, backend_event)",
             "return;",
             "ZrRuntimeEventV1::window_scale_factor_changed",
-            "self.session.handle_event(logical_event).is_err()",
+            "self.dispatch_runtime_event(event_loop, logical_event);",
         ],
         "runtime entry should forward backend scale-factor changes before logical scale-factor changes",
     );

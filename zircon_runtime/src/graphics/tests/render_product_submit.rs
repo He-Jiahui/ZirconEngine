@@ -6,17 +6,17 @@ use crate::asset::{
     ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DEFAULT_RENDER_LAYER_MASK,
-    DisplayMode, FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind,
-    PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract, RenderPhase,
-    RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature, RenderProductProfile,
-    RenderProfileBundle, RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode,
-    RenderSpriteSnapshot, RenderViewportDescriptor, RenderVirtualGeometryPayloadSource,
-    RenderWorldSnapshotHandle, ShaderAssetKind, SolariRuntimeStatus, SpriteExtract,
-    ViewportCameraSnapshot,
+    AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
+    FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind, PreviewEnvironmentExtract,
+    ProjectionMode, RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
+    RenderOverlayExtract, RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot,
+    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
+    RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot,
+    RenderViewportDescriptor, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
+    ShaderAssetKind, SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -482,7 +482,7 @@ pub(super) fn material_with_import_note() -> MaterialAsset {
         property_values: Default::default(),
         texture_slots: Default::default(),
         validation_diagnostics: vec![
-            "glTF material imported with generated renderer defaults".to_string(),
+            "glTF material imported with generated renderer defaults".to_string()
         ],
     }
 }

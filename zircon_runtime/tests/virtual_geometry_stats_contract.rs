@@ -65,6 +65,7 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
         page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,

@@ -1,6 +1,6 @@
 use crate::plugin::PluginMaturity;
 use crate::{
-    builtin::RuntimePluginId,
+    builtin::{BuiltinRuntimeModuleId, RuntimePluginId},
     core::framework::{platform::RuntimeTargetMode, project::RuntimeProfileId},
 };
 
@@ -35,6 +35,13 @@ impl RuntimeProfileDescriptor {
             "minimal",
             RuntimeTargetMode::ClientRuntime,
         )
+        .with_builtin_modules([
+            BuiltinRuntimeModuleId::Foundation,
+            BuiltinRuntimeModuleId::Tasks,
+            BuiltinRuntimeModuleId::Time,
+            BuiltinRuntimeModuleId::FrameCount,
+            BuiltinRuntimeModuleId::DiagnosticsCore,
+        ])
         .with_minimum_maturity(PluginMaturity::Core)
         .with_required_capability("runtime.core.lifecycle")
         .with_required_capability("runtime.core.tasks")
@@ -49,6 +56,7 @@ impl RuntimeProfileDescriptor {
             "client_2d",
             RuntimeTargetMode::ClientRuntime,
         )
+        .with_builtin_modules(client_runtime_builtin_modules())
         .with_minimum_maturity(PluginMaturity::Beta)
         .with_default_plugin(RuntimePluginId::Ui, true)
         .with_default_plugin(RuntimePluginId::Sound, true)
@@ -70,6 +78,7 @@ impl RuntimeProfileDescriptor {
             "client_3d",
             RuntimeTargetMode::ClientRuntime,
         )
+        .with_builtin_modules(client_runtime_builtin_modules())
         .with_minimum_maturity(PluginMaturity::Beta)
         .with_default_plugin(RuntimePluginId::Ui, true)
         .with_default_plugin(RuntimePluginId::Sound, true)
@@ -95,6 +104,7 @@ impl RuntimeProfileDescriptor {
             "editor",
             RuntimeTargetMode::EditorHost,
         )
+        .with_builtin_modules(client_runtime_builtin_modules())
         .with_minimum_maturity(PluginMaturity::Beta)
         .with_default_plugin(RuntimePluginId::Ui, true)
         .with_default_plugin(RuntimePluginId::Sound, true)
@@ -110,6 +120,7 @@ impl RuntimeProfileDescriptor {
 
     fn dev() -> Self {
         Self::new(RuntimeProfileId::Dev, "dev", RuntimeTargetMode::EditorHost)
+            .with_builtin_modules(client_runtime_builtin_modules())
             .with_minimum_maturity(PluginMaturity::Experimental)
             .with_default_plugin(RuntimePluginId::Ui, true)
             .with_default_plugin(RuntimePluginId::Sound, true)
@@ -133,6 +144,7 @@ impl RuntimeProfileDescriptor {
             "server",
             RuntimeTargetMode::ServerRuntime,
         )
+        .with_builtin_modules(server_runtime_builtin_modules())
         .with_minimum_maturity(PluginMaturity::Beta)
         .with_default_plugin(RuntimePluginId::Net, false)
         .with_optional_plugin(RuntimePluginId::Ai)
@@ -142,4 +154,28 @@ impl RuntimeProfileDescriptor {
         .with_required_capability("runtime.core.lifecycle")
         .with_required_capability("runtime.core.scene")
     }
+}
+
+fn server_runtime_builtin_modules() -> Vec<BuiltinRuntimeModuleId> {
+    vec![
+        BuiltinRuntimeModuleId::Foundation,
+        BuiltinRuntimeModuleId::Log,
+        BuiltinRuntimeModuleId::Tasks,
+        BuiltinRuntimeModuleId::Time,
+        BuiltinRuntimeModuleId::FrameCount,
+        BuiltinRuntimeModuleId::DiagnosticsCore,
+        BuiltinRuntimeModuleId::Platform,
+        BuiltinRuntimeModuleId::Input,
+        BuiltinRuntimeModuleId::Asset,
+        BuiltinRuntimeModuleId::Scene,
+    ]
+}
+
+fn client_runtime_builtin_modules() -> Vec<BuiltinRuntimeModuleId> {
+    let mut modules = server_runtime_builtin_modules();
+    #[cfg(feature = "graphics")]
+    modules.push(BuiltinRuntimeModuleId::Graphics);
+    #[cfg(feature = "script")]
+    modules.push(BuiltinRuntimeModuleId::Script);
+    modules
 }

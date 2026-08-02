@@ -12,6 +12,7 @@ use command::push_text_command;
 use eligibility::should_skip_template_text;
 use geometry::text_rect_for_node;
 use metrics::node_font_size;
+use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_template_text_fallback_command(
     commands: &mut Vec<HostPaintCommand>,
@@ -44,6 +45,33 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         label,
         text_color(node),
         font_size,
+        node_text_paint_style(node),
         opacity,
     );
+}
+
+fn node_text_paint_style(node: &TemplatePaneNodeData) -> UiTextRunPaintStyle {
+    UiTextRunPaintStyle {
+        code: node
+            .component_variant
+            .split_whitespace()
+            .any(|variant| variant.eq_ignore_ascii_case("code")),
+        ..UiTextRunPaintStyle::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn code_component_variant_selects_runtime_code_text_style() {
+        let code = TemplatePaneNodeData {
+            component_variant: "outlined CODE compact".into(),
+            ..TemplatePaneNodeData::default()
+        };
+
+        assert!(node_text_paint_style(&code).code);
+        assert!(!node_text_paint_style(&TemplatePaneNodeData::default()).code);
+    }
 }

@@ -1,14 +1,107 @@
-# WOC authoritative world state (`WOS71`)
+# WOC authoritative world state (`WOS83`)
 
-`WOS71` is the current committed ZrVM-owned world-state envelope carried
+`WOS83` is the current committed ZrVM-owned world-state envelope carried
 between fixed-tick transactions. `world/state.zr` is the canonical codec and
-`main.zr` publishes `world_state: WOS71`; it writes schema 71 and accepts the
-WOS2-WOS70 migration range. Rust treats these bytes as opaque gameplay state:
+`main.zr` publishes `world_state: WOS83`; it writes schema 83 and accepts the
+WOS2-WOS82 migration range. Rust treats these bytes as opaque gameplay state:
 it checks the FNV-1a digest, enforces transaction budgets and commits or rolls
 back the whole candidate. It must not decode the envelope to reproduce gameplay
 rules.
 
-## Current WOS71 delta
+## Current WOS83 delta
+
+WOS83 appends 29 source-ordered account weapon-skin ownership markers followed
+by eight nullable one-byte loadout codes in generated weapon-type order. The
+per-entity active weapon-skin code is derived from the account loadout, class and
+displayed mainhand, so it is recomputed rather than duplicated in each entity's
+wire row. WOS2-WOS82 initialize the new account state and derived projection to
+zero.
+
+Command-payload schema 52 carries `change_weapon_skin` as a strict discriminated
+union: apply mode `1` contains a bounded `u32_le_utf8` skin id, while detach mode
+`0` contains one generated weapon-type code. Apply requires a known owned skin
+whose generated type matches the requester's displayed mainhand. Detach clears
+only an existing type entry. Hunter resolves crossbow before bow and applying
+either clears the other; all other parked type selections remain. Every accepted
+loadout change refreshes all live player rows, has no dead-state gate and consumes
+no simulation RNG.
+
+## WOS82 mech chroma delta
+
+WOS82 appends the source account's 15 mech-chroma ownership markers after the
+profile item-discovery tail and extends that tail from 67 to 82 fixed bytes for
+the appended armor-plate identities. Command-payload schema 51 carries bounded
+`unequip_mech_chroma {chroma}` as canonical `u32_le_utf8`. A known owned chroma
+is removed account-wide, every live player using its mech skin is reset to class
+skin zero, and one protected armor plate is force-granted to the requester. The
+existing `use` route consumes that plate, restores ownership and equips the mech
+skin; `change_skin` admits mech variants only when the matching ownership marker
+is present. Unknown, unowned and repeated requests are state-neutral. The path
+has no dead, range or RNG gate, matching the pinned source.
+
+WOS81 remains the historical owner of two source-ordered Delve companion ranks
+per entity and command-payload schema 50's bounded
+`companion_upgrade {companionId}` transaction. It also introduced the offline
+profile's fixed 67-byte M5 item-discovery ledger after the WOS71 party-loot tail.
+WOS82 decodes that exact historical suffix, initializes the 15 appended discovery
+entries and all ownership markers to false, and preserves WOS2-WOS80 migration.
+Every representable `addItem` grant records first discovery before evaluating
+the generated source deed predicates. Rolled item instances and the broader
+non-M5 item catalog remain explicit engine/content follow-up work.
+
+## WOS80 Delve shop delta
+
+WOS80 appends each entity's nonnegative Delve Mark balance and, for both generated
+Delve shops, nonnegative Normal, Heroic and other-tier clear counts. WOS2-WOS79
+decode those columns as zero. M5 item codes 50-67 append the exact 18 source shop
+offers after the immutable WOS79 prefix. Command-payload schema 49 carries
+`delve_buy {delveId,itemId}` as two canonical length-prefixed UTF-8 ids, each
+bounded to 256 bytes.
+
+The reducer resolves generated shop and item identities, rejects dead buyers and
+buyers farther than 12 units from the selected Delve door, applies `available`,
+total `clears:N`, or explicit Heroic-clear gates, and checks the shared Delve Mark
+balance. It then follows source transaction order: debit the exact price and
+force-grant one item without a bag-capacity check. The two generated shops are
+`collapsed_reliquary` at `(-5,-52)` and `drowned_litany` at `(-95,505)`, with nine
+offers each. Existing WOS2-WOS79 item codes retain their identities.
+
+The source `vendor` feedback event is presentation-host output and is not stored
+in WOS80. This slice claims the authoritative inventory transaction, not a new
+personal event transport.
+
+## WOS79 Heroic Quartermaster delta
+
+WOS79 adds no world-state bytes after WOS78. It advances the semantic vocabulary
+because M5 item codes 39-49 append the source `heroic_mark` and ten Heroic
+Quartermaster jewelry offers; the original 38-code prefix remains byte-for-byte
+stable. Command-payload schema 48 carries `heroic_buy {itemId}` as canonical
+length-prefixed UTF-8 bounded to 256 bytes. The reducer resolves only generated
+stock, rejects dead or out-of-range buyers, checks the Heroic Mark balance and
+bag space before mutation, then atomically removes the exact price and grants one
+item. The quartermaster is the existing M3 static roster row at source index 23,
+with the inclusive seven-unit interaction radius.
+
+## WOS78 chat delta
+
+WOS78 appends one canonical Sim-side chat token bucket to every entity row after
+the retained ready-check columns: presence, fixed-six tokens in `[0,8]`, and an
+authoritative last-refill microsecond timestamp. WOS2-WOS77 decode to absent
+zero state. Command-payload schema 47 carries `chat {text}` as length-prefixed
+UTF-8 bounded to the source `MAX_CHAT_MESSAGE_LEN` of 255 JavaScript UTF-16 code
+units (at most 1020 UTF-8 bytes). Empty trimmed input consumes no token; every
+other valid input refills at two tokens per second up to eight, then consumes
+one token before routing.
+
+The current authoritative chat slice recognizes case-insensitive `/ready` and
+`/readycheck` with the source ECMAScript edge-whitespace set and invokes the existing WOS20
+party ready-check reducer. It has no dead-state gate and consumes no RNG. Valid
+unhandled chat currently advances only the token bucket; account moderation,
+ignore/mute state, whispers/channels, slash-command routing, personal events and
+chat/log delivery remain owned by later social/host slices. This is not a claim
+that the remaining chat router is complete.
+
+## WOS77 craft delta
 
 The WOS18 byte table below is a compatibility baseline, not the current write
 layout. WOS19-WOS47 append source-owned state in the codec's canonical order;
@@ -98,6 +191,110 @@ shares plus a without-replacement RNG draw for each remainder copper. Poor and
 common items advance the party cursor and force-grant to the selected candidate;
 premium items, Need/Greed and Master Loot consume the same death-time snapshot.
 WOS70 decodes with empty tables, preserving its prior loot-time range fallback.
+
+WOS72 appends one signed 32-bit manual cell hint for every dense M5 inventory
+stack, immediately after that stack's item code and count. `-1` means that no
+manual cell is retained; WOS2-WOS71 snapshots decode every stack with that
+sentinel. Layout reconstruction accepts only unique in-capacity hints, assigns
+missing, stale or duplicate rows to the first free cell and appends overflow in
+dense order. The authoritative `inv_move {from,to}` reducer first normalizes all
+rows to that reconstructed layout, then parks the selected dense stack at the
+target cell and moves any displaced stack back to the selected stack's prior
+cell. Invalid dense indices, negative cells and out-of-capacity cells are
+state-neutral.
+
+WOS73 appends three entity-aligned overhead-emote columns: a closed code
+(`0` null, `1..13` in source `OVERHEAD_EMOTE_IDS` order), an absolute expiry in
+authoritative microseconds and a monotonic sequence. WOS2-WOS72 decode all
+three as zero. The `emote` reducer accepts one closed code, sets expiry to the
+current time plus exactly 3.2 seconds and increments sequence even when the
+source entity is dead, matching the server path rather than the online
+client's optimistic dead gate. The fixed-tick prologue clears code and expiry
+at or after the deadline while retaining sequence for presentation replay
+identity.
+
+WOS74 appends a fixed offline gathering projection after the quest ledger and
+before saved loadouts: three `u32` proficiency rows, three pending `u32` gains,
+24 absolute `u64` node-ready microsecond deadlines, a `u16` visited-node mask,
+one monotonic personal gather-result sequence and four result code bytes for
+node, profession, material and rarity. WOS2-WOS73 decode those 230 bytes as
+canonical zero state. The typed `harvest_node` reducer resolves only the 24
+generated source nodes, uses horizontal squared distance at the source five-unit
+interaction range, rejects a live cooldown or full bag before mutation, then
+writes the 120-second deadline before consuming exactly one rarity draw. It
+queues one proficiency gain, grants the node's mapped material, preserves the
+current no-op gather-objective hook (the committed quest projection has no
+gather objectives), marks first discovery, grants source gathering XP and
+increments the personal result identity. Fixed tick drains queued proficiency
+gains after command application. Invalid or not-ready commands are state-neutral
+and consume no RNG.
+
+WOS75 appends the pinned 193-entry deed catalog after WOS74 gathering state and
+before saved loadouts. Each earned flag is one canonical byte, followed by a
+`u16` nullable `PlayerMeta.activeTitle` deed code. Every entity row appends a
+second `u16` title code immediately after its presentation/skin identity, retaining
+the source's `Entity.title` projection. Codes are one-based indexes into the
+append-only generated `DEED_ORDER`; zero is null. WOS2-WOS74 decode with no
+earned deeds and no title. During WOS75 restore, an unknown, non-title or no
+longer-earned active code is normalized to zero and the entity projection is
+rebuilt from the persisted meta projection, matching the source stale-save load
+behavior. Current writes require the primary offline player's two projections to
+agree and every non-primary entity title to remain zero.
+
+The nullable `deed_set_title` reducer accepts no dead-state gate and consumes no
+RNG. Null clears both projections in the same transaction. A non-null generated
+deed id changes both only when its earned flag is set and the generated reward
+kind is `title`; unknown, unearned, rewardless and non-title ids are silent
+state-neutral commands apart from the ordinary accepted command sequence.
+
+WOS76 appends `PlayerMeta.townFocus` after the WOS75 deed ledger and before the
+saved-loadout table. The section starts with a `u16` entry count and repeats a
+`u16` UTF-8 byte length, the component bytes and one positive point byte. Stored
+keys are non-empty, valid UTF-8, at most 256 bytes and unique by exact bytes;
+stored points are `1..10` and their sum is at most ten. WOS2-WOS75 decode with
+the canonical empty allocation (`offsets = [0]`).
+
+Command-payload schema 45 carries the source `Record<string, number>` as an
+ordered `u16` entry count followed by repeated `u32` UTF-8 length, key bytes and
+signed `i32` points. Transport decoding preserves request order and rejects
+duplicates, malformed UTF-8, oversized keys and malformed/trailing bytes. The
+authoritative reducer requires the player to be inside the current zone's
+inclusive town-hub circle, rejects negative values or a positive sum above ten,
+and commits only on success. A successful update removes zero-point entries and
+preserves the remaining request order; an empty allocation clears the state.
+Rejected requests leave the prior allocation untouched. The source path has no
+dead-state gate and consumes no RNG, and WOS76 retains both properties.
+
+ZrVM currently has no general validated UTF-8 byte-to-string conversion for
+dynamic keys. The WOC adapter therefore validates and stores the canonical UTF-8
+bytes directly; the missing general conversion API is tracked with the engine
+foundation owner and no fallback VM or alternate runtime is introduced.
+
+WOS77 appends the bounded offline crafting projection after WOS76 town focus and
+before saved loadouts: `u32` alchemy skill, `u64` rolling-window start, one-byte
+window count, `u64` successful-craft count, `u64` result sequence, a bounded
+UTF-8 recipe id, reason/item/quality bytes, `u32` output count and a canonical
+masterwork marker. WOS2-WOS76 decode those fields to empty zero state.
+
+Command-payload schema 46 carries `craft_item {recipe}` as the standard bounded
+`u32` UTF-8 length plus at most 256 recipe bytes. Native protocol and client
+intent preserve the source recipe string. The authoritative retained recipe is
+`recipe_minor_healing_potion`: validation preserves source gate ordering,
+material shortage and throttle rejection consume no RNG, and success clamps the
+two-copper fee at zero, atomically removes linen and spider reagents, consumes
+exactly one shared RNG draw, grants the real M5 potion, increments alchemy skill
+and the rolling counter, and awards source craft XP. The source has no dead-state
+gate, so WOS77 intentionally permits a dead offline player to execute this
+immediate command.
+
+The parity recipe `recipe_eastbrook_ritual_vestments` requires a signed,
+non-fungible item instance with baked rolled stats. The current world inventory
+codec represents only fungible stacks. WOS77 therefore records internal reason
+`7` and performs no currency, reagent, RNG, skill or XP mutation for that recipe;
+it does not claim the remaining 17 recipes are complete. Malformed UTF-8 is
+state-neutral, while a valid unknown recipe is mirrored with source-style
+`unknown_recipe` reason `1`. The item-instance persistence/cross-module ABI gap
+is assigned to the engine foundation owner; no fallback VM is introduced.
 
 WOS121 retains Rake without adding wire bytes. Its Cat-form stealth opener uses
 the existing WOS57 periodic-damage queue: the persisted row holds the target,
@@ -1182,11 +1379,12 @@ for allocations, and catalog membership for nonzero action-bar codes.
 only for the offline primary player; they reject invalid/missing indices and the
 reachable combat lock without mutation. Deleting the active row applies the
 source fallback row before removal, while deleting a preceding row decrements
-the active index. The source `saveLoadout` command still has no canonical typed
-wire payload, so the WOS11 loadout projection does not expose an invented creation/update operation.
+the active index. Command-payload schema 42 now supplies the canonical bounded
+`saveLoadout` wire payload, and the authoritative reducer creates or overwrites
+this projection using the source allocation-before-capacity ordering.
 Action-bar codes are retained data only until a live action-bar runtime exists.
-The raw-byte name bound is a deterministic storage bound, not a claim that the
-source JavaScript UTF-16 truncation policy has been reproduced.
+The storage byte bound remains deterministic, while the typed admission layer
+also enforces the source 24-UTF-16-unit name ceiling.
 
 Schema 12 appends a source-shaped pending-resurrection projection after each
 entity's talent row: presence, caster id, health fraction, offer-time fallback
@@ -1279,7 +1477,11 @@ This is intentionally not a command.
 After the movement batch, the same fixed-tick envelope carries a bounded
 optional `OfflineSessionBootstrap` byte payload. It is allowed only on the first
 empty-state transaction and contains bootstrap version, fixed seed `20061`,
-canonical source class index, target-valid name bytes and class-valid skin. Rust
+canonical source class index, target-valid name bytes and class-valid skin.
+Bootstrap v2 then carries 29 source-ordered weapon-skin ownership bytes and eight
+source-ordered loadout codes. Rust rejects non-boolean ownership bytes, unknown
+or unowned selected codes; the Zr decoder also validates source weapon-type slots
+before hydrating the account state ahead of fresh-player construction. Rust
 retains it across a rejected candidate and removes it only after a successful
 Tick 1; the ZrVM decoder independently verifies and consumes it to construct the
 fresh player from generated source content. Every later transaction carries an

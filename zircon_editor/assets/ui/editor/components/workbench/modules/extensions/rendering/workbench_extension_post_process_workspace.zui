@@ -123,7 +123,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPostProcessPreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PostProcessPreview", event = "Click", route = "workbench.extension.post_process.preview" }]
 
@@ -131,7 +131,7 @@ events = [{ id = "WorkbenchExtension/PostProcessPreview", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPostProcessApplyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Apply", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PostProcessApply", event = "Click", route = "workbench.extension.post_process.apply" }]
 
@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/PostProcessApply", event = "Click", route =
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPostProcessPassTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "post_process_bloom_row" }, { node = "post_process_tonemap_row" }, { node = "post_process_lut_row" }, { node = "post_process_exposure_warning_row" }]
 

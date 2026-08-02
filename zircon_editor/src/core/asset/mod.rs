@@ -24,7 +24,8 @@ pub use source_authority::{
 pub use toolkit_route::AssetToolkitOpenRoute;
 pub use type_registry::{
     builtin_asset_type_definition, AssetContextCommandAccess, AssetContextCommandDescriptor,
-    AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution,
-    AssetTypeDefinition, AssetTypeId, AssetTypeIdError, AssetTypePresentation, AssetTypeRegistry,
-    AssetTypeRegistryError, ThumbnailPlaceholderPalette, ThumbnailProviderDescriptor,
+    AssetCreationMenuEntry, AssetCreationMenuGeneration, AssetCreationTemplateDescriptor,
+    AssetToolkitDescriptor, AssetTypeContribution, AssetTypeDefinition, AssetTypeId,
+    AssetTypeIdError, AssetTypePresentation, AssetTypeRegistry, AssetTypeRegistryError,
+    ThumbnailPlaceholderPalette, ThumbnailProviderDescriptor,
 };

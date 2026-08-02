@@ -49,4 +49,4 @@ status: active
 - `reflection_fields(...)`
 - `asset_editor_fields(...)`
 
-窄范围验证确认 registry 无剩余 `dead_code` 抑制，数据源入口仍由 runtime access 和 component adapter 测试直接使用。Editor UI 10 S8 的剩余死代码抑制目标是 `ui/workbench/state/editor_world_slot.rs`。
+窄范围验证确认 registry 无剩余 `dead_code` 抑制，数据源入口仍由 runtime access 和 component adapter 测试直接使用。原 Editor UI 10 S8 的 `EditorWorldSlot` 私有旁路也已硬删除，并由 boundary regression 守卫不得恢复。

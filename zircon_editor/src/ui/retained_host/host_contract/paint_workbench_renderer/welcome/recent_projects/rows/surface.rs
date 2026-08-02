@@ -6,7 +6,7 @@ use super::super::super::super::super::paint_primitives::{
 use super::super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
 };
-use super::super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 use super::super::super::super::SEPARATOR;
 use super::super::super::style::{
     WELCOME_MUTED_TEXT, WELCOME_SURFACE, WELCOME_SURFACE_INSET, WELCOME_TEXT, WELCOME_WARNING,
@@ -148,9 +148,11 @@ mod tests {
         draw_recent_project_row_surface(&mut idle_frame, &row, &clip, false);
         let idle_commands = idle_frame.into_recorded_commands();
         assert_eq!(idle_commands.len(), 2);
-        assert!(idle_commands
-            .iter()
-            .all(|command| matches!(&command.kind, HostRecordedPaintKind::Quad { .. })));
+        assert!(
+            idle_commands
+                .iter()
+                .all(|command| matches!(&command.kind, HostRecordedPaintKind::Quad { .. }))
+        );
         match &idle_commands[1].kind {
             HostRecordedPaintKind::Quad {
                 color,

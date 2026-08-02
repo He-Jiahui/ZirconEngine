@@ -1,4 +1,4 @@
-use super::super::{load_visual_asset_pixels_for_size, template_image_pixels, ICON_TINT};
+use super::super::{ICON_TINT, load_visual_asset_pixels_for_size, template_image_pixels};
 use super::support::has_visible_pixel;
 use zircon_runtime_interface::ui::surface::UiVisualAssetRef;
 

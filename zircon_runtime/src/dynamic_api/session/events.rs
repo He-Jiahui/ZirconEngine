@@ -55,6 +55,7 @@ impl RuntimeDynamicSession {
                     event.size.width,
                     event.size.height,
                 ));
+                self.record_viewport_resize();
                 ZrStatus::ok()
             }
             ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1 => {

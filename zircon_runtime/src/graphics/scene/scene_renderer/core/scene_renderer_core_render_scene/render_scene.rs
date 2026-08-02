@@ -40,6 +40,7 @@ impl SceneRendererCore {
                 self.realtime_ibl.record_prepared_frame(
                     device,
                     &mut encoder,
+                    false,
                     prepared,
                     &mut self.ibl_bake_pipeline_cache,
                 )
@@ -114,21 +115,53 @@ impl SceneRendererCore {
             &prepared_overlays,
             frame.render_region(),
         );
-        self.screen_space_ui_renderer.record(
-            device,
-            queue,
-            &mut encoder,
-            final_color_view,
-            frame,
-            RenderGraphAttachmentOps::load_store(),
-            Some(streamer),
-        )?;
+        if let Some(screen_space_ui_renderer) = self.screen_space_ui_renderer.as_mut() {
+            screen_space_ui_renderer.record(
+                device,
+                queue,
+                &mut encoder,
+                final_color_view,
+                frame,
+                RenderGraphAttachmentOps::load_store(),
+                Some(streamer),
+            )?;
+        }
+        self.readback_frame_index = self.readback_frame_index.wrapping_add(1);
+        let readback_frame_index = self.readback_frame_index;
+        let readback_ready = self
+            .readback_queue
+            .prepare_frame(device, readback_frame_index)
+            .is_ok();
+        if readback_ready {
+            if let Some(submission) = realtime_ibl_submission.as_ref() {
+                self.realtime_ibl.request_gpu_timestamp_readback(
+                    submission,
+                    queue.get_timestamp_period(),
+                    &mut self.readback_queue,
+                );
+            }
+            if let Err(error) = self
+                .readback_queue
+                .encode_copies(&mut encoder, readback_frame_index)
+            {
+                self.readback_queue.abort_frame(readback_frame_index);
+                return Err(GraphicsError::BufferMap(error.to_string()));
+            }
+        }
         queue.submit([encoder.finish()]);
-        if let Some(submission) = realtime_ibl_submission {
-            self.realtime_ibl
-                .complete_submission(device, queue, submission, true);
+        let readback_map_error = if readback_ready {
+            match self.readback_queue.begin_map(readback_frame_index) {
+                Ok(()) => None,
+                Err(error) => {
+                    self.readback_queue.abort_frame(readback_frame_index);
+                    Some(error)
+                }
+            }
         } else {
-            self.realtime_ibl.poll_gpu_timestamps(device);
+            None
+        };
+        if let Some(submission) = realtime_ibl_submission {
+            self.realtime_ibl.complete_submission(submission, true);
         }
         let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
         let _prev_skinned_palette_roll_report =
@@ -137,6 +170,9 @@ impl SceneRendererCore {
             self.gpu_scene.roll_prev_skinned_gpu_sources_after_success();
         let _prev_morph_weights_roll_report =
             self.gpu_scene.roll_prev_morph_weights_after_success();
+        if let Some(error) = readback_map_error {
+            return Err(GraphicsError::BufferMap(error.to_string()));
+        }
         Ok(())
     }
 }

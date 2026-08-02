@@ -331,6 +331,16 @@ mod tests {
     }
 
     #[test]
+    fn post_process_shader_applies_ssr_intensity_once_at_resolve() {
+        assert!(POST_PROCESS_SHADER.contains("let intensity = params.effect_dither_ssr.z"));
+        assert!(
+            POST_PROCESS_SHADER.contains("let reflection_weight =\n        resolved_reflection.a;")
+        );
+        assert!(!POST_PROCESS_SHADER
+            .contains("resolved_reflection.a * clamp(params.effect_dither_ssr.z, 0.0, 1.0)"));
+    }
+
+    #[test]
     fn post_process_shader_attenuates_ssr_with_ambient_occlusion() {
         assert!(POST_PROCESS_SHADER.contains("fn load_screen_space_reflection_ambient_occlusion"));
         assert!(POST_PROCESS_SHADER.contains("textureLoad(ambient_occlusion_tex"));

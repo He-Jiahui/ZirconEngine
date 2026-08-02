@@ -1,11 +1,116 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[cfg(feature = "text")]
-use crate::text::CompositeFontDescriptor;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 pub type FontAssetResult<T> = std::result::Result<T, FontAssetError>;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct FontFamilyName(pub String);
+
+impl FontFamilyName {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into().trim().to_string())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.trim().is_empty()
+    }
+}
+
+impl From<&str> for FontFamilyName {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<String> for FontFamilyName {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FontScript {
+    Latin,
+    Cyrillic,
+    Greek,
+    Han,
+    Hiragana,
+    Katakana,
+    Hangul,
+    Arabic,
+    Hebrew,
+    Devanagari,
+    Other(u32),
+}
+
+/// Normalized BCP-47 culture selector used to disambiguate script-equivalent
+/// composite sub-fonts (for example, Han faces for zh-Hans, ja, and ko).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct FontCultureTag(String);
+
+impl FontCultureTag {
+    pub fn new(tag: impl Into<String>) -> Self {
+        Self(tag.into().trim().to_string())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn matches(&self, language: &str) -> bool {
+        let configured = self.as_str();
+        let language = language.trim();
+        if configured.is_empty() || language.is_empty() {
+            return false;
+        }
+        if configured.eq_ignore_ascii_case(language) {
+            return true;
+        }
+        language
+            .get(..configured.len())
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(configured))
+            && language.as_bytes().get(configured.len()) == Some(&b'-')
+    }
+}
+
+impl From<&str> for FontCultureTag {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<String> for FontCultureTag {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+/// Asset-authored composite font configuration consumed by the text runtime.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompositeFontDescriptor {
+    pub default_family: FontFamilyName,
+    #[serde(default)]
+    pub sub_fonts: Vec<SubFontRange>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SubFontRange {
+    pub family: FontFamilyName,
+    #[serde(default)]
+    pub scripts: Vec<FontScript>,
+    #[serde(default)]
+    pub ranges: Vec<(u32, u32)>,
+    #[serde(default)]
+    pub cultures: Vec<FontCultureTag>,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FontAsset {
@@ -247,4 +352,40 @@ fn is_default_face_index(face_index: &u32) -> bool {
 
 fn is_false(value: &bool) -> bool {
     !*value
+}
+
+#[cfg(test)]
+mod contract_owner_tests {
+    use std::path::Path;
+
+    #[test]
+    fn composite_font_contract_is_owned_by_the_font_asset_schema() {
+        let asset = include_str!("font.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("font asset production source must precede its tests");
+        let cache = include_str!("../artifact/cache_payload/font.rs");
+        let text_family = include_str!("../../text/model/font/family.rs");
+        let text_font = include_str!("../../text/model/font/mod.rs");
+
+        assert!(asset.contains("pub struct CompositeFontDescriptor"));
+        assert!(asset.contains("pub struct FontFamilyName"));
+        assert!(!asset.contains("crate::text"));
+        assert!(!cache.contains("crate::text"));
+        assert!(!text_family.contains("pub struct FontFamilyName"));
+        assert!(text_family.contains("use crate::asset::assets::FontFamilyName;"));
+        assert!(text_font.contains("pub use crate::asset::assets::{"));
+        for contract in [
+            "CompositeFontDescriptor",
+            "FontCultureTag",
+            "FontFamilyName",
+            "FontScript",
+            "SubFontRange",
+        ] {
+            assert!(text_font.contains(contract));
+        }
+        assert!(!Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/text/model/font/composite.rs")
+            .exists());
+    }
 }

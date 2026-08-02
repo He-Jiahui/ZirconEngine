@@ -40,11 +40,10 @@ impl UiSurface {
         &mut self,
         node_id: UiNodeId,
     ) -> Result<UiSurfaceNodePoolReport, UiTreeError> {
-        let mutation = detach_subtree_to_pool(&mut self.tree, &mut self.node_pool, node_id)?;
-        self.reset_detached_transient_state_for_nodes(
-            &mutation.node_ids,
-            UiFocusChangeReason::Despawned,
-        );
+        let node_ids = subtree_node_ids(&self.tree, node_id)?;
+        self.reset_detached_transient_state_for_nodes(&node_ids, UiFocusChangeReason::Despawned);
+        let mutation =
+            detach_subtree_to_pool(&mut self.tree, &mut self.node_pool, node_id, node_ids)?;
         self.component_states.clear_nodes(&mutation.node_ids);
         self.add_pool_report(mutation.report.clone());
         Ok(mutation.report)
@@ -104,22 +103,21 @@ pub(crate) fn detach_subtree_to_pool(
     tree: &mut UiTree,
     pool: &mut UiSurfaceNodePool,
     node_id: UiNodeId,
+    node_ids: Vec<UiNodeId>,
 ) -> Result<UiSurfaceNodePoolMutation, UiTreeError> {
     if !tree.nodes.contains_key(&node_id) {
         return Err(UiTreeError::MissingNode(node_id));
     }
 
-    let mut detached = Vec::new();
-    collect_subtree_node_ids(tree, node_id, &mut detached)?;
     detach_from_parent(tree, node_id)?;
     tree.roots.retain(|root_id| *root_id != node_id);
-    let detached_set = detached.iter().copied().collect::<BTreeSet<_>>();
+    let detached_set = node_ids.iter().copied().collect::<BTreeSet<_>>();
     tree.slots.retain(|slot| {
         !detached_set.contains(&slot.parent_id) && !detached_set.contains(&slot.child_id)
     });
 
     let mut report = UiSurfaceNodePoolReport::default();
-    for node_id in detached.iter().copied().rev() {
+    for node_id in node_ids.iter().copied().rev() {
         let Some(mut node) = tree.nodes.remove(&node_id) else {
             continue;
         };
@@ -132,10 +130,13 @@ pub(crate) fn detach_subtree_to_pool(
             report.discarded_count += 1;
         }
     }
-    Ok(UiSurfaceNodePoolMutation {
-        report,
-        node_ids: detached,
-    })
+    Ok(UiSurfaceNodePoolMutation { report, node_ids })
+}
+
+fn subtree_node_ids(tree: &UiTree, node_id: UiNodeId) -> Result<Vec<UiNodeId>, UiTreeError> {
+    let mut node_ids = Vec::new();
+    collect_subtree_node_ids(tree, node_id, &mut node_ids)?;
+    Ok(node_ids)
 }
 
 pub(crate) fn insert_or_reuse_pooled_child(

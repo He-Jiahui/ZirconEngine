@@ -1,7 +1,8 @@
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
@@ -13,7 +14,7 @@ use crate::core::framework::platform::{
 use crate::core::manager::{
     platform_preference_storage_handle, resolve_manager_service, PLATFORM_MANAGER_NAME,
 };
-use crate::core::CoreRuntime;
+use crate::core::{CoreError, CoreRuntime};
 use crate::foundation as foundation_runtime;
 
 use super::super::*;
@@ -42,7 +43,7 @@ fn platform_preference_storage_keys_require_non_empty_bounded_namespaces_and_key
 
 #[test]
 fn platform_preference_storage_unavailable_backend_never_falls_back_to_process_memory() {
-    let storage = PlatformManager::default();
+    let storage = manager_with_backend(Arc::new(UnavailablePreferenceStorageBackend));
     let key = PreferenceKey::new("woc.input", "keybinds").unwrap();
     let submission = storage
         .submit_write(
@@ -64,6 +65,78 @@ fn platform_preference_storage_unavailable_backend_never_falls_back_to_process_m
         snapshot.durability(),
         PreferenceDurabilityState::VisibleNotDurable
     );
+}
+
+#[test]
+fn platform_preference_storage_module_cleanup_is_bounded_and_preserves_services_on_timeout() {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(foundation_runtime::module_descriptor())
+        .unwrap();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    runtime
+        .activate_module(crate::core::framework::platform::PLATFORM_MODULE_NAME)
+        .unwrap();
+
+    let (started_tx, started_rx) = mpsc::sync_channel(0);
+    let (release_tx, release_rx) = mpsc::sync_channel(0);
+    let driver = runtime
+        .resolve_driver::<PlatformDriver>(PLATFORM_DRIVER_NAME)
+        .unwrap();
+    driver
+        .install_preference_storage_backend(Arc::new(BlockingPreferenceStorageBackend {
+            started: Mutex::new(Some(started_tx)),
+            release: Mutex::new(Some(release_rx)),
+        }))
+        .unwrap();
+    let storage = resolve_manager_service(
+        &runtime.handle(),
+        platform_preference_storage_handle(&runtime.handle()).unwrap(),
+    )
+    .unwrap();
+    let submission = storage
+        .submit_write(
+            PreferenceKey::new("woc.input", "blocked-cleanup").unwrap(),
+            Arc::from(&b"value"[..]),
+            PreferenceWorkDeadline::none(),
+        )
+        .unwrap();
+    started_rx.recv().unwrap();
+
+    let cleanup_started = Instant::now();
+    let error = runtime
+        .deactivate_module(crate::core::framework::platform::PLATFORM_MODULE_NAME)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        CoreError::ModuleCleanupTimeout {
+            ref module,
+            ref operation,
+            incomplete_entries: 1,
+            ..
+        } if module == crate::core::framework::platform::PLATFORM_MODULE_NAME
+            && operation == "preference_persistence"
+    ));
+    assert!(cleanup_started.elapsed() < Duration::from_secs(2));
+    assert_eq!(
+        resolve_manager_service(
+            &runtime.handle(),
+            platform_preference_storage_handle(&runtime.handle()).unwrap(),
+        )
+        .unwrap()
+        .backend_kind(),
+        PreferenceStorageBackendKind::HostProvided
+    );
+
+    release_tx.send(()).unwrap();
+    assert!(matches!(
+        wait_ticket(&submission),
+        PreferenceTicketWaitResult::Terminal(PreferenceMutationTerminal::Durable)
+    ));
+    runtime
+        .deactivate_module(crate::core::framework::platform::PLATFORM_MODULE_NAME)
+        .unwrap();
 }
 
 #[test]
@@ -154,6 +227,23 @@ fn platform_preference_storage_atomic_file_supports_maximum_length_keys() {
         storage.snapshot(&key).unwrap().value(),
         Some(&b"maximum-length-key"[..])
     );
+
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn platform_preference_storage_atomic_file_reports_path_stage_and_fsync_work() {
+    let root = fresh_temp_root("diagnostics");
+    let backend = Arc::new(AtomicFilePreferenceStorageBackend::new(root.clone()));
+    let storage = manager_with_backend(backend.clone());
+    let key = PreferenceKey::new("woc.input", "diagnostics").unwrap();
+
+    submit_write(&storage, key, b"diagnostics");
+    let diagnostics = PreferenceStorageBackend::diagnostics(backend.as_ref());
+    assert_eq!(diagnostics.writes, 1);
+    assert!(diagnostics.path_build_wall > Duration::ZERO);
+    assert!(diagnostics.staged_write_wall > Duration::ZERO);
+    assert!(diagnostics.fsync_wall > Duration::ZERO);
 
     fs::remove_dir_all(root).unwrap();
 }
@@ -276,4 +366,56 @@ fn fresh_temp_root(case: &str) -> PathBuf {
     ));
     let _ = fs::remove_dir_all(&root);
     root
+}
+
+struct BlockingPreferenceStorageBackend {
+    started: Mutex<Option<mpsc::SyncSender<()>>>,
+    release: Mutex<Option<mpsc::Receiver<()>>>,
+}
+
+impl PreferenceStorageBackend for BlockingPreferenceStorageBackend {
+    fn backend_kind(&self) -> PreferenceStorageBackendKind {
+        PreferenceStorageBackendKind::HostProvided
+    }
+
+    fn open_read(
+        &self,
+        _authority: &PreferenceBackendWorkAuthority,
+        _key: &PreferenceKey,
+    ) -> Result<
+        Option<Box<dyn Read + Send>>,
+        crate::core::framework::platform::PreferenceStorageError,
+    > {
+        Ok(None)
+    }
+
+    fn write(
+        &self,
+        _authority: &PreferenceBackendWorkAuthority,
+        _key: &PreferenceKey,
+        _value: &[u8],
+    ) -> Result<(), crate::core::framework::platform::PreferenceStorageError> {
+        if let Some(started) = self.started.lock().unwrap().take() {
+            started.send(()).unwrap();
+        }
+        if let Some(release) = self.release.lock().unwrap().take() {
+            release.recv().unwrap();
+        }
+        Ok(())
+    }
+
+    fn remove(
+        &self,
+        _authority: &PreferenceBackendWorkAuthority,
+        _key: &PreferenceKey,
+    ) -> Result<(), crate::core::framework::platform::PreferenceStorageError> {
+        Ok(())
+    }
+
+    fn flush(
+        &self,
+        _authority: &PreferenceBackendWorkAuthority,
+    ) -> Result<(), crate::core::framework::platform::PreferenceStorageError> {
+        Ok(())
+    }
 }

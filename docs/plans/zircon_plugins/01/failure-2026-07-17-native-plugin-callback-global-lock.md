@@ -49,7 +49,7 @@ live host 把“动态库句柄所有权与卸载安全”和“注册表互斥�
 ## 禁止临时方案
 
 - 不得用递归 mutex 掩盖重入，或在 ABI callback 外再增加另一个全局 callback mutex。
-- 不得为缩短锁期复制 `Library` 后立即允许 unload；动态库必须在最后一个 active callback snapshot 结束后才能释放。
+- 不得为缩短锁期复制 `Library` 后立即允许 unload；动态库必须在最后一个 active callback lease 结束后才能释放。
 - 不得打乱现有确定性 plugin-id 广播顺序而不先修改契约和测试。
 
 ## 修复结果与回传
@@ -59,10 +59,11 @@ live host 把“动态库句柄所有权与卸载安全”和“注册表互斥�
 ### 2026-07-22 current-source 实现
 
 - `LoadedNativePlugin` 现在共享 `Arc<NativePluginStableLibrary>`；runtime/editor behavior snapshot 在
-  live-host 表锁内只取得每插件 callback lease 并复制由四个 optional ABI function pointer 组成的
-  `NativePluginBehaviorCallbacks`，不会克隆 manifest 字符串；foreign callback 一律在表锁外执行。
+  live-host 表锁内只复制由四个 optional ABI function pointer 组成的 `NativePluginBehaviorCallbacks` 并保留被动
+  generation owner，不会克隆 manifest 字符串或占用 active callback lease；执行前才取得 lease，foreign callback
+  一律在表锁外执行。
 - callback owner 维护 active count 与 lifecycle transition；unload、hot reload 和 bulk replacement 在
-  active snapshot/bridge scope 存活时立即返回 typed busy error。transition 期间旧 entry 保持可查询，
+  active callback lease/bridge scope 存活时立即返回 typed busy error。transition 期间旧 entry 保持可查询，
   但拒绝新 callback；成功替换前先发布新 bridge bindings，再原子替换 live entry，失败路径恢复旧 owner。
 - broadcast 从 `BTreeMap` 冻结 plugin-id 有序 snapshot 后锁外串行调用；单播重入 descriptor、慢 callback
   并发 descriptor、busy unload/hot-reload/bulk-load、慢 unload 锁外执行、bridge scope owner pin 与

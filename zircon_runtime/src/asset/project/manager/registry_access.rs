@@ -5,6 +5,9 @@ use super::super::{PackageAssetRegistry, ProjectManifest, ProjectPaths};
 use super::ProjectManager;
 use crate::asset::AssetImportError;
 use std::path::Path;
+use std::sync::Arc;
+
+use super::super::ProjectCatalogInputGeneration;
 
 impl ProjectManager {
     pub fn manifest(&self) -> &ProjectManifest {
@@ -36,6 +39,10 @@ impl ProjectManager {
 
     pub fn package_assets(&self) -> &PackageAssetRegistry {
         &self.package_assets
+    }
+
+    pub fn catalog_input_generation(&self) -> Arc<ProjectCatalogInputGeneration> {
+        Arc::clone(&self.catalog_input_generation)
     }
 
     pub fn project_asset_roots(&self) -> &[std::path::PathBuf] {

@@ -13,8 +13,8 @@ impl RuntimeEntryApp {
         event_loop: &dyn ActiveEventLoop,
     ) {
         let event = ZrRuntimeEventV1::cursor_entered(ZIRCON_RUNTIME_ABI_VERSION_V1, self.viewport);
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
+        if !self.dispatch_runtime_event(event_loop, event) {
+            return;
         }
     }
 
@@ -25,8 +25,8 @@ impl RuntimeEntryApp {
         kind: PointerKind,
     ) {
         let event = ZrRuntimeEventV1::cursor_left(ZIRCON_RUNTIME_ABI_VERSION_V1, self.viewport);
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
+        if !self.dispatch_runtime_event(event_loop, event) {
+            return;
         }
         if let Some(pointer_id) = pointer_kind_touch_id(kind) {
             let event = ZrRuntimeEventV1::touch(
@@ -41,9 +41,7 @@ impl RuntimeEntryApp {
                     .map(|position| position.y as f32)
                     .unwrap_or_default(),
             );
-            if self.session.handle_event(event).is_err() {
-                event_loop.exit();
-            }
+            self.dispatch_runtime_event(event_loop, event);
         }
     }
 }

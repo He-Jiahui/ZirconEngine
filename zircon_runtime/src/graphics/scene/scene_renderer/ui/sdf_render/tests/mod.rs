@@ -2,14 +2,17 @@ use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
     RunGlyph, SdfUvRect, aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame,
-    pixel_to_ndc_x, pixel_to_ndc_y, resolve_sdf_glyph_advances,
+    horizontal_shaped_sdf_glyph_frame, pixel_to_ndc_x, pixel_to_ndc_y, resolve_sdf_glyph_advances,
     resolve_vertical_sdf_glyph_advances, sdf_screen_px_range, sdf_uv_at_destination,
     vertical_sdf_glyph_frame, vertical_shaped_sdf_glyph_frame,
 };
 use super::*;
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph;
+use crate::graphics::scene::scene_renderer::ui::render::{
+    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
+};
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
     SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan, SdfAtlasRun,
     plan_sdf_atlas,
@@ -27,10 +30,13 @@ use crate::text::sdf::{
 use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot};
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::shaping::vertical_glyph_rotation;
-use crate::text::{ShapedGlyphRotation, VerticalMode};
+use crate::text::{
+    ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, ShapedGlyphRotation, VerticalMode,
+};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
+    UiResolvedStyle, UiResolvedTextLine, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap,
+    UiTextWritingMode,
 };
 
 mod decoration_geometry;
@@ -59,8 +65,8 @@ fn synthetic_layered_plan(page_index: u32) -> SdfAtlasPlan {
                 glyph_id: None,
                 font_id: None,
                 font_instance_id: None,
-                font: Some("res://fonts/default.font.toml".to_string()),
-                font_family: Some("Zircon Sans".to_string()),
+                font: Some("res://fonts/default.font.toml".into()),
+                font_family: Some("Zircon Sans".into()),
                 language: None,
                 font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
                 bake_params: SdfBakeParams::default(),
@@ -92,8 +98,8 @@ fn allocation_failure(
             glyph_id: None,
             font_id: None,
             font_instance_id: None,
-            font: Some("res://fonts/default.font.toml".to_string()),
-            font_family: Some("Zircon Sans".to_string()),
+            font: Some("res://fonts/default.font.toml".into()),
+            font_family: Some("Zircon Sans".into()),
             language: None,
             font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
             bake_params: SdfBakeParams::default(),
@@ -106,8 +112,8 @@ fn allocation_failure(
 
 fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
     SdfAtlasBake {
-        pixels: vec![0; plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2],
-        pages: Vec::new(),
+        pages: Vec::new().into(),
+        dirty_pages: Vec::new().into(),
         glyphs: vec![SdfBakedGlyph {
             metrics: SdfGlyphMetrics {
                 bitmap_width: 16,
@@ -118,8 +124,9 @@ fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
                 ascent: 16.0,
             },
             visible: true,
-        }],
-        generation_failures: Vec::new(),
+        }]
+        .into(),
+        generation_failures: Vec::new().into(),
         report: SdfAtlasBakeReport {
             slot_count: 1,
             visible_glyph_count: 1,
@@ -133,6 +140,51 @@ fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
             rgba_byte_len: 0,
             offline_glyph_count: 0,
             dynamic_glyph_count: 0,
+            offline_resident_manifest_count: 0,
+            offline_resident_artifact_identity_count: 0,
+            offline_resident_artifact_byte_count: 0,
+            offline_resident_glyph_bitmap_count: 0,
+            offline_resident_glyph_bitmap_byte_count: 0,
+            offline_manifest_parse_count: 0,
+            offline_artifact_stat_count: 0,
+            offline_artifact_read_count: 0,
+            offline_artifact_read_byte_count: 0,
+            offline_artifact_decode_count: 0,
+            offline_pixel_copy_count: 0,
+            offline_pixel_copy_byte_count: 0,
+            offline_manifest_eviction_count: 0,
+            offline_artifact_eviction_count: 0,
+            offline_glyph_bitmap_eviction_count: 0,
+            offline_oldest_artifact_idle_access_count: 0,
+            offline_oldest_glyph_bitmap_idle_access_count: 0,
+            resident_baked_glyph_count: 0,
+            resident_baked_glyph_byte_count: 0,
+            baked_glyph_eviction_count: 0,
+            oldest_baked_glyph_idle_access_count: 0,
+            resident_source_context_count: 0,
+            resident_source_byte_count: 0,
+            source_context_created_count: 0,
+            source_context_eviction_count: 0,
+            oldest_source_context_idle_access_count: 0,
+            source_hash_count: 0,
+            face_parse_count: 0,
+            generation_batch_count: 0,
+            generation_requested_glyph_count: 0,
+            generation_unique_glyph_count: 0,
+            generation_duplicate_glyph_count: 0,
+            bitmap_clone_byte_count: 0,
+            resident_atlas_page_count: 0,
+            atlas_page_alloc_count: 0,
+            atlas_page_zero_byte_count: 0,
+            atlas_page_clear_count: 0,
+            atlas_page_clear_byte_count: 0,
+            atlas_page_write_count: 0,
+            atlas_page_write_byte_count: 0,
+            atlas_page_reused_slot_count: 0,
+            atlas_full_page_scan_byte_count: 0,
+            compiled_atlas_build_count: 1,
+            compiled_atlas_reuse_count: 0,
+            generation_scheduler: crate::text::sdf::SdfGenerationSchedulerDiagnostics::default(),
         },
     }
 }
@@ -200,12 +252,21 @@ fn first_sdf_screen_px_range(text: ScreenSpaceUiTextBatch) -> f32 {
 
 fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
     ScreenSpaceUiTextBatch {
+        route_identity:
+            crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextRouteIdentity::new(
+                "runtime.sdf-render.test",
+                zircon_runtime_interface::ui::event_ui::UiNodeId::new(1),
+                None,
+            ),
+        command_generation: 1,
         text: text.to_string(),
         frame,
         clip_frame: None,
         source_range: None,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
+        preserve_shaped_glyphs: false,
+        glyph_artifact_line: None,
         layout_error: None,
         color: [0.2, 0.3, 0.4, 0.5],
         background_color: None,
@@ -226,4 +287,90 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         text_decoration_baseline: None,
         clip_transform: None,
     }
+}
+
+#[test]
+fn refreshed_artifact_line_emits_rotated_sdf_vertices() {
+    let artifact = std::sync::Arc::new(ResolvedTextGlyphArtifact {
+        source_text: std::sync::Arc::from("fi"),
+        source_text_origin: 0,
+        font_generation: 7,
+        style: UiResolvedStyle::default(),
+        writing_mode: UiTextWritingMode::VerticalRl,
+        lines: vec![Some(ResolvedTextGlyphArtifactLine {
+            glyphs: vec![TextGlyph {
+                glyph_id: 0xfb01,
+                source_range: 0..2,
+                visual_range: 0..1,
+                advance: 24.0,
+                position: [0.0, 0.0],
+                offset: [0.0, 0.0],
+                font_face: None,
+                font_instance: None,
+                rotation: TextGlyphRotation::None,
+                bidi_level: 0,
+                flags: TextGlyphFlags::default(),
+                requires_rasterization: true,
+            }],
+            layout_line: UiResolvedTextLine {
+                text: "fi".to_string(),
+                frame: UiFrame::new(16.0, 16.0, 40.0, 40.0),
+                source_range: UiTextRange { start: 0, end: 2 },
+                visual_range: UiTextRange { start: 0, end: 1 },
+                measured_width: 24.0,
+                glyph_advances: vec![24.0],
+                baseline: 16.0,
+                direction: UiTextDirection::LeftToRight,
+                runs: Vec::new(),
+                ellipsized: false,
+            },
+        })],
+    });
+    let refreshed_line = ResolvedTextGlyphArtifactLine {
+        glyphs: vec![TextGlyph {
+            glyph_id: 0xfb02,
+            source_range: 0..2,
+            visual_range: 0..1,
+            advance: 24.0,
+            position: [0.0, 0.0],
+            offset: [0.0, 0.0],
+            font_face: None,
+            font_instance: None,
+            rotation: TextGlyphRotation::Clockwise90,
+            bidi_level: 0,
+            flags: TextGlyphFlags::default(),
+            requires_rasterization: true,
+        }],
+        layout_line: artifact
+            .lines
+            .first()
+            .and_then(Option::as_ref)
+            .expect("original artifact line")
+            .layout_line
+            .clone(),
+    };
+    let mut text = text_batch("fi", UiFrame::new(16.0, 16.0, 40.0, 40.0));
+    text.writing_mode = UiTextWritingMode::VerticalRl;
+    text.glyph_advances = vec![24.0];
+    text.glyph_artifact_line = Some(ScreenSpaceUiGlyphArtifactLine {
+        artifact,
+        line_index: 0,
+        refreshed_line: Some(std::sync::Arc::new(refreshed_line)),
+        font_generation: 8,
+    });
+
+    let plan = synthetic_layered_plan(0);
+    let atlas_bake = synthetic_layered_bake(&plan);
+    let asset_manager = ProjectAssetManager::default();
+    let vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(96, 96),
+    );
+
+    assert_eq!(vertices.len(), 6);
+    assert_eq!(vertices[0].uv, [0.0, 0.5]);
+    assert_eq!(vertices[0].primitive_kind, SDF_TEXT_PRIMITIVE_GLYPH);
 }

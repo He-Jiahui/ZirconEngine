@@ -15,7 +15,7 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_app/src/entry/entry_runner/editor/tests.rs
+  - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
 status: m2.2-review-hardening-current-source-revalidation-pending
 ---
 

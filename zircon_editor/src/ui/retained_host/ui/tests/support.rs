@@ -40,8 +40,8 @@ pub(super) use crate::ui::workbench::startup::{
     EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot,
 };
 pub(super) use crate::ui::workbench::view::{
-    PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PreferredHost,
-    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
+    PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, ViewDescriptor,
+    ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind, WorkbenchSlot,
 };
 pub(super) use zircon_runtime_interface::math::UVec2;
 pub(super) use zircon_runtime_interface::ui::{
@@ -77,7 +77,7 @@ pub(super) fn welcome_shell_fixture() -> (
             ViewKind::ActivityWindow,
             "Welcome",
         )
-        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
         .with_icon_key("welcome"),
     ];
     let welcome_instance = ViewInstance {
@@ -90,9 +90,10 @@ pub(super) fn welcome_shell_fixture() -> (
     };
     let chrome = EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Ready".to_string(),
+            console_output: "Ready".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

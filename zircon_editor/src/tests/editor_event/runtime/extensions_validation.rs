@@ -21,7 +21,7 @@ fn editor_runtime_rejects_menu_capabilities_without_an_extension_owned_command()
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -30,7 +30,7 @@ fn editor_runtime_rejects_menu_capabilities_without_an_extension_owned_command()
             command_id: operation_path,
         }
     );
-    assert!(runtime.runtime.shell().lock().editor_extensions.is_empty());
+    assert!(runtime.runtime.shell().lock().contributions.is_empty());
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
         .commands()
         .map(|command| command.id().clone())
         .collect::<Vec<_>>();
-    let extension_count_before = runtime.runtime.shell().lock().editor_extensions.len();
+    let extension_count_before = runtime.runtime.shell().lock().contributions.len();
     let descriptor_ids_before = runtime
         .runtime
         .descriptors()
@@ -83,7 +83,7 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -102,14 +102,16 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
             .collect::<Vec<_>>(),
         command_ids_before
     );
-    assert!(runtime
-        .runtime
-        .commands()
-        .lock()
-        .command(operation_path.as_str())
-        .is_none());
+    assert!(
+        runtime
+            .runtime
+            .commands()
+            .lock()
+            .command(operation_path.as_str())
+            .is_none()
+    );
     assert_eq!(
-        runtime.runtime.shell().lock().editor_extensions.len(),
+        runtime.runtime.shell().lock().contributions.len(),
         extension_count_before
     );
     assert_eq!(
@@ -141,7 +143,7 @@ fn editor_runtime_rejects_menu_items_to_missing_operations() {
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -210,7 +212,7 @@ fn editor_runtime_rejects_duplicate_extension_view_without_registering_operation
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(first_extension)
+        .register_editor_extension(first_extension.into_contribution_batch().unwrap())
         .expect("register first extension view");
 
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
@@ -231,7 +233,7 @@ fn editor_runtime_rejects_duplicate_extension_view_without_registering_operation
 
     let error = runtime
         .runtime
-        .register_editor_extension(duplicate_extension)
+        .register_editor_extension(duplicate_extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -241,17 +243,19 @@ fn editor_runtime_rejects_duplicate_extension_view_without_registering_operation
     let operations = runtime
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
-    assert!(!operations
-        .value
-        .as_ref()
-        .and_then(|value| value.get("operations"))
-        .and_then(serde_json::Value::as_array)
-        .expect("operations array")
-        .iter()
-        .any(|operation| operation
-            .get("operation_id")
-            .and_then(serde_json::Value::as_str)
-            == Some(operation_path.as_str())));
+    assert!(
+        !operations
+            .value
+            .as_ref()
+            .and_then(|value| value.get("operations"))
+            .and_then(serde_json::Value::as_array)
+            .expect("operations array")
+            .iter()
+            .any(|operation| operation
+                .get("operation_id")
+                .and_then(serde_json::Value::as_str)
+                == Some(operation_path.as_str()))
+    );
 }
 
 #[test]
@@ -268,7 +272,7 @@ fn editor_runtime_rejects_generated_view_command_collision_atomically() {
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -288,12 +292,14 @@ fn editor_runtime_rejects_generated_view_command_collision_atomically() {
             ViewDescriptorId::new("editor.project")
         )))
     );
-    assert!(runtime.runtime.shell().lock().editor_extensions.is_empty());
-    assert!(runtime
-        .runtime
-        .descriptors()
-        .iter()
-        .all(|descriptor| descriptor.descriptor_id.0 != "project"));
+    assert!(runtime.runtime.shell().lock().contributions.is_empty());
+    assert!(
+        runtime
+            .runtime
+            .descriptors()
+            .iter()
+            .all(|descriptor| descriptor.descriptor_id.0 != "project")
+    );
 }
 
 #[test]
@@ -322,25 +328,29 @@ fn editor_runtime_rejects_explicit_view_command_with_the_wrong_target_atomically
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
         error.to_string(),
         "editor command view.weather.cloud_layers.open does not open extension view weather.cloud_layers"
     );
-    assert!(runtime
-        .runtime
-        .commands()
-        .lock()
-        .command(operation_path.as_str())
-        .is_none());
-    assert!(runtime.runtime.shell().lock().editor_extensions.is_empty());
-    assert!(runtime
-        .runtime
-        .descriptors()
-        .iter()
-        .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers"));
+    assert!(
+        runtime
+            .runtime
+            .commands()
+            .lock()
+            .command(operation_path.as_str())
+            .is_none()
+    );
+    assert!(runtime.runtime.shell().lock().contributions.is_empty());
+    assert!(
+        runtime
+            .runtime
+            .descriptors()
+            .iter()
+            .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers")
+    );
 }
 
 #[test]
@@ -368,7 +378,7 @@ fn editor_runtime_accepts_explicit_view_command_only_for_the_matching_target() {
 
     runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("register matching explicit view command");
 
     let registered_event = runtime
@@ -380,13 +390,12 @@ fn editor_runtime_accepts_explicit_view_command_only_for_the_matching_target() {
         .cloned();
     assert_eq!(registered_event, Some(expected_event));
     let shell = runtime.runtime.shell().lock();
-    let stored = shell
-        .editor_extensions
-        .last()
-        .expect("stored extension registration")
-        .registry();
-    assert!(stored.pending_commands().next().is_none());
-    assert!(stored.command_ids().any(|id| id == &operation_path));
+    let stored = shell.contributions.snapshot();
+    assert!(
+        stored
+            .commands(&crate::core::extension::CapabilitySet::default())
+            .any(|command| command.id() == &operation_path)
+    );
 }
 
 #[test]
@@ -413,7 +422,7 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
         .unwrap();
     runtime
         .runtime
-        .register_editor_extension(first_extension)
+        .register_editor_extension(first_extension.into_contribution_batch().unwrap())
         .expect("register first extension menu");
 
     let second_operation = EditorOperationPath::parse("weather.cloud_layer.reset").unwrap();
@@ -433,7 +442,7 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
 
     let error = runtime
         .runtime
-        .register_editor_extension(duplicate_extension)
+        .register_editor_extension(duplicate_extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -443,29 +452,32 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
     let operations = runtime
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
-    assert!(!operations
-        .value
-        .as_ref()
-        .and_then(|value| value.get("operations"))
-        .and_then(serde_json::Value::as_array)
-        .expect("operations array")
-        .iter()
-        .any(|operation| operation
-            .get("operation_id")
-            .and_then(serde_json::Value::as_str)
-            == Some(second_operation.as_str())));
+    assert!(
+        !operations
+            .value
+            .as_ref()
+            .and_then(|value| value.get("operations"))
+            .and_then(serde_json::Value::as_array)
+            .expect("operations array")
+            .iter()
+            .any(|operation| operation
+                .get("operation_id")
+                .and_then(serde_json::Value::as_str)
+                == Some(second_operation.as_str()))
+    );
 }
 
 #[test]
-fn editor_runtime_rejects_component_drawer_bindings_to_missing_operations() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn editor_runtime_rejects_inspector_customization_bindings_to_missing_operations() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_component_drawer_missing_binding");
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 "weather.Component.CloudLayer",
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -476,7 +488,7 @@ fn editor_runtime_rejects_component_drawer_bindings_to_missing_operations() {
 
     let error = runtime
         .runtime
-        .register_editor_extension(extension)
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
     assert_eq!(
@@ -486,13 +498,14 @@ fn editor_runtime_rejects_component_drawer_bindings_to_missing_operations() {
 }
 
 #[test]
-fn editor_extension_registry_rejects_invalid_component_drawer_operation_bindings() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn editor_extension_registry_rejects_invalid_inspector_customization_operation_bindings() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let mut extension = EditorExtensionRegistry::default();
     let error = extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 "weather.Component.CloudLayer",
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -508,13 +521,14 @@ fn editor_extension_registry_rejects_invalid_component_drawer_operation_bindings
 }
 
 #[test]
-fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn editor_extension_registry_rejects_invalid_inspector_customization_template_metadata() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let mut extension = EditorExtensionRegistry::default();
     let error = extension
-        .register_component_drawer(
-            ComponentDrawerDescriptor::new(
+        .register_inspector_customization(
+            InspectorCustomizationDescriptor::new(
                 "weather.Component.CloudLayer",
                 "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
@@ -525,7 +539,7 @@ fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata(
 
     assert_eq!(
         error.to_string(),
-        "editor component drawer template id ` weather.cloud_layer.inspector` is invalid"
+        "editor inspector customization template id ` weather.cloud_layer.inspector` is invalid"
     );
 }
 
@@ -548,12 +562,13 @@ fn editor_extension_registry_rejects_non_zui_ui_template_documents() {
 }
 
 #[test]
-fn editor_extension_registry_rejects_non_zui_component_drawer_documents() {
-    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+fn editor_extension_registry_rejects_non_zui_inspector_customization_documents() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::extension::InspectorCustomizationDescriptor;
 
     let mut extension = EditorExtensionRegistry::default();
     let error = extension
-        .register_component_drawer(ComponentDrawerDescriptor::new(
+        .register_inspector_customization(InspectorCustomizationDescriptor::new(
             "weather.Component.CloudLayer",
             "asset://weather/editor/cloud_layer.inspector.toml",
             "weather.editor.CloudLayerInspectorController",
@@ -562,6 +577,6 @@ fn editor_extension_registry_rejects_non_zui_component_drawer_documents() {
 
     assert_eq!(
         error.to_string(),
-        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.toml` must reference a supported editor UI asset"
+        "editor inspector customization document `asset://weather/editor/cloud_layer.inspector.toml` must reference a supported editor UI asset"
     );
 }

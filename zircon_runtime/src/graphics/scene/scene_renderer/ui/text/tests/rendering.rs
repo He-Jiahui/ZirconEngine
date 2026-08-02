@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use super::super::font_assets::{LoadedUiFontAsset, effective_text_render_mode};
+use super::super::font_assets::{effective_text_render_mode, LoadedUiFontAsset};
 use super::super::resolved_batches::{
-    ResolvedScreenSpaceUiTextBatches, resolved_auto_text_render_mode,
+    resolved_auto_text_render_mode, AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches,
 };
 use super::super::*;
 use super::support::text_batch;
@@ -54,10 +54,12 @@ fn text_batch_resolution_invalidates_existing_renderer_after_shared_font_publish
 
     let asset_manager = ProjectAssetManager::default();
     let mut font_assets = HashMap::new();
+    let mut auto_router = AutoTextRasterRouter::default();
     let resolved = super::super::resolved_batches::resolve_text_batches(
         &mut reader,
         &mut font_assets,
         &asset_manager,
+        &mut auto_router,
         &[],
         &[],
         &[],
@@ -217,6 +219,184 @@ fn auto_text_effects_use_the_distance_field_policy() {
         resolved_auto_text_render_mode(&glow, None),
         UiTextRenderMode::Mtsdf
     );
+}
+
+#[test]
+fn auto_text_router_keeps_the_warm_route_inside_the_hysteresis_band() {
+    let mut router = AutoTextRasterRouter::default();
+    let mut text = text_batch("StableAuto", UiTextRenderMode::Auto);
+
+    text.font_size = 23.0;
+    text.command_generation = 1;
+    router.begin_frame();
+    assert_eq!(router.resolve(&text, None), UiTextRenderMode::Native);
+
+    for (generation, size_px) in [(2, 24.5), (3, 25.9), (4, 23.5)] {
+        text.command_generation = generation;
+        text.font_size = size_px;
+        router.begin_frame();
+        assert_eq!(router.resolve(&text, None), UiTextRenderMode::Native);
+        assert_eq!(router.frame_report().retained_warm_route_count, 1);
+    }
+
+    text.command_generation = 5;
+    text.font_size = 26.0;
+    router.begin_frame();
+    assert_eq!(router.resolve(&text, None), UiTextRenderMode::Sdf);
+    assert_eq!(router.frame_report().route_switch_count, 1);
+
+    text.command_generation = 6;
+    text.font_size = 22.1;
+    router.begin_frame();
+    assert_eq!(router.resolve(&text, None), UiTextRenderMode::Sdf);
+    assert_eq!(router.frame_report().retained_warm_route_count, 1);
+
+    text.command_generation = 7;
+    text.font_size = 21.9;
+    router.begin_frame();
+    assert_eq!(router.resolve(&text, None), UiTextRenderMode::Native);
+    assert_eq!(router.frame_report().route_switch_count, 1);
+}
+
+#[test]
+fn auto_text_router_evaluates_each_command_generation_once() {
+    let mut router = AutoTextRasterRouter::default();
+    let mut text = text_batch("GenerationAuto", UiTextRenderMode::Auto);
+    text.font_size = 12.0;
+    text.command_generation = 41;
+
+    router.begin_frame();
+    assert_eq!(router.resolve(&text, None), UiTextRenderMode::Native);
+    assert_eq!(router.frame_report().policy_evaluation_count, 1);
+
+    text.font_size = 48.0;
+    assert_eq!(router.resolve(&text, None), UiTextRenderMode::Native);
+    assert_eq!(router.frame_report().generation_cache_hit_count, 1);
+    assert_eq!(router.frame_report().policy_evaluation_count, 1);
+}
+
+#[test]
+fn auto_text_router_isolates_tree_and_layout_fragment_identity() {
+    let mut router = AutoTextRasterRouter::default();
+    let mut native = text_batch("Native fragment", UiTextRenderMode::Auto);
+    native.font_size = 12.0;
+    native.command_generation = 1;
+    native.route_identity = ScreenSpaceUiTextRouteIdentity::new(
+        "runtime.text.tree-a",
+        zircon_runtime_interface::ui::event_ui::UiNodeId::new(7),
+        Some(UiTextRange { start: 0, end: 6 }),
+    );
+    let mut sdf = native.clone();
+    sdf.font_size = 48.0;
+    sdf.route_identity = ScreenSpaceUiTextRouteIdentity::new(
+        "runtime.text.tree-b",
+        zircon_runtime_interface::ui::event_ui::UiNodeId::new(7),
+        Some(UiTextRange { start: 0, end: 6 }),
+    );
+    let mut second_fragment = native.clone();
+    second_fragment.font_size = 48.0;
+    second_fragment.route_identity = ScreenSpaceUiTextRouteIdentity::new(
+        "runtime.text.tree-a",
+        zircon_runtime_interface::ui::event_ui::UiNodeId::new(7),
+        Some(UiTextRange { start: 7, end: 15 }),
+    );
+
+    router.begin_frame();
+    assert_eq!(router.resolve(&native, None), UiTextRenderMode::Native);
+    assert_eq!(router.resolve(&sdf, None), UiTextRenderMode::Sdf);
+    assert_eq!(
+        router.resolve(&second_fragment, None),
+        UiTextRenderMode::Sdf
+    );
+    assert_eq!(router.frame_report().entry_count, 3);
+    assert_eq!(router.frame_report().policy_evaluation_count, 3);
+}
+
+#[test]
+fn auto_text_router_bounds_state_and_reclaims_idle_routes() {
+    let mut router = AutoTextRasterRouter::with_capacity_for_test(2);
+    for node_id in 1..=3 {
+        let mut text = text_batch("BoundedAuto", UiTextRenderMode::Auto);
+        text.route_identity = ScreenSpaceUiTextRouteIdentity::new(
+            "runtime.text.router.capacity",
+            zircon_runtime_interface::ui::event_ui::UiNodeId::new(node_id),
+            None,
+        );
+        text.command_generation = node_id;
+        router.begin_frame();
+        assert_eq!(router.resolve(&text, None), UiTextRenderMode::Native);
+    }
+    assert_eq!(router.frame_report().entry_count, 2);
+    assert_eq!(router.frame_report().capacity_eviction_count, 1);
+
+    for _ in 0..=300 {
+        router.begin_frame();
+    }
+    assert_eq!(router.frame_report().entry_count, 0);
+    assert_eq!(router.frame_report().idle_eviction_count, 1);
+}
+
+#[test]
+fn auto_text_router_scale_evaluations_are_linear_and_bounded() {
+    for batch_count in [1_u64, 100, 1_000] {
+        let mut router = AutoTextRasterRouter::default();
+        router.begin_frame();
+        for node_id in 1..=batch_count {
+            let mut text = text_batch("ScaleAuto", UiTextRenderMode::Auto);
+            text.route_identity = ScreenSpaceUiTextRouteIdentity::new(
+                "runtime.text.router.scale",
+                zircon_runtime_interface::ui::event_ui::UiNodeId::new(node_id),
+                None,
+            );
+            text.command_generation = 1;
+            let _ = router.resolve(&text, None);
+        }
+        assert_eq!(
+            router.frame_report().policy_evaluation_count,
+            batch_count as usize
+        );
+        assert_eq!(router.frame_report().entry_count, batch_count as usize);
+        assert_eq!(router.frame_report().capacity_eviction_count, 0);
+    }
+}
+
+#[test]
+#[ignore = "manual 31-sample Auto route scale evidence; no machine-time acceptance threshold"]
+fn auto_text_router_reports_scale_p50_p95() {
+    for batch_count in [1_u64, 100, 1_000] {
+        let texts = (1..=batch_count)
+            .map(|node_id| {
+                let mut text = text_batch("ScaleAuto", UiTextRenderMode::Auto);
+                text.route_identity = ScreenSpaceUiTextRouteIdentity::new(
+                    "runtime.text.router.metrics",
+                    zircon_runtime_interface::ui::event_ui::UiNodeId::new(node_id),
+                    None,
+                );
+                text
+            })
+            .collect::<Vec<_>>();
+        let mut samples_ns = Vec::with_capacity(31);
+        for _ in 0..31 {
+            let mut router = AutoTextRasterRouter::default();
+            router.begin_frame();
+            let started = std::time::Instant::now();
+            for text in &texts {
+                let _ = router.resolve(text, None);
+            }
+            samples_ns.push(started.elapsed().as_nanos());
+            assert_eq!(
+                router.frame_report().policy_evaluation_count,
+                batch_count as usize
+            );
+        }
+        samples_ns.sort_unstable();
+        let p50_ns = samples_ns[samples_ns.len() / 2];
+        let p95_ns = samples_ns[(samples_ns.len() * 95).div_ceil(100) - 1];
+        println!(
+            "auto_text_batches={batch_count} policy_evaluations={batch_count} \
+             p50_ns={p50_ns} p95_ns={p95_ns}"
+        );
+    }
 }
 
 #[test]

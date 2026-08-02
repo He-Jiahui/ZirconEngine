@@ -210,8 +210,10 @@ fn read_only_combination_candidates_use_single_scan() {
 
     assert!(constructor.contains("let mut matched_entities = Vec::new();"));
     assert!(constructor.contains("for entity in entities.iter().copied()"));
-    assert!(constructor
-        .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)"));
+    assert!(
+        constructor
+            .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)")
+    );
     assert!(constructor.contains("matched_entities.push(entity);"));
     assert!(constructor.contains("if matched_entities.len() < K"));
     assert!(!source.contains("fn read_only_combination_candidate_count"));
@@ -238,8 +240,11 @@ fn cached_combination_candidate_indices_use_direct_index_scans() {
     assert!(read_only_cached_body.contains("stable_locations.get(index).is_some()"));
     assert!(read_only_cached_body.contains("cached_query_component_locations("));
     let read_only_cached_compact = compact_source(read_only_cached_body);
-    assert!(read_only_cached_compact
-        .contains("F::matches_component_locations(world,entity,entity_component_locations,ticks"));
+    assert!(
+        read_only_cached_compact.contains(
+            "F::matches_component_locations(world,entity,entity_component_locations,ticks"
+        )
+    );
     assert!(read_only_cached_body.contains("cache_indices.push(index);"));
     assert!(read_only_cached_body.contains("index += 1;"));
     assert!(!read_only_cached_body.contains("entities.iter().copied().enumerate()"));
@@ -249,8 +254,10 @@ fn cached_combination_candidate_indices_use_direct_index_scans() {
     assert!(mutable_cached_body.contains("let entity = entities[index];"));
     assert!(mutable_cached_body.contains("cached_query_component_locations("));
     let mutable_cached_compact = compact_source(mutable_cached_body);
-    assert!(mutable_cached_compact
-        .contains("F::matches_component_locations(world,entity,component_locations,ticks"));
+    assert!(
+        mutable_cached_compact
+            .contains("F::matches_component_locations(world,entity,component_locations,ticks")
+    );
     assert!(mutable_cached_body.contains("cache_indices.push(index);"));
     assert!(mutable_cached_body.contains("index += 1;"));
     assert!(!mutable_cached_body.contains("entities.iter().copied().enumerate()"));

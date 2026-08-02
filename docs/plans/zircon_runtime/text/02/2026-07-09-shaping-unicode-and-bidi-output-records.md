@@ -5,13 +5,13 @@ related_code:
   - zircon_runtime/src/text/shaping/cosmic.rs
   - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
   - zircon_runtime/src/text/shaping/horizontal/backend.rs
-  - zircon_runtime/src/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/text/shaping/horizontal/direct.rs
   - zircon_runtime/src/text/shaping/horizontal/tests.rs
   - zircon_runtime/src/text/font/vertical_metrics.rs
   - zircon_runtime/src/text/shaping/vertical.rs
   - zircon_runtime/src/text/shaping/vertical/backend.rs
   - zircon_runtime/src/text/shaping/vertical/orientation.rs
-  - zircon_runtime/src/text/shaping/vertical/projection.rs
+  - zircon_runtime/src/text/shaping/vertical/direct.rs
   - zircon_runtime/src/text/shaping/vertical/tests.rs
   - zircon_runtime/src/text/shaping/normalize.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs

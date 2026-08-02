@@ -58,3 +58,41 @@ fn editor_ui_host_runtime_projects_builtin_welcome_surface_template_into_retaine
         "RemoveRecentProject"
     );
 }
+
+#[test]
+fn welcome_surface_actions_fit_the_available_drawer_width() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/host/startup_welcome_controls.zui"),
+    )
+    .expect("welcome surface controls template should be readable");
+
+    for control_id in ["CreateProject", "OpenExistingProject", "OpenRecentProject"] {
+        let control_start = source
+            .find(&format!("control_id = \"{control_id}\""))
+            .expect("welcome action must remain in the template");
+        let control = &source[control_start..];
+        let layout_end = control
+            .find("\nevents =")
+            .expect("welcome action must declare an event after its layout");
+        assert!(
+            control[..layout_end].contains("width = { stretch = \"Stretch\" }"),
+            "{control_id} must share the available action-row width"
+        );
+    }
+
+    assert!(
+        source.contains(
+            "control_id = \"RemoveRecentProject\"\nprops = { label = \"Remove\", icon = \"editor_pages/workbench/tabs/close-tab.svg\", icon_placement = \"icon_only\""
+        ),
+        "remove-recent must remain an accessible icon action instead of consuming a second text-button width"
+    );
+    assert!(
+        source.contains("width = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" }"),
+        "the remove action must use the shared square dense-control size"
+    );
+    assert!(
+        !source.contains("preferred = 116.0") && !source.contains("preferred = 92.0"),
+        "welcome action rows must not retain fixed button widths"
+    );
+}

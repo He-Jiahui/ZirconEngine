@@ -8,20 +8,21 @@ mod template_pack;
 
 pub use asset_ref::{AssetRef, AssetRefError};
 pub use manifest_summary::{
-    PROJECT_MANIFEST_FORMAT_VERSION, ProjectManifestSummary, ProjectManifestSummaryError,
-    load_project_manifest_value_from_toml_str, validate_engine_version_req,
+    load_project_manifest_value_from_toml_str, validate_engine_version_req, ProjectManifestSummary,
+    ProjectManifestSummaryError, PROJECT_MANIFEST_FORMAT_VERSION,
 };
 pub use persisted_asset_reference::{PersistedAssetReference, PersistedAssetReferenceError};
-pub use project_name::{ProjectNameError, validate_project_name};
+pub use project_name::{validate_project_name, ProjectNameError};
 pub use rel_path::{RelPath, RelPathError};
 pub use retired_asset_ref_migration::{
-    RetiredAssetRefMigrationError, RetiredAssetReference, migrate_retired_asset_references,
-    migrate_retired_asset_references_with, migrate_retired_persisted_asset_reference_with,
-    migrate_retired_persisted_asset_references_with,
+    migrate_retired_asset_references, migrate_retired_asset_references_with,
+    migrate_retired_persisted_asset_reference_with,
+    migrate_retired_persisted_asset_references_with, RetiredAssetRefMigrationError,
+    RetiredAssetReference,
 };
 pub use template_pack::{
-    ProjectTemplateId, ProjectTemplatePackError, RenderedProjectTemplate,
-    RenderedProjectTemplateEntry, render_project_template,
+    render_project_template, ProjectTemplateId, ProjectTemplatePackError, RenderedProjectTemplate,
+    RenderedProjectTemplateEntry,
 };
 
 #[cfg(test)]

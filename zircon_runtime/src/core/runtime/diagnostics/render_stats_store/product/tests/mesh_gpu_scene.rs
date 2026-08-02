@@ -357,3 +357,28 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
         "count",
     );
 }
+
+#[test]
+fn render_product_diagnostics_record_gpu_scene_staging_upload_path() {
+    let mut store = DiagnosticStore::default();
+    let stats = RenderStats {
+        submitted_frames: 12,
+        last_gpu_scene_upload_path: RenderGpuSceneUploadPath::StagingCopy,
+        ..RenderStats::default()
+    };
+
+    record(&mut store, &stats);
+
+    assert_series(
+        &store,
+        "render.gpu_scene.upload_path.direct_queue_write",
+        0.0,
+        "bool",
+    );
+    assert_series(
+        &store,
+        "render.gpu_scene.upload_path.staging_copy",
+        1.0,
+        "bool",
+    );
+}

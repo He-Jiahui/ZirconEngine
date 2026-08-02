@@ -8,7 +8,7 @@ use super::super::super::paint_primitives::{
 };
 use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 use super::super::native_panes::draw_vertical_scrollbar;
 use super::geometry::{constrained_menu_popup_frame, scrolled_menu_frame};

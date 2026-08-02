@@ -4,8 +4,7 @@ use super::{resource_manager::ResourceManager, runtime_slot::ResourceRuntimeSlot
 
 impl ResourceManager {
     pub(super) fn broadcast(&self, event: ResourceEvent) {
-        let mut subscribers = self.lock_subscribers();
-        subscribers.retain(|sender| sender.send(event.clone()).is_ok());
+        self.publish_event(event);
     }
 
     pub(super) fn ensure_runtime_slot(&self, id: ResourceId) {

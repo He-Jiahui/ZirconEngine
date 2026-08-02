@@ -5,9 +5,12 @@ related_code:
   - zircon_runtime/src/navigation/operation/mod.rs
   - zircon_runtime/src/navigation/operation/handler.rs
   - zircon_runtime/src/navigation/operation/registration.rs
+  - zircon_runtime/src/navigation/repath_budget.rs
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
+  - zircon_runtime/src/navigation/runtime/baked_mesh/query_scratch.rs
+  - zircon_runtime/src/navigation/runtime/baked_mesh/spatial_index.rs
   - zircon_runtime/src/navigation/runtime/math.rs
   - zircon_runtime/src/navigation/runtime/state.rs
   - zircon_runtime/src/navigation/runtime/tests.rs
@@ -25,9 +28,12 @@ implementation_files:
   - zircon_runtime/src/navigation/operation/mod.rs
   - zircon_runtime/src/navigation/operation/handler.rs
   - zircon_runtime/src/navigation/operation/registration.rs
+  - zircon_runtime/src/navigation/repath_budget.rs
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
+  - zircon_runtime/src/navigation/runtime/baked_mesh/query_scratch.rs
+  - zircon_runtime/src/navigation/runtime/baked_mesh/spatial_index.rs
   - zircon_runtime/src/navigation/runtime/math.rs
   - zircon_runtime/src/navigation/runtime/state.rs
   - zircon_runtime/src/navigation/runtime/tests.rs
@@ -86,7 +92,7 @@ The folder-backed runtime owner split keeps those responsibilities in focused fi
 
 - `runtime.rs` owns manager construction, service trait orchestration, mesh selection, public method routing, and per-agent tick flow.
 - `runtime/state.rs` owns loaded mesh handles, selected mesh state, runtime settings, and stats.
-- `runtime/baked_mesh.rs` owns baked polygon storage, adjacency, A* pathfinding, sample-position, raycast, and path result helpers.
+- `runtime/baked_mesh.rs` owns baked polygon orchestration and path result helpers; `runtime/baked_mesh/spatial_index.rs` owns the spatial candidate index and `runtime/baked_mesh/query_scratch.rs` owns reusable query scratch state.
 - `runtime/world_scan.rs` owns ECS component scanning for runtime agents, nearby agents, and runtime obstacles.
 - `runtime/avoidance.rs` owns local obstacle and agent separation.
 - `runtime/math.rs` owns shared navigation math helpers.
@@ -132,7 +138,7 @@ The current runtime navigation module does not replace that plugin. It gives `zi
 
 ## Runtime 14 Boundary Judgment
 
-Runtime 14 corrected the earlier "thin navigation module" assumption. The module now has 12 Rust owner files after the folder-backed runtime and operation integration splits. `runtime.rs` remains the manager owner for real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance. `operation/{mod,handler,registration}.rs` adds the narrow shared-operation integration without moving those manager responsibilities or editor authoring state into the root wiring files.
+Runtime 14 corrected the earlier "thin navigation module" assumption. The module now has 15 Rust owner files after the folder-backed runtime, operation integration, repath-budget, and baked-mesh query splits. `runtime.rs` remains the manager owner for real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance. `operation/{mod,handler,registration}.rs` adds the narrow shared-operation integration; `repath_budget.rs` bounds repath admission, while `runtime/baked_mesh/{query_scratch,spatial_index}.rs` keep query state and spatial indexing out of the orchestration owner. None moves editor authoring state into the root wiring files.
 
 The crate-root seat remains intentional. `core::framework::navigation` owns contracts and DTOs, while `zircon_runtime::navigation` owns the built-in fallback implementation used when the external Recast-backed plugin stack is not linked into the process.
 

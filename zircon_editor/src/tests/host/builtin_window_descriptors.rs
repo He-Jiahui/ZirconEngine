@@ -1,14 +1,14 @@
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 
-use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME, module_descriptor};
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::preset::EditorUiDesignStack;
 use crate::ui::workbench::view::{
-    PanePayloadKind, PaneRouteNamespace, PreferredHost, ViewDescriptorId, ViewHost, ViewKind,
+    PanePayloadKind, PaneRouteNamespace, ViewDescriptorId, ViewHost, ViewKind, WorkbenchSlot,
 };
 
 fn editor_runtime() -> CoreRuntime {
@@ -158,7 +158,7 @@ fn unreal_style_feature_window_descriptors_use_expected_hosts() {
             .unwrap_or_else(|| panic!("missing feature window descriptor `{descriptor_id}`"));
         assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
         assert!(descriptor.multi_instance);
-        assert_eq!(descriptor.preferred_host, PreferredHost::FloatingWindow);
+        assert_eq!(descriptor.workbench_slot, WorkbenchSlot::FloatingWindow);
     }
 
     for descriptor_id in ["editor.asset_browser_window", "editor.diagnostics_window"] {
@@ -167,7 +167,7 @@ fn unreal_style_feature_window_descriptors_use_expected_hosts() {
             .find(|descriptor| descriptor.descriptor_id == ViewDescriptorId::new(descriptor_id))
             .unwrap_or_else(|| panic!("missing drawer-backed window descriptor `{descriptor_id}`"));
         assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
-        assert_eq!(descriptor.preferred_host, PreferredHost::ExclusiveMainPage);
+        assert_eq!(descriptor.workbench_slot, WorkbenchSlot::ExclusiveMainPage);
     }
 }
 
@@ -188,7 +188,7 @@ fn material_demo_window_descriptor_opens_as_document_center_demo() {
 
     assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
     assert_eq!(descriptor.default_title, "Material Demo Window");
-    assert_eq!(descriptor.preferred_host, PreferredHost::DocumentCenter);
+    assert_eq!(descriptor.workbench_slot, WorkbenchSlot::DocumentCenter);
     assert_eq!(descriptor.icon_key, "material-demo");
     assert_eq!(
         descriptor
@@ -235,7 +235,7 @@ fn component_showcase_window_descriptor_opens_as_exclusive_demo_page() {
 
     assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
     assert_eq!(descriptor.default_title, "UI Component Showcase");
-    assert_eq!(descriptor.preferred_host, PreferredHost::ExclusiveMainPage);
+    assert_eq!(descriptor.workbench_slot, WorkbenchSlot::ExclusiveMainPage);
     assert_eq!(descriptor.icon_key, "ui-components");
 
     let instance_id = manager
@@ -277,7 +277,7 @@ fn functional_editor_internal_view_descriptors_use_document_host() {
             .find(|descriptor| descriptor.descriptor_id == ViewDescriptorId::new(descriptor_id))
             .unwrap_or_else(|| panic!("missing internal view descriptor `{descriptor_id}`"));
         assert_eq!(descriptor.kind, ViewKind::ActivityView);
-        assert_eq!(descriptor.preferred_host, PreferredHost::DocumentCenter);
+        assert_eq!(descriptor.workbench_slot, WorkbenchSlot::DocumentCenter);
     }
 }
 
@@ -298,7 +298,7 @@ fn material_component_lab_window_descriptor_opens_as_exclusive_demo_page() {
 
     assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
     assert_eq!(descriptor.default_title, "Material Component Lab");
-    assert_eq!(descriptor.preferred_host, PreferredHost::ExclusiveMainPage);
+    assert_eq!(descriptor.workbench_slot, WorkbenchSlot::ExclusiveMainPage);
     assert_eq!(descriptor.icon_key, "material-component-lab");
     assert_eq!(
         descriptor
@@ -342,9 +342,11 @@ fn debug_observatory_activity_window_reuses_runtime_diagnostics_payload() {
     assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
     assert_eq!(descriptor.default_title, "Debug Observatory");
     assert_eq!(descriptor.icon_key, "debug-observatory");
-    assert!(descriptor
-        .required_capabilities
-        .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
+    assert!(
+        descriptor
+            .required_capabilities
+            .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string())
+    );
     let pane_template = descriptor
         .pane_template
         .as_ref()
@@ -382,9 +384,11 @@ fn performance_timeline_activity_view_uses_dedicated_payload_and_diagnostics_cap
     assert_eq!(descriptor.kind, ViewKind::ActivityView);
     assert_eq!(descriptor.default_title, "Performance Timeline");
     assert_eq!(descriptor.icon_key, "performance-timeline");
-    assert!(descriptor
-        .required_capabilities
-        .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
+    assert!(
+        descriptor
+            .required_capabilities
+            .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string())
+    );
     let pane_template = descriptor
         .pane_template
         .as_ref()

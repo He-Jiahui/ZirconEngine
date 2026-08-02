@@ -1,6 +1,6 @@
 use crate::scene::{
-    reflect::{ReflectComponent, ReflectResource, TypeRegistry},
     World,
+    reflect::{ReflectComponent, ReflectResource, TypeRegistry},
 };
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectFieldValue, ReflectFieldsRequest, ReflectFieldsResponse,

@@ -16,6 +16,7 @@ struct SceneUniform {
     sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_rotation_sin_cos: vec4<f32>,
 };
 struct MaterialPropertyUniform {
     data0: vec4<f32>,
@@ -378,7 +379,7 @@ fn sampled_world_normal(input: VertexOutput) -> vec3<f32> {
     }
 
     let normal_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data3, material_properties.data7.y);
-    let tangent_normal = normalize_or_zero(textureSample(normal_tex, normal_sampler, normal_uv).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
+    let tangent_normal = normalize_or_zero(textureSampleBias(normal_tex, normal_sampler, normal_uv, scene.camera_world_position.w).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
     if (length(tangent_normal) <= EPSILON) {
         return geometric_normal;
     }
@@ -391,7 +392,7 @@ fn sampled_world_normal(input: VertexOutput) -> vec3<f32> {
 
 fn sampled_base_color(input: VertexOutput) -> vec4<f32> {
     let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);
-    return textureSample(albedo_tex, albedo_sampler, base_color_uv).rgba * input.tint * input.vertex_color;
+    return textureSampleBias(albedo_tex, albedo_sampler, base_color_uv, scene.camera_world_position.w).rgba * input.tint * input.vertex_color;
 }
 
 fn sampled_material(input: VertexOutput) -> SampledMaterial {
@@ -399,7 +400,7 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
     let occlusion_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data5, material_properties.data7.w);
     let emissive_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data6, material_properties.data1.w);
     let albedo = sampled_base_color(input);
-    let metallic_roughness = textureSample(metallic_roughness_tex, metallic_roughness_sampler, metallic_roughness_uv);
+    let metallic_roughness = textureSampleBias(metallic_roughness_tex, metallic_roughness_sampler, metallic_roughness_uv, scene.camera_world_position.w);
     let metallic = clamp(material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);
     var roughness = material_properties.data0.y;
     if (roughness <= 0.0) {
@@ -410,8 +411,8 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
     if (occlusion <= 0.0) {
         occlusion = 1.0;
     }
-    occlusion = clamp(occlusion * textureSample(occlusion_tex, occlusion_sampler, occlusion_uv).r, 0.0, 1.0);
-    let emissive = max(material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSample(emissive_tex, emissive_sampler, emissive_uv).rgb;
+    occlusion = clamp(occlusion * textureSampleBias(occlusion_tex, occlusion_sampler, occlusion_uv, scene.camera_world_position.w).r, 0.0, 1.0);
+    let emissive = max(material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSampleBias(emissive_tex, emissive_sampler, emissive_uv, scene.camera_world_position.w).rgb;
     let shading_model_id = select(
         decode_shading_model_id(material_properties.data8.y),
         ZR_SHADING_MODEL_UNLIT_ID,
@@ -670,7 +671,7 @@ fn fs_velocity_object(input: VelocityVertexOutput) -> @location(0) vec4<f32> {
 
     if (input.shadow_params.x > 0.5) {
         let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);
-        let albedo = textureSample(albedo_tex, albedo_sampler, base_color_uv).rgba * input.tint;
+        let albedo = textureSampleBias(albedo_tex, albedo_sampler, base_color_uv, scene.camera_world_position.w).rgba * input.tint;
         if (albedo.a < input.shadow_params.y) {
             discard;
         }

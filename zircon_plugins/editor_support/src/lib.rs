@@ -208,50 +208,43 @@ mod tests {
                     EditorCommandDescriptor::operation(create.clone(), "Create Support Asset"),
                     EditorCommandDescriptor::operation(activate.clone(), "Activate Support Tool"),
                 ],
-                menu_items: vec![
-                    EditorMenuItemDescriptor::new("Plugins/Support/Import", import.clone())
-                        .with_required_capabilities(["editor.extension.support_authoring"]),
-                ],
-                asset_importers: vec![
-                    AssetImporterDescriptor::new(
-                        "support.asset.importer",
+                menu_items: vec![EditorMenuItemDescriptor::new(
+                    "Plugins/Support/Import",
+                    import.clone(),
+                )
+                .with_required_capabilities(["editor.extension.support_authoring"])],
+                asset_importers: vec![AssetImporterDescriptor::new(
+                    "support.asset.importer",
+                    "Support Asset",
+                    import.clone(),
+                )
+                .with_source_extension("support")
+                .with_output_type(support_type.clone())],
+                asset_type_contributions: vec![AssetTypeContribution::define(
+                    support_type.clone(),
+                    AssetTypePresentation::new(
                         "Support Asset",
-                        import.clone(),
-                    )
-                    .with_source_extension("support")
-                    .with_output_type(support_type.clone()),
-                ],
-                asset_type_contributions: vec![
-                    AssetTypeContribution::define(
-                        support_type.clone(),
-                        AssetTypePresentation::new(
-                            "Support Asset",
-                            "SUP",
-                            "asset-support",
-                            "asset.support",
-                        ),
-                        ThumbnailProviderDescriptor::Icon("asset-support".to_owned()),
-                    )
-                    .with_toolkit(AssetToolkitDescriptor::new(
-                        "support.authoring",
-                        open.clone(),
-                    ))
-                    .with_creation_template(
-                        AssetCreationTemplateDescriptor::new(
-                            "support.template.asset",
-                            "Support Asset",
-                            create,
-                        ),
+                        "SUP",
+                        "asset-support",
+                        "asset.support",
                     ),
-                ],
-                component_drawers: vec![
-                    ComponentDrawerDescriptor::new(
-                        "support.Component",
-                        "plugins://support/editor/component.zui",
-                        "support.editor.component",
-                    )
-                    .with_binding(validate.as_str()),
-                ],
+                    ThumbnailProviderDescriptor::Icon("asset-support".to_owned()),
+                )
+                .with_toolkit(AssetToolkitDescriptor::new(
+                    "support.authoring",
+                    open.clone(),
+                ))
+                .with_creation_template(AssetCreationTemplateDescriptor::new(
+                    "support.template.asset",
+                    "Support Asset",
+                    create,
+                ))],
+                component_drawers: vec![ComponentDrawerDescriptor::new(
+                    "support.Component",
+                    "plugins://support/editor/component.zui",
+                    "support.editor.component",
+                )
+                .with_binding(validate.as_str())],
                 scene_modes: vec![SceneModeRegistration::new(
                     SceneModeDescriptor::new(
                         "support.tool.paint",
@@ -265,35 +258,29 @@ mod tests {
                         }) as Box<dyn EditorSceneMode>
                     },
                 )],
-                graph_editors: vec![
-                    GraphEditorDescriptor::new(
-                        AssetTypeId::parse("support.graph").unwrap(),
-                        "support.authoring",
-                        "Support Graph",
-                        open.clone(),
-                        validate,
-                    )
-                    .with_compile_operation(compile),
-                ],
-                graph_node_palettes: vec![
-                    GraphNodePaletteDescriptor::new(
-                        "support.palette",
-                        AssetTypeId::parse("support.graph").unwrap(),
-                    )
-                    .with_node(
-                        GraphNodeDescriptor::new("output", "Output", "Graph")
-                            .with_input(GraphPinDescriptor::new("value", "float").required(true)),
-                    ),
-                ],
-                timeline_editors: vec![
-                    TimelineEditorDescriptor::new(
-                        AssetTypeId::parse("support.timeline").unwrap(),
-                        "support.authoring",
-                        "Support Timeline",
-                        open,
-                    )
-                    .with_track_type("support.track.event"),
-                ],
+                graph_editors: vec![GraphEditorDescriptor::new(
+                    AssetTypeId::parse("support.graph").unwrap(),
+                    "support.authoring",
+                    "Support Graph",
+                    open.clone(),
+                    validate,
+                )
+                .with_compile_operation(compile)],
+                graph_node_palettes: vec![GraphNodePaletteDescriptor::new(
+                    "support.palette",
+                    AssetTypeId::parse("support.graph").unwrap(),
+                )
+                .with_node(
+                    GraphNodeDescriptor::new("output", "Output", "Graph")
+                        .with_input(GraphPinDescriptor::new("value", "float").required(true)),
+                )],
+                timeline_editors: vec![TimelineEditorDescriptor::new(
+                    AssetTypeId::parse("support.timeline").unwrap(),
+                    "support.authoring",
+                    "Support Timeline",
+                    open,
+                )
+                .with_track_type("support.track.event")],
                 timeline_track_types: vec![TimelineTrackDescriptor::new(
                     "support.track.event",
                     "Event",

@@ -4,6 +4,7 @@ use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runt
 fn runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner() {
     let parent = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let tests = read_runtime_src("dynamic_api/shader_prewarm/tests.rs");
+    let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md",
     );
@@ -20,14 +21,16 @@ fn runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner() {
     );
 
     assert_contains_all(
-        "dynamic API shader prewarm parent delegates tests and keeps runtime API",
+        "dynamic API shader prewarm parent delegates tests and WGPU validation ownership",
         &parent,
         &[
             "#[path = \"shader_prewarm/tests.rs\"]",
             "mod tests;",
+            "mod wgpu_validation;",
+            "pub use wgpu_validation::{",
             "pub fn prewarm_shader_variants(",
-            "pub fn prewarm_shader_variants_with_wgpu_module_validation(",
-            "pub fn prewarm_shader_variants_with_wgpu_pipeline_validation(",
+            "prewarm_shader_variants_with_wgpu_module_validation,",
+            "prewarm_shader_variants_with_wgpu_pipeline_validation,",
             "pub fn builtin_fallback_shader_prewarm_manifest()",
             "pub fn default_shader_variant_cache_root_for_project(",
         ],
@@ -58,9 +61,22 @@ fn runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner() {
         ],
     );
 
+    assert_contains_all(
+        "dynamic API WGPU validation child owns offscreen validation",
+        &wgpu_validation,
+        &[
+            "pub fn prewarm_shader_variants_with_wgpu_module_validation(",
+            "pub fn prewarm_shader_variants_with_wgpu_pipeline_validation(",
+            "RenderBackend::new_offscreen",
+        ],
+    );
     for (path, source) in [
         ("dynamic_api/shader_prewarm.rs", parent.as_str()),
         ("dynamic_api/shader_prewarm/tests.rs", tests.as_str()),
+        (
+            "dynamic_api/shader_prewarm/wgpu_validation.rs",
+            wgpu_validation.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(

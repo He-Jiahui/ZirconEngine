@@ -13,6 +13,10 @@ import {
   shouldCapturePreviewSheet,
 } from "./export-options.mjs";
 import { previewSheetCoverageIds, previewSheetEntries } from "./preview-sheet.js";
+import {
+  buildExportEvidence,
+  EXPORT_EVIDENCE_FILENAME,
+} from "./export-evidence.mjs";
 
 const rootDir = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const outputDir = resolve(rootDir, OUTPUT_DIR);
@@ -45,9 +49,7 @@ await validatePackageScripts();
 await validateOutputDirectory();
 await validateDocumentationBaselines();
 validateNoStalePreviewProcesses();
-await validatePreviewSheetFreshness();
-await validateStyleNotesFreshness();
-await validateDesignPngFreshness();
+await validateExportEvidence();
 
 for (const filename of expected) {
   const file = resolve(outputDir, filename);
@@ -399,23 +401,6 @@ async function validateStyleNotes() {
 async function validateDocumentationBaselines() {
   const docs = [
     {
-      filename: ".codex/plans/Editor Workbench PNG Design Plan.md",
-      required: [
-        `${DESIGNS.length} design entries`,
-        `${expected.length} PNG files`,
-        "zircon_editor/assets/ui/editor/reference/workbench.png",
-        "byte-identical",
-        "direct byte comparison",
-        "Negative guard",
-        "design:verify:reference-negative",
-        "ZIRCON_WORKBENCH_REFERENCE_NEGATIVE_GUARD=1",
-        "package script definitions",
-        "per-design PNG freshness",
-        "world streaming pages",
-        "LiveOps pages",
-      ],
-    },
-    {
       filename: "docs/ui-and-layout/editor-workbench-design-export.md",
       required: [
         `contain ${DESIGNS.length} design entries`,
@@ -517,77 +502,55 @@ function validateNoStalePreviewProcesses() {
   }
 }
 
-async function validatePreviewSheetFreshness() {
-  const previewSheet = await stat(resolve(outputDir, "preview-sheet.png"));
-  const sources = [
-    "tools/editor-workbench-preview/design.html",
-    "tools/editor-workbench-preview/design.css",
-    "tools/editor-workbench-preview/design.js",
-    "tools/editor-workbench-preview/design-manifest.mjs",
-    "tools/editor-workbench-preview/preview-sheet.js",
-  ];
-
-  for (const source of sources) {
-    try {
-      const sourceInfo = await stat(resolve(rootDir, source));
-      if (previewSheet.mtimeMs + 1000 < sourceInfo.mtimeMs) {
-        failures.push(`preview-sheet.png: older than ${source}`);
-      }
-    } catch (error) {
-      failures.push(`${source}: ${error.message}`);
-    }
+async function validateExportEvidence() {
+  const evidencePath = resolve(outputDir, EXPORT_EVIDENCE_FILENAME);
+  let actual;
+  let expectedEvidence;
+  try {
+    actual = JSON.parse(await readFile(evidencePath, "utf8"));
+    expectedEvidence = await buildExportEvidence({
+      rootDir,
+      outputDir,
+      outputNames: expected,
+      width: WIDTH,
+      height: HEIGHT,
+    });
+  } catch (error) {
+    failures.push(`${EXPORT_EVIDENCE_FILENAME}: ${error.message}`);
+    return;
   }
+
+  if (actual.schemaVersion !== expectedEvidence.schemaVersion) {
+    failures.push(
+      `${EXPORT_EVIDENCE_FILENAME}: schema ${actual.schemaVersion} != ${expectedEvidence.schemaVersion}`,
+    );
+  }
+  if (!sameJson(actual.capture, expectedEvidence.capture)) {
+    failures.push(`${EXPORT_EVIDENCE_FILENAME}: capture contract does not match the exporter`);
+  }
+  validateEvidenceEntries("source", actual.sources, expectedEvidence.sources);
+  validateEvidenceEntries("output", actual.outputs, expectedEvidence.outputs);
+  validateEvidenceEntries("style note", [actual.styleNotes], [expectedEvidence.styleNotes]);
 }
 
-async function validateStyleNotesFreshness() {
-  const styleNotes = await stat(resolve(outputDir, "STYLE-NOTES.md"));
-  const sources = [
-    "tools/editor-workbench-preview/design-manifest.mjs",
-    "tools/editor-workbench-preview/export-designs.mjs",
-  ];
-
-  for (const source of sources) {
-    try {
-      const sourceInfo = await stat(resolve(rootDir, source));
-      if (styleNotes.mtimeMs + 1000 < sourceInfo.mtimeMs) {
-        failures.push(`STYLE-NOTES.md: older than ${source}`);
-      }
-    } catch (error) {
-      failures.push(`${source}: ${error.message}`);
+function validateEvidenceEntries(label, actualEntries, expectedEntries) {
+  if (!Array.isArray(actualEntries)) {
+    failures.push(`${EXPORT_EVIDENCE_FILENAME}: ${label} entries must be an array`);
+    return;
+  }
+  const actualByPath = new Map(actualEntries.map((entry) => [entry?.path, entry]));
+  const expectedByPath = new Map(expectedEntries.map((entry) => [entry.path, entry]));
+  for (const [path, expectedEntry] of expectedByPath) {
+    const actualEntry = actualByPath.get(path);
+    if (!actualEntry) {
+      failures.push(`${EXPORT_EVIDENCE_FILENAME}: missing ${label} ${path}`);
+    } else if (!sameJson(actualEntry, expectedEntry)) {
+      failures.push(`${EXPORT_EVIDENCE_FILENAME}: ${label} digest mismatch for ${path}`);
     }
   }
-}
-
-async function validateDesignPngFreshness() {
-  const sources = [
-    "tools/editor-workbench-preview/design.html",
-    "tools/editor-workbench-preview/design.css",
-    "tools/editor-workbench-preview/design.js",
-    "tools/editor-workbench-preview/design-manifest.mjs",
-  ];
-  const sourceInfos = [];
-
-  for (const source of sources) {
-    try {
-      sourceInfos.push([source, await stat(resolve(rootDir, source))]);
-    } catch (error) {
-      failures.push(`${source}: ${error.message}`);
-    }
-  }
-
-  for (const design of DESIGNS) {
-    let designInfo;
-    try {
-      designInfo = await stat(resolve(outputDir, design.output));
-    } catch (error) {
-      failures.push(`${design.output}: ${error.message}`);
-      continue;
-    }
-
-    for (const [source, sourceInfo] of sourceInfos) {
-      if (designInfo.mtimeMs + 1000 < sourceInfo.mtimeMs) {
-        failures.push(`${design.output}: older than ${source}`);
-      }
+  for (const path of actualByPath.keys()) {
+    if (!expectedByPath.has(path)) {
+      failures.push(`${EXPORT_EVIDENCE_FILENAME}: unexpected ${label} ${path}`);
     }
   }
 }

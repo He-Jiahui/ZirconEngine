@@ -13,7 +13,10 @@ use super::feature_reports::feature_reports_for_plugin_and_feature_registration_
 use super::registration_inputs::{
     registration_inputs_for_plugin_and_feature_reports, registration_inputs_for_plugin_reports,
 };
-use super::target_modules::runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability;
+use super::target_modules::{
+    runtime_modules_for_profile_with_registration_inputs_for_manifest_and_availability,
+    runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability,
+};
 use crate::core::framework::platform::RuntimeTargetMode;
 
 pub(super) fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
@@ -51,8 +54,8 @@ pub(super) fn runtime_modules_for_profile_manifest_with_plugin_registration_repo
     let availability =
         runtime_profile_manifest_availability(profile, manifest, registrations.iter().copied());
     let mut report =
-        runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
-            target,
+        runtime_modules_for_profile_with_registration_inputs_for_manifest_and_availability(
+            profile,
             manifest,
             &inputs,
             availability,
@@ -98,13 +101,21 @@ pub(super) fn runtime_modules_for_target_with_plugin_and_feature_registration_re
             registrations.iter(),
         )
     };
-    let mut report =
+    let mut report = if let Some(profile) = availability_profile {
+        runtime_modules_for_profile_with_registration_inputs_for_manifest_and_availability(
+            profile,
+            &manifest,
+            &inputs,
+            availability,
+        )
+    } else {
         runtime_modules_for_target_with_registration_inputs_for_manifest_and_availability(
             target,
             &manifest,
             &inputs,
             availability,
-        );
+        )
+    };
     feature_reports.extend_load_report_diagnostics(&mut report);
     extend_asset_importer_errors(&mut report, &inputs);
     report

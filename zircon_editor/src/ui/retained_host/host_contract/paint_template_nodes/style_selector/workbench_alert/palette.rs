@@ -1,6 +1,6 @@
 use super::model::{WorkbenchAlertStyle, WorkbenchAlertTone};
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "composite": true,
+    "target": "ES2022",
+    "noEmit": true,
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",

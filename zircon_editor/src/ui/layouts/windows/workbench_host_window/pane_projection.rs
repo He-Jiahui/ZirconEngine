@@ -1,7 +1,7 @@
 use super::*;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
-    blank_viewport_chrome, scene_viewport_chrome, SceneViewportChromeData,
+    SceneViewportChromeData, blank_viewport_chrome, scene_viewport_chrome,
 };
 use crate::ui::widgets::common::drawer_slot_key;
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
@@ -646,10 +646,10 @@ fn hierarchy_pane_data(chrome: &EditorChromeSnapshot) -> HierarchyPaneViewData {
                 .scene_entries
                 .iter()
                 .map(|entry| SceneNodeData {
-                    id: entry.id.to_string().into(),
-                    name: entry.name.clone().into(),
+                    id: entry.entity.to_string().into(),
+                    name: entry.display_name.clone().into(),
                     depth: entry.depth as i32,
-                    selected: entry.selected,
+                    selected: chrome.scene_entries.is_selected(entry.entity),
                 })
                 .collect(),
         ),
@@ -690,9 +690,9 @@ fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPa
                     .map(|component| super::InspectorPluginComponentViewData {
                         component_id: component.component_id.clone(),
                         display_name: component.display_name.clone(),
-                        drawer_available: component.drawer_available,
-                        drawer_ui_document: component.drawer_ui_document.clone(),
-                        drawer_template_id: component.drawer_template_id.clone(),
+                        customization_available: component.customization_available,
+                        customization_ui_document: component.customization_ui_document.clone(),
+                        customization_template_id: component.customization_template_id.clone(),
                         diagnostic: component.diagnostic.clone(),
                         properties: component
                             .properties
@@ -715,7 +715,7 @@ fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPa
 fn console_pane_data(chrome: &EditorChromeSnapshot) -> ConsolePaneViewData {
     ConsolePaneViewData {
         nodes: Default::default(),
-        status_text: chrome.status_line.clone().into(),
+        status_text: chrome.console_output.text_arc(),
     }
 }
 

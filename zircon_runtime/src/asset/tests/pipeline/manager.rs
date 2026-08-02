@@ -14,6 +14,7 @@ use crate::asset::tests::support::{
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetImporterCapabilityStatus, AssetManager, AssetUri, ProjectAssetManager};
 
+mod lazy_residency;
 mod model_import;
 mod project_open;
 mod resource_records;

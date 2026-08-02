@@ -1,6 +1,7 @@
 mod cache;
 mod compiler;
 mod component_instancer;
+mod component_reference;
 mod file_cache;
 mod loader;
 mod style;

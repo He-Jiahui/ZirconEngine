@@ -3,10 +3,10 @@ related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_runtime_interface/src/tests/editor_design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/src/ui/preferences/mod.rs
-  - zircon_editor/src/ui/preferences/appearance.rs
-  - zircon_editor/src/ui/preferences/persistence.rs
-  - zircon_editor/src/ui/preferences/startup.rs
+  - zircon_editor/src/core/settings/mod.rs
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
+  - zircon_editor/src/core/settings/tests.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
@@ -19,10 +19,10 @@ related_code:
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/src/ui/preferences/mod.rs
-  - zircon_editor/src/ui/preferences/appearance.rs
-  - zircon_editor/src/ui/preferences/persistence.rs
-  - zircon_editor/src/ui/preferences/startup.rs
+  - zircon_editor/src/core/settings/mod.rs
+  - zircon_editor/src/core/settings/defaults.rs
+  - zircon_editor/src/core/settings/io.rs
+  - zircon_editor/src/core/settings/tests.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
@@ -37,17 +37,17 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - cargo fmt -p zircon_editor -p zircon_runtime_interface --check
-  - cargo check -p zircon_runtime_interface --locked --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo check -p zircon_editor --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo test -p zircon_runtime_interface editor_design_tokens --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo test -p zircon_editor retained_text_font_request_uses_global_preferences --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo test -p zircon_editor asset_browser_utility_tab_label_uses_ui_text_style --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo test -p zircon_editor retained_ui_runtime_family_resolves_from_preferences_without_platform_paths --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702
-  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702 -- --ignored
-  - rustfmt zircon_editor/src/ui/preferences/mod.rs zircon_editor/src/ui/preferences/appearance.rs zircon_editor/src/ui/preferences/persistence.rs zircon_editor/src/ui/preferences/startup.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
-  - cargo check -p zircon_editor --tests --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-preferences-0704 --message-format short --color never
+  - 'cargo fmt -p zircon_editor -p zircon_runtime_interface --check'
+  - 'cargo check -p zircon_runtime_interface --locked --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo check -p zircon_editor --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo test -p zircon_runtime_interface editor_design_tokens --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo test -p zircon_editor retained_text_font_request_uses_global_preferences --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo test -p zircon_editor asset_browser_utility_tab_label_uses_ui_text_style --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo test -p zircon_editor retained_ui_runtime_family_resolves_from_preferences_without_platform_paths --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702'
+  - 'cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-preferences-0702 -- --ignored'
+  - 'rustfmt zircon_editor/src/core/settings/mod.rs zircon_editor/src/core/settings/defaults.rs zircon_editor/src/core/settings/io.rs zircon_editor/src/core/settings/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs'
+  - 'cargo check -p zircon_editor --tests --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-preferences-0704 --message-format short --color never'
 doc_type: module-detail
 ---
 
@@ -70,7 +70,7 @@ This keeps the small-component work aligned with the larger editor layout plan: 
 
 `zircon_editor/assets/ui/editor/theme/editor_tokens.zui` mirrors those defaults for authored theme data. The retained host projects the tokens through `project_host_text_preferences(...)` and installs them with `apply_host_text_preferences(...)` before creating the native window.
 
-`utility_tab_text_role` is part of the same typography token group. It defaults to `ui`, can be changed to `code` by an engine/editor appearance preference, and is projected into `HostTextPreferences` rather than being hardcoded inside the Asset Browser utility-tab component.
+`utility_tab_text_role` is part of the same typography token group. It defaults to `ui`, can be changed to `code` through the typed `editor.appearance.design_tokens` user setting, and is projected into `HostTextPreferences` rather than being hardcoded inside the Asset Browser utility-tab component.
 
 `paint_text/font.rs` resolves the current `HostTextPreferences` through `fontdb`. Logical families such as `system-ui` and `monospace` map to system sans/mono queries; explicit user-selected names map to `Family::Name`. Embedded font bytes remain only as a last-resort nonblank fallback when the requested family cannot be resolved.
 
@@ -108,4 +108,4 @@ The 2026-07-03 S15.4eb follow-up added the global `utility_tab_text_role` route 
 
 Fresh screenshot evidence was attempted but did not complete: `cargo test -p zircon_editor --lib capture_workbench_component_slate_atlas_visual_artifact --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-segmented-metrics-0703b -- --ignored --exact --test-threads=1 --nocapture` timed out after 20 minutes while compiling/linking and its matching target processes were stopped. Current editor PNG modified times therefore remain `2026-07-03 21:04:27` for `editor-components-workbench-slate-atlas-900x620.png`, `2026-07-03 21:01:14` for `editor-window-m3-asset-browser-900x620.png`, and `2026-07-03 21:01:21` for `editor-window-m3-asset-browser-list-900x620.png`; these are not accepted as proof for S15.4eb visual completion.
 
-The 2026-07-04 S15.4ec follow-up extended the same preference route into appearance preference persistence: `EditorAppearancePreferences` TOML roundtrip and load tests now include `design_tokens.typography.utility_tab_text_role = "code"`, while fixture family strings stay generic placeholders such as `ui-family` and `code-family` instead of concrete platform fonts. A stale retained-host raster fallback test call was synchronized with the current subpixel-offset parameter so editor test compilation could cover this path. Verification passed rustfmt for the touched source files, a concrete-font-name scan of the current `zircon_editor/src/ui/preferences/` owner subtree, and `cargo check -p zircon_editor --tests --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-preferences-0704 --message-format short --color never` with existing warnings. Direct `cargo test -p zircon_editor appearance_preferences_load_utility_tab_text_role_from_toml ...` did not produce a usable result after two long Windows test-binary compile attempts and the matching F-target processes were stopped; no screenshot refresh was attempted for this persistence-only slice.
+The former private appearance TOML route has since been retired. Current persistence stores `EditorDesignTokens`, including `utility_tab_text_role`, through the typed settings registry and canonical `zircon.editor.settings` envelope. `core/settings/tests.rs` owns current-shell round-trip and retired-format rejection coverage; the historical 2026-07-04 private-preference commands above are retained only as dated evidence and are not replay guidance.

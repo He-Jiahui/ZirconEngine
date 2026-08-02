@@ -3,6 +3,7 @@ use std::ops::Range;
 use crate::core::framework::text::TextDirection;
 use crate::text::TextRange;
 use unicode_bidi::{BidiInfo, Level};
+use unicode_bidi_mirroring::get_mirrored;
 
 /// Paragraph-owned UAX#9 analysis. Levels remain in logical/source order; line
 /// consumers apply L1/L2 only after a wrapping boundary is known.
@@ -67,33 +68,7 @@ impl<'text> BidiParagraph<'text> {
         line: Range<usize>,
         logical_glyph_ranges: &[TextRange],
     ) -> Vec<usize> {
-        let identity = || (0..logical_glyph_ranges.len()).collect::<Vec<_>>();
-        if logical_glyph_ranges.is_empty()
-            || line.start >= line.end
-            || line.end > self.text.len()
-            || !self.text.is_char_boundary(line.start)
-            || !self.text.is_char_boundary(line.end)
-        {
-            return identity();
-        }
-
-        let Some(paragraph) = self.info.paragraphs.iter().find(|paragraph| {
-            line.start >= paragraph.range.start && line.end <= paragraph.range.end
-        }) else {
-            return identity();
-        };
-        let line_levels = self.info.reordered_levels(paragraph, line.clone());
-        let mut glyph_levels = Vec::with_capacity(logical_glyph_ranges.len());
-        for range in logical_glyph_ranges {
-            if range.start < line.start || range.end > line.end || range.start > range.end {
-                return identity();
-            }
-            let Some(level) = line_levels.get(level_index_for_range(*range, &line)) else {
-                return identity();
-            };
-            glyph_levels.push(*level);
-        }
-        BidiInfo::reorder_visual(&glyph_levels)
+        self.line_order(line, logical_glyph_ranges).visual_indices
     }
 
     pub(crate) fn line_order(
@@ -101,35 +76,49 @@ impl<'text> BidiParagraph<'text> {
         line: Range<usize>,
         logical_glyph_ranges: &[TextRange],
     ) -> BidiLineOrder {
-        let visual_indices = self.visual_order_for_line(line.clone(), logical_glyph_ranges);
-        let logical_levels = self.line_levels(line, logical_glyph_ranges);
+        let fallback = match self.resolved_base_direction {
+            TextDirection::RightToLeft => 1,
+            _ => 0,
+        };
+        let fallback_order = || BidiLineOrder {
+            resolved_base_direction: self.resolved_base_direction,
+            logical_levels: vec![fallback; logical_glyph_ranges.len()],
+            visual_indices: (0..logical_glyph_ranges.len()).collect(),
+        };
+        if logical_glyph_ranges.is_empty()
+            || line.start >= line.end
+            || line.end > self.text.len()
+            || !self.text.is_char_boundary(line.start)
+            || !self.text.is_char_boundary(line.end)
+        {
+            return fallback_order();
+        }
+        let Some(paragraph) = self.info.paragraphs.iter().find(|paragraph| {
+            line.start >= paragraph.range.start && line.end <= paragraph.range.end
+        }) else {
+            return fallback_order();
+        };
+        let reordered_levels = self.info.reordered_levels(paragraph, line.clone());
+        let mut glyph_levels = Vec::with_capacity(logical_glyph_ranges.len());
+        for range in logical_glyph_ranges {
+            if range.start < line.start || range.end > line.end || range.start > range.end {
+                return fallback_order();
+            }
+            let Some(level) = reordered_levels.get(level_index_for_range(*range, &line)) else {
+                return fallback_order();
+            };
+            glyph_levels.push(*level);
+        }
+        let visual_indices = BidiInfo::reorder_visual(&glyph_levels);
+        let logical_levels = glyph_levels
+            .into_iter()
+            .map(|level| level.number())
+            .collect();
         BidiLineOrder {
             resolved_base_direction: self.resolved_base_direction,
             logical_levels,
             visual_indices,
         }
-    }
-
-    fn line_levels(&self, line: Range<usize>, logical_glyph_ranges: &[TextRange]) -> Vec<u8> {
-        let fallback = match self.resolved_base_direction {
-            TextDirection::RightToLeft => 1,
-            _ => 0,
-        };
-        let Some(paragraph) = self.info.paragraphs.iter().find(|paragraph| {
-            line.start >= paragraph.range.start && line.end <= paragraph.range.end
-        }) else {
-            return vec![fallback; logical_glyph_ranges.len()];
-        };
-        let levels = self.info.reordered_levels(paragraph, line.clone());
-        logical_glyph_ranges
-            .iter()
-            .map(|range| {
-                levels
-                    .get(level_index_for_range(*range, &line))
-                    .map(Level::number)
-                    .unwrap_or(fallback)
-            })
-            .collect()
     }
 }
 
@@ -151,34 +140,19 @@ pub(crate) fn resolve_bidi_base_direction(
 }
 
 pub(crate) fn mirrored_bidi_char(ch: char, bidi_level: u8) -> Option<char> {
-    if bidi_level % 2 == 0 {
-        return None;
+    (bidi_level % 2 == 1).then(|| get_mirrored(ch)).flatten()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mirrored_bidi_char;
+
+    #[test]
+    fn mirrors_unicode_bidi_pairs_only_on_odd_levels() {
+        assert_eq!(mirrored_bidi_char('\u{27E8}', 1), Some('\u{27E9}'));
+        assert_eq!(mirrored_bidi_char('\u{29C4}', 1), Some('\u{29C5}'));
+        assert_eq!(mirrored_bidi_char('\u{27E8}', 2), None);
     }
-    Some(match ch {
-        '(' => ')',
-        ')' => '(',
-        '[' => ']',
-        ']' => '[',
-        '{' => '}',
-        '}' => '{',
-        '<' => '>',
-        '>' => '<',
-        '«' => '»',
-        '»' => '«',
-        '‹' => '›',
-        '›' => '‹',
-        '≤' => '≥',
-        '≥' => '≤',
-        '∈' => '∋',
-        '∋' => '∈',
-        '⊂' => '⊃',
-        '⊃' => '⊂',
-        '⊆' => '⊇',
-        '⊇' => '⊆',
-        '←' => '→',
-        '→' => '←',
-        _ => return None,
-    })
 }
 
 fn requested_base_level(direction: TextDirection) -> Option<Level> {

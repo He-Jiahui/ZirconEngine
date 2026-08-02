@@ -1,8 +1,8 @@
 use crate::ui::retained_host::host_contract::data::FloatingWindowData;
 
 use super::super::super::{
-    geometry::{contains, translated},
     ChromePointerRoute,
+    geometry::{contains, translated},
 };
 use super::super::tabs::route_document_tabs;
 

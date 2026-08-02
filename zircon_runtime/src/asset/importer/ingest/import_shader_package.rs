@@ -4,17 +4,17 @@ use std::path::{Path, PathBuf};
 use super::import_shader::shader_entry_points;
 use super::validate_wgsl::validate_wgsl;
 use crate::asset::assets::{
-    generate_material_artifact, validate_wgsl_captures, DataAsset, DataAssetFormat, ImportedAsset,
-    ShaderAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderOptionAsset,
-    ShaderSourceFileAsset, ShaderSourceLanguage, ZShaderDocumentV2, ZShaderV2Error,
+    DataAsset, DataAssetFormat, ImportedAsset, ShaderAsset, ShaderEntryPointAsset,
+    ShaderImportRedirectAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
+    ZShaderDocumentV2, ZShaderV2Error, generate_material_artifact, validate_wgsl_captures,
 };
 use crate::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, ImportedAssetEntry,
 };
 use crate::core::framework::render::{
-    derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
-    strip_wgsl_include_directives, wgsl_include_paths, ShaderAssetKind, ShaderImportPathDerivation,
-    ShaderImportPathDerivationError, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
+    SHADER_IMPORT_PROJECT_NAMESPACE_SETTING, ShaderAssetKind, ShaderImportPathDerivation,
+    ShaderImportPathDerivationError, derive_shader_import_path, is_builtin_shader_module_token,
+    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceKind};
 
@@ -369,11 +369,14 @@ fn zshader_v2_import_error(uri: &AssetUri, path: &Path, error: ZShaderV2Error) -
             "; schema v1 .zshader must be migrated to schema v2 with kind = \"surface\", \"include\", \"compute\", or \"fullscreen\""
         }
         ZShaderV2Error::ForbiddenField { field, .. }
-            if matches!(field.as_str(), "pipeline_layout" | "shader_defs" | "shader_def_values") =>
+            if matches!(
+                field.as_str(),
+                "pipeline_layout" | "shader_defs" | "shader_def_values"
+            ) =>
         {
             "; removed user-authored pipeline layout and shader_defs fields must be migrated to generated ABI/options for .zshader v2"
         }
-        _ => ""
+        _ => "",
     };
     AssetImportError::Parse(format!(
         "parse zshader v2 toml for {uri} at {}: {error}{migration_note}",
@@ -548,8 +551,8 @@ fn normalized_relative_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        append_shader_module_diagnostics, document_import_path, ShaderImportPathDerivationError,
-        ShaderImportRedirectAsset, ZShaderDocumentV2,
+        ShaderImportPathDerivationError, ShaderImportRedirectAsset, ZShaderDocumentV2,
+        append_shader_module_diagnostics, document_import_path,
     };
     use crate::asset::AssetUri;
 
@@ -573,9 +576,11 @@ wgsl_files = ["surface.wgsl"]
             &[],
         );
 
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("project::math")));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("project::math"))
+        );
     }
 
     #[test]
@@ -624,12 +629,16 @@ wgsl_files = ["bad.wgsl"]
             &[] as &[ShaderImportRedirectAsset],
         );
 
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("@group binding")));
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("entry point annotation")));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("@group binding"))
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("entry point annotation"))
+        );
     }
 
     #[test]

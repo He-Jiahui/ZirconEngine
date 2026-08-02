@@ -1,4 +1,6 @@
 use crate::bank_payload::validate_bank_slot_optional_count_payload;
+use crate::challenge_payload::validate_challenge_response_payload;
+use crate::corpse_harvest_payload::validate_corpse_harvest_payload;
 use crate::delve_rite_payload::validate_delve_rite_intensity_payload;
 use crate::duel_arena_payload::{
     validate_arena_augment_payload, validate_arena_queue_payload, validate_duel_request_payload,
@@ -14,32 +16,39 @@ use crate::equipment_payload::{validate_equip_item_payload, validate_unequip_ite
 use crate::event_skin_payload::validate_event_skin_payload;
 use crate::linked_quest_payload::validate_linked_quest_acceptance_payload;
 use crate::loot_roll_payload::validate_loot_roll_payload;
-use crate::mail_payload::validate_mail_id_payload;
-use crate::market_payload::validate_market_listing_id_payload;
+use crate::mail_payload::{validate_mail_id_payload, validate_mail_send_payload};
+use crate::market_payload::{validate_market_listing_id_payload, validate_market_search_payload};
 use crate::master_loot_assignment_payload::validate_master_loot_assignment_payload;
 use crate::party_payload::{
     validate_party_loot_master_payload, validate_party_marker_clear_payload,
     validate_party_marker_payload,
 };
-use crate::trade_payload::validate_trade_request_payload;
+use crate::save_loadout_payload::validate_save_loadout_payload;
+use crate::telemetry_payload::validate_telemetry_payload;
+use crate::town_focus_payload::validate_town_focus_payload;
+use crate::trade_payload::{validate_trade_offer_payload, validate_trade_request_payload};
 use crate::vale_cup_payload::{
     validate_vale_cup_bet_payload, validate_vale_cup_practice_payload,
     validate_vale_cup_queue_payload, validate_vale_cup_role_payload,
 };
+use crate::weapon_skin_payload::validate_weapon_skin_payload;
 use crate::world_object_payload::validate_world_object_id_payload;
 use crate::{
     command_payload_descriptor, require_finite, talent_option_id, talent_spec_id,
     CommandPayloadDescriptor, CommandPayloadKind, ProtocolError, ABANDON_QUEST_COMMAND_ID,
     ACCEPT_QUEST_COMMAND_ID, APPLY_TALENTS_COMMAND_ID, BUYBACK_COMMAND_ID, BUY_COMMAND_ID,
     CANCEL_AURA_COMMAND_ID, CARD_PLAY_COMMAND_ID, CAST_AT_COMMAND_ID, CAST_COMMAND_ID,
-    CAST_SLOT_COMMAND_ID, CHANGE_SKIN_COMMAND_ID, DELETE_LOADOUT_COMMAND_ID,
-    DISCARD_ITEM_COMMAND_ID, EQUIP_BAG_COMMAND_ID, GUILD_EVENT_CREATE_COMMAND_ID,
-    GUILD_EVENT_REMOVE_COMMAND_ID, LOCKPICK_ABORT_COMMAND_ID, LOCKPICK_ACTION_COMMAND_ID,
-    LOCKPICK_ENGAGE_COMMAND_ID, PARTY_MOVE_RAID_COMMAND_ID, PET_AUTO_TAUNT_COMMAND_ID,
-    PET_AUTO_WATER_JET_COMMAND_ID, PET_FEED_COMMAND_ID, PET_MODE_COMMAND_ID, PET_RENAME_COMMAND_ID,
-    RELEASE_EMPOWERED_COMMAND_ID, RESURRECT_RESPOND_COMMAND_ID, SELECT_TALENT_ROW_COMMAND_ID,
-    SELL_COMMAND_ID, SET_SPEC_COMMAND_ID, SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID,
-    TURN_IN_QUEST_COMMAND_ID, UNEQUIP_BAG_COMMAND_ID, USE_ITEM_COMMAND_ID,
+    CAST_SLOT_COMMAND_ID, CHANGE_SKIN_COMMAND_ID, CHAT_COMMAND_ID, COMPANION_UPGRADE_COMMAND_ID,
+    CRAFT_ITEM_COMMAND_ID, DEED_SET_TITLE_COMMAND_ID, DELETE_LOADOUT_COMMAND_ID,
+    DELVE_BUY_COMMAND_ID, DISCARD_ITEM_COMMAND_ID, ENTER_DUNGEON_COMMAND_ID, EQUIP_BAG_COMMAND_ID,
+    GUILD_EVENT_CREATE_COMMAND_ID, GUILD_EVENT_REMOVE_COMMAND_ID, HARVEST_NODE_COMMAND_ID,
+    HEROIC_BUY_COMMAND_ID, LOCKPICK_ABORT_COMMAND_ID, LOCKPICK_ACTION_COMMAND_ID,
+    LOCKPICK_ENGAGE_COMMAND_ID, MARKET_LIST_COMMAND_ID, PARTY_MOVE_RAID_COMMAND_ID,
+    PET_AUTO_TAUNT_COMMAND_ID, PET_AUTO_WATER_JET_COMMAND_ID, PET_FEED_COMMAND_ID,
+    PET_MODE_COMMAND_ID, PET_RENAME_COMMAND_ID, RELEASE_EMPOWERED_COMMAND_ID,
+    RESURRECT_RESPOND_COMMAND_ID, SELECT_TALENT_ROW_COMMAND_ID, SELL_COMMAND_ID,
+    SET_SPEC_COMMAND_ID, SWITCH_LOADOUT_COMMAND_ID, TARGET_COMMAND_ID, TURN_IN_QUEST_COMMAND_ID,
+    UNEQUIP_BAG_COMMAND_ID, UNEQUIP_MECH_CHROMA_COMMAND_ID, USE_ITEM_COMMAND_ID,
 };
 
 const LENGTH_PREFIX_BYTES: usize = 4;
@@ -729,6 +738,182 @@ impl UseItemCommandPayload {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HarvestNodeCommandPayload {
+    pub node_id: String,
+}
+
+impl HarvestNodeCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(HARVEST_NODE_COMMAND_ID, &self.node_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            node_id: decode_utf8_id(HARVEST_NODE_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EnterDungeonCommandPayload {
+    pub dungeon_id: String,
+}
+
+impl EnterDungeonCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(ENTER_DUNGEON_COMMAND_ID, &self.dungeon_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            dungeon_id: decode_utf8_id(ENTER_DUNGEON_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CraftItemCommandPayload {
+    pub recipe_id: String,
+}
+
+impl CraftItemCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(CRAFT_ITEM_COMMAND_ID, &self.recipe_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            recipe_id: decode_utf8_id(CRAFT_ITEM_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HeroicBuyCommandPayload {
+    pub item_id: String,
+}
+
+impl HeroicBuyCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(HEROIC_BUY_COMMAND_ID, &self.item_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            item_id: decode_utf8_id(HEROIC_BUY_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DelveBuyCommandPayload {
+    pub delve_id: String,
+    pub item_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EnterDelveCommandPayload {
+    pub delve_id: String,
+    pub tier_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CompanionUpgradeCommandPayload {
+    pub companion_id: String,
+}
+
+impl CompanionUpgradeCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(COMPANION_UPGRADE_COMMAND_ID, &self.companion_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            companion_id: decode_utf8_id(COMPANION_UPGRADE_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UnequipMechChromaCommandPayload {
+    pub chroma_id: String,
+}
+
+impl UnequipMechChromaCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(UNEQUIP_MECH_CHROMA_COMMAND_ID, &self.chroma_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            chroma_id: decode_utf8_id(UNEQUIP_MECH_CHROMA_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+impl DelveBuyCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id_pair(DELVE_BUY_COMMAND_ID, &self.delve_id, &self.item_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        let (delve_id, item_id) = decode_utf8_id_pair(DELVE_BUY_COMMAND_ID, bytes)?;
+        Ok(Self { delve_id, item_id })
+    }
+}
+
+impl EnterDelveCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id_pair(ENTER_DELVE_COMMAND_ID, &self.delve_id, &self.tier_id)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        let (delve_id, tier_id) = decode_utf8_id_pair(ENTER_DELVE_COMMAND_ID, bytes)?;
+        Ok(Self { delve_id, tier_id })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ChatCommandPayload {
+    pub text: String,
+}
+
+impl ChatCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        encode_utf8_id(CHAT_COMMAND_ID, &self.text)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Ok(Self {
+            text: decode_utf8_id(CHAT_COMMAND_ID, bytes)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DeedSetTitleCommandPayload {
+    pub deed_id: Option<String>,
+}
+
+impl DeedSetTitleCommandPayload {
+    pub fn encode(&self) -> Result<Vec<u8>, ProtocolError> {
+        let descriptor = descriptor(DEED_SET_TITLE_COMMAND_ID)?;
+        let mut bytes = Vec::with_capacity(descriptor.max_byte_length);
+        write_optional_utf8_id(descriptor, self.deed_id.as_deref(), &mut bytes)?;
+        validate_command_payload(DEED_SET_TITLE_COMMAND_ID, &bytes)?;
+        Ok(bytes)
+    }
+
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        validate_command_payload(DEED_SET_TITLE_COMMAND_ID, bytes)?;
+        let (deed_id, _) = read_optional_utf8_id(descriptor(DEED_SET_TITLE_COMMAND_ID)?, bytes)?;
+        Ok(Self {
+            deed_id: deed_id.map(str::to_owned),
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscardItemCommandPayload {
     pub item_id: String,
     pub count: Option<u32>,
@@ -1084,7 +1269,12 @@ pub fn validate_command_payload(command_id: u16, bytes: &[u8]) -> Result<(), Pro
         CommandPayloadKind::Empty
         | CommandPayloadKind::TargetEntity
         | CommandPayloadKind::SlotIndex
-        | CommandPayloadKind::I32Value => Ok(()),
+        | CommandPayloadKind::I32Value
+        | CommandPayloadKind::I32Pair => Ok(()),
+        CommandPayloadKind::EmoteId => match bytes[0] {
+            1..=13 => Ok(()),
+            value => Err(ProtocolError::InvalidEmoteId(value)),
+        },
         CommandPayloadKind::TargetEntityRaidGroup => validate_raid_subgroup(bytes[8]),
         CommandPayloadKind::U32Index => {
             if descriptor.id == SWITCH_LOADOUT_COMMAND_ID
@@ -1119,6 +1309,7 @@ pub fn validate_command_payload(command_id: u16, bytes: &[u8]) -> Result<(), Pro
             let (spec_code, row_option_codes) = decode_talent_allocation_codes(bytes);
             validate_talent_allocation_codes(spec_code, &row_option_codes)
         }
+        CommandPayloadKind::SaveLoadout => validate_save_loadout_payload(bytes),
         CommandPayloadKind::CosmeticSkin => validate_cosmetic_skin(bytes[0], bytes[1]),
         CommandPayloadKind::Boolean => match bytes[0] {
             0 | 1 => Ok(()),
@@ -1128,9 +1319,28 @@ pub fn validate_command_payload(command_id: u16, bytes: &[u8]) -> Result<(), Pro
             let (_, consumed) = read_utf8_id(descriptor, bytes)?;
             reject_trailing(bytes, consumed)
         }
+        CommandPayloadKind::ChatText => {
+            let (value, consumed) = read_utf8_id(descriptor, bytes)?;
+            reject_trailing(bytes, consumed)?;
+            let actual = value.encode_utf16().count();
+            if actual > descriptor.max_utf16_code_units {
+                Err(ProtocolError::CollectionTooLarge {
+                    context: payload_context(descriptor.id),
+                    actual,
+                    maximum: descriptor.max_utf16_code_units,
+                })
+            } else {
+                Ok(())
+            }
+        }
         CommandPayloadKind::Utf8IdOptionalUtf8Id => {
             let (_, consumed) = read_utf8_id(descriptor, bytes)?;
             let (_, consumed) = read_optional_utf8_id_at(descriptor, bytes, consumed)?;
+            reject_trailing(bytes, consumed)
+        }
+        CommandPayloadKind::Utf8IdPair => {
+            let (_, consumed) = read_utf8_id(descriptor, bytes)?;
+            let (_, consumed) = read_utf8_id_at(descriptor, bytes, consumed)?;
             reject_trailing(bytes, consumed)
         }
         CommandPayloadKind::Utf8IdOptionalTargetEntity => {
@@ -1140,10 +1350,14 @@ pub fn validate_command_payload(command_id: u16, bytes: &[u8]) -> Result<(), Pro
         }
         CommandPayloadKind::Utf8IdF64Pair => {
             let (_, consumed) = read_utf8_id(descriptor, bytes)?;
-            let (_, consumed) = read_finite_f64(bytes, consumed, "CastAtCommandPayload.x")?;
-            let (_, consumed) = read_finite_f64(bytes, consumed, "CastAtCommandPayload.z")?;
+            let (_, consumed) =
+                read_finite_f64(bytes, consumed, payload_f64_context(descriptor.id, true))?;
+            let (_, consumed) =
+                read_finite_f64(bytes, consumed, payload_f64_context(descriptor.id, false))?;
             reject_trailing(bytes, consumed)
         }
+        CommandPayloadKind::MarketSearch => validate_market_search_payload(bytes),
+        CommandPayloadKind::ChallengeResponse => validate_challenge_response_payload(bytes),
         CommandPayloadKind::Utf8IdOptionalU32 => {
             let (_, consumed) = read_utf8_id(descriptor, bytes)?;
             let consumed = read_optional_u32(bytes, consumed)?.1;
@@ -1174,11 +1388,13 @@ pub fn validate_command_payload(command_id: u16, bytes: &[u8]) -> Result<(), Pro
         CommandPayloadKind::ArenaQueueFormat => validate_arena_queue_payload(bytes),
         CommandPayloadKind::ArenaAugment => validate_arena_augment_payload(bytes),
         CommandPayloadKind::TradeRequest => validate_trade_request_payload(bytes),
+        CommandPayloadKind::TradeOffer => validate_trade_offer_payload(bytes),
         CommandPayloadKind::ValeCupQueue => validate_vale_cup_queue_payload(bytes),
         CommandPayloadKind::ValeCupRole => validate_vale_cup_role_payload(bytes),
         CommandPayloadKind::ValeCupBet => validate_vale_cup_bet_payload(bytes),
         CommandPayloadKind::ValeCupBracket => validate_vale_cup_practice_payload(bytes),
         CommandPayloadKind::MailId => validate_mail_id_payload(bytes),
+        CommandPayloadKind::MailSend => validate_mail_send_payload(bytes),
         CommandPayloadKind::BankSlotOptionalCount => {
             validate_bank_slot_optional_count_payload(bytes)
         }
@@ -1204,6 +1420,10 @@ pub fn validate_command_payload(command_id: u16, bytes: &[u8]) -> Result<(), Pro
         }
         CommandPayloadKind::EquipmentItemOptionalSlot => validate_equip_item_payload(bytes),
         CommandPayloadKind::EquipmentSlot => validate_unequip_item_payload(bytes),
+        CommandPayloadKind::TelemetryNumericFields => validate_telemetry_payload(bytes),
+        CommandPayloadKind::TownFocusAllocation => validate_town_focus_payload(bytes),
+        CommandPayloadKind::WeaponSkinChange => validate_weapon_skin_payload(bytes),
+        CommandPayloadKind::CorpseHarvest => validate_corpse_harvest_payload(bytes),
     }
 }
 
@@ -1272,6 +1492,59 @@ fn decode_utf8_id(command_id: u16, bytes: &[u8]) -> Result<String, ProtocolError
     validate_command_payload(command_id, bytes)?;
     let (value, _) = read_utf8_id(descriptor(command_id)?, bytes)?;
     Ok(value.to_owned())
+}
+
+fn encode_utf8_id_pair(
+    command_id: u16,
+    first: &str,
+    second: &str,
+) -> Result<Vec<u8>, ProtocolError> {
+    let descriptor = descriptor(command_id)?;
+    let mut bytes = Vec::with_capacity(LENGTH_PREFIX_BYTES * 2 + first.len() + second.len());
+    write_utf8_id(descriptor, first, &mut bytes)?;
+    write_utf8_id(descriptor, second, &mut bytes)?;
+    validate_command_payload(command_id, &bytes)?;
+    Ok(bytes)
+}
+
+fn decode_utf8_id_pair(command_id: u16, bytes: &[u8]) -> Result<(String, String), ProtocolError> {
+    validate_command_payload(command_id, bytes)?;
+    let descriptor = descriptor(command_id)?;
+    let (first, consumed) = read_utf8_id(descriptor, bytes)?;
+    let (second, _) = read_utf8_id_at(descriptor, bytes, consumed)?;
+    Ok((first.to_owned(), second.to_owned()))
+}
+
+pub(crate) fn encode_utf8_id_f64_pair(
+    command_id: u16,
+    value: &str,
+    first: f64,
+    second: f64,
+    first_context: &'static str,
+    second_context: &'static str,
+) -> Result<Vec<u8>, ProtocolError> {
+    let descriptor = descriptor(command_id)?;
+    let mut bytes = Vec::with_capacity(LENGTH_PREFIX_BYTES + value.len() + GROUND_POINT_BYTES);
+    write_utf8_id(descriptor, value, &mut bytes)?;
+    bytes.extend_from_slice(&canonical_finite_f64(first_context, first)?.to_le_bytes());
+    bytes.extend_from_slice(&canonical_finite_f64(second_context, second)?.to_le_bytes());
+    validate_command_payload(command_id, &bytes)?;
+    Ok(bytes)
+}
+
+pub(crate) fn decode_utf8_id_f64_pair(
+    command_id: u16,
+    bytes: &[u8],
+    first_context: &'static str,
+    second_context: &'static str,
+) -> Result<(String, f64, f64), ProtocolError> {
+    validate_command_payload(command_id, bytes)?;
+    let descriptor = descriptor(command_id)?;
+    let (value, consumed) = read_utf8_id(descriptor, bytes)?;
+    let (first, consumed) = read_finite_f64(bytes, consumed, first_context)?;
+    let (second, consumed) = read_finite_f64(bytes, consumed, second_context)?;
+    reject_trailing(bytes, consumed)?;
+    Ok((value.to_owned(), first, second))
 }
 
 fn write_optional_utf8_id(
@@ -1622,11 +1895,31 @@ fn payload_context(command_id: u16) -> &'static str {
         TURN_IN_QUEST_COMMAND_ID => "TurnInQuestCommandPayload.quest_id",
         ABANDON_QUEST_COMMAND_ID => "AbandonQuestCommandPayload.quest_id",
         USE_ITEM_COMMAND_ID => "UseItemCommandPayload.item_id",
+        HARVEST_NODE_COMMAND_ID => "HarvestNodeCommandPayload.node_id",
+        CRAFT_ITEM_COMMAND_ID => "CraftItemCommandPayload.recipe_id",
+        HEROIC_BUY_COMMAND_ID => "HeroicBuyCommandPayload.item_id",
+        DELVE_BUY_COMMAND_ID => "DelveBuyCommandPayload.id",
+        MARKET_LIST_COMMAND_ID => "MarketListCommandPayload.item_id",
+        COMPANION_UPGRADE_COMMAND_ID => "CompanionUpgradeCommandPayload.companion_id",
+        UNEQUIP_MECH_CHROMA_COMMAND_ID => "UnequipMechChromaCommandPayload.chroma_id",
+        CHAT_COMMAND_ID => "ChatCommandPayload.text",
+        DEED_SET_TITLE_COMMAND_ID => "DeedSetTitleCommandPayload.deed_id",
         DISCARD_ITEM_COMMAND_ID => "DiscardItemCommandPayload.item_id",
         EQUIP_BAG_COMMAND_ID => "EquipBagCommandPayload.item_id",
         LOCKPICK_ACTION_COMMAND_ID => "LockpickActionCommandPayload.session_id",
         LOCKPICK_ABORT_COMMAND_ID => "LockpickAbortCommandPayload.session_id",
         _ => "command payload identifier",
+    }
+}
+
+fn payload_f64_context(command_id: u16, first: bool) -> &'static str {
+    match (command_id, first) {
+        (CAST_AT_COMMAND_ID, true) => "CastAtCommandPayload.x",
+        (CAST_AT_COMMAND_ID, false) => "CastAtCommandPayload.z",
+        (MARKET_LIST_COMMAND_ID, true) => "MarketListCommandPayload.count",
+        (MARKET_LIST_COMMAND_ID, false) => "MarketListCommandPayload.price",
+        (_, true) => "command payload first number",
+        (_, false) => "command payload second number",
     }
 }
 

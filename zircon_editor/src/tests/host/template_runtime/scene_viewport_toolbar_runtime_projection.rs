@@ -2,6 +2,17 @@ use super::support::*;
 
 #[test]
 fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_retained_projection() {
+    let template = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/host/scene_viewport_toolbar.zui"),
+    )
+    .expect("viewport toolbar template should be readable");
+    assert_eq!(
+        template.matches("icon_placement = \"icon_only\"").count(),
+        15,
+        "every 28px viewport toolbar action must retain only its semantic label"
+    );
+
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 

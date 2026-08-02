@@ -1,9 +1,9 @@
 use crate::core::framework::events::{EngineEvent, EventBusDiagnosticsSnapshot};
 use std::sync::Arc;
 
-use super::EventBus;
 use super::subscriber::EventDeliveryStatus;
 use super::topic::EventBusState;
+use super::EventBus;
 
 impl EventBus {
     pub fn publish(&self, event: EngineEvent) {

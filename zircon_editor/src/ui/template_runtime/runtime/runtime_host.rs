@@ -5,8 +5,9 @@ use crate::ui::binding::EditorUiBinding;
 use crate::ui::control::EditorUiControlService;
 use crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation;
 use crate::ui::template::{
-    EditorComponentCatalog, EditorComponentDescriptor, EditorTemplateAdapter, EditorTemplateError,
-    EditorTemplateRegistry, EditorTemplateRuntimeService,
+    EditorComponentCatalog, EditorComponentCatalogManifestError, EditorComponentDescriptor,
+    EditorTemplateAdapter, EditorTemplateError, EditorTemplateRegistry,
+    EditorTemplateRuntimeService,
 };
 use thiserror::Error;
 use zircon_runtime::ui::surface::{UiPropertyMutationRequest, UiSurface};
@@ -46,6 +47,8 @@ use super::{
 
 #[derive(Debug, Error, PartialEq)]
 pub enum EditorUiHostRuntimeError {
+    #[error(transparent)]
+    ComponentCatalog(#[from] EditorComponentCatalogManifestError),
     #[error(transparent)]
     Template(#[from] EditorTemplateError),
     #[error(transparent)]

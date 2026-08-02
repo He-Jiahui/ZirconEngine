@@ -7,7 +7,9 @@ pub(super) fn collect_gpu_instancing_candidates(
 ) -> Vec<VisibilityBatch> {
     visible_batches
         .iter()
-        .filter(|batch| batch.key.mobility == Mobility::Dynamic && batch.entities.len() > 1)
+        .filter(|batch| {
+            batch.key.mobility == Mobility::Dynamic && batch.stable_instance_keys.len() > 1
+        })
         .cloned()
         .collect()
 }

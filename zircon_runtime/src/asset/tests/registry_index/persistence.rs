@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::asset::registry::{AssetRegistryDiagnostic, AssetRegistryFilter, AssetRegistryIndex};
 use crate::asset::{AssetKind, AssetUuid};
-use crate::foundation::persistence::atomic_file::AtomicWriteFault;
+use crate::core::resource::io::atomic_file::AtomicWriteFault;
 
 use super::{registry_root, unique_root, uri, write_asset, write_asset_with_tags};
 

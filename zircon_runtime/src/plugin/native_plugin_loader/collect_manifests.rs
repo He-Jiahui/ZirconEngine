@@ -1,5 +1,4 @@
 use std::collections::{BTreeSet, VecDeque};
-use std::convert::Infallible;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -7,9 +6,6 @@ use std::path::{Path, PathBuf};
 use super::PLUGIN_MANIFEST_FILE;
 
 pub(super) const MAX_DISCOVERY_DEPTH: usize = 16;
-
-pub(super) type NativePluginManifestCollectionResult<T> =
-    std::result::Result<T, NativePluginManifestCollectionError>;
 
 #[derive(Debug)]
 pub(super) enum NativePluginManifestCollectionError {
@@ -98,66 +94,6 @@ impl NativePluginManifestTraversalDiagnostic {
 pub(super) struct NativePluginManifestTraversal {
     pub(super) enumerated_directories: u64,
     pub(super) inspected_entries: u64,
-}
-
-#[derive(Debug, Default)]
-pub(super) struct NativePluginManifestCollection {
-    pub(super) manifest_paths: Vec<PathBuf>,
-    pub(super) diagnostics: Vec<String>,
-    pub(super) enumerated_directories: u64,
-    pub(super) inspected_entries: u64,
-}
-
-struct CollectingManifestVisitor<'a> {
-    collection: &'a mut NativePluginManifestCollection,
-}
-
-impl NativePluginManifestTraversalVisitor for CollectingManifestVisitor<'_> {
-    type Error = Infallible;
-
-    fn checkpoint(&mut self) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    fn reserve_scratch(&mut self, _total_bytes: u64) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    fn manifest(&mut self, manifest_path: PathBuf) -> Result<(), Self::Error> {
-        self.collection.manifest_paths.push(manifest_path);
-        Ok(())
-    }
-
-    fn diagnostic(
-        &mut self,
-        build: impl FnOnce() -> NativePluginManifestTraversalDiagnostic,
-    ) -> Result<(), Self::Error> {
-        self.collection.diagnostics.push(build().into_message());
-        Ok(())
-    }
-}
-
-/// Performs the cold editor/dev scan. Product exports use `native_plugins.toml` instead. The
-/// traversal is deterministic, does not follow directory links, and stops below a package root
-/// once its `plugin.toml` is found, matching the package-boundary behavior of mature engines.
-pub(super) fn collect_plugin_manifests(
-    root: &Path,
-) -> NativePluginManifestCollectionResult<NativePluginManifestCollection> {
-    let mut collection = NativePluginManifestCollection::default();
-    let mut visitor = CollectingManifestVisitor {
-        collection: &mut collection,
-    };
-    let traversal = match traverse_plugin_manifests(root, &mut visitor) {
-        Ok(traversal) => traversal,
-        Err(NativePluginManifestTraversalError::Collection(error)) => return Err(error),
-        Err(NativePluginManifestTraversalError::Visitor(never)) => match never {},
-    };
-    collection.enumerated_directories = traversal.enumerated_directories;
-    collection.inspected_entries = traversal.inspected_entries;
-    collection.manifest_paths.sort();
-    collection.diagnostics.sort();
-    collection.diagnostics.dedup();
-    Ok(collection)
 }
 
 pub(super) fn traverse_plugin_manifests<V>(
@@ -315,10 +251,37 @@ fn scratch_bytes_for_path(path: &Path) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::Infallible;
+
     use super::*;
 
+    struct NoopVisitor;
+
+    impl NativePluginManifestTraversalVisitor for NoopVisitor {
+        type Error = Infallible;
+
+        fn checkpoint(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn reserve_scratch(&mut self, _total_bytes: u64) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn manifest(&mut self, _manifest_path: PathBuf) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn diagnostic(
+            &mut self,
+            _build: impl FnOnce() -> NativePluginManifestTraversalDiagnostic,
+        ) -> Result<(), Self::Error> {
+            Ok(())
+        }
+    }
+
     #[test]
-    fn collect_plugin_manifests_reports_enumerate_root_with_typed_error() {
+    fn manifest_traversal_reports_enumerate_root_with_typed_error() {
         let missing_root = std::env::temp_dir().join(format!(
             "zircon-missing-native-plugin-root-{}-{}",
             std::process::id(),
@@ -327,8 +290,11 @@ mod tests {
                 .expect("system time should be after unix epoch")
                 .as_nanos()
         ));
-        let error = collect_plugin_manifests(&missing_root)
-            .expect_err("missing root should report typed manifest collection error");
+        let error = match traverse_plugin_manifests(&missing_root, &mut NoopVisitor) {
+            Err(NativePluginManifestTraversalError::Collection(error)) => error,
+            Err(NativePluginManifestTraversalError::Visitor(never)) => match never {},
+            Ok(_) => panic!("missing root should report typed manifest collection error"),
+        };
 
         match error {
             NativePluginManifestCollectionError::EnumerateRoot { root, .. } => {

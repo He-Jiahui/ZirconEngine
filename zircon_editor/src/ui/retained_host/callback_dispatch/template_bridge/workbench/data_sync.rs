@@ -1,8 +1,9 @@
+use zircon_runtime::scene::WorldInspectionHierarchyRow;
 use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::ui::workbench::snapshot::{
     EditorChromeSnapshot, InspectorPluginComponentPropertySnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot, SceneEntry,
+    InspectorPluginComponentSnapshot, InspectorSnapshot, SceneEntries,
 };
 
 use super::{
@@ -50,7 +51,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     pub(crate) fn sync_scene_and_inspector(
         &mut self,
-        scene_entries: &[SceneEntry],
+        scene_entries: &SceneEntries,
         inspector: Option<&InspectorSnapshot>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.sync_scene_entries(scene_entries)?;
@@ -62,7 +63,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     fn sync_scene_entries(
         &mut self,
-        scene_entries: &[SceneEntry],
+        scene_entries: &SceneEntries,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.reconcile_scene_tree_row_capacity(scene_entries.len())?;
         let controls = self.scene_tree_control_ids()?;
@@ -77,7 +78,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.mutate_control_property(
                 control_id,
                 "text",
-                UiValue::String(non_empty_label(&entry.name, "Entity")),
+                UiValue::String(non_empty_label(&entry.display_name, "Entity")),
             )?;
             self.mutate_control_property(
                 control_id,
@@ -92,14 +93,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.mutate_control_property(
                 control_id,
                 "scene_node_id",
-                UiValue::Int(entry.id.min(i64::MAX as u64) as i64),
+                UiValue::Int(entry.entity.min(i64::MAX as u64) as i64),
             )?;
             self.mutate_control_property(
                 control_id,
                 "expanded",
                 UiValue::Bool(row_has_visible_child(scene_entries, index)),
             )?;
-            self.set_selected(control_id, entry.selected)?;
+            self.set_selected(control_id, scene_entries.is_selected(entry.entity))?;
         }
         Ok(())
     }
@@ -164,7 +165,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .enumerate()
         {
             let Some(property) = component.properties.get(index) else {
-                self.sync_component_property_row_metadata(control_id, None)?;
+                self.sync_component_property_row_metadata(control_id, None, false)?;
                 self.mutate_control_property(
                     control_id,
                     "text",
@@ -190,7 +191,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "value_text",
                 UiValue::String(format_component_property_value(property)),
             )?;
-            self.sync_component_property_row_metadata(control_id, Some(property))?;
+            self.sync_component_property_row_metadata(
+                control_id,
+                Some(property),
+                component.customization_available,
+            )?;
         }
         Ok(())
     }
@@ -198,7 +203,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     fn hide_component_property_rows(&mut self) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.reconcile_component_property_row_capacity(0)?;
         for control_id in self.component_property_row_control_ids()? {
-            self.sync_component_property_row_metadata(&control_id, None)?;
+            self.sync_component_property_row_metadata(&control_id, None, false)?;
             self.mutate_control_property(&control_id, "text", UiValue::String(String::new()))?;
             self.mutate_control_property(
                 &control_id,
@@ -214,6 +219,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         control_id: &str,
         property: Option<&InspectorPluginComponentPropertySnapshot>,
+        customization_available: bool,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let (field_id, name, label, value_kind, editable, value) = property
             .map(|property| {
@@ -222,7 +228,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     property.name.as_str(),
                     property.label.as_str(),
                     property.value_kind.as_str(),
-                    property.editable,
+                    property.editable && customization_available,
                     property.value.as_str(),
                 )
             })
@@ -296,7 +302,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 }
 
-fn row_has_visible_child(scene_entries: &[SceneEntry], index: usize) -> bool {
+fn row_has_visible_child(scene_entries: &[WorldInspectionHierarchyRow], index: usize) -> bool {
     let Some(entry) = scene_entries.get(index) else {
         return false;
     };

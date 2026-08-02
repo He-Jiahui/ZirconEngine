@@ -1,4 +1,4 @@
-use super::super::{workbench_alert_kind, AlertTone, WorkbenchAlertKind};
+use super::super::{AlertTone, WorkbenchAlertKind, workbench_alert_kind};
 use super::support::alert_node;
 
 #[test]

@@ -16,7 +16,7 @@ requireText(
 );
 requireText(
   world,
-  /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?writer\.u32\(<uint>state\.entityMotionAuraValues\.length[\s\S]*?entityMotionAuraBreakChanceScales[\s\S]*?entityFearDrStages[\s\S]*?entityFearDrResetAt/,
+  /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?writer\.u32\(<uint>state\.entityMotionAuraValues\.length[\s\S]*?entityMotionAuraBreakChanceScales[\s\S]*?entityFearDrStages[\s\S]*?entityFearDrResetAt/,
   "WOS58 must write detail rows after historical state",
 );
 requireText(
@@ -41,12 +41,12 @@ requireText(
 );
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-requireText(main, /\\"world_state\\":\\"WOS71\\"/, "WOC capability output must publish WOS71");
+requireText(main, /\\"world_state\\":\\"WOS78\\"/, "WOC capability output must publish WOS78");
 
 const contract = read("contracts", "world-state.md");
 requireText(
   contract,
-  /world state \(`WOS71`\)[\s\S]*?schema\s+58 then appends the source aura details[\s\S]*?WOS2-WOS57 decode with zero DR state/,
+  /world state \(`WOS78`\)[\s\S]*?schema\s+58 then appends the source aura details[\s\S]*?WOS2-WOS57 decode with zero DR state/,
   "world-state contract must document WOS58 migration and ownership",
 );
 

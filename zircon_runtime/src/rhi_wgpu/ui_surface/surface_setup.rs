@@ -2,6 +2,7 @@ use std::num::NonZeroIsize;
 
 use crate::core::framework::render::RenderNativeSurfaceTarget;
 use crate::rhi::RhiError;
+use crate::rhi_wgpu::GPU_TIMESTAMP_REQUIRED_FEATURES;
 
 const SURFACE_FRAME_LATENCY: u32 = 2;
 
@@ -82,17 +83,9 @@ pub(super) fn choose_alpha_mode(
 
 pub(super) fn request_device(
     adapter: &wgpu::Adapter,
+    allow_gpu_timing: bool,
 ) -> Result<(wgpu::Device, wgpu::Queue), RhiError> {
-    let mut requested_features = wgpu::Features::empty();
-    let adapter_features = adapter.features();
-    if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
-        requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
-    }
-    let timestamp_features =
-        wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
-    if adapter_features.contains(timestamp_features) {
-        requested_features |= timestamp_features;
-    }
+    let requested_features = requested_device_features(adapter.features(), allow_gpu_timing);
     pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-ui-device"),
         required_features: requested_features,
@@ -102,6 +95,20 @@ pub(super) fn request_device(
         experimental_features: wgpu::ExperimentalFeatures::disabled(),
     }))
     .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))
+}
+
+pub(super) fn requested_device_features(
+    adapter_features: wgpu::Features,
+    allow_gpu_timing: bool,
+) -> wgpu::Features {
+    let mut requested_features = wgpu::Features::empty();
+    if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
+        requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
+    }
+    if allow_gpu_timing && adapter_features.contains(GPU_TIMESTAMP_REQUIRED_FEATURES) {
+        requested_features |= GPU_TIMESTAMP_REQUIRED_FEATURES;
+    }
+    requested_features
 }
 
 pub(super) fn instance_descriptor() -> wgpu::InstanceDescriptor {
@@ -164,10 +171,10 @@ pub(super) fn create_surface(
 }
 
 fn required_nonzero_isize(value: u64, error: &'static str) -> Result<NonZeroIsize, RhiError> {
-    if value == 0 || value > isize::MAX as u64 {
-        return Err(RhiError::SurfaceUnavailable(error.to_string()));
-    }
-    Ok(NonZeroIsize::new(value as isize).expect("value checked above"))
+    isize::try_from(value)
+        .ok()
+        .and_then(NonZeroIsize::new)
+        .ok_or_else(|| RhiError::SurfaceUnavailable(error.to_string()))
 }
 
 fn optional_nonzero_isize(value: Option<u64>) -> Result<Option<NonZeroIsize>, RhiError> {

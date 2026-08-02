@@ -21,8 +21,8 @@ use crate::ui::asset_editor::{
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
-    ActivityWindowTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewInstanceId,
-    ViewKind,
+    ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewInstanceId, ViewKind,
+    WorkbenchSlot,
 };
 use zircon_runtime_interface::ui::layout::UiSize;
 
@@ -48,7 +48,7 @@ pub(crate) fn ui_asset_editor_view_descriptor() -> ViewDescriptor {
     )
     .with_document_kind(DocumentKind::ui_asset())
     .with_multi_instance(true)
-    .with_preferred_host(PreferredHost::DocumentCenter)
+    .with_workbench_slot(WorkbenchSlot::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::UiAssetEditor,
     ))

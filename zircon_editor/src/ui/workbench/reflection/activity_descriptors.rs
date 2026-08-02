@@ -1,7 +1,9 @@
 use crate::ui::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use zircon_runtime_interface::ui::event_ui::UiNodePath;
 
-use crate::ui::workbench::view::{DockPolicy, PreferredHost, ViewDescriptor, ViewKind};
+use crate::core::extension::WorkbenchSlot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::view::{DockPolicy, ViewDescriptor, ViewKind};
 
 use super::drawer_slot_preference::drawer_slot_preference;
 
@@ -32,7 +34,7 @@ pub fn activity_descriptors_from_views(
                     "editor/views/{}",
                     descriptor.descriptor_id.0
                 )));
-                if let Some(slot) = descriptor.preferred_drawer_slot {
+                if let Some(slot) = drawer_slot(descriptor.workbench_slot) {
                     activity = activity.with_default_drawer(drawer_slot_preference(slot));
                 }
                 activity_views.push(activity);
@@ -45,12 +47,12 @@ pub fn activity_descriptors_from_views(
                 )
                 .with_multi_instance(descriptor.multi_instance)
                 .with_supports_document_tab(!matches!(
-                    descriptor.preferred_host,
-                    PreferredHost::ExclusiveMainPage
+                    descriptor.workbench_slot,
+                    WorkbenchSlot::ExclusiveMainPage
                 ))
                 .with_supports_exclusive_page(matches!(
-                    descriptor.preferred_host,
-                    PreferredHost::ExclusiveMainPage | PreferredHost::DocumentCenter
+                    descriptor.workbench_slot,
+                    WorkbenchSlot::ExclusiveMainPage | WorkbenchSlot::DocumentCenter
                 ))
                 .with_supports_floating_window(true)
                 .with_reflection_root(UiNodePath::new(format!(
@@ -63,4 +65,17 @@ pub fn activity_descriptors_from_views(
     }
 
     (activity_views, activity_windows)
+}
+
+fn drawer_slot(workbench_slot: WorkbenchSlot) -> Option<ActivityDrawerSlot> {
+    match workbench_slot {
+        WorkbenchSlot::LeftTopDrawer => Some(ActivityDrawerSlot::LeftTop),
+        WorkbenchSlot::LeftBottomDrawer => Some(ActivityDrawerSlot::LeftBottom),
+        WorkbenchSlot::RightTopDrawer => Some(ActivityDrawerSlot::RightTop),
+        WorkbenchSlot::RightBottomDrawer => Some(ActivityDrawerSlot::RightBottom),
+        WorkbenchSlot::BottomDrawer => Some(ActivityDrawerSlot::Bottom),
+        WorkbenchSlot::DocumentCenter
+        | WorkbenchSlot::FloatingWindow
+        | WorkbenchSlot::ExclusiveMainPage => None,
+    }
 }

@@ -15,7 +15,7 @@ const DECLARED_BODY: [u8; 4] = [155, 180, 184, 255];
 const DECLARED_ICON: [u8; 4] = [37, 156, 167, 255];
 
 #[test]
-fn tooltip_component_visual_paints_bubble_text_arrow_icon_state_and_disabled() {
+fn tooltip_component_visual_paints_compact_defaults_and_declared_icon() {
     let bytes = tooltip_component_bytes();
 
     let default_panel = pixel_at(&bytes, 30, 92);
@@ -42,7 +42,7 @@ fn tooltip_component_visual_paints_bubble_text_arrow_icon_state_and_disabled() {
         ) > 0,
         "ordinary tooltip should paint the arrow diamond below the bubble"
     );
-    assert!(
+    assert_eq!(
         distinct_pixel_count(
             &bytes,
             118,
@@ -50,8 +50,9 @@ fn tooltip_component_visual_paints_bubble_text_arrow_icon_state_and_disabled() {
             20,
             20,
             &[TOOLTIP_ATLAS_BACKGROUND, default_panel],
-        ) > 0,
-        "ordinary tooltip should paint the info icon ring and stem"
+        ),
+        0,
+        "ordinary tooltip should keep its lower panel area clear unless an icon is declared"
     );
 
     let declared_panel = pixel_at(&bytes, 242, 92);
@@ -106,7 +107,7 @@ fn tooltip_component_visual_paints_bubble_text_arrow_icon_state_and_disabled() {
             30,
             &[TOOLTIP_ATLAS_BACKGROUND, state_panel],
         ) > 0,
-        "focused tooltip should keep text and icon pixels without switching to hover fill"
+        "focused tooltip should keep text pixels without switching to hover fill"
     );
 
     let disabled_panel = pixel_at(&bytes, 666, 92);
@@ -122,7 +123,7 @@ fn tooltip_component_visual_paints_bubble_text_arrow_icon_state_and_disabled() {
         ) > 0,
         "disabled tooltip should still paint muted title/body text"
     );
-    assert!(
+    assert_eq!(
         distinct_pixel_count(
             &bytes,
             738,
@@ -130,8 +131,9 @@ fn tooltip_component_visual_paints_bubble_text_arrow_icon_state_and_disabled() {
             20,
             20,
             &[TOOLTIP_ATLAS_BACKGROUND, disabled_panel],
-        ) > 0,
-        "disabled tooltip should still paint the muted info icon"
+        ),
+        0,
+        "disabled tooltip should retain the compact no-icon default"
     );
 }
 
@@ -182,7 +184,7 @@ fn tooltip_component_nodes() -> Vec<TemplatePaneNodeData> {
         ),
         label(
             "TooltipSubtitle",
-            "Bubble, arrow, info icon, declared colors, focused, pressed and disabled states",
+            "Bubble, arrow, declared icon, colors, focused, pressed and disabled states",
             22.0,
             42.0,
             660.0,
@@ -302,7 +304,7 @@ fn tooltip_component_nodes() -> Vec<TemplatePaneNodeData> {
         ),
         label(
             "TooltipDisabledCopy",
-            "Muted bubble, text, icon, shadow",
+            "Muted bubble, text and shadow",
             672.0,
             232.0,
             190.0,
@@ -358,6 +360,7 @@ fn tooltip(
     };
 
     if matches!(colors, TooltipColors::Declared) {
+        node.icon_name = "info".into();
         node.value_number = 10.0;
         node.value_color =
             Color::from_rgb_u8(DECLARED_ARROW[0], DECLARED_ARROW[1], DECLARED_ARROW[2]);

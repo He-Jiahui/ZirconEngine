@@ -3,24 +3,60 @@ use std::sync::Arc;
 
 use super::{RenderPassExecutionContext, RenderPassExecutorFn, RenderPassExecutorId};
 
+/// Declares whether an executor may record commands on a worker-owned encoder.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RenderPassRecordingPolicy {
+    /// The executor remains on the frame's serial encoder.
+    #[default]
+    Serial,
+    /// Recording uses immutable prepared inputs and has no shared upload or cache mutation.
+    ParallelSafe,
+}
+
 pub trait RenderPassExecutor: Send + Sync {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String>;
+
+    /// Defaults to serial so existing and third-party executors require an explicit audit.
+    fn recording_policy(&self) -> RenderPassRecordingPolicy {
+        RenderPassRecordingPolicy::Serial
+    }
 }
 
 struct FunctionRenderPassExecutor {
     executor: RenderPassExecutorFn,
+    recording_policy: RenderPassRecordingPolicy,
 }
 
 impl RenderPassExecutor for FunctionRenderPassExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         (self.executor)(context)
     }
+
+    fn recording_policy(&self) -> RenderPassRecordingPolicy {
+        self.recording_policy
+    }
 }
 
 pub(super) fn render_pass_executor_from_fn(
     executor: RenderPassExecutorFn,
 ) -> Arc<dyn RenderPassExecutor> {
-    Arc::new(FunctionRenderPassExecutor { executor })
+    render_pass_executor_from_fn_with_policy(executor, RenderPassRecordingPolicy::Serial)
+}
+
+pub(super) fn render_pass_executor_from_parallel_safe_fn(
+    executor: RenderPassExecutorFn,
+) -> Arc<dyn RenderPassExecutor> {
+    render_pass_executor_from_fn_with_policy(executor, RenderPassRecordingPolicy::ParallelSafe)
+}
+
+fn render_pass_executor_from_fn_with_policy(
+    executor: RenderPassExecutorFn,
+    recording_policy: RenderPassRecordingPolicy,
+) -> Arc<dyn RenderPassExecutor> {
+    Arc::new(FunctionRenderPassExecutor {
+        executor,
+        recording_policy,
+    })
 }
 
 #[derive(Clone)]
@@ -53,6 +89,10 @@ impl RenderPassExecutorRegistration {
 
     pub fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         self.executor.execute(context)
+    }
+
+    pub fn recording_policy(&self) -> RenderPassRecordingPolicy {
+        self.executor.recording_policy()
     }
 }
 

@@ -21,7 +21,7 @@
     "bytes": 194197,
     "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
   },
-  "catalog_sha256": "1f7d61d439831b44390a5609d1962c97d019f4dec62d5499051e0a2af0ded047",
+  "catalog_sha256": "c257012838863dbd77627601c57d1b3ae3ff9548c2a755649d53053fe42bbc32",
   "entries": [
     {
       "index": 0,
@@ -2484,6 +2484,134 @@
     },
     {
       "index": 50,
+      "id": "pyroblast",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.pyroblast",
+      "definition": {
+        "id": "pyroblast",
+        "specs": [
+          "fire"
+        ],
+        "name": "Pyrelance",
+        "class": "mage",
+        "learnLevel": 5,
+        "cost": 125,
+        "castTime": 6,
+        "cooldown": 0,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": true,
+        "projectileFx": "heavyBolt",
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 170,
+            "max": 225
+          },
+          {
+            "type": "dot",
+            "total": 48,
+            "duration": 12,
+            "interval": 2
+          }
+        ],
+        "description": "Hurls an immense fiery boulder that causes $d Fire damage plus additional damage over time."
+      }
+    },
+    {
+      "index": 51,
+      "id": "flamestrike",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.flamestrike",
+      "definition": {
+        "id": "flamestrike",
+        "specs": [
+          "fire"
+        ],
+        "name": "Flamestrike",
+        "class": "mage",
+        "learnLevel": 12,
+        "cost": 80,
+        "castTime": 2,
+        "cooldown": 12,
+        "range": 30,
+        "school": "fire",
+        "requiresTarget": false,
+        "targetMode": "position",
+        "effects": [
+          {
+            "type": "aoeDamage",
+            "min": 34,
+            "max": 44,
+            "radius": 7,
+            "canCrit": true
+          }
+        ],
+        "description": "Calls down a burst of flame at the target area, dealing $d Fire damage to enemies caught in the blast. Can critically strike (one strike for the whole blast)."
+      }
+    },
+    {
+      "index": 52,
+      "id": "combustion",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.combustion",
+      "definition": {
+        "id": "combustion",
+        "specs": [
+          "fire"
+        ],
+        "name": "Phoenix Trance",
+        "class": "mage",
+        "learnLevel": 12,
+        "cost": 100,
+        "castTime": 0,
+        "cooldown": 120,
+        "range": 0,
+        "school": "fire",
+        "requiresTarget": false,
+        "usableWhileCasting": true,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "combustion",
+            "value": 0,
+            "duration": 10
+          }
+        ],
+        "description": "Combust: for 10 sec your Fire spells always critically strike, including bolts already in flight. Off the global cooldown. These crits build Hot Streak like any other. (Fire signature)"
+      }
+    },
+    {
+      "index": 53,
+      "id": "overload",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.overload",
+      "definition": {
+        "id": "overload",
+        "name": "Overload",
+        "class": "mage",
+        "learnLevel": 14,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 30,
+        "range": 0,
+        "school": "arcane",
+        "requiresTarget": false,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "overload",
+            "value": 0.4,
+            "duration": 10
+          }
+        ],
+        "description": "Your next spell is amplified by 40% but costs 50% more mana. Lasts 10 sec. (Mage talent)"
+      }
+    },
+    {
+      "index": 54,
       "id": "conflagrate",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.conflagrate",
@@ -2514,7 +2642,7 @@
       }
     },
     {
-      "index": 51,
+      "index": 55,
       "id": "siphon_life",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.siphon_life",
@@ -2542,7 +2670,7 @@
       }
     },
     {
-      "index": 52,
+      "index": 56,
       "id": "swiftmend",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.swiftmend",
@@ -2572,7 +2700,7 @@
       }
     },
     {
-      "index": 53,
+      "index": 57,
       "id": "wrath",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.wrath",
@@ -2637,7 +2765,7 @@
       }
     },
     {
-      "index": 54,
+      "index": 58,
       "id": "healing_touch",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.healing_touch",
@@ -2703,7 +2831,7 @@
       }
     },
     {
-      "index": 55,
+      "index": 59,
       "id": "starfire",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.starfire",
@@ -2729,7 +2857,7 @@
       }
     },
     {
-      "index": 56,
+      "index": 60,
       "id": "entangling_roots",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.entangling_roots",
@@ -2773,7 +2901,7 @@
       }
     },
     {
-      "index": 57,
+      "index": 61,
       "id": "maul",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.maul",
@@ -2818,7 +2946,7 @@
       }
     },
     {
-      "index": 58,
+      "index": 62,
       "id": "growl",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.growl",
@@ -2844,7 +2972,7 @@
       }
     },
     {
-      "index": 59,
+      "index": 63,
       "id": "demoralizing_roar",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.demoralizing_roar",
@@ -2887,7 +3015,7 @@
       }
     },
     {
-      "index": 60,
+      "index": 64,
       "id": "prowl",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.prowl",
@@ -2916,7 +3044,7 @@
       }
     },
     {
-      "index": 61,
+      "index": 65,
       "id": "rake",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.rake",
@@ -2969,7 +3097,7 @@
       }
     },
     {
-      "index": 62,
+      "index": 66,
       "id": "claw",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.claw",
@@ -3009,7 +3137,7 @@
       }
     },
     {
-      "index": 63,
+      "index": 67,
       "id": "ferocious_bite",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.ferocious_bite",
@@ -3038,7 +3166,7 @@
       }
     },
     {
-      "index": 64,
+      "index": 68,
       "id": "swipe",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.swipe",
@@ -3069,7 +3197,7 @@
       }
     },
     {
-      "index": 65,
+      "index": 69,
       "id": "regrowth",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.regrowth",
@@ -3102,7 +3230,7 @@
       }
     },
     {
-      "index": 66,
+      "index": 70,
       "id": "barkskin",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.barkskin",
@@ -3131,7 +3259,7 @@
       }
     },
     {
-      "index": 67,
+      "index": 71,
       "id": "primal_reflexes",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.primal_reflexes",
@@ -3160,7 +3288,7 @@
       }
     },
     {
-      "index": 68,
+      "index": 72,
       "id": "enrage",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.enrage",
@@ -3187,7 +3315,7 @@
       }
     },
     {
-      "index": 69,
+      "index": 73,
       "id": "bash",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.bash",
@@ -3213,7 +3341,7 @@
       }
     },
     {
-      "index": 70,
+      "index": 74,
       "id": "faerie_fire",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.faerie_fire",
@@ -3238,7 +3366,7 @@
       }
     },
     {
-      "index": 71,
+      "index": 75,
       "id": "hibernate",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.hibernate",
@@ -3263,7 +3391,7 @@
       }
     },
     {
-      "index": 72,
+      "index": 76,
       "id": "dash",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.dash",
@@ -3292,7 +3420,7 @@
       }
     },
     {
-      "index": 73,
+      "index": 77,
       "id": "pounce",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.pounce",
@@ -3320,7 +3448,7 @@
       }
     },
     {
-      "index": 74,
+      "index": 78,
       "id": "insect_swarm",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.insect_swarm",
@@ -3347,7 +3475,7 @@
       }
     },
     {
-      "index": 75,
+      "index": 79,
       "id": "tigers_fury",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.tigers_fury",
@@ -3375,7 +3503,7 @@
       }
     },
     {
-      "index": 76,
+      "index": 80,
       "id": "rip",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.rip",
@@ -3404,7 +3532,7 @@
       }
     },
     {
-      "index": 77,
+      "index": 81,
       "id": "hurricane",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.hurricane",
@@ -3436,7 +3564,7 @@
       }
     },
     {
-      "index": 78,
+      "index": 82,
       "id": "skull_bash",
       "scenarios": [],
       "source_owner": "src/sim/content/classes.ts#ABILITIES.skull_bash",
@@ -3458,6 +3586,477 @@
           }
         ],
         "description": "Interrupts spellcasting and prevents any spell in that school from being cast for 4 sec. (Druid talent)"
+      }
+    },
+    {
+      "index": 83,
+      "id": "temporal_mend",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_mend",
+      "definition": {
+        "id": "temporal_mend",
+        "name": "Temporal Mend",
+        "class": "mage",
+        "learnLevel": 5,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 45,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 62,
+            "max": 74
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 70,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 105,
+                "max": 125
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 95,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 150,
+                "max": 178
+              }
+            ]
+          }
+        ],
+        "description": "Draws an ally a moment forward in time, mending $d health as the body settles into its healthier future self. (Chronomancy signature)"
+      }
+    },
+    {
+      "index": 84,
+      "id": "temporal_echo",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_echo",
+      "definition": {
+        "id": "temporal_echo",
+        "name": "Temporal Echo",
+        "class": "mage",
+        "learnLevel": 8,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 40,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "heal",
+            "min": 24,
+            "max": 30
+          },
+          {
+            "type": "temporalEcho",
+            "duration": 15
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 60,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 40,
+                "max": 50
+              },
+              {
+                "type": "temporalEcho",
+                "duration": 15
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 85,
+            "effects": [
+              {
+                "type": "heal",
+                "min": 58,
+                "max": 70
+              },
+              {
+                "type": "temporalEcho",
+                "duration": 15
+              }
+            ]
+          }
+        ],
+        "description": "Marks an ally with an echo of a healthier moment, mending $d health at once. For $t sec, part of the Arcane damage you deal is drawn back through the echo to heal them."
+      }
+    },
+    {
+      "index": 85,
+      "id": "temporal_cascade",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_cascade",
+      "definition": {
+        "id": "temporal_cascade",
+        "name": "Temporal Cascade",
+        "class": "mage",
+        "learnLevel": 12,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 90,
+        "castTime": 2,
+        "cooldown": 17,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "partyOnlyTarget": true,
+        "effects": [
+          {
+            "type": "massTemporalEcho",
+            "duration": 10,
+            "radius": 15,
+            "maxTargets": 5,
+            "heal": {
+              "min": 14,
+              "max": 18
+            }
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 16,
+            "cost": 130,
+            "effects": [
+              {
+                "type": "massTemporalEcho",
+                "duration": 10,
+                "radius": 15,
+                "maxTargets": 5,
+                "heal": {
+                  "min": 22,
+                  "max": 28
+                }
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 170,
+            "effects": [
+              {
+                "type": "massTemporalEcho",
+                "duration": 10,
+                "radius": 15,
+                "maxTargets": 5,
+                "heal": {
+                  "min": 28,
+                  "max": 36
+                }
+              }
+            ]
+          }
+        ],
+        "description": "Sends an echo cascading through your group: the target and up to four of their nearest allies are mended at once and each marked for $t sec, drawing part of the Arcane damage you deal back through their echoes to heal them. (Chronomancy)"
+      }
+    },
+    {
+      "index": 86,
+      "id": "temporal_rewind",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_rewind",
+      "definition": {
+        "id": "temporal_rewind",
+        "name": "Rewind",
+        "class": "mage",
+        "learnLevel": 14,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 150,
+        "castTime": 0,
+        "cooldown": 120,
+        "range": 0,
+        "school": "arcane",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "rewind",
+            "fraction": 0.3,
+            "maxHpFraction": 0.35,
+            "windowSec": 5,
+            "radius": 40
+          }
+        ],
+        "description": "Sends an arcane wave through your group or raid, rewinding time to restore 30% of the damage each ally within 40 yards took over the last 5 seconds (up to 35% of their maximum health). Cannot be a critical effect. (Chronomancy)"
+      }
+    },
+    {
+      "index": 87,
+      "id": "temporal_barrier",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_barrier",
+      "definition": {
+        "id": "temporal_barrier",
+        "name": "Temporal Barrier",
+        "class": "mage",
+        "learnLevel": 5,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 50,
+        "castTime": 0,
+        "cooldown": 12,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "absorb",
+            "amount": 55,
+            "duration": 10
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 75,
+            "effects": [
+              {
+                "type": "absorb",
+                "amount": 100,
+                "duration": 10
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 105,
+            "effects": [
+              {
+                "type": "absorb",
+                "amount": 160,
+                "duration": 10
+              }
+            ]
+          }
+        ],
+        "description": "Shifts the target a heartbeat out of the present, a temporal shell absorbing $d damage for 10 sec before the timeline snaps back."
+      }
+    },
+    {
+      "index": 88,
+      "id": "arcane_surge",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_surge",
+      "definition": {
+        "id": "arcane_surge",
+        "name": "Aether Surge",
+        "class": "mage",
+        "learnLevel": 5,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 16,
+        "castTime": 2,
+        "cooldown": 0,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "projectile": false,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 10,
+            "max": 13
+          }
+        ],
+        "description": "Draws a surge of raw aether through the enemy for $d damage. Each cast leaves an Arcane Charge that raises your next Aether Surge's damage and cast speed (5% faster each) but sharply raises its mana cost, stacking up to 4; Aether Darts spends the charges. Each cast can also arm Aether Rush, making your next Aether Surge free and twice as fast to cast."
+      }
+    },
+    {
+      "index": 89,
+      "id": "arcane_missiles",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_missiles",
+      "definition": {
+        "id": "arcane_missiles",
+        "name": "Aether Darts",
+        "class": "mage",
+        "learnLevel": 5,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 50,
+        "castTime": 0,
+        "channel": {
+          "duration": 3,
+          "ticks": 3
+        },
+        "cooldown": 0,
+        "range": 30,
+        "school": "arcane",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 8,
+            "max": 8
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 14,
+            "cost": 75,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 14,
+                "max": 14
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 20,
+            "cost": 105,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 22,
+                "max": 22
+              }
+            ]
+          }
+        ],
+        "description": "Launches Aether Darts at the enemy, causing $d Arcane damage each second for 3 sec."
+      }
+    },
+    {
+      "index": 90,
+      "id": "perfect_moment",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.perfect_moment",
+      "definition": {
+        "id": "perfect_moment",
+        "name": "Perfect Moment",
+        "class": "mage",
+        "learnLevel": 10,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 120,
+        "offGcd": true,
+        "range": 0,
+        "school": "arcane",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "perfectMoment"
+          }
+        ],
+        "description": "Seize your perfect moment: instantly gain 4 Arcane Charges, and for 10 sec Aether Darts does not consume them. (Chronomancer)"
+      }
+    },
+    {
+      "index": 91,
+      "id": "temporal_hourglass",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_hourglass",
+      "definition": {
+        "id": "temporal_hourglass",
+        "name": "Hourglass of Suspension",
+        "class": "mage",
+        "learnLevel": 14,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 110,
+        "castTime": 0,
+        "cooldown": 50,
+        "range": 28,
+        "school": "arcane",
+        "requiresTarget": false,
+        "targetMode": "position",
+        "projectile": false,
+        "effects": [
+          {
+            "type": "temporalHourglass",
+            "duration": 5,
+            "hostilePveDuration": 60,
+            "hostilePvpDuration": 10,
+            "groundDuration": 30,
+            "selfRadius": 1.75,
+            "captureRadius": 1.75,
+            "healMaxHpPct": 0.3,
+            "selfCooldownRate": 2,
+            "allyCooldownRate": 1.75
+          }
+        ],
+        "description": "Place a temporal hourglass at the selected location. Beneath an enemy, it suspends them for $e sec in PvE or $p sec in PvP and prevents all actions; damage breaks the effect. At your feet or beneath a group ally, it grants stasis for $t sec, prevents damage and actions, restores $h% of maximum health, and makes cooldowns recover $s% faster for you or $a% faster for an ally. On empty ground, the hourglass waits for $g sec and affects the first valid unit to step on it. The beneficial aura can be removed manually."
+      }
+    },
+    {
+      "index": 92,
+      "id": "temporal_acceleration",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_acceleration",
+      "definition": {
+        "id": "temporal_acceleration",
+        "name": "Temporal Acceleration",
+        "class": "mage",
+        "learnLevel": 20,
+        "specs": [
+          "arcane"
+        ],
+        "cost": 120,
+        "castTime": 0,
+        "cooldown": 300,
+        "range": 0,
+        "school": "arcane",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "aoeAllyHaste",
+            "mult": 1.3,
+            "duration": 15,
+            "radius": 40,
+            "spell": true,
+            "exhaust": true,
+            "groupOnly": true
+          }
+        ],
+        "description": "Accelerates the flow of time for your group or raid, increasing attack, casting, and channeling speed by 30% for 15 sec. Allies recently affected by Temporal Acceleration or Storm Chorus are too exhausted to benefit. (Chronomancy)"
       }
     }
   ]

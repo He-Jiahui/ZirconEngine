@@ -1,22 +1,27 @@
 use std::collections::HashMap;
 
 use crate::rhi::{
-    RhiError, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList, UiSurfacePresentStats,
-    UiSurfacePresenter,
+    RhiError, UiSurfaceDescriptor, UiSurfaceDrawList, UiSurfaceImageResource,
+    UiSurfacePresentStats, UiSurfacePresenter,
 };
+#[cfg(test)]
+use crate::rhi_wgpu::GPU_TIMESTAMP_REQUIRED_FEATURES;
+use crate::rhi_wgpu::{GpuPassTimer, GpuReadbackQueue};
 
 mod batching;
 mod geometry;
+mod image_cache;
 mod pipeline;
 mod render_pass;
 mod retained_cache;
 mod surface_setup;
 mod text;
 
-use batching::{BatchDrawPlan, BatchDrawPlanStats, CompiledUiBatchPlanCache, ImageUploadSource};
+use batching::{BatchDrawPlan, BatchDrawPlanStats, CompiledUiBatchPlanCache};
+use image_cache::{WgpuUiImageCache, WgpuUiImageResourceStats};
 use pipeline::{
     create_image_bind_group_layout, create_image_pipeline, create_image_sampler,
-    create_solid_pipeline,
+    create_solid_instance_pipeline, create_solid_pipeline,
 };
 use render_pass::{
     record_draw_ops_to_view, TargetLoad, WgpuUiDrawBufferCache, WgpuUiDrawBufferStats,
@@ -26,14 +31,19 @@ use retained_cache::WgpuRetainedSurfaceCache;
 use surface_setup::{configure_surface, create_surface, instance_descriptor, request_device};
 use text::{WgpuUiTextPrepareStats, WgpuUiTextRenderer};
 
-// Editor image bytes are byte-space UI colors; keep upload textures out of sRGB
-// so sampling them into the direct swapchain path stays byte-parity friendly.
-const UI_IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
-const MAX_UI_IMAGE_CACHE_ENTRIES: usize = 256;
-const MAX_UI_IMAGE_CACHE_BYTES: u64 = 64 * 1024 * 1024;
+const UI_GPU_TIMER_MAX_PASSES: u32 = 1;
+const UI_GPU_TIMER_PASS_NAME: &str = "ui.surface";
 
 #[cfg(test)]
-use surface_setup::{choose_alpha_mode, choose_surface_format, choose_surface_usage};
+use surface_setup::{
+    choose_alpha_mode, choose_surface_format, choose_surface_usage, requested_device_features,
+};
+
+#[cfg(test)]
+use image_cache::{
+    image_cache_admission_plan, image_payload_layout, image_upload_needs_write,
+    remove_cached_image, take_image_source_pixels, ImageCacheAdmissionAction, ImagePayloadLayout,
+};
 
 pub struct WgpuUiSurfacePresenter {
     descriptor: UiSurfaceDescriptor,
@@ -106,6 +116,15 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         Ok(())
     }
 
+    fn is_image_resource_resident(&self, resource_key: &str, generation: u64) -> bool {
+        match &self.backend {
+            WgpuUiSurfaceBackend::Native(renderer) => {
+                renderer.image_cache.is_resident(resource_key, generation)
+            }
+            WgpuUiSurfaceBackend::Headless(_) => false,
+        }
+    }
+
     fn present(
         &mut self,
         draw_list: &UiSurfaceDrawList,
@@ -129,6 +148,9 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
                     text_stats: WgpuUiTextPrepareStats::default(),
                     image_resource_stats: None,
                     recorded_stats: None,
+                    gpu_timestamp_supported: false,
+                    gpu_time_us: None,
+                    gpu_profile_latency_frames: 0,
                 }
             }
         };
@@ -137,6 +159,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         stats.compiled_draw_calls = presentation.batch_stats.draw_calls;
         stats.compiled_visible_draw_item_count = presentation.batch_stats.visible_draw_item_count;
         stats.compiled_solid_vertex_count = presentation.batch_stats.solid_vertex_count;
+        stats.compiled_solid_instance_count = presentation.batch_stats.solid_instance_count;
         stats.compiled_image_vertex_count = presentation.batch_stats.image_vertex_count;
         stats.compiled_batch_layer_count = presentation.batch_stats.batch_layer_count;
         stats.compiled_batch_dependency_count = presentation.batch_stats.batch_dependency_count;
@@ -146,6 +169,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         stats.visible_draw_item_count = presentation.batch_stats.visible_draw_item_count;
         stats.batch_merge_count = presentation.batch_stats.batch_merge_count;
         stats.solid_vertex_count = presentation.batch_stats.solid_vertex_count;
+        stats.solid_instance_count = presentation.batch_stats.solid_instance_count;
         stats.image_vertex_count = presentation.batch_stats.image_vertex_count;
         stats.batch_layer_count = presentation.batch_stats.batch_layer_count;
         stats.batch_dependency_count = presentation.batch_stats.batch_dependency_count;
@@ -155,11 +179,15 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         stats.vertex_buffer_create_count = presentation.batch_stats.vertex_buffer_create_count;
         stats.vertex_upload_bytes = presentation.batch_stats.vertex_upload_bytes;
         stats.retained_cache_copy_bytes = presentation.batch_stats.retained_cache_copy_bytes;
+        stats.gpu_timestamp_supported = presentation.gpu_timestamp_supported;
+        stats.gpu_time_us = presentation.gpu_time_us;
+        stats.gpu_profile_latency_frames = presentation.gpu_profile_latency_frames;
         if let Some(recorded) = presentation.recorded_stats {
             stats.draw_calls = recorded.draw_calls;
             stats.render_pass_count = recorded.render_pass_count;
             stats.visible_draw_item_count = recorded.visible_draw_item_count;
             stats.solid_vertex_count = recorded.solid_vertex_count;
+            stats.solid_instance_count = recorded.solid_instance_count;
             stats.image_vertex_count = recorded.image_vertex_count;
             stats.batch_layer_count = recorded.batch_layer_count;
             stats.batch_dependency_count = 0;
@@ -181,6 +209,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
                 image_resource_stats.cache_admission_reject_count;
             stats.image_invalid_payload_count = image_resource_stats.invalid_payload_count;
             stats.image_cache_resident_bytes = image_resource_stats.cache_resident_bytes;
+            stats.image_cache_cpu_resident_bytes = image_resource_stats.cpu_resident_bytes;
             stats.image_prepare_command_visit_count =
                 image_resource_stats.prepare_command_visit_count;
             stats.image_prepare_cache_hit_count = image_resource_stats.prepare_cache_hit_count;
@@ -189,6 +218,16 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         stats.presented_frame_count = self.presented_frame_count;
         self.last_stats = stats;
         Ok(stats)
+    }
+
+    fn present_owned(
+        &mut self,
+        mut draw_list: UiSurfaceDrawList,
+    ) -> Result<UiSurfacePresentStats, RhiError> {
+        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+            renderer.stage_image_resources(draw_list.take_image_resources());
+        }
+        self.present(&draw_list)
     }
 
     fn last_present_stats(&self) -> UiSurfacePresentStats {
@@ -202,19 +241,9 @@ struct WgpuUiSurfacePresentation {
     text_stats: WgpuUiTextPrepareStats,
     image_resource_stats: Option<WgpuUiImageResourceStats>,
     recorded_stats: Option<WgpuUiRecordedDrawStats>,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct WgpuUiImageResourceStats {
-    upload_bytes: u64,
-    upload_write_count: u64,
-    cache_key_allocation_count: u64,
-    cache_prune_visit_count: u64,
-    cache_admission_reject_count: u64,
-    invalid_payload_count: u64,
-    cache_resident_bytes: u64,
-    prepare_command_visit_count: u64,
-    prepare_cache_hit_count: u64,
+    gpu_timestamp_supported: bool,
+    gpu_time_us: Option<u64>,
+    gpu_profile_latency_frames: u32,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -222,6 +251,9 @@ struct WgpuUiSurfaceRenderStats {
     draw_buffers: WgpuUiDrawBufferStats,
     recorded: WgpuUiRecordedDrawStats,
     retained_cache_copy_bytes: u64,
+    gpu_timestamp_supported: bool,
+    gpu_time_us: Option<u64>,
+    gpu_profile_latency_frames: u32,
 }
 
 impl WgpuUiSurfaceRenderStats {
@@ -239,6 +271,10 @@ impl WgpuUiSurfaceRenderStats {
             .recorded
             .solid_vertex_count
             .saturating_add(recorded.solid_vertex_count);
+        self.recorded.solid_instance_count = self
+            .recorded
+            .solid_instance_count
+            .saturating_add(recorded.solid_instance_count);
         self.recorded.image_vertex_count = self
             .recorded
             .image_vertex_count
@@ -258,19 +294,26 @@ struct WgpuUiSurfaceRenderer {
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     solid_pipeline: wgpu::RenderPipeline,
+    solid_instance_pipeline: wgpu::RenderPipeline,
     image_pipeline: wgpu::RenderPipeline,
     image_bind_group_layout: wgpu::BindGroupLayout,
     image_sampler: wgpu::Sampler,
     retained_cache: Option<WgpuRetainedSurfaceCache>,
-    image_cache: HashMap<String, WgpuUiImageResource>,
-    image_cache_bytes: u64,
+    image_cache: WgpuUiImageCache,
+    pending_image_resources: HashMap<String, UiSurfaceImageResource>,
     text: WgpuUiTextRenderer,
+    gpu_readback_queue: GpuReadbackQueue,
+    gpu_pass_timer: Option<GpuPassTimer>,
     compiled_batch_plan: CompiledUiBatchPlanCache,
     compiled_draw_buffers: WgpuUiDrawBufferCache,
     present_index: u64,
 }
 
 impl WgpuUiSurfaceRenderer {
+    fn stage_image_resources(&mut self, image_resources: HashMap<String, UiSurfaceImageResource>) {
+        self.pending_image_resources = image_resources;
+    }
+
     fn new(descriptor: UiSurfaceDescriptor) -> Result<Self, RhiError> {
         let target = descriptor
             .target
@@ -283,10 +326,11 @@ impl WgpuUiSurfaceRenderer {
             force_fallback_adapter: false,
         }))
         .map_err(|_| RhiError::SurfaceUnavailable("no compatible adapter found".into()))?;
-        let (device, queue) = request_device(&adapter)?;
+        let (device, queue) = request_device(&adapter, descriptor.allow_gpu_timing)?;
         let size = descriptor.clamped_size();
         let config = configure_surface(&surface, &adapter, &device, size)?;
         let solid_pipeline = create_solid_pipeline(&device, config.format);
+        let solid_instance_pipeline = create_solid_instance_pipeline(&device, config.format);
         let image_bind_group_layout = create_image_bind_group_layout(&device);
         let image_sampler = create_image_sampler(&device);
         let image_pipeline =
@@ -294,6 +338,11 @@ impl WgpuUiSurfaceRenderer {
         let retained_cache = retained_cache_copy_supported(config.usage)
             .then(|| WgpuRetainedSurfaceCache::new(&device, config.format, size));
         let text = WgpuUiTextRenderer::new(&device, &queue, config.format);
+        let gpu_pass_timer = descriptor
+            .allow_gpu_timing
+            .then(|| GpuPassTimer::try_new(&device, &queue, UI_GPU_TIMER_MAX_PASSES))
+            .flatten();
+        let gpu_readback_queue = GpuReadbackQueue::new(&device);
 
         Ok(Self {
             _instance: instance,
@@ -303,13 +352,16 @@ impl WgpuUiSurfaceRenderer {
             surface,
             config,
             solid_pipeline,
+            solid_instance_pipeline,
             image_pipeline,
             image_bind_group_layout,
             image_sampler,
             retained_cache,
-            image_cache: HashMap::new(),
-            image_cache_bytes: 0,
+            image_cache: WgpuUiImageCache::default(),
+            pending_image_resources: HashMap::new(),
             text,
+            gpu_readback_queue,
+            gpu_pass_timer,
             compiled_batch_plan: CompiledUiBatchPlanCache::default(),
             compiled_draw_buffers: WgpuUiDrawBufferCache::default(),
             present_index: 0,
@@ -346,8 +398,16 @@ impl WgpuUiSurfaceRenderer {
             .draw_list_stats
             .unwrap_or_else(|| draw_list.stats());
         let draw_plan = resolved_draw_plan.plan;
-        let image_resource_stats =
-            self.prepare_image_resources(draw_list, &draw_plan.image_upload_sources);
+        let image_resource_stats = self.image_cache.prepare(
+            &self.device,
+            &self.queue,
+            &self.image_bind_group_layout,
+            &self.image_sampler,
+            self.present_index,
+            draw_list,
+            &draw_plan.image_upload_sources,
+            &mut self.pending_image_resources,
+        );
         let text_stats = self.text.prepare(
             &self.device,
             &self.queue,
@@ -369,6 +429,9 @@ impl WgpuUiSurfaceRenderer {
             text_stats,
             image_resource_stats: Some(image_resource_stats),
             recorded_stats: Some(render_stats.recorded),
+            gpu_timestamp_supported: render_stats.gpu_timestamp_supported,
+            gpu_time_us: render_stats.gpu_time_us,
+            gpu_profile_latency_frames: render_stats.gpu_profile_latency_frames,
         })
     }
 
@@ -379,205 +442,6 @@ impl WgpuUiSurfaceRenderer {
         Ok(())
     }
 
-    fn prepare_image_resources(
-        &mut self,
-        draw_list: &UiSurfaceDrawList,
-        image_upload_sources: &[ImageUploadSource],
-    ) -> WgpuUiImageResourceStats {
-        let mut stats = WgpuUiImageResourceStats::default();
-        let max_texture_dimension_2d = self.device.limits().max_texture_dimension_2d;
-        let mut admission_saturated = false;
-        for image_upload_source in image_upload_sources {
-            let cache_key = image_upload_source.resource_key.as_str();
-            if cache_key.is_empty() {
-                continue;
-            }
-            if let Some(generation) = draw_list.generation() {
-                if let Some(resource) = self.image_cache.get_mut(cache_key) {
-                    if !image_upload_needs_write(
-                        Some(generation),
-                        resource.last_uploaded_generation,
-                    ) {
-                        resource.last_touched_present = self.present_index;
-                        stats.prepare_cache_hit_count =
-                            stats.prepare_cache_hit_count.saturating_add(1);
-                        continue;
-                    }
-                }
-            }
-            for command_index in &image_upload_source.command_indices {
-                stats.prepare_command_visit_count =
-                    stats.prepare_command_visit_count.saturating_add(1);
-                let Some(command) = draw_list.commands.get(*command_index) else {
-                    continue;
-                };
-                let UiSurfaceCommandKind::Image { payload } = &command.kind else {
-                    continue;
-                };
-                if payload.resource_key != cache_key {
-                    continue;
-                }
-                let Some(rgba) = payload.rgba.as_deref() else {
-                    if let Some(resource) = self.image_cache.get_mut(cache_key) {
-                        resource.last_touched_present = self.present_index;
-                    }
-                    continue;
-                };
-                let Some(layout) =
-                    image_payload_layout(payload.width, payload.height, max_texture_dimension_2d)
-                else {
-                    stats.invalid_payload_count = stats.invalid_payload_count.saturating_add(1);
-                    self.invalidate_cached_image(cache_key);
-                    continue;
-                };
-                if rgba.len() < layout.expected_len {
-                    stats.invalid_payload_count = stats.invalid_payload_count.saturating_add(1);
-                    self.invalidate_cached_image(cache_key);
-                    continue;
-                }
-                let cached_size = self
-                    .image_cache
-                    .get(cache_key)
-                    .map(|resource| resource.size);
-                let replace = cached_size != Some((payload.width, payload.height));
-                if replace {
-                    if !self.admit_image_cache_resource(
-                        cache_key,
-                        layout.expected_len as u64,
-                        image_upload_sources,
-                        cached_size.is_none(),
-                        &mut admission_saturated,
-                        &mut stats,
-                    ) {
-                        self.invalidate_cached_image(cache_key);
-                        continue;
-                    }
-                    let resource = WgpuUiImageResource::new(
-                        &self.device,
-                        &self.image_bind_group_layout,
-                        &self.image_sampler,
-                        (payload.width, payload.height),
-                        layout.expected_len as u64,
-                        self.present_index,
-                    );
-                    if let Some(cached) = self.image_cache.get_mut(cache_key) {
-                        self.image_cache_bytes = self
-                            .image_cache_bytes
-                            .saturating_sub(cached.byte_size)
-                            .saturating_add(resource.byte_size);
-                        *cached = resource;
-                    } else {
-                        self.image_cache_bytes =
-                            self.image_cache_bytes.saturating_add(resource.byte_size);
-                        self.image_cache.insert(cache_key.to_owned(), resource);
-                        stats.cache_key_allocation_count =
-                            stats.cache_key_allocation_count.saturating_add(1);
-                    }
-                }
-                if let Some(resource) = self.image_cache.get_mut(cache_key) {
-                    resource.last_touched_present = self.present_index;
-                    if image_upload_needs_write(
-                        draw_list.generation(),
-                        resource.last_uploaded_generation,
-                    ) {
-                        self.queue.write_texture(
-                            resource.texture.as_image_copy(),
-                            &rgba[..layout.expected_len],
-                            wgpu::TexelCopyBufferLayout {
-                                offset: 0,
-                                bytes_per_row: Some(layout.bytes_per_row),
-                                rows_per_image: Some(payload.height),
-                            },
-                            wgpu::Extent3d {
-                                width: payload.width,
-                                height: payload.height,
-                                depth_or_array_layers: 1,
-                            },
-                        );
-                        resource.last_uploaded_generation = draw_list.generation();
-                        stats.upload_write_count = stats.upload_write_count.saturating_add(1);
-                        stats.upload_bytes = stats
-                            .upload_bytes
-                            .saturating_add(layout.expected_len as u64);
-                    }
-                    break;
-                }
-            }
-        }
-        stats.cache_resident_bytes = self.image_cache_bytes;
-        stats
-    }
-
-    fn admit_image_cache_resource(
-        &mut self,
-        cache_key: &str,
-        required_bytes: u64,
-        active_sources: &[ImageUploadSource],
-        new_key: bool,
-        admission_saturated: &mut bool,
-        stats: &mut WgpuUiImageResourceStats,
-    ) -> bool {
-        if new_key && *admission_saturated {
-            stats.cache_admission_reject_count =
-                stats.cache_admission_reject_count.saturating_add(1);
-            return false;
-        }
-        let replaced_bytes = self
-            .image_cache
-            .get(cache_key)
-            .map_or(0, |resource| resource.byte_size);
-        let entry_count_after = self.image_cache.len().saturating_add(usize::from(new_key));
-        let cache_bytes_after = self
-            .image_cache_bytes
-            .saturating_sub(replaced_bytes)
-            .saturating_add(required_bytes);
-        let (action, visit_count) = image_cache_admission_plan(
-            self.image_cache.iter().map(|(key, resource)| {
-                let key_str = key.as_str();
-                (
-                    key_str,
-                    resource.last_touched_present,
-                    resource.byte_size,
-                    active_sources
-                        .binary_search_by(|source| source.resource_key.as_str().cmp(key_str))
-                        .is_ok(),
-                    key_str == cache_key,
-                )
-            }),
-            entry_count_after,
-            cache_bytes_after,
-            MAX_UI_IMAGE_CACHE_ENTRIES,
-            MAX_UI_IMAGE_CACHE_BYTES,
-            required_bytes,
-        );
-        stats.cache_prune_visit_count = stats.cache_prune_visit_count.saturating_add(visit_count);
-        match action {
-            ImageCacheAdmissionAction::Admit { evict_keys } => {
-                stats.cache_key_allocation_count = stats
-                    .cache_key_allocation_count
-                    .saturating_add(evict_keys.len() as u64);
-                for key in evict_keys {
-                    self.invalidate_cached_image(&key);
-                }
-                true
-            }
-            ImageCacheAdmissionAction::Reject { cache_saturated } => {
-                *admission_saturated |= new_key && cache_saturated;
-                stats.cache_admission_reject_count =
-                    stats.cache_admission_reject_count.saturating_add(1);
-                false
-            }
-        }
-    }
-
-    fn invalidate_cached_image(&mut self, cache_key: &str) -> bool {
-        let Some(resource) = remove_cached_image(&mut self.image_cache, cache_key) else {
-            return false;
-        };
-        self.image_cache_bytes = self.image_cache_bytes.saturating_sub(resource.byte_size);
-        true
-    }
-
     fn render_draw_list_to_surface(
         &mut self,
         draw_list: &UiSurfaceDrawList,
@@ -585,15 +449,40 @@ impl WgpuUiSurfaceRenderer {
         mode: SurfaceRenderMode,
         damage: Option<crate::rhi::UiSurfaceRect>,
     ) -> Result<WgpuUiSurfaceRenderStats, RhiError> {
+        let completed_timing = {
+            let (gpu_pass_timer, readback_queue) =
+                (&mut self.gpu_pass_timer, &mut self.gpu_readback_queue);
+            gpu_pass_timer
+                .as_mut()
+                .and_then(|timer| timer.try_collect(&self.device, readback_queue))
+        };
+        let gpu_time_us = completed_timing.as_ref().and_then(|result| {
+            result
+                .pass_timings
+                .iter()
+                .find(|timing| timing.pass_name == UI_GPU_TIMER_PASS_NAME)
+                .map(|timing| timing.gpu_time_us)
+        });
+        let gpu_profile_latency_frames = completed_timing.map_or(0, |result| {
+            self.present_index
+                .saturating_sub(result.frame_generation)
+                .min(u64::from(u32::MAX)) as u32
+        });
+        let mut render_stats = WgpuUiSurfaceRenderStats {
+            gpu_timestamp_supported: self.gpu_pass_timer.is_some(),
+            gpu_time_us,
+            gpu_profile_latency_frames,
+            ..WgpuUiSurfaceRenderStats::default()
+        };
         let surface_texture = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(surface_texture)
             | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
             wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
                 self.surface.configure(&self.device, &self.config);
-                return Ok(WgpuUiSurfaceRenderStats::default());
+                return Ok(render_stats);
             }
             wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return Ok(WgpuUiSurfaceRenderStats::default());
+                return Ok(render_stats);
             }
             wgpu::CurrentSurfaceTexture::Validation => {
                 return Err(RhiError::SurfaceUnavailable(
@@ -615,7 +504,19 @@ impl WgpuUiSurfaceRenderer {
                 label: Some("zircon-ui-surface-encoder"),
             });
         encoder.push_debug_group("zircon::UI");
-        let mut render_stats = WgpuUiSurfaceRenderStats::default();
+        let readback_ready = self.gpu_pass_timer.is_some()
+            && self
+                .gpu_readback_queue
+                .prepare_frame(&self.device, self.present_index)
+                .is_ok();
+        let timestamp_scope = if readback_ready {
+            self.gpu_pass_timer.as_mut().and_then(|timer| {
+                timer.begin_frame(self.present_index);
+                timer.begin_pass(&mut encoder, UI_GPU_TIMER_PASS_NAME)
+            })
+        } else {
+            None
+        };
 
         match mode {
             SurfaceRenderMode::FullRedraw => {
@@ -629,8 +530,9 @@ impl WgpuUiSurfaceRenderer {
                         draw_ops,
                         &buffers,
                         &self.solid_pipeline,
+                        &self.solid_instance_pipeline,
                         &self.image_pipeline,
-                        &self.image_cache,
+                        self.image_cache.resources(),
                         &mut self.text,
                     ));
                     render_stats.retained_cache_copy_bytes = render_stats
@@ -651,8 +553,9 @@ impl WgpuUiSurfaceRenderer {
                         draw_ops,
                         &buffers,
                         &self.solid_pipeline,
+                        &self.solid_instance_pipeline,
                         &self.image_pipeline,
-                        &self.image_cache,
+                        self.image_cache.resources(),
                         &mut self.text,
                     ));
                 }
@@ -672,8 +575,9 @@ impl WgpuUiSurfaceRenderer {
                     draw_ops,
                     &buffers,
                     &self.solid_pipeline,
+                    &self.solid_instance_pipeline,
                     &self.image_pipeline,
-                    &self.image_cache,
+                    self.image_cache.resources(),
                     &mut self.text,
                 ));
                 render_stats.retained_cache_copy_bytes = render_stats
@@ -687,9 +591,38 @@ impl WgpuUiSurfaceRenderer {
             }
         }
 
+        if let (Some(timer), Some(scope)) = (&self.gpu_pass_timer, timestamp_scope) {
+            timer.end_pass(&mut encoder, scope);
+        }
+        if readback_ready {
+            if let Some(timer) = &mut self.gpu_pass_timer {
+                timer.resolve_and_request(&mut encoder, &mut self.gpu_readback_queue);
+            }
+            if let Err(error) = self
+                .gpu_readback_queue
+                .encode_copies(&mut encoder, self.present_index)
+            {
+                self.gpu_readback_queue.abort_frame(self.present_index);
+                return Err(RhiError::SurfaceUnavailable(error.to_string()));
+            }
+        }
         encoder.pop_debug_group();
         self.queue.submit(Some(encoder.finish()));
+        let readback_map_error = if readback_ready {
+            match self.gpu_readback_queue.begin_map(self.present_index) {
+                Ok(()) => None,
+                Err(error) => {
+                    self.gpu_readback_queue.abort_frame(self.present_index);
+                    Some(error)
+                }
+            }
+        } else {
+            None
+        };
         surface_texture.present();
+        if let Some(error) = readback_map_error {
+            return Err(RhiError::SurfaceUnavailable(error.to_string()));
+        }
         Ok(WgpuUiSurfaceRenderStats {
             draw_buffers: resolved_buffers.stats,
             ..render_stats
@@ -722,166 +655,6 @@ fn render_damage(
     (mode == SurfaceRenderMode::DamagePatch)
         .then_some(draw_list.damage)
         .flatten()
-}
-
-struct WgpuUiImageResource {
-    texture: wgpu::Texture,
-    bind_group: wgpu::BindGroup,
-    size: (u32, u32),
-    byte_size: u64,
-    last_touched_present: u64,
-    last_uploaded_generation: Option<u64>,
-}
-
-impl WgpuUiImageResource {
-    fn new(
-        device: &wgpu::Device,
-        layout: &wgpu::BindGroupLayout,
-        sampler: &wgpu::Sampler,
-        size: (u32, u32),
-        byte_size: u64,
-        last_touched_present: u64,
-    ) -> Self {
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-ui-image"),
-            size: wgpu::Extent3d {
-                width: size.0.max(1),
-                height: size.1.max(1),
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: UI_IMAGE_TEXTURE_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-ui-image-bind-group"),
-            layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(sampler),
-                },
-            ],
-        });
-        Self {
-            texture,
-            bind_group,
-            size,
-            byte_size,
-            last_touched_present,
-            last_uploaded_generation: None,
-        }
-    }
-}
-
-fn image_upload_needs_write(
-    draw_list_generation: Option<u64>,
-    last_uploaded_generation: Option<u64>,
-) -> bool {
-    // An unversioned producer has not promised payload stability, so it must upload every time.
-    draw_list_generation != last_uploaded_generation || draw_list_generation.is_none()
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct ImagePayloadLayout {
-    expected_len: usize,
-    bytes_per_row: u32,
-}
-
-fn image_payload_layout(
-    width: u32,
-    height: u32,
-    max_texture_dimension_2d: u32,
-) -> Option<ImagePayloadLayout> {
-    if width == 0
-        || height == 0
-        || width > max_texture_dimension_2d
-        || height > max_texture_dimension_2d
-    {
-        return None;
-    }
-    let bytes_per_row = width.checked_mul(4)?;
-    let expected_len = u64::from(width)
-        .checked_mul(u64::from(height))
-        .and_then(|pixel_count| pixel_count.checked_mul(4))
-        .and_then(|byte_count| usize::try_from(byte_count).ok())?;
-    Some(ImagePayloadLayout {
-        expected_len,
-        bytes_per_row,
-    })
-}
-
-fn remove_cached_image<T>(cache: &mut HashMap<String, T>, cache_key: &str) -> Option<T> {
-    cache.remove(cache_key)
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-enum ImageCacheAdmissionAction {
-    Admit { evict_keys: Vec<String> },
-    Reject { cache_saturated: bool },
-}
-
-fn image_cache_admission_plan<'a>(
-    entries: impl Iterator<Item = (&'a str, u64, u64, bool, bool)>,
-    cache_entry_count_after: usize,
-    cache_bytes_after: u64,
-    max_entries: usize,
-    max_bytes: u64,
-    required_bytes: u64,
-) -> (ImageCacheAdmissionAction, u64) {
-    if cache_entry_count_after <= max_entries && cache_bytes_after <= max_bytes {
-        return (
-            ImageCacheAdmissionAction::Admit {
-                evict_keys: Vec::new(),
-            },
-            0,
-        );
-    }
-    if max_entries == 0 || required_bytes > max_bytes {
-        return (
-            ImageCacheAdmissionAction::Reject {
-                cache_saturated: false,
-            },
-            0,
-        );
-    }
-    let mut visit_count = 0_u64;
-    let mut candidates = Vec::new();
-    for (key, last_touched_present, byte_size, active, target) in entries {
-        visit_count = visit_count.saturating_add(1);
-        if active || target {
-            continue;
-        }
-        candidates.push((last_touched_present, key, byte_size));
-    }
-    candidates.sort_unstable_by_key(|(last_touched_present, key, _)| (*last_touched_present, *key));
-    let mut retained_entries = cache_entry_count_after;
-    let mut retained_bytes = cache_bytes_after;
-    let mut evict_keys = Vec::new();
-    for (_, key, byte_size) in candidates {
-        if retained_entries <= max_entries && retained_bytes <= max_bytes {
-            break;
-        }
-        retained_entries = retained_entries.saturating_sub(1);
-        retained_bytes = retained_bytes.saturating_sub(byte_size);
-        evict_keys.push(key.to_owned());
-    }
-    let action = if retained_entries <= max_entries && retained_bytes <= max_bytes {
-        ImageCacheAdmissionAction::Admit { evict_keys }
-    } else {
-        ImageCacheAdmissionAction::Reject {
-            cache_saturated: true,
-        }
-    };
-    (action, visit_count)
 }
 
 #[cfg(test)]

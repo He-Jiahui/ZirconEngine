@@ -1,7 +1,8 @@
 mod backend;
-mod projection;
+mod direct;
 
 #[cfg(test)]
 mod tests;
 
-pub(super) use projection::apply_horizontal_backend_shaping;
+pub(super) use backend::{shape_horizontal_run, HorizontalBackendRun};
+pub(super) use direct::shape_horizontal_request;

@@ -34,16 +34,18 @@ fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
     assert_eq!(ambient_light.color, Vec3::new(0.05, 0.06, 0.07));
     assert_eq!(ambient_light.intensity, 0.35);
     assert!(!ambient_light.affects_lightmapped_meshes);
-    assert!(world
-        .reflect_fields(
-            zircon_runtime_interface::reflect::ReflectFieldsRequest::new(ambient_address)
-        )
-        .expect("ambient fields should be enumerable")
-        .fields
-        .contains(&ReflectFieldValue::new(
-            "affects_lightmapped_meshes",
-            ReflectedValue::Bool(false)
-        )));
+    assert!(
+        world
+            .reflect_fields(
+                zircon_runtime_interface::reflect::ReflectFieldsRequest::new(ambient_address)
+            )
+            .expect("ambient fields should be enumerable")
+            .fields
+            .contains(&ReflectFieldValue::new(
+                "affects_lightmapped_meshes",
+                ReflectedValue::Bool(false)
+            ))
+    );
 
     world
         .reflect_write(ReflectWriteRequest::new(
@@ -63,14 +65,18 @@ fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
     let rect_light = world.get::<RectLight>(rect).unwrap();
     assert_eq!(rect_light.range, 16.0);
     assert_eq!(rect_light.size, Vec2::new(2.0, 0.5));
-    assert!(world
-        .reflect_fields(zircon_runtime_interface::reflect::ReflectFieldsRequest::new(rect_address))
-        .expect("rect fields should be enumerable")
-        .fields
-        .contains(&ReflectFieldValue::new(
-            "size",
-            ReflectedValue::Vec2([2.0, 0.5])
-        )));
+    assert!(
+        world
+            .reflect_fields(
+                zircon_runtime_interface::reflect::ReflectFieldsRequest::new(rect_address)
+            )
+            .expect("rect fields should be enumerable")
+            .fields
+            .contains(&ReflectFieldValue::new(
+                "size",
+                ReflectedValue::Vec2([2.0, 0.5])
+            ))
+    );
 }
 
 #[test]

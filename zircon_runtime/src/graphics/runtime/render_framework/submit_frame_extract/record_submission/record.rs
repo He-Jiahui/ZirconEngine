@@ -1,6 +1,6 @@
-use crate::core::framework::render::FrameHistoryHandle;
+use crate::core::framework::render::{FrameHistoryHandle, RenderViewportHandle};
 
-use crate::graphics::ViewportFrame;
+use crate::graphics::scene::scene_renderer::core::ViewportAsyncCaptureSubmission;
 
 use super::super::super::viewport_record::{ViewportCameraHistoryKey, ViewportRecord};
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -13,15 +13,24 @@ use super::record_history::record_history;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn record_submission(
     record: &mut ViewportRecord,
+    viewport: RenderViewportHandle,
     context: &FrameSubmissionContext,
     allocated_history: Option<FrameHistoryHandle>,
-    frame: ViewportFrame,
+    frame: ViewportAsyncCaptureSubmission,
     runtime_feedback: RuntimeFeedbackBatch,
 ) -> SubmissionRecordUpdate {
+    record.store_presented_pipeline(context.compiled_pipeline_shared());
+    record.store_visible_spatial_query(
+        viewport,
+        context.source_world(),
+        frame.generation,
+        context.visibility_context(),
+    );
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
     let (previous_handle, history_handle, history_status) =
         record_history(record, context, frame.generation, allocated_history);
+    let capture_report = frame.capture_report;
     record_capture(record, context, frame);
     let hybrid_gi_stats =
         update_hybrid_gi_runtime(record, context.camera_history_key(), hybrid_gi_feedback);
@@ -36,14 +45,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         history_handle,
         previous_handle,
         history_status,
-        record
-            .last_capture()
-            .map(|capture| capture.capture_report)
-            .unwrap_or_else(|| {
-                crate::core::framework::render::RenderCaptureReport::not_captured(
-                    context.output_target().kind(),
-                )
-            }),
+        capture_report,
         hybrid_gi_stats,
         particle_stats,
         virtual_geometry_stats,

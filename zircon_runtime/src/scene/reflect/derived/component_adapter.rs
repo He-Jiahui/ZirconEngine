@@ -23,7 +23,8 @@ where
             write_field::<T>,
             remove::<T>,
         )
-        .with_dense_field_slots(read_field_by_slot::<T>, write_field_by_slot::<T>),
+        .with_dense_field_slots(read_field_by_slot::<T>, write_field_by_slot::<T>)
+        .with_dense_field_batch_write(write_fields_by_slot::<T>),
     )
 }
 
@@ -156,6 +157,32 @@ where
             target: format!("{type_path}.#{field_slot}"),
         }),
     }
+}
+
+fn write_fields_by_slot<T>(
+    world: &mut World,
+    entity: EntityId,
+    type_path: &str,
+    fields: Vec<(u32, ReflectedValue)>,
+) -> Result<bool, ReflectError>
+where
+    T: Component + ZrReflect + Clone,
+{
+    let mut next = component::<T>(world, entity, type_path)?.clone();
+    let mut changed = false;
+    for (field_slot, value) in fields {
+        changed |= next.write_reflected_field_by_slot(field_slot, value)?;
+    }
+    if !changed {
+        return Ok(false);
+    }
+    world
+        .insert(entity, next)
+        .map(|_| true)
+        .map_err(|error| ReflectError::UnsupportedConversion {
+            source: error.to_string(),
+            target: format!("{type_path}.#batch"),
+        })
 }
 
 fn remove<T>(world: &mut World, entity: EntityId, type_path: &str) -> Result<bool, ReflectError>

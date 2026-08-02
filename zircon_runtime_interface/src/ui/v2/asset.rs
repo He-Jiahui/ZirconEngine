@@ -167,6 +167,15 @@ pub enum UiV2AssetError {
         component: String,
         slot_name: String,
     },
+    #[error(
+        "ui v2 component {component} in asset {asset_id} slot {slot_name} does not accept child {child_component}"
+    )]
+    SlotDoesNotAcceptComponent {
+        asset_id: String,
+        component: String,
+        slot_name: String,
+        child_component: String,
+    },
 }
 
 const fn default_v2_asset_version() -> u32 {

@@ -77,8 +77,8 @@ mod tests {
     };
 
     use super::{
-        GPU_TIMESTAMP_REQUIRED_FEATURES, REQUIRED_RENDER_BIND_GROUP_LIMIT,
-        required_render_features, required_render_limits,
+        required_render_features, required_render_limits, GPU_TIMESTAMP_REQUIRED_FEATURES,
+        REQUIRED_RENDER_BIND_GROUP_LIMIT,
     };
 
     #[test]

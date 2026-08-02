@@ -5,25 +5,28 @@ use crate::core::framework::render::GpuLightData;
 use wgpu::util::DeviceExt;
 
 use super::binding::{
-    GpuSceneVisibleInstanceRemapParams, create_gpu_scene_bind_group,
-    create_gpu_scene_bind_group_layout,
+    create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout,
+    GpuSceneVisibleInstanceRemapParams,
 };
 use super::id_allocator::GpuSceneIdAllocator;
 use super::layout::{
-    GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE, GpuInstanceData, GpuMorphDelta,
-    GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData, GpuVirtualGeometryClusterWord,
-    GpuVirtualGeometryPage,
+    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
+    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
+    GPU_PRIMITIVE_DATA_STRIDE,
 };
 use super::prev_skinned_palette::{
     GpuSceneSkinnedJointPaletteBuffers, GpuSceneSkinnedJointPaletteState,
 };
 use super::prev_skinned_source::GpuSceneSkinnedGpuSourceState;
+use super::staging_ring::GpuSceneStagingRing;
 use super::update_queue::GpuSceneUpdateQueue;
 use super::upload::{write_full_pod_buffer, write_upload_ranges};
 
 pub(crate) const GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY: u32 = 64;
 pub(crate) const GPU_SCENE_INITIAL_INSTANCE_CAPACITY: u32 = 64;
 pub(crate) const GPU_SCENE_INITIAL_LIGHT_CAPACITY: u32 = 1;
+pub(crate) const GPU_SCENE_INITIAL_MORPH_CAPACITY: u32 = 1;
+pub(crate) const GPU_SCENE_INITIAL_VIRTUAL_GEOMETRY_CAPACITY: u32 = 1;
 
 const GPU_SCENE_VISIBLE_INSTANCE_REMAP_FALLBACK_BYTES: u64 = 4;
 const GPU_SCENE_MORPH_FALLBACK_BYTES: u64 = 16;
@@ -55,12 +58,14 @@ pub(crate) struct GpuSceneStats {
 pub(crate) enum GpuSceneUploadPath {
     #[default]
     DirectQueueWrite,
+    StagingCopy,
 }
 
 impl GpuSceneUploadPath {
     pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::DirectQueueWrite => "direct_queue_write",
+            Self::StagingCopy => "staging_copy",
         }
     }
 }
@@ -84,13 +89,13 @@ impl GpuSceneUploadReport {
 /// Owns the GPUScene storage buffers and CPU mirrors before frame-path wiring.
 ///
 /// Registration keeps stable primitive/instance indices until explicit
-/// unregister. Upload uses direct queue writes for merged dirty ranges; callers
-/// can feed full-frame extracts every frame without re-uploading unchanged
-/// entries.
+/// unregister. Uploads use direct queue writes for small merged ranges and a
+/// persistent staging-copy ring for large frames; callers can feed full-frame
+/// extracts every frame without re-uploading unchanged entries.
 pub(crate) struct GpuScene {
-    primitive_buffer: wgpu::Buffer,
+    pub(super) primitive_buffer: wgpu::Buffer,
     pub(super) instance_buffer: wgpu::Buffer,
-    light_buffer: wgpu::Buffer,
+    pub(super) light_buffer: wgpu::Buffer,
     /// Non-skinned draws share fallback palette slots until GS-M2 creates
     /// per-skinned-draw object groups with real current/previous palettes.
     fallback_skinned_joint_palette_buffer: Arc<wgpu::Buffer>,
@@ -104,33 +109,39 @@ pub(crate) struct GpuScene {
     pub(super) morph_payloads_buffer: wgpu::Buffer,
     scene_bind_group_layout: wgpu::BindGroupLayout,
     scene_bind_group: wgpu::BindGroup,
-    primitive_shadow: Vec<GpuPrimitiveData>,
+    pub(super) primitive_shadow: Vec<GpuPrimitiveData>,
     pub(super) instance_shadow: Vec<GpuInstanceData>,
-    light_shadow: Vec<GpuLightData>,
+    pub(super) light_shadow: Vec<GpuLightData>,
     pub(super) morph_deltas_shadow: Vec<GpuMorphDelta>,
     pub(super) morph_weights_shadow: Vec<GpuMorphWeight>,
     pub(super) virtual_geometry_pages_shadow: Vec<GpuVirtualGeometryPage>,
     pub(super) virtual_geometry_clusters_shadow: Vec<GpuVirtualGeometryClusterWord>,
     pub(super) morph_payloads_shadow: Vec<GpuMorphPayload>,
-    primitive_ids: GpuSceneIdAllocator,
-    instance_ids: GpuSceneIdAllocator,
+    pub(super) primitive_ids: GpuSceneIdAllocator,
+    pub(super) instance_ids: GpuSceneIdAllocator,
     pub(super) entries: HashMap<u64, GpuSceneEntry>,
     pub(super) current_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
     pub(super) previous_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
     pub(super) skinned_joint_palette_buffers: HashMap<u64, GpuSceneSkinnedJointPaletteBuffers>,
     pub(super) current_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) previous_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
-    pub(super) current_morph_weights: HashMap<u64, Vec<f32>>,
-    pub(super) previous_morph_weights: HashMap<u64, Vec<f32>>,
+    pub(super) current_morph_weights: HashMap<u64, Arc<[f32]>>,
+    pub(super) previous_morph_weights: HashMap<u64, Arc<[f32]>>,
     pub(super) updates: GpuSceneUpdateQueue,
+    pub(super) staging_ring: GpuSceneStagingRing,
     stats: GpuSceneStats,
     primitive_capacity: u32,
     instance_capacity: u32,
     light_capacity: u32,
-    force_full_primitive_upload: bool,
-    force_full_instance_upload: bool,
-    force_full_light_upload: bool,
-    uploaded_light_count_params: Option<u32>,
+    pub(super) morph_payloads_capacity: u32,
+    pub(super) morph_deltas_capacity: u32,
+    pub(super) morph_weights_capacity: u32,
+    pub(super) virtual_geometry_pages_capacity: u32,
+    pub(super) virtual_geometry_clusters_capacity: u32,
+    pub(super) force_full_primitive_upload: bool,
+    pub(super) force_full_instance_upload: bool,
+    pub(super) force_full_light_upload: bool,
+    uploaded_scene_data_counts: Option<[u32; 3]>,
 }
 
 impl GpuScene {
@@ -246,6 +257,7 @@ impl GpuScene {
             current_morph_weights: HashMap::new(),
             previous_morph_weights: HashMap::new(),
             updates: GpuSceneUpdateQueue::new(),
+            staging_ring: GpuSceneStagingRing::default(),
             stats: GpuSceneStats {
                 primitive_capacity: GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY,
                 instance_capacity: GPU_SCENE_INITIAL_INSTANCE_CAPACITY,
@@ -255,10 +267,15 @@ impl GpuScene {
             primitive_capacity: GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY,
             instance_capacity: GPU_SCENE_INITIAL_INSTANCE_CAPACITY,
             light_capacity: GPU_SCENE_INITIAL_LIGHT_CAPACITY,
+            morph_payloads_capacity: 0,
+            morph_deltas_capacity: 0,
+            morph_weights_capacity: 0,
+            virtual_geometry_pages_capacity: GPU_SCENE_INITIAL_VIRTUAL_GEOMETRY_CAPACITY,
+            virtual_geometry_clusters_capacity: GPU_SCENE_INITIAL_VIRTUAL_GEOMETRY_CAPACITY,
             force_full_primitive_upload: true,
             force_full_instance_upload: true,
             force_full_light_upload: true,
-            uploaded_light_count_params: None,
+            uploaded_scene_data_counts: None,
         }
     }
 
@@ -404,19 +421,32 @@ impl GpuScene {
     }
 
     pub(crate) fn write_lights(&mut self, device: &wgpu::Device, lights: &[GpuLightData]) {
-        self.ensure_light_capacity(device, lights.len() as u32);
         if self.light_shadow == lights {
             self.refresh_stats(0, self.updates.dirty_entry_count());
             return;
         }
 
+        let light_count = u32::try_from(lights.len()).expect("gpu scene light count exceeded u32");
+        self.ensure_light_capacity(device, light_count);
+        if !self.force_full_light_upload {
+            for (index, light) in lights.iter().enumerate() {
+                if self.light_shadow.get(index) != Some(light) {
+                    self.updates.mark_light(
+                        u32::try_from(index).expect("gpu scene light index exceeded u32"),
+                    );
+                }
+            }
+        }
         self.light_shadow.clear();
         self.light_shadow.extend_from_slice(lights);
-        self.force_full_light_upload = true;
         self.refresh_stats(0, self.updates.dirty_entry_count());
     }
 
     pub(crate) fn flush_updates(&mut self, queue: &wgpu::Queue) -> GpuSceneUploadReport {
+        self.flush_direct_updates(queue)
+    }
+
+    pub(super) fn flush_direct_updates(&mut self, queue: &wgpu::Queue) -> GpuSceneUploadReport {
         let dirty_entry_count = self.updates.dirty_entry_count();
         let mut report = GpuSceneUploadReport::default();
 
@@ -442,7 +472,7 @@ impl GpuScene {
                 queue,
                 &self.primitive_buffer,
                 &self.primitive_shadow,
-                &ranges,
+                ranges,
             );
         }
 
@@ -465,7 +495,7 @@ impl GpuScene {
                 .drain_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64);
             report.instance_upload_range_count = ranges.len();
             report.uploaded_bytes +=
-                write_upload_ranges(queue, &self.instance_buffer, &self.instance_shadow, &ranges);
+                write_upload_ranges(queue, &self.instance_buffer, &self.instance_shadow, ranges);
         }
 
         if self.force_full_light_upload {
@@ -479,8 +509,16 @@ impl GpuScene {
                 report.light_upload_range_count = 1;
                 report.uploaded_bytes += uploaded;
             }
+            self.updates.discard_light_updates();
+        } else {
+            let ranges = self
+                .updates
+                .drain_light_upload_ranges(GpuLightData::STRIDE as u64);
+            report.light_upload_range_count = ranges.len();
+            report.uploaded_bytes +=
+                write_upload_ranges(queue, &self.light_buffer, &self.light_shadow, ranges);
         }
-        self.write_light_count_params_if_needed(queue);
+        self.write_scene_data_count_params_if_needed(queue);
 
         self.force_full_primitive_upload = false;
         self.force_full_instance_upload = false;
@@ -654,9 +692,15 @@ impl GpuScene {
         }
     }
 
-    fn write_light_count_params_if_needed(&mut self, queue: &wgpu::Queue) {
-        let light_count = self.light_shadow.len() as u32;
-        if self.uploaded_light_count_params == Some(light_count) {
+    pub(super) fn write_scene_data_count_params_if_needed(&mut self, queue: &wgpu::Queue) {
+        let counts = [
+            u32::try_from(self.light_shadow.len()).expect("gpu scene light count exceeded u32"),
+            u32::try_from(self.virtual_geometry_pages_shadow.len())
+                .expect("gpu scene virtual geometry page count exceeded u32"),
+            u32::try_from(self.virtual_geometry_clusters_shadow.len())
+                .expect("gpu scene virtual geometry cluster count exceeded u32"),
+        ];
+        if self.uploaded_scene_data_counts == Some(counts) {
             return;
         }
 
@@ -664,20 +708,24 @@ impl GpuScene {
             &self.direct_visible_instance_remap_params_buffer,
             0,
             bytemuck::bytes_of(
-                &GpuSceneVisibleInstanceRemapParams::direct_with_light_count(light_count),
+                &GpuSceneVisibleInstanceRemapParams::direct_with_scene_counts(
+                    counts[0], counts[1], counts[2],
+                ),
             ),
         );
         queue.write_buffer(
             &self.remapped_visible_instance_remap_params_buffer,
             0,
             bytemuck::bytes_of(
-                &GpuSceneVisibleInstanceRemapParams::remapped_with_light_count(light_count),
+                &GpuSceneVisibleInstanceRemapParams::remapped_with_scene_counts(
+                    counts[0], counts[1], counts[2],
+                ),
             ),
         );
-        self.uploaded_light_count_params = Some(light_count);
+        self.uploaded_scene_data_counts = Some(counts);
     }
 
-    fn refresh_stats(&mut self, uploaded_bytes: u64, dirty_entry_count: usize) {
+    pub(super) fn refresh_stats(&mut self, uploaded_bytes: u64, dirty_entry_count: usize) {
         self.stats = GpuSceneStats {
             primitive_count: self.primitive_ids.live(),
             instance_count: self.instance_ids.live(),
@@ -720,7 +768,7 @@ fn create_remap_params_buffer(
     })
 }
 
-fn grow_capacity(required: u32, minimum: u32) -> u32 {
+pub(super) fn grow_capacity(required: u32, minimum: u32) -> u32 {
     let mut capacity = minimum.max(1);
     while capacity < required {
         capacity = capacity

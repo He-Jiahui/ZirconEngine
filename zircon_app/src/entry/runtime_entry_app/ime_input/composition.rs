@@ -27,9 +27,7 @@ pub(super) fn forward_ime_preedit(
         cursor_start,
         cursor_end,
     );
-    if app.session.handle_event(event).is_err() {
-        event_loop.exit();
-    }
+    app.dispatch_runtime_event(event_loop, event);
 }
 
 pub(super) fn forward_ime_commit(
@@ -42,7 +40,5 @@ pub(super) fn forward_ime_commit(
         app.viewport,
         byte_slice(value),
     );
-    if app.session.handle_event(event).is_err() {
-        event_loop.exit();
-    }
+    app.dispatch_runtime_event(event_loop, event);
 }

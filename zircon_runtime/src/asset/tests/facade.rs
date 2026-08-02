@@ -19,6 +19,7 @@ mod handle_lifecycle;
 mod hot_reload;
 mod load_state_roots;
 mod project_facade;
+mod readiness_generation;
 mod recursive_dependencies;
 
 fn locator(value: &str) -> AssetUri {

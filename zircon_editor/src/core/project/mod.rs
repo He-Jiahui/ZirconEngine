@@ -8,6 +8,7 @@ mod opened_project;
 mod project_probe;
 mod recent_project_entry;
 mod recent_project_validation;
+mod scene_document;
 mod stored_recent_project_entry;
 mod stored_startup_session;
 
@@ -20,6 +21,7 @@ pub use opened_project::OpenedProject;
 pub use project_probe::ProjectProbe;
 pub use recent_project_entry::RecentProjectEntry;
 pub use recent_project_validation::RecentProjectValidation;
+pub use scene_document::{ProjectSceneDocument, SceneCreateRequest, SceneOpenRequest};
 pub(crate) use stored_recent_project_entry::StoredRecentProjectEntry;
 pub(crate) use stored_startup_session::StoredStartupSession;
 

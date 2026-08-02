@@ -488,7 +488,7 @@ fn node_and_cluster_cull_traversal_stats(
 mod tests {
     use std::collections::HashSet;
 
-    use super::{RenderVirtualGeometryExecutionState, execution_state_for_page};
+    use super::{execution_state_for_page, RenderVirtualGeometryExecutionState};
 
     #[test]
     fn execution_state_uses_constant_time_page_membership() {

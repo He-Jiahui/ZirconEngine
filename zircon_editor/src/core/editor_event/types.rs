@@ -310,6 +310,8 @@ pub enum EditorEventEffect {
     AssetPreviewRefreshRequested,
     ImportModelRequested,
     CommandPaletteOpenRequested,
+    OpenScenePickerRequested,
+    CreateScenePickerRequested,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

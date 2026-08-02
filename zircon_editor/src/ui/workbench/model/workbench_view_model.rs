@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
+use crate::core::asset::AssetCreationMenuGeneration;
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 use super::document_tab_model::DocumentTabModel;
@@ -10,12 +12,11 @@ use super::main_host_strip_view_model::MainHostStripViewModel;
 use super::status_bar_model::StatusBarModel;
 use super::tool_window_stack_model::ToolWindowStackModel;
 use crate::core::commands::MenuBarModel;
-use crate::ui::workbench::snapshot::AssetOperationProjectionSnapshot;
 
 #[derive(Clone, Debug)]
 pub struct WorkbenchViewModel {
     pub is_playing: bool,
-    pub asset_creation_templates: Vec<AssetOperationProjectionSnapshot>,
+    pub asset_creation_menu: Arc<AssetCreationMenuGeneration>,
     pub menu_bar: MenuBarModel,
     pub host_strip: MainHostStripViewModel,
     pub drawer_ring: DrawerRingModel,

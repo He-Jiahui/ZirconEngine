@@ -37,6 +37,7 @@ pub(in crate::ui::retained_host::host_contract) enum ChromeCommandKind {
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) struct ChromeImagePayload {
     pub(in crate::ui::retained_host::host_contract) resource_key: String,
+    pub(in crate::ui::retained_host::host_contract) resource_generation: u64,
     pub(in crate::ui::retained_host::host_contract) width: u32,
     pub(in crate::ui::retained_host::host_contract) height: u32,
     pub(in crate::ui::retained_host::host_contract) upload_bytes: u64,

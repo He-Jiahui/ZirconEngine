@@ -22,5 +22,4 @@ pub(crate) use template_nodes::*;
 pub(crate) use ui_asset::*;
 pub(crate) use viewport_image::*;
 pub(crate) use welcome::*;
-#[allow(unused_imports)]
 pub(crate) use world_space_submission::*;

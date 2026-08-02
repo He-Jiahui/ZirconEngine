@@ -3,7 +3,7 @@ use crate::core::math::UVec2;
 
 use super::super::super::clear_render_target::clear_render_target;
 use super::super::super::depth_of_field_prepare_params::{
-    DepthOfFieldPrepareParams, depth_of_field_prepare_enabled,
+    depth_of_field_prepare_enabled, DepthOfFieldPrepareParams,
 };
 use super::super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;

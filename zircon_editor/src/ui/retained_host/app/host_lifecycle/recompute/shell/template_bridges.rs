@@ -65,8 +65,10 @@ mod tests {
             .map(|(production, _)| production)
             .expect("test module should remain isolated from production bridge recompute code");
 
-        assert!(!production
-            .contains("let _ = self.template_bridge.recompute_layout_with_workbench_model"));
+        assert!(
+            !production
+                .contains("let _ = self.template_bridge.recompute_layout_with_workbench_model")
+        );
         assert!(!production.contains("let _ = self\n                .workbench_window_bridge"));
         assert!(production.contains("editor_root_template_bridge_layout"));
         assert!(production.contains("editor_workbench_template_bridge_layout"));

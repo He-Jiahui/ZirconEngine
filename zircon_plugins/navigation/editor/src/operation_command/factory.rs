@@ -4,10 +4,10 @@ use zircon_editor::core::editing::operation::{
 };
 use zircon_editor::core::editor_operation::{EditorOperationInvocation, EditorOperationPath};
 use zircon_runtime::core::framework::navigation::{
-    NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
-    NAVIGATION_CLEAR_SURFACE_OPERATION, NavMeshBakeRequest, NavigationClearBakeRequest,
+    NavMeshBakeRequest, NavigationClearBakeRequest, NAVIGATION_BAKE_SCENE_OPERATION,
+    NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
 };
-use zircon_runtime_interface::{ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationSubmitRequestV1};
+use zircon_runtime_interface::{ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
 
 use super::NavigationOperationCommand;
 

@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneOptionData;
-use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct NotificationCenterPalette
@@ -19,8 +19,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Not
     pub warning: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn current_notification_center_palette(
-) -> NotificationCenterPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn current_notification_center_palette()
+-> NotificationCenterPalette {
     notification_center_palette_from_host(current_host_palette())
 }
 

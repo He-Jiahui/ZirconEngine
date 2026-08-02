@@ -20,11 +20,11 @@ pub const RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL: u32 =
     (1_u32 << RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS) - 1;
 
 pub fn render_mesh_stable_instance_key(entity: EntityId, primitive_ordinal: u32) -> u64 {
-    assert!(
+    debug_assert!(
         primitive_ordinal <= RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
         "render mesh primitive ordinal exceeds stable instance key packing range"
     );
-    debug_assert!(
+    assert!(
         entity <= (u64::MAX >> RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS),
         "entity id exceeds stable instance key packing range"
     );
@@ -238,6 +238,8 @@ pub struct RenderVirtualGeometryDebugState {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryInstance {
     pub entity: EntityId,
+    /// Stable render-instance identity shared with the mesh draw pipeline.
+    pub stable_instance_key: u64,
     pub source_model: Option<ResourceId>,
     pub transform: Transform,
     pub cluster_offset: u32,
@@ -252,6 +254,7 @@ impl Default for RenderVirtualGeometryInstance {
     fn default() -> Self {
         Self {
             entity: 0,
+            stable_instance_key: 0,
             source_model: None,
             transform: Transform::default(),
             cluster_offset: 0,
@@ -260,6 +263,17 @@ impl Default for RenderVirtualGeometryInstance {
             page_count: 0,
             mesh_name: None,
             source_hint: None,
+        }
+    }
+}
+
+impl RenderVirtualGeometryInstance {
+    /// Preserves authored extracts produced before virtual geometry carried the render key.
+    pub fn stable_instance_key_or_legacy(&self) -> u64 {
+        if self.stable_instance_key == 0 {
+            render_mesh_stable_instance_key(self.entity, 0)
+        } else {
+            self.stable_instance_key
         }
     }
 }

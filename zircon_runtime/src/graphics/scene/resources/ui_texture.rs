@@ -4,8 +4,8 @@ use std::sync::Arc;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 use crate::core::resource::{ResourceId, ResourceLocator, ResourceScheme};
-use crate::text::{InlineObjectRef, rich::parse_rich_text};
-use zircon_runtime_interface::ui::surface::{UiRenderExtract, UiRichTextFormat, UiVisualAssetRef};
+use crate::text::resolve_compiled_rich_text_artifact;
+use zircon_runtime_interface::ui::surface::{UiRenderExtract, UiVisualAssetRef};
 
 use super::{GpuTextureResource, ResourceStreamer};
 
@@ -31,23 +31,14 @@ pub(in crate::graphics::scene::resources) fn ui_texture_ids(
                 ids.insert(id);
             }
         }
-        if matches!(command.style.rich_text_format, UiRichTextFormat::Plain) {
-            continue;
+        if let Some(rich) = command
+            .text_layout
+            .as_ref()
+            .and_then(|layout| layout.rich_text_artifact.as_ref())
+            .and_then(resolve_compiled_rich_text_artifact)
+        {
+            ids.extend(rich.resource_ids().iter().copied());
         }
-        let Some(markup) = command.text.as_deref() else {
-            continue;
-        };
-        let rich = parse_rich_text(markup, command.style.rich_text_format.into());
-        ids.extend(
-            rich.runs
-                .iter()
-                .filter_map(|run| match run.inline.as_ref() {
-                    Some(InlineObjectRef::Image { texture, .. }) => Some(*texture),
-                    Some(InlineObjectRef::Icon { .. } | InlineObjectRef::Widget { .. }) | None => {
-                        None
-                    }
-                }),
-        );
     }
     let mut ids = ids.into_iter().collect::<Vec<_>>();
     ids.sort_unstable();

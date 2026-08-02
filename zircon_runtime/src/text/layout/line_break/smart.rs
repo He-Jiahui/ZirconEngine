@@ -70,7 +70,7 @@ fn append_word_smart_leaf<'a>(
     adjusted: &mut Vec<LineBreakChunk<'a>>,
 ) {
     if starts_with_word_smart_trailing_punctuation(chunk.text) {
-        if let Some(previous) = adjusted.last_mut() {
+        if let Some(previous) = adjusted.last_mut().filter(|chunk| !chunk.mandatory_break) {
             let start = previous.visual_range.start;
             let end = chunk.visual_range.end;
             if start < end
@@ -84,6 +84,7 @@ fn append_word_smart_leaf<'a>(
                 if previous.break_suffix.is_none() {
                     previous.break_suffix = chunk.break_suffix;
                 }
+                previous.mandatory_break |= chunk.mandatory_break;
                 previous.allow_glyph_fallback = false;
                 return;
             }
@@ -141,6 +142,7 @@ fn split_word_smart_chunk<'a>(
             end: source_split,
         },
         allow_glyph_fallback: chunk.allow_glyph_fallback,
+        mandatory_break: false,
         break_suffix: None,
     };
     let suffix = LineBreakChunk {
@@ -154,6 +156,7 @@ fn split_word_smart_chunk<'a>(
             end: chunk.source_range.end,
         },
         allow_glyph_fallback: chunk.allow_glyph_fallback,
+        mandatory_break: chunk.mandatory_break,
         break_suffix: chunk.break_suffix,
     };
 

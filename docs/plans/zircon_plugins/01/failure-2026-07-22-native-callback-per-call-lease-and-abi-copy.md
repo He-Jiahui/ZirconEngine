@@ -26,7 +26,8 @@ tests:
 - 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
 - 来源执行者：`20260722-performance-mvp-audit`
 - 来源执行切片：native plugin loader/live-host非验证生产路径逐文件审查
-- 修复责任计划：`docs/plans/zircon_plugins/01-plugin-architecture-core.md`，ABI output合同联动`docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md`，任务预算联动Runtime11。
+- 修复责任计划：`docs/plans/zircon_plugins/01-plugin-architecture-core.md`
+- 交接原因：Plugins01 拥有 native callback lease、诊断与 ABI output 合同；Runtime10 仅联动动态 API output 语义，Runtime11 仅联动任务预算，Performance01 不应在上层建立兼容 dispatch 或私有执行队列。
 
 ## 失败现象与复现证据
 
@@ -60,7 +61,7 @@ tests:
 
 ## 修复结果与回传
 
-当前状态：`PERF-MVP-541 managed_focused_green / product_trace_pending`；
+当前状态：`PERF-MVP-541 current_source_static_repair / managed_dynamic_validation_pending`；
 `PERF-MVP-542 current_source_loader_and_real_fixture_wired / managed_dynamic_acceptance_pending`，
 因此本 failure 保持 `open`。
 

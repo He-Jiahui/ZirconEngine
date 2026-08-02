@@ -137,6 +137,7 @@ pub(super) struct SdfTextMaterialDrawPlan {
 }
 
 impl SdfTextMaterialDrawPlan {
+    #[cfg(test)]
     pub(super) fn from_ranges(
         texts: &[ScreenSpaceUiTextBatch],
         atlas_size: UVec2,
@@ -144,9 +145,22 @@ impl SdfTextMaterialDrawPlan {
         text_ranges: &[Range<u32>],
     ) -> Self {
         let mut plan = Self::default();
+        plan.rebuild(texts, atlas_size, decoration_vertex_count, text_ranges);
+        plan
+    }
+
+    pub(super) fn rebuild(
+        &mut self,
+        texts: &[ScreenSpaceUiTextBatch],
+        atlas_size: UVec2,
+        decoration_vertex_count: u32,
+        text_ranges: &[Range<u32>],
+    ) {
+        self.materials.clear();
+        self.draws.clear();
         if decoration_vertex_count > 0 {
-            plan.materials.push(SdfTextMaterial::default());
-            plan.draws.push(SdfTextMaterialDraw {
+            self.materials.push(SdfTextMaterial::default());
+            self.draws.push(SdfTextMaterialDraw {
                 vertices: 0..decoration_vertex_count,
                 material_index: 0,
             });
@@ -157,12 +171,11 @@ impl SdfTextMaterialDrawPlan {
             }
             let range = range.start.saturating_add(decoration_vertex_count)
                 ..range.end.saturating_add(decoration_vertex_count);
-            plan.push_text_draw(range, SdfTextMaterial::from_text(text, atlas_size));
+            self.push_text_draw(range, SdfTextMaterial::from_text(text, atlas_size));
         }
-        if plan.materials.is_empty() {
-            plan.materials.push(SdfTextMaterial::default());
+        if self.materials.is_empty() {
+            self.materials.push(SdfTextMaterial::default());
         }
-        plan
     }
 
     fn push_text_draw(&mut self, vertices: Range<u32>, material: SdfTextMaterial) {

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderProfileBundle,
-    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
-    RENDER_PROFILE_CONFIG_KEY,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
+    RenderViewportSurfaceDescriptor, RENDER_PROFILE_CONFIG_KEY,
 };
 use crate::core::manager::{
     render_framework_handle, resolve_manager_service, ManagerServiceHandle,
@@ -37,7 +37,7 @@ impl RuntimeRenderBridge {
                 .submission_config(),
             None => Default::default(),
         };
-        if submission_config.pipelined_render {
+        if submission_config != RenderSubmissionConfig::default() {
             resolve_manager_service(core, render_framework.clone())?
                 .set_submission_config(submission_config)
                 .map_err(|error| {
@@ -97,7 +97,7 @@ impl RuntimeRenderBridge {
         viewport: RenderViewportHandle,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         let Some(frame) =
-            render_framework.capture_frame_if_newer(viewport, self.last_generation)?
+            render_framework.poll_captured_frame_if_newer(viewport, self.last_generation)?
         else {
             return Ok(None);
         };

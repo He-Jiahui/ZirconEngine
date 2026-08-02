@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{
-    select_workbench_button_style, WorkbenchButtonKind, WorkbenchButtonStyle,
+    WorkbenchButtonKind, WorkbenchButtonStyle, select_workbench_button_style,
 };
 use super::identity::is_add_component_button;
 

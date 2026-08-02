@@ -2,8 +2,8 @@
 
 use std::sync::mpsc;
 
-use crate::core::framework::render::{SOURCE_CUBEMAP_FACE_COUNT, source_cubemap_mip_size};
-use crate::graphics::debug_markers::{RENDERDOC_MARKER_READBACK, insert_marker};
+use crate::core::framework::render::{source_cubemap_mip_size, SOURCE_CUBEMAP_FACE_COUNT};
+use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
 use crate::graphics::types::GraphicsError;
 
 const RGBA16FLOAT_BYTES_PER_TEXEL: u32 = 8;
@@ -253,9 +253,9 @@ fn strip_padded_rgba16float_region_rows(
 #[cfg(test)]
 mod tests {
     use super::{
-        RGBA16FLOAT_BYTES_PER_TEXEL, rgba16float_cube_mip_chain_size_bytes,
-        rgba16float_cube_mip_staging_size_bytes, strip_padded_rgba16float_cube_mip_chain,
-        strip_padded_rgba16float_region_rows,
+        rgba16float_cube_mip_chain_size_bytes, rgba16float_cube_mip_staging_size_bytes,
+        strip_padded_rgba16float_cube_mip_chain, strip_padded_rgba16float_region_rows,
+        RGBA16FLOAT_BYTES_PER_TEXEL,
     };
 
     #[test]

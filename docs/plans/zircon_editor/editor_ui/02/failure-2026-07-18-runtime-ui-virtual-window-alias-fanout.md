@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
-  - zircon_runtime/src/ui/layout/arrange/virtual_container.rs
+  - zircon_runtime/src/ui/layout/scroll.rs
   - dev/slint/internal/core/model.rs
 tests:
   - 100k-row one-step virtual scroll transaction counter

@@ -53,4 +53,10 @@ related_code:
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-228已完成6/6静态审查与参考引擎对照；等待Text09实现indexed cache/LRU/key identity、规模counter、current-source Cargo与产品文本trace后回传`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / managed_validation_pending`。
+
+- `TextFrameDedup`、`TextMeasureCache`、`TextLayoutCache` 与 `ShapedRunCache` 已共用 stable-slot hash index；persistent caches 由 linked LRU 以常数次 link 更新完成 touch 和 oldest eviction，不再扫描全表或移动尾部 entries。frame dedup 保留整帧 clear 语义。
+- measure/layout 的 exact key 与 width validity range 保持不变；shaped cache 保留 exact source collision compare、canonical feature slice 与 Auto/Mixed direction alias bucket，hash 只负责缩小候选集，不替代语义比较。
+- shaped hot lookup 直接借用 request/style 的 family、language 与 canonical feature slice；只有 miss 物化新 entry 时才分配 owned family、normalized language 和 feature `Arc`，稳定 hit 的 owned key bytes 为 0。
+- report 已暴露 lookup probes、visited entries、LRU touch、eviction scan/move、owned key bytes、entry/byte eviction。16/256/1024/2048/4096 resident entries 的 hit/miss/update/evict 确定性测试已落代码，并要求 lookup probes 保持 bucket-local、eviction scan/move 为 0。
+- 当前只声明非验收实现与静态调用链核验完成；managed current-source Cargo、ignored timing exporter、`render_perf_text_scroll_list_reuses_cache` 产品 trace 和典型 workbench/Console 证据仍待 coordinator wakeup，成功回执前保持 open。

@@ -42,7 +42,7 @@ requireText(sourceAbilities, 'judgeMax: 18', 'source Seal judge max');
 requireText(sourceAbilities, 'judgement:', 'source Judgement');
 
 for (const expected of [
-  'writer.u16(<uint>71, 1, 1);',
+  'writer.u16(<uint>78, 1, 1);',
   'schemaVersion != <uint>61 && schemaVersion != <uint>62 &&',
   'pub var entityImbueAbilityCodes: container.Array<uint>;',
   'appendDefaultImbueColumns(this);',
@@ -58,10 +58,10 @@ for (const expected of [
   'pub sealJudgementCommandStateTest(): int',
 ]) requireText(world, expected, 'world reducer');
 
-if ((main.match(/world_state[^\r\n]*WOS71/g) ?? []).length !== 2) {
-  throw new Error('plugin state schema must publish WOS71 in both runtime paths');
+if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) {
+  throw new Error('plugin state schema must publish WOS72 in both runtime paths');
 }
-requireText(contract, '# WOC authoritative world state (`WOS71`)', 'world-state contract');
+requireText(contract, '# WOC authoritative world state (`WOS78`)', 'world-state contract');
 requireText(contract, 'WOS75 adds schema 62', 'WOS75 contract delta');
 
 process.stdout.write('WOS75 Seal/Judgement runtime static guard passed\n');

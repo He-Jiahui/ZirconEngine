@@ -1,7 +1,7 @@
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
-use super::super::{common::dispatch_editor_binding, BuiltinHostWindowTemplateBridge};
+use super::super::{BuiltinHostWindowTemplateBridge, common::dispatch_editor_binding};
 
 pub(crate) fn dispatch_builtin_host_page_activation(
     runtime: &EditorHostEventController,

@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use super::{
     INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, IndirectDrawBatch,
@@ -43,37 +43,31 @@ pub(crate) struct MeshDrawReplayStats {
 
 #[derive(Debug, Default)]
 pub(crate) struct MeshDrawReplayStatsAccumulator {
-    draw_call_count: Cell<u32>,
-    state_change_count: Cell<u32>,
-    bind_skip_count: Cell<u32>,
+    draw_call_count: AtomicU32,
+    state_change_count: AtomicU32,
+    bind_skip_count: AtomicU32,
 }
 
 impl MeshDrawReplayStatsAccumulator {
     pub(crate) fn record(&self, stats: MeshDrawReplayStats) {
-        self.draw_call_count.set(
-            self.draw_call_count
-                .get()
-                .saturating_add(stats.draw_call_count),
-        );
-        self.state_change_count.set(
-            self.state_change_count
-                .get()
-                .saturating_add(stats.state_change_count),
-        );
-        self.bind_skip_count.set(
-            self.bind_skip_count
-                .get()
-                .saturating_add(stats.bind_skip_count),
-        );
+        saturating_add(&self.draw_call_count, stats.draw_call_count);
+        saturating_add(&self.state_change_count, stats.state_change_count);
+        saturating_add(&self.bind_skip_count, stats.bind_skip_count);
     }
 
     pub(crate) fn stats(&self) -> MeshDrawReplayStats {
         MeshDrawReplayStats {
-            draw_call_count: self.draw_call_count.get(),
-            state_change_count: self.state_change_count.get(),
-            bind_skip_count: self.bind_skip_count.get(),
+            draw_call_count: self.draw_call_count.load(Ordering::Relaxed),
+            state_change_count: self.state_change_count.load(Ordering::Relaxed),
+            bind_skip_count: self.bind_skip_count.load(Ordering::Relaxed),
         }
     }
+}
+
+fn saturating_add(value: &AtomicU32, increment: u32) {
+    let _ = value.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+        Some(current.saturating_add(increment))
+    });
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -330,7 +324,37 @@ mod tests {
         MeshPassPipelineKind, MeshPipelineVariantId,
     };
 
-    use super::{FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MeshDrawCommandReplayer};
+    use super::{
+        FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MeshDrawCommandReplayer, MeshDrawReplayStats,
+        MeshDrawReplayStatsAccumulator,
+    };
+
+    #[test]
+    fn replay_stats_accumulator_is_sync_and_saturates() {
+        fn assert_sync<T: Sync>() {}
+        assert_sync::<MeshDrawReplayStatsAccumulator>();
+
+        let stats = MeshDrawReplayStatsAccumulator::default();
+        stats.record(MeshDrawReplayStats {
+            draw_call_count: u32::MAX,
+            state_change_count: 2,
+            bind_skip_count: 3,
+        });
+        stats.record(MeshDrawReplayStats {
+            draw_call_count: 1,
+            state_change_count: u32::MAX,
+            bind_skip_count: u32::MAX,
+        });
+
+        assert_eq!(
+            stats.stats(),
+            MeshDrawReplayStats {
+                draw_call_count: u32::MAX,
+                state_change_count: u32::MAX,
+                bind_skip_count: u32::MAX,
+            }
+        );
+    }
 
     #[test]
     fn mesh_draw_command_replayer_rebinds_after_external_pipeline() {

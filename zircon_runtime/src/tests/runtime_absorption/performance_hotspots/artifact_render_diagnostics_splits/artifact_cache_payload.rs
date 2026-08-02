@@ -101,7 +101,7 @@ fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed(
         "large_file_hotspot_count = 41",
         "runtime-other = 16",
         "runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed",
-        "expected_source_file_count = 22",
+        "expected_source_file_count = 25",
     ] {
         assert!(
             runtime_04_plan.contains(doc_anchor)

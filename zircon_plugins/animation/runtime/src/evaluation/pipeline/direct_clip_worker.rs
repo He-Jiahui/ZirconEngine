@@ -1,15 +1,15 @@
 use std::collections::BTreeMap;
+use std::sync::mpsc::{sync_channel, Receiver};
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, sync_channel};
 
 use zircon_runtime::asset::ProjectAssetManager;
-use zircon_runtime::core::CoreHandle;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
+use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::EntityId;
 
-use super::AnimationEvaluationPipeline;
 use super::clip_sample::sample_pose_requests;
 use super::requests::PendingPoseSample;
+use super::AnimationEvaluationPipeline;
 use crate::AnimationClipEvaluator;
 
 /// Maximum worker tasks the animation owner may submit for one direct-clip frame.

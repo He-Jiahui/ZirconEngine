@@ -11,6 +11,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::bridge::{FrozenBridgeTable, InterfaceExport, InterfaceImport};
+use crate::plugin::PluginShaderModuleSource;
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
 use crate::{
@@ -55,6 +56,7 @@ pub struct RuntimeExtensionRegistry {
     pub(super) geometry_sources: TypedExtensionPoint<String, GeometrySourceDescriptor>,
     #[cfg(feature = "graphics")]
     pub(super) shading_models: TypedExtensionPoint<String, ShadingModelDescriptor>,
+    pub(super) shader_module_sources: Vec<PluginShaderModuleSource>,
     #[cfg(feature = "graphics")]
     pub(super) runtime_prepare_collectors:
         TypedExtensionPoint<String, RuntimePrepareCollectorRegistration>,
@@ -239,6 +241,10 @@ impl RuntimeExtensionRegistry {
             .name(owner)
             .and_then(plugin_id_from_module_name)
             .map(str::to_owned);
+        if let Some(plugin_id) = plugin_id.as_deref() {
+            self.shader_module_sources
+                .retain(|source| source.owner_id != plugin_id);
+        }
         let asset_importers = plugin_id
             .as_deref()
             .map(|plugin_id| self.asset_importers.remove_by_plugin_id(plugin_id))

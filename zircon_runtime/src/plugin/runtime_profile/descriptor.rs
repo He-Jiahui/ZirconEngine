@@ -4,7 +4,10 @@ use crate::core::framework::project::{
     ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
 };
 use crate::plugin::PluginMaturity;
-use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
+use crate::{
+    builtin::{BuiltinRuntimeModuleId, RuntimePluginId},
+    core::framework::platform::RuntimeTargetMode,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeProfilePluginSelection {
@@ -18,6 +21,7 @@ pub struct RuntimeProfileDescriptor {
     pub id: RuntimeProfileId,
     pub name: String,
     pub target_mode: RuntimeTargetMode,
+    pub builtin_modules: Vec<BuiltinRuntimeModuleId>,
     #[serde(default)]
     pub default_plugins: Vec<RuntimeProfilePluginSelection>,
     #[serde(default)]
@@ -45,12 +49,32 @@ impl RuntimeProfileDescriptor {
             id,
             name: name.into(),
             target_mode,
+            builtin_modules: Vec::new(),
             default_plugins: Vec::new(),
             optional_plugins: Vec::new(),
             required_capabilities: Vec::new(),
             minimum_maturity: PluginMaturity::Experimental,
             allow_externalized_required_plugins: false,
         }
+    }
+
+    pub fn with_builtin_module(mut self, id: BuiltinRuntimeModuleId) -> Self {
+        if !self.builtin_modules.contains(&id) {
+            self.builtin_modules.push(id);
+        }
+        self
+    }
+
+    pub fn with_builtin_modules(
+        mut self,
+        ids: impl IntoIterator<Item = BuiltinRuntimeModuleId>,
+    ) -> Self {
+        for id in ids {
+            if !self.builtin_modules.contains(&id) {
+                self.builtin_modules.push(id);
+            }
+        }
+        self
     }
 
     pub fn with_default_plugin(mut self, id: RuntimePluginId, required: bool) -> Self {

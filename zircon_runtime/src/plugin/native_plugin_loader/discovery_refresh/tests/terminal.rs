@@ -1,17 +1,18 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Barrier};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use super::super::super::NativePluginLoader;
 use super::super::{
-    NativePluginDiscoveryRefreshService, NativePluginDiscoveryRefreshTerminal,
-    NativePluginDiscoveryRefreshTicket,
+    NativePluginDiscoveryRefreshError, NativePluginDiscoveryRefreshService,
+    NativePluginDiscoveryRefreshTerminal,
 };
 use super::support::{
     root, test_budget, wait_for_terminal, BarrierFailureCollector, BlockingCollector,
     SequenceCollector,
 };
+use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
 
 #[test]
 fn cancel_racing_with_failure_publication_never_records_cancelled_with_a_failure() {
@@ -121,17 +122,57 @@ fn ticket_wait_uses_terminal_notification_without_polling() {
 
 #[test]
 fn queued_ticket_deadline_terminalizes_without_a_collector_worker() {
-    let ticket = NativePluginDiscoveryRefreshTicket::new(
-        root("queued-deadline"),
-        1,
-        Instant::now() + Duration::from_millis(10),
-        1,
+    let pool = TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1));
+    let (blocker_started_sender, blocker_started_receiver) = mpsc::sync_channel(1);
+    let (release_sender, release_receiver) = mpsc::sync_channel(1);
+    pool.spawn(move || {
+        blocker_started_sender
+            .send(())
+            .expect("blocker start receiver");
+        release_receiver.recv().expect("release blocked worker");
+    });
+    blocker_started_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("single worker must be saturated");
+
+    let (collector_started_sender, collector_started_receiver) = mpsc::sync_channel(1);
+    let mut budget = test_budget();
+    budget.deadline = Duration::from_millis(20);
+    let service = NativePluginDiscoveryRefreshService::with_pool(
+        Arc::new(BlockingCollector::new(collector_started_sender)),
+        pool,
+        budget,
     );
+    let root = root("queued-deadline");
+    let ticket = service.submit(root.clone());
+
+    let terminal = ticket.wait_terminal();
+    let started_while_blocked = collector_started_receiver.try_recv();
+    release_sender.send(()).expect("release saturated worker");
 
     assert!(matches!(
-        ticket.wait_terminal(),
+        terminal,
         NativePluginDiscoveryRefreshTerminal::DeadlineExceeded
     ));
+    assert!(started_while_blocked.is_err());
+    collector_started_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("late collector start");
+    for _ in 0..100 {
+        if service.last_failure(&root).is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert!(matches!(
+        ticket.terminal(),
+        Some(NativePluginDiscoveryRefreshTerminal::DeadlineExceeded)
+    ));
+    assert!(matches!(
+        service.last_failure(&root).as_deref(),
+        Some(NativePluginDiscoveryRefreshError::DeadlineExceeded)
+    ));
+    assert!(service.snapshot(&root).is_none());
 }
 
 #[test]
@@ -197,7 +238,7 @@ fn io_lane_covers_terminal_observer_delivery() {
         .expect("scheduled discovery work marks its I/O lane")
         .1;
     let completion = lane_guard
-        .find("complete_generation(&task_shared")
+        .find("complete_generation(")
         .expect("scheduled work completes its generation");
     let reset = lane_guard
         .find("in_lane.set(previous)")

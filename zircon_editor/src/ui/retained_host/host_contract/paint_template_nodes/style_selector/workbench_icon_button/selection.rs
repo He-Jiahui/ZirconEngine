@@ -6,7 +6,7 @@ mod glyph;
 mod radius;
 
 use super::super::resolved_state_for_node;
-use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
+use super::super::workbench_command::{WorkbenchCommandVisualRole, workbench_command_visual_role};
 use super::model::{WorkbenchIconButtonContext, WorkbenchIconButtonStyle};
 use super::palette::workbench_icon_button_palette;
 use super::state::{icon_button_node_is_hot, icon_button_node_is_selected};

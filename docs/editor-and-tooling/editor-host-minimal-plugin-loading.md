@@ -14,10 +14,10 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_plugin_sdk/mod.rs
-  - zircon_editor/src/core/editor_plugin_sdk/lifecycle.rs
-  - zircon_editor/src/core/editor_plugin_sdk/examples.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
+  - zircon_editor/src/core/plugin/sdk/mod.rs
+  - zircon_editor/src/core/plugin/sdk/lifecycle.rs
+  - zircon_editor/src/core/plugin/sdk/examples.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/module.rs
@@ -68,10 +68,10 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_plugin_sdk/mod.rs
-  - zircon_editor/src/core/editor_plugin_sdk/lifecycle.rs
-  - zircon_editor/src/core/editor_plugin_sdk/examples.rs
+  - zircon_editor/src/core/plugin/descriptor.rs
+  - zircon_editor/src/core/plugin/sdk/mod.rs
+  - zircon_editor/src/core/plugin/sdk/lifecycle.rs
+  - zircon_editor/src/core/plugin/sdk/examples.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
@@ -208,7 +208,7 @@ Plugin Manager 的可视行渲染现在也进入 host contract。`ModulePluginsP
 
 ### Editor Plugin SDK v1
 
-`zircon_editor::core::editor_plugin_sdk` 是给插件作者使用的稳定 facade。它集中 re-export `EditorPlugin`、`EditorPluginDescriptor`、`EditorExtensionRegistry`、`EditorOperationDescriptor`、窗口/菜单/组件 drawer/UI template 描述符，以及本轮新增的 asset importer、asset editor 和 lifecycle 类型。插件实现仍然把真实注册写进 `register_editor_extensions(...)`，但外部作者不需要追踪 editor core 内部文件布局。
+`zircon_editor::core::plugin::sdk` 是给插件作者使用的稳定 facade。它集中 re-export `EditorPlugin`、`EditorPluginDescriptor`、`EditorExtensionRegistry`、`EditorOperationDescriptor`、窗口/菜单/Inspector customization/UI template 描述符，以及本轮新增的 asset importer、asset editor 和 lifecycle 类型。插件实现仍然把真实注册写进 `register_editor_extensions(...)`，但外部作者不需要追踪 editor core 内部文件布局。
 
 SDK v1 的生命周期是报告型合同，不直接把 editor 内部对象暴露给插件。`EditorPluginRegistrationReport::from_plugin(...)` 会记录 `Loaded` 和 `Enabled` 两个阶段，并调用插件的 `on_lifecycle_event(...)` hook。注册完成后，host 可以继续通过 `EditorPluginRegistrationReport::record_lifecycle_event(...)` 或 `EditorPluginCatalog::record_lifecycle_event(...)` 派发 `Disabled`、`Unloaded`、`HotReloaded`、`EnteredPlayMode`、`ExitedPlayMode`、`SceneChanged`、`AssetChanged`、`UiMessage` 等后续事件；subject 字段用于携带场景路径、资源路径、UI message id 或 native library 路径这类轻量上下文。未知插件不会被触发 hook，而是返回 lifecycle diagnostic。native package projection 也会为 projected editor package 生成同样的 lifecycle report。hook 失败只写入 `EditorPluginLifecycleReport` 和 report diagnostics，扩展注册结果仍然保留，符合当前 host 的“扩展失败降级、主流程继续”策略。
 
@@ -217,11 +217,11 @@ SDK v1 的生命周期是报告型合同，不直接把 editor 内部对象暴�
 - `AssetImporterDescriptor` 声明 importer id、显示名、绑定 operation、源文件扩展名、输出资源 kind、priority 和 required capabilities。扩展名会去掉前导点、转小写并去重。
 - `AssetEditorDescriptor` 声明资源 kind、打开的 view id、显示名、绑定 operation 和 required capabilities。
 - `EditorEventRuntime::register_editor_extension_with_required_capabilities(...)` 会在提交前确认 importer/editor 绑定的 operation 已经存在，并把 importer/editor 的 id 或 asset kind 纳入跨插件重复贡献校验。
-- `EditorEventRuntime::asset_importers_for_extension(...)` 和 `asset_editor_descriptor(...)` 按当前 capability snapshot 过滤结果，和 component drawer/template 查询保持同一门控语义。
+- `EditorEventRuntime::asset_importers_for_extension(...)` 和 `asset_editor_descriptor(...)` 按当前 capability snapshot 过滤结果，和 inspector customization/template 查询保持同一门控语义。
 
-`editor_plugin_sdk::examples` 提供两个可编译示例：`ExampleWindowEditorPlugin` 贡献窗口、菜单和 operation；`ExampleAssetInspectorPlugin` 贡献模型 importer、asset editor、UI template 和组件 drawer。它们用于 SDK contract 测试，也作为后续真实插件 crate 的最小参考形状。
+`core::plugin::sdk::examples` 提供两个可编译示例：`ExampleWindowEditorPlugin` 贡献窗口、菜单和 operation；`ExampleAssetInspectorPlugin` 贡献模型 importer、asset editor、UI template 和 Inspector customization。它们用于 SDK contract 测试，也作为后续真实插件 crate 的最小参考形状。
 
-Inspector host contract 先补上了插件 drawer 可见降级出口：当 pane `info` 携带 missing/unloaded/unavailable 的插件或 drawer 诊断时，`InspectorPluginComponentFallback` 节点会进入 `InspectorPaneData.nodes`，用 warning 级别提示组件数据仍被保护。真实 drawer 后端、卸载后的组件 schema 保留策略和 undoable field commit 仍要等 `editor_extension` / `editor_operation` 活跃边界释放后接入。
+Inspector host contract 先补上了插件 customization 可见降级出口：当 pane `info` 携带 missing/unloaded/unavailable 的插件或 customization 诊断时，`InspectorPluginComponentFallback` 节点会进入 `InspectorPaneData.nodes`，用 warning 级别提示组件数据仍被保护。真实 customization 后端、卸载后的组件 schema 保留策略和 undoable field commit 仍要等 `editor_extension` / `editor_operation` 活跃边界释放后接入。
 
 ### VM Plugin Track
 
@@ -265,7 +265,7 @@ Inspector host contract 先补上了插件 drawer 可见降级出口：当 pane 
 - `editor_plugin_sdk` 测试组验证 SDK 示例插件能聚合窗口和资源 authoring 贡献、注册后 lifecycle dispatch 能写回 registration/catalog report、未知插件不会误触发 hook、生命周期失败不会丢弃 extension registry、asset importer/editor 描述符会规范化扩展名和 capability gate。
 - `pane_payload_builders_emit_stable_body_metadata_for_first_wave_views` 验证 Plugin Manager pane payload 会携带插件行启用/禁用、打包策略切换、target mode 切换、Unload 和 Hot Reload action id。
 - `live_backend_dispatch_routes_unload_and_hot_reload_commands` 验证 Plugin Manager 的 Unload/Hot Reload action 会路由到可替换 live host backend seam；`runtime_native_live_backend_reports_missing_editor_package_on_hot_reload` 和 runtime `native_live_host_reports_missing_editor_package_on_hot_reload` 验证默认 runtime-owned native backend 在项目根缺失或 editor native package 不存在时会给出明确失败诊断；`native_live_host_loads_runtime_export_diagnostics_without_handles` 锁定从导出根目录加载 runtime native packages 时的诊断和注册报告 contract；`native_live_host_runtime_behavior_calls_report_unloaded_plugin` 锁定 runtime behavior descriptor、command、save-state 和 restore-state 在插件未加载时返回同一 live-host 诊断；`native_live_host_runtime_broadcasts_and_snapshots_empty_when_no_plugins_loaded` 与 `native_live_host_runtime_snapshot_restore_reports_unloaded_plugins` 锁定广播 command、play-mode 状态快照和卸载后 restore 诊断 contract；`native_live_host_treats_missing_unload_hook_as_noop_unload` 锁定缺少 unload callback/behavior table 时释放 handle 并保留诊断的降级策略。
-- `inspector_pane_projects_editable_field_nodes_and_actions` 和 `inspector_pane_marks_plugin_component_drawer_fallback` 锁定 Inspector host contract：字段节点必须带稳定 edit/commit action id，插件 drawer 不可用时必须投影 warning fallback。
+- `inspector_pane_projects_editable_field_nodes_and_actions` 和 `inspector_pane_marks_plugin_inspector_customization_fallback` 锁定 Inspector host contract：字段节点必须带稳定 edit/commit action id，插件 customization 不可用时必须投影 warning fallback。
 - Milestone 4 focused validation reran the usable-loop checks that cover Plugin Manager descriptors/menu/default layout, pane payload, row projection, and action parsing; all focused filters passed. The broader `cargo test -p zircon_editor --lib` run timed out after compiling and starting the full lib suite, so the accepted fresh crate-level evidence is the passing `validate-matrix.ps1 -Package zircon_editor` package build/test validator with existing warnings.
 
 当前 focused validation 命令记录在 frontmatter 的 `tests` 字段中。更大范围验收仍以 workspace CI 命令为准：`cargo build --workspace --locked --verbose` 和 `cargo test --workspace --locked --verbose`。

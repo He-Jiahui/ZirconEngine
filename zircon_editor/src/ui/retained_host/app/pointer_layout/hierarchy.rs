@@ -1,9 +1,10 @@
 use super::super::*;
+use zircon_runtime::scene::WorldInspectionHierarchyRow;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn sync_hierarchy_pointer_layout(
         &mut self,
-        scene_entries: &[crate::ui::workbench::snapshot::SceneEntry],
+        scene_entries: &[WorldInspectionHierarchyRow],
     ) {
         self.hierarchy_scene_entries = Arc::from(scene_entries);
         if self.hierarchy_pointer_size.width <= 0.0 || self.hierarchy_pointer_size.height <= 0.0 {
@@ -17,7 +18,7 @@ impl RetainedEditorHost {
                 pane_height: self.hierarchy_pointer_size.height,
                 node_ids: scene_entries
                     .iter()
-                    .map(|entry| entry.id.to_string())
+                    .map(|entry| entry.entity.to_string())
                     .collect(),
             },
             self.hierarchy_pointer_state.clone(),

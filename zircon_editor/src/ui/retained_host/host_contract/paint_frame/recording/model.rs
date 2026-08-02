@@ -11,8 +11,10 @@ pub(in crate::ui::retained_host::host_contract) struct HostPaintImageUvRect {
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) struct HostPaintAtlasImage {
     pub(in crate::ui::retained_host::host_contract) resource_key: String,
+    pub(in crate::ui::retained_host::host_contract) resource_generation: u64,
     pub(in crate::ui::retained_host::host_contract) width: u32,
     pub(in crate::ui::retained_host::host_contract) height: u32,
+    /// Legacy test and explicit CPU fallback payload; production atlas handles leave this empty.
     pub(in crate::ui::retained_host::host_contract) rgba: Option<Vec<u8>>,
     pub(in crate::ui::retained_host::host_contract) uv: HostPaintImageUvRect,
 }

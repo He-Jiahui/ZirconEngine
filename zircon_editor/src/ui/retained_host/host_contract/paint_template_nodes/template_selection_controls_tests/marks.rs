@@ -1,10 +1,10 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::{
-    centered_square, checkbox_background, checkbox_border_color, control_accent_color,
-    label_rect_after_mark, leading_mark_rect, radio_background, radio_border_color, radio_dot_size,
-    selection_mark_label_color, workbench_selection_control_metrics_from_host,
     RADIO_CHECKED_BORDER, RADIO_CHECKED_FILL, RADIO_DOT_SIZE, SELECTION_LABEL_MUTED,
-    SELECTION_MARK_IDLE_BORDER, SELECTION_MARK_IDLE_FILL,
+    SELECTION_MARK_IDLE_BORDER, SELECTION_MARK_IDLE_FILL, centered_square, checkbox_background,
+    checkbox_border_color, control_accent_color, label_rect_after_mark, leading_mark_rect,
+    radio_background, radio_border_color, radio_dot_size, selection_mark_label_color,
+    workbench_selection_control_metrics_from_host,
 };
 use super::support::{node_with_role, resolved_background_and_border};
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;

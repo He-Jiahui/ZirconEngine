@@ -1,7 +1,7 @@
 use super::super::resolved_state_for_node;
 use super::helpers::{status_node_is_hot, status_node_is_selected, status_node_uses_active_glyph};
 use super::model::WorkbenchStatusIconButtonStyle;
-use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
+use super::palette::{WorkbenchStatusControlPalette, workbench_status_control_palette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 

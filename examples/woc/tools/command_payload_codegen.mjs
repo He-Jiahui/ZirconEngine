@@ -56,6 +56,7 @@ const DUEL_ARENA_COMMANDS = Object.freeze([
 ]);
 const TRADE_TRANSPORT_COMMANDS = Object.freeze([
   ['trade_req', 'tradeRequest', 'trade-request', 'TRADE_REQUEST_COMMAND_ID'],
+  ['trade_offer', 'tradeOffer', 'trade-offer', 'TRADE_OFFER_COMMAND_ID'],
   ['trade_accept', 'tradeAccept', 'trade-accept', 'TRADE_ACCEPT_COMMAND_ID'],
   ['trade_confirm', 'tradeConfirm', 'trade-confirm', 'TRADE_CONFIRM_COMMAND_ID'],
   ['trade_cancel', 'tradeCancel', 'trade-cancel', 'TRADE_CANCEL_COMMAND_ID'],
@@ -72,6 +73,9 @@ const MAIL_ID_COMMANDS = Object.freeze([
   ['mail_take', 'mailTake', 'mail-take', 'MAIL_TAKE_COMMAND_ID'],
   ['mail_delete', 'mailDelete', 'mail-delete', 'MAIL_DELETE_COMMAND_ID'],
   ['mail_read', 'mailRead', 'mail-read', 'MAIL_READ_COMMAND_ID'],
+]);
+const MAIL_SEND_COMMAND = Object.freeze([
+  'mail_send', 'mailSend', 'mail-send', 'MAIL_SEND_COMMAND_ID',
 ]);
 const BANK_COMMANDS = Object.freeze([
   ['bank_deposit', 'bankDeposit', 'bank-deposit', 'BANK_DEPOSIT_COMMAND_ID'],
@@ -119,6 +123,7 @@ const EVENT_SKIN_COMMANDS = Object.freeze([
   ['claim_event_skin', 'claimEventSkin', 'Event-skin claim', 'CLAIM_EVENT_SKIN_COMMAND_ID'],
 ]);
 const CLIENT_SEND_PAYLOADS = new Set([
+  'challengeResponse',
   'castSlot',
   'castAt',
   'cast',
@@ -136,13 +141,29 @@ const CLIENT_SEND_PAYLOADS = new Set([
   'turnin',
   'abandon',
   'equip',
+  'inv_move',
   'unequip_item',
+  'emote',
+  'chat',
   'use',
   'discard',
   'buy',
   'sell',
   'buyback',
+  'harvest_node',
+  'harvestCorpse',
+  'mail_send',
+  'enter_dungeon',
+  'enter_delve',
+  'market_search',
+  'market_list',
+  'craft_item',
+  'companion_upgrade',
+  'deed_set_title',
+  'set_town_focus',
   'change_skin',
+  'unequip_mech_chroma',
+  'change_weapon_skin',
   'release',
   'releaseEmpowered',
   'pet_abandon',
@@ -159,6 +180,7 @@ const CLIENT_SEND_PAYLOADS = new Set([
   'applyTalents',
   'respec',
   'setSpec',
+  'saveLoadout',
   'switchLoadout',
   'deleteLoadout',
   'selectTalentRow',
@@ -208,7 +230,7 @@ function main() {
   const document = JSON.parse(readFileSync(sourcePath, 'utf8'));
   const catalog = JSON.parse(readFileSync(commandCatalogPath, 'utf8'));
   const sourcePayloadCatalog = JSON.parse(readFileSync(sourcePayloadCatalogPath, 'utf8'));
-  invariant(document.schema_version === 39, 'command payload schema must be 39');
+  invariant(document.schema_version === 60, 'command payload schema must be 60');
   invariant(document.source_commit === SOURCE_COMMIT, 'command payload source commit drifted');
   invariant(catalog.source_commit === SOURCE_COMMIT, 'command catalog source commit drifted');
   invariant(sourcePayloadCatalog.source_commit === SOURCE_COMMIT, 'source payload catalog commit drifted');
@@ -283,6 +305,41 @@ function main() {
             entry.encoding === 'i32_le',
           `${entry.name} is not canonical ${entry.kind}`,
       );
+    } else if (entry.kind === 'i32_pair') {
+      invariant(
+        entry.min_byte_length === 8 &&
+          entry.max_byte_length === 8 &&
+          entry.encoding === 'i32_le_from+i32_le_to',
+        `${entry.name} is not canonical i32_pair`,
+      );
+    } else if (entry.kind === 'emote_id') {
+      invariant(
+        entry.min_byte_length === 1 &&
+          entry.max_byte_length === 1 &&
+          entry.encoding === 'u8_emote_id',
+        `${entry.name} is not canonical emote_id`,
+      );
+    } else if (entry.kind === 'chat_text') {
+      invariant(
+        entry.min_byte_length === 4 &&
+          entry.max_byte_length === 1024 &&
+          entry.max_utf8_bytes === 1020 &&
+          entry.max_utf16_code_units === 255 &&
+          entry.encoding === 'u32_le_utf8_max_255_utf16',
+        `${entry.name} is not canonical chat_text`,
+      );
+    } else if (entry.kind === 'save_loadout') {
+      invariant(
+        entry.min_byte_length === 6 &&
+          entry.max_byte_length === 5858 &&
+          entry.max_utf8_bytes === 256 &&
+          entry.max_utf16_code_units === 24 &&
+          entry.max_collection_entries === 22 &&
+          entry.max_name_utf8_bytes === 96 &&
+          entry.encoding ===
+            'u32_le_utf8_name+u8_optional_talent_allocation+u8_bar_count+bar_optional_u32_le_utf8',
+        `${entry.name} is not canonical save_loadout`,
+      );
     } else if (entry.kind === 'u32_index') {
       invariant(
         entry.min_byte_length === 4 &&
@@ -298,6 +355,38 @@ function main() {
           entry.max_byte_length === 20 + entry.max_utf8_bytes &&
           entry.encoding === 'u32_le_utf8+f64_le_x+f64_le_z',
         `${entry.name} is not canonical utf8_id_f64_pair`,
+      );
+    } else if (entry.kind === 'market_search') {
+      invariant(
+        Number.isInteger(entry.max_utf8_bytes) &&
+          entry.max_utf8_bytes > 0 &&
+          entry.min_byte_length === 24 &&
+          entry.max_byte_length === 24 + entry.max_utf8_bytes * 4 &&
+          entry.encoding ===
+            'u32_le_utf8_q+u32_le_utf8_item_type+u32_le_utf8_subtype+u32_le_utf8_rarity+f64_le_page',
+        `${entry.name} is not canonical market_search`,
+      );
+    } else if (entry.kind === 'trade_offer') {
+      invariant(
+        Number.isInteger(entry.max_utf8_bytes) &&
+          entry.max_utf8_bytes > 0 &&
+          Number.isInteger(entry.max_collection_entries) &&
+          entry.max_collection_entries > 0 &&
+          entry.max_collection_entries <= 255 &&
+          entry.min_byte_length === 9 &&
+          entry.max_byte_length ===
+            9 + entry.max_collection_entries * (12 + entry.max_utf8_bytes) &&
+          entry.encoding === 'u8_count+repeated_u32_le_utf8_item_id+f64_le_count+f64_le_copper',
+        `${entry.name} is not canonical trade_offer`,
+      );
+    } else if (entry.kind === 'challenge_response') {
+      invariant(
+        Number.isInteger(entry.max_utf8_bytes) &&
+          entry.max_utf8_bytes > 0 &&
+          entry.min_byte_length === 12 &&
+          entry.max_byte_length === 12 + entry.max_utf8_bytes * 3 &&
+          entry.encoding === 'u32_le_utf8_nonce+u32_le_utf8_response+u32_le_utf8_signature',
+        `${entry.name} is not canonical challenge_response`,
       );
     } else if (entry.kind === 'linked_quest_acceptance') {
       invariant(
@@ -333,6 +422,41 @@ function main() {
           entry.encoding ===
             'u32_le_utf8_kind+u16_le_field_count+repeated_u32_le_utf8_key_f64_le_value',
         `${entry.name} is not canonical telemetry_numeric_fields`,
+      );
+    } else if (entry.kind === 'town_focus_allocation') {
+      invariant(
+        entry.min_byte_length === 2 &&
+          entry.max_byte_length === 65536 &&
+          entry.max_utf8_bytes === 256 &&
+          entry.max_collection_entries === 256 &&
+          entry.encoding ===
+            'u16_le_entry_count+repeated_u32_le_utf8_component+i32_le_points',
+        `${entry.name} is not canonical town_focus_allocation`,
+      );
+    } else if (entry.kind === 'weapon_skin_change') {
+      invariant(
+        entry.min_byte_length === 2 &&
+          entry.max_byte_length === 261 &&
+          entry.max_utf8_bytes === 256 &&
+          entry.encoding === 'u8_mode+(u32_le_utf8_skin|u8_weapon_type)',
+        `${entry.name} is not canonical weapon_skin_change`,
+      );
+    } else if (entry.kind === 'corpse_harvest') {
+      invariant(
+        entry.min_byte_length === 9 &&
+          entry.max_byte_length === 12 &&
+          entry.max_collection_entries === 3 &&
+          entry.encoding === 'u64_le_target+u8_component_count_0_to_3+component_codes',
+        `${entry.name} is not canonical corpse_harvest`,
+      );
+    } else if (entry.kind === 'utf8_id_pair') {
+      invariant(
+        Number.isInteger(entry.max_utf8_bytes) &&
+          entry.max_utf8_bytes > 0 &&
+          entry.min_byte_length === 8 &&
+          entry.max_byte_length === 8 + entry.max_utf8_bytes * 2 &&
+          entry.encoding === 'u32_le_utf8+u32_le_utf8',
+        `${entry.name} is not canonical utf8_id_pair`,
       );
     } else if (entry.kind === 'utf8_id_optional_utf8_id') {
       invariant(
@@ -465,6 +589,16 @@ function main() {
           entry.max_byte_length === 8 &&
           entry.encoding === 'f64_le_target_id',
         `${entry.name} is not canonical trade_request`,
+      );
+    } else if (entry.kind === 'mail_send') {
+      invariant(
+        entry.min_byte_length === 21 &&
+          entry.max_byte_length === 16 * 1024 &&
+          entry.max_utf8_bytes === 16 * 1024 &&
+          entry.max_collection_entries === 3 &&
+          entry.encoding ===
+            'u32_le_utf8_to+u32_le_utf8_subject+u32_le_utf8_body+f64_le_copper+u8_attachment_count+repeated_u32_le_utf8_item_id_f64_le_count',
+        `${entry.name} is not canonical mail_send`,
       );
     } else if (entry.kind === 'mail_id') {
       invariant(
@@ -632,7 +766,8 @@ function main() {
       (entry) =>
         `${entry.id}\0${entry.name}\0${entry.kind}\0${entry.min_byte_length}\0` +
         `${entry.max_byte_length}\0${entry.max_utf8_bytes ?? ''}\0` +
-        `${entry.max_utf16_code_units ?? ''}\0${entry.encoding}\n`,
+        `${entry.max_utf16_code_units ?? ''}\0${entry.max_collection_entries ?? ''}\0` +
+        `${entry.encoding}\n`,
     )
     .join('');
   const sha256 = createHash('sha256').update(fingerprintSource, 'utf8').digest('hex');
@@ -650,7 +785,10 @@ function validateSourceShape(entry, command, sourceEntry) {
   const shape = entry.source_shape;
   invariant(shape && typeof shape === 'object', `${entry.name} has no source shape`);
   invariant(Array.isArray(shape.fields), `${entry.name} source fields are invalid`);
-  invariant(shape.fields.every((field) => typeof field === 'string'), `${entry.name} source fields are invalid`);
+  invariant(
+    shape.fields.every((field) => typeof field === 'string' || field === null),
+    `${entry.name} source fields are invalid`,
+  );
   invariant(sourceEntry?.name === entry.name, `${entry.name} source payload entry is missing`);
   if (shape.kind === 'dispatch_only') {
     invariant(command.kind === 'dispatch_only', `${entry.name} is not dispatch-only`);
@@ -674,7 +812,7 @@ function validateSourceShape(entry, command, sourceEntry) {
       alternate && typeof alternate === 'object' &&
         typeof alternate.method === 'string' && alternate.method.length > 0 &&
         Array.isArray(alternate.fields) &&
-        alternate.fields.every((field) => typeof field === 'string'),
+        alternate.fields.every((field) => typeof field === 'string' || field === null),
       `${entry.name} source alternate is invalid`,
     );
     const alternateSite = sourceEntry.client_sends.find(
@@ -689,10 +827,19 @@ function validateSourceShape(entry, command, sourceEntry) {
 function renderZr(entries, sha256) {
   const byName = new Map(entries.map((entry) => [entry.name, entry]));
   const castSlot = required(byName, 'castSlot');
+  const challengeResponse = required(byName, 'challengeResponse');
   const castAt = required(byName, 'castAt');
   const cast = required(byName, 'cast');
   const cancelAura = required(byName, 'cancel_aura');
   const changeSkin = required(byName, 'change_skin');
+  const unequipMechChroma = required(byName, 'unequip_mech_chroma');
+  const changeWeaponSkin = required(byName, 'change_weapon_skin');
+  const harvestCorpse = required(byName, 'harvestCorpse');
+  const enterDungeon = required(byName, 'enter_dungeon');
+  const enterDelve = required(byName, 'enter_delve');
+  const marketSearch = required(byName, 'market_search');
+  const marketList = required(byName, 'market_list');
+  const mailSend = required(byName, MAIL_SEND_COMMAND[0]);
   const target = required(byName, 'target');
   const tab = required(byName, 'tab');
   const targetNearest = required(byName, 'targetNearest');
@@ -707,13 +854,23 @@ function renderZr(entries, sha256) {
   const turnInQuest = required(byName, 'turnin');
   const abandon = required(byName, 'abandon');
   const equipItem = required(byName, 'equip');
+  const inventoryMove = required(byName, 'inv_move');
   const unequipItem = required(byName, 'unequip_item');
+  const emote = required(byName, 'emote');
+  const chat = required(byName, 'chat');
   const telemetry = required(byName, 'telemetry');
   const useItem = required(byName, 'use');
   const discardItem = required(byName, 'discard');
   const buy = required(byName, 'buy');
   const sell = required(byName, 'sell');
   const buyback = required(byName, 'buyback');
+  const harvestNode = required(byName, 'harvest_node');
+  const craftItem = required(byName, 'craft_item');
+  const heroicBuy = required(byName, 'heroic_buy');
+  const delveBuy = required(byName, 'delve_buy');
+  const companionUpgrade = required(byName, 'companion_upgrade');
+  const deedSetTitle = required(byName, 'deed_set_title');
+  const setTownFocus = required(byName, 'set_town_focus');
   const release = required(byName, 'release');
   const releaseEmpowered = required(byName, 'releaseEmpowered');
   const petAbandon = required(byName, 'pet_abandon');
@@ -735,6 +892,7 @@ function renderZr(entries, sha256) {
   const applyTalents = required(byName, 'applyTalents');
   const respec = required(byName, 'respec');
   const setSpec = required(byName, 'setSpec');
+  const saveLoadout = required(byName, 'saveLoadout');
   const switchLoadout = required(byName, 'switchLoadout');
   const deleteLoadout = required(byName, 'deleteLoadout');
   const selectTalentRow = required(byName, 'selectTalentRow');
@@ -843,7 +1001,10 @@ function renderZr(entries, sha256) {
       ({ entry, functionName }) =>
         `        ${functionName}CommandId(true) == <uint>${entry.id} && ` +
         `payloadKind(<uint>${entry.id}, 1) == ${kindCode(entry.kind)} && ` +
-        `payloadLength(<uint>${entry.id}, true) == ${entry.min_byte_length}`,
+        (entry.min_byte_length === entry.max_byte_length
+          ? `payloadLength(<uint>${entry.id}, true) == ${entry.min_byte_length}`
+          : `payloadMinLength(<uint>${entry.id}, true) == ${entry.min_byte_length} && ` +
+            `payloadMaxLength(<uint>${entry.id}, true) == ${entry.max_byte_length}`),
     )
     .join(' &&\n');
   const valeCupCommands = VALE_CUP_COMMANDS.map(([name, functionName, description]) => ({
@@ -1115,6 +1276,33 @@ function renderZr(entries, sha256) {
     `pub changeSkinCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC change-skin command id is required"; }\n` +
     `    return <uint>${changeSkin.id};\n}\n\n` +
+    `pub unequipMechChromaCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC unequip-mech-chroma command id is required"; }\n` +
+    `    return <uint>${unequipMechChroma.id};\n}\n\n` +
+    `pub changeWeaponSkinCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC change-weapon-skin command id is required"; }\n` +
+    `    return <uint>${changeWeaponSkin.id};\n}\n\n` +
+    `pub harvestCorpseCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC harvest-corpse command id is required"; }\n` +
+    `    return <uint>${harvestCorpse.id};\n}\n\n` +
+    `pub enterDungeonCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC enter-dungeon command id is required"; }\n` +
+    `    return <uint>${enterDungeon.id};\n}\n\n` +
+    `pub enterDelveCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC enter-delve command id is required"; }\n` +
+    `    return <uint>${enterDelve.id};\n}\n\n` +
+    `pub marketSearchCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC market-search command id is required"; }\n` +
+    `    return <uint>${marketSearch.id};\n}\n\n` +
+    `pub marketListCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC market-list command id is required"; }\n` +
+    `    return <uint>${marketList.id};\n}\n\n` +
+    `pub mailSendCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC mail-send command id is required"; }\n` +
+    `    return <uint>${mailSend.id};\n}\n\n` +
+    `pub challengeResponseCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC challenge-response command id is required"; }\n` +
+    `    return <uint>${challengeResponse.id};\n}\n\n` +
     `pub castSlotCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC cast-slot command id is required"; }\n` +
     `    return <uint>${castSlot.id};\n}\n\n` +
@@ -1157,9 +1345,21 @@ function renderZr(entries, sha256) {
     `pub equipItemCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC equip-item command id is required"; }\n` +
     `    return <uint>${equipItem.id};\n}\n\n` +
+    `pub inventoryMoveCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC inventory-move command id is required"; }\n` +
+    `    return <uint>${inventoryMove.id};\n}\n\n` +
     `pub unequipItemCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC unequip-item command id is required"; }\n` +
     `    return <uint>${unequipItem.id};\n}\n\n` +
+    `pub emoteCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC emote command id is required"; }\n` +
+    `    return <uint>${emote.id};\n}\n\n` +
+    `pub chatCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC chat command id is required"; }\n` +
+    `    return <uint>${chat.id};\n}\n\n` +
+    `pub telemetryCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC telemetry command id is required"; }\n` +
+    `    return <uint>${telemetry.id};\n}\n\n` +
     `pub useItemCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC use-item command id is required"; }\n` +
     `    return <uint>${useItem.id};\n}\n\n` +
@@ -1175,6 +1375,27 @@ function renderZr(entries, sha256) {
     `pub buybackCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC vendor-buyback command id is required"; }\n` +
     `    return <uint>${buyback.id};\n}\n\n` +
+    `pub harvestNodeCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC harvest-node command id is required"; }\n` +
+    `    return <uint>${harvestNode.id};\n}\n\n` +
+    `pub craftItemCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC craft-item command id is required"; }\n` +
+    `    return <uint>${craftItem.id};\n}\n\n` +
+    `pub heroicBuyCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC heroic-buy command id is required"; }\n` +
+    `    return <uint>${heroicBuy.id};\n}\n\n` +
+    `pub delveBuyCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC Delve-buy command id is required"; }\n` +
+    `    return <uint>${delveBuy.id};\n}\n\n` +
+    `pub companionUpgradeCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC companion-upgrade command id is required"; }\n` +
+    `    return <uint>${companionUpgrade.id};\n}\n\n` +
+    `pub deedSetTitleCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC deed-set-title command id is required"; }\n` +
+    `    return <uint>${deedSetTitle.id};\n}\n\n` +
+    `pub setTownFocusCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC town-focus command id is required"; }\n` +
+    `    return <uint>${setTownFocus.id};\n}\n\n` +
     `pub linkedQuestAcceptCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC linked-quest accept command id is required"; }\n` +
     `    return <uint>${linkedQuestAccept.id};\n}\n\n` +
@@ -1295,6 +1516,9 @@ function renderZr(entries, sha256) {
     `pub setSpecCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC set-spec command id is required"; }\n` +
     `    return <uint>${setSpec.id};\n}\n\n` +
+    `pub saveLoadoutCommandId(required: bool): uint {\n` +
+    `    if (!required) { throw "WOC save-loadout command id is required"; }\n` +
+    `    return <uint>${saveLoadout.id};\n}\n\n` +
     `pub switchLoadoutCommandId(required: bool): uint {\n` +
     `    if (!required) { throw "WOC switch-loadout command id is required"; }\n` +
     `    return <uint>${switchLoadout.id};\n}\n\n` +
@@ -1320,6 +1544,8 @@ function renderZr(entries, sha256) {
     `// 14 talent_allocation, 15 cosmetic_skin, 16 boolean,\n` +
       `// 17 utf8_id_optional_target_entity, 18 target_entity_raid_group,\n` +
     `// 19 i32_value, 20 guild_event_create, 46 linked_quest_acceptance,\n` +
+    `// 53 town_focus_allocation, 54 chat_text, 55 utf8_id_pair, 58 mail_send,\n` +
+    `// 59 market_search, 60 trade_offer, 61 challenge_response,\n` +
     `// 0 not yet ported.\n` +
     `pub payloadKind(id: uint, marker: int): int {\n` +
     `    if (marker != 1) { throw "WOC command payload kind marker is invalid"; }\n` +
@@ -1334,7 +1560,9 @@ function renderZr(entries, sha256) {
     `    if (!required) { throw "WOC command payload maximum length is required"; }\n` +
     `${maxLengthRows}\n    return -1;\n}\n\n` +
     `pub contractTest(): int {\n` +
-    `    return castSlotCommandId(true) == <uint>0 && castAtCommandId(true) == <uint>1 &&\n` +
+    `    return challengeResponseCommandId(true) == <uint>36 && payloadKind(<uint>36, 1) == 61 &&\n` +
+    `        payloadMinLength(<uint>36, true) == 12 && payloadMaxLength(<uint>36, true) == 780 &&\n` +
+    `        castSlotCommandId(true) == <uint>0 && castAtCommandId(true) == <uint>1 &&\n` +
     `        payloadKind(<uint>1, 1) == 10 && payloadMinLength(<uint>1, true) == 20 &&\n` +
     `        payloadMaxLength(<uint>1, true) == 276 && castCommandId(true) == <uint>2 &&\n` +
     `        payloadKind(<uint>2, 1) == 17 && payloadMinLength(<uint>2, true) == 5 &&\n` +
@@ -1348,6 +1576,20 @@ function renderZr(entries, sha256) {
         `        payloadKind(<uint>8, 1) == 1 &&\n` +
         `        changeSkinCommandId(true) == <uint>31 && payloadKind(<uint>31, 1) == 15 &&\n` +
     `        payloadLength(<uint>31, true) == 2 &&\n` +
+    `        changeWeaponSkinCommandId(true) == <uint>34 && payloadKind(<uint>34, 1) == 56 &&\n` +
+    `        harvestCorpseCommandId(true) == <uint>13 && payloadKind(<uint>13, 1) == 57 &&\n` +
+    `        payloadMinLength(<uint>13, true) == 9 && payloadMaxLength(<uint>13, true) == 12 &&\n` +
+    `        enterDungeonCommandId(true) == <uint>112 && payloadKind(<uint>112, 1) == 4 &&\n` +
+    `        payloadMinLength(<uint>112, true) == 4 && payloadMaxLength(<uint>112, true) == 260 &&\n` +
+    `        enterDelveCommandId(true) == <uint>115 && payloadKind(<uint>115, 1) == 55 &&\n` +
+    `        payloadMinLength(<uint>115, true) == 8 && payloadMaxLength(<uint>115, true) == 520 &&\n` +
+    `        marketSearchCommandId(true) == <uint>101 && payloadKind(<uint>101, 1) == 59 &&\n` +
+    `        payloadMinLength(<uint>101, true) == 24 && payloadMaxLength(<uint>101, true) == 1048 &&\n` +
+    `        marketListCommandId(true) == <uint>102 && payloadKind(<uint>102, 1) == 10 &&\n` +
+    `        payloadMinLength(<uint>102, true) == 20 && payloadMaxLength(<uint>102, true) == 276 &&\n` +
+    `        mailSendCommandId(true) == <uint>128 && payloadKind(<uint>128, 1) == 58 &&\n` +
+    `        payloadMinLength(<uint>128, true) == 21 && payloadMaxLength(<uint>128, true) == 16384 &&\n` +
+    `        payloadMinLength(<uint>34, true) == 2 && payloadMaxLength(<uint>34, true) == 261 &&\n` +
     `        attackCommandId(true) == <uint>9 &&\n` +
     `        stopAttackCommandId(true) == <uint>10 && payloadKind(<uint>4, 1) == 2 &&\n` +
     `        weaponStowCommandId(true) == <uint>162 && payloadKind(<uint>162, 1) == 1 &&\n` +
@@ -1371,6 +1613,10 @@ function renderZr(entries, sha256) {
     `        payloadMinLength(<uint>20, true) == 5 && payloadMaxLength(<uint>20, true) == 261 &&\n` +
     `        unequipItemCommandId(true) == <uint>22 && payloadKind(<uint>22, 1) == 48 &&\n` +
     `        payloadLength(<uint>22, true) == 1 &&\n` +
+    `        chatCommandId(true) == <uint>37 && payloadKind(<uint>37, 1) == 54 &&\n` +
+    `        payloadMinLength(<uint>37, true) == 4 && payloadMaxLength(<uint>37, true) == 1024 &&\n` +
+    `        telemetryCommandId(true) == <uint>125 && payloadKind(<uint>125, 1) == 49 &&\n` +
+    `        payloadMinLength(<uint>125, true) == 6 && payloadMaxLength(<uint>125, true) == 65536 &&\n` +
     `        useItemCommandId(true) == <uint>23 && discardItemCommandId(true) == <uint>24 &&\n` +
     `        payloadKind(<uint>24, 1) == 6 && payloadMinLength(<uint>24, true) == 5 &&\n` +
     `        buyCommandId(true) == <uint>25 && payloadKind(<uint>25, 1) == 17 &&\n` +
@@ -1379,6 +1625,18 @@ function renderZr(entries, sha256) {
     `        payloadMinLength(<uint>26, true) == 5 && payloadMaxLength(<uint>26, true) == 265 &&\n` +
     `        buybackCommandId(true) == <uint>27 && payloadKind(<uint>27, 1) == 4 &&\n` +
     `        payloadMinLength(<uint>27, true) == 4 && payloadMaxLength(<uint>27, true) == 260 &&\n` +
+    `        harvestNodeCommandId(true) == <uint>29 && payloadKind(<uint>29, 1) == 4 &&\n` +
+    `        payloadMinLength(<uint>29, true) == 4 && payloadMaxLength(<uint>29, true) == 260 &&\n` +
+    `        heroicBuyCommandId(true) == <uint>142 && payloadKind(<uint>142, 1) == 4 &&\n` +
+    `        payloadMinLength(<uint>142, true) == 4 && payloadMaxLength(<uint>142, true) == 260 &&\n` +
+    `        delveBuyCommandId(true) == <uint>119 && payloadKind(<uint>119, 1) == 55 &&\n` +
+    `        payloadMinLength(<uint>119, true) == 8 && payloadMaxLength(<uint>119, true) == 520 &&\n` +
+    `        companionUpgradeCommandId(true) == <uint>118 && payloadKind(<uint>118, 1) == 4 &&\n` +
+    `        payloadMinLength(<uint>118, true) == 4 && payloadMaxLength(<uint>118, true) == 260 &&\n` +
+    `        deedSetTitleCommandId(true) == <uint>159 && payloadKind(<uint>159, 1) == 9 &&\n` +
+    `        payloadMinLength(<uint>159, true) == 1 && payloadMaxLength(<uint>159, true) == 261 &&\n` +
+    `        setTownFocusCommandId(true) == <uint>140 && payloadKind(<uint>140, 1) == 53 &&\n` +
+    `        payloadMinLength(<uint>140, true) == 2 && payloadMaxLength(<uint>140, true) == 65536 &&\n` +
     `        releaseCommandId(true) == <uint>35 && payloadKind(<uint>35, 1) == 1 &&\n` +
     `        payloadLength(<uint>35, true) == 0 &&\n` +
     `        releaseEmpoweredCommandId(true) == <uint>149 && payloadKind(<uint>149, 1) == 4 &&\n` +
@@ -1432,6 +1690,8 @@ function renderZr(entries, sha256) {
     `        payloadLength(<uint>96, true) == 0 &&\n` +
     `        setSpecCommandId(true) == <uint>97 && payloadKind(<uint>97, 1) == 13 &&\n` +
     `        payloadLength(<uint>97, true) == 2 &&\n` +
+    `        saveLoadoutCommandId(true) == <uint>98 && payloadKind(<uint>98, 1) == 52 &&\n` +
+    `        payloadMinLength(<uint>98, true) == 6 && payloadMaxLength(<uint>98, true) == 5858 &&\n` +
     `        switchLoadoutCommandId(true) == <uint>99 && payloadKind(<uint>99, 1) == 5 &&\n` +
     `        payloadLength(<uint>99, true) == 4 &&\n` +
     `        deleteLoadoutCommandId(true) == <uint>100 && payloadKind(<uint>100, 1) == 5 &&\n` +
@@ -1458,6 +1718,7 @@ function renderRust(entries, sha256) {
       `        max_byte_length: ${entry.max_byte_length},\n` +
       `        max_utf8_bytes: ${entry.max_utf8_bytes ?? 0},\n` +
       `        max_utf16_code_units: ${entry.max_utf16_code_units ?? 0},\n` +
+      `        max_collection_entries: ${entry.max_collection_entries ?? 0},\n` +
       `    },`;
   });
   const byName = new Map(entries.map((entry) => [entry.name, entry]));
@@ -1486,6 +1747,7 @@ function renderRust(entries, sha256) {
   const mailIdConstants = MAIL_ID_COMMANDS.map(([name, , , constant]) =>
     `pub const ${constant}: u16 = ${required(byName, name).id};`,
   ).join('\n');
+  const mailSendConstant = `pub const ${MAIL_SEND_COMMAND[3]}: u16 = ${required(byName, MAIL_SEND_COMMAND[0]).id};`;
   const bankConstants = BANK_COMMANDS.map(([name, , , constant]) =>
     `pub const ${constant}: u16 = ${required(byName, name).id};`,
   ).join('\n');
@@ -1516,10 +1778,18 @@ function renderRust(entries, sha256) {
   return `// Generated by examples/woc/tools/command_payload_codegen.mjs. Do not edit.\n` +
     `pub const COMMAND_PAYLOAD_SCHEMA_SHA256: &str =\n    ${JSON.stringify(sha256)};\n` +
     `pub const CAST_SLOT_COMMAND_ID: u16 = ${required(byName, 'castSlot').id};\n` +
+    `pub const CHALLENGE_RESPONSE_COMMAND_ID: u16 = ${required(byName, 'challengeResponse').id};\n` +
     `pub const CAST_AT_COMMAND_ID: u16 = ${required(byName, 'castAt').id};\n` +
     `pub const CAST_COMMAND_ID: u16 = ${required(byName, 'cast').id};\n` +
     `pub const CANCEL_AURA_COMMAND_ID: u16 = ${required(byName, 'cancel_aura').id};\n` +
     `pub const CHANGE_SKIN_COMMAND_ID: u16 = ${required(byName, 'change_skin').id};\n` +
+    `pub const UNEQUIP_MECH_CHROMA_COMMAND_ID: u16 = ${required(byName, 'unequip_mech_chroma').id};\n` +
+    `pub const CHANGE_WEAPON_SKIN_COMMAND_ID: u16 = ${required(byName, 'change_weapon_skin').id};\n` +
+    `pub const HARVEST_CORPSE_COMMAND_ID: u16 = ${required(byName, 'harvestCorpse').id};\n` +
+    `pub const ENTER_DUNGEON_COMMAND_ID: u16 = ${required(byName, 'enter_dungeon').id};\n` +
+    `pub const ENTER_DELVE_COMMAND_ID: u16 = ${required(byName, 'enter_delve').id};\n` +
+    `pub const MARKET_SEARCH_COMMAND_ID: u16 = ${required(byName, 'market_search').id};\n` +
+    `pub const MARKET_LIST_COMMAND_ID: u16 = ${required(byName, 'market_list').id};\n` +
     `pub const RELEASE_COMMAND_ID: u16 = ${required(byName, 'release').id};\n` +
     `pub const RELEASE_EMPOWERED_COMMAND_ID: u16 = ${required(byName, 'releaseEmpowered').id};\n` +
     `pub const PET_ABANDON_COMMAND_ID: u16 = ${required(byName, 'pet_abandon').id};\n` +
@@ -1539,6 +1809,7 @@ function renderRust(entries, sha256) {
     `${tradeTransportConstants}\n` +
     `${valeCupConstants}\n` +
     `${mailIdConstants}\n` +
+    `${mailSendConstant}\n` +
     `${bankConstants}\n` +
     `${dungeonFinderConstants}\n` +
     `${worldObjectConstants}\n` +
@@ -1575,12 +1846,23 @@ function renderRust(entries, sha256) {
     `pub const TURN_IN_QUEST_COMMAND_ID: u16 = ${required(byName, 'turnin').id};\n` +
     `pub const ABANDON_QUEST_COMMAND_ID: u16 = ${required(byName, 'abandon').id};\n` +
     `pub const EQUIP_ITEM_COMMAND_ID: u16 = ${required(byName, 'equip').id};\n` +
+    `pub const INVENTORY_MOVE_COMMAND_ID: u16 = ${required(byName, 'inv_move').id};\n` +
     `pub const UNEQUIP_ITEM_COMMAND_ID: u16 = ${required(byName, 'unequip_item').id};\n` +
+    `pub const EMOTE_COMMAND_ID: u16 = ${required(byName, 'emote').id};\n` +
+    `pub const CHAT_COMMAND_ID: u16 = ${required(byName, 'chat').id};\n` +
+    `pub const TELEMETRY_COMMAND_ID: u16 = ${required(byName, 'telemetry').id};\n` +
     `pub const USE_ITEM_COMMAND_ID: u16 = ${required(byName, 'use').id};\n` +
     `pub const DISCARD_ITEM_COMMAND_ID: u16 = ${required(byName, 'discard').id};\n` +
     `pub const BUY_COMMAND_ID: u16 = ${required(byName, 'buy').id};\n` +
     `pub const SELL_COMMAND_ID: u16 = ${required(byName, 'sell').id};\n` +
     `pub const BUYBACK_COMMAND_ID: u16 = ${required(byName, 'buyback').id};\n` +
+    `pub const HARVEST_NODE_COMMAND_ID: u16 = ${required(byName, 'harvest_node').id};\n` +
+    `pub const CRAFT_ITEM_COMMAND_ID: u16 = ${required(byName, 'craft_item').id};\n` +
+    `pub const HEROIC_BUY_COMMAND_ID: u16 = ${required(byName, 'heroic_buy').id};\n` +
+    `pub const DELVE_BUY_COMMAND_ID: u16 = ${required(byName, 'delve_buy').id};\n` +
+    `pub const COMPANION_UPGRADE_COMMAND_ID: u16 = ${required(byName, 'companion_upgrade').id};\n` +
+    `pub const DEED_SET_TITLE_COMMAND_ID: u16 = ${required(byName, 'deed_set_title').id};\n` +
+    `pub const SET_TOWN_FOCUS_COMMAND_ID: u16 = ${required(byName, 'set_town_focus').id};\n` +
     `pub const EQUIP_BAG_COMMAND_ID: u16 = ${required(byName, 'equip_bag').id};\n` +
     `pub const UNEQUIP_BAG_COMMAND_ID: u16 = ${required(byName, 'unequip_bag').id};\n` +
     `pub const LOCKPICK_ENGAGE_COMMAND_ID: u16 = ${required(byName, 'lockpick_engage').id};\n` +
@@ -1589,6 +1871,7 @@ function renderRust(entries, sha256) {
     `pub const APPLY_TALENTS_COMMAND_ID: u16 = ${required(byName, 'applyTalents').id};\n` +
     `pub const RESPEC_COMMAND_ID: u16 = ${required(byName, 'respec').id};\n` +
     `pub const SET_SPEC_COMMAND_ID: u16 = ${required(byName, 'setSpec').id};\n` +
+    `pub const SAVE_LOADOUT_COMMAND_ID: u16 = ${required(byName, 'saveLoadout').id};\n` +
     `pub const SWITCH_LOADOUT_COMMAND_ID: u16 = ${required(byName, 'switchLoadout').id};\n` +
     `pub const DELETE_LOADOUT_COMMAND_ID: u16 = ${required(byName, 'deleteLoadout').id};\n` +
     `pub const SELECT_TALENT_ROW_COMMAND_ID: u16 = ${required(byName, 'selectTalentRow').id};\n` +
@@ -1597,13 +1880,14 @@ function renderRust(entries, sha256) {
     `pub const RESURRECT_RESPOND_COMMAND_ID: u16 = ${required(byName, 'resurrect_respond').id};\n\n` +
     `#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n` +
     `pub enum CommandPayloadKind {\n` +
-      `    Empty,\n    TargetEntity,\n    SlotIndex,\n    Utf8Id,\n` +
-      `    U32Index,\n    Utf8IdOptionalU32,\n    Utf8IdOptionalTargetEntity,\n    TargetEntityRaidGroup,\n    LockpickEngage,\n    LockpickAction,\n    OptionalUtf8Id,\n    Utf8IdF64Pair,\n    Utf8IdOptionalUtf8Id,\n    TalentRowSelection,\n    TalentSpec,\n    TalentAllocation,\n    CosmeticSkin,\n    Boolean,\n    I32Value,\n    GuildEventCreate,\n    PartyLootMaster,\n    MasterLootAssignment,\n    PartyMarker,\n    PartyMarkerClear,\n    DuelRequest,\n    ArenaQueueFormat,\n    ArenaAugment,\n    TradeRequest,\n    ValeCupQueue,\n    ValeCupRole,\n    ValeCupBet,\n    ValeCupBracket,\n    MailId,\n    BankSlotOptionalCount,\n    DungeonFinderRoles,\n    DungeonFinderActivities,\n    DungeonFinderListing,\n    DungeonFinderListingId,\n    DungeonFinderApplicationResponse,\n    WorldObjectId,\n    MarketListingId,\n    DelveRiteIntensity,\n    DungeonDifficulty,\n    LootRoll,\n    EventSkin,\n    LinkedQuestAcceptance,\n    EquipmentItemOptionalSlot,\n    EquipmentSlot,\n}\n\n` +
+      `    Empty,\n    TargetEntity,\n    SlotIndex,\n    Utf8Id,\n    CorpseHarvest,\n    MailSend,\n    MarketSearch,\n    TradeOffer,\n    ChallengeResponse,\n` +
+      `    U32Index,\n    Utf8IdOptionalU32,\n    Utf8IdOptionalTargetEntity,\n    TargetEntityRaidGroup,\n    LockpickEngage,\n    LockpickAction,\n    OptionalUtf8Id,\n    Utf8IdF64Pair,\n    Utf8IdOptionalUtf8Id,\n    Utf8IdPair,\n    TalentRowSelection,\n    TalentSpec,\n    TalentAllocation,\n    SaveLoadout,\n    CosmeticSkin,\n    Boolean,\n    I32Value,\n    I32Pair,\n    EmoteId,\n    ChatText,\n    GuildEventCreate,\n    PartyLootMaster,\n    MasterLootAssignment,\n    PartyMarker,\n    PartyMarkerClear,\n    DuelRequest,\n    ArenaQueueFormat,\n    ArenaAugment,\n    TradeRequest,\n    ValeCupQueue,\n    ValeCupRole,\n    ValeCupBet,\n    ValeCupBracket,\n    MailId,\n    BankSlotOptionalCount,\n    DungeonFinderRoles,\n    DungeonFinderActivities,\n    DungeonFinderListing,\n    DungeonFinderListingId,\n    DungeonFinderApplicationResponse,\n    WorldObjectId,\n    MarketListingId,\n    DelveRiteIntensity,\n    DungeonDifficulty,\n    LootRoll,\n    EventSkin,\n    LinkedQuestAcceptance,\n    EquipmentItemOptionalSlot,\n    EquipmentSlot,\n    TelemetryNumericFields,\n    TownFocusAllocation,\n}\n\n` +
     `#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n` +
     `pub struct CommandPayloadDescriptor {\n` +
     `    pub id: u16,\n    pub name: &'static str,\n    pub kind: CommandPayloadKind,\n` +
     `    pub min_byte_length: usize,\n    pub max_byte_length: usize,\n` +
-    `    pub max_utf8_bytes: usize,\n    pub max_utf16_code_units: usize,\n}\n\n` +
+    `    pub max_utf8_bytes: usize,\n    pub max_utf16_code_units: usize,\n` +
+    `    pub max_collection_entries: usize,\n}\n\n` +
     `impl CommandPayloadDescriptor {\n` +
     `    pub const fn fixed_byte_length(self) -> Option<usize> {\n` +
     `        if self.min_byte_length == self.max_byte_length {\n` +
@@ -1627,6 +1911,7 @@ function kindCode(kind) {
     optional_utf8_id: 9,
     utf8_id_f64_pair: 10,
     utf8_id_optional_utf8_id: 11,
+    utf8_id_pair: 55,
     talent_row_selection: 12,
     talent_spec: 13,
     talent_allocation: 14,
@@ -1641,6 +1926,12 @@ function kindCode(kind) {
     linked_quest_acceptance: 46,
     equipment_item_optional_slot: 47,
     equipment_slot: 48,
+    telemetry_numeric_fields: 49,
+    town_focus_allocation: 53,
+    i32_pair: 50,
+    emote_id: 51,
+    save_loadout: 52,
+    chat_text: 54,
     party_marker: 22,
     party_marker_clear: 23,
     duel_request: 24,
@@ -1664,6 +1955,12 @@ function kindCode(kind) {
     dungeon_difficulty: 42,
     loot_roll: 43,
     event_skin: 44,
+    weapon_skin_change: 56,
+    corpse_harvest: 57,
+    mail_send: 58,
+    market_search: 59,
+    trade_offer: 60,
+    challenge_response: 61,
   }[kind] ?? 0;
 }
 
@@ -1680,6 +1977,7 @@ function kindRustName(kind) {
     optional_utf8_id: 'OptionalUtf8Id',
     utf8_id_f64_pair: 'Utf8IdF64Pair',
     utf8_id_optional_utf8_id: 'Utf8IdOptionalUtf8Id',
+    utf8_id_pair: 'Utf8IdPair',
     talent_row_selection: 'TalentRowSelection',
     talent_spec: 'TalentSpec',
     talent_allocation: 'TalentAllocation',
@@ -1694,6 +1992,12 @@ function kindRustName(kind) {
     linked_quest_acceptance: 'LinkedQuestAcceptance',
     equipment_item_optional_slot: 'EquipmentItemOptionalSlot',
     equipment_slot: 'EquipmentSlot',
+    telemetry_numeric_fields: 'TelemetryNumericFields',
+    town_focus_allocation: 'TownFocusAllocation',
+    i32_pair: 'I32Pair',
+    emote_id: 'EmoteId',
+    save_loadout: 'SaveLoadout',
+    chat_text: 'ChatText',
     party_marker: 'PartyMarker',
     party_marker_clear: 'PartyMarkerClear',
     duel_request: 'DuelRequest',
@@ -1717,6 +2021,12 @@ function kindRustName(kind) {
     dungeon_difficulty: 'DungeonDifficulty',
     loot_roll: 'LootRoll',
     event_skin: 'EventSkin',
+    weapon_skin_change: 'WeaponSkinChange',
+    corpse_harvest: 'CorpseHarvest',
+    mail_send: 'MailSend',
+    market_search: 'MarketSearch',
+    trade_offer: 'TradeOffer',
+    challenge_response: 'ChallengeResponse',
   }[kind];
   invariant(name, `invalid payload kind ${kind}`);
   return name;

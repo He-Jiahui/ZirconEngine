@@ -1,6 +1,6 @@
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::{write_error, write_warn};
+use zircon_runtime::diagnostic_log::write_warn;
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 
 use super::super::RuntimeEntryApp;
@@ -13,12 +13,14 @@ impl RuntimeEntryApp {
     ) {
         let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));
         if let Err(error) = self.resize_viewport(viewport_size) {
-            write_error(
+            self.report_fatal_failure(
                 "runtime_surface_present",
                 format!(
-                    "runtime_resize_viewport_failed viewport={:?} size={}x{} error={error}",
+                    "viewport={:?} size={}x{}",
                     self.viewport, viewport_size.width, viewport_size.height
                 ),
+                format!("runtime viewport resize failed: {error}"),
+                "verify the runtime device and surface state, then restart zircon_runtime",
             );
             event_loop.exit();
             return;
@@ -44,12 +46,14 @@ impl RuntimeEntryApp {
         }
         if let Some(presenter) = self.presenter.as_mut() {
             if let Err(error) = presenter.resize(viewport_size) {
-                write_error(
+                self.report_fatal_failure(
                     "runtime_surface_present",
                     format!(
-                        "runtime_fallback_presenter_resize_failed size={}x{} error={error}",
+                        "fallback_presenter size={}x{}",
                         viewport_size.width, viewport_size.height
                     ),
+                    format!("fallback presenter resize failed: {error}"),
+                    "verify the graphics adapter and window surface, then restart zircon_runtime",
                 );
                 event_loop.exit();
             }

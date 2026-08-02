@@ -1,10 +1,13 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use super::{Asset, AssetLoadState, AssetLoadStates, Handle};
 use crate::asset::{AssetId, AssetKind, AssetUri, ProjectAssetManager};
-use crate::core::resource::{ResourceDiagnostic, ResourceMarker, ResourceRecord};
+use crate::core::resource::{
+    ResourceDiagnostic, ResourceMarker, ResourceReadinessGeneration, ResourceReadinessRow,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetReadinessReport {
@@ -51,13 +54,15 @@ pub struct AssetDependencyReadiness {
 
 impl ProjectAssetManager {
     pub fn readiness_report<TAsset: Asset>(&self, handle: Handle<TAsset>) -> AssetReadinessReport {
-        let record = self.resource_manager().registry().get(handle.id()).cloned();
-        let load_states = self.load_states(handle);
-        let root = self.readiness_root_node::<TAsset>(handle, record.as_ref());
-        let dependencies = record
-            .as_ref()
-            .filter(|record| record.kind == TAsset::Marker::KIND)
-            .map(|record| self.collect_dependency_readiness(record.id, &record.dependency_ids))
+        let generation = self.resource_manager().readiness_generation();
+        let load_states = self.load_states_from_generation(handle, &generation);
+        let root = readiness_root_node::<TAsset>(handle, &generation);
+        let dependencies = generation
+            .row(handle.id())
+            .filter(|row| row.record.kind == TAsset::Marker::KIND)
+            .map(|row| {
+                collect_dependency_readiness(&generation, row.record.id, &row.record.dependency_ids)
+            })
             .unwrap_or_default();
 
         AssetReadinessReport {
@@ -68,156 +73,125 @@ impl ProjectAssetManager {
     }
 }
 
-impl ProjectAssetManager {
-    fn readiness_root_node<TAsset: Asset>(
-        &self,
-        handle: Handle<TAsset>,
-        record: Option<&ResourceRecord>,
-    ) -> AssetReadinessNode {
-        let Some(record) = record else {
-            return AssetReadinessNode {
-                id: handle.id(),
-                locator: None,
-                kind: None,
-                revision: None,
-                load_state: AssetLoadState::NotLoaded,
-                diagnostics: vec![ResourceDiagnostic::error(format!(
-                    "missing asset record {}",
-                    handle.id()
-                ))],
-            };
+fn readiness_root_node<TAsset: Asset>(
+    handle: Handle<TAsset>,
+    generation: &Arc<ResourceReadinessGeneration>,
+) -> AssetReadinessNode {
+    let Some(row) = generation.row(handle.id()) else {
+        return AssetReadinessNode {
+            id: handle.id(),
+            locator: None,
+            kind: None,
+            revision: None,
+            load_state: AssetLoadState::NotLoaded,
+            diagnostics: vec![ResourceDiagnostic::error(format!(
+                "missing asset record {}",
+                handle.id()
+            ))],
         };
+    };
 
-        let mut diagnostics = record.diagnostics.clone();
-        if record.kind != TAsset::Marker::KIND {
-            diagnostics.push(ResourceDiagnostic::error(format!(
-                "asset {} was {:?}, not {:?}",
-                record.primary_locator,
-                record.kind,
-                TAsset::Marker::KIND
-            )));
-            return AssetReadinessNode {
-                id: record.id,
-                locator: Some(record.primary_locator.clone()),
-                kind: Some(record.kind),
-                revision: Some(record.revision),
-                load_state: AssetLoadState::NotLoaded,
-                diagnostics,
-            };
-        }
-
-        let load_state = AssetLoadState::from_resource(
-            Some(record),
-            self.resource_manager().runtime_state(record.id),
-            self.resource_manager()
-                .get::<TAsset::Marker, TAsset>(handle.resource_handle())
-                .is_some(),
-        );
-
-        AssetReadinessNode {
+    let record = &row.record;
+    let mut diagnostics = record.diagnostics.clone();
+    if record.kind != TAsset::Marker::KIND {
+        diagnostics.push(ResourceDiagnostic::error(format!(
+            "asset {} was {:?}, not {:?}",
+            record.primary_locator,
+            record.kind,
+            TAsset::Marker::KIND
+        )));
+        return AssetReadinessNode {
             id: record.id,
             locator: Some(record.primary_locator.clone()),
             kind: Some(record.kind),
             revision: Some(record.revision),
-            load_state,
+            load_state: AssetLoadState::NotLoaded,
             diagnostics,
-        }
+        };
+    }
+
+    AssetReadinessNode {
+        id: record.id,
+        locator: Some(record.primary_locator.clone()),
+        kind: Some(record.kind),
+        revision: Some(record.revision),
+        load_state: row.typed_load_state::<TAsset>().into(),
+        diagnostics,
     }
 }
 
-impl ProjectAssetManager {
-    fn collect_dependency_readiness(
-        &self,
-        root_id: AssetId,
-        dependency_ids: &[AssetId],
-    ) -> Vec<AssetDependencyReadiness> {
-        let mut rows = Vec::new();
-        let mut row_by_id = HashMap::new();
-        let mut expanded = HashSet::new();
-        expanded.insert(root_id);
+fn collect_dependency_readiness(
+    generation: &ResourceReadinessGeneration,
+    root_id: AssetId,
+    dependency_ids: &[AssetId],
+) -> Vec<AssetDependencyReadiness> {
+    let mut rows = Vec::new();
+    let mut row_by_id = HashMap::new();
+    let mut expanded = HashSet::new();
+    expanded.insert(root_id);
 
-        let mut queue = VecDeque::new();
-        for dependency_id in dependency_ids {
-            queue.push_back((*dependency_id, 1_u32, true));
-        }
-
-        while let Some((dependency_id, depth, direct)) = queue.pop_front() {
-            let record = self
-                .resource_manager()
-                .registry()
-                .get(dependency_id)
-                .cloned();
-            let row = self.dependency_readiness_row(dependency_id, record.as_ref(), depth, direct);
-            upsert_dependency_row(&mut rows, &mut row_by_id, row);
-
-            let Some(record) = record else {
-                continue;
-            };
-            if !expanded.insert(dependency_id) {
-                continue;
-            }
-            for nested in &record.dependency_ids {
-                queue.push_back((*nested, depth + 1, false));
-            }
-        }
-
-        rows
+    let mut queue = VecDeque::new();
+    for dependency_id in dependency_ids {
+        queue.push_back((*dependency_id, 1_u32, true));
     }
 
-    fn dependency_readiness_row(
-        &self,
-        dependency_id: AssetId,
-        record: Option<&ResourceRecord>,
-        depth: u32,
-        direct: bool,
-    ) -> AssetDependencyReadiness {
-        let Some(record) = record else {
-            return AssetDependencyReadiness {
-                id: dependency_id,
-                locator: None,
-                kind: None,
-                revision: None,
-                depth,
-                direct,
-                load_state: AssetLoadState::Failed,
-                diagnostics: vec![ResourceDiagnostic::error(format!(
-                    "missing asset dependency record {}",
-                    dependency_id
-                ))],
-            };
-        };
+    while let Some((dependency_id, depth, direct)) = queue.pop_front() {
+        if let Some(index) = row_by_id.get(&dependency_id).copied() {
+            let existing: &mut AssetDependencyReadiness = &mut rows[index];
+            existing.depth = existing.depth.min(depth);
+            existing.direct |= direct;
+            continue;
+        }
 
-        AssetDependencyReadiness {
-            id: record.id,
-            locator: Some(record.primary_locator.clone()),
-            kind: Some(record.kind),
-            revision: Some(record.revision),
+        let readiness_row = generation.row(dependency_id);
+        let row = dependency_readiness_row(dependency_id, readiness_row, depth, direct);
+        row_by_id.insert(dependency_id, rows.len());
+        rows.push(row);
+
+        let Some(readiness_row) = readiness_row else {
+            continue;
+        };
+        if !expanded.insert(dependency_id) {
+            continue;
+        }
+        for nested in &readiness_row.record.dependency_ids {
+            queue.push_back((*nested, depth + 1, false));
+        }
+    }
+
+    rows
+}
+
+fn dependency_readiness_row(
+    dependency_id: AssetId,
+    row: Option<&Arc<ResourceReadinessRow>>,
+    depth: u32,
+    direct: bool,
+) -> AssetDependencyReadiness {
+    let Some(row) = row else {
+        return AssetDependencyReadiness {
+            id: dependency_id,
+            locator: None,
+            kind: None,
+            revision: None,
             depth,
             direct,
-            load_state: AssetLoadState::from_resource(
-                Some(record),
-                self.resource_manager().runtime_state(record.id),
-                self.resource_manager().get_untyped(record.id).is_some(),
-            ),
-            diagnostics: record.diagnostics.clone(),
-        }
-    }
-}
+            load_state: AssetLoadState::Failed,
+            diagnostics: vec![ResourceDiagnostic::error(format!(
+                "missing asset dependency record {}",
+                dependency_id
+            ))],
+        };
+    };
 
-fn upsert_dependency_row(
-    rows: &mut Vec<AssetDependencyReadiness>,
-    row_by_id: &mut HashMap<AssetId, usize>,
-    row: AssetDependencyReadiness,
-) {
-    if let Some(index) = row_by_id.get(&row.id).copied() {
-        let existing = &mut rows[index];
-        if row.depth < existing.depth {
-            existing.depth = row.depth;
-        }
-        existing.direct |= row.direct;
-        return;
+    AssetDependencyReadiness {
+        id: row.record.id,
+        locator: Some(row.record.primary_locator.clone()),
+        kind: Some(row.record.kind),
+        revision: Some(row.record.revision),
+        depth,
+        direct,
+        load_state: row.load_state.into(),
+        diagnostics: row.record.diagnostics.clone(),
     }
-
-    row_by_id.insert(row.id, rows.len());
-    rows.push(row);
 }

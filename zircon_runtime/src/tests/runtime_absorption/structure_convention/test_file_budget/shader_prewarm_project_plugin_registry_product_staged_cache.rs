@@ -29,7 +29,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wir
             "register_record(exported_record)",
             "request.key.material_shader = case.shader_id()",
             "request.key.material_revision = case.revision",
-            "let request_source_hash = raw_wgsl_hash(&request.wgsl_source)",
+            "let request_source_hash = raw_wgsl_hash(&source.wgsl_source)",
             ".include_content_hashes",
             ".contains(&request_source_hash)",
             "ShaderVariantCacheDisk::with_fallback_roots",

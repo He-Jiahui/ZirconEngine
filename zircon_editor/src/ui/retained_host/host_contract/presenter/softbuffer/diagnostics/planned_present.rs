@@ -1,8 +1,8 @@
 mod model;
 mod outcome;
 
-use self::model::planned_present;
 pub(in crate::ui::retained_host::host_contract) use self::model::PlannedPresent;
+use self::model::planned_present;
 use self::outcome::repaint_outcome_for_damage;
 use super::super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::super::diagnostics::{

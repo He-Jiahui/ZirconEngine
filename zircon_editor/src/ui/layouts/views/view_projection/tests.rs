@@ -38,9 +38,11 @@ fn zui_view_template_projection_uses_v2_surface_builder_without_legacy_fallback(
     )
     .unwrap();
 
-    assert!(nodes
-        .iter()
-        .any(|node| node.control_id == "ProjectOverviewTitleText" && node.text == "V2 Project"));
+    assert!(
+        nodes
+            .iter()
+            .any(|node| node.control_id == "ProjectOverviewTitleText" && node.text == "V2 Project")
+    );
     assert!(nodes.iter().any(|node| node.role == "Button"));
     assert!(
         view_v2_store_file_cache()
@@ -211,11 +213,63 @@ fn mui_text_field_metadata_projects_variant_state_tokens_for_native_painter() {
 #[test]
 fn native_painter_components_own_generated_text_commands() {
     assert!(component_owns_text_paint(&metadata("Button", [])));
+    assert!(component_owns_text_paint(&metadata(
+        "IconButton",
+        [("icon_placement", Value::String("icon_only".to_string()))],
+    )));
+    assert!(!component_owns_text_paint(&metadata(
+        "IconButton",
+        [("icon_placement", Value::String("leading".to_string()))],
+    )));
     assert!(component_owns_text_paint(&metadata("EditableTable", [])));
     assert!(component_owns_text_paint(&metadata("InputField", [])));
     assert!(component_owns_text_paint(&metadata("NumberField", [])));
     assert!(component_owns_text_paint(&metadata("Table", [])));
     assert!(component_owns_text_paint(&metadata("TextField", [])));
+}
+
+#[test]
+fn icon_only_icon_button_hides_its_paint_label() {
+    assert!(icon_button_hides_label(&metadata(
+        "IconButton",
+        [("icon_placement", Value::String("icon_only".to_string()))],
+    )));
+    assert!(!icon_button_hides_label(&metadata(
+        "IconButton",
+        [("icon_placement", Value::String("leading".to_string()))],
+    )));
+}
+
+#[test]
+fn asset_browser_icon_only_actions_project_icons_without_paint_labels() {
+    let nodes = build_view_template_nodes(
+        "view.v2.asset_browser.icon_actions",
+        "/assets/ui/editor/asset_browser.zui",
+        &[],
+        UiSize::new(420.0, 320.0),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+
+    for (control_id, icon_name) in [
+        ("AssetBrowserViewModeListButton", "list-outline"),
+        ("AssetBrowserViewModeThumbButton", "grid-outline"),
+        (
+            "LocateSelectedAsset",
+            "editor_pages/asset_browser/navigation/search.svg",
+        ),
+    ] {
+        let node = nodes
+            .iter()
+            .find(|node| node.control_id == control_id)
+            .unwrap_or_else(|| panic!("missing asset browser action `{control_id}`"));
+        assert_eq!(node.role.as_str(), "IconButton");
+        assert_eq!(node.icon_name.as_str(), icon_name);
+        assert!(
+            node.text.is_empty(),
+            "icon-only action `{control_id}` must not emit a duplicate text label"
+        );
+    }
 }
 
 fn metadata<const N: usize>(

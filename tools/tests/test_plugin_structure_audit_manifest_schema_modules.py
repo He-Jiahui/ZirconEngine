@@ -161,6 +161,33 @@ class PluginStructureAuditManifestSchemaModulesTests(unittest.TestCase):
             violations,
         )
 
+    def test_runtime_module_with_system_anchors_requires_standard_main_system_set(self):
+        expected_violation = (
+            "zircon_plugins/sound/plugin.toml: modules[0].system_sets "
+            "must include sound.main when system_anchors are declared"
+        )
+        cases = (
+            (None, [expected_violation]),
+            (["sound.transport"], [expected_violation]),
+            (["sound.main", "sound.transport"], []),
+        )
+
+        for system_sets, expected in cases:
+            with self.subTest(system_sets=system_sets):
+                violations: list[str] = []
+                manifest = plugin_manifest()
+                manifest["modules"][0]["system_anchors"] = ["sound.tick"]
+                if system_sets is not None:
+                    manifest["modules"][0]["system_sets"] = system_sets
+
+                collect_manifest_schema_violations(
+                    "zircon_plugins/sound/plugin.toml",
+                    manifest,
+                    violations,
+                )
+
+                self.assertEqual(expected, violations)
+
     def test_manifest_schema_rejects_duplicate_module_names_across_feature_rows(self):
         violations: list[str] = []
         manifest = plugin_manifest()

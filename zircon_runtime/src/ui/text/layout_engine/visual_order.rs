@@ -3,29 +3,28 @@ use zircon_runtime_interface::ui::surface::{
     UiResolvedTextRun, UiTextDirection, UiTextRange, UiTextRunKind,
 };
 
-use super::super::grapheme::{grapheme_indices, leading_grapheme_continuation_len};
+use super::super::grapheme::grapheme_indices;
 use super::candidate_line::CandidateLine;
 use super::range_mapping::source_subrange;
 
 #[derive(Clone, Debug)]
 struct VisualTextToken {
     owner_run_index: usize,
-    kind: UiTextRunKind,
-    text: String,
+    text_range: std::ops::Range<usize>,
     source_range: UiTextRange,
 }
 
 #[derive(Clone, Debug)]
 struct VisualTextCluster {
     logical_range: UiTextRange,
-    parts: Vec<VisualTextToken>,
+    token_range: std::ops::Range<usize>,
 }
 
 #[derive(Clone, Debug)]
-struct VisualTextFragment {
+struct VisualRunProjection {
     owner_run_index: usize,
     kind: UiTextRunKind,
-    text: String,
+    visual_range: std::ops::Range<usize>,
     source_range: UiTextRange,
     direction: UiTextDirection,
 }
@@ -59,7 +58,7 @@ fn apply_visual_order_inner(
     if line.runs.is_empty() || line.text.is_empty() {
         return;
     }
-    let clusters = logical_text_clusters(&line.runs);
+    let (clusters, tokens) = logical_text_clusters(&line.runs, &line.text);
     let ranges = clusters
         .iter()
         .map(|cluster| cluster.logical_range.into())
@@ -86,31 +85,39 @@ fn apply_visual_order_inner(
         None => None,
     };
 
-    let mut visual_fragments = Vec::new();
+    let mut visual_text = String::with_capacity(line.text.len());
+    let mut visual_runs = Vec::new();
     for logical_index in order.visual_indices.iter().copied() {
-        let Some(cluster) = clusters.get(logical_index).cloned() else {
+        let Some(cluster) = clusters.get(logical_index) else {
             return;
         };
         let bidi_level = order.logical_levels[logical_index];
-        push_visual_cluster(&mut visual_fragments, cluster, bidi_level);
+        push_visual_cluster(
+            &mut visual_text,
+            &mut visual_runs,
+            &line.runs,
+            &tokens[cluster.token_range.clone()],
+            bidi_level,
+        );
     }
 
-    let mut visual_text = String::new();
-    let mut visual_runs = Vec::with_capacity(visual_fragments.len());
-    for fragment in visual_fragments {
-        let visual_start = visual_text.len();
-        visual_text.push_str(&fragment.text);
-        visual_runs.push(UiResolvedTextRun {
-            kind: fragment.kind,
-            text: fragment.text,
-            source_range: fragment.source_range,
-            visual_range: UiTextRange {
-                start: visual_start,
-                end: visual_text.len(),
-            },
-            direction: fragment.direction,
-        });
-    }
+    let visual_runs = visual_runs
+        .into_iter()
+        .filter_map(|projection: VisualRunProjection| {
+            Some(UiResolvedTextRun {
+                kind: projection.kind,
+                text: visual_text
+                    .get(projection.visual_range.clone())?
+                    .to_string(),
+                source_range: projection.source_range,
+                visual_range: UiTextRange {
+                    start: projection.visual_range.start,
+                    end: projection.visual_range.end,
+                },
+                direction: projection.direction,
+            })
+        })
+        .collect();
     line.text = visual_text;
     line.runs = visual_runs;
     if let (Some(advances), Some(reordered_advances)) = (logical_advances, reordered_advances) {
@@ -126,36 +133,54 @@ fn direction_for_bidi_level(bidi_level: u8) -> UiTextDirection {
     }
 }
 
-fn logical_text_clusters(runs: &[UiResolvedTextRun]) -> Vec<VisualTextCluster> {
+fn logical_text_clusters(
+    runs: &[UiResolvedTextRun],
+    logical_text: &str,
+) -> (Vec<VisualTextCluster>, Vec<VisualTextToken>) {
     let mut clusters = Vec::<VisualTextCluster>::new();
-    let mut emitted_text = String::new();
-    for (owner_run_index, run) in runs.iter().enumerate() {
-        let mut consumed = 0;
-        if !clusters.is_empty() {
-            let continuation_len = leading_grapheme_continuation_len(&emitted_text, &run.text);
-            if continuation_len > 0 {
-                let token = visual_token(owner_run_index, run, 0, continuation_len);
-                if let Some(cluster) = clusters.last_mut() {
-                    cluster.logical_range.end = token.source_range.end;
-                    cluster.parts.push(token);
-                    emitted_text.push_str(&run.text[..continuation_len]);
-                    consumed = continuation_len;
-                }
-            }
+    let mut tokens = Vec::<VisualTextToken>::new();
+    let mut owner_run_index = 0;
+    for (cluster_start, grapheme) in grapheme_indices(logical_text) {
+        let cluster_end = cluster_start + grapheme.len();
+        while runs
+            .get(owner_run_index)
+            .is_some_and(|run| run.visual_range.end <= cluster_start)
+        {
+            owner_run_index += 1;
         }
-
-        for (offset, grapheme) in grapheme_indices(&run.text[consumed..]) {
-            let offset = consumed + offset;
-            let end = offset + grapheme.len();
+        let first_token = tokens.len();
+        let mut run_index = owner_run_index;
+        while let Some(run) = runs.get(run_index) {
+            if run.visual_range.start >= cluster_end {
+                break;
+            }
+            let part_start = cluster_start.max(run.visual_range.start);
+            let part_end = cluster_end.min(run.visual_range.end);
+            if part_start < part_end {
+                tokens.push(visual_token(
+                    run_index,
+                    run,
+                    part_start - run.visual_range.start,
+                    part_end - run.visual_range.start,
+                ));
+            }
+            run_index += 1;
+        }
+        let after_last_token = tokens.len();
+        if let (Some(first), Some(last)) = (
+            tokens.get(first_token),
+            tokens.get(after_last_token.saturating_sub(1)),
+        ) {
             clusters.push(VisualTextCluster {
-                logical_range: source_subrange(run.source_range, run.text.len(), offset, end),
-                parts: vec![visual_token(owner_run_index, run, offset, end)],
+                logical_range: UiTextRange {
+                    start: first.source_range.start.min(last.source_range.start),
+                    end: first.source_range.end.max(last.source_range.end),
+                },
+                token_range: first_token..after_last_token,
             });
-            emitted_text.push_str(grapheme);
         }
     }
-    clusters.retain(|cluster| !cluster.parts.is_empty());
-    clusters
+    (clusters, tokens)
 }
 
 fn visual_token(
@@ -166,57 +191,84 @@ fn visual_token(
 ) -> VisualTextToken {
     VisualTextToken {
         owner_run_index,
-        kind: run.kind,
-        text: run.text[start..end].to_string(),
+        text_range: start..end,
         source_range: source_subrange(run.source_range, run.text.len(), start, end),
     }
 }
 
 fn push_visual_cluster(
-    fragments: &mut Vec<VisualTextFragment>,
-    cluster: VisualTextCluster,
+    visual_text: &mut String,
+    projections: &mut Vec<VisualRunProjection>,
+    runs: &[UiResolvedTextRun],
+    tokens: &[VisualTextToken],
     bidi_level: u8,
 ) {
     let direction = direction_for_bidi_level(bidi_level);
-    for token in cluster.parts {
+    for token in tokens {
+        let Some(run) = runs.get(token.owner_run_index) else {
+            continue;
+        };
+        let Some(text) = run.text.get(token.text_range.clone()) else {
+            continue;
+        };
         push_visual_fragment(
-            fragments,
-            VisualTextFragment {
-                owner_run_index: token.owner_run_index,
-                kind: token.kind,
-                text: mirrored_visual_text(token.text, bidi_level),
-                source_range: token.source_range,
-                direction,
-            },
+            visual_text,
+            projections,
+            token.owner_run_index,
+            run.kind,
+            text,
+            token.source_range,
+            direction,
+            bidi_level,
         );
     }
 }
 
-fn mirrored_visual_text(text: String, bidi_level: u8) -> String {
-    let mirrored = {
-        let mut chars = text.chars();
-        let Some(ch) = chars.next() else {
-            return text;
-        };
-        if chars.next().is_some() {
-            return text;
-        }
-        mirrored_bidi_char(ch, bidi_level)
-    };
-    mirrored.map(|ch| ch.to_string()).unwrap_or(text)
-}
-
-fn push_visual_fragment(fragments: &mut Vec<VisualTextFragment>, fragment: VisualTextFragment) {
-    if let Some(last) = fragments.last_mut() {
-        if last.owner_run_index == fragment.owner_run_index
-            && last.kind == fragment.kind
-            && last.direction == fragment.direction
-            && last.source_range.end == fragment.source_range.start
+#[allow(clippy::too_many_arguments)]
+fn push_visual_fragment(
+    visual_text: &mut String,
+    projections: &mut Vec<VisualRunProjection>,
+    owner_run_index: usize,
+    kind: UiTextRunKind,
+    text: &str,
+    source_range: UiTextRange,
+    direction: UiTextDirection,
+    bidi_level: u8,
+) {
+    let visual_start = visual_text.len();
+    push_mirrored_text(visual_text, text, bidi_level);
+    let visual_end = visual_text.len();
+    if let Some(last) = projections.last_mut() {
+        if last.owner_run_index == owner_run_index
+            && last.kind == kind
+            && last.direction == direction
+            && last.source_range.end == source_range.start
+            && last.visual_range.end == visual_start
         {
-            last.text.push_str(&fragment.text);
-            last.source_range.end = fragment.source_range.end;
+            last.visual_range.end = visual_end;
+            last.source_range.end = source_range.end;
             return;
         }
     }
-    fragments.push(fragment);
+    projections.push(VisualRunProjection {
+        owner_run_index,
+        kind,
+        visual_range: visual_start..visual_end,
+        source_range,
+        direction,
+    });
+}
+
+fn push_mirrored_text(output: &mut String, text: &str, bidi_level: u8) {
+    let mut chars = text.chars();
+    let Some(character) = chars.next() else {
+        return;
+    };
+    if chars.next().is_none() {
+        if let Some(mirrored) = mirrored_bidi_char(character, bidi_level) {
+            output.push(mirrored);
+            return;
+        }
+    }
+    output.push_str(text);
 }

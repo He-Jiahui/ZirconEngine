@@ -64,5 +64,13 @@ pub contractTest(): int {
         absorbProfileMatches(shield, 2, 90, 30.05)) {
         return -3;
     }
+    var temporalBarrier = abilities.indexOf("temporal_barrier");
+    var barrierRankOne = resolveAbsorbProfile(temporalBarrier, 1);
+    var barrierRankThree = resolveAbsorbProfile(temporalBarrier, 3);
+    if (!barrierRankOne.valid || barrierRankOne.amount != 55 ||
+        !closeEnough(barrierRankOne.duration, 10.0) || !barrierRankThree.valid ||
+        barrierRankThree.amount != 160 || !closeEnough(barrierRankThree.duration, 10.0)) {
+        return -4;
+    }
     return 1;
 }

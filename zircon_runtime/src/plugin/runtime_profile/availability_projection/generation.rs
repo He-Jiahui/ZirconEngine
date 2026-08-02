@@ -27,7 +27,7 @@ const fn primary_category_index(category: RuntimePluginAvailabilityCategory) -> 
 /// Immutable category, lookup, and summary state for one availability generation.
 ///
 /// A required row is stored once in `rows`; `missing_required` is an index view over that same
-/// row. The legacy report is materialized only for export or diagnostics that require owned
+/// row. The owned report is materialized only for export or diagnostics that require owned
 /// serializable entries.
 pub struct RuntimePluginAvailabilityGeneration<'a> {
     rows: Box<[RuntimePluginAvailabilityRow<'a>]>,

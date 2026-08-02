@@ -13,13 +13,13 @@ impl ProjectManager {
     ) -> Result<PersistedAssetReference, ReferenceResolutionError> {
         match reference.locator.scheme() {
             ResourceScheme::Builtin => {
-                return Ok(PersistedAssetReference::builtin(reference.locator.clone()))
+                return Ok(PersistedAssetReference::builtin(reference.locator.clone()));
             }
             ResourceScheme::Res => {}
             scheme => {
                 return Err(ReferenceResolutionError::UnsupportedScheme {
                     locator: reference.locator.clone(),
-                })
+                });
             }
         }
         let by_guid = self
@@ -65,12 +65,12 @@ impl ProjectManager {
             [] => {
                 return Err(ReferenceResolutionError::MissingPath {
                     path: reference.locator.to_string(),
-                })
+                });
             }
             _ => {
                 return Err(ReferenceResolutionError::AmbiguousPath {
                     path: reference.locator.to_string(),
-                })
+                });
             }
         };
         let relative =

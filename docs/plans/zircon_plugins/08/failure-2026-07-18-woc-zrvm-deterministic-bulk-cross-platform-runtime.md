@@ -29,6 +29,108 @@ tests:
 
 # Plugins 08: WOC requires a deterministic bulk and cross-platform ZrVM runtime
 
+## WOS165 command-outcome transport addendum (2026-08-01)
+
+`world-of-claudecraft` has a generic command request/outcome protocol that WOC
+cannot currently represent through the fixed-tick command envelope. `OnlineGame`
+allocates a positive safe-integer `rid` per `cmdWithOutcome` call, sends it with
+the command, and keeps an in-memory pending table. The server sends
+`{ t: 'commandOutcome', rid, ok }` only when a matching valid `rid` is present;
+the client correlates that frame, resolves the caller's `Promise<boolean>`, and
+otherwise resolves `false` after 5 seconds or when its session terminates. Both
+`enter_dungeon` and `leave_dungeon`, along with other interaction calls, depend
+on this general facility.
+
+WOC's current `Command { command_id, actor, sequence, payload }` has no separate
+request id, and its client/server project adapters have no generic outcome frame,
+pending-request table, timeout/disconnect cleanup, or correlation acceptance
+contract. Treating a snapshot delta as success is not equivalent: a rejected
+request can leave state unchanged, and an accepted request may have a delayed
+projection. A command-specific WOC reply path or native simulation fallback is
+not an acceptable repair.
+
+Plugins 08 must provide this as a project-plugin capability, adjacent to the
+existing authenticated command ingress/egress boundary and without changing the
+authoritative ZrVM tick contract:
+
+- accepted host ingress carries a bounded positive request id outside the
+  deterministic tick input (or in an explicitly non-authoritative envelope) while
+  preserving the command's existing actor/sequence replay identity;
+- the project package can emit a typed boolean outcome associated with that id
+  after a committed authoritative decision; responses must be lossless through
+  the generic plugin bridge and must not use a WOC-only host callback;
+- client pending requests must reject duplicate or stale ids deterministically,
+  resolve exactly once, resolve `false` on disconnect, and apply a host-owned
+  timeout policy without supplying wall-clock values to the VM;
+- an accepted fixture must cover success, authoritative false, timeout,
+  disconnect, duplicate response, stale response, and two concurrent commands
+  completing out of order in both interpreter and binary project-package routes.
+
+This is a prerequisite for treating WOC `cmdWithOutcome` calls as reproduced.
+The WOC owner will keep typed request encoding moving but will not claim or
+simulate return-value parity until the generic route has an owner receipt.
+
+## WOS166 raw JavaScript text and frame ingress addendum (2026-08-01)
+
+The source `mail_send` command exposes two generic ingress properties that the
+current project plugin cannot faithfully model. JavaScript strings are sequences
+of UTF-16 code units, so the JSON command may contain a lone leading surrogate,
+a lone trailing surrogate, or any source-order combination of those code units.
+Rust and Zr `String` values only admit well-formed UTF-8, making a normal typed
+`String` payload an implicit normalization/rejection boundary. Separately, the
+source 16 KiB limit is applied by the WebSocket server to the complete serialized
+JSON frame; a nested binary command payload of the same byte length does not
+have equivalent accept/reject behavior when field names, JSON escaping, and its
+outer envelope are included.
+
+Plugins 08 must provide a generic project-plugin ingress representation for
+length-delimited JavaScript text and enforce the source-equivalent limit at the
+actual received envelope. The representation may be UTF-16 code units or a
+lossless opaque field decoded by the project package, but it must preserve every
+source code unit until authoritative policy deliberately slices or normalizes
+it. The host must account for the serialized ingress boundary rather than give
+individual games a hand-tuned nested-payload cap. This belongs beside the
+authenticated command ingress boundary and must not become a WOC-only wire
+codec or native gameplay fallback.
+
+Accepted interpreter and binary project-package fixtures must cover BMP text,
+an astral character, lone leading/trailing surrogate code units, ordered mixed
+surrogates, and commands immediately below and above the serialized-frame limit
+with JSON-escaped text and attachments. Each fixture must match source
+acceptance before the Ravenpost reducer runs.
+
+Until that generic route has an owner receipt, WOS166 only claims lossless typed
+ingress for valid UTF-8 text with a 16 KiB binary payload safety bound. It does
+not claim the full JavaScript text domain or source WebSocket frame-boundary
+parity.
+
+## WOS171 challenge-response JavaScript arithmetic addendum (2026-08-01)
+
+The source in-game challenge flow is deterministic but depends on exact
+JavaScript value semantics, not a cryptographic API. `signChallenge` hashes the
+JSON array `[nonce, response, seed]` with `charCodeAt` UTF-16 code units,
+`Math.imul` 32-bit multiplication, unsigned shifts/XOR, a 53-bit integer
+composition and `Number#toString(36)`. The server accepts a typed string triple
+only after `verifyChallenge` reproduces the same result against the authenticated
+session client seed.
+
+Plugins08 must provide a generic reliable project-package route for this
+deterministic compatibility surface: lossless JavaScript text from the WOS166
+ingress representation, exact 32-bit integer arithmetic/unsigned shifts,
+integer-safe 53-bit composition, and canonical radix-36 rendering. The route
+may be VM intrinsics or a bounded generic host capability, but it must be part
+of the real `zr_vm:project` package boundary, participate in deterministic
+budget diagnostics and avoid both a WOC-only hash callback and a native gameplay
+fallback.
+
+Interpreter and binary package fixtures must match source vectors for empty and
+ASCII inputs, non-BMP text, lone leading/trailing/mixed surrogates, 32-bit
+overflow inputs, and maximum safe 53-bit values. They must additionally prove
+that a valid response verifies with the original session seed while a changed
+nonce, response, signature or seed fails. WOC will keep typed valid-UTF-8
+transport work moving, but cannot claim source-equivalent challenge completion
+until this generic runtime capability has an owner receipt.
+
 ## 来源执行者
 
 - 来源计划：`docs/plans/woc/00-woc-engine-capability-foundation.md`
@@ -64,6 +166,50 @@ The current ZrVM plugin is not yet a proven reliable backend for that workload:
 - The mob-swing affix state independently hits the same `execution_dispatch.c:7492` string-operand assertion on explicitly typed object string state. Its parent command timed out after the assertion and briefly projected PID 44588 with the exact CLI image path; the process exited naturally before the verified termination command ran, and only the older inaccessible PID 45728 remains. In the same matrix, scalar `spell_scaling.contractTest()` exited with Windows access violation `-1073741819` before any result or structured diagnostic, while `casting_state` could not resolve a later-declared `canQueue(CastState)` helper from two class methods until the three-condition predicate was inlined. The inlined casting contract then passed in freshly compiled interpreter and binary modes.
 
 These are generic backend limitations. Implementing a second byte codec, per-game lock bypass, fallback language, or platform-specific WOC script path would hide rather than validate the missing engine capability.
+
+## WOS163 presentation transaction addendum (2026-08-01)
+
+The WOC client transaction already requires one authoritative tick to return both
+the binary `WorldSnapshot` and a separately validated
+`ClientPresentationProjection` payload. Weapon-skin parity makes this requirement
+observable: `Entity.weaponSkinId` must reach each client actor appearance in the
+same committed tick as the account loadout mutation. `zr_vm:project` currently
+offers a generic scalar `call_export` hook, but it has no accepted, lossless bulk
+input/output transaction contract that invokes the authoritative tick and its
+presentation export together. Its real value bridge does not carry arbitrary byte
+arrays losslessly, so a WOC-local string/base64 codec or project-specific adapter
+would conceal the missing plugin capability.
+
+The plugin fix must expose one generic project transaction boundary with canonical
+binary input and two lossless binary outputs (authoritative state/event snapshot
+and presentation projection), shared deterministic budget accounting, and failure
+atomicity. It must exercise the real `zr_vm:project` package rather than a fake
+`WocProjectVm`, then prove a committed weapon-skin change updates the returned
+presentation actor identity. WOC will retain its source-derived script projection
+and native projection decoder, but will not implement a game-specific VM adapter
+or another runtime path while this shared capability remains open.
+
+## WOS164 signed corpse-material addendum (2026-08-01)
+
+The source `harvestCorpse` transaction can yield a rare, epic or legendary
+material through `addItemInstance(itemId, { signer: meta.name })`. It is not a
+fungible inventory increment: the authoritative snapshot and client projection
+must retain the item identity and signer across a later tick, save/restore and
+project reload. WOC already has a scalar-stack M5 inventory and an isolated
+instance-ledger contract, but the generic item-instance persistence/cross-module
+mutable-state ABI is not accepted at the real `zr_vm:project` boundary. WOS77
+therefore deferred an item-instance craft result; WOS164 cannot faithfully close
+the corpse command without the same capability.
+
+The Plugins08 repair must extend the generic lossless transaction value channel
+to carry bounded structured instance collections inside authoritative snapshot
+and presentation outputs, with deterministic ordering, mutation/rollback
+atomicity and no lossy string encoding. Its real-package acceptance must prove a
+signed instance produced by one tick survives a restore and reaches the native
+client projection unchanged. This is an engine/plugin foundation task, not an
+authorization for a WOC-specific side channel, a fungible fallback, or a second
+runtime backend. WOC will continue its source-derived protocol/data/state work
+and rejoin this route when the shared capability has a receipt.
 
 ## 最低共享层根因
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -31,6 +32,11 @@ ATOMIC_FILE_BACKEND = PLATFORM_PREFERENCES_ROOT / "atomic_file.rs"
 EXTERNAL_BACKEND_AUTHORITY_TEST = (
     REPO_ROOT / "zircon_runtime/tests/runtime11_preference_backend_authority.rs"
 )
+WOC_CLIENT_ROOT = REPO_ROOT / "examples/woc/native/apps/woc_client"
+WOC_CLIENT_MANIFEST = WOC_CLIENT_ROOT / "Cargo.toml"
+WOC_WORKSPACE_LOCK = WOC_CLIENT_ROOT.parents[1] / "Cargo.lock"
+WOC_STORAGE_BRIDGE = WOC_CLIENT_ROOT / "src/preferences/storage.rs"
+WOC_STORAGE_TEST_SUPPORT = WOC_CLIENT_ROOT / "tests/preference_storage_support.rs"
 
 
 def read(path: Path) -> str:
@@ -178,7 +184,7 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             {path.name for path in LANE_ROOT.glob("*.rs")} & expected_files,
         )
 
-        source = "\n".join(read(path) for path in sorted(LANE_ROOT.glob("*.rs")))
+        source = "\n".join(read(path) for path in sorted(LANE_ROOT.rglob("*.rs")))
         for anchor in (
             "BoundedKeyedIoLimits",
             "BoundedKeyedIoLane",
@@ -191,6 +197,20 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             "wait_until",
             "cancel_before_start",
             "GlobalAdmissionEpoch",
+            "FencePrerequisite",
+            "TaskTimer",
+            "Condvar",
+            "catch_unwind",
+            "work_panicked",
+            "plan_fence_prerequisites",
+            "size_of::<FencePrerequisite>()",
+            "BoundedKeyedIoShutdownReport",
+            "marks_active_work_started_before_shutdown_can_linearize",
+            "shutdown_waits_for_terminal_observer_and_pump_handle",
+            "admission_matrix_stays_bounded_at_one_thousand_and_hundred_thousand",
+            "same_key_storm_does_not_starve_an_interleaved_key",
+            "charges_fence_prerequisites_before_capture",
+            "consecutive_fences_retain_linear_prerequisite_records",
             "max_entries",
             "max_retained_bytes",
             "Superseded",
@@ -232,6 +252,9 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             "PreferenceOverlayLimits",
             "PreferenceOverlayReservation",
             "PreferencePersistenceQuote",
+            "PreferencePersistenceDiagnostics",
+            "PreferenceOverlayDiagnostics",
+            "PreferencePersistenceLimitsError",
             "overlay_retained_bytes",
             "lane_retained_bytes",
             "checked_add",
@@ -243,7 +266,16 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             "quote_retained_bytes",
             "install_generation_before_runnable",
             "complete_if_generation",
+            "known_non_durable_failure",
+            "overlay replacement quote underflow",
+            "entry.durability != PreferenceDurabilityState::VisibleNotDurable",
+            "submission: Mutex<()>",
+            "observe_terminal",
+            "caller_filesystem_wall",
             "flush_before_later_different_key",
+            "default_limits_allow_maximum_value_failure_retry",
+            "rejects_pending_and_durable_eviction",
+            "one_second_backend_stall_remains_off_caller_filesystem_wall",
             "PreferenceStorageBackend",
         ):
             self.assertIn(anchor, source)
@@ -273,6 +305,20 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
         self.assertGreaterEqual(host_source.count("PreferenceBackendWorkAuthority"), 4)
         self.assertIn("Box<dyn Read + Send>", host_source)
 
+        platform_route = read(PLATFORM_ROUTE)
+        external_contract = read(EXTERNAL_BACKEND_AUTHORITY_TEST)
+        for internal_type in (
+            "PreferencePersistenceAdapter",
+            "PreferencePersistenceLimits",
+            "PreferencePersistenceQuote",
+            "PreferencePersistenceDiagnostics",
+            "PreferenceOverlayDiagnostics",
+        ):
+            self.assertNotIn(internal_type, platform_route)
+            self.assertNotIn(internal_type, external_contract)
+        self.assertIn("pub(crate) use persistence::", host_route)
+        self.assertNotIn("impl Default for PlatformManager", read(MANAGER_SOURCE))
+
     def test_consumer_contract_is_hard_cut_to_submission_snapshot_and_fence(self) -> None:
         source = read(STORAGE_CONTRACT)
         for retired_signature in (
@@ -292,6 +338,70 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             "flush_fence",
         ):
             self.assertIn(anchor, source)
+
+    def test_woc_consumes_runtime_preference_service_without_sync_compat_trait(self) -> None:
+        manifest = read(WOC_CLIENT_MANIFEST)
+        self.assertIn(
+            'zircon_runtime = { path = "../../../../../zircon_runtime", '
+            'default-features = false }',
+            manifest,
+        )
+
+        lock = tomllib.loads(read(WOC_WORKSPACE_LOCK))
+        packages = lock.get("package", [])
+        woc_client = next(
+            package for package in packages if package.get("name") == "woc_client"
+        )
+        self.assertIn("zircon_runtime", woc_client.get("dependencies", []))
+        self.assertTrue(
+            any(package.get("name") == "zircon_runtime" for package in packages),
+            "nested WOC lock must include the engine dependency package",
+        )
+
+        bridge = read(WOC_STORAGE_BRIDGE)
+        self.assertNotIn("pub trait PreferenceStorage", bridge)
+        self.assertNotIn("fn read(&self, key: &str)", bridge)
+        self.assertNotIn("fn write(&self, key: &str", bridge)
+        for anchor in (
+            "zircon_runtime::core::framework::platform",
+            "storage.snapshot(&key)",
+            ".submit_write(",
+            "PreferenceWorkDeadline::none()",
+            "PreferenceRead::Pending",
+            "PreferenceDurabilityState::Pending",
+        ):
+            self.assertIn(anchor, bridge)
+
+        production = "\n".join(
+            read(path) for path in sorted((WOC_CLIENT_ROOT / "src").rglob("*.rs"))
+        )
+        self.assertNotIn("crate::preferences::PreferenceStorage", production)
+        self.assertNotIn("S: PreferenceStorage", production)
+        self.assertNotIn(
+            "pub use storage::*", read(WOC_CLIENT_ROOT / "src/preferences/mod.rs")
+        )
+        self.assertIn("S: AsRef<dyn PreferenceStorage>", production)
+        for anchor in (
+            "refresh_from_storage",
+            "take_persistence_submission",
+            "last_persistence_submission",
+            "try_load_inventory_filter",
+        ):
+            self.assertIn(anchor, production)
+
+        support = read(WOC_STORAGE_TEST_SUPPORT)
+        for anchor in (
+            "CoreRuntime::new()",
+            "platform_preference_storage_handle",
+            "resolve_manager_service",
+            "impl PreferenceStorageBackend for MemoryPreferenceBackend",
+            "seed_persisted",
+            "block_read",
+            "wait_until_read_started",
+            "release_read",
+            "wait_until_loaded",
+        ):
+            self.assertIn(anchor, support)
 
     def test_platform_manager_never_executes_backend_primitive_directly(self) -> None:
         source = read(MANAGER_SOURCE)

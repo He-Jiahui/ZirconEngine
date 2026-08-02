@@ -48,7 +48,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/navigation/constants.rs
   - zircon_runtime/src/core/framework/navigation/mod.rs
   - zircon_plugins/navigation/runtime/src/agent.rs
-  - zircon_plugins/navigation/runtime/src/agent/repath.rs
+  - zircon_plugins/navigation/runtime/src/agent.rs
   - zircon_plugins/navigation/runtime/src/agent/writeback.rs
   - zircon_plugins/navigation/runtime/src/components.rs
   - zircon_plugins/navigation/runtime/src/components/agent.rs

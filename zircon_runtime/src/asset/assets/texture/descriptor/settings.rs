@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
     RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+    TextureCompressionTarget, TextureMipPolicy, TextureNormalConvention, TextureUsageHint,
 };
 
 use super::{TextureArrayLayout, TextureDescriptorError, TextureDescriptorResult};
@@ -134,8 +135,56 @@ pub(super) fn parse_color_space(value: &str) -> TextureDescriptorResult<RenderIm
         "srgb" => Ok(RenderImageColorSpace::Srgb),
         "linear" => Ok(RenderImageColorSpace::Linear),
         "hdr" => Ok(RenderImageColorSpace::Hdr),
-        "unknown" => Ok(RenderImageColorSpace::Unknown),
         _ => Err(TextureDescriptorError::unsupported("color_space", value)),
+    }
+}
+
+pub(super) fn parse_usage_hint(value: &str) -> TextureDescriptorResult<TextureUsageHint> {
+    match normalized_token(value).as_str() {
+        "albedo" => Ok(TextureUsageHint::Albedo),
+        "normal" => Ok(TextureUsageHint::Normal),
+        "mask" => Ok(TextureUsageHint::Mask),
+        "data" => Ok(TextureUsageHint::Data),
+        "hdr" => Ok(TextureUsageHint::Hdr),
+        "ui" => Ok(TextureUsageHint::Ui),
+        _ => Err(TextureDescriptorError::unsupported("usage_hint", value)),
+    }
+}
+
+pub(super) fn parse_mip_policy(value: &str) -> TextureDescriptorResult<TextureMipPolicy> {
+    match normalized_token(value).as_str() {
+        "from_source" => Ok(TextureMipPolicy::FromSource),
+        "generate_offline" => Ok(TextureMipPolicy::GenerateOffline),
+        "generate_runtime" => Ok(TextureMipPolicy::GenerateRuntime),
+        "none" => Ok(TextureMipPolicy::None),
+        _ => Err(TextureDescriptorError::unsupported("mip_policy", value)),
+    }
+}
+
+pub(super) fn parse_normal_convention(
+    value: &str,
+) -> TextureDescriptorResult<TextureNormalConvention> {
+    match normalized_token(value).as_str() {
+        "none" => Ok(TextureNormalConvention::None),
+        "tangent_space_dx" | "dx" => Ok(TextureNormalConvention::TangentSpaceDx),
+        "tangent_space_gl" | "gl" => Ok(TextureNormalConvention::TangentSpaceGl),
+        _ => Err(TextureDescriptorError::unsupported(
+            "normal_convention",
+            value,
+        )),
+    }
+}
+
+pub(super) fn parse_compression(value: &str) -> TextureDescriptorResult<TextureCompressionTarget> {
+    match normalized_token(value).as_str() {
+        "auto" => Ok(TextureCompressionTarget::Auto),
+        "uncompressed" => Ok(TextureCompressionTarget::Uncompressed),
+        "bc1" => Ok(TextureCompressionTarget::Bc1),
+        "bc4" => Ok(TextureCompressionTarget::Bc4),
+        "bc5" => Ok(TextureCompressionTarget::Bc5),
+        "bc6h" => Ok(TextureCompressionTarget::Bc6h),
+        "bc7" => Ok(TextureCompressionTarget::Bc7),
+        _ => Err(TextureDescriptorError::unsupported("compression", value)),
     }
 }
 

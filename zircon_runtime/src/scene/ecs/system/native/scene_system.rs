@@ -3,7 +3,7 @@ use std::fmt;
 use crate::scene::World;
 use crate::scene::ecs::{
     SceneSystemMetadata, SceneSystemThreadAffinity, SystemOrderingConstraint, SystemParamAccess,
-    SystemSetId, SystemStage,
+    SystemSetId, SystemStage, WorkerCommandBuffer,
 };
 
 pub type BoxedSceneSystem = Box<dyn SceneSystem>;
@@ -21,6 +21,18 @@ pub trait SceneSystem: Send + 'static {
 
     fn supports_worldless_execution(&self) -> bool {
         false
+    }
+
+    fn supports_worker_dispatch(&self) -> bool {
+        self.thread_affinity() == SceneSystemThreadAffinity::WorkerSafe
+            && self.supports_worldless_execution()
+            && self.constraints().is_empty()
+    }
+
+    /// Returns the system-owned local command buffer after a worldless callback.
+    /// The schedule runner merges returned buffers before its ApplyDeferred barrier.
+    fn worker_command_buffer_mut(&mut self) -> Option<&mut WorkerCommandBuffer> {
+        None
     }
 
     fn id(&self) -> &str {

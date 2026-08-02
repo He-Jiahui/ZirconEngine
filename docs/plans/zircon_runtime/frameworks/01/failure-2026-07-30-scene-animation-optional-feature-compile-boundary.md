@@ -23,10 +23,10 @@ tests:
 
 ## 来源执行者
 
-- 来源计划: `docs/plans/zircon_plugins/01-plugin-architecture-core.md`
-- 来源执行切片: per-World scene-system callback factory SDK forwarding validation
-- 修复责任计划: `docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md`
-- 交接原因: Frameworks01 owns the declared `scene->animation` reverse dependency and the optional-domain decomposition boundary. Plugin SDK must not make an optional Runtime animation domain mandatory merely to compile its runtime registration builder.
+- 来源计划：`docs/plans/zircon_plugins/01-plugin-architecture-core.md`
+- 来源执行切片：per-World scene-system callback factory SDK forwarding validation
+- 修复责任计划：`docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md`
+- 交接原因：Frameworks01 owns the declared `scene->animation` reverse dependency and the optional-domain decomposition boundary. Plugin SDK must not make an optional Runtime animation domain mandatory merely to compile its runtime registration builder.
 
 ## 失败现象与复现证据
 
@@ -82,4 +82,26 @@ architecture guards must remain compiled without the animation feature.
 
 ## 修复结果与回传
 
-Open state: `待 Frameworks01 修复 scene animation optional-feature boundary`; no SDK target pass is claimed.
+2026-08-01 current-source hard cut:
+
+- `level_system.rs` and its frame-state owner now gate every direct optional animation import,
+  state field, clip-event cursor, and animation-only method behind `feature = "animation"`; the
+  always-compiled LevelSystem/frame snapshot remains available without that domain.
+- The final reset call in `replace_world_and_reset_runtime_state` is enclosed by an item-stable cfg
+  block instead of a statement-level cfg attribute. This closes the remaining Rust E0658 boundary
+  without enabling animation for Plugin SDK consumers.
+- The clip-event byte accumulator is explicitly `usize` and retains saturating addition. Animation
+  pose/source-guard tests carry the animation cfg, while the two scene/render architecture guards
+  remain always compiled.
+- The first independent review found that a module-level cfg still hid all five mixed
+  `level_source_guards` cases. The cfg now sits only on the three animation behavior tests and their
+  parent imports/helper; the snapshot-adapter and inactive-camera architecture guards compile in
+  every feature selection. A focused source guard fixes this at `3` animation-only plus `2`
+  always-on cases.
+- Scoped Rust 1.94.1 rustfmt, diff-check, production feature-boundary source guards, and test cfg
+  guards are GREEN. The first independent review was C0/I1/M0 and its Important finding is repaired;
+  the fresh exact-scope re-review is C0/I0/M0 Ready. Managed Runtime no-default, Plugin SDK, and
+  animation-enabled gates are still required before the failure can return as fixed.
+
+Open state: `implementation_static_and_secondary_review_green_managed_validation_pending`; no SDK or
+Runtime Cargo pass is claimed.

@@ -7,8 +7,9 @@ pub struct MessageCursor<T>
 where
     T: Message,
 {
-    cursor: usize,
+    next_id: usize,
     generation: u64,
+    dropped_count: u64,
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -18,8 +19,9 @@ where
 {
     fn default() -> Self {
         Self {
-            cursor: 0,
+            next_id: 0,
             generation: 0,
+            dropped_count: 0,
             _marker: PhantomData,
         }
     }
@@ -31,18 +33,19 @@ where
 {
     pub fn read<'a>(&mut self, messages: Option<&'a Messages<T>>) -> MessageReadIter<'a, T> {
         let Some(messages) = messages else {
-            self.cursor = 0;
+            self.next_id = 0;
             self.generation = 0;
             return MessageReadIter::empty();
         };
-        let start = if self.generation == messages.generation() {
-            self.cursor.min(messages.messages.len())
+        let (start, dropped) = if self.generation == messages.generation() {
+            messages.read_window_start(self.next_id)
         } else {
-            0
+            (0, 0)
         };
-        self.cursor = messages.messages.len();
+        self.dropped_count = self.dropped_count.saturating_add(dropped as u64);
+        self.next_id = messages.next_id();
         self.generation = messages.generation();
-        MessageReadIter::new(messages.messages[start..].iter())
+        MessageReadIter::new(messages.messages.iter(), start)
     }
 
     pub fn unread_count(&self, messages: Option<&Messages<T>>) -> usize {
@@ -50,10 +53,8 @@ where
             return 0;
         };
         if self.generation == messages.generation() {
-            messages
-                .messages
-                .len()
-                .saturating_sub(self.cursor.min(messages.messages.len()))
+            let (start, _) = messages.read_window_start(self.next_id);
+            messages.messages.len().saturating_sub(start)
         } else {
             messages.messages.len()
         }
@@ -61,12 +62,16 @@ where
 
     pub fn clear(&mut self, messages: Option<&Messages<T>>) {
         if let Some(messages) = messages {
-            self.cursor = messages.len();
+            self.next_id = messages.next_id();
             self.generation = messages.generation();
         } else {
-            self.cursor = 0;
+            self.next_id = 0;
             self.generation = 0;
         }
+    }
+
+    pub fn dropped_count(&self) -> u64 {
+        self.dropped_count
     }
 }
 
@@ -74,14 +79,20 @@ pub struct MessageReadIter<'a, T>
 where
     T: Message,
 {
-    inner: Option<std::slice::Iter<'a, MessageInstance<T>>>,
+    inner: Option<std::collections::vec_deque::Iter<'a, MessageInstance<T>>>,
 }
 
 impl<'a, T> MessageReadIter<'a, T>
 where
     T: Message,
 {
-    pub(crate) fn new(inner: std::slice::Iter<'a, MessageInstance<T>>) -> Self {
+    pub(crate) fn new(
+        mut inner: std::collections::vec_deque::Iter<'a, MessageInstance<T>>,
+        skip: usize,
+    ) -> Self {
+        for _ in 0..skip {
+            let _ = inner.next();
+        }
         Self { inner: Some(inner) }
     }
 

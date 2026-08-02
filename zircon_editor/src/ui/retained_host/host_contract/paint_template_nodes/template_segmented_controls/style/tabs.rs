@@ -1,7 +1,7 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::style_selector::{
-    select_workbench_segmented_control_style, WorkbenchSegmentedControlKind as SegmentedStyleKind,
-    WorkbenchSegmentedControlStyle,
+    WorkbenchSegmentedControlKind as SegmentedStyleKind, WorkbenchSegmentedControlStyle,
+    select_workbench_segmented_control_style,
 };
 
 #[cfg(test)]

@@ -3,11 +3,11 @@ use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use crate::ui::retained_host::ui_perf::{
-    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
+    UiPerfScenario, enter_ui_perf_scenario, time_ui_perf_scenario,
 };
 
-use super::super::super::super::redraw_result::tab_drag_release_redraw;
 use super::super::super::super::HOST_POINTER_UP;
+use super::super::super::super::redraw_result::tab_drag_release_redraw;
 
 pub(in crate::ui::retained_host::host_contract) fn finish_native_tab_drag(
     ui: &UiHostWindow,

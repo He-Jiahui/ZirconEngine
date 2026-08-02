@@ -1,3 +1,4 @@
+use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -7,9 +8,10 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::Component;
-use crate::scene::EntityId;
 
 use crate::scene::{SceneResult, World};
+
+use super::super::transform_validation::validate_transform_for_write;
 
 macro_rules! impl_component_for_scene_type {
     ($($ty:ty),* $(,)?) => {
@@ -68,7 +70,6 @@ macro_rules! fixed_component_map {
 
 fixed_component_map!(Name, names);
 fixed_component_map!(Hierarchy, hierarchy);
-fixed_component_map!(LocalTransform, local_transforms);
 fixed_component_map!(WorldMatrix, world_matrices);
 fixed_component_map!(ActiveSelf, active_self);
 fixed_component_map!(ActiveInHierarchy, active_in_hierarchy);
@@ -96,6 +97,14 @@ fixed_component_map!(SpotLight, spot_lights);
 fixed_component_map!(PostProcessSettingsComponent, post_process_settings);
 fixed_component_map!(PostProcessVolumeComponent, post_process_volumes);
 fixed_component_map!(Mobility, mobility);
+
+impl FixedSceneComponent for LocalTransform {
+    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) -> SceneResult<()> {
+        validate_transform_for_write(entity, component.transform)?;
+        world.local_transforms.insert(entity, *component);
+        Ok(())
+    }
+}
 
 impl World {
     pub(super) fn insert_fixed_component<T>(

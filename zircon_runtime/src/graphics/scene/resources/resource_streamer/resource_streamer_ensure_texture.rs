@@ -4,8 +4,8 @@ use crate::core::resource::ResourceId;
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::GpuTextureResource;
 use super::super::prepared::PreparedTexture;
+use super::super::GpuTextureResource;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {

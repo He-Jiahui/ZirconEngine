@@ -1,3 +1,4 @@
+mod budget;
 mod capability_summary;
 mod capability_validation;
 mod capture_frame;
@@ -10,6 +11,7 @@ mod graphics_debugger_capture;
 mod pipelined;
 mod query_stats;
 mod query_virtual_geometry_debug_snapshot;
+mod query_visible_spatial_snapshot;
 mod queue_capability;
 mod register_pipeline_asset;
 mod reload_pipeline;

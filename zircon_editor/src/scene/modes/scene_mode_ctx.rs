@@ -54,16 +54,6 @@ impl<'a> SceneModeCtx<'a> {
         self.input_effect = Some(effect);
     }
 
-    pub(crate) fn input_effect_checkpoint(&self) -> bool {
-        self.input_effect.is_some()
-    }
-
-    pub(crate) fn truncate_input_effects(&mut self, checkpoint: bool) {
-        if !checkpoint {
-            self.input_effect = None;
-        }
-    }
-
     pub(crate) fn take_input_effect(&mut self) -> Option<SceneModeInputEffect> {
         self.input_effect.take()
     }
@@ -80,5 +70,13 @@ impl<'a> SceneModeCtx<'a> {
         *self.selection = checkpoint.selection;
         self.input_effect = checkpoint.input_effect;
         self.overlay_invalidated = checkpoint.overlay_invalidated;
+    }
+
+    pub(crate) fn restore_after_pass_through(&mut self, checkpoint: SceneModeCtxCheckpoint) {
+        let overlay_invalidated = self.take_overlay_invalidation();
+        self.restore(checkpoint);
+        if overlay_invalidated {
+            self.invalidate_overlay();
+        }
     }
 }

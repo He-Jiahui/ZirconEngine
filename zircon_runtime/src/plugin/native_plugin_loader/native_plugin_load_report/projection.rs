@@ -1,12 +1,18 @@
 use std::collections::HashMap;
 
+use crate::plugin::native_plugin_loader::NativePluginCandidate;
 use crate::plugin::{PluginModuleKind, PluginPackageManifest};
 
 use super::NativePluginLoadReport;
-use super::{diagnostics::mentioned_plugin_ids, manifests::projected_package_manifests};
+use super::{
+    diagnostics::mentioned_plugin_ids,
+    manifests::{projected_package_manifests, shader_module_sources_from_candidate},
+};
+use crate::plugin::PluginShaderModuleSource;
 
 pub struct NativePluginLoadProjection {
     package_manifests: Vec<PluginPackageManifest>,
+    shader_module_candidates_by_plugin: HashMap<String, NativePluginCandidate>,
     diagnostics_by_plugin: HashMap<String, PluginDiagnostics>,
     descriptor_diagnostics: Vec<String>,
     entry_diagnostics: Vec<String>,
@@ -19,6 +25,7 @@ pub struct NativePluginLoadProjection {
 pub(super) struct ProjectionBuildStats {
     pub(super) projection_builds: usize,
     pub(super) manifest_sources_scanned: usize,
+    pub(super) manifest_package_index_lookups: usize,
     pub(super) packages_projected: usize,
     pub(super) features_projected: usize,
     pub(super) loaded_plugins_scanned: usize,
@@ -44,6 +51,12 @@ impl NativePluginLoadProjection {
             ..ProjectionBuildStats::default()
         };
         let package_manifests = projected_package_manifests(report, &mut stats);
+        let shader_module_candidates_by_plugin = report
+            .discovered
+            .iter()
+            .cloned()
+            .map(|candidate| (candidate.plugin_id.clone(), candidate))
+            .collect();
         stats.packages_projected = package_manifests.len();
         stats.features_projected = package_manifests
             .iter()
@@ -52,6 +65,7 @@ impl NativePluginLoadProjection {
         let diagnostics = project_diagnostics(report, &mut stats);
         Self {
             package_manifests,
+            shader_module_candidates_by_plugin,
             diagnostics_by_plugin: diagnostics.by_plugin,
             descriptor_diagnostics: diagnostics.descriptor,
             entry_diagnostics: diagnostics.entry,
@@ -69,6 +83,16 @@ impl NativePluginLoadProjection {
         self.diagnostics_by_plugin
             .get(plugin_id)
             .map(|diagnostics| diagnostics.runtime.clone())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn shader_module_sources_for_plugin(
+        &self,
+        plugin_id: &str,
+    ) -> (Vec<PluginShaderModuleSource>, Vec<String>) {
+        self.shader_module_candidates_by_plugin
+            .get(plugin_id)
+            .map(shader_module_sources_from_candidate)
             .unwrap_or_default()
     }
 

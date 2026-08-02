@@ -26,9 +26,6 @@ pub(super) fn apply_focus_pointer_effect(
                 return Err(UiSurfaceInputEffectError::FocusOwnerMismatch);
             }
             surface.clear_focus_with_reason(clear_focus_effect_reason(*reason));
-            if surface.input.input_method_owner == Some(*target) {
-                surface.input.clear_input_method();
-            }
             Ok(Some(*target))
         }
         UiDispatchEffect::CapturePointer {

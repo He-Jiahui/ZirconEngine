@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::scene::{EntityId, ecs::ComponentId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -14,7 +16,7 @@ pub struct ComponentLifecycleEvent {
     kind: LifecycleEventKind,
     entity: EntityId,
     component_id: ComponentId,
-    component_type_name: String,
+    component_type_name: Arc<str>,
 }
 
 impl ComponentLifecycleEvent {
@@ -22,13 +24,13 @@ impl ComponentLifecycleEvent {
         kind: LifecycleEventKind,
         entity: EntityId,
         component_id: ComponentId,
-        component_type_name: impl Into<String>,
+        component_type_name: impl AsRef<str>,
     ) -> Self {
         Self {
             kind,
             entity,
             component_id,
-            component_type_name: component_type_name.into(),
+            component_type_name: Arc::from(component_type_name.as_ref()),
         }
     }
 

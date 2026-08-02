@@ -6,7 +6,7 @@ use zircon_runtime_interface::reflect::{
 };
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
-use crate::scene::{components::ActiveSelf, components::Name, NodeKind, World};
+use crate::scene::{NodeKind, World, components::ActiveSelf, components::Name};
 
 #[test]
 fn inspector_style_field_list_uses_world_reflection_facade() {
@@ -145,14 +145,13 @@ fn schema_list_projection_pre_sizes_registration_output() {
 
     assert!(
         list_reflect_types.contains("let mut registrations = Vec::with_capacity(1);")
-            && list_reflect_types.contains("registrations.push(registration.registration.clone());")
-            && list_reflect_types.contains("let registry_entries = world.type_registry().iter();")
             && list_reflect_types
-                .contains("Vec::with_capacity(registry_entries.size_hint().0)")
+                .contains("registrations.push(registration.registration.clone());")
+            && list_reflect_types.contains("let registry_entries = world.type_registry().iter();")
+            && list_reflect_types.contains("Vec::with_capacity(registry_entries.size_hint().0)")
             && list_reflect_types.contains("for registration in registry_entries")
-            && list_reflect_types.contains(
-                "if schema_filter_matches(&registration.registration, &filter)"
-            )
+            && list_reflect_types
+                .contains("if schema_filter_matches(&registration.registration, &filter)")
             && !list_reflect_types.contains("vec![registration.registration.clone()]")
             && !list_reflect_types.contains(".collect()"),
         "WorldReflection schema listing must pre-size focused and registry-wide registration output instead of collecting from a filter/map chain"
@@ -189,8 +188,7 @@ fn component_adapter_lookup_borrows_for_read_paths_and_clones_only_for_write() {
 
     assert!(
         adapter_lookup.contains("Result<&'a ReflectComponent, ReflectError>")
-            && adapter_lookup
-                .contains("let Some(adapter) = registration.component.as_ref() else")
+            && adapter_lookup.contains("let Some(adapter) = registration.component.as_ref() else")
             && adapter_lookup.contains("return Err(ReflectError::NoComponentAdapter")
             && adapter_lookup.contains("Ok(adapter)")
             && adapter_lookup.contains("fn component_adapter_for_write(")
@@ -202,8 +200,10 @@ fn component_adapter_lookup_borrows_for_read_paths_and_clones_only_for_write() {
             && source.contains("resource_adapter_ref(world, type_path).copied()")
             && reflect_fields.contains("let adapter = component_adapter(world, type_path)?;")
             && read_reflected_field.contains("let adapter = component_adapter(world, type_path)?;")
-            && reflect_write.contains("let adapter = component_adapter_for_write(world, type_path)?;")
-            && reflect_write.contains("let adapter = resource_adapter_for_write(world, type_path)?;")
+            && reflect_write
+                .contains("let adapter = component_adapter_for_write(world, type_path)?;")
+            && reflect_write
+                .contains("let adapter = resource_adapter_for_write(world, type_path)?;")
             && !adapter_lookup.contains(".component\n        .clone()")
             && !adapter_lookup.contains(".ok_or_else(|| ReflectError::NoComponentAdapter")
             && !resource_lookup.contains(".ok_or_else(|| ReflectError::NoResourceAdapter"),

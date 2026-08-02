@@ -79,19 +79,9 @@ pub(super) fn infer_slot_contract(
 }
 
 fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
-    match parent_container {
-        UiContainerKind::Free => UiSlotKind::Free,
-        UiContainerKind::Canvas => UiSlotKind::Canvas,
-        UiContainerKind::Container | UiContainerKind::BlockBox | UiContainerKind::SizeBox(_) => {
-            UiSlotKind::Container
-        }
-        UiContainerKind::Overlay => UiSlotKind::Overlay,
-        UiContainerKind::Space => UiSlotKind::Free,
-        UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => UiSlotKind::Linear,
-        UiContainerKind::WrapBox(_) | UiContainerKind::MasonryBox(_) => UiSlotKind::Flow,
-        UiContainerKind::GridBox(_) => UiSlotKind::Grid,
-        UiContainerKind::ScrollableBox(_) => UiSlotKind::Scrollable,
-    }
+    parent_container
+        .child_slot_kind()
+        .unwrap_or(UiSlotKind::Free)
 }
 
 fn parse_canvas_placement(

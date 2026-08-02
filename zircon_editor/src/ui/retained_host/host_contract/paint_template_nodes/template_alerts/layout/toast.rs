@@ -49,7 +49,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_a
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_text_rect(
     rect: &FrameRect,
-    icon: &FrameRect,
+    icon: Option<&FrameRect>,
     close: &FrameRect,
     has_action: bool,
     metrics: WorkbenchToastMetrics,
@@ -60,7 +60,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_t
     } else {
         rect.x + rect.width - metrics.trailing_inset
     };
-    let text_left = icon.x + icon.width + metrics.text_gap;
+    let text_left = icon
+        .map(|icon| icon.x + icon.width + metrics.text_gap)
+        .unwrap_or(rect.x + metrics.icon_left);
     (text_right > text_left).then(|| FrameRect {
         x: text_left,
         y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,

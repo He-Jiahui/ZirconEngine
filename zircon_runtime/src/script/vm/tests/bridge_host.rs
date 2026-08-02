@@ -11,7 +11,7 @@ struct VmWeatherProvider;
 impl VmWeatherBridge for VmWeatherProvider {}
 
 #[test]
-fn bridge_host_module_dispatches_vm_calls_through_resolved_bridge_slots() {
+fn runtime13_bridge_host_module_borrows_vm_call_arguments_through_resolved_slots() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry.intern_plugin_module("weather.runtime").unwrap();
     registry
@@ -37,7 +37,8 @@ fn bridge_host_module_dispatches_vm_calls_through_resolved_bridge_slots() {
                 calls_for_method.lock().unwrap().push((
                     call.interface_slot.raw(),
                     call.method_slot,
-                    call.arguments.clone(),
+                    call.arguments.as_ptr() as usize,
+                    call.arguments.len(),
                 ));
                 Ok(ScriptHostValue::Int(32))
             },
@@ -60,11 +61,13 @@ fn bridge_host_module_dispatches_vm_calls_through_resolved_bridge_slots() {
         .iter()
         .any(|function| function.name == "sample_temperature"));
 
+    let arguments = vec![ScriptHostValue::String("outside".to_string())];
+    let argument_pointer = arguments.as_ptr() as usize;
     let value = exports
         .call_with_capabilities(
             BRIDGE_HOST_MODULE,
             "sample_temperature",
-            vec![ScriptHostValue::String("outside".to_string())],
+            arguments,
             &CapabilitySet::default().with(BRIDGE_HOST_CAPABILITY),
         )
         .unwrap();
@@ -72,11 +75,7 @@ fn bridge_host_module_dispatches_vm_calls_through_resolved_bridge_slots() {
     assert_eq!(value, ScriptHostValue::Int(32));
     assert_eq!(
         calls.lock().unwrap().as_slice(),
-        &[(
-            slot.raw(),
-            9,
-            vec![ScriptHostValue::String("outside".to_string())]
-        )]
+        &[(slot.raw(), 9, argument_pointer, 1)]
     );
 }
 

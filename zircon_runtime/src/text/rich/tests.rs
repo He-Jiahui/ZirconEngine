@@ -2,8 +2,8 @@ use crate::text::TextAlign;
 use crate::text::{FontFamilyName, InlineBaseline, InlineObjectRef, RichTextFormat, StyleOverride};
 
 use super::{
-    parse_rich_text, shared_builtin_parser, RichTextDecoration, RichTextDecorator,
-    RichTextDecoratorRegistrationError, RichTextParser,
+    compile_rich_text, lookup_compiled_rich_text, parse_rich_text, shared_builtin_parser,
+    RichTextDecoration, RichTextDecorator, RichTextDecoratorRegistrationError, RichTextParser,
 };
 
 struct AccentDecorator;
@@ -46,7 +46,7 @@ impl RichTextDecorator for BadgeDecorator {
 fn text_rich_bbcode_nested_styles_flatten_to_runs() {
     let parsed = parse_rich_text("[b]a[i]b[/i][/b]", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "ab");
+    assert_eq!(parsed.text.as_ref(), "ab");
     assert_eq!(parsed.runs.len(), 2);
     assert_eq!(parsed.runs[0].byte_range, (0, 1));
     assert_eq!(parsed.runs[0].style.weight, Some(700));
@@ -63,7 +63,7 @@ fn text_rich_color_size_font_overrides() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "red plain");
+    assert_eq!(parsed.text.as_ref(), "red plain");
     assert_eq!(parsed.runs.len(), 2);
     assert_eq!(parsed.runs[0].style.font_size, Some(24.0));
     assert_eq!(
@@ -85,7 +85,7 @@ fn text_rich_color_size_font_overrides() {
 fn text_rich_run_boundaries_respect_clusters() {
     let parsed = parse_rich_text("a[b]\u{0301}[/b]x", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "a\u{0301}x");
+    assert_eq!(parsed.text.as_ref(), "a\u{0301}x");
     assert_eq!(parsed.runs.len(), 1);
     assert_eq!(parsed.runs[0].byte_range, (0, 4));
     assert_eq!(parsed.runs[0].style, StyleOverride::default());
@@ -95,7 +95,7 @@ fn text_rich_run_boundaries_respect_clusters() {
 fn text_rich_markdown_compat_unchanged() {
     let parsed = parse_rich_text("plain **bold** *italic* `code`", RichTextFormat::Markdown);
 
-    assert_eq!(parsed.text, "plain bold italic code");
+    assert_eq!(parsed.text.as_ref(), "plain bold italic code");
     assert_eq!(parsed.runs.len(), 6);
     assert_eq!(parsed.runs[1].style.weight, Some(700));
     assert_eq!(parsed.runs[3].style.italic, Some(true));
@@ -109,7 +109,7 @@ fn text_rich_html_whitelist_drops_unknown_tags() {
         RichTextFormat::Html,
     );
 
-    assert_eq!(parsed.text, "keepbold");
+    assert_eq!(parsed.text.as_ref(), "keepbold");
     assert_eq!(parsed.runs.len(), 2);
     assert_eq!(parsed.runs[0].style, StyleOverride::default());
     assert_eq!(parsed.runs[1].style.weight, Some(700));
@@ -122,7 +122,7 @@ fn text_rich_html_entities_decode() {
         RichTextFormat::Html,
     );
 
-    assert_eq!(parsed.text, "A & B 中 文 <ok>");
+    assert_eq!(parsed.text.as_ref(), "A & B 中 文 <ok>");
     assert_eq!(parsed.runs.len(), 1);
     assert_eq!(parsed.runs[0].byte_range, (0, parsed.text.len() as u32));
 }
@@ -131,7 +131,7 @@ fn text_rich_html_entities_decode() {
 fn text_rich_html_br_forces_break() {
     let parsed = parse_rich_text("first<br>second<br/>third", RichTextFormat::Html);
 
-    assert_eq!(parsed.text, "first\nsecond\nthird");
+    assert_eq!(parsed.text.as_ref(), "first\nsecond\nthird");
     assert_eq!(parsed.runs.len(), 1);
 }
 
@@ -142,7 +142,7 @@ fn text_rich_html_span_style_accepts_only_controlled_properties() {
         RichTextFormat::Html,
     );
 
-    assert_eq!(parsed.text, "safe");
+    assert_eq!(parsed.text.as_ref(), "safe");
     assert_eq!(parsed.runs.len(), 1);
     let style = &parsed.runs[0].style;
     assert_eq!(style.color.unwrap().to_array(), [0.0, 1.0, 0.0, 1.0]);
@@ -161,7 +161,7 @@ fn text_rich_inline_image_parses_placeholder_metric_contract() {
         RichTextFormat::Html,
     );
 
-    assert_eq!(parsed.text, "before\u{fffc}after");
+    assert_eq!(parsed.text.as_ref(), "before\u{fffc}after");
     let image_run = parsed
         .runs
         .iter()
@@ -185,7 +185,7 @@ fn text_rich_hyperlink_carries_href_and_hit_range() {
         RichTextFormat::Html,
     );
 
-    assert_eq!(parsed.text, "go help now");
+    assert_eq!(parsed.text.as_ref(), "go help now");
     let link = parsed
         .runs
         .iter()
@@ -207,7 +207,7 @@ fn text_rich_bbcode_image_and_url_share_inline_contracts() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "\u{fffc}help");
+    assert_eq!(parsed.text.as_ref(), "\u{fffc}help");
     assert!(parsed.runs[0].inline.is_some());
     assert_eq!(
         parsed.runs[1].link.as_ref().map(|link| link.href.as_str()),
@@ -222,7 +222,7 @@ fn text_rich_inline_resources_reject_network_and_escape_paths() {
         RichTextFormat::Html,
     );
 
-    assert_eq!(parsed.text, "plain");
+    assert_eq!(parsed.text.as_ref(), "plain");
     assert!(parsed.runs.iter().all(|run| run.inline.is_none()));
     assert!(parsed.runs.iter().all(|run| run.link.is_none()));
     assert!(parsed
@@ -238,7 +238,7 @@ fn text_rich_bbcode_block_alignment_emits_paragraph_overrides() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "alpha\nbeta\ngamma");
+    assert_eq!(parsed.text.as_ref(), "alpha\nbeta\ngamma");
     assert_eq!(parsed.paragraphs.len(), 2);
     assert_eq!(parsed.paragraphs[0].0, (0, 10));
     assert_eq!(parsed.paragraphs[0].1.align, Some(TextAlign::Center));
@@ -253,7 +253,7 @@ fn text_rich_bbcode_left_and_fill_emit_shared_paragraph_overrides() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "alpha\nbeta");
+    assert_eq!(parsed.text.as_ref(), "alpha\nbeta");
     assert_eq!(parsed.paragraphs.len(), 2);
     assert_eq!(parsed.paragraphs[0].1.align, Some(TextAlign::Left));
     assert_eq!(parsed.paragraphs[1].1.align, Some(TextAlign::Justify));
@@ -266,7 +266,10 @@ fn text_rich_bbcode_literal_and_bidi_control_tags_emit_unicode_text() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "[tag]\n\u{2066}עברית\u{2069}\u{00ad}word");
+    assert_eq!(
+        parsed.text.as_ref(),
+        "[tag]\n\u{2066}עברית\u{2069}\u{00ad}word"
+    );
 }
 
 #[test]
@@ -281,7 +284,7 @@ fn text_rich_custom_decorator_registration_applies_style_without_parser_branch()
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "plain custom tail");
+    assert_eq!(parsed.text.as_ref(), "plain custom tail");
     let custom = parsed
         .runs
         .iter()
@@ -300,7 +303,7 @@ fn text_rich_custom_decorator_can_emit_inline_object_contract() {
 
     let parsed = parser.parse("a[badge=★]b", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "a\u{fffc}b");
+    assert_eq!(parsed.text.as_ref(), "a\u{fffc}b");
     let inline = parsed
         .runs
         .iter()
@@ -413,7 +416,7 @@ fn text_rich_rejected_custom_decorator_preserves_inner_text_without_style() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "before safe after");
+    assert_eq!(parsed.text.as_ref(), "before safe after");
     assert_eq!(parsed.runs.len(), 1);
     assert_eq!(parsed.runs[0].style, StyleOverride::default());
 }
@@ -422,7 +425,7 @@ fn text_rich_rejected_custom_decorator_preserves_inner_text_without_style() {
 fn text_rich_bbcode_builtin_icon_emits_inline_metric_contract() {
     let parsed = parse_rich_text("before[icon=★|Zircon Icons]after", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "before\u{fffc}after");
+    assert_eq!(parsed.text.as_ref(), "before\u{fffc}after");
     assert!(matches!(
         parsed.runs[1].inline.as_ref(),
         Some(InlineObjectRef::Icon { glyph: '★', font })
@@ -434,7 +437,7 @@ fn text_rich_bbcode_builtin_icon_emits_inline_metric_contract() {
 fn text_rich_bbcode_builtin_widget_emits_sized_placeholder_contract() {
     let parsed = parse_rich_text("a[widget=42|24x16]b", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "a\u{fffc}b");
+    assert_eq!(parsed.text.as_ref(), "a\u{fffc}b");
     assert!(matches!(
         parsed.runs[1].inline.as_ref(),
         Some(InlineObjectRef::Widget { id: 42, size })
@@ -446,7 +449,7 @@ fn text_rich_bbcode_builtin_widget_emits_sized_placeholder_contract() {
 fn text_rich_bbcode_known_emoji_shortcode_expands_inside_active_style() {
     let parsed = parse_rich_text("[b]go :rocket:[/b]", RichTextFormat::BbCode);
 
-    assert_eq!(parsed.text, "go 🚀");
+    assert_eq!(parsed.text.as_ref(), "go 🚀");
     assert_eq!(parsed.runs.len(), 1);
     assert_eq!(parsed.runs[0].style.weight, Some(700));
 }
@@ -458,7 +461,7 @@ fn text_rich_bbcode_unknown_emoji_shortcode_is_preserved() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "keep :zircon_unknown: then 🚀");
+    assert_eq!(parsed.text.as_ref(), "keep :zircon_unknown: then 🚀");
 }
 
 #[test]
@@ -468,11 +471,18 @@ fn text_rich_custom_emoji_shortcode_registration_is_parser_local() {
         .register_emoji_shortcode("zircon", "💎")
         .expect("custom shortcode registration");
 
-    assert_eq!(parser.parse(":zircon:", RichTextFormat::BbCode).text, "💎");
+    assert_eq!(
+        parser
+            .parse(":zircon:", RichTextFormat::BbCode)
+            .text
+            .as_ref(),
+        "💎"
+    );
     assert_eq!(
         RichTextParser::default()
             .parse(":zircon:", RichTextFormat::BbCode)
-            .text,
+            .text
+            .as_ref(),
         ":zircon:"
     );
 }
@@ -490,6 +500,21 @@ fn text_rich_convenience_parser_reuses_builtin_registries() {
         shared_builtin_parser(),
         shared_builtin_parser()
     ));
+}
+
+#[test]
+fn text_rich_consumers_can_only_lookup_an_existing_compiled_artifact() {
+    let markup = "[b]shared consumer artifact[/b]";
+    let compiled = compile_rich_text(markup, RichTextFormat::BbCode);
+    let looked_up = lookup_compiled_rich_text(markup, RichTextFormat::BbCode)
+        .expect("the UI-owned compiled artifact should be available");
+
+    assert!(std::sync::Arc::ptr_eq(&compiled, &looked_up));
+    assert!(lookup_compiled_rich_text(
+        "[b]consumer lookup cannot compile this missing document[/b]",
+        RichTextFormat::BbCode,
+    )
+    .is_none());
 }
 
 #[test]

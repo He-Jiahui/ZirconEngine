@@ -16,6 +16,9 @@ mod paint_geometry;
 mod paint_primitives;
 mod paint_recording;
 mod paint_template_nodes;
+pub(in crate::ui::retained_host) use paint_template_nodes::{
+    clear_visual_asset_pixels_cache, invalidate_editor_sprite_atlas_cache,
+};
 mod paint_text;
 mod paint_theme;
 mod paint_workbench;
@@ -39,8 +42,9 @@ pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
 pub(crate) use menu_popup_metrics::menu_popup_text_width;
 pub(crate) use paint_text::measure_runtime_text_width;
 pub(crate) use paint_theme::{
-    apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
-    apply_host_palette_from_tokens, apply_host_text_preferences, project_host_text_preferences,
+    HostControlMetrics, METRICS, apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
+    apply_host_palette_from_tokens, apply_host_text_preferences, current_host_metrics,
+    project_host_text_preferences,
 };
 #[cfg(test)]
 pub(crate) fn paint_host_frame_for_test(

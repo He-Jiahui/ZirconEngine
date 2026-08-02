@@ -29,7 +29,8 @@ pub struct VisibilityContext {
     pub dynamic_entities: Vec<EntityId>,
     pub primitive_relevance: Vec<VisibilityRelevanceEntry>,
     pub batches: Vec<VisibilityBatch>,
-    pub visible_instances: Vec<EntityId>,
+    /// Stable render-instance keys selected for the main view draw commands.
+    pub visible_instances: Vec<u64>,
     pub draw_commands: Vec<VisibilityDrawCommand>,
     pub bvh_instances: Vec<VisibilityBvhInstance>,
     pub bvh_update_plan: VisibilityBvhUpdatePlan,
@@ -46,11 +47,16 @@ pub struct VisibilityContext {
     pub virtual_geometry_feedback: VisibilityVirtualGeometryFeedback,
     pub gpu_instancing_candidates: Vec<VisibilityBatch>,
     pub(crate) static_index: VisibilityStaticIndex,
+    pub(crate) dynamic_index: VisibilityStaticIndex,
 }
 
 impl VisibilityContext {
     pub(crate) fn static_index(&self) -> &VisibilityStaticIndex {
         &self.static_index
+    }
+
+    pub(crate) fn dynamic_index(&self) -> &VisibilityStaticIndex {
+        &self.dynamic_index
     }
 
     /// Main-view visibility is derived from `FrameVisibility` so there is only one
@@ -63,6 +69,13 @@ impl VisibilityContext {
         self.frame_visibility.main_view_visible_entity_set()
     }
 
+    pub fn main_view_visible_stable_instance_keys(&self) -> Vec<u64> {
+        self.frame_visibility
+            .main_view_visible_stable_instance_key_set()
+            .into_iter()
+            .collect()
+    }
+
     pub fn main_view_culled_entities(&self) -> Vec<EntityId> {
         let visible_entities = self.main_view_visible_entity_set();
         self.renderable_entities
@@ -72,26 +85,51 @@ impl VisibilityContext {
             .collect()
     }
 
-    pub fn main_view_visible_batches(&self) -> Vec<VisibilityBatch> {
-        Self::visible_batches_for_entities(&self.batches, &self.main_view_visible_entity_set())
+    pub fn main_view_culled_stable_instance_keys(&self) -> Vec<u64> {
+        let visible_stable_instance_keys = self
+            .frame_visibility
+            .main_view_visible_stable_instance_key_set();
+        self.bvh_instances
+            .iter()
+            .map(|instance| instance.stable_instance_key)
+            .filter(|stable_instance_key| {
+                !visible_stable_instance_keys.contains(stable_instance_key)
+            })
+            .collect()
     }
 
-    pub(crate) fn visible_batches_for_entities(
+    pub fn main_view_visible_batches(&self) -> Vec<VisibilityBatch> {
+        Self::visible_batches_for_stable_instance_keys(
+            &self.batches,
+            &self
+                .frame_visibility
+                .main_view_visible_stable_instance_key_set(),
+        )
+    }
+
+    pub(crate) fn visible_batches_for_stable_instance_keys(
         batches: &[VisibilityBatch],
-        visible_entities: &BTreeSet<EntityId>,
+        visible_stable_instance_keys: &BTreeSet<u64>,
     ) -> Vec<VisibilityBatch> {
         batches
             .iter()
             .filter_map(|batch| {
-                let entities = batch
-                    .entities
+                let members = batch
+                    .stable_instance_keys
                     .iter()
-                    .copied()
-                    .filter(|entity| visible_entities.contains(entity))
+                    .zip(batch.entities.iter())
+                    .filter(|(stable_instance_key, _)| {
+                        visible_stable_instance_keys.contains(stable_instance_key)
+                    })
+                    .map(|(stable_instance_key, entity)| (*stable_instance_key, *entity))
                     .collect::<Vec<_>>();
-                (!entities.is_empty()).then_some(VisibilityBatch {
-                    key: batch.key.clone(),
-                    entities,
+                (!members.is_empty()).then(|| {
+                    let (stable_instance_keys, entities) = members.into_iter().unzip();
+                    VisibilityBatch {
+                        key: batch.key.clone(),
+                        stable_instance_keys,
+                        entities,
+                    }
                 })
             })
             .collect()

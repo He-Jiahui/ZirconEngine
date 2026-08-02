@@ -159,6 +159,17 @@ RUNTIME_PLUGIN_IMPL_PATTERN = re.compile(
 )
 EMBEDDED_MODULE_DESCRIPTOR_PATTERN = re.compile(r"\.with_module_descriptor\s*\(")
 DIRECT_MODULE_REGISTRATION_PATTERN = re.compile(r"register_module\s*\(")
+PLUGIN_DECLARATION_PATTERN = re.compile(r"(?:zircon_plugin_sdk|crate)::declare_plugin!\s*\{")
+DECLARATION_RUNTIME_PROJECTION_PATTERN = re.compile(
+    r"\.(?:runtime_declaration|runtime_descriptor)\s*\("
+)
+DIRECT_RUNTIME_DESCRIPTOR_BUILDER_PATTERN = re.compile(
+    r"RuntimePluginDescriptor::builder\s*\("
+)
+MANUAL_NATIVE_PACKAGING_PUSH_PATTERN = re.compile(
+    r"\.default_packaging\s*\.push\s*\(\s*"
+    r"ExportPackagingStrategy::NativeDynamic\s*\)"
+)
 ROOT_REGISTRATION_MOD_PATTERN = re.compile(
     r"^\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+registration\s*;"
 )
@@ -305,6 +316,21 @@ def audit_runtime_plugin_descriptor_single_source(
         violations.append(
             f"{root_path}:multiple:.with_module_descriptor(...):{descriptor_count}"
         )
+
+    capability_rs = runtime_src / "capability.rs"
+    if capability_rs.exists() and PLUGIN_DECLARATION_PATTERN.search(
+        capability_rs.read_text(encoding="utf-8")
+    ):
+        if DIRECT_RUNTIME_DESCRIPTOR_BUILDER_PATTERN.search(
+            combined_source
+        ) or not DECLARATION_RUNTIME_PROJECTION_PATTERN.search(combined_source):
+            violations.append(
+                f"{root_path}:stale:RuntimePluginDescriptor::builder(...):declaration-bypass"
+            )
+        if MANUAL_NATIVE_PACKAGING_PUSH_PATTERN.search(combined_source):
+            violations.append(
+                f"{root_path}:stale:default_packaging.push(NativeDynamic):declaration-bypass"
+            )
 
     for rust_file, source in sources:
         for line_number, line in enumerate(source.splitlines(), start=1):

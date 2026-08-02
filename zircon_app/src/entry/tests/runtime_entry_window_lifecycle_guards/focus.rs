@@ -22,7 +22,7 @@ fn runtime_entry_translates_focus_changes_to_lifecycle_events() {
             "ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1",
             "ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1",
             "ZrRuntimeEventV1::lifecycle",
-            "self.session.handle_event(event).is_err()",
+            "self.dispatch_runtime_event(event_loop, event);",
         ],
         "runtime entry should translate focus changes into runtime foreground/background lifecycle events",
     );

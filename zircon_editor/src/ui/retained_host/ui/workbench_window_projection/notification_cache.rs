@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::{
-    primitives::{ModelRc, SharedString},
     TemplatePaneNodeData, TemplatePaneOptionData,
+    primitives::{ModelRc, SharedString},
 };
 
 use super::NotificationCenterMetadata;

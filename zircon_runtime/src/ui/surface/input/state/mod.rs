@@ -9,7 +9,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{
-    dispatch::{UiInputMethodRequest, UiPointerId, UiPointerLockPolicy},
+    dispatch::{
+        UiComponentEventReport, UiDispatchHostRequest, UiDispatchHostRequestKind,
+        UiInputDispatchResult, UiInputMethodRequest, UiPointerId, UiPointerLockPolicy,
+    },
     event_ui::UiNodeId,
 };
 
@@ -36,6 +39,14 @@ pub struct UiSurfaceInputState {
     pub last_cursor_point: Option<UiSurfacePointerPositionState>,
     pub analog_controls: BTreeMap<String, UiSurfaceAnalogControlState>,
     pub analog_navigation: BTreeMap<String, UiSurfaceAnalogNavigationState>,
+    #[serde(skip)]
+    deferred_focus_input_lifecycle: UiDeferredFocusInputLifecycle,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct UiDeferredFocusInputLifecycle {
+    pub(crate) component_events: Vec<UiComponentEventReport>,
+    pub(crate) input_method_requests: Vec<UiInputMethodRequest>,
 }
 
 impl UiSurfaceInputState {
@@ -56,5 +67,45 @@ impl UiSurfaceInputState {
     pub fn clear_input_method(&mut self) {
         self.input_method_owner = None;
         self.input_method_request = None;
+    }
+
+    pub(crate) fn queue_focus_input_lifecycle(
+        &mut self,
+        component_event: Option<UiComponentEventReport>,
+        input_method_request: UiInputMethodRequest,
+    ) {
+        if let Some(component_event) = component_event {
+            self.deferred_focus_input_lifecycle
+                .component_events
+                .push(component_event);
+        }
+        self.deferred_focus_input_lifecycle
+            .input_method_requests
+            .push(input_method_request);
+    }
+
+    pub(crate) fn append_deferred_focus_input_lifecycle(
+        &mut self,
+        result: &mut UiInputDispatchResult,
+        effect_index: usize,
+    ) {
+        result
+            .component_events
+            .append(&mut self.deferred_focus_input_lifecycle.component_events);
+        for request in self
+            .deferred_focus_input_lifecycle
+            .input_method_requests
+            .drain(..)
+        {
+            result.host_requests.push(UiDispatchHostRequest {
+                effect_index,
+                request: UiDispatchHostRequestKind::InputMethod(request),
+                reason: "focus input-method lifecycle".to_string(),
+            });
+        }
+    }
+
+    pub(crate) fn take_deferred_focus_input_lifecycle(&mut self) -> UiDeferredFocusInputLifecycle {
+        std::mem::take(&mut self.deferred_focus_input_lifecycle)
     }
 }

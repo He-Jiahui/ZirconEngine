@@ -40,15 +40,13 @@ mod tests {
                 "fallback-virtual-geometry-without-submission-capability",
                 Vec::new(),
                 Vec::new(),
-                vec![
-                    RenderFeaturePassDescriptor::new(
-                        RenderPassStage::DepthPrepass,
-                        "fallback-virtual-geometry-without-submission-capability",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("fallback.virtual-geometry.without-submission-capability")
-                    .with_side_effects(),
-                ],
+                vec![RenderFeaturePassDescriptor::new(
+                    RenderPassStage::DepthPrepass,
+                    "fallback-virtual-geometry-without-submission-capability",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("fallback.virtual-geometry.without-submission-capability")
+                .with_side_effects()],
             )));
         pipeline
             .renderer
@@ -57,15 +55,13 @@ mod tests {
                 "fallback-hybrid-gi-without-submission-capability",
                 Vec::new(),
                 Vec::new(),
-                vec![
-                    RenderFeaturePassDescriptor::new(
-                        RenderPassStage::Lighting,
-                        "fallback-hybrid-gi-without-submission-capability",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("fallback.hybrid-gi.without-submission-capability")
-                    .with_side_effects(),
-                ],
+                vec![RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Lighting,
+                    "fallback-hybrid-gi-without-submission-capability",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("fallback.hybrid-gi.without-submission-capability")
+                .with_side_effects()],
             )));
 
         let compiled = pipeline
@@ -96,15 +92,13 @@ mod tests {
                     "plugin.virtual_geometry.submission",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::DepthPrepass,
-                            "plugin-virtual-geometry-submission",
-                            QueueLane::Graphics,
-                        )
-                        .with_executor_id("plugin.virtual-geometry.submission")
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::DepthPrepass,
+                        "plugin-virtual-geometry-submission",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.virtual-geometry.submission")
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
             ));
@@ -116,15 +110,13 @@ mod tests {
                     "plugin.hybrid_gi.submission",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::Lighting,
-                            "plugin-hybrid-gi-submission",
-                            QueueLane::Graphics,
-                        )
-                        .with_executor_id("plugin.hybrid-gi.submission")
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::Lighting,
+                        "plugin-hybrid-gi-submission",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.hybrid-gi.submission")
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(
                     RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
@@ -159,15 +151,13 @@ mod tests {
                     "plugin.virtual_geometry.submission",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::DepthPrepass,
-                            "plugin-virtual-geometry-submission",
-                            QueueLane::Graphics,
-                        )
-                        .with_executor_id("plugin.virtual-geometry.submission")
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::DepthPrepass,
+                        "plugin-virtual-geometry-submission",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.virtual-geometry.submission")
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
             ));
@@ -179,15 +169,13 @@ mod tests {
                     "plugin.hybrid_gi.submission",
                     Vec::new(),
                     Vec::new(),
-                    vec![
-                        RenderFeaturePassDescriptor::new(
-                            RenderPassStage::Lighting,
-                            "plugin-hybrid-gi-submission",
-                            QueueLane::Graphics,
-                        )
-                        .with_executor_id("plugin.hybrid-gi.submission")
-                        .with_side_effects(),
-                    ],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::Lighting,
+                        "plugin-hybrid-gi-submission",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.hybrid-gi.submission")
+                    .with_side_effects()],
                 )
                 .with_capability_requirement(
                     RenderFeatureCapabilityRequirement::HybridGlobalIllumination,

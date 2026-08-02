@@ -6,6 +6,7 @@ fn test_chunk(text: &str, start: usize, end: usize) -> LineBreakChunk<'_> {
         visual_range: TextRange { start, end },
         source_range: TextRange { start, end },
         allow_glyph_fallback: true,
+        mandatory_break: false,
         break_suffix: None,
     }
 }

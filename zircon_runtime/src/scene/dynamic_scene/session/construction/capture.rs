@@ -17,14 +17,18 @@ pub(in crate::scene::dynamic_scene::session) fn from_world_with_metadata(
     world: &World,
     metadata: RuntimeSessionMetadata,
 ) -> Result<RuntimeSessionArchive, RuntimeSessionArchiveError> {
-    from_slots(vec![RuntimeSessionSlot::from_world_with_metadata(
+    let archive = from_slots(vec![RuntimeSessionSlot::from_world_with_metadata(
         slot_id, world, metadata,
-    )?])
+    )?])?;
+    archive.record_capture();
+    Ok(archive)
 }
 
 pub(in crate::scene::dynamic_scene::session) fn from_level(
     slot_id: impl Into<String>,
     level: &LevelSystem,
 ) -> Result<RuntimeSessionArchive, RuntimeSessionArchiveError> {
-    from_slots(vec![RuntimeSessionSlot::from_level(slot_id, level)?])
+    let archive = from_slots(vec![RuntimeSessionSlot::from_level(slot_id, level)?])?;
+    archive.record_capture();
+    Ok(archive)
 }

@@ -35,8 +35,8 @@ pub use package_manifest::{
     PluginEventConsumerManifest, PluginEventManifest, PluginFeatureBundleManifest,
     PluginFeatureDependency, PluginInterfaceManifest, PluginInterfaceMethodManifest,
     PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
-    PluginPackageManifest, PluginShaderModuleManifest, PluginShaderPermutationIdManifest,
-    PluginShaderPermutationManifest,
+    PluginPackageManifest, PluginShaderModuleManifest, PluginShaderModuleSource,
+    PluginShaderPermutationIdManifest, PluginShaderPermutationManifest, ShaderModuleSourceBinding,
 };
 pub use plugin_maturity::PluginMaturity;
 pub use runtime_plugin::{

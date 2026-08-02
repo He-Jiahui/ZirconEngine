@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::face::{FontStretch, FontStyle, FontWeight};
-use super::family::FontFamilyName;
+use crate::asset::assets::FontFamilyName;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FontFaceId(pub u64);

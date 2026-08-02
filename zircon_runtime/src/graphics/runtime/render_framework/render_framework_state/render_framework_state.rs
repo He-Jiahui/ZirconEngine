@@ -11,6 +11,7 @@ use crate::graphics::{
     SolariRuntimeProviderRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
 
+use super::super::budget::{BudgetDegradeLadder, RenderMemoryBudget};
 use super::super::frame_profiler::FrameProfiler;
 use super::super::graphics_debugger_capture::GraphicsDebuggerState;
 use super::super::viewport_record::ViewportRecord;
@@ -34,5 +35,7 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
         HashMap<RenderViewportHandle, ViewportRecord>,
     pub(in crate::graphics::runtime::render_framework) stats: RenderStats,
     pub(in crate::graphics::runtime::render_framework) frame_profiler: FrameProfiler,
+    pub(in crate::graphics::runtime::render_framework) memory_budget: RenderMemoryBudget,
+    pub(in crate::graphics::runtime::render_framework) degrade_ladder: BudgetDegradeLadder,
     pub(in crate::graphics::runtime::render_framework) graphics_debugger: GraphicsDebuggerState,
 }

@@ -45,6 +45,7 @@ impl ResourceManager {
             (event_kind, id, kind, locator, revision)
         };
         self.mark_runtime_loaded(id);
+        self.refresh_readiness(id);
 
         if let Some(event_kind) = event_kind {
             self.broadcast(ResourceEvent {
@@ -75,6 +76,7 @@ impl ResourceManager {
         self.lock_payloads_write().insert(id, Arc::new(payload));
         drop(registry);
         self.mark_runtime_loaded(id);
+        self.refresh_readiness(id);
         true
     }
 

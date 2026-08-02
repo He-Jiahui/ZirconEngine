@@ -5,9 +5,9 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodePaintTransform;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
-    asset_content_paint_metadata, parse_activity_content_identity, parse_browser_content_identity,
     ActivityContentNodeIdentity, ActivityContentNodeRole, AssetContentPaintNodeInput,
-    AssetContentSurface, BrowserContentNodeIdentity,
+    AssetContentSurface, BrowserContentNodeIdentity, asset_content_paint_metadata,
+    parse_activity_content_identity, parse_browser_content_identity,
 };
 
 use super::{ActivityAssetContentProjector, BrowserAssetContentProjector};
@@ -86,9 +86,11 @@ fn activity_asset_content_projector_scrolls_clips_and_hovers_shared_row_index() 
         vec![0, 2, 3, 4]
     );
 
-    assert!(projector
-        .transform(nodes.row_data(1).expect("folder row"), pane_clip.clone())
-        .is_none());
+    assert!(
+        projector
+            .transform(nodes.row_data(1).expect("folder row"), pane_clip.clone())
+            .is_none()
+    );
     let (item, item_clip) = projector
         .transform(nodes.row_data(2).expect("item row"), pane_clip.clone())
         .expect("scrolled item row should enter content viewport");
@@ -119,12 +121,14 @@ fn activity_asset_content_projector_falls_back_without_panel_and_ignores_stale_h
         20.0,
         10.0,
     )]);
-    assert!(ActivityAssetContentProjector::new(
-        &no_panel,
-        &frame(0.0, 0.0, 40.0, 40.0),
-        &HostPaneInteractionStateData::default(),
-    )
-    .is_none());
+    assert!(
+        ActivityAssetContentProjector::new(
+            &no_panel,
+            &frame(0.0, 0.0, 40.0, 40.0),
+            &HostPaneInteractionStateData::default(),
+        )
+        .is_none()
+    );
 
     let nodes = activity_model(vec![
         node("AssetsActivityContentPanel", 0.0, 0.0, 40.0, 40.0),
@@ -213,9 +217,11 @@ fn browser_content_identity_and_projector_keep_header_fixed_and_clip_rows() {
         .expect("header remains visible");
     assert_eq!(header.frame.y, 20.0);
     assert_eq!(header_clip, pane_clip);
-    assert!(projector
-        .transform(nodes.row_data(2).expect("first row"), pane_clip.clone())
-        .is_none());
+    assert!(
+        projector
+            .transform(nodes.row_data(2).expect("first row"), pane_clip.clone())
+            .is_none()
+    );
     let (second, row_clip) = projector
         .transform(nodes.row_data(3).expect("second row"), pane_clip.clone())
         .expect("second row scrolls into viewport");

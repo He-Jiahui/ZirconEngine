@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPhase,
-    resolve_subsurface_profile_table,
+    resolve_subsurface_profile_table, PostProcessGraphResourceNames, RenderFrameExtract,
+    RenderPhase,
 };
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentOps, RenderGraphExternalResourceBinding,
@@ -15,11 +15,10 @@ use crate::graphics::feature::{
     RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
-    ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME, CompiledRenderPipeline,
+    transmission_mesh_pass_name, transmission_scene_copy_pass_name, CompiledRenderPipeline,
     CompiledRenderPipelineParts, RenderPassStage, RenderPipelineAsset,
-    RenderPipelineCompileOptions, TRANSMISSION_MESH_EXECUTOR_IDS,
-    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS, transmission_mesh_pass_name,
-    transmission_scene_copy_pass_name,
+    RenderPipelineCompileOptions, ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME,
+    TRANSMISSION_MESH_EXECUTOR_IDS, TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
 
 use super::super::validation::validate_renderer_asset;
@@ -499,16 +498,14 @@ fn maybe_insert_core_scene_particle_descriptor(
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent3d,
-                CORE_SCENE_PARTICLE_PASS_NAME,
-                QueueLane::Graphics,
-            )
-            .with_executor_id(CORE_SCENE_PARTICLE_EXECUTOR_ID)
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent3d,
+            CORE_SCENE_PARTICLE_PASS_NAME,
+            QueueLane::Graphics,
+        )
+        .with_executor_id(CORE_SCENE_PARTICLE_EXECUTOR_ID)
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
     ));
 }
 

@@ -1,5 +1,5 @@
 use super::names::module_name;
-use super::parser::{path_elements, MuiIconPathElement};
+use super::parser::{MuiIconPathElement, path_elements};
 
 #[test]
 fn path_parser_preserves_paths_and_opacity() {

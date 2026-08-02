@@ -6,8 +6,8 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use self::action::dispatch_close_prompt_action_press;
-use super::super::routing::contains;
 use super::super::NativePointerButtonState;
+use super::super::routing::contains;
 use super::close_prompt_hit::close_prompt_action_at;
 
 pub(super) fn dispatch_close_prompt_button(

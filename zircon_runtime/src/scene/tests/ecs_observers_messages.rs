@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
+use crate::scene::World;
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     Component, LifecycleEventKind, Message, MessageId, MessageReaderParam, MessageWriterParam,
     ObserverId, SystemState,
 };
-use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
@@ -224,6 +224,25 @@ fn entity_event_observer_only_fires_for_target_entity() {
 }
 
 #[test]
+fn entity_event_observers_are_removed_with_their_target_entity() {
+    let mut world = World::empty();
+    let target = world.spawn((Name("Target".to_string()),)).unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+
+    {
+        let events = events.clone();
+        world.observe_entity_event::<DamageEvent>(target, move |_world, entity, event| {
+            events.lock().unwrap().push(format!("{entity}:{}", event.0));
+        });
+    }
+
+    assert!(world.remove_entity(target));
+    world.trigger_entity_event(target, DamageEvent(1));
+
+    assert!(events.lock().unwrap().is_empty());
+}
+
+#[test]
 fn observer_remove_during_dispatch_does_not_skip_or_double_fire() {
     let mut world = World::empty();
     let events = Arc::new(Mutex::new(Vec::new()));
@@ -260,6 +279,41 @@ fn observer_remove_during_dispatch_does_not_skip_or_double_fire() {
             "remove=1:true".to_string(),
             "target=1".to_string(),
             "remove=2:false".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn observer_registration_during_dispatch_is_visible_on_next_trigger() {
+    let mut world = World::empty();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let added_observer = Arc::new(Mutex::new(None::<ObserverId>));
+
+    {
+        let events = events.clone();
+        let added_observer = added_observer.clone();
+        world.observe_event::<DamageEvent>(move |world, event| {
+            events.lock().unwrap().push(format!("first={}", event.0));
+            let should_register = added_observer.lock().unwrap().is_none();
+            if should_register {
+                let events = events.clone();
+                let observer = world.observe_event::<DamageEvent>(move |_world, event| {
+                    events.lock().unwrap().push(format!("added={}", event.0));
+                });
+                *added_observer.lock().unwrap() = Some(observer);
+            }
+        });
+    }
+
+    world.trigger_event(DamageEvent(1));
+    world.trigger_event(DamageEvent(2));
+
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec![
+            "first=1".to_string(),
+            "first=2".to_string(),
+            "added=2".to_string(),
         ]
     );
 }
@@ -304,53 +358,32 @@ fn immediate_entity_event_observers_run_global_then_targeted_callbacks() {
 }
 
 #[test]
-fn observer_callback_collection_uses_exact_capacity_vectors() {
+fn observer_dispatch_uses_keyed_immutable_buckets() {
     let observer_source = observer_source();
 
-    assert!(observer_source.contains("fn lifecycle_callback_count("));
-    assert!(observer_source.contains("fn event_callback_count("));
-    assert!(observer_source.contains("fn entity_event_callback_count("));
-    assert!(observer_source.contains("Vec::with_capacity(callback_count)"));
-    assert!(observer_source.contains("callbacks.push(observer.callback.clone());"));
-    let lifecycle_count_body = observer_source
-        .split("fn lifecycle_callback_count(")
-        .nth(1)
-        .and_then(|text| text.split("fn event_callback_count(").next())
-        .expect("read lifecycle callback counter body");
-    let event_count_body = observer_source
-        .split("fn event_callback_count(")
-        .nth(1)
-        .and_then(|text| text.split("fn entity_event_callback_count(").next())
-        .expect("read event callback counter body");
-    let entity_event_count_body = observer_source
-        .split("fn entity_event_callback_count(")
-        .nth(1)
-        .and_then(|text| text.split("fn remove_observer_by_id<T>(").next())
-        .expect("read entity event callback counter body");
-    for count_body in [
-        lifecycle_count_body,
-        event_count_body,
-        entity_event_count_body,
-    ] {
-        assert!(count_body.contains("let mut count = 0_usize;"));
-        assert!(count_body.contains("count += 1;"));
-        assert!(!count_body.contains(".filter("));
-        assert!(!count_body.contains(".count()"));
-    }
-    assert!(!observer_source
-        .contains(".map(|observer| observer.callback.clone())\n            .collect()"));
-    assert!(observer_source.contains("fn remove_observer_by_id<T>("));
-    assert!(observer_source.contains("Observer ids are allocated from one counter"));
-    assert!(observer_source.contains("let mut index = 0_usize;"));
-    assert!(observer_source.contains("while index < observers.len()"));
-    assert!(observer_source.contains("observer_id(&observers[index]) == id"));
-    assert!(observer_source.contains("index += 1;"));
-    assert!(observer_source.contains("observers.remove(index);"));
-    assert!(observer_source.contains("return true;"));
-    assert!(!observer_source.contains(".position(|observer| observer_id(observer) == id)"));
-    assert!(!observer_source.contains("let before = self.total_len();"));
-    assert!(!observer_source.contains("self.total_len() != before"));
-    assert!(!observer_source.contains(".retain(|observer| observer.id != id)"));
+    assert!(observer_source.contains("HashMap<LifecycleObserverKey, Arc<[LifecycleObserver]>>"));
+    assert!(observer_source.contains("HashMap<TypeId, Arc<[EventObserver]>>"));
+    assert!(
+        observer_source.contains("HashMap<EntityEventObserverKey, Arc<[EntityEventObserver]>>")
+    );
+    assert!(observer_source.contains("observer_locations: HashMap<ObserverId, ObserverBucket>"));
+    assert!(
+        observer_source
+            .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>")
+    );
+    assert!(observer_source.contains("pub(crate) struct LifecycleCallbackBucket"));
+    assert!(observer_source.contains("pub(crate) struct EventCallbackBucket"));
+    assert!(observer_source.contains("pub(crate) struct EntityEventCallbackBucket"));
+    assert!(observer_source.contains("fn append_observer_to_bucket<T>"));
+    assert!(observer_source.contains("fn remove_observer_from_bucket<T>"));
+    assert!(observer_source.contains("pub(crate) fn remove_entity_observers"));
+    assert!(observer_source.contains("Arc::from(next)"));
+    assert!(!observer_source.contains("lifecycle_observers: Vec<"));
+    assert!(!observer_source.contains("event_observers: Vec<"));
+    assert!(!observer_source.contains("entity_event_observers: Vec<"));
+    assert!(!observer_source.contains("callback_count"));
+    assert!(!observer_source.contains("callbacks.push(observer.callback.clone())"));
+    assert!(!observer_source.contains("fn remove_observer_by_id<T>("));
 }
 
 #[test]
@@ -402,8 +435,10 @@ fn message_id_debug_uses_cached_type_name_tail_branch() {
         "message<DamageMessage>#7"
     );
     assert!(messages_source.contains("let message_type_name = type_name::<T>();"));
-    assert!(messages_source
-        .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()"));
+    assert!(
+        messages_source
+            .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()")
+    );
     assert!(messages_source.contains("Some(label) => label,"));
     assert!(messages_source.contains("None => message_type_name,"));
     assert!(!messages_source.contains(".unwrap_or(type_name::<T>())"));
@@ -467,18 +502,19 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
     assert!(message_unread_source.contains("let Some(messages) = messages else"));
     assert!(message_unread_source.contains("return 0;"));
     assert!(message_unread_source.contains("if self.generation == messages.generation()"));
-    assert!(
-        message_unread_source.contains(".saturating_sub(self.cursor.min(messages.messages.len()))")
-    );
+    assert!(message_unread_source.contains("messages.read_window_start(self.next_id)"));
     assert!(message_unread_source.contains("messages.messages.len()"));
+    assert!(!message_unread_source.contains("self.cursor"));
     assert!(!message_unread_source.contains(".map(|messages|"));
     assert!(!message_unread_source.contains(".unwrap_or_default()"));
     assert!(
         message_store_lookup_source.contains("let store = self.stores.get(&TypeId::of::<T>())?;")
     );
     assert!(message_store_lookup_source.contains("store.downcast_ref::<Messages<T>>()"));
-    assert!(!message_store_lookup_source
-        .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())"));
+    assert!(
+        !message_store_lookup_source
+            .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())")
+    );
 }
 
 #[test]

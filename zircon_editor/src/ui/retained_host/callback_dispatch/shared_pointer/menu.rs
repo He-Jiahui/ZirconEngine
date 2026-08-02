@@ -7,7 +7,7 @@ use crate::ui::retained_host::{
 };
 
 use super::super::{
-    dispatch_host_menu_action_with_template_fallback, BuiltinHostWindowTemplateBridge,
+    BuiltinHostWindowTemplateBridge, dispatch_host_menu_action_with_template_fallback,
 };
 
 #[derive(Debug, Clone, PartialEq)]

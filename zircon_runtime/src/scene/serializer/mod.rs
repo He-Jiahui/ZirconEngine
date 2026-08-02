@@ -17,6 +17,14 @@ impl SceneAssetSerializer {
         World::load_scene_from_uri(project, uri)
     }
 
+    pub(crate) fn load_world_with_raw_payload_limit(
+        project: &ProjectManager,
+        uri: &ResourceLocator,
+        max_raw_payload_bytes: u64,
+    ) -> Result<World, SceneProjectError> {
+        World::load_scene_from_uri_with_raw_payload_limit(project, uri, max_raw_payload_bytes)
+    }
+
     pub fn instantiate_world(
         project: &ProjectManager,
         asset: &SceneAsset,

@@ -49,6 +49,10 @@ where
     pub fn clear(&mut self) {
         self.cursor.clear(self.messages);
     }
+
+    pub fn dropped_count(&self) -> u64 {
+        self.cursor.dropped_count()
+    }
 }
 
 impl<T> MessageWriter<'_, T>

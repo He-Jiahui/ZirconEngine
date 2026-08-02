@@ -1,8 +1,8 @@
 # Editor 模块结构规范镜像文档
 
-> 本文是 [Editor UI 10](../../plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md) 的镜像文档，固定 editor `module_convention_gate` 的结构审计事实，由 `editor_ui_10_module_convention_mirror_docs_match_structure_audit_counts` 守卫锁定。上游规范：[`engine-code-structure-convention.md`](../../plans/engine-code-structure-convention.md)。
+> 本文是 [Editor UI 10](../../plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md) 的镜像文档，记录 editor `module_convention_gate` 的结构审计入口；当前事实以 `audit_editor_structure.py --json` 输出为准。上游规范：[`engine-code-structure-convention.md`](../../plans/engine-code-structure-convention.md)。
 >
-> 状态：active（`audit_editor_structure.py --json` 与 `zircon_editor/src/tests/structure_convention/` 已落地并通过 focused guard；当前 `module_convention_gate.m1_gate_status = classified-and-clear`，Editor UI 10 M1 结构门已清零）。
+> 状态：active（`audit_editor_structure.py --json` 与 `zircon_editor/src/tests/structure_convention/` 已落地；当前 `module_convention_gate.m1_gate_status = migration-debt-present`，债务为 1 个超大生产文件和 1 个 UI owner 边界违例）。
 
 ## 治理范围
 
@@ -10,23 +10,22 @@
 
 ## `module_convention_gate` 当前实测
 
-字段同 [Runtime 镜像文档](../../zircon_runtime/structure/module-convention.md)，加 editor owner 分类（对齐 `large-file-ownership-m1.md` 的 `editor-retained-host` / `editor-ui`）。2026-07-17 最新 `audit_editor_structure.py --json` 输出：
+字段同 [Runtime 镜像文档](../../zircon_runtime/structure/module-convention.md)，加 editor owner 分类（对齐 `large-file-ownership-m1.md` 的 `editor-retained-host` / `editor-ui`）。2026-08-02 `audit_editor_structure.py --json` 输出：
 
 | 字段 | 当前 | 目标 |
 |---|---|
-| `oversized_production_files`（投影 / 转换巨型文件） | 0 | 0 |
+| `oversized_production_files`（投影 / 转换巨型文件） | 1 | 0 |
 | `production_dead_code_suppressions` | 0 | → 0 |
 | `duplicate_test_trees`（`src/tests/**` ↔ `src/ui/**` 双写） | 0 | → 0 |
 | `banned_name_modules`（`_inner` 等） | 0 | → 0 |
-| `ui_module_owner_boundary_violations`（顶层单文件未归 owner） | 0 | → 0 |
-| `module_convention_gate.m1_gate_status` | `classified-and-clear` | `classified-and-clear` |
-| `migration_debt_count` | 0 | 0 |
+| `ui_module_owner_boundary_violations`（顶层单文件未归 owner） | 1 | → 0 |
+| `module_convention_gate.m1_gate_status` | `migration-debt-present` | `classified-and-clear` |
+| `migration_debt_count` | 2 | 0 |
 
 ## 已锁定的清零项
 
 - `editor_ui_10_visual_style_owner_tree_is_hard_cut_over`：`pane_component_projection/visual_style.rs` 旧单文件 owner 已删除，`visual_style/{mod,button,component,model,surface}.rs` 全部存在。
 - `editor_ui_10_module_convention_audit_report_has_expected_shape`：审计 JSON 暴露 `module_convention_gate`、`migration_debt_count` 与结构债分类字段。
-- `editor_ui_10_module_convention_mirror_docs_track_audit_entry`：本文和 Editor UI 10 计划必须同步记录 `audit_editor_structure.py --json` 与结构 guard 名称。
 - 2026-06-22 验证：M1.T1 前的 `cargo test -p zircon_editor --lib structure_convention --locked --message-format short --color never -- --test-threads=1` 通过（3 passed，2066 filtered out）；测试入口编译漂移已通过 owner-local import / `cfg(test)` helper 收束修复。
 - 2026-06-22 M1.T1：`ui/activity.rs`、`ui/control.rs`、`ui/reflection.rs` 顶层单文件 owner 已硬切为 folder-backed owner tree，`ui_module_owner_boundary_violation_count` 清零。
 - 2026-07-17 M1.T1 回归关闭：结构审计先精确复现 `component_registry.rs`、`preferences.rs` 两项 root owner debt（`migration_debt_count = 2`），随后硬切为 `component_registry/{mod,registry,tests}.rs` 与 `preferences/{mod,appearance,persistence,startup,typography_migration,tests/**}`；旧文件不存在，最新 Python audit 为 `classified-and-clear`、`migration_debt_count = 0`、`ui_module_owner_boundary_violation_count = 0`。文件级 rustfmt 与 scoped diff 已通过；受管偏好 12/12、组件 1/1、结构 3/3 全部 exit 0，并已完成 Editor07 fixed return。

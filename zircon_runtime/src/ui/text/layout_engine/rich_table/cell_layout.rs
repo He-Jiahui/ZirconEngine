@@ -105,6 +105,7 @@ pub(super) fn resolved_cell_boxes(
     axes: TableAxes,
     table_frame: UiFrame,
     grid: &TableGrid<'_>,
+    source_offset: usize,
     column_origins: &[f32],
     column_extents: &[f32],
     row_origins: &[f32],
@@ -125,8 +126,8 @@ pub(super) fn resolved_cell_boxes(
             }
             Some(UiResolvedTextBox {
                 range: UiTextRange {
-                    start: placed.cell.byte_range.0 as usize,
-                    end: placed.cell.byte_range.1 as usize,
+                    start: (placed.cell.byte_range.0 as usize).saturating_sub(source_offset),
+                    end: (placed.cell.byte_range.1 as usize).saturating_sub(source_offset),
                 },
                 frame: axes.physical_frame(
                     table_frame,

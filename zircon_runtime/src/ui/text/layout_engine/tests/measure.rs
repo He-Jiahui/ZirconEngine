@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiTextOverflow, UiTextWrap},
+    surface::{UiRichTextFormat, UiTextOverflow, UiTextWrap, UiTextWritingMode},
 };
 
 use super::{layout_text, measure_text_size, test_style};
@@ -19,6 +19,37 @@ fn text_measurement_uses_backend_glyph_metrics() {
     );
     assert!(combined.width < wide.width);
     assert_eq!(combined.height, 12.0);
+}
+
+#[test]
+fn text_measurement_uses_rich_run_metrics_instead_of_flat_base_style() {
+    let mut rich_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    rich_style.rich_text_format = UiRichTextFormat::BbCode;
+    let plain_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+
+    let rich = measure_text_size("[size=40]Wide[/size]", &rich_style);
+    let plain = measure_text_size("Wide", &plain_style);
+
+    assert!(rich.width > plain.width);
+    assert!(rich.height > plain.height);
+}
+
+#[test]
+fn text_measurement_uses_vertical_layout_contract() {
+    let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    style.text_writing_mode = UiTextWritingMode::VerticalRl;
+
+    let measured = measure_text_size("ABCD", &style);
+    let layout = layout_text(
+        "ABCD",
+        &style,
+        UiFrame::new(0.0, 0.0, 1_000.0, 1_000.0),
+        None,
+    );
+
+    assert!((measured.width - layout.measured_width).abs() < 0.1);
+    assert!((measured.height - layout.measured_height).abs() < 0.1);
+    assert!(measured.height > measured.width);
 }
 
 #[test]

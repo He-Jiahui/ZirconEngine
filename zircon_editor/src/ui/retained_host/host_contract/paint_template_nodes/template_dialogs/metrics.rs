@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 
 const RADIUS_BORDER_MULTIPLIER: f32 = 2.0;
 const CONTENT_TOP_ROW_MULTIPLIER: f32 = 2.0;
@@ -32,8 +32,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub action_line_height: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_metrics(
-) -> WorkbenchDialogMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_metrics()
+-> WorkbenchDialogMetrics {
     dialog_metrics_from_host(current_host_metrics())
 }
 

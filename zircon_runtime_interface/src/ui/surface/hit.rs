@@ -235,7 +235,7 @@ impl UiHitPath {
         self
     }
 
-    /// Accepts legacy route inputs only when they agree with the authoritative root-to-leaf path.
+    /// Accepts caller-supplied route inputs only when they match the authoritative path.
     pub fn with_route(
         self,
         target: Option<UiNodeId>,

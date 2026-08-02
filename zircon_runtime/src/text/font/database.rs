@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use glyphon::{fontdb, FontSystem};
+use glyphon::{FontSystem, fontdb};
 
 use crate::asset::assets::decode_font_source;
 use crate::text::{
@@ -21,7 +21,7 @@ use super::face_metadata::FontFaceMetadata;
 use super::fallback::MissingGlyphLog;
 use super::fallback_cache::{CompositeFontIdentity, FallbackCaches};
 use super::instance::{EffectiveInstanceCache, FontInstanceRegistry};
-use super::matching::{font_family_identity, FontFamilyIdentity};
+use super::matching::{FontFamilyIdentity, font_family_identity};
 
 mod asset_lifecycle;
 mod error;
@@ -32,7 +32,7 @@ mod instances;
 mod system_fonts;
 
 pub(crate) use error::FontDatabaseError;
-use face_matching::FontMatchCacheKey;
+use face_matching::FaceMatchCache;
 pub(crate) use fallback_queries::FontShapingFaceResolver;
 pub(crate) use system_fonts::SystemFontPolicy;
 
@@ -104,7 +104,7 @@ pub(crate) struct FontDatabase {
     default_instances: HashMap<FontFaceId, InstancedFaceId>,
     metadata_build_count: Arc<AtomicU64>,
     missing_glyphs: Arc<Mutex<MissingGlyphLog>>,
-    face_match_cache: Arc<Mutex<HashMap<FontMatchCacheKey, Option<FontMatch>>>>,
+    face_match_cache: Arc<Mutex<FaceMatchCache>>,
     effective_instances: EffectiveInstanceCache,
     fallback_caches: FallbackCaches,
 }
@@ -145,7 +145,7 @@ impl Default for FontDatabase {
             default_instances: HashMap::new(),
             metadata_build_count: Arc::new(AtomicU64::new(0)),
             missing_glyphs: Arc::new(Mutex::new(MissingGlyphLog::default())),
-            face_match_cache: Arc::new(Mutex::new(HashMap::new())),
+            face_match_cache: Arc::new(Mutex::new(FaceMatchCache::default())),
             effective_instances: EffectiveInstanceCache::default(),
             fallback_caches: FallbackCaches::default(),
         }
@@ -484,7 +484,7 @@ impl FontDatabase {
     }
 
     fn detach_matching_and_fallback_caches(&mut self) {
-        self.face_match_cache = Arc::new(Mutex::new(HashMap::new()));
+        self.face_match_cache = Arc::new(Mutex::new(FaceMatchCache::default()));
         self.fallback_caches = FallbackCaches::default();
         self.project_composite_index = self
             .project_composite_font

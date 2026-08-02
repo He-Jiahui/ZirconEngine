@@ -1,6 +1,5 @@
 use crate::core::framework::render::ViewportCameraSnapshot;
-use crate::core::framework::scene::EntityId;
-use crate::core::{TaskPool, parallel_for};
+use crate::core::{parallel_for, TaskPool};
 use crate::graphics::visibility::VisibilityBounds;
 
 use super::is_mesh_visible::BoundsVisibilityTest;
@@ -10,13 +9,13 @@ const PARALLEL_FRUSTUM_CHUNK_SIZE: usize = 32;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct MeshFrustumCandidate {
-    pub(crate) entity: EntityId,
+    pub(crate) stable_instance_key: u64,
     pub(crate) bounds: VisibilityBounds,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct MeshFrustumVisibility {
-    pub(crate) entity: EntityId,
+    pub(crate) stable_instance_key: u64,
     pub(crate) visible: bool,
 }
 
@@ -56,7 +55,7 @@ pub(crate) fn mesh_frustum_visibility(
     work_items
         .into_iter()
         .map(|item| MeshFrustumVisibility {
-            entity: item.candidate.entity,
+            stable_instance_key: item.candidate.stable_instance_key,
             visible: item.visible,
         })
         .collect()
@@ -76,7 +75,7 @@ pub(crate) fn serial_mesh_frustum_visibility(
     candidates
         .iter()
         .map(|candidate| MeshFrustumVisibility {
-            entity: candidate.entity,
+            stable_instance_key: candidate.stable_instance_key,
             visible: visibility_test.is_visible(candidate.bounds),
         })
         .collect()
@@ -88,7 +87,7 @@ mod tests {
     use crate::core::{TaskPool, TaskPoolDescriptor};
     use crate::graphics::visibility::VisibilityBounds;
 
-    use super::{MeshFrustumCandidate, mesh_frustum_visibility, serial_mesh_frustum_visibility};
+    use super::{mesh_frustum_visibility, serial_mesh_frustum_visibility, MeshFrustumCandidate};
 
     #[test]
     fn parallel_frustum_visibility_matches_serial_order_and_results() {
@@ -110,7 +109,7 @@ mod tests {
         assert_eq!(
             parallel
                 .iter()
-                .map(|entry| entry.entity)
+                .map(|entry| entry.stable_instance_key)
                 .collect::<Vec<_>>(),
             (1..=96).collect::<Vec<_>>()
         );
@@ -125,9 +124,9 @@ mod tests {
         assert!(!source.contains(concat!("is_bounds_visible(", "item.candidate.bounds")));
     }
 
-    fn candidate_at(entity: u64, center: Vec3) -> MeshFrustumCandidate {
+    fn candidate_at(stable_instance_key: u64, center: Vec3) -> MeshFrustumCandidate {
         MeshFrustumCandidate {
-            entity,
+            stable_instance_key,
             bounds: VisibilityBounds {
                 center,
                 radius: 0.5,

@@ -6,8 +6,8 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use super::{
-    normalize_extension, normalize_full_suffix, AssetImporterCapabilityReport,
-    AssetImporterCapabilityStatus, AssetImporterDescriptor, AssetImporterHandler,
+    AssetImporterCapabilityReport, AssetImporterCapabilityStatus, AssetImporterDescriptor,
+    AssetImporterHandler, normalize_extension, normalize_full_suffix,
 };
 use crate::asset::AssetImportError;
 
@@ -17,7 +17,9 @@ pub enum AssetImporterRegistryError {
     DuplicateImporterId(String),
     #[error("duplicate importer matcher {matcher} at priority {priority}")]
     DuplicateMatcher { matcher: String, priority: i32 },
-    #[error("asset importer {importer_id} cannot register deprecated UI document suffix {suffix}; UI documents must use .zui")]
+    #[error(
+        "asset importer {importer_id} cannot register deprecated UI document suffix {suffix}; UI documents must use .zui"
+    )]
     DeprecatedUiDocumentSuffixImporter { importer_id: String, suffix: String },
     #[error("asset importer {0} must declare at least one source extension or full suffix")]
     MissingMatcher(String),

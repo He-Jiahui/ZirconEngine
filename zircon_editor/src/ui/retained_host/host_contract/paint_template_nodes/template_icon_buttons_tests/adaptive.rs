@@ -60,12 +60,16 @@ fn collapsed_icon_button_omits_the_glyph() {
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| command.image_pixels.is_none()));
-    assert!(commands
-        .iter()
-        .all(|command| frame_is_within(&rect, &command.frame)));
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.image_pixels.is_none())
+    );
+    assert!(
+        commands
+            .iter()
+            .all(|command| frame_is_within(&rect, &command.frame))
+    );
 }
 
 #[test]
@@ -95,9 +99,11 @@ fn narrow_icon_button_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(commands
-        .iter()
-        .all(|command| frame_is_within(&rect, &command.frame)));
+    assert!(
+        commands
+            .iter()
+            .all(|command| frame_is_within(&rect, &command.frame))
+    );
 }
 
 #[test]

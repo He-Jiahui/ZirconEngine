@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+use crate::graphics::backend::GpuReadbackQueue;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::{
@@ -11,7 +12,7 @@ use crate::graphics::{
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
-use super::super::super::super::hzb::{HzbOcclusionCuller, hzb_occlusion_supported_by_limits};
+use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
 use super::super::super::super::mesh::skinning::{
     create_empty_skinned_joint_palette_buffer, skinned_joint_palette_storage_min_binding_size,
 };
@@ -20,15 +21,17 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::shadow::atlas::{
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasConfig,
-    ShadowAtlasResourceConfig, ShadowAtlasResources,
+    ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
 };
+use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::constants::{DEPTH_FORMAT, SCENE_COLOR_HDR_FORMAT};
-use super::super::super::scene_renderer::SceneRendererCoreStartupReport;
+use super::super::super::scene_renderer::{
+    ScenePostProcessStartupMode, SceneRendererCoreStartupReport,
+};
 use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginResources, SceneRendererCore,
 };
@@ -37,6 +40,9 @@ use super::super::layouts::{
 };
 use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
+const ENVIRONMENT_ONLY_SHADOW_ATLAS_PLACEHOLDER: ShadowAtlasResourceConfig =
+    ShadowAtlasResourceConfig::new(1, 1, 1);
+
 impl SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) fn new_with_icon_source(
         asset_manager: ProjectAssetManagerAccess,
@@ -44,6 +50,7 @@ impl SceneRendererCore {
         queue: &wgpu::Queue,
         final_color_format: wgpu::TextureFormat,
         backend_name: &str,
+        adapter_info: &wgpu::AdapterInfo,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: &[RenderFeatureDescriptor],
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
@@ -76,26 +83,39 @@ impl SceneRendererCore {
 
         let mesh_and_environment_started = Instant::now();
         let scene_color_format = SCENE_COLOR_HDR_FORMAT;
-        let mut mesh_pipelines = MeshPipelineCache::new(
+        let mut mesh_pipelines = MeshPipelineCache::new_with_adapter_info(
             device,
             queue,
             scene_color_format,
+            adapter_info,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
+            deferred_lighting_profile.defers_local_reflection_provider_resources(),
         );
         for descriptor in plugin_geometry_sources {
             mesh_pipelines.register_geometry_source_descriptor(descriptor);
         }
         let ibl_bake_pipeline_cache = IblBakeWgpuPipelineCache::new(device);
         let realtime_ibl = RealtimeIblRuntime::new();
-        let scene_clear = SceneRegionClearResources::new(device, scene_color_format, DEPTH_FORMAT);
+        let scene_clear = deferred_lighting_profile
+            .supports_compiled_scene_graph()
+            .then(|| SceneRegionClearResources::new(device, scene_color_format, DEPTH_FORMAT));
         let mesh_and_environment = mesh_and_environment_started.elapsed();
 
         let shadows_started = Instant::now();
         let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
+        // The zero-direct-light preview retains valid shared bindings without reserving the
+        // full 4096-square shadow atlas used by scene-capable renderer profiles.
+        let shadow_atlas_resource_config = if deferred_lighting_profile
+            .uses_full_shadow_atlas_resources()
+        {
+            ShadowAtlasResourceConfig::default()
+        } else {
+            ENVIRONMENT_ONLY_SHADOW_ATLAS_PLACEHOLDER
+        };
         let shadow_atlas_resources =
-            ShadowAtlasResources::new(device, ShadowAtlasResourceConfig::default());
+            ShadowAtlasResources::new(device, shadow_atlas_resource_config);
         let shadow_atlas_resource_config = shadow_atlas_resources.config();
         let shadow_atlas_allocator = ShadowAtlasAllocator::new(ShadowAtlasConfig {
             width: shadow_atlas_resource_config.width,
@@ -122,31 +142,45 @@ impl SceneRendererCore {
         )?;
         let deferred_startup = deferred_started.elapsed();
 
+        let uses_auxiliary_scene_effects = deferred_lighting_profile.uses_auxiliary_scene_effects();
         let scene_effects_started = Instant::now();
         let scene_effects_particles_started = Instant::now();
-        let particle_renderer =
-            ParticleRenderer::new(device, &scene_bind_group_bundle.layout, scene_color_format);
+        let particle_renderer = uses_auxiliary_scene_effects.then(|| {
+            ParticleRenderer::new(device, &scene_bind_group_bundle.layout, scene_color_format)
+        });
         let scene_effects_particles = scene_effects_particles_started.elapsed();
         let scene_effects_sprites_started = Instant::now();
-        let sprite_renderer = SpriteRenderer::new(
-            device,
-            &scene_bind_group_bundle.layout,
-            &texture_bind_group_layout,
-            scene_color_format,
-        );
-        let scene_effects_sprites = scene_effects_sprites_started.elapsed();
-        let scene_effects_hzb_started = Instant::now();
-        let hzb_occlusion_culler = hzb_occlusion_supported_by_limits(&device.limits()).then(|| {
-            HzbOcclusionCuller::new(
+        let sprite_renderer = uses_auxiliary_scene_effects.then(|| {
+            SpriteRenderer::new(
                 device,
                 &scene_bind_group_bundle.layout,
-                gpu_scene.scene_bind_group_layout(),
+                &texture_bind_group_layout,
+                scene_color_format,
             )
         });
+        let scene_effects_sprites = scene_effects_sprites_started.elapsed();
+        let scene_effects_hzb_started = Instant::now();
+        let hzb_occlusion_culler = uses_auxiliary_scene_effects
+            .then(|| {
+                hzb_occlusion_supported_by_limits(&device.limits()).then(|| {
+                    HzbOcclusionCuller::new(
+                        device,
+                        &scene_bind_group_bundle.layout,
+                        gpu_scene.scene_bind_group_layout(),
+                    )
+                })
+            })
+            .flatten();
         let scene_effects_hzb = scene_effects_hzb_started.elapsed();
         let scene_effects_post_process_started = Instant::now();
-        let post_process =
-            ScenePostProcessResources::new(device, queue, final_color_format, backend_name);
+        let post_process = match deferred_lighting_profile.post_process_startup_mode() {
+            ScenePostProcessStartupMode::Full => {
+                ScenePostProcessResources::new(device, queue, final_color_format, backend_name)
+            }
+            ScenePostProcessStartupMode::OutputTransferOnly => {
+                ScenePostProcessResources::output_transfer_only(device, final_color_format)
+            }
+        };
         let scene_effects_post_process = scene_effects_post_process_started.elapsed();
         let scene_effects = scene_effects_started.elapsed();
 
@@ -160,8 +194,16 @@ impl SceneRendererCore {
             icon_source,
             volumetric_fog_enabled,
         );
-        let screen_space_ui_renderer =
-            ScreenSpaceUiRenderer::new(asset_manager, device, queue, final_color_format)?;
+        let screen_space_ui_renderer = if deferred_lighting_profile.uses_screen_space_ui() {
+            Some(ScreenSpaceUiRenderer::new(
+                asset_manager,
+                device,
+                queue,
+                final_color_format,
+            )?)
+        } else {
+            None
+        };
         let overlay_and_ui = overlay_and_ui_started.elapsed();
         Ok((
             Self {
@@ -175,6 +217,7 @@ impl SceneRendererCore {
                 scene_color_format,
                 final_color_format,
                 depth_format: DEPTH_FORMAT,
+                global_material_mip_bias: 0.0,
                 mesh_command_generation: 0,
                 material_texture_bind_group_layout,
                 mesh_pipelines,
@@ -195,6 +238,8 @@ impl SceneRendererCore {
                 overlay_renderer,
                 screen_space_ui_renderer,
                 transient_resource_pool: Default::default(),
+                readback_queue: GpuReadbackQueue::new(device),
+                readback_frame_index: 0,
                 advanced_plugin_resources,
             },
             SceneRendererCoreStartupReport {

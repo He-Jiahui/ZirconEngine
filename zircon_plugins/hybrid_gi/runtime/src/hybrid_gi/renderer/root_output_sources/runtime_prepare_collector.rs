@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use zircon_runtime::core::framework::render::{
@@ -13,7 +13,7 @@ use zircon_runtime::graphics::{
 };
 
 use crate::hybrid_gi::renderer::{
-    HybridGiGpuPendingReadback, HybridGiGpuResources, HybridGiMaterialCaptureSeed,
+    HybridGiGpuReadbackFuture, HybridGiGpuResources, HybridGiMaterialCaptureSeed,
     HybridGiMaterialCaptureSource,
 };
 use crate::hybrid_gi::types::{
@@ -31,7 +31,7 @@ pub(crate) struct HybridGiRuntimePrepareCollector {
 #[derive(Default)]
 struct HybridGiRuntimePrepareCollectorState {
     gpu_resources: Option<HybridGiGpuResources>,
-    pending_readback: Option<HybridGiGpuPendingReadback>,
+    pending_readbacks: VecDeque<HybridGiGpuReadbackFuture>,
 }
 
 pub(crate) fn runtime_prepare_collector() -> Arc<dyn RuntimePrepareCollector> {
@@ -60,11 +60,22 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
             RuntimePrepareMaterialCaptureCache::from_context(context, &scene_meshes);
 
         let mut state = self.lock_state()?;
-        let completed_readback = state
-            .pending_readback
-            .take()
-            .map(|readback| readback.collect(context.device))
-            .transpose()?;
+        let completed_readback = if state
+            .pending_readbacks
+            .front()
+            .is_some_and(HybridGiGpuReadbackFuture::is_ready)
+        {
+            Some(
+                state
+                    .pending_readbacks
+                    .pop_front()
+                    .expect("ready hybrid GI readback remains queued")
+                    .try_collect()
+                    .expect("ready hybrid GI readback collects immediately")?,
+            )
+        } else {
+            None
+        };
         let outputs = plugin_renderer_outputs_from_gpu_readback(completed_readback);
 
         if let Some(prepared_frame) = prepared_frame.filter(|frame| !frame.is_empty()) {
@@ -82,7 +93,7 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
             let gpu_resources = state
                 .gpu_resources
                 .get_or_insert_with(|| HybridGiGpuResources::new(context.device));
-            state.pending_readback = gpu_resources.execute_prepare(
+            let pending_readback = gpu_resources.execute_prepare(
                 context.device,
                 context.queue,
                 &mut *context.encoder,
@@ -97,6 +108,11 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 probe_budget,
                 tracing_budget,
             )?;
+            if let Some(pending_readback) = pending_readback {
+                state
+                    .pending_readbacks
+                    .push_back(pending_readback.enqueue(context)?);
+            }
         }
 
         Ok(outputs)

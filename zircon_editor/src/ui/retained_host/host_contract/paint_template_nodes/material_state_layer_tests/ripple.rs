@@ -1,4 +1,4 @@
-use super::super::{ripple_diameter, ripple_rect, TemplatePaneNodeData, RIPPLE_DIAMETER_EXPANSION};
+use super::super::{RIPPLE_DIAMETER_EXPANSION, TemplatePaneNodeData, ripple_diameter, ripple_rect};
 use super::support::frame;
 
 #[test]

@@ -83,14 +83,5 @@ class Editor09RuntimeAssetIndexProjectionContract(unittest.TestCase):
             source,
         )
 
-    def test_child_record_keeps_parent_m2_pending_until_managed_validation(self) -> None:
-        record = self.read(
-            "docs/plans/zircon_editor/editor/09/2026-07-22-m2-runtime-asset-index-projection.md"
-        )
-        self.assertIn("## 产出记录与时间", record)
-        self.assertIn("source_complete_static_green_validation_pending", record)
-        self.assertIn("父 M2 保持 `pending`", record)
-
-
 if __name__ == "__main__":
     unittest.main()

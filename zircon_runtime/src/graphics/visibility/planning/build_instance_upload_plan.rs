@@ -11,39 +11,39 @@ pub(crate) fn build_instance_upload_plan(
     bvh_instances: &[VisibilityBvhInstance],
     bvh_update_plan: &VisibilityBvhUpdatePlan,
 ) -> VisibilityInstanceUploadPlan {
-    let static_instance_entities = bvh_instances
+    let static_instance_keys = bvh_instances
         .iter()
         .filter(|instance| instance.key.mobility == Mobility::Static)
-        .map(|instance| instance.entity)
+        .map(|instance| instance.stable_instance_key)
         .collect::<Vec<_>>();
-    let dynamic_instance_entities = bvh_instances
+    let dynamic_instance_keys = bvh_instances
         .iter()
         .filter(|instance| instance.key.mobility == Mobility::Dynamic)
-        .map(|instance| instance.entity)
+        .map(|instance| instance.stable_instance_key)
         .collect::<Vec<_>>();
-    let dynamic_entity_set = dynamic_instance_entities
+    let dynamic_instance_key_set = dynamic_instance_keys
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();
     let dirty_dynamic_set = match bvh_update_plan.strategy {
-        VisibilityBvhUpdateStrategy::FullRebuild => dynamic_entity_set,
+        VisibilityBvhUpdateStrategy::FullRebuild => dynamic_instance_key_set,
         VisibilityBvhUpdateStrategy::Incremental => bvh_update_plan
-            .inserted_entities
+            .inserted_stable_instance_keys
             .iter()
-            .chain(bvh_update_plan.updated_entities.iter())
+            .chain(bvh_update_plan.updated_stable_instance_keys.iter())
             .copied()
-            .filter(|entity| dynamic_entity_set.contains(entity))
+            .filter(|key| dynamic_instance_key_set.contains(key))
             .collect(),
     };
-    let dirty_dynamic_entities = dynamic_instance_entities
+    let dirty_dynamic_instance_keys = dynamic_instance_keys
         .iter()
         .copied()
-        .filter(|entity| dirty_dynamic_set.contains(entity))
+        .filter(|key| dirty_dynamic_set.contains(key))
         .collect::<Vec<_>>();
 
     VisibilityInstanceUploadPlan {
-        static_instance_entities,
-        dynamic_instance_entities,
-        dirty_dynamic_entities,
+        static_instance_keys,
+        dynamic_instance_keys,
+        dirty_dynamic_instance_keys,
     }
 }

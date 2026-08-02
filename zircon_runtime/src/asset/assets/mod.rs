@@ -26,11 +26,11 @@ pub use authoring::{
 };
 pub use data::{DataAsset, DataAssetFormat};
 pub use font::{
-    FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetError,
-    FontAssetFaceMetrics, FontAssetFaceStyle, FontAssetFamilyMember, FontAssetLineMetrics,
-    FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy, FontAssetResult,
-    FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
-    FontAssetVariationCoord,
+    CompositeFontDescriptor, FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange,
+    FontAssetError, FontAssetFaceMetrics, FontAssetFaceStyle, FontAssetFamilyMember,
+    FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy,
+    FontAssetResult, FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
+    FontAssetVariationCoord, FontCultureTag, FontFamilyName, FontScript, SubFontRange,
 };
 #[cfg(feature = "text")]
 pub(crate) use font_source::{

@@ -96,3 +96,51 @@ The direct DX12 current-source run used `D:\Tools\renderdoc\renderdoc.dll`, the 
 - The first Ready-frame screenshot build failed only on the new code's borrow ordering (`E0499` at `app.rs:288`); the presenter borrow was shortened and retry reservation `ee377bb260a5414a81836759f32c2e0b` completed as the successful job `b84413fc1080450c8a4a99071d5aa320` above. The timing rebuild reservation `10765e224dfa4c58bcad036bcffd0319` completed as job `7cd443a5c1d044d7b1cc701f89cf4142`, and the measured first-frame split above rules out PNG encoding and surface presentation as the source of the 9.17s first-frame delay.
 
 The historical 2026-07-27 screenshot and RenderDoc capture remain historical evidence only. The tracked Standard-PBR-preview DX12 PNG remains accepted visual and startup-attribution evidence for that historical profile. The current-source environment-only PBR Release build, Debug compile, corrected Ready-frame decomposition, RenderDoc replay, and exact viewer CLI test are complete; its DX12 Ready-frame PNG and capture are recorded above. The earlier Text01 import result is a historical failed Release attempt, not a current Release requirement.
+
+## 2026-08-01 Current-Worktree Follow-up (Not Yet Accepted)
+
+The historical 82--100 second delay remains attributed to synchronous DX12 WGSL/PSO compilation. IBL restore was approximately 1.08 seconds in the original decomposition, while eager `DeferredSceneResources` construction reached approximately 91.74 seconds. Later environment-only measurements reduced scene construction to 8.28 seconds and Ready total to 19.21 seconds; PNG encoding, surface present, and HDR/PMREM cache restore were not dominant. The latest source also uses `PbrMirrorScene::render_to_viewport_surface` for normal interaction, so the CPU `ViewportFrame` readback is limited to explicit screenshot/fallback operation rather than every displayed frame.
+
+The remaining Base material key does not receive shadows. Its Forward template previously still parsed the complete 7,850-character shadow atlas, cascade, point-face, and PCF module even though `ZR_FEATURE_RECEIVE_SHADOWS` was false. The current worktree keeps the canonical `zr_shadow.wgsl` token but selects a 165-character binding-free `zr_gpu_light_shadow_visibility` stub for that variant, a 97.9% module-source reduction. Variants carrying `ShaderFeatureBits::RECEIVE_SHADOWS` still receive the full module. The two specializations deliberately have different include content hashes, so shader prewarm/runtime cache identities cannot reuse the wrong source.
+
+Evidence completed without the occupied Cargo lane: focused `rustfmt --check`, scoped `git diff --check`, 9 environment/lightmap ownership and GPU-binding Python contracts, and 62 shader-prewarm cache/provenance/resource/dimension contracts. The independent second review reported one Important issue in the first draft: shadow support was selected before pass dispatch, so non-Forward pass assembly still copied and hashed an unused full module. The forward fix moves shadow and the pre-existing volumetric selection inside the Forward arm; a post-fix source gate confirms neither is constructed before pass dispatch. No independent `naga` executable is installed. These static results do not replace a fresh managed Rust/WGSL test, DX12 timing run, screenshot, or RenderDoc 1.44 replay; all PNG/RDC artifacts linked earlier in this page predate this worktree specialization and remain historical baselines.
+
+The broader non-Cargo prewarm sweep initially ran 128 tests and found four pre-shader errors: `native_dynamic_fixture` declared `distribution.assets = ["assets/**"]`, the files existed and were unchanged, but Python 3.12 `Path.glob` returned only the terminal directory and the validator rejected it after its file filter. A focused regression reproduced that diagnostic before the fix. The distribution-assets validation owner now normalizes only terminal `**` to recursive contents, leaving other patterns and all path, retired-UI, and `.zui` validation intact. Its focused asset suite passes 7/7 on Python 3.12, the recursive regression passes on Python 3.14, and the original prewarm set now reports 127 passed with one intentional skip. The real Python 3.12 `plugin validate native_dynamic_fixture --json` entry also returns `fatal=false` with no diagnostics, and `zircon_build.py --list-plugins` discovers all 38 plugins including the fixture. This closes the shader-prewarm asset-discovery infrastructure regression; it does not change the not-yet-accepted Cargo/WGSL, quantitative, DX12 screenshot, or RenderDoc gates above.
+
+The expanded source-cost review found a second eager boundary after the pass specialization fix: `assemble_material_shader_template` still called the full builtin registry constructor, so an empty-root Base material and non-Forward passes paid to copy, scan, and hash unrelated shadow/volumetric modules. Runtime material assembly now extracts include roots before registry creation, returns immediately when there are no roots, and asks `ShaderModuleRegistry::with_builtin_modules_for_roots` to materialize only the reachable builtin/custom dependency closure. Deferred-lighting assembly has also moved to this root-scoped API; it supplies only the shading-model includes selected by the active deferred profile, while preserving custom source precedence and the full generic profile. IDE/all-builtin enumeration deliberately retains the complete registry. This is a source-construction optimization with a regression contract, not yet a new DX12 timing claim.
+
+The distribution validator follow-up now also rejects Windows drive-relative (`C:outside/**`) and root-relative (`\\outside\\**`) forms using native and `PureWindowsPath` anchors and parent components before invoking the host glob implementation. This prevents Python 3.12 `NotImplementedError` from escaping and preserves root confinement on POSIX validation hosts. The focused asset tests pass 7/7 and the distribution owner set passes 31/31 on bundled Python 3.12; the checked-in fixture validates with `fatal=false`, and the build entry discovers 38 plugins. The prewarm aggregate remains 127 passed with one intentional skip. Fresh managed Cargo/WGSL, the four quantitative tests, DX12 screenshot/timing, and RenderDoc replay remain open; all earlier PNG/RDC artifacts on this page remain historical for the current worktree.
+
+The final incremental independent review reports `Critical 0 / Important 0 / Minor 0`. It confirmed the environment-only profile does not construct the disabled-volumetric override, the roots condition is covered by a source contract, and this page matches the 7/7 and 31/31 test counts for that candidate. The subsequent environment PBR audit separates global and local reflection semantics: sky/source, SH/IEM, and PMREM use the global environment intensity, while reflection probes and planar reflections remain independently enabled. The initial unconditional non-positive-intensity return incorrectly skipped those local providers and received `Critical 0 / Important 1 / Minor 0`; the provider-aware fix returns before normalization and texture access only when global intensity is non-positive, the probe set is empty, and planar reflection is disabled. When a local provider keeps the path active, diffuse SH/IEM and the sky/PMREM remainder are independently skipped at non-positive global intensity, while planar/probe sampling, probe weights, and nonzero BRDF behavior remain unchanged. Exact-zero diffuse input now skips SH/IEM access, and exact-zero reflection radiance skips the BRDF LUT lookup; nonzero, negative, and NaN reflection values continue through the original split-sum path. The seven assembled-source environment contracts live in `template/tests/environment.rs`, keeping the root test owner below its 1,000-line ceiling; the new contract proves each texture operation is uniquely owned by its zero-contribution branch. Focused rustfmt, branch-ownership/source guards, scoped diff integrity, 9 environment/lightmap contracts, and the 127-passed/1-intentional-skip prewarm set pass. The post-fix independent review reports `Critical 0 / Important 0 / Minor 0`. The candidate remains not accepted until fresh managed Rust/WGSL and the product gates above complete.
+
+## Ready-Frame Evidence Gate
+
+The next current-source DX12 screenshot must be emitted with its matching
+`.png.txt` v2 sidecar and checked before it is copied into this directory:
+
+```powershell
+python tools/zircon_validate_shader_pbr_viewer_evidence.py <ready.png> --expected-backend Dx12 --require-direct-present
+```
+
+The gate validates the bounded encoded PNG checksum/RGBA dimensions/visible-pixel
+non-blankness and the sidecar's complete active-cubemap face-size/mip layout,
+phase-duration hierarchy, environment-only PBR profile, and process-local
+`MeshPipelineCache` interpretation of the Base-prewarm cache hit. It does not
+start the viewer or measure GPU time. The historical PNGs in this record predate
+the v2 sidecar and must remain historical baselines rather than being backfilled
+or accepted by this new current-source gate.
+
+## RenderDoc Replay Evidence Gate
+
+Every new Debug capture must retain the viewer-reported lowercase `.rdc` artifact
+and pass the time-bounded replay command before it is cited as current-source evidence:
+
+```powershell
+python tools/zircon_validate_shader_pbr_renderdoc_replay.py <capture.rdc>
+```
+
+The command invokes `D:\Tools\renderdoc\renderdoccmd.exe replay --loops 1` against a
+verified temporary snapshot, rejects missing, empty, non-regular, and
+non-lowercase-`.rdc` inputs, and prints the capture size plus SHA-256 alongside the
+replay result. This establishes capture identity and replayability only; it does not
+substitute for the matching v2 Ready-frame PNG gate or a fresh managed DX12 run.

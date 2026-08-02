@@ -15,7 +15,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
@@ -52,7 +52,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
@@ -88,7 +88,7 @@ tests:
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
-  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/cancellation_tests.rs

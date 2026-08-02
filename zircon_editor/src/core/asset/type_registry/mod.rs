@@ -18,6 +18,6 @@ pub use creation_template::AssetCreationTemplateDescriptor;
 pub use definition::AssetTypeDefinition;
 pub use error::AssetTypeRegistryError;
 pub use presentation::AssetTypePresentation;
-pub use registry::AssetTypeRegistry;
+pub use registry::{AssetCreationMenuEntry, AssetCreationMenuGeneration, AssetTypeRegistry};
 pub use thumbnail_provider::{ThumbnailPlaceholderPalette, ThumbnailProviderDescriptor};
 pub use toolkit::AssetToolkitDescriptor;

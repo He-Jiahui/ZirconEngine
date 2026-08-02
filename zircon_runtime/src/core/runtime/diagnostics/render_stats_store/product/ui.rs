@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{DiagnosticStore, record_count};
+use super::{record_count, DiagnosticStore};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -54,6 +54,20 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.ui.text.raster.missing_image_count",
+        frame_index,
+        stats.last_ui_text_missing_raster_image_count,
+        &["render", "ui", "text", "raster"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.visible_placeholder_count",
+        frame_index,
+        stats.last_ui_text_visible_raster_placeholder_count,
+        &["render", "ui", "text", "raster"],
+    );
+    record_count(
+        store,
         "render.ui.text.raster.worker_pending_count",
         frame_index,
         stats.last_ui_text_raster_worker_pending_count,
@@ -65,6 +79,20 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_ui_text_raster_worker_failed_count,
         &["render", "ui", "text", "raster", "worker"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.renderer_upload_requeued_count",
+        frame_index,
+        stats.last_ui_text_raster_renderer_upload_requeued_count,
+        &["render", "ui", "text", "raster", "upload"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.renderer_upload_failure_count",
+        frame_index,
+        stats.last_ui_text_raster_renderer_upload_failure_count,
+        &["render", "ui", "text", "raster", "upload"],
     );
     record_count(
         store,

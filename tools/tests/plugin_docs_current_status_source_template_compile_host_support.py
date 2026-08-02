@@ -27,10 +27,6 @@ def load_source_template_compile_host_sections(repo_root: Path) -> dict[str, str
     export_tool_text = (
         repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
     ).read_text(encoding="utf-8")
-    session_text = (
-        repo_root / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-    ).read_text(encoding="utf-8")
-
     return {
         "09 export status": _section(
             export_plan_text,
@@ -47,7 +43,6 @@ def load_source_template_compile_host_sections(repo_root: Path) -> dict[str, str
             "## 9. 当前落地状态",
         ),
         "export tooling docs": export_tool_text,
-        "active session notes": session_text,
     }
 
 

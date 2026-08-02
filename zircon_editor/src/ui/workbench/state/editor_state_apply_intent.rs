@@ -38,14 +38,14 @@ impl EditorState {
                     .selection()
                     .active_primary()
                     .ok_or_else(|| "created scene node did not become selected".to_string())?;
-                self.status_line = format!("Created node {id}");
+                self.set_status_line(format!("Created node {id}"));
                 Ok(true)
             }
             EditorIntent::DeleteNode(id) => {
                 let command =
                     self.capture_scene_command(|scene| EditorCommand::delete_node(scene, id))?;
                 self.execute_scene_command("Delete scene node", command)?;
-                self.status_line = format!("Deleted node {id}");
+                self.set_status_line(format!("Deleted node {id}"));
                 Ok(true)
             }
             EditorIntent::DeleteNodes(node_ids) => {
@@ -78,7 +78,7 @@ impl EditorState {
                 })?;
                 let deleted_count = commands.len();
                 self.execute_scene_commands("Delete scene nodes", commands, MergeMode::Disable)?;
-                self.status_line = format!("Deleted {deleted_count} scene node(s)");
+                self.set_status_line(format!("Deleted {deleted_count} scene node(s)"));
                 Ok(true)
             }
             EditorIntent::SelectNode(id) => {
@@ -93,7 +93,7 @@ impl EditorState {
                     .selection_mut()
                     .select_only_active(id);
                 self.sync_selection_state();
-                self.status_line = format!("Selected node {id}");
+                self.set_status_line(format!("Selected node {id}"));
                 Ok(true)
             }
             EditorIntent::RenameNode(id, name) => {
@@ -103,7 +103,7 @@ impl EditorState {
                     return Ok(false);
                 };
                 self.execute_scene_command("Rename scene node", command)?;
-                self.status_line = format!("Renamed node {id}");
+                self.set_status_line(format!("Renamed node {id}"));
                 Ok(true)
             }
             EditorIntent::SetParent(id, parent) => {
@@ -113,10 +113,11 @@ impl EditorState {
                     return Ok(false);
                 };
                 self.execute_scene_command("Reparent scene node", command)?;
-                self.status_line = match parent {
+                let status_line = match parent {
                     Some(parent) => format!("Reparented node {id} under {parent}"),
                     None => format!("Detached node {id} to root"),
                 };
+                self.set_status_line(status_line);
                 Ok(true)
             }
             EditorIntent::SetParents(node_ids, parent) => {
@@ -140,12 +141,13 @@ impl EditorState {
                 }
                 let changed_count = commands.len();
                 self.execute_scene_commands("Reparent scene nodes", commands, MergeMode::Disable)?;
-                self.status_line = match parent {
+                let status_line = match parent {
                     Some(parent) => {
                         format!("Reparented {changed_count} scene node(s) under {parent}")
                     }
                     None => format!("Detached {changed_count} scene node(s) to root"),
                 };
+                self.set_status_line(status_line);
                 Ok(true)
             }
             EditorIntent::SetTransform(id, transform) => {
@@ -156,7 +158,7 @@ impl EditorState {
                     return Ok(false);
                 };
                 self.execute_scene_command("Transform scene node", command)?;
-                self.status_line = format!("Updated transform for node {id}");
+                self.set_status_line(format!("Updated transform for node {id}"));
                 Ok(true)
             }
             EditorIntent::ApplyInspectorChanges => self.apply_inspector_changes(),
@@ -169,9 +171,9 @@ impl EditorState {
                 if changed {
                     self.sync_selection_from_transaction_context()?;
                     self.sync_selection_state();
-                    self.status_line = "Undo".to_string();
+                    self.set_status_line("Undo");
                 } else {
-                    self.status_line = "Nothing to undo".to_string();
+                    self.set_status_line("Nothing to undo");
                 }
                 Ok(changed)
             }
@@ -184,9 +186,9 @@ impl EditorState {
                 if changed {
                     self.sync_selection_from_transaction_context()?;
                     self.sync_selection_state();
-                    self.status_line = "Redo".to_string();
+                    self.set_status_line("Redo");
                 } else {
-                    self.status_line = "Nothing to redo".to_string();
+                    self.set_status_line("Nothing to redo");
                 }
                 Ok(changed)
             }

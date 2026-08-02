@@ -10,8 +10,7 @@ impl RuntimeEntryApp {
     ) {
         let event =
             ZrRuntimeEventV1::window_close_requested(ZIRCON_RUNTIME_ABI_VERSION_V1, self.viewport);
-        if self.session.handle_event(event).is_err() {
-            event_loop.exit();
+        if !self.dispatch_runtime_event(event_loop, event) {
             return;
         }
         if self.window_lifecycle_policy.should_close_on_request() {

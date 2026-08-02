@@ -102,7 +102,13 @@ fn viewport_image_patch_can_carry_upload_bytes_for_gpu() {
         .expect("viewport damage should keep the viewport image command");
     assert_eq!(image.resource_key, "viewport:test-initial");
     assert_eq!(image.upload_bytes, 16);
-    assert_eq!(image.rgba.as_deref(), Some(&[255; 16][..]));
+    assert!(image.rgba.is_none());
+    assert_eq!(
+        stream
+            .image_resource("viewport:test-initial")
+            .map(|resource| resource.rgba.as_slice()),
+        Some(&[255; 16][..])
+    );
     assert_eq!(image.atlas_uv, None);
 }
 
@@ -121,6 +127,7 @@ fn command_stream_preserves_atlas_uv_on_image_payload() {
         None,
         ChromeImagePayload {
             resource_key: "atlas://editor/icons".to_string(),
+            resource_generation: 0,
             width: 64,
             height: 64,
             upload_bytes: 0,

@@ -187,6 +187,20 @@ function renderZr(document) {
     `pub recipeCount(required: bool): int { return required ? ${document.recipes.length} : 0; }`,
     `pub masterworkSigner(required: bool): string { return required ? "${document.masterwork_instance.signer}" : ""; }`,
   ];
+  lines.push('pub recipeIdUtf8Length(index: int): int {');
+  document.recipes.forEach((recipe, index) => {
+    lines.push(`    if (index == ${index}) { return ${Buffer.byteLength(recipe.id, 'utf8')}; }`);
+  });
+  lines.push('    return -1;', '}');
+  lines.push('pub recipeIdUtf8Byte(index: int, byteIndex: int): uint {');
+  document.recipes.forEach((recipe, index) => {
+    lines.push(`    if (index == ${index}) {`);
+    [...Buffer.from(recipe.id, 'utf8')].forEach((byte, byteIndex) => {
+      lines.push(`        if (byteIndex == ${byteIndex}) { return <uint>${byte}; }`);
+    });
+    lines.push('    }');
+  });
+  lines.push('    throw "WOC professions craft recipe byte is invalid";', '}');
   for (const [index, recipe] of document.recipes.entries()) {
     lines.push(`pub recipeId${index}(required: bool): string { return required ? "${recipe.id}" : ""; }`);
     lines.push(`pub recipeProfession${index}(required: bool): string { return required ? "${recipe.profession_id}" : ""; }`);

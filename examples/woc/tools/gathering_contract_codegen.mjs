@@ -8,6 +8,7 @@ const SOURCE_COMMIT = '5ef9f7cb21cd8875b6d2c49701015dfcd78de35a';
 const GATHERING_SOURCE_PATH = 'src/sim/professions/gathering.ts';
 const NODES_SOURCE_PATH = 'src/sim/content/gather_nodes.ts';
 const PROFESSIONS_SOURCE_PATH = 'src/sim/content/professions.ts';
+const TYPES_SOURCE_PATH = 'src/sim/types.ts';
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, '..');
 const sourceRoot = resolve(projectRoot, '..', '..', 'dev', 'world-of-claudecraft');
@@ -21,6 +22,7 @@ function main() {
   const gathering = sourceBlob(GATHERING_SOURCE_PATH);
   const nodes = sourceBlob(NODES_SOURCE_PATH);
   const professions = sourceBlob(PROFESSIONS_SOURCE_PATH);
+  const types = sourceBlob(TYPES_SOURCE_PATH);
   const document = {
     schema_version: 1,
     source_commit: SOURCE_COMMIT,
@@ -29,7 +31,9 @@ function main() {
       [GATHERING_SOURCE_PATH]: sha256(gathering),
       [NODES_SOURCE_PATH]: sha256(nodes),
       [PROFESSIONS_SOURCE_PATH]: sha256(professions),
+      [TYPES_SOURCE_PATH]: sha256(types),
     },
+    interact_range: numberConstant(types, 'INTERACT_RANGE'),
     profession_ids: stringArray(professions, 'GATHERING_PROFESSION_IDS'),
     profession_max_skill: professionMaxSkill(professions),
     node_harvest_table: nodeHarvestTable(gathering),
@@ -67,6 +71,7 @@ function main() {
   invariant(document.harvest_tiers.join(',') === 'poor,common,uncommon,rare,epic,legendary', 'unexpected harvest tier order');
   invariant(document.focus_tier_weights.join(',') === '40,30,15,10,4,1', 'unexpected focus tier weights');
   invariant(document.material_rarity.max_proficiency === 100, 'unexpected material rarity max proficiency');
+  invariant(document.interact_range === 5, 'unexpected gather-node interaction range');
   invariant(Object.keys(document.harvest_components).length === 4, 'unexpected harvest component map');
   writeOrCheck(jsonOutput, JSON.stringify(document, null, 2) + '\n', 'gathering JSON contract');
   writeOrCheck(zrOutput, renderZr(document), 'gathering Zr contract');
@@ -203,6 +208,8 @@ function renderZr(document) {
   lines.push('    return 0.0;');
   lines.push('}');
   renderIndexedStrings(lines, 'node', document.nodes.map((node) => node.id));
+  renderIndexedUtf8Accessors(lines, 'nodeId', document.nodes.map((node) => node.id));
+  lines.push('pub interactRange(): float { return ' + zrFloat(document.interact_range) + '; }');
   for (const [name, key] of [['Zone', 'zone_id'], ['Type', 'type']]) {
     lines.push('pub node' + name + 'At(index: int): string {');
     document.nodes.forEach((node, index) => lines.push('    if (index == ' + index + ') return "' + node[key] + '";'));
@@ -253,6 +260,25 @@ function renderIndexedStrings(lines, name, values) {
   lines.push('pub ' + name + 'At(index: int): string {');
   values.forEach((value, index) => lines.push('    if (index == ' + index + ') return "' + value + '";'));
   lines.push('    return "";');
+  lines.push('}');
+}
+
+function renderIndexedUtf8Accessors(lines, name, values) {
+  const encoded = values.map((value) => [...Buffer.from(value, 'utf8')]);
+  lines.push('pub ' + name + 'Utf8Length(index: int): int {');
+  encoded.forEach((bytes, index) => lines.push('    if (index == ' + index + ') return ' + bytes.length + ';'));
+  lines.push('    return 0;');
+  lines.push('}');
+  lines.push('pub ' + name + 'Utf8Byte(index: int, byteIndex: int): uint {');
+  encoded.forEach((bytes, index) => {
+    lines.push('    if (index == ' + index + ') {');
+    bytes.forEach((byte, byteIndex) => lines.push(
+      '        if (byteIndex == ' + byteIndex + ') return <uint>' + byte + ';',
+    ));
+    lines.push('        return <uint>0;');
+    lines.push('    }');
+  });
+  lines.push('    return <uint>0;');
   lines.push('}');
 }
 

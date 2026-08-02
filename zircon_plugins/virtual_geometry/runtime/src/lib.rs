@@ -21,7 +21,9 @@ use render_pass_executors::{
 use std::sync::Arc;
 
 pub use capability::{
-    RUNTIME_CAPABILITIES, VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY,
+    NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
+    NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, RUNTIME_CAPABILITIES,
+    VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY, VIRTUAL_GEOMETRY_DECLARATION,
     VIRTUAL_GEOMETRY_RUNTIME_CAPABILITY,
 };
 pub use plugin::{
@@ -33,7 +35,6 @@ pub use plugin::{
 };
 pub use provider::PluginVirtualGeometryRuntimeProvider;
 
-pub const PLUGIN_ID: &str = "virtual_geometry";
 pub const VIRTUAL_GEOMETRY_FEATURE_NAME: &str = "virtual_geometry";
 pub const VIRTUAL_GEOMETRY_MODULE_NAME: &str = "virtual_geometry.runtime";
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_PIPELINE_LABEL: &str =

@@ -1,6 +1,6 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 use super::render_commands::HostPaintCommand;
 use super::visual_assets::load_existing_icon_asset_pixels_for_size;

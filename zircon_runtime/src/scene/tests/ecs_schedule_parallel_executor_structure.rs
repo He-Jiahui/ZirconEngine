@@ -46,10 +46,12 @@ fn schedule_parallel_exact_four_batches_use_fixed_scheduler_join_path() {
     assert!(
         exact_four.contains("let fourth_task = registry.task_for_system(fourth_system_id)?;")
             && exact_four.contains("scheduler.join(")
-            && exact_four
-                .contains("|| left_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()())")
-            && exact_four
-                .contains("|| right_scheduler.join(|| third_task.as_ref()(), || fourth_task.as_ref()())")
+            && exact_four.contains(
+                "|| left_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()())"
+            )
+            && exact_four.contains(
+                "|| right_scheduler.join(|| third_task.as_ref()(), || fourth_task.as_ref()())"
+            )
             && exact_four.contains("run_task_result(fourth_system_id, fourth_result)?;")
             && exact_four.contains("return Ok(());")
             && !exact_four.contains("Vec::with_capacity")
@@ -77,8 +79,9 @@ fn schedule_parallel_exact_five_batches_use_fixed_scheduler_join_path() {
 
     assert!(
         exact_five.contains("let fifth_task = registry.task_for_system(fifth_system_id)?;")
-            && exact_five
-                .contains("|| left_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()())")
+            && exact_five.contains(
+                "|| left_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()())"
+            )
             && exact_five.contains("nested_scheduler")
             && exact_five.contains("|| fifth_task.as_ref()()")
             && exact_five.contains("run_task_result(fifth_system_id, fifth_result)?;")
@@ -116,12 +119,11 @@ fn schedule_parallel_exact_six_batches_use_fixed_scheduler_join_path() {
 
     assert!(
         exact_six.contains("let sixth_task = registry.task_for_system(sixth_system_id)?;")
-            && exact_six
-                .contains("first_pair_scheduler")
-            && exact_six
-                .contains("second_pair_scheduler")
-            && exact_six
-                .contains("|| right_scheduler.join(|| fifth_task.as_ref()(), || sixth_task.as_ref()())")
+            && exact_six.contains("first_pair_scheduler")
+            && exact_six.contains("second_pair_scheduler")
+            && exact_six.contains(
+                "|| right_scheduler.join(|| fifth_task.as_ref()(), || sixth_task.as_ref()())"
+            )
             && exact_six.contains("run_task_result(sixth_system_id, sixth_result)?;")
             && exact_six.contains("return Ok(());")
             && !exact_six.contains("Vec::with_capacity")

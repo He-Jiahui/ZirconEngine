@@ -28,7 +28,7 @@ plan_sources:
 
 ### 1.1 已收敛项（不再重复做）
 
-- 单向数据流已成形：`hub_action` command → `HubActionRequest::parse()` → `HubRuntimeSession::apply_action()` → `snapshot()` → `HubViewModel::from_snapshot()` → `app.emit("hub-state-changed")`。
+- 单向数据流已成形：`hub_action` command → `HubRuntimeSession::apply_action()` → `HubActionRequest::action()` / `parse_as(action_id)` → `snapshot()` → `HubViewModel::from_snapshot()` → `app.emit("hub-state-changed")`。
 - 后台任务队列已存在：`runtime_state/action_tasks.rs` 的 `VecDeque` FIFO + `background_worker_active` 单工标志，build/package/install/open-editor 不阻塞 command 线程。
 - 本地化骨架完整：`view_model/localized.rs`（`HubTextBundle`，中/英）+ `view_model/ui_text.rs`（947 行结构化 UI 文案），前端只消费 DTO 字符串，无 i18n 库依赖。
 - 前端统一分发器：`web/src/tauri/hubApi.ts` 的 `dispatchHubAction(actionId, targetId, payload)` 为唯一 IPC 出口，`App.tsx` 以 `actionSequenceRef`/`stateGenerationRef` 防竞态。
@@ -44,26 +44,28 @@ plan_sources:
 | P4 | 持久化无并发保护与原子性：`persist_hub_config` 类调用散落在各 `*_actions.rs`，后台线程与主线程可并发写 `hub.toml`；写入非 tmp+rename 原子方式 | `runtime_state/*.rs` 各持久化点 | 02 |
 | P5 | 交付链路无清理/回滚：`package.rs` 拷贝中断残留半成品目录；`device_install.rs` 的 `exists()`→`create_dir_all()` 存在 TOCTOU；create-project 在目录已建成后若记录失败则项目对 Hub 不可见 | `projects/package.rs`、`projects/device_install.rs`、`runtime_state/project_actions.rs` | 02 / 03 |
 | P6 | 视觉 fixture 项目名与 `C:/ZirconProjects/` 路径前缀硬编码进生产过滤逻辑 | `state/hub_snapshot.rs:80-96` | 03 |
-| P7 | 本地化 detail 依赖 23 处 `strip_prefix` 匹配英文原文前缀：后端改一句错误消息即静默漏翻 | `view_model/localized.rs`（23 处 strip_prefix） | 07 |
+| P7 | 历史问题（实现已解决）：本地化 detail 曾依赖 23 处英文 `strip_prefix`；当前已由结构化 `HubMessage` / `HubMessageId` 双语模板取代 | `state/hub_message/`；受管 Hub07 failure return 仍待完成 | 07 |
 | P8 | 巨型文件：`view_model.rs` 1357 行、`runtime_state.rs` 1076、`project_actions.rs` 966、`ui_text.rs` 947、`project_delivery_actions.rs` 832、`settings_dto.rs` 806 | `wc -l` 实测 | 01 / 02 / 07 |
 | P9 | 前端 fallback mock `hubData.ts` 995 行，内嵌完整假项目、硬编码相对时间（"修改于 2 小时前"）与全量中文文案，易被当作真实后端数据 | `web/src/data/hubData.ts` | 05 |
 | P10 | 前端无运行时 DTO 校验（`invoke<HubShellState>` 直接断言）、无 ErrorBoundary、action 失败仅写 taskSummary 无重试 | `web/src/tauri/hubApi.ts:19,34`、`web/src/App.tsx:103-124` | 05 |
 | P11 | 页面路由为 7 分支 if-else 链；`ProjectsDashboard`（341 行）内联搜索栏与新建项目对话框；`SettingsPage`（304 行）单文件无分节组件 | `web/src/components/shell/HubWindow.tsx:49-65`、各 pages | 05 |
 | P12 | 布局缺陷：卡片网格断点 1360px 处列数跳变、TopBar `minmax(250px, 1fr)` 窄屏溢出、`ProjectTable` 无横向滚动容器、个别硬编码色值/圆角绕过 tokens | `web/src/pages/ProjectsDashboard.tsx`、`web/src/components/shell/TopBar.tsx`、`web/src/components/data/ProjectTable.tsx` | 06 |
 | P13 | settings 草稿与已存设置的生命周期边界（draft→validate→save→cancel→restore-defaults）未完全成形；folder picker 取消与错误未区分 | `runtime_state/settings_actions.rs` | 04 |
-| P14 | Source Engine 校验过浅：仅查 `Cargo.toml` 存在，不验 workspace 结构与 `tools/zircon_build.py`；active engine 失效无预检 | `engines/validation.rs`、`runtime_state/editor_launch_actions.rs` | 04 |
+| P14 | 实现已修复、Rust gate 待补：Source Engine 已深验 workspace/runtime/build tool，open-editor 已增加 active engine 预检 | `engines/validation.rs`、`runtime_state/editor_launch_actions.rs`；聚焦测试受 Runtime11 CPU reservation 阻塞 | 04 |
 
 ## 2. 子计划地图与执行顺序
 
+> 2026-08-01 实仓复核：7 个子计划均已有当前源码实现或修复切片，状态统一按各子计划 front matter 更新为 `in_progress`。这只表示正在收敛和验收，不代表里程碑已经完成；各计划的剩余 gate 与 open failure 仍以子计划正文为准。
+
 | 计划 | 文档 | 依赖 | 状态 |
 |------|------|------|------|
-| 01 action 分发与 payload 类型化 | `01-action-dispatch-and-typed-payload.md` | 无 | planned |
-| 02 后台任务框架与持久化一致性 | `02-background-task-framework-and-persistence.md` | 01（typed action 判定） | planned |
-| 03 项目生命周期健壮性 | `03-project-lifecycle-robustness.md` | 02（事务/清理基建） | planned |
-| 04 settings 草稿生命周期与 Source Engine 校验 | `04-settings-draft-and-source-engine.md` | 可与 03 并行 | planned |
-| 05 前端组件化与类型安全 | `05-frontend-componentization-and-type-safety.md` | 01（action 契约定稿） | planned |
-| 06 布局与视觉标准对齐 | `06-layout-and-visual-standard.md` | 05（组件拆分先行） | planned |
-| 07 本地化 schema 与"敬请期待"能力目录 | `07-localization-schema-and-coming-soon.md` | 02 / 03（消息产生点收敛后） | planned |
+| 01 action 分发与 payload 类型化 | `01-action-dispatch-and-typed-payload.md` | 无 | in_progress |
+| 02 后台任务框架与持久化一致性 | `02-background-task-framework-and-persistence.md` | 01（typed action 判定） | in_progress |
+| 03 项目生命周期健壮性 | `03-project-lifecycle-robustness.md` | 02（事务/清理基建） | in_progress |
+| 04 settings 草稿生命周期与 Source Engine 校验 | `04-settings-draft-and-source-engine.md` | 可与 03 并行 | in_progress |
+| 05 前端组件化与类型安全 | `05-frontend-componentization-and-type-safety.md` | 01（action 契约定稿） | in_progress |
+| 06 布局与视觉标准对齐 | `06-layout-and-visual-standard.md` | 05（组件拆分先行） | in_progress |
+| 07 本地化 schema 与"敬请期待"能力目录 | `07-localization-schema-and-coming-soon.md` | 02 / 03（消息产生点收敛后） | in_progress |
 
 阶段划分：
 
@@ -96,9 +98,9 @@ Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code
 
 按 [`milestone-validation-policy.md`](../milestone-validation-policy.md) 执行：切片期只做格式、类型/源码静态检查与已知失败的聚焦回归；里程碑末将 Rust、前端和必要集成检查合并为一次测试阶段。
 
-- Rust 里程碑：一次 `cargo check -p zircon_hub --locked` 后，运行按子计划过滤词合并的 `cargo test -p zircon_hub --locked`；`cargo fmt --all --check` 不触发 Cargo 编译，可在切片期执行。
+- Rust 里程碑：通过 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub` 合并执行受管 build/test；切片期对触及的 Rust 文件运行 `rustfmt --edition 2021 --check`。
 - 前端：在同一里程碑阶段运行一次 `npm run typecheck` 与 `npm run build`（`zircon_hub/` 下）。
-- 集成：必要时 `npm run tauri:dev` 实跑或 `python tools/zircon_build.py --targets hub` 出 staged payload 验证。
+- 集成：先通过上述受管验证器完成 Rust 构建，再运行协调器产出的 Hub 二进制或 staged payload；不得用 `npm run tauri:dev` / `tools/zircon_build.py` 绕过共享 Cargo reservation。
 - 视觉验收（06 计划详述）：仅在改变页面布局、文案或组件行为的里程碑运行 Tauri Hub 截图矩阵——Projects / New Project / Project Detail / Editor / Builds / Cloud / Settings，覆盖中文默认、错误态、运行中、空态；确认无溢出、无遮挡、无英文硬编码残留。
 
 ## 5. 协调与避让
@@ -107,13 +109,13 @@ Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code
 - `.codex/plans/` 下另有《Zircon Hub 响应式组件化重构计划》《Zircon Hub Flex 组件化重构设计方案》：05/06 执行前复读，避免与其已完成切片双写。
 - Build/Package/Install 操作耗时长且写共享 `CARGO_TARGET_DIR`：测试阶段避免与其他重型 Cargo 构建并行。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 处理结果 (2026-08-01)
 
-### 与代码现状不符，需修订
+### 已处理
 
-- 「子计划地图与执行顺序」表（第 58-66 行）7 个子计划全部标 `status: planned`，与实仓严重不符。逐一核对源码：01 的 `HubActionId`（`zircon_hub/src/tauri_app/action_id.rs:2-124`，31 变体）、02 的后台框架（`zircon_hub/src/tauri_app/runtime_state/action_tasks.rs:18-152` 的 `BackgroundTask`/`execute_background_task`/`dispatch_background_request`/`run_background_worker_loop`/`catch_unwind`）与原子持久化（`zircon_hub/src/settings/hub_config.rs:64-95` 的 `write_atomic`/`replace_file`、`zircon_hub/src/tauri_app/runtime_state.rs:513-528` 的 `persist`/`persist_unchecked`）、03 的 fixture 剥离（`is_visual_fixture` 全仓零命中）与 picker/recycle 注入缝（`runtime_state.rs:67-68`）、04 的 spec 表与深校验（`engines/validation.rs:9/53-79`）、05 的组件拆分（`ProjectsToolbar`/`CreateProjectDialog`/`ProjectMetricsGrid`/`ProjectDetailSidebar`/`SettingsSection` 均已建）与类型清理（`web/src/types/hub.ts:14/50-51/757-774` 已去双重可空）、06 的 token 一元化（裸 hex 已迁 `tokens.ts`）与 `ProjectCardRail`、07 的 `HubMessage` schema（`zircon_hub/src/state/hub_message/message.rs`）——均已落仓。建议把 01/02/03/05/07 状态改为 `completed`（或按仓库规范的 superseded），04/06 标为「大部完成，余项见各文档」，避免继续以 planned 口径调度已完成工作。
-- 第 47 行 P7「本地化 detail 依赖 23 处 `strip_prefix`」已被 07 的 `HubMessage`/`HubMessageId` 结构化消息体系整体取代：`zircon_hub/src/tauri_app/view_model/localized.rs` 已无任何 `strip_prefix`/`status_detail` 链（`grep` 零命中），改为 `state/hub_message/{message,id,shell,project,engine,build,delivery,process,settings,learn}.rs` 的双语模板表。P7 应标记为已解决。
+- 子计划 01-07 的索引状态与 front matter 已统一为 `in_progress`。虽然主要 owner 和多项行为已经落地，但受管 Rust gate、截图矩阵与 open failure 尚未全部关闭，因此不采用旧建议中的 `completed`，避免把源码存在误报成产品验收完成。
+- P7 已标为实现解决；P14 已补齐 deep validation 与 open-editor preflight，并明确记录受管 Rust 聚焦测试尚未执行。
 
-### 实现风险 / 技术债
+### 仍开放
 
-- 07 的失败交接记录 `07/failure-2026-07-11-hub-message-legacy-test-drift.md` 仍为 `status: open`，但其根因（`project_management_contract.rs:204` 调用已删除的 `HubMessage::legacy`）已消失——该行现为 `HubMessage::raw_text("opened")`（已核对）。建议关闭该失败记录并回传 Plan10 owner，否则会持续误导调度。
+- `07/failure-2026-07-11-hub-message-legacy-test-drift.md` 的源码根因已消失，`project_management_contract.rs` 已使用 `HubMessage::raw_text("opened")`；但受管聚焦测试被 Runtime11 reservation 拒绝。该 failure 在测试通过并执行 canonical return 前继续保持 open，不以静态源码命中代替修复闭环。

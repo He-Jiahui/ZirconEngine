@@ -1,5 +1,7 @@
 use serde::Deserialize;
 use serde_json::json;
+#[cfg(feature = "abi_v2_only")]
+use std::ffi::c_char;
 use zircon_plugin_sdk::native::{
     self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
     NativePluginHostFunctionTableV3, NativePluginOutputSinkV4, NativePluginOwnedByteBufferV2,
@@ -15,79 +17,194 @@ const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 =
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
 
-zircon_plugin_sdk::native_plugin_manifest_v3! {
-    NATIVE_DYNAMIC_FIXTURE_MANIFEST {
+#[cfg(feature = "abi_v2_only")]
+const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
+
+zircon_plugin_sdk::declare_plugin! {
+    NATIVE_DYNAMIC_FIXTURE_DECLARATION {
         id: PLUGIN_ID = "native_dynamic_fixture",
-        requested_capabilities: NATIVE_DYNAMIC_FIXTURE_REQUESTED_CAPABILITIES,
-        version: "0.1.0",
-        sdk_api_version: "0.2.0",
         display_name: "Native Dynamic Fixture",
-        category: "sdk",
-        description: "Real dynamic library fixture for ABI v3 native plugin loading with ABI v2 fallback coverage.",
-        maturity: "experimental",
-        targets: ["client_runtime", "server_runtime", "editor_host"],
-        platforms: ["windows", "linux", "macos"],
+        category: sdk,
+        module: MODULE_NAME = "native_dynamic_fixture.runtime",
+        crate_name: NATIVE_CRATE_NAME = "zircon_plugin_native_dynamic_fixture_native",
+        module_description: "Real dynamic library fixture for ABI v3 native plugin loading",
+        targets: [client_runtime, server_runtime, editor_host],
+        platforms: [windows, linux, macos],
         capabilities: [
-            "runtime.plugin.native_dynamic_fixture",
-            "runtime.asset.importer.native_dynamic_fixture.data_json",
-            "editor.extension.native_dynamic_fixture",
+            RUNTIME_CAPABILITY = "runtime.plugin.native_dynamic_fixture" => runtime_registration,
+            IMPORTER_CAPABILITY = "runtime.asset.importer.native_dynamic_fixture.data_json" => runtime_registration,
+            EDITOR_CAPABILITY = "editor.extension.native_dynamic_fixture" => editor_registration,
         ],
-        packaging: ["native_dynamic"],
-        distribution: {
-            forms: ["dist"],
-            default_packaging: ["native_dynamic"],
-            abi_version: 3,
-            engine_compat: ">=0.1, <0.2",
-            dist_crate: "zircon_plugin_native_dynamic_fixture_native",
-            descriptor_symbol: "zircon_native_plugin_descriptor_v3",
-            runtime_entry: "zircon_native_dynamic_fixture_runtime_entry_v3",
-            editor_entry: "zircon_native_dynamic_fixture_editor_entry_v3",
-            assets: ["assets/**"],
-        },
-        asset_importer: {
-            id: FIXTURE_DATA_IMPORTER_ID = "native_dynamic_fixture.data_json",
-            priority: 100,
-            source_extensions: ["json"],
-            output_kind: "Data",
-            importer_version: 1,
-            required_capabilities: ["runtime.asset.importer.native_dynamic_fixture.data_json"],
-        },
-        modules: [
-            {
-                name: "native_dynamic_fixture.runtime",
-                kind: "runtime",
-                crate_name: "zircon_plugin_native_dynamic_fixture_native",
-                target_modes: ["client_runtime", "server_runtime", "editor_host"],
-                capabilities: [
-                    "runtime.plugin.native_dynamic_fixture",
-                    "runtime.asset.importer.native_dynamic_fixture.data_json",
-                ],
+        maturity: experimental,
+        packaging: [native_dynamic],
+        native_projection: {
+            plugin_id: NATIVE_PLUGIN_ID,
+            requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,
+            runtime: {
+                entry: NATIVE_RUNTIME_ENTRY = "zircon_native_dynamic_fixture_runtime_entry_v3",
+                registration_manifest: NATIVE_RUNTIME_REGISTRATION_MANIFEST,
+                modules: [{ name: "runtime", kind: "runtime" }],
+                systems: [{
+                    id: "native_dynamic_fixture.runtime_tick",
+                    module: "runtime",
+                    stage: "Update",
+                    order: 0,
+                    sets: ["native_dynamic_fixture"],
+                    access: ["write:world"],
+                    thread_affinity: "main-thread-only",
+                    bridge_interface: "native_dynamic_fixture.runtime",
+                    bridge_method: "tick",
+                }],
+                events: [{
+                    namespace: "native_dynamic_fixture",
+                    name: "echoed",
+                    stable_hash: 0,
+                    schema: "bytes",
+                }],
+                extensions: [{
+                    point: "runtime.asset.importer.data",
+                    contribution: "plugin.native_dynamic_fixture.data_json",
+                    schema: "zircon.runtime.asset-importer.data/1",
+                }],
             },
-            {
-                name: "native_dynamic_fixture.editor",
-                kind: "editor",
-                crate_name: "zircon_plugin_native_dynamic_fixture_native",
-                target_modes: ["editor_host"],
-                capabilities: ["editor.extension.native_dynamic_fixture"],
+            editor: {
+                entry: NATIVE_EDITOR_ENTRY = "zircon_native_dynamic_fixture_editor_entry_v3",
+                registration_manifest: NATIVE_EDITOR_REGISTRATION_MANIFEST,
+                modules: [{ name: "editor", kind: "editor" }],
+                systems: [],
+                events: [],
+                extensions: [],
             },
-        ],
-        interface: {
-            id: "native_dynamic_fixture.runtime",
-            methods: [{ name: "tick", method_slot: 0 }],
         },
     }
 }
 
-const PLUGIN_MANIFEST: &str = NATIVE_DYNAMIC_FIXTURE_MANIFEST;
+const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
+
+#[cfg(feature = "abi_v2_only")]
+const V2_RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v2\0";
+#[cfg(feature = "abi_v2_only")]
+const V2_RUNTIME_DIAGNOSTICS: &[u8] =
+    b"runtime v2 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\0";
+#[cfg(feature = "abi_v2_only")]
+const V2_MISSING_HOST_DIAGNOSTICS: &[u8] = b"native v2 entry missing negotiated host ABI table\0";
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct NativePluginAbiV2 {
+    abi_version: u32,
+    plugin_id: *const c_char,
+    package_manifest_toml: *const c_char,
+    runtime_entry_name: *const c_char,
+    editor_entry_name: *const c_char,
+    requested_capabilities: *const c_char,
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct NativePluginEntryReportV2 {
+    abi_version: u32,
+    package_manifest_toml: *const c_char,
+    diagnostics: *const c_char,
+    negotiated_capabilities: *const c_char,
+    behavior: *const NativePluginBehaviorV2,
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct NativePluginHostFunctionTableV2 {
+    abi_version: u32,
+    host_handle: u64,
+    granted_capabilities: *const c_char,
+    host_abi_version: Option<unsafe extern "C" fn() -> u32>,
+    host_has_capability:
+        Option<unsafe extern "C" fn(*const NativePluginHostFunctionTableV2, *const c_char) -> u32>,
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct FixtureNativePluginByteSliceV2 {
+    data: *const u8,
+    len: usize,
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct FixtureNativePluginOwnedByteBufferV2 {
+    data: *mut u8,
+    len: usize,
+    capacity: usize,
+    owner_token: u64,
+    free: Option<FixtureNativePluginFreeBytesFnV2>,
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct FixtureNativePluginCallbackStatusV2 {
+    code: u32,
+    diagnostics: *const c_char,
+}
+
+#[cfg(feature = "abi_v2_only")]
+type FixtureNativePluginFreeBytesFnV2 = unsafe extern "C" fn(
+    FixtureNativePluginOwnedByteBufferV2,
+)
+    -> FixtureNativePluginCallbackStatusV2;
+#[cfg(feature = "abi_v2_only")]
+type FixtureNativePluginInvokeCommandFnV2 =
+    unsafe extern "C" fn(
+        *const c_char,
+        FixtureNativePluginByteSliceV2,
+        *mut FixtureNativePluginOwnedByteBufferV2,
+    ) -> FixtureNativePluginCallbackStatusV2;
+#[cfg(feature = "abi_v2_only")]
+type FixtureNativePluginSaveStateFnV2 = unsafe extern "C" fn(
+    *mut FixtureNativePluginOwnedByteBufferV2,
+)
+    -> FixtureNativePluginCallbackStatusV2;
+#[cfg(feature = "abi_v2_only")]
+type FixtureNativePluginRestoreStateFnV2 =
+    unsafe extern "C" fn(FixtureNativePluginByteSliceV2) -> FixtureNativePluginCallbackStatusV2;
+#[cfg(feature = "abi_v2_only")]
+type FixtureNativePluginUnloadFnV2 = unsafe extern "C" fn() -> FixtureNativePluginCallbackStatusV2;
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(C)]
+struct NativePluginBehaviorV2 {
+    abi_version: u32,
+    is_stateless: u32,
+    command_manifest: *const c_char,
+    event_manifest: *const c_char,
+    invoke_command: Option<FixtureNativePluginInvokeCommandFnV2>,
+    save_state: Option<FixtureNativePluginSaveStateFnV2>,
+    restore_state: Option<FixtureNativePluginRestoreStateFnV2>,
+    unload: Option<FixtureNativePluginUnloadFnV2>,
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[repr(transparent)]
+struct SyncStatic<T>(T);
+
+#[cfg(feature = "abi_v2_only")]
+unsafe impl<T> Sync for SyncStatic<T> {}
+
+const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 #[cfg(feature = "runtime_entry_export_missing")]
-const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_missing_v3\0";
+const fn fixture_runtime_entry() -> &'static [u8] {
+    b"zircon_native_dynamic_fixture_runtime_entry_missing_v3\0"
+}
 #[cfg(not(feature = "runtime_entry_export_missing"))]
-const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v3\0";
-const EDITOR_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_editor_entry_v3\0";
+const fn fixture_runtime_entry() -> &'static [u8] {
+    NATIVE_RUNTIME_ENTRY.cstr()
+}
 #[cfg(not(feature = "required_capability_missing"))]
-const REQUESTED_CAPABILITIES: &[u8] = NATIVE_DYNAMIC_FIXTURE_REQUESTED_CAPABILITIES;
+const fn fixture_requested_capabilities() -> &'static [u8] {
+    NATIVE_REQUESTED_CAPABILITIES
+}
 #[cfg(feature = "required_capability_missing")]
-const REQUESTED_CAPABILITIES: &[u8] = b"runtime.asset.importer.native_dynamic_fixture.data_json\neditor.extension.native_dynamic_fixture\0";
+const fn fixture_requested_capabilities() -> &'static [u8] {
+    b"runtime.asset.importer.native_dynamic_fixture.data_json\neditor.extension.native_dynamic_fixture\0"
+}
 const RUNTIME_NEGOTIATED_CAPABILITIES: &[u8] =
     b"runtime.plugin.native_dynamic_fixture\nruntime.asset.importer.native_dynamic_fixture.data_json\0";
 const EDITOR_NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.native_dynamic_fixture\0";
@@ -126,35 +243,6 @@ max_output_bytes = 1048576
 );
 const RUNTIME_COMMAND_MANIFEST: &[u8] = RUNTIME_COMMAND_MANIFEST_TEXT.as_bytes();
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
-const RUNTIME_REGISTRATION_MANIFEST_TEXT: &str = concat!(
-    r#"schema = "zircon.native.registration-manifest/3"
-capabilities = ["runtime.plugin.native_dynamic_fixture", "runtime.asset.importer.native_dynamic_fixture.data_json"]
-[[modules]]
-name = "runtime"
-kind = "runtime"
-[[systems]]
-id = "native_dynamic_fixture.runtime_tick"
-module = "runtime"
-stage = "Update"
-order = 0
-sets = ["native_dynamic_fixture"]
-access = ["write:world"]
-thread_affinity = "main-thread-only"
-bridge_interface = "native_dynamic_fixture.runtime"
-bridge_method = "tick"
-[[events]]
-namespace = "native_dynamic_fixture"
-name = "echoed"
-stable_hash = 0
-schema = "bytes"
-[[extensions]]
-point = "runtime.asset.importer.data"
-contribution = "plugin.native_dynamic_fixture.data_json"
-schema = "zircon.runtime.asset-importer.data/1"
-"#,
-    "\0"
-);
-const RUNTIME_REGISTRATION_MANIFEST: &[u8] = RUNTIME_REGISTRATION_MANIFEST_TEXT.as_bytes();
 const RUNTIME_BRIDGE_INTERFACE: &[u8] = b"native_dynamic_fixture.runtime\0";
 const RUNTIME_BRIDGE_METHOD_TICK: &[u8] = b"tick\0";
 const RUNTIME_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.runtime\0";
@@ -198,16 +286,19 @@ struct NativeAssetImportRequestMetadata {
     source_path: String,
 }
 
-#[cfg(not(feature = "descriptor_export_missing"))]
+#[cfg(all(
+    not(feature = "descriptor_export_missing"),
+    not(feature = "abi_v2_only")
+))]
 zircon_plugin_sdk::native_dist_plugin_v3! {
-    plugin_id: PLUGIN_ID,
+    plugin_id: NATIVE_PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
     descriptor_abi_version: ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION,
     runtime_entry: zircon_native_dynamic_fixture_runtime_entry_v3,
-    runtime_entry_name: RUNTIME_ENTRY,
+    runtime_entry_name: fixture_runtime_entry(),
     editor_entry: zircon_native_dynamic_fixture_editor_entry_v3,
-    editor_entry_name: EDITOR_ENTRY,
-    requested_capabilities: REQUESTED_CAPABILITIES,
+    editor_entry_name: NATIVE_EDITOR_ENTRY.cstr(),
+    requested_capabilities: fixture_requested_capabilities(),
     missing_host_diagnostics: MISSING_HOST_DIAGNOSTICS_V3,
     runtime: {
         required_capabilities: ["runtime.plugin.native_dynamic_fixture"],
@@ -221,7 +312,7 @@ zircon_plugin_sdk::native_dist_plugin_v3! {
         registration_manifest_schema: Some(native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
         command_manifest: Some(RUNTIME_COMMAND_MANIFEST),
         event_manifest: Some(RUNTIME_EVENT_MANIFEST),
-        registration_manifest: Some(RUNTIME_REGISTRATION_MANIFEST),
+        registration_manifest: Some(NATIVE_RUNTIME_REGISTRATION_MANIFEST),
         invoke_command: Some(fixture_invoke_command),
         save_state: Some(fixture_save_state),
         restore_state: Some(fixture_restore_state),
@@ -245,10 +336,10 @@ zircon_plugin_sdk::native_dist_plugin_v3! {
         state_schema_version: 0,
         command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V4),
         event_manifest_schema: None,
-        registration_manifest_schema: None,
+        registration_manifest_schema: Some(native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
         command_manifest: Some(EDITOR_COMMAND_MANIFEST),
         event_manifest: Some(EDITOR_EVENT_MANIFEST),
-        registration_manifest: None,
+        registration_manifest: Some(NATIVE_EDITOR_REGISTRATION_MANIFEST),
         invoke_command: Some(fixture_stateless_invoke_command),
         save_state: None,
         restore_state: None,
@@ -256,6 +347,75 @@ zircon_plugin_sdk::native_dist_plugin_v3! {
         bridge_methods: [],
         on_host_ready: Some(emit_host_v3_editor_signals),
     },
+}
+
+// ABI v2 stays descriptor-compatible for the plan's fallback coverage, but its
+// behavior callbacks are intentionally not reintroduced after the V4 hard cut.
+#[cfg(feature = "abi_v2_only")]
+static V2_RUNTIME_BEHAVIOR: SyncStatic<NativePluginBehaviorV2> =
+    SyncStatic(NativePluginBehaviorV2 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+        is_stateless: 0,
+        command_manifest: std::ptr::null(),
+        event_manifest: std::ptr::null(),
+        invoke_command: None,
+        save_state: None,
+        restore_state: None,
+        unload: None,
+    });
+
+#[cfg(feature = "abi_v2_only")]
+static V2_DESCRIPTOR: SyncStatic<NativePluginAbiV2> = SyncStatic(NativePluginAbiV2 {
+    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+    plugin_id: NATIVE_PLUGIN_ID.as_ptr().cast(),
+    package_manifest_toml: PLUGIN_MANIFEST.as_ptr().cast(),
+    runtime_entry_name: V2_RUNTIME_ENTRY.as_ptr().cast(),
+    editor_entry_name: std::ptr::null(),
+    requested_capabilities: NATIVE_REQUESTED_CAPABILITIES.as_ptr().cast(),
+});
+
+#[cfg(feature = "abi_v2_only")]
+static V2_RUNTIME_REPORT: SyncStatic<NativePluginEntryReportV2> =
+    SyncStatic(NativePluginEntryReportV2 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+        package_manifest_toml: PLUGIN_MANIFEST.as_ptr().cast(),
+        diagnostics: V2_RUNTIME_DIAGNOSTICS.as_ptr().cast(),
+        negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
+        behavior: &V2_RUNTIME_BEHAVIOR.0,
+    });
+
+#[cfg(feature = "abi_v2_only")]
+static V2_MISSING_HOST_REPORT: SyncStatic<NativePluginEntryReportV2> =
+    SyncStatic(NativePluginEntryReportV2 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+        package_manifest_toml: PLUGIN_MANIFEST.as_ptr().cast(),
+        diagnostics: V2_MISSING_HOST_DIAGNOSTICS.as_ptr().cast(),
+        negotiated_capabilities: std::ptr::null(),
+        behavior: std::ptr::null(),
+    });
+
+#[cfg(all(feature = "abi_v2_only", not(feature = "descriptor_export_missing")))]
+#[no_mangle]
+pub extern "C" fn zircon_native_plugin_descriptor_v2() -> *const NativePluginAbiV2 {
+    &V2_DESCRIPTOR.0
+}
+
+#[cfg(feature = "abi_v2_only")]
+#[no_mangle]
+pub unsafe extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v2(
+    host_functions: *const NativePluginHostFunctionTableV2,
+) -> *const NativePluginEntryReportV2 {
+    if host_functions.is_null() {
+        return &V2_MISSING_HOST_REPORT.0;
+    }
+    let host_functions = unsafe { &*host_functions };
+    let Some(host_abi_version) = host_functions.host_abi_version else {
+        return &V2_MISSING_HOST_REPORT.0;
+    };
+    if unsafe { host_abi_version() } != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
+        return &V2_MISSING_HOST_REPORT.0;
+    }
+    &V2_RUNTIME_REPORT.0
 }
 
 unsafe extern "C" fn fixture_runtime_tick_bridge(
@@ -517,14 +677,63 @@ fn emit_host_v3_editor_signals(host_functions: *const NativePluginHostFunctionTa
 
 #[cfg(test)]
 mod tests {
-    use super::PLUGIN_MANIFEST;
+    use std::ffi::CStr;
+
+    use super::{
+        NATIVE_DYNAMIC_FIXTURE_DECLARATION, NATIVE_EDITOR_ENTRY,
+        NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES,
+        NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_MANIFEST,
+    };
 
     #[test]
-    fn generated_native_manifest_matches_checked_in_plugin_toml() {
+    fn packaged_native_manifest_uses_the_checked_in_generated_snapshot() {
         let rendered_manifest = PLUGIN_MANIFEST
             .strip_suffix('\0')
             .expect("native manifest must retain its ABI C-string terminator");
 
         assert_eq!(rendered_manifest, include_str!("../../plugin.toml"));
+        assert!(rendered_manifest.starts_with("# @generated from Rust PluginDeclaration"));
+        assert!(rendered_manifest.contains(&format!(
+            "id = \"{}\"",
+            NATIVE_DYNAMIC_FIXTURE_DECLARATION.id()
+        )));
+    }
+
+    #[test]
+    fn declaration_projects_combined_runtime_and_editor_native_metadata() {
+        assert_eq!(NATIVE_PLUGIN_ID, b"native_dynamic_fixture\0");
+        assert_eq!(
+            NATIVE_RUNTIME_ENTRY.cstr(),
+            b"zircon_native_dynamic_fixture_runtime_entry_v3\0"
+        );
+        assert_eq!(
+            NATIVE_EDITOR_ENTRY.cstr(),
+            b"zircon_native_dynamic_fixture_editor_entry_v3\0"
+        );
+        assert_eq!(
+            NATIVE_REQUESTED_CAPABILITIES,
+            concat!(
+                "runtime.plugin.native_dynamic_fixture\n",
+                "runtime.asset.importer.native_dynamic_fixture.data_json\n",
+                "editor.extension.native_dynamic_fixture\0",
+            )
+            .as_bytes()
+        );
+
+        let runtime_manifest = CStr::from_bytes_with_nul(NATIVE_RUNTIME_REGISTRATION_MANIFEST)
+            .expect("runtime registration manifest is a C string")
+            .to_str()
+            .expect("runtime registration manifest is UTF-8");
+        assert!(runtime_manifest.contains("[[systems]]"));
+        assert!(runtime_manifest.contains("[[events]]"));
+        assert!(runtime_manifest.contains("[[extensions]]"));
+        assert!(!runtime_manifest.contains("editor.extension.native_dynamic_fixture"));
+
+        let editor_manifest = CStr::from_bytes_with_nul(NATIVE_EDITOR_REGISTRATION_MANIFEST)
+            .expect("editor registration manifest is a C string")
+            .to_str()
+            .expect("editor registration manifest is UTF-8");
+        assert!(editor_manifest.contains("editor.extension.native_dynamic_fixture"));
+        assert!(!editor_manifest.contains("runtime.plugin.native_dynamic_fixture"));
     }
 }

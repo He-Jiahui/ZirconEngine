@@ -1,7 +1,7 @@
 use crate::graphics::shader::{
-    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
-    ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout, hzb_build_dispatch_plan,
-    hzb_build_msaa_dispatch_plan,
+    create_compute_shader_bind_group_layout, hzb_build_dispatch_plan, hzb_build_msaa_dispatch_plan,
+    ShaderWgpuResourceDescriptor, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE,
+    HZB_TARGET_RESOURCE,
 };
 
 pub(crate) fn hzb(device: &wgpu::Device) -> wgpu::BindGroupLayout {

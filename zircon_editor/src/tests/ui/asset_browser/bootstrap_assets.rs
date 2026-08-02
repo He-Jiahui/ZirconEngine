@@ -1,4 +1,4 @@
-use crate::ui::layouts::views::{asset_browser_pane_nodes, ViewTemplateNodeData};
+use crate::ui::layouts::views::{ViewTemplateNodeData, asset_browser_pane_nodes};
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
     AssetWorkspaceSnapshot,
@@ -200,8 +200,13 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         sources_scroll_body.surface_variant.to_string(),
         "scroll-body"
     );
-    assert_eq!(locate.role.to_string(), "Button");
-    assert_eq!(locate.text.to_string(), "Locate In Assets");
+    assert_eq!(locate.role.to_string(), "IconButton");
+    assert_eq!(locate.component_role.to_string(), "icon-button");
+    assert_eq!(locate.text.to_string(), "");
+    assert_eq!(
+        locate.icon_name.to_string(),
+        "editor_pages/asset_browser/navigation/search.svg"
+    );
     assert_eq!(locate.dispatch_kind.to_string(), "asset:browser");
     assert_eq!(
         locate.binding_id.to_string(),
@@ -259,10 +264,16 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(meta_path_panel.role.to_string(), "Panel");
     assert_eq!(meta_path_panel.surface_variant.to_string(), "inset");
     assert_eq!(diagnostics_text.text.to_string(), "No active diagnostics");
-    assert_eq!(list_mode.text.to_string(), "List");
+    assert_eq!(list_mode.role.to_string(), "IconButton");
+    assert_eq!(list_mode.component_role.to_string(), "icon-button");
+    assert_eq!(list_mode.icon_name.to_string(), "list-outline");
+    assert_eq!(list_mode.text.to_string(), "");
     assert_eq!(list_mode.value_text.to_string(), "list");
     assert!(thumb_mode.selected);
-    assert_eq!(thumb_mode.text.to_string(), "Thumb");
+    assert_eq!(thumb_mode.role.to_string(), "IconButton");
+    assert_eq!(thumb_mode.component_role.to_string(), "icon-button");
+    assert_eq!(thumb_mode.icon_name.to_string(), "grid-outline");
+    assert_eq!(thumb_mode.text.to_string(), "");
     assert_eq!(thumb_mode.surface_variant.to_string(), "inset");
     assert_eq!(thumb_mode.dispatch_kind.to_string(), "asset:browser");
     assert_eq!(
@@ -462,6 +473,7 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     let shader_chip = find_node(&nodes, "AssetBrowserKindShaderChip");
     let list_button = find_node(&nodes, "AssetBrowserViewModeListButton");
     let thumb_button = find_node(&nodes, "AssetBrowserViewModeThumbButton");
+    let locate_button = find_node(&nodes, "LocateSelectedAsset");
     let import_panel = find_node(&nodes, "AssetBrowserImportPanel");
     let import_label = find_node(&nodes, "AssetBrowserImportLabel");
     let import_path = find_node(&nodes, "AssetBrowserImportPathField");
@@ -519,7 +531,13 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
         thumb_button.frame.height,
         30.0,
     );
+    assert_frame_value(
+        "compact locate button height",
+        locate_button.frame.height,
+        30.0,
+    );
     assert!(thumb_button.frame.x > list_button.frame.x);
+    assert!(locate_button.frame.x > thumb_button.frame.x);
     assert_frame_value("compact import y", import_panel.frame.y, toolbar.frame.y);
     assert_frame_value("compact import height", import_panel.frame.height, 32.0);
     assert_frame_value(
@@ -540,8 +558,8 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
         30.0,
     );
     assert!(
-        thumb_button.frame.x + thumb_button.frame.width < import_button.frame.x,
-        "compact import button should remain as the trailing command when the path field collapses"
+        locate_button.frame.x + locate_button.frame.width < import_button.frame.x,
+        "compact import button should remain as the trailing command after direct asset actions"
     );
     assert_frame_value(
         "compact main panel y",

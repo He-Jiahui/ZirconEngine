@@ -1,3 +1,4 @@
+mod archive_artifact;
 mod capture;
 mod load;
 mod merge;

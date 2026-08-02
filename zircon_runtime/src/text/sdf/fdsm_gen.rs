@@ -41,14 +41,32 @@ pub(crate) fn generate_distance_field_glyph_with_variations(
     params: SdfBakeParams,
     variations: &VariationCoords,
 ) -> Result<SdfGlyphData, SdfGlyphGenerationError> {
-    let params = params.normalized();
+    let face = parse_distance_field_face(font_bytes, face_index, variations)?;
+    generate_distance_field_glyph_from_face(&face, face_index, glyph_id, params)
+}
+
+pub(crate) fn parse_distance_field_face<'a>(
+    font_bytes: &'a [u8],
+    face_index: u32,
+    variations: &VariationCoords,
+) -> Result<Face<'a>, SdfGlyphGenerationError> {
     let mut face = Face::parse(font_bytes, face_index)
         .map_err(|_| SdfGlyphGenerationError::InvalidFaceIndex(face_index))?;
     for (tag, value) in &variations.0 {
         let _ = face.set_variation(Tag::from_bytes(&tag.to_be_bytes()), *value);
     }
+    Ok(face)
+}
+
+pub(crate) fn generate_distance_field_glyph_from_face(
+    face: &Face<'_>,
+    source_face_index: u32,
+    glyph_id: u16,
+    params: SdfBakeParams,
+) -> Result<SdfGlyphData, SdfGlyphGenerationError> {
+    let params = params.normalized();
     let glyph_id = GlyphId(glyph_id);
-    let mut shape = fdsm_ttf_parser::load_shape_from_face(&face, glyph_id)
+    let mut shape = fdsm_ttf_parser::load_shape_from_face(face, glyph_id)
         .ok_or(SdfGlyphGenerationError::MissingGlyphOutline(glyph_id.0))?;
     let bounds = face
         .glyph_bounding_box(glyph_id)
@@ -61,7 +79,7 @@ pub(crate) fn generate_distance_field_glyph_with_variations(
         shape,
         layout.size,
         params,
-        edge_coloring_seed(face_index, glyph_id.0),
+        edge_coloring_seed(source_face_index, glyph_id.0),
     );
     let glyph = SdfGlyphData {
         size: layout.size,

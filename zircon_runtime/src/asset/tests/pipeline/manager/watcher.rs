@@ -335,6 +335,86 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
         Some(baseline_model_revision),
         "watcher reimport should not bump unrelated resource revisions",
     );
+    let diagnostics = manager.asset_watch_diagnostics();
+    assert_eq!(
+        diagnostics.incremental_resource_record_count, 1,
+        "a one-source watch change must prepare only its affected resource closure",
+    );
+    assert_eq!(diagnostics.max_incremental_resource_record_count, 1);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn watcher_removes_only_the_deleted_source_from_runtime_resources() {
+    let root = unique_temp_project_root("asset_manager_incremental_watch_remove");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    ProjectManifest::new(
+        "Incremental Watch Removal",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let asset_root =
+        paths.asset_root(&zircon_runtime_interface::project::RelPath::project_assets());
+    write_valid_wgsl(asset_root.join("shaders/pbr.wgsl"));
+    write_checker_png(asset_root.join("textures/checker.png"));
+    write_triangle_obj(asset_root.join("models/triangle.obj"));
+    let material_path = asset_root.join("materials/grid.zmaterial");
+    write_default_material(material_path.clone());
+    write_default_scene(asset_root.join("scenes/main.scene.toml"));
+
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
+    let changes = manager.subscribe_asset_changes();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    while changes.recv_timeout(Duration::from_millis(50)).is_ok() {}
+
+    let material_uri = AssetUri::parse("res://materials/grid.zmaterial").unwrap();
+    let baseline_model_revision = manager
+        .resource_revision("res://models/triangle.obj")
+        .expect("baseline model revision");
+    fs::remove_file(&material_path).unwrap();
+    fs::remove_file(material_path.with_file_name("grid.zmaterial.zmeta")).unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let mut removed = false;
+    while Instant::now() < deadline {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        match changes.recv_timeout(remaining.min(Duration::from_millis(150))) {
+            Ok(change) if change.kind == AssetChangeKind::Removed && change.uri == material_uri => {
+                removed = true;
+                break;
+            }
+            Ok(_) => {}
+            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Disconnected) => break,
+        }
+    }
+
+    assert!(
+        removed,
+        "watcher did not report the removed material source"
+    );
+    assert!(manager.resolve_asset_id(&material_uri).is_none());
+    assert_eq!(
+        manager.resource_revision("res://models/triangle.obj"),
+        Some(baseline_model_revision),
+        "deleting one source must not republish unrelated runtime resources",
+    );
+    assert_eq!(
+        manager
+            .asset_watch_diagnostics()
+            .incremental_resource_record_count,
+        0,
+        "a source removal without referencers must not prepare unrelated records",
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -385,10 +465,12 @@ fn project_manager_split_move_events_reconcile_sidecar_identity_as_rename() {
             .id(),
         crate::asset::AssetId::from_asset_uuid(original_uuid),
     );
-    assert!(manager
-        .asset_registry()
-        .resolve_asset_id_by_path(&old_uri)
-        .is_err());
+    assert!(
+        manager
+            .asset_registry()
+            .resolve_asset_id_by_path(&old_uri)
+            .is_err()
+    );
     assert_eq!(
         manager.asset_registry().resolve_asset_id_by_path(&new_uri),
         Ok(crate::asset::AssetId::from_asset_uuid(original_uuid)),

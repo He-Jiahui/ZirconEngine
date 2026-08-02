@@ -1,16 +1,15 @@
 use super::gltf_animation_subassets::add_gltf_animation_and_skin_subassets;
 use super::gltf_decode::decode_gltf_source;
 use super::gltf_labeled_subassets::{
-    add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
-    add_gltf_texture_subassets, gltf_label_reference, gltf_label_uri, GltfMeshSubasset,
-    GltfPrimitiveSubasset,
+    GltfMeshSubasset, GltfPrimitiveSubasset, add_gltf_material_subassets, add_gltf_mesh_subassets,
+    add_gltf_scene_subassets, add_gltf_texture_subassets, gltf_label_reference, gltf_label_uri,
 };
 use std::collections::BTreeMap;
 
 use super::primitive_from_indexed_mesh::primitive_from_indexed_mesh;
 use crate::asset::assets::{
-    MeshAsset, MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MeshAsset,
+    MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, ModelPrimitiveAsset,
 };
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset};
 
@@ -25,6 +24,7 @@ pub(crate) fn import_gltf(
     let mut meshes = Vec::new();
     let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
     let source_hint = context.uri.to_string();
+    let virtual_geometry_request = context.virtual_geometry_cook_request()?;
 
     for mesh in document.meshes() {
         let mut mesh_primitives = Vec::new();
@@ -105,6 +105,7 @@ pub(crate) fn import_gltf(
                 &joint_weights,
                 mesh_name,
                 &source_hint,
+                &virtual_geometry_request,
             )?;
             let primitive_label = format!("Mesh{}/Primitive{}", mesh.index(), primitive.index());
             let primitive_uri = gltf_label_uri(&context.uri, &primitive_label);

@@ -6,6 +6,12 @@ use thiserror::Error;
 
 use super::JobId;
 
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum JobAdmissionKeyError {
+    #[error("editor job admission key must not be empty")]
+    Empty,
+}
+
 #[derive(Clone)]
 pub struct JobFailure {
     source: Arc<dyn StdError + Send + Sync>,
@@ -95,6 +101,26 @@ pub enum JobSubmitError {
     EmptyLabel,
     #[error("editor job system is shutting down and no longer accepts submissions")]
     ShuttingDown,
+    #[error("keyed editor job submissions must use submit_admitted to observe accepted or merged")]
+    KeyedAdmissionRequiresOutcome,
+    #[error(
+        "editor job admission key is already bound to an incompatible pending job {existing_job:?}"
+    )]
+    AdmissionKeyConflict { existing_job: JobId },
+    #[error("editor job pending admission reached its entry limit of {limit}")]
+    AdmissionEntryLimitExceeded { limit: usize },
+    #[error(
+        "editor job pending admission byte budget exceeded: limit={limit}, current={current}, requested={requested}"
+    )]
+    AdmissionByteLimitExceeded {
+        limit: usize,
+        current: usize,
+        requested: usize,
+    },
+    #[error(
+        "editor job pending admission is stalled beyond its oldest wait age budget of {max_age_ms} ms"
+    )]
+    OldestPendingAgeExceeded { max_age_ms: u64 },
     #[error("editor job dependency {dependency:?} has expired from retained history")]
     ExpiredDependency { dependency: JobId },
     #[error("editor job dependency {dependency:?} is not registered")]

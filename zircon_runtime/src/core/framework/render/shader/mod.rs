@@ -75,13 +75,16 @@ pub use variant_key::{
     RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
 };
 pub use variant_miss_report::{
-    ShaderVariantMissReport, ShaderVariantRuntimeDimensionCount,
-    ShaderVariantRuntimeDimensionSummary,
+    ShaderPipelineDiagnostic, ShaderPipelineDiagnosticStage, ShaderVariantMissReport,
+    ShaderVariantRuntimeDimensionCount, ShaderVariantRuntimeDimensionSummary,
 };
 pub use variant_prewarm::{
-    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmDimensionSummary,
-    ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
-    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSourceProvenanceEntry,
-    ShaderVariantPrewarmSourceProvenanceSummary, ShaderVariantPrewarmWgpuModuleValidationSummary,
-    ShaderVariantPrewarmWrittenVariant,
+    ShaderPipelinePrewarmState, ShaderVariantPrewarmDimensionCount,
+    ShaderVariantPrewarmDimensionSummary, ShaderVariantPrewarmExecutionBudget,
+    ShaderVariantPrewarmExecutionBudgetError, ShaderVariantPrewarmExecutionBudgetSummary,
+    ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmManifestIntegrityError, ShaderVariantPrewarmReport,
+    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId,
+    ShaderVariantPrewarmSourceProvenanceEntry, ShaderVariantPrewarmSourceProvenanceSummary,
+    ShaderVariantPrewarmWgpuModuleValidationSummary, ShaderVariantPrewarmWrittenVariant,
 };

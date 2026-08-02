@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{self, Write};
 use std::path::Path;
 
 use crate::asset::assets::{
@@ -23,7 +24,7 @@ use crate::core::resource::{
     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceHandle, ResourceId,
     ResourceLocator, ResourceMarker, ResourceScheme, TextureMarker,
 };
-use crate::foundation::persistence::atomic_write;
+use crate::core::resource::io::atomic_file::atomic_write;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -60,6 +61,7 @@ use post_process::{
 use references::{handle_for_reference, reference_for_handle};
 use script::script_bindings_for_record;
 use transform::{transform_from_asset, transform_to_asset};
+use super::transform_validation::validate_persisted_transforms;
 
 const PROJECT_FORMAT_VERSION: u32 = 2;
 const BUILTIN_CUBE: &str = "builtin://cube";
@@ -78,6 +80,8 @@ pub enum SceneProjectError {
     Asset(#[from] AssetImportError),
     #[error(transparent)]
     ProjectDocument(#[from] ProjectDocumentError),
+    #[error(transparent)]
+    Scene(#[from] crate::scene::SceneError),
     #[error("scene asset error: {0}")]
     SceneAsset(String),
     #[error("dangling asset reference {uuid} at {locator}")]
@@ -104,7 +108,17 @@ impl World {
         project: &ProjectManager,
         uri: &ResourceLocator,
     ) -> Result<Self, SceneProjectError> {
-        let ImportedAsset::Scene(scene) = project.load_artifact(uri)? else {
+        Self::load_scene_from_uri_with_raw_payload_limit(project, uri, u64::MAX)
+    }
+
+    pub(crate) fn load_scene_from_uri_with_raw_payload_limit(
+        project: &ProjectManager,
+        uri: &ResourceLocator,
+        max_raw_payload_bytes: u64,
+    ) -> Result<Self, SceneProjectError> {
+        let ImportedAsset::Scene(scene) =
+            project.load_artifact_with_raw_payload_limit(uri, max_raw_payload_bytes)?
+        else {
             return Err(SceneProjectError::SceneAsset(format!(
                 "asset {uri} is not a scene"
             )));
@@ -374,7 +388,7 @@ impl World {
                     animation_graph_player,
                     animation_state_machine_player,
                 })
-                .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
+                ?;
             if let Some(camera_post_process) = entity
                 .camera
                 .as_ref()
@@ -419,6 +433,7 @@ impl World {
         &self,
         project: &ProjectManager,
     ) -> Result<SceneAsset, SceneProjectError> {
+        validate_persisted_transforms(self)?;
         let entities = self
             .entities
             .iter()
@@ -664,17 +679,29 @@ impl World {
 
     pub fn save_project_to_path(&self, path: impl AsRef<Path>) -> Result<(), SceneProjectError> {
         let path = path.as_ref();
+        let bytes = self.project_document_bytes(usize::MAX)?;
+        atomic_write(path, &bytes)?;
+        Ok(())
+    }
+
+    pub(crate) fn project_document_bytes(
+        &self,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>, SceneProjectError> {
+        validate_persisted_transforms(self)?;
         let document = ProjectDocumentRef {
             format_version: PROJECT_FORMAT_VERSION,
             world: self,
         };
-        atomic_write(path, serde_json::to_string_pretty(&document)?.as_bytes())?;
-        Ok(())
+        let mut writer = BoundedDocumentWriter::new(max_bytes);
+        serde_json::to_writer_pretty(&mut writer, &document)?;
+        Ok(writer.finish())
     }
 
     pub fn load_project_from_path(path: impl AsRef<Path>) -> Result<Self, SceneProjectError> {
         let json = fs::read_to_string(path)?;
         let mut document: ProjectDocument = serde_json::from_str(&json)?;
+        validate_persisted_transforms(&document.world)?;
         document.world.normalize_after_load();
         Ok(document.world)
     }
@@ -740,5 +767,40 @@ impl World {
         self.rebuild_typed_component_presence();
         self.mark_derived_state_dirty();
         self.flush_scene_systems_now();
+    }
+}
+
+struct BoundedDocumentWriter {
+    bytes: Vec<u8>,
+    max_bytes: usize,
+}
+
+impl BoundedDocumentWriter {
+    fn new(max_bytes: usize) -> Self {
+        Self {
+            bytes: Vec::with_capacity(max_bytes.min(64 * 1024)),
+            max_bytes,
+        }
+    }
+
+    fn finish(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+impl Write for BoundedDocumentWriter {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        if buffer.len() > self.max_bytes.saturating_sub(self.bytes.len()) {
+            return Err(io::Error::other(format!(
+                "scene artifact exceeds {} byte limit",
+                self.max_bytes
+            )));
+        }
+        self.bytes.extend_from_slice(buffer);
+        Ok(buffer.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }

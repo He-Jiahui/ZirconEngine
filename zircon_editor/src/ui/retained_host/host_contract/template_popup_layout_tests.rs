@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::data::{
     FrameRect, TemplateNodeFrameData, TemplatePaneNodeData,
 };
 use crate::ui::retained_host::popup_anchor_metrics::{
-    clamp_popup_x_to_bounds, SLATE_POPUP_ANCHOR_METRICS,
+    SLATE_POPUP_ANCHOR_METRICS, clamp_popup_x_to_bounds,
 };
 
 #[test]

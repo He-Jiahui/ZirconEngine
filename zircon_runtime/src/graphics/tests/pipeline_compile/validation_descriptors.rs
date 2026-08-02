@@ -15,15 +15,13 @@ fn pipeline_compile_rejects_descriptor_passes_for_undeclared_stages() {
             "bad-stage-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Opaque,
-                    "custom-gbuffer-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .with_side_effects(),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::Opaque,
+                "custom-gbuffer-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .with_side_effects()],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -49,15 +47,13 @@ fn pipeline_compile_rejects_duplicate_descriptor_pass_names() {
             "duplicate-pass-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "uber",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .with_side_effects(),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "uber",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .with_side_effects()],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -83,15 +79,13 @@ fn pipeline_compile_rejects_conflicting_descriptor_resource_kinds() {
             "bad-resource-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "bad-resource-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .write_buffer("scene-color"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "bad-resource-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .write_buffer("scene-color")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -117,15 +111,13 @@ fn pipeline_compile_rejects_explicit_external_resource_name_conflicts() {
             "bad-external-resource-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "bad-external-resource-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .write_external("scene-color"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "bad-external-resource-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .write_external("scene-color")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -151,15 +143,13 @@ fn pipeline_compile_rejects_empty_descriptor_pass_executor_and_resource_names() 
             "",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("")
-                .write_texture(""),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("")
+            .write_texture("")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -185,14 +175,12 @@ fn pipeline_compile_rejects_empty_descriptor_pass_names_after_descriptor_name_is
             "empty-pass-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -218,15 +206,13 @@ fn pipeline_compile_rejects_empty_descriptor_executor_and_resource_names() {
             "empty-resource-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "empty-resource-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("")
-                .write_texture(""),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "empty-resource-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("")
+            .write_texture("")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -252,15 +238,13 @@ fn pipeline_compile_rejects_empty_descriptor_resource_names_after_executor_is_va
             "empty-resource-feature",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "empty-resource-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .write_texture(""),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "empty-resource-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .write_texture("")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -330,15 +314,13 @@ fn pipeline_compile_rejects_empty_descriptor_extract_section_names() {
             "empty-extract-section-feature",
             vec!["post".to_string(), " ".to_string()],
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "post-stack-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .read_texture("scene-color"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "post-stack-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .read_texture("scene-color")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -367,15 +349,13 @@ fn pipeline_compile_rejects_duplicate_history_bindings_in_one_descriptor() {
                 FrameHistoryBinding::read(FrameHistorySlot::TaaSceneColor),
                 FrameHistoryBinding::write(FrameHistorySlot::TaaSceneColor),
             ],
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::PostProcess,
-                    "history-using-pass",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("post.uber")
-                .read_texture("scene-color"),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "history-using-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.uber")
+            .read_texture("scene-color")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();

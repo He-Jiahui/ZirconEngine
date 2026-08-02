@@ -5,6 +5,10 @@ use zircon_runtime::core::resource::ResourceLocatorError;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::scene::world::SceneProjectError;
 
+use crate::core::asset::DirtyRegistryError;
+use crate::core::extension::{
+    SaveError, ToolkitInstanceIdError, ToolkitLayoutError, ToolkitRegistryError,
+};
 use crate::core::project::ProjectAuthorityError;
 
 #[derive(Debug, Error)]
@@ -13,6 +17,38 @@ pub enum EditorError {
     Layout(String),
     #[error("{0}")]
     Registry(String),
+    #[error("document toolkit instance {instance:?} is not registered")]
+    DocumentToolkitNotRegistered { instance: String },
+    #[error("document toolkit registry failed: {source}")]
+    DocumentToolkitRegistry {
+        #[from]
+        #[source]
+        source: ToolkitRegistryError,
+    },
+    #[error("document toolkit save failed: {source}")]
+    DocumentToolkitSave {
+        #[from]
+        #[source]
+        source: SaveError,
+    },
+    #[error("document toolkit instance id failed: {source}")]
+    DocumentToolkitInstanceId {
+        #[from]
+        #[source]
+        source: ToolkitInstanceIdError,
+    },
+    #[error("document toolkit layout failed: {source}")]
+    DocumentToolkitLayout {
+        #[from]
+        #[source]
+        source: ToolkitLayoutError,
+    },
+    #[error("document dirty registry failed: {source}")]
+    DirtyRegistry {
+        #[from]
+        #[source]
+        source: DirtyRegistryError,
+    },
     #[error("{0}")]
     Project(String),
     #[error("project authority failed: {source}")]

@@ -12,22 +12,22 @@ use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, ModulePluginsPaneViewData,
 };
 use crate::ui::retained_host::callback_dispatch::{
-    load_startup_builtin_template_runtime, BuiltinHostWindowTemplateBridge,
-    BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    BuiltinHostWindowTemplateBridge, BuiltinWorkbenchWindowLayoutFrames,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge, load_startup_builtin_template_runtime,
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::retained_host::{
-    apply_presentation, paint_componentized_extension_workspace_for_test,
-    paint_host_frame_for_test, paint_template_nodes_for_test_with_background, FrameRect,
-    HostChromeControlFrameData, HostChromeTabData, HostClosePromptData, HostMenuChromeData,
-    HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
+    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
+    HostMenuChromeData, HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
     HostPageOverflowMenuStateData, HostWindowLayoutData, TabData, TemplateNodeFrameData,
-    TemplatePaneNodeData, UiHostContext, UiHostWindow,
+    TemplatePaneNodeData, UiHostContext, UiHostWindow, apply_presentation,
+    paint_componentized_extension_workspace_for_test, paint_host_frame_for_test,
+    paint_template_nodes_for_test_with_background,
 };
 use crate::ui::workbench::autolayout::{
-    compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
+    ShellSizePx, WorkbenchChromeMetrics, compute_workbench_shell_geometry,
 };
-use crate::ui::workbench::fixture::{default_preview_fixture, PreviewFixture};
+use crate::ui::workbench::fixture::{PreviewFixture, default_preview_fixture};
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, MainHostPageLayout, MainPageId, WorkbenchLayout,
 };
@@ -38,12 +38,12 @@ use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot,
 };
 use crate::ui::workbench::startup::{
-    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot,
-    WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID,
+    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, WELCOME_DESCRIPTOR_ID,
+    WELCOME_INSTANCE_ID, WELCOME_PAGE_ID, WelcomePaneSnapshot,
 };
 use crate::ui::workbench::view::{
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
-    ViewKind,
+    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
+    WorkbenchSlot,
 };
 use zircon_runtime_interface::ui::layout::UiSize;
 
@@ -1279,7 +1279,7 @@ pub(super) fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
             ViewKind::ActivityWindow,
             "Welcome",
         )
-        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
         .with_icon_key("sparkles-outline"),
     );
     fixture
@@ -1309,6 +1309,7 @@ pub(super) fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
 
     let mut data = fixture.editor.clone().into_snapshot();
     data.status_line = "Welcome input commit preview: B".to_string();
+    data.console_output = "Welcome input commit preview: B".into();
     data.project_path.clear();
     data.session_mode = EditorSessionMode::Welcome;
     data.project_open = false;
@@ -1410,6 +1411,7 @@ fn asset_browser_window_with_workspace(
     data.asset_activity = asset_workspace.clone();
     data.asset_browser = asset_workspace;
     data.status_line = "Asset Browser M3 screenshot gate".to_string();
+    data.console_output = "Asset Browser M3 screenshot gate".into();
     data.project_path = "E:/Git/ZirconEngine".to_string();
     data.session_mode = EditorSessionMode::Project;
     data.project_open = true;
@@ -2093,7 +2095,10 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
             display_name: "workbench_page_chrome.zui".to_string(),
             locator: "res://ui/editor/workbench_page_chrome.zui".to_string(),
             kind: Some(ResourceKind::UiLayout),
-            asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(ResourceKind::UiLayout),
+            asset_type:
+                crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                    ResourceKind::UiLayout,
+                ),
             preview_artifact_path: "docs/tests/editor/editor-window-m3-workbench-900x620.png"
                 .to_string(),
             meta_path: "zircon_editor/assets/ui/editor/workbench_page_chrome.zui".to_string(),

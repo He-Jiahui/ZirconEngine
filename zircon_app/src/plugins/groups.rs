@@ -1,8 +1,9 @@
-use std::sync::Arc;
+mod resolution;
 
-use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::core::framework::project::RuntimeProfileId;
 
 use super::{PluginGroup, PluginGroupBuilder, PluginGroupError};
+use resolution::{resolve_builtin_plugin_group, BuiltinPluginGroupFeature};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MinimalPlugins;
@@ -18,66 +19,35 @@ pub struct HeadlessPlugins;
 
 impl PluginGroup for MinimalPlugins {
     fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
-        PluginGroupBuilder::from_modules(
-            "MinimalPlugins",
-            [
-                Arc::new(zircon_runtime::foundation::FoundationModule) as Arc<dyn EngineModule>,
-                Arc::new(zircon_runtime::core::runtime::modules::TasksModule),
-                Arc::new(zircon_runtime::core::runtime::modules::TimeModule),
-                Arc::new(zircon_runtime::core::runtime::modules::FrameCountModule),
-                Arc::new(zircon_runtime::core::runtime::modules::DiagnosticsCoreModule),
-            ],
-        )
+        resolve_builtin_plugin_group("MinimalPlugins", RuntimeProfileId::Minimal, [])
     }
 }
 
 impl PluginGroup for DefaultPlugins {
     fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
-        default_modules("DefaultPlugins", true)
+        resolve_builtin_plugin_group(
+            "DefaultPlugins",
+            RuntimeProfileId::Client3d,
+            [BuiltinPluginGroupFeature::Ui],
+        )
     }
 }
 
 impl PluginGroup for DevPlugins {
     fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
-        default_modules("DevPlugins", true)?.add_after(
-            zircon_runtime::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
-            Arc::new(zircon_runtime::core::runtime::modules::LogDiagnosticsModule),
+        resolve_builtin_plugin_group(
+            "DevPlugins",
+            RuntimeProfileId::Dev,
+            [
+                BuiltinPluginGroupFeature::Ui,
+                BuiltinPluginGroupFeature::LogDiagnostics,
+            ],
         )
     }
 }
 
 impl PluginGroup for HeadlessPlugins {
     fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
-        default_modules("HeadlessPlugins", false)
+        resolve_builtin_plugin_group("HeadlessPlugins", RuntimeProfileId::Server, [])
     }
-}
-
-fn default_modules(
-    group_name: &'static str,
-    include_graphics: bool,
-) -> Result<PluginGroupBuilder, PluginGroupError> {
-    let mut modules: Vec<Arc<dyn EngineModule>> = vec![
-        Arc::new(zircon_runtime::foundation::FoundationModule),
-        Arc::new(zircon_runtime::core::runtime::modules::LogModule),
-        Arc::new(zircon_runtime::core::runtime::modules::TasksModule),
-        Arc::new(zircon_runtime::core::runtime::modules::TimeModule),
-        Arc::new(zircon_runtime::core::runtime::modules::FrameCountModule),
-        Arc::new(zircon_runtime::core::runtime::modules::DiagnosticsCoreModule),
-        Arc::new(zircon_runtime::platform::PlatformModule),
-        Arc::new(zircon_runtime::input::InputModule),
-        Arc::new(zircon_runtime::asset::AssetModule::default()),
-        Arc::new(zircon_runtime::scene::SceneModule),
-    ];
-    #[cfg(feature = "graphics")]
-    if include_graphics {
-        modules.push(Arc::new(zircon_runtime::graphics::GraphicsModule::default()));
-    }
-    #[cfg(feature = "script")]
-    modules.push(Arc::new(zircon_runtime::script::ScriptModule));
-    #[cfg(feature = "ui")]
-    if include_graphics {
-        modules.push(Arc::new(zircon_runtime::ui::UiModule));
-    }
-
-    PluginGroupBuilder::from_modules(group_name, modules)
 }

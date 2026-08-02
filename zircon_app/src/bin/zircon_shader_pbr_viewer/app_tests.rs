@@ -66,6 +66,10 @@ fn ready_title_reports_current_orbit_angles() {
                 EnvironmentIblSourceStagingStatus::Reused,
                 Duration::from_millis(125),
                 Duration::from_millis(250),
+                512,
+                10,
+                256,
+                9,
             )),
         ),
         "Zircon PBR HDRI Mirror Viewer - Ready - IBL Reused staging 125ms total 250ms - yaw 120 pitch -120"
@@ -275,10 +279,13 @@ fn completed_scene_load_presents_the_first_ready_frame_synchronously() {
 fn screenshot_export_occurs_once_after_the_ready_frame_is_rendered() {
     let render = render_source();
 
-    assert!(render.contains("self.write_ready_frame_screenshot(&frame)"));
+    assert!(render.contains("let screenshot_metadata = if write_screenshot {"));
+    assert!(
+        render.contains("self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())")
+    );
     assert!(
         render
-            .find("self.write_ready_frame_screenshot(&frame)")
+            .find("self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())")
             .expect("screenshot write")
             < render
                 .find("presenter.present(&frame)")
@@ -286,6 +293,78 @@ fn screenshot_export_occurs_once_after_the_ready_frame_is_rendered() {
         "the screenshot must encode the same ready frame passed to the presenter"
     );
     assert!(render.contains("if self.exit_after_screenshot()"));
+}
+
+#[test]
+fn bridged_renderdoc_capture_requires_an_actual_capture_record() {
+    let production = production_source();
+    let finish_capture = production
+        .split("fn finish_graphics_debugger_capture(")
+        .nth(1)
+        .and_then(|source| source.split("fn viewport_surface_descriptor(").next())
+        .expect("viewer must retain one shared capture completion owner");
+
+    for expected in [
+        "scene.stop_graphics_debugger_capture()",
+        "bridge.capture_report()",
+        "report.capture_path_for_evidence()",
+        "graphics debugger capture completed",
+    ] {
+        assert!(
+            finish_capture.contains(expected),
+            "bridged RenderDoc capture completion must retain `{expected}`"
+        );
+    }
+    assert_eq!(
+        production
+            .matches("finish_graphics_debugger_capture(")
+            .count(),
+        3,
+        "both direct and CPU capture paths must share the actual-record gate"
+    );
+}
+
+#[test]
+fn screenshot_export_writes_versioned_ibl_provenance() {
+    let production = production_source();
+    let render = render_source();
+
+    for expected in [
+        "IBL_BAKE_ALGORITHM_VERSION",
+        "scene.ibl_load_report()",
+        "scene.renderer_backend_name()",
+        "interactive_direct_present_enabled",
+        "let screenshot_input = write_screenshot.then(|| {",
+        "self.hdri_path.display().to_string()",
+        "requested_source_face_size",
+        "requested_pmrem_face_size",
+        "ibl_report.source_cubemap_face_size()",
+        "ibl_report.source_cubemap_mip_count()",
+        "ibl_report.pmrem_face_size()",
+        "ibl_report.pmrem_mip_count()",
+        "PBR_VIEWER_RENDER_PROFILE",
+        "scene.base_prewarm_report()",
+        "base_prewarm_report.cache_hit()",
+        "base_prewarm_report.shader_source_resolution()",
+        "base_prewarm_report.pipeline_creation()",
+        "base_prewarm_report.elapsed()",
+        "ReadyFrameEvidenceMetadata {",
+        "write_ready_frame_evidence(path, frame.width, frame.height, &frame.rgba, metadata)",
+    ] {
+        assert!(
+            production.contains(expected),
+            "Ready-frame screenshot provenance must retain `{expected}`"
+        );
+    }
+    assert!(
+        render
+            .find("let screenshot_metadata = if write_screenshot {")
+            .expect("metadata should be built for screenshot evidence")
+            < render
+                .find("self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())")
+                .expect("metadata should be written with the screenshot"),
+        "provenance must be captured from the same Ready frame before the evidence files are written"
+    );
 }
 
 #[test]

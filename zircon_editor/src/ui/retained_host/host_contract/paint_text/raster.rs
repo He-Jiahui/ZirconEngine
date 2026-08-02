@@ -3,25 +3,25 @@ use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 use std::sync::{Arc, Mutex};
 
+use swash::FontRef;
 use swash::scale::image::Content;
 use swash::scale::{Render, ScaleContext, Source, StrikeWith};
 use swash::zeno::{Format, Vector};
-use swash::FontRef;
 
-use super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
+use super::super::paint_theme::{HostTextSmoothing, current_host_text_preferences};
 use super::font::{
-    font_bytes_for_face, font_cache_key_for_face, font_collection_index_for_face, font_for_face,
-    HostTextFontFace,
+    HostTextFontFace, font_bytes_for_face, font_cache_key_for_face, font_collection_index_for_face,
+    font_for_face,
 };
 use super::sync::lock_recovering_poison;
 
 mod metrics;
 
 use self::metrics::{
+    NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X, NATIVE_SWASH_SAMPLE_OFFSET_Y,
     fallback_raster_font_size, fallback_raster_scale, fontdue_fallback_sample_offset_x,
     logical_font_size, missing_fontdue_y_offset, normalized_subpixel_offset, raster_metric_scale,
-    swash_hinting_for_size, NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X,
-    NATIVE_SWASH_SAMPLE_OFFSET_Y,
+    swash_hinting_for_size,
 };
 
 #[derive(Clone)]

@@ -8,7 +8,7 @@ use crate::core::runtime::modules::{
     DiagnosticsCoreModule, FrameCountModule, LogModule, TasksModule, TimeModule,
 };
 use crate::core::sort_module_activation_order;
-use crate::core::{CoreError, CoreResult};
+use crate::core::{CoreError, CoreResult, ModuleDescriptor};
 use crate::engine_module::EngineModule;
 #[cfg(feature = "graphics")]
 use crate::graphics;
@@ -18,6 +18,8 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
+#[cfg(feature = "graphics")]
+use crate::plugin::PluginShaderModuleSource;
 #[cfg(feature = "script")]
 use crate::script;
 use crate::{asset, foundation, input, platform, scene};
@@ -34,51 +36,47 @@ pub(super) fn runtime_core_modules_for_target(
 ) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
     #[cfg(feature = "graphics")]
     {
-        runtime_core_modules_for_target_with_render_features(
-            target,
-            &AssetImporterRegistry::default(),
-            &[],
-            &[],
-            &[],
-            &[],
-            &[],
-            &[],
-            &[],
-            &[],
+        sort_runtime_modules_by_descriptor_order(
+            runtime_core_module_candidates_for_target_with_render_features(
+                target,
+                &AssetImporterRegistry::default(),
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+            ),
         )
     }
     #[cfg(not(feature = "graphics"))]
     {
-        runtime_core_modules_for_target_with_render_features(
-            target,
-            &AssetImporterRegistry::default(),
+        sort_runtime_modules_by_descriptor_order(
+            runtime_core_module_candidates_for_target_with_render_features(
+                target,
+                &AssetImporterRegistry::default(),
+            ),
         )
     }
 }
 
-pub(super) fn minimal_profile_runtime_modules() -> CoreResult<Vec<Arc<dyn EngineModule>>> {
-    sort_runtime_modules_by_descriptor_order(vec![
-        Arc::new(foundation::FoundationModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::runtime::modules::TasksModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::runtime::modules::TimeModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::runtime::modules::FrameCountModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::runtime::modules::DiagnosticsCoreModule) as Arc<dyn EngineModule>,
-    ])
-}
-
 #[cfg(feature = "graphics")]
-pub(super) fn runtime_core_modules_for_target_with_render_features(
+pub(super) fn runtime_core_module_candidates_for_target_with_render_features(
     target: RuntimeTargetMode,
     asset_importers: &AssetImporterRegistry,
     render_features: &[RenderFeatureDescriptor],
     geometry_sources: &[GeometrySourceDescriptor],
     shading_models: &[ShadingModelDescriptor],
+    plugin_shader_module_sources: &[PluginShaderModuleSource],
     render_pass_executors: &[RenderPassExecutorRegistration],
     runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
     solari_runtime_providers: &[SolariRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
-) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
+) -> Vec<Arc<dyn EngineModule>> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
         Arc::new(foundation::FoundationModule),
         Arc::new(LogModule),
@@ -99,6 +97,7 @@ pub(super) fn runtime_core_modules_for_target_with_render_features(
                 render_features.iter().cloned(),
                 geometry_sources.iter().cloned(),
                 shading_models.iter().cloned(),
+                plugin_shader_module_sources.iter().cloned(),
                 render_pass_executors.iter().cloned(),
                 runtime_prepare_collectors.iter().cloned(),
                 hybrid_gi_runtime_providers.iter().cloned(),
@@ -111,14 +110,14 @@ pub(super) fn runtime_core_modules_for_target_with_render_features(
     if target != RuntimeTargetMode::ServerRuntime {
         modules.push(Arc::new(script::ScriptModule));
     }
-    sort_runtime_modules_by_descriptor_order(modules)
+    modules
 }
 
 #[cfg(not(feature = "graphics"))]
-pub(super) fn runtime_core_modules_for_target_with_render_features(
+pub(super) fn runtime_core_module_candidates_for_target_with_render_features(
     target: RuntimeTargetMode,
     asset_importers: &AssetImporterRegistry,
-) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
+) -> Vec<Arc<dyn EngineModule>> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
         Arc::new(foundation::FoundationModule),
         Arc::new(LogModule),
@@ -137,15 +136,26 @@ pub(super) fn runtime_core_modules_for_target_with_render_features(
     if target != RuntimeTargetMode::ServerRuntime {
         modules.push(Arc::new(script::ScriptModule));
     }
-    sort_runtime_modules_by_descriptor_order(modules)
+    modules
 }
 
 pub(super) fn sort_runtime_modules_by_descriptor_order(
     modules: Vec<Arc<dyn EngineModule>>,
 ) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
+    sort_runtime_modules_by_descriptor_order_with_cache(modules, HashMap::new())
+}
+
+pub(super) fn sort_runtime_modules_by_descriptor_order_with_cache(
+    modules: Vec<Arc<dyn EngineModule>>,
+    mut descriptors_by_name: HashMap<String, ModuleDescriptor>,
+) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
     let descriptors = modules
         .iter()
-        .map(|module| module.descriptor())
+        .map(|module| {
+            descriptors_by_name
+                .remove(module.module_name())
+                .unwrap_or_else(|| module.descriptor())
+        })
         .collect::<Vec<_>>();
     let order = sort_module_activation_order(&descriptors)?;
     let mut modules_by_name = modules

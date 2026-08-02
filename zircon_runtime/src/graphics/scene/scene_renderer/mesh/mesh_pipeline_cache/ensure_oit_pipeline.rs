@@ -21,13 +21,17 @@ impl MeshPipelineCache {
             return None;
         }
         let geometry_source = self.geometry_source_descriptor_for_variant(&shader_variant_key)?;
-        let shader_source = mesh_pipeline_shader_source_for_geometry_descriptor(
+        let shader_source = match mesh_pipeline_shader_source_for_geometry_descriptor(
             streamer,
             &pipeline_key,
             &geometry_source,
-        )
-        .ok()?
-        .into_oit_fragment_store_source()?;
+        ) {
+            Ok(source) => source.into_oit_fragment_store_source()?,
+            Err(error) => {
+                self.record_shader_variant_assembly_error(&shader_variant_key, error);
+                return None;
+            }
+        };
         let shader_key = format!(
             "{}@{}#{}#{}",
             pipeline_key.shader_id,
@@ -35,9 +39,10 @@ impl MeshPipelineCache {
             shader_variant_key.canonical_string(),
             shader_source.source_hash
         );
+        let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if !self.shader_modules.contains_key(&shader_key) {
             let source =
-                self.mesh_pipeline_shader_source_with_cache(shader_source, &shader_variant_key);
+                self.mesh_pipeline_shader_source_with_cache(shader_source, &shader_variant_key)?;
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-oit-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.into()),
@@ -54,9 +59,11 @@ impl MeshPipelineCache {
                 &self.oit_mesh_pipeline_layout,
                 shader,
                 &pipeline_key,
+                self.runtime_pipeline_cache.cache(),
             );
             self.oit_mesh_variant_pipelines.insert(variant_id, pipeline);
         }
+        self.track_pipeline_creation_error_scope(&shader_variant_key, error_scope);
         self.oit_mesh_variant_pipelines.get(&variant_id)
     }
 

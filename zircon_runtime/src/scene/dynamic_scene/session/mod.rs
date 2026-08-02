@@ -1,5 +1,6 @@
 mod archive;
 mod archive_save;
+mod artifact;
 mod capture_retention;
 mod construction;
 mod error;
@@ -38,8 +39,18 @@ mod statistics;
 mod target_path;
 mod validation;
 
-pub use archive::{RuntimeSessionArchive, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION};
+pub use archive::{
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchivePayload,
+};
+pub use artifact::{
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchiveArtifact,
+    RuntimeSessionArchiveArtifactDiagnostics,
+};
 pub use error::RuntimeSessionArchiveError;
+pub use io::{
+    RuntimeSessionArchiveWriteSubmission, RuntimeSessionArchiveWriter,
+    RuntimeSessionArchiveWriterLimits, RuntimeSessionArchiveWriterSubmitError,
+};
 pub use manifest::{RuntimeSessionArchiveManifest, RuntimeSessionSlotSummary};
 pub use merge::{RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport};
 pub use metadata::RuntimeSessionMetadata;

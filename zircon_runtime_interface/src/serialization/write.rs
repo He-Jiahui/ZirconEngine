@@ -10,7 +10,7 @@ use serde::{Serialize, Serializer};
 use super::binary::encode_binary_payload;
 use super::text::{
     canonical_writer::{
-        SERDE_JSON_RAW_VALUE_TOKEN, write_canonical_text, write_canonical_text_unbounded,
+        write_canonical_text, write_canonical_text_unbounded, SERDE_JSON_RAW_VALUE_TOKEN,
     },
     document::TextDocument,
     envelope::TextEnvelope,

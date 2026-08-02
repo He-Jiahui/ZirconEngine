@@ -13,12 +13,14 @@ const CONSOLE_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn console_pane_nodes(status_text: &str, size: UiSize) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
-    let resolved_status = if status_text.is_empty() {
-        "Console ready".to_string()
-    } else {
-        status_text.to_string()
-    };
-    text_overrides.insert("ConsoleTextPanel".to_string(), resolved_status.clone());
+    text_overrides.insert(
+        "ConsoleTextPanel".to_string(),
+        if status_text.is_empty() {
+            "Console ready".to_string()
+        } else {
+            status_text.to_string()
+        },
+    );
     text_overrides.insert("ConsoleHeader".to_string(), "Console".to_string());
 
     let mut nodes = build_view_template_nodes(
@@ -35,7 +37,6 @@ pub(crate) fn console_pane_nodes(status_text: &str, size: UiSize) -> ModelRc<Vie
 
 fn apply_console_visual_state(nodes: &mut [ViewTemplateNodeData], has_status: bool) {
     mark_console_node(nodes, "ConsoleHeader", has_status, "panel", "default");
-    mark_console_node(nodes, "FocusConsole", has_status, "panel", "default");
     mark_console_node(
         nodes,
         "ConsoleBodySection",
@@ -90,9 +91,11 @@ mod tests {
         let nodes = projected_nodes("");
 
         assert!(nodes.iter().any(|node| node.control_id == "ConsoleHeader"));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "ConsoleBodySection"));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "ConsoleBodySection")
+        );
 
         let Some(header) = node_by_control_id(&nodes, "ConsoleHeader") else {
             return;

@@ -1,5 +1,5 @@
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use crate::scene::ecs::{ChangeTick, ComponentTicks, InternalEntity};
 
@@ -74,6 +74,18 @@ impl SparseComponentStorage {
         let entry = self.entries.get_mut(&entity)?;
         entry.ticks.set_changed(tick);
         entry.value.downcast_mut::<T>()
+    }
+
+    pub(super) fn get_mut_with_ticks<T>(
+        &mut self,
+        entity: InternalEntity,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: 'static + Send + Sync,
+    {
+        let SparseEntry { value, ticks } = self.entries.get_mut(&entity)?;
+        let value = value.downcast_mut::<T>()?;
+        Some((value, ticks))
     }
 
     pub(super) fn remove(&mut self, entity: InternalEntity) -> Option<RawRemoveResult> {

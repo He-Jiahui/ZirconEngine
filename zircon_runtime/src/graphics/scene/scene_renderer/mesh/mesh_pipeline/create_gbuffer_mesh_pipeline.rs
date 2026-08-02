@@ -9,6 +9,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_gbuffer_mesh_pipe
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-gbuffer-mesh-pipeline"),
@@ -59,7 +60,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_gbuffer_mesh_pipe
             ],
         }),
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }
 
@@ -70,7 +71,7 @@ mod tests {
 
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::graphics::scene::gpu_scene::GpuScene;
-    use crate::graphics::scene::resources::{GPU_MATERIAL_UNIFORM_MIN_SIZE, default_pipeline_key};
+    use crate::graphics::scene::resources::{default_pipeline_key, GPU_MATERIAL_UNIFORM_MIN_SIZE};
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::{
         create_forward_shadow_receiver_layout,
@@ -130,7 +131,7 @@ mod tests {
         });
 
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let _pipeline = create_gbuffer_mesh_pipeline(device, &pipeline_layout, &shader, &key);
+        let _pipeline = create_gbuffer_mesh_pipeline(device, &pipeline_layout, &shader, &key, None);
         let error = pollster::block_on(error_scope.pop());
 
         assert!(

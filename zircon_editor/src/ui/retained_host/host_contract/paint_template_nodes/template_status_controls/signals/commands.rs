@@ -1,6 +1,6 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::{
-    select_workbench_status_signal_style, WorkbenchStatusSignalKind as StatusSignalKind,
+    WorkbenchStatusSignalKind as StatusSignalKind, select_workbench_status_signal_style,
 };
 use super::super::super::template_node_labels::template_node_label;
 use super::super::super::template_status_control_geometry::{

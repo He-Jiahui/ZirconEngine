@@ -5,8 +5,8 @@ use super::super::super::super::data::{
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{
-    draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
-    is_viewport_fallback_scene_node, TemplateNodePaintTransform,
+    TemplateNodePaintTransform, draw_template_nodes, draw_template_nodes_with_transform,
+    has_template_nodes, is_viewport_fallback_scene_node,
 };
 use super::super::super::root_frames::{resolve_root_frames, zero_origin};
 use super::super::{chrome, dock_layer, resize};
@@ -59,9 +59,9 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     let root = resolve_root_frames(frame.width(), frame.height(), presentation);
     chrome::draw_top_chrome_layers(frame, &root, presentation);
     draw_componentized_workbench_chrome(frame, presentation, &frame_bounds);
-    // The componentized template owns chrome and any explicitly activated extension workspace.
-    // Existing host scene data remains the source of ordinary pane, viewport, splitter, and
-    // floating surface content.
+    // The template owns its mounted toolbar/status chrome and activated extension workspace.
+    // Host scene data remains authoritative for outer menu/page chrome, ordinary panes,
+    // viewport, splitters, and floating surfaces.
     dock_layer::draw_dock_layers(frame, presentation);
     draw_componentized_extension_workspace(frame, presentation, &frame_bounds);
     resize::draw_resize_layer(frame, presentation);

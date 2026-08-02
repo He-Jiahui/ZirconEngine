@@ -1,6 +1,78 @@
 // Generated from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; do not edit by hand.
 pub recipeCount(required: bool): int { return required ? 2 : 0; }
 pub masterworkSigner(required: bool): string { return required ? "Adventurer" : ""; }
+pub recipeIdUtf8Length(index: int): int {
+    if (index == 0) { return 27; }
+    if (index == 1) { return 33; }
+    return -1;
+}
+pub recipeIdUtf8Byte(index: int, byteIndex: int): uint {
+    if (index == 0) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>99; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>112; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>109; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>111; }
+        if (byteIndex == 11) { return <uint>114; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>104; }
+        if (byteIndex == 14) { return <uint>101; }
+        if (byteIndex == 15) { return <uint>97; }
+        if (byteIndex == 16) { return <uint>108; }
+        if (byteIndex == 17) { return <uint>105; }
+        if (byteIndex == 18) { return <uint>110; }
+        if (byteIndex == 19) { return <uint>103; }
+        if (byteIndex == 20) { return <uint>95; }
+        if (byteIndex == 21) { return <uint>112; }
+        if (byteIndex == 22) { return <uint>111; }
+        if (byteIndex == 23) { return <uint>116; }
+        if (byteIndex == 24) { return <uint>105; }
+        if (byteIndex == 25) { return <uint>111; }
+        if (byteIndex == 26) { return <uint>110; }
+    }
+    if (index == 1) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>99; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>112; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>101; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>98; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>111; }
+        if (byteIndex == 14) { return <uint>111; }
+        if (byteIndex == 15) { return <uint>107; }
+        if (byteIndex == 16) { return <uint>95; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>105; }
+        if (byteIndex == 19) { return <uint>116; }
+        if (byteIndex == 20) { return <uint>117; }
+        if (byteIndex == 21) { return <uint>97; }
+        if (byteIndex == 22) { return <uint>108; }
+        if (byteIndex == 23) { return <uint>95; }
+        if (byteIndex == 24) { return <uint>118; }
+        if (byteIndex == 25) { return <uint>101; }
+        if (byteIndex == 26) { return <uint>115; }
+        if (byteIndex == 27) { return <uint>116; }
+        if (byteIndex == 28) { return <uint>109; }
+        if (byteIndex == 29) { return <uint>101; }
+        if (byteIndex == 30) { return <uint>110; }
+        if (byteIndex == 31) { return <uint>116; }
+        if (byteIndex == 32) { return <uint>115; }
+    }
+    throw "WOC professions craft recipe byte is invalid";
+}
 pub recipeId0(required: bool): string { return required ? "recipe_minor_healing_potion" : ""; }
 pub recipeProfession0(required: bool): string { return required ? "alchemy" : ""; }
 pub recipeResultItem0(required: bool): string { return required ? "minor_healing_potion" : ""; }

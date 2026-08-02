@@ -13,4 +13,5 @@ default = ["dist"]
 dist = []
 
 [dependencies]
+zircon_plugin_ui_asset_authoring_editor = { path = "../editor" }
 zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

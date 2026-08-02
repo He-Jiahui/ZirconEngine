@@ -14,6 +14,7 @@ impl WelcomeRecentPointerBridge {
         point: UiPoint,
         delta: f32,
     ) -> Result<WelcomeRecentPointerDispatch, String> {
+        self.refresh_layout_metrics();
         let route = self.dispatch_event(
             UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(delta),
         )?;

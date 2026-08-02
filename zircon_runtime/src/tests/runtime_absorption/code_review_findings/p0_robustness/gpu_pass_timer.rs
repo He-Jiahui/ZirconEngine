@@ -1,16 +1,11 @@
 #[test]
-fn gpu_timer_readback_recovers_from_absent_pending_state_without_panic() {
-    let source = include_str!(
-        "../../../../graphics/backend/render_backend/gpu_pass_timer/gpu_pass_timer.rs"
-    );
-    let production = source.split("\n#[cfg(test)]").next().unwrap_or_default();
+fn gpu_timer_readback_uses_the_shared_queue_without_a_private_map_lifecycle() {
+    let timer = include_str!("../../../../rhi_wgpu/gpu_pass_timer.rs");
+    let production = timer.split("\n#[cfg(test)]").next().unwrap_or_default();
 
-    assert!(
-        !production.contains(".expect("),
-        "GPU timestamp readback must recover from an absent pending slot instead of panicking"
-    );
-    assert!(
-        production.contains("let Some(pending) = slot.pending.take() else {"),
-        "completed timestamp readback must take its pending state through a fail-closed branch"
-    );
+    assert!(!production.contains(".expect("));
+    assert!(!production.contains("map_async"));
+    assert!(!production.contains("std::sync::mpsc"));
+    assert!(!production.contains("readback_queue: GpuReadbackQueue"));
+    assert!(production.contains("readback_queue: &mut GpuReadbackQueue"));
 }

@@ -163,38 +163,6 @@ related_code:
   - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
-  - zircon_plugins/sound/runtime/src/lib.rs
-  - zircon_plugins/sound/runtime/src/capability.rs
-  - zircon_plugins/sound/runtime/src/plugin.rs
-  - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
-  - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
-  - zircon_plugins/sound/editor/src/lib.rs
-  - zircon_plugins/sound/editor/src/authoring_bindings.rs
-  - zircon_plugins/sound/editor/src/capability.rs
-  - zircon_plugins/sound/editor/src/extension_ids.rs
-  - zircon_plugins/sound/editor/src/plugin.rs
-  - zircon_plugins/sound/editor/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
-  - zircon_plugins/timeline_sequence/editor/src/lib.rs
-  - zircon_plugins/timeline_sequence/editor/src/capability.rs
-  - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
-  - zircon_plugins/timeline_sequence/editor/src/plugin.rs
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
   - zircon_plugins/tilemap_2d/runtime/Cargo.toml
   - zircon_plugins/tilemap_2d/runtime/src/lib.rs
   - zircon_plugins/tilemap_2d/runtime/src/capability.rs
@@ -246,8 +214,6 @@ related_code:
   - zircon_plugins/tilemap_2d/editor/src/tests.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
-  - zircon_plugins/animation/runtime/src/lib.rs
-  - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/plugin_sdk_examples/editor
@@ -560,7 +526,7 @@ status: in_progress
 
 <!-- Workflow topology is maintained independently from milestone output records. M4 is an independently committable late-adoption slice because M1–M3 predate coordinator workflow evidence; the task-level dependency remains authoritative in §4. -->
 
-## 2. 现状缺口（按代码实查，带路径证据）
+## 2. 2026-06 初始缺口基线与后续状态（保留历史路径证据）
 
 | # | 缺口 | 规范条目 | 证据路径 |
 |---|------|---------|---------|
@@ -576,6 +542,8 @@ status: in_progress
 | S10 | core workspace dependency inheritance 已进入全局 guard | §6.1 | `zircon_plugins/Cargo.toml` 拥有 `[workspace.dependencies]`；117 个 `zircon_runtime` / `zircon_editor` / `zircon_runtime_interface` dependency 引用已统一为 `workspace = true`，`zircon_plugins/Cargo.lock` 已随离线解析同步，`core_workspace_dependency_status = core-workspace-deps-clean` |
 | S11 | editor authoring macro consumer guard 已覆盖 animation/physics/net；runtime↔editor mirror 由 SDK declaration path 统一表达 | §6.1 / §6.4 | `zircon_plugin_sdk::authoring_plugin!` 现在生成 animation/physics/net editor plugin struct/Default/declaration/EditorPlugin impl，并通过 `mirrors_runtime_manifest:` mirror 对应 runtime manifest；`d5_editor_authoring_macro_consumers_static_passed_cargo_deferred` 与 `review_d5_editor_authoring_plugins_use_sdk_macro` 锁定不回退手写样板 |
 | S12 | `RuntimePluginId` 曾是 **core 封闭枚举**，新一方插件必须改引擎核心 + 同步 key/label match（插件无法自带 id） | 架构 | 已由 M5/T2 D6 改为开放 string-newtype；内建 id 保留关联常量，外部合法 key 不再需要 core 分支 |
+
+当前状态（2026-08-01）：S1-S6 是已关闭的历史基线，不再表示当前缺口。asset importer 已生成 `plugin.toml` 并由 `runtime/src/plugin.rs` 的 `RuntimePlugin` 实现负责注册；animation capability 已收敛到 `runtime/src/capability.rs`；结构审计与 §6 checklist 记录 `missing_plugin_toml = 0`、`manifest_schema_violations = 0`、`free_function_registration_sites = 0`、`native_crate_name_collisions = 0`。S7-S12 各行包含后续状态，其中已关闭项同样不得被读作待办。真正未关闭范围以 §9 的 open failure 和跨计划联动为准。
 
 > S7-S12 来自 [`engine-code-review-findings-2026-06.md`](../engine-code-review-findings-2026-06.md)（D 系列）。另有 native manifest 双写已漂移（D3）、三步注册样板（D8）、6 个转发自由函数（D12）、importer 样板分叉（D13）、跨插件测试 fixture（D11，当前已迁移到 SDK TestRuntime）、插件间调用无桥（D10）等已并入 §4 里程碑。
 
@@ -665,6 +633,7 @@ status: in_progress
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`12/2026-07-09-plugin-dx-and-structure-framework-output-records.md`](12/2026-07-09-plugin-dx-and-structure-framework-output-records.md)
+- 当前源码与计划收敛：[`12/2026-08-01-current-source-plan-convergence.md`](12/2026-08-01-current-source-plan-convergence.md)
 - 当前收口记录：[`12/2026-07-15-plugin-runtime-event-consumer-output-records.md`](12/2026-07-15-plugin-runtime-event-consumer-output-records.md)（event generation 精确里程碑已提交为 `663537c7`；linked runtime module 受管测试 3/3，app Navigation 产品门禁 job `188a8df88f10431c8240845ad440dd05` 为 1/1。代码语义复核 P0/P1 为 0，但 exact 16-file manifest 复核为 P0=0、P1=3、P2=1：Editor09 fixed lifecycle 尚未落地、共享 interface blob 依赖 Editor03 operation owner、event-mirror 的 module/World/test wiring 未完整纳入；必须按 owner 有序提交后重建 manifest，因此计划状态保持 `in_progress`）
 - fixed 已修复：[plugin-editor-runtime-mirror-consumer-wiring](05/fixed-2026-07-15-plugin-editor-runtime-mirror-consumer-wiring.md)
 - fixed 已修复：[plugin-mirror-v1-runtime-fallback](../zircon_editor/editor/03/fixed-2026-07-15-plugin-mirror-v1-runtime-fallback.md)

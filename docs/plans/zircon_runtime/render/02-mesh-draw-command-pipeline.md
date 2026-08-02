@@ -464,6 +464,9 @@ pub fn packed_sort_key_u64(
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`02/2026-07-09-mesh-draw-command-pipeline-output-records.md`](02/2026-07-09-mesh-draw-command-pipeline-output-records.md)
+
+## 性能审阅交接
+
 - 2026-07-18 forward binding性能交接：恒定disabled volumetric params buffer已提升为`MeshPipelineCache`构造期唯一owner；但forward/deferred/shadow/velocity/TAA/OIT仍按pass重建entries与WGPU bind group，enabled路径还各建uniform buffer。MD后续切片须以明确resource-generation key交付forward binding bundle和持久dynamic-uniform/ring，相同camera/resource tuple共享bind group+offset，资源替换精确失效；禁止裸地址或无generation跨帧cache。见PERF-MVP-368及`docs/plans/performance/01/2026-07-18-graphics-render-pass-gpu-static-review.md`。
 - 2026-07-18 prepared mesh stats交接：主构建后仍无条件第二遍扫描全部pending draws、重算profile/geometry/velocity并构造宽batch key；三张candidate HashMap/key clone已合并为单表止损。MD owner须把基础/candidate计数融合进命令generation artifact，stable extra scan/key=0，昂贵unique分析由diagnostics gate控制；见PERF-MVP-381及prepared-queue静态证据。
 - 2026-07-18 draw→batch投影交接：command builder在static cache lookup前先为每draw clone PipelineKey、mesh/material/GPU-scene/previous/indirect handles成owned `MeshBatchRef`；动态/cache-ineligible per-draw command Vec已改直接写frame arena，cache miss按phase小Vec仍在。MD owner须hard cut为borrowed/dense prepared-batch view，cache hit资源clone=0且所有路径per-draw alloc=0。见PERF-MVP-382及mesh-draw/mesh-pass静态证据。
@@ -478,4 +481,4 @@ pub fn packed_sort_key_u64(
 - 2026-07-18 overlay base/fallback补充交接：WireOnly LoadStore已在forward binding和transparent sprite prepare前返回；Clear/Discard仍保持。fallback `record_meshes`仍从MeshDraw另建9-phase command buffers，Render02必须让compiled/fallback overlay共用同一phase arena/ranges；sky/base binding进入resource-generation bundle，stable额外command/bind build=0。见PERF-MVP-368/383及overlay静态证据。
 - 2026-07-18 scene mesh/model resident交接：Render02须只消费Runtime04发布的revision-keyed prepared mesh/model handles，mesh vertex hash/bounds与可选wire数据各generation至多构建一次，wireframe未请求时wire segment build=0；重复实例不得重复registry/asset探测或深clone `ModelAsset`。本轮frame unique ensure及mesh position临时副本已止损，见PERF-MVP-404。
 - 2026-07-18 backend target生命周期交接：Render02与Render01按device+surface format共享present sampler/layout/pipeline，source generation只重建binding artifact；offscreen target禁止继续以10纹理整包作为单一owner，GBuffer/normal/cluster仅在对应compiled path需要时创建，stable create=0且resize不波及无关slot。见PERF-MVP-407/408。
-- 2026-07-31 Render17 PF-M2 handoff：parallel prepare 需要 owner-thread variant/cache transaction、immutable worker input 与有序 command merge；当前 `MeshPassBuildContext` 直接借用可变 resolver，不能用 mutex 伪并行。见 [`02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md`](02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md)。
+- 2026-07-31 Render17 PF-M2 handoff：parallel prepare 需要 owner-thread variant/cache transaction、immutable worker input 与有序 command merge；当前 `MeshPassBuildContext` 直接借用可变 resolver，不能用 mutex 伪并行。见 [`02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md`](02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md)（open/待修复）。

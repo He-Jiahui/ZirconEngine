@@ -11,7 +11,7 @@ use super::measure_text_source_range_width;
 #[path = "geometry/source_metrics.rs"]
 mod source_metrics;
 
-use source_metrics::{measured_source_prefix_width, SourceMeasureContext};
+use source_metrics::{SourceMeasureContext, measured_source_prefix_width};
 
 #[cfg(test)]
 use source_metrics::{line_accepts_source_measure, source_prefix_range_for_visual_offset};

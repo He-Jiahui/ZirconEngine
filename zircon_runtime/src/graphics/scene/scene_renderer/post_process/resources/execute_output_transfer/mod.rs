@@ -14,14 +14,26 @@ impl ScenePostProcessResources {
         attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
     ) {
+        let (terminal_resource_cache, output_transfer_bind_group_layout, output_transfer_pipeline) =
+            match self {
+                Self::Full(resources) => (
+                    &resources.terminal_resource_cache,
+                    &resources.output_transfer_bind_group_layout,
+                    &resources.output_transfer_pipeline,
+                ),
+                Self::OutputTransferOnly(resources) => (
+                    &resources.terminal_resource_cache,
+                    &resources.bind_group_layout,
+                    &resources.pipeline,
+                ),
+            };
         // FINAL_COMPOSITED is the full-resolution terminal input after upscale, so every
         // output-transfer target uses physical coordinates rather than the internal render size.
-        let terminal_region_params_buffer = self
-            .terminal_resource_cache
-            .physical_terminal_region_params_buffer(device, render_region);
+        let terminal_region_params_buffer =
+            terminal_resource_cache.physical_terminal_region_params_buffer(device, render_region);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-output-transfer-bind-group"),
-            layout: &self.output_transfer_bind_group_layout,
+            layout: output_transfer_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -50,7 +62,7 @@ impl ScenePostProcessResources {
         if !region_applied {
             return;
         }
-        pass.set_pipeline(&self.output_transfer_pipeline);
+        pass.set_pipeline(output_transfer_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
     }

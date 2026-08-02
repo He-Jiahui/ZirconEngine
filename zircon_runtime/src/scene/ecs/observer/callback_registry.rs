@@ -1,61 +1,37 @@
-use std::any::TypeId;
-
-use crate::scene::EntityId;
-use crate::scene::ecs::{ComponentId, LifecycleEventKind};
+use std::sync::Arc;
 
 use super::ObserverId;
-use super::entry::{EntityEventObserver, EventObserver, LifecycleObserver};
 
-pub(super) fn lifecycle_callback_count(
-    observers: &[LifecycleObserver],
-    kind: LifecycleEventKind,
-    component_id: ComponentId,
-) -> usize {
-    let mut count = 0_usize;
-    for observer in observers {
-        if observer.kind == kind && observer.component_id == component_id {
-            count += 1;
-        }
+pub(super) fn append_observer_to_bucket<T>(bucket: Option<&Arc<[T]>>, observer: T) -> Arc<[T]>
+where
+    T: Clone,
+{
+    let existing_len = bucket.map_or(0, |entries| entries.len());
+    let mut next = Vec::with_capacity(existing_len + 1);
+    if let Some(entries) = bucket {
+        next.extend(entries.iter().cloned());
     }
-    count
+    next.push(observer);
+    Arc::from(next)
 }
 
-pub(super) fn event_callback_count(observers: &[EventObserver], event_type: TypeId) -> usize {
-    let mut count = 0_usize;
-    for observer in observers {
-        if observer.event_type == event_type {
-            count += 1;
-        }
-    }
-    count
-}
-
-pub(super) fn entity_event_callback_count(
-    observers: &[EntityEventObserver],
-    event_type: TypeId,
-    entity: EntityId,
-) -> usize {
-    let mut count = 0_usize;
-    for observer in observers {
-        if observer.event_type == event_type && observer.entity == entity {
-            count += 1;
-        }
-    }
-    count
-}
-
-pub(super) fn remove_observer_by_id<T>(
-    observers: &mut Vec<T>,
+pub(super) fn remove_observer_from_bucket<T>(
+    bucket: &[T],
     id: ObserverId,
     observer_id: impl Fn(&T) -> ObserverId,
-) -> bool {
+) -> Option<Arc<[T]>>
+where
+    T: Clone,
+{
     let mut index = 0_usize;
-    while index < observers.len() {
-        if observer_id(&observers[index]) == id {
-            observers.remove(index);
-            return true;
+    while index < bucket.len() {
+        if observer_id(&bucket[index]) == id {
+            let mut next = Vec::with_capacity(bucket.len().saturating_sub(1));
+            next.extend(bucket[..index].iter().cloned());
+            next.extend(bucket[index + 1..].iter().cloned());
+            return Some(Arc::from(next));
         }
         index += 1;
     }
-    false
+    None
 }

@@ -1,6 +1,6 @@
 use super::super::{
-    slot_capture, RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport,
-    RuntimeSessionArchiveError, RuntimeSessionArchiveRetentionPolicy,
+    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveRetentionPolicy, slot_capture,
 };
 
 pub(super) fn apply_capture_preview_with_retention(

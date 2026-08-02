@@ -20,13 +20,14 @@ tests:
 
 # Editor01: authoring-world test owns a concrete LevelManager in production source
 
-## Origin
+## 来源执行者
 
-- Origin plan: `docs/plans/zircon_plugins/04-animation.md`
-- Origin slice: Plugins04 animation sequence caller hard-cut upward Frameworks05 layer-direction gate
-- Fixing plan: `docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md`
+- 来源计划：`docs/plans/zircon_plugins/04-animation.md`
+- 来源执行切片：Plugins04 animation sequence caller hard-cut upward Frameworks05 layer-direction gate
+- 修复责任计划：`docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md`
+- 交接原因：具体 `DefaultLevelManager` 测试构造位于 Editor01 production module，最低修复 owner 是 Editor01 的 test placement boundary。
 
-## Failure evidence
+## 失败现象与复现证据
 
 The current-source Frameworks05 layer-direction suite ran 28 tests. Its animation sequence owner
 test passed, but the suite ended 27/28 because
@@ -34,14 +35,14 @@ test passed, but the suite ended 27/28 because
 `DefaultLevelManager` inside an inline `cfg(test)` module. The guard intentionally scans production
 module files as a whole and rejects cross-domain concrete manager consumers.
 
-## Lowest shared cause
+## 最低共享层根因
 
 The production authoring-world facade already depends only on `LevelSystem` plus the editor runtime
 gateway. Its behavior regression was placed in the production module and introduced the concrete
 manager token there. This is an Editor01 test-owner placement defect, not a runtime scene contract or
 Plugins04 animation failure.
 
-## Architecture acceptance
+## 架构修复验收
 
 - Keep the production authoring-world owner free of `DefaultLevelManager` and other concrete manager
   construction.
@@ -50,16 +51,16 @@ Plugins04 animation failure.
 - Keep the Frameworks05 concrete-manager guard unchanged and rerun its focused and complete suite.
 - Run the focused Editor Rust behavior gate through the managed coordinator before fixed return.
 
-## Forbidden temporary workarounds
+## 禁止临时方案
 
 - Do not weaken the Frameworks05 scan, strip `cfg(test)` text in the guard, or add an allowlist.
 - Do not add a concrete manager alias, helper, facade, or compatibility constructor to production
   Editor code.
 - Do not delete the behavior regression or treat the 27/28 run as a Plugins04 source failure.
 
-## Current status
+## 修复结果与回传
 
-`fix_implemented_static_green_managed_validation_pending`: the behavior test has moved to the existing Editor
+Open state: `待修复`; `fix_implemented_static_green_managed_validation_pending`: the behavior test has moved to the existing Editor
 test tree without changing production gateway behavior. The focused consumer guard is 1/1 GREEN and
 the complete Frameworks05 layer-direction suite is 28/28 GREEN on current source; Rust 1.94.1 scoped
 rustfmt and diff-check also pass. Independent review of snapshot 1370 is C0/I0/M0; all exact4 hashes

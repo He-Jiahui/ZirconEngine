@@ -99,12 +99,22 @@ host ingestion prepares and validates a candidate registry before mutating the
 workbench, then installs that prepared registry without invoking factories a
 second time.
 
+Executable scene-mode registrations are excluded from
+`EditorExtensionRegistry` serialization as one unit: neither the descriptor
+projection nor its non-serializable factory survives a registry round-trip.
+Callers must replay a live `SceneModeRegistration`; deserialization cannot
+materialize descriptor-only toolbar entries without executable modes.
+
 Registry-created modes retain their extension owner and execute factory/id,
 enter/exit/update/input, and overlay callbacks through the editor plugin panic
 boundary. A callback panic rolls back the current context or overlay-builder
-increment, faults that mode instance, and cannot interrupt shutdown of the
-remaining stack. Overlay-provider factories are prepared before host mutation;
-provider extraction uses the same owner-scoped containment boundary.
+increment, invalidates cached overlays, faults that mode instance, and cannot
+interrupt shutdown of the remaining stack. Failed `enter` calls return a typed
+stack error and leave the previous stack unchanged; already-entered faulted
+modes still receive best-effort `exit`. Inner mode destructors run inside the
+same boundary. Overlay-provider factories are prepared before host mutation;
+the first provider extraction failure records its owner-scoped diagnostic and
+permanently quarantines that provider instance.
 
 ## Activation and transform handles
 

@@ -38,10 +38,10 @@ requireText(sourceLifecycle, /mob\.lootRecipientIds = undefined;/,
 const world = read('scripts', 'woc_game', 'src', 'world', 'state.zr');
 requireText(world,
   /pub var partyLootTurnPartyIds: container\.Array<uint>;[\s\S]*?pub var partyLootTurnValues: container\.Array<uint>;/,
-  'WOS71 party loot-turn state is missing');
+  'WOS72 party loot-turn state is missing');
 requireText(world,
   /pub var corpseLootRecipientMobIds: container\.Array<uint>;[\s\S]*?pub var corpseLootRecipientPlayerIds: container\.Array<uint>;[\s\S]*?pub var corpseLootRecipientOrders: container\.Array<uint>;/,
-  'WOS71 corpse recipient rows are missing');
+  'WOS72 corpse recipient rows are missing');
 requireText(world,
   /captureOfflineCorpseLootRecipients[\s\S]*?memberOrder <= <uint>10[\s\S]*?dx \* dx \+ dz \* dz <= 10000\.0[\s\S]*?corpseLootRecipientPlayerIds\.add/,
   'authoritative death-time recipient capture is missing');
@@ -61,11 +61,11 @@ requireText(world,
   /applyOfflineCorpseLootCommand[\s\S]*?tryAwardOfflineCopperByFairSplit[\s\S]*?tryAwardOfflineItemByRoundRobin/,
   'corpse loot command does not route fair split and round robin');
 requireText(world,
-  /writer\.u16\(<uint>71[\s\S]*?partyLootTurnPartyIds\.length[\s\S]*?corpseLootRecipientMobIds\.length/,
-  'WOS71 encoder tail is missing');
+  /writer\.u16\(<uint>78[\s\S]*?partyLootTurnPartyIds\.length[\s\S]*?corpseLootRecipientMobIds\.length/,
+  'WOS72 encoder tail is missing');
 requireText(world,
   /schemaVersion != <uint>70 &&\s*schemaVersion != <uint>71[\s\S]*?schemaVersion >= <uint>71[\s\S]*?partyLootTurnPartyIds\.add[\s\S]*?corpseLootRecipientMobIds\.add/,
-  'WOS71 decoder admission, tail, or WOS70 compatibility is missing');
+  'WOS72 decoder admission, tail, or WOS70 compatibility is missing');
 requireText(world,
   /pub partyLootDistributionStateTest\(\): int[\s\S]*?encodeState[\s\S]*?decodeState/,
   'WOS147 authoritative regression is missing');
@@ -74,12 +74,12 @@ requireText(world,
   'world selfTest must execute WOS147 coverage');
 
 const main = read('scripts', 'woc_game', 'src', 'main.zr');
-if ((main.match(/world_state[^\r\n]*WOS71/g) ?? []).length !== 2) {
-  throw new Error('plugin metadata must publish WOS71 in both runtime paths');
+if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) {
+  throw new Error('plugin metadata must publish WOS74 in both runtime paths');
 }
 const protocol = read('native', 'crates', 'woc_protocol', 'src', 'lib.rs');
-requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS71"[\s\S]*?WORLD_STATE_SCHEMA_VERSION: u16 = 71/,
-  'native protocol identity must publish WOS71');
+requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS78"[\s\S]*?WORLD_STATE_SCHEMA_VERSION: u16 = 78/,
+  'native protocol identity must publish WOS74');
 
 const contract = read('contracts', 'world-state.md');
 requireText(contract,

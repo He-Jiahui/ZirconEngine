@@ -1,5 +1,5 @@
-use super::super::{template_image_pixels, ICON_TINT};
-use super::support::{icon_readability_footprint, EDITOR_PAGES_WIRED_TEMPLATE_ICONS};
+use super::super::{ICON_TINT, template_image_pixels};
+use super::support::{EDITOR_PAGES_WIRED_TEMPLATE_ICONS, icon_readability_footprint};
 
 #[test]
 fn editor_pages_template_icons_have_readable_16px_raster_footprints() {

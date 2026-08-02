@@ -9,7 +9,12 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/text/02
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/shaping
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/rich.rs
+  - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/text/service.rs
   - zircon_runtime/src/text/font/database.rs
 ---
@@ -55,4 +60,24 @@ shaping pipeline没有一份贯穿itemization、BIDI、script、fallback、backe
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-234已直接修复line-break/script/line-start三处并通过静态门禁；PERF-MVP-234其余projection与PERF-MVP-235 single-shape/face/worker预算等待Text02联动Text01/09回传规模counter、current-source Cargo与产品trace`。
+2026-08-01 implementation state: `open / resolving_failure / text02_non_validation_implementation_complete / secondary_review_complete / secondary_review_findings_forward_fixed / final_static_recheck_complete / managed_validation_pending / cross_owner_metrics_pending`。
+
+- PERF-MVP-234/235不再保留projection阶段：`itemize.rs`一次生成hard-line、grapheme、BIDI level、script、fallback face/instance与vertical orientation segment；`horizontal/direct.rs`和`vertical/direct.rs`直接从一次RustyBuzz结果构建最终glyph。旧horizontal/vertical projection和临时overlap index均已硬删除，因此不存在cosmic glyph全表扫描、overlap Vec或二次segment替换入口。
+- horizontal一次应用language/locl、canonical features、kerning与effective face instance；vertical upright一次应用TTB/BTT、vertical GSUB/GPOS、language/features与effective instance，sideways使用同一RustyBuzz horizontal backend。cosmic只在direct整请求不能建立时独立回退，不消费其输出再调用第二backend。
+- Text02输出严格保持逻辑source cluster顺序；RTL/BTT backend结果由共享cluster owner恢复逻辑序并保留同cluster多glyph内部顺序，Text03继续在断行后唯一执行L1/L2。cosmic-only回退也按source cluster稳定归一，不把视觉序泄漏到`ShapedGlyphRun`。
+- fallback primary coverage直接遍历原文，不再复制全文codepoints；cluster codepoint Vec跨grapheme复用，连续同face/instance span在分配family String前合并。
+- `text/hard_line.rs`的shared descriptor显式保存content与CRLF/Unicode separator range；horizontal、vertical、cosmic、synthetic fallback、Text03 measure/rich/line-break和UI source segmentation复用同一owner。separator统一投影为零advance mandatory virtual glyph，line/source range连续覆盖完整输入；mandatory boundary禁止kinsoku跨行合并。
+- cosmic fallback按backend raw LF paragraph起点解释`run.line_i`，再用单次共享hard-line数据分配CR/VT/FF/NEL/LS/PS；baseline使用`line_y-line_top`行内值。`LayoutGlyph.font_id`映射的实际face是唯一权威，映射缺失时face/instance fail closed，不回猜预选span。
+- Vertical Mixed把Unicode VO `Tr`作为独立shape orientation：同一script/language/instance/user features先执行TTB/BTT，只有启用与强制关闭`vert`/`vrt2`的cluster输出确实不同才保持upright；`locl`、variation selector或用户feature改变glyph不会误判vertical substitution，未替代时采用`Cw90` fallback。普通`R`仍走horizontal backend；horizontal direct按每个实际segment face聚合缩放ascent/descent/line-gap，固定0.8em仅用于缺失元数据/空行。
+- horizontal/vertical direct在恢复逻辑单调cluster序后用单cursor确定cluster end，删除per-segment offset Vec/sort/binary search；`BidiParagraph::line_order`从一次`reordered_levels`同时派生logical levels与visual indices。
+- service生产shape不再先解析Auto direction再交给cosmic；resolved direction来自canonical shaped run。native fallback span查询也保留requested direction，不执行未消费的前置Bidi分析。
+- 二次审查已前向修复RTL projection错误模板选择、parallel source Arc未复用、feature O(F^2)/digest-only碰撞身份、Rust 2024 let-chain对2021 workspace的编译阻断，以及native fallback重复Bidi。
+- 独立二次审查最终无P0/P1；提出的两个P2随后已补齐为保守cache resident estimate与完整run serde/range roundtrip，不留作managed validation替代实现。
+
+Text02唯一shape backend的非验收实现已完成。实现完成后的定向二次审查为P0=0、P1=4、P2=4，8项均已按上述最低owner前向修复；focused Rust 2021 format、whitespace、单一hard-line owner、零cluster sort与单次BIDI reorder静态复核通过。真实Windows WGPU产品帧harness已准备为`docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260801.png`，但尚未运行，不把路径切换记为像素证据。failure仍保持`open`：Text01 generation-owned parsed-face/face-byte指标、Text09 FontSystem bytes/refresh counter、managed Cargo、1/100/1k/10k backend-call数据和真实产品像素尚未形成验收证据；本轮没有等待queued/running ticket，也没有生成策略文字截图。
+
+2026-08-01 post-fix review再次确认P0=0/P1=0：`Tr` provenance 改为同 buffer、direction、script、language 与全部非竖排 feature 相同、仅关闭 `vert`/`vrt2` 的 cluster glyph-sequence 差分；第二次 shape 只在 TransformOrRotate segment 启用，cluster map/set 为线性辅助，不再扫描 GSUB lookup 输出集合。
+
+2026-08-01 产品证据基础设施前向修复：`runtime_text_multilingual_product_framebuffer.rs` 只有在连续两帧的 raster worker 均为 `pending=0`、`failed=0`、`missing_image=0`、`visible_placeholder=0`、`upload_requeued=0`、`upload_failed=0` 时才允许 capture；其中 pending 映射 durable `pending_worker_count`，failed 合并请求失败、完成错误和被拒绝的无效位图，missing_image 表示无 source raster，visible_placeholder 只在实际 `TransparentPlaceholder` handoff 时计数，upload 两项覆盖 GPU atlas 图集未写入的路径。六项均从 native atlas report 贯穿到 `RenderStats`。达到帧数上限或任一状态非零都会在 capture 前失败，不能生成未完成的 PNG。输出路径保持为 `docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260801.png`，该文件尚未生成，failure 继续保持 `open`。
+
+2026-08-02 SDF/MSDF capture-path 审计：distance-field atlas 在本帧同步提交 `queue.write_texture`，不持有 native raster worker 或 renderer-upload queue 的未完成状态；SDF 生成的 `GenerationPending`、预算延后和 generation failure 会在同一 prepare 轮经 `apply_sdf_atlas_fallbacks_with_cpu_runs` 转入 native/overlay，继而由上述六项可见 native raster 条件覆盖。故不重复增加 SDF 等待计数，也不把已正常呈现的 native fallback 误作截图不稳定；真实 Windows WGPU 产品帧仍待 coordinator wakeup 后受管执行，failure 保持 `open`。

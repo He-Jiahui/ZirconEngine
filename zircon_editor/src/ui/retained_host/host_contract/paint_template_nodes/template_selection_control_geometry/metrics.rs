@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 #[cfg(test)]
@@ -29,8 +29,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub line_height: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_selection_control_metrics(
-) -> WorkbenchSelectionControlMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_selection_control_metrics()
+-> WorkbenchSelectionControlMetrics {
     workbench_selection_control_metrics_from_host(current_host_metrics())
 }
 

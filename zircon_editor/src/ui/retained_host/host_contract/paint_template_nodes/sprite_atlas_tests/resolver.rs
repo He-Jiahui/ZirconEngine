@@ -6,7 +6,10 @@ use zircon_runtime::asset::{
     SpriteAtlasUvRect,
 };
 
-use super::super::{resolve_editor_sprite_atlas_image, ATLAS_CACHE_DIR};
+use super::super::{
+    copy_editor_sprite_atlas_rgba, invalidate_editor_sprite_atlas_cache,
+    resolve_editor_sprite_atlas_image, ATLAS_CACHE_DIR,
+};
 use super::support::unique_temp_root;
 
 #[test]
@@ -60,9 +63,30 @@ fn resolver_reads_project_library_atlas_artifacts_for_template_icon() {
     assert_eq!((resolved.width, resolved.height), (2, 1));
     assert_eq!(resolved.uv.min, [0.5, 0.0]);
     assert_eq!(resolved.uv.max, [1.0, 1.0]);
+    assert!(resolved.rgba.is_none());
+    let expected_rgba = vec![255, 0, 0, 255, 0, 0, 255, 255];
     assert_eq!(
-        resolved.rgba.as_deref(),
-        Some(&[255, 0, 0, 255, 0, 0, 255, 255][..])
+        copy_editor_sprite_atlas_rgba(&resolved.resource_key, resolved.resource_generation),
+        Some(expected_rgba.clone())
+    );
+
+    let repeated = resolve_editor_sprite_atlas_image("template-icon:search", &asset_path)
+        .expect("cached template icon should resolve");
+    assert_eq!(repeated.resource_generation, resolved.resource_generation);
+    assert!(repeated.rgba.is_none());
+    assert_eq!(
+        copy_editor_sprite_atlas_rgba(&repeated.resource_key, repeated.resource_generation),
+        Some(expected_rgba.clone())
+    );
+
+    invalidate_editor_sprite_atlas_cache();
+    let reloaded = resolve_editor_sprite_atlas_image("template-icon:search", &asset_path)
+        .expect("invalidated template icon should resolve");
+    assert_ne!(reloaded.resource_generation, resolved.resource_generation);
+    assert!(reloaded.rgba.is_none());
+    assert_eq!(
+        copy_editor_sprite_atlas_rgba(&reloaded.resource_key, reloaded.resource_generation),
+        Some(expected_rgba)
     );
 
     let _ = fs::remove_dir_all(root);

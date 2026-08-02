@@ -37,9 +37,6 @@ class PluginDocsCurrentStatusPipelineResumeFlowTestOwnerSplitTests(unittest.Test
         review_text = (
             repo_root / "docs/plans/engine-code-review-findings-2026-06.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         sections = {
             "Plugins 09 status": _section(
@@ -54,7 +51,6 @@ class PluginDocsCurrentStatusPipelineResumeFlowTestOwnerSplitTests(unittest.Test
             "export tool docs": export_tool_text,
             "structure convention": structure_text,
             "review findings": review_text,
-            "active session": session_text,
         }
         required_phrases = [
             status_id,

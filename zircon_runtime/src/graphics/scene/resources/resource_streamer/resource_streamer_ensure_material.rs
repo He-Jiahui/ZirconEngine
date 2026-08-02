@@ -17,11 +17,11 @@ use crate::graphics::types::GraphicsError;
 
 use super::super::prepared::{PreparedMaterial, PreparedMaterialTextureDependency};
 use super::super::{
-    GpuMaterialUniformResource, MaterialDisabledPasses, MaterialRuntime, PipelineKey,
-    default_pipeline_key, texture_upload_support_from_device,
+    default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
+    MaterialDisabledPasses, MaterialRuntime, PipelineKey,
 };
-use super::ResourceStreamer;
 use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
+use super::ResourceStreamer;
 
 mod material_readiness;
 #[cfg(test)]

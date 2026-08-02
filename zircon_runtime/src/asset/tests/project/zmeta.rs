@@ -15,6 +15,7 @@ use crate::plugin::PluginPackageManifest;
 mod compound_shader;
 mod metadata_lifecycle;
 mod package_roots;
+mod preview_state_cas;
 mod schema_v7;
 mod shader_diagnostics_fixture;
 

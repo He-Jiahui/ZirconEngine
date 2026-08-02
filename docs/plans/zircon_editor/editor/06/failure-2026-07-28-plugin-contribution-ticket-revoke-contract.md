@@ -76,6 +76,18 @@ template hosts active, so it is not an architectural repair.
 
 ## 修复结果与回传
 
-Open state: `待 Editor06 物化 ContributionStore ticket/revoke/delta contract 并完成 lower-layer
-and Editor12 upward validation`; Editor12 may continue slices independent of real contribution
-revocation, but it must not claim PostWorkbench hot disable or this M3 gate passed.
+Open state: `Editor06 ContributionStore 已具备 ticket/revoke/delta contract，待当前源码受管验收；
+Editor12 仍须完成 catalog materializer 的权威 Store hard-cut 与上游 lifecycle matrix`。Editor12 may
+continue slices independent of real contribution revocation, but it must not claim PostWorkbench hot
+disable or this M3 gate passed.
+
+## 产出记录与时间
+
+- 2026-08-02：状态 `open`（forward repair active）。实读 `core/extension/store/model.rs` 已确认 `ContributionStore` 对每个
+  `ContributionSource` 批次原子发布 opaque ticket、immutable snapshot、`revoke` 与有序
+  `changed_since` delta；`store/tests.rs` 已覆盖全族回收、旧 reader 稳定、能力门控与冲突不发布。
+  但 `core/plugin/extension_materialization.rs` 仍将 catalog registration 逐项写入旧
+  `EditorExtensionRegistry`，没有可撤销的 plugin ticket；该 plugin-owned 入口已纳入 Editor12 既有
+  [catalog hard-cut failure](../12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md)
+  的 revoke/compiled-extension owner 范围。当前尚无受管 terminal validation 或 Editor12
+  PostWorkbench 上游矩阵，禁止 `fixed` return。

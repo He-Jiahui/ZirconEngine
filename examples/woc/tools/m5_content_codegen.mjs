@@ -74,9 +74,76 @@ const EXPECTED_VENDOR_ITEM_IDS = [
   'tough_jerky',
   'travelers_knapsack',
 ];
+const EXPECTED_GATHERING_MATERIAL_ITEM_IDS = [
+  'bone_fragments',
+  'linen_scrap',
+  'spider_leg',
+];
+const EXPECTED_HEROIC_VENDOR_ITEM_IDS = [
+  'seal_of_the_nine_oaths',
+  'nielas_coldlight_band',
+  'sutils_gambit',
+  'oath_of_the_round_table',
+  'zyzzs_deathless_signet',
+  'architects_cornerstone',
+  'yumis_keepsake_locket',
+  'zense_meridian',
+  'swiftfang_talisman',
+  'medallion_of_endless_profit',
+];
+const EXPECTED_HEROIC_CURRENCY_ITEM_ID = 'heroic_mark';
+const EXPECTED_DELVE_SHOP_ITEM_IDS = [
+  'reliquary_legs',
+  'reliquary_shoulder',
+  'reliquary_gloves_rog',
+  'reliquary_cloth_chest',
+  'reliquary_leather_chest',
+  'reliquary_plate_chest',
+  'reliquary_helm',
+  'deacon_reliquary_helm',
+  'varric_shadow_cowl',
+  'litany_legs',
+  'litany_shoulder',
+  'litany_gloves_rog',
+  'litany_cloth_chest',
+  'litany_leather_chest',
+  'litany_plate_chest',
+  'litany_helm',
+  'sister_nhalia_choir_plate',
+  'drowned_choir_fang',
+];
+const EXPECTED_DELVE_SHOP_COMPANION_IDS = [
+  'companion_tessa',
+  'companion_edda',
+];
+const EXPECTED_MECH_CHROMAS = [
+  ['amber_crimson', 'uncommon'],
+  ['crimson_amber', 'uncommon'],
+  ['cyan_magenta', 'uncommon'],
+  ['magenta_cyan', 'uncommon'],
+  ['orange_steel', 'uncommon'],
+  ['steel_orange', 'uncommon'],
+  ['forest_pink', 'uncommon'],
+  ['pink_forest', 'uncommon'],
+  ['amethyst_silver', 'rare'],
+  ['ivory_copper', 'rare'],
+  ['onyx_gold', 'rare'],
+  ['imperial_crimson', 'epic'],
+  ['imperial_gold', 'epic'],
+  ['vanguard_azure', 'epic'],
+  ['vanguard_chrome', 'epic'],
+];
+const EXPECTED_MECH_CHROMA_ITEM_IDS = EXPECTED_MECH_CHROMAS.map(
+  ([id]) => `${id}_armor_plate`,
+);
 const FINAL_EXPECTED_ITEM_IDS = [...new Set([
   ...EXPECTED.item_ids,
   ...EXPECTED_VENDOR_ITEM_IDS,
+  ...EXPECTED_GATHERING_MATERIAL_ITEM_IDS,
+  ...EXPECTED_HEROIC_VENDOR_ITEM_IDS,
+  ...EXPECTED_DELVE_SHOP_ITEM_IDS,
+  ...EXPECTED_MECH_CHROMA_ITEM_IDS,
+  EXPECTED_HEROIC_CURRENCY_ITEM_ID,
   'apprentice_robe',
   'boar_hide',
   'eastbrook_buckler',
@@ -127,6 +194,39 @@ const STABLE_ITEM_ID_ORDER = [
   'gathering_sickle',
   'bronze_sickle',
   'silverleaf_sickle',
+  'bone_fragments',
+  'linen_scrap',
+  'spider_leg',
+  'heroic_mark',
+  'seal_of_the_nine_oaths',
+  'nielas_coldlight_band',
+  'sutils_gambit',
+  'oath_of_the_round_table',
+  'zyzzs_deathless_signet',
+  'architects_cornerstone',
+  'yumis_keepsake_locket',
+  'zense_meridian',
+  'swiftfang_talisman',
+  'medallion_of_endless_profit',
+  'reliquary_legs',
+  'reliquary_shoulder',
+  'reliquary_gloves_rog',
+  'reliquary_cloth_chest',
+  'reliquary_leather_chest',
+  'reliquary_plate_chest',
+  'reliquary_helm',
+  'deacon_reliquary_helm',
+  'varric_shadow_cowl',
+  'litany_legs',
+  'litany_shoulder',
+  'litany_gloves_rog',
+  'litany_cloth_chest',
+  'litany_leather_chest',
+  'litany_plate_chest',
+  'litany_helm',
+  'sister_nhalia_choir_plate',
+  'drowned_choir_fang',
+  ...EXPECTED_MECH_CHROMA_ITEM_IDS,
 ];
 const FINAL_EXPECTED_NPC_IDS = [
   'bursar_aldous_crane',
@@ -189,6 +289,13 @@ function main() {
   const scope = Object.fromEntries(
     Object.keys(EXPECTED).map((kind) => [kind, [...uses[kind].keys()].sort()]),
   );
+  scope.item_ids = [...new Set([
+    ...scope.item_ids,
+    ...EXPECTED_GATHERING_MATERIAL_ITEM_IDS,
+    ...EXPECTED_HEROIC_VENDOR_ITEM_IDS,
+    ...EXPECTED_DELVE_SHOP_ITEM_IDS,
+    EXPECTED_HEROIC_CURRENCY_ITEM_ID,
+  ])].sort();
   const child = spawnSync(process.execPath, [
     '--no-warnings',
     '--experimental-loader',
@@ -209,6 +316,49 @@ function main() {
   addDerivedNpcUses(uses, extracted);
   addDerivedClassStartingEquipmentUses(uses, extracted);
   addDerivedVendorItemUses(uses, extracted);
+  for (const itemId of EXPECTED_GATHERING_MATERIAL_ITEM_IDS) {
+    addUse(uses.item_ids, itemId, 'harvest_node');
+  }
+  invariant(
+    extracted.heroic_vendor.currency_item_id === EXPECTED_HEROIC_CURRENCY_ITEM_ID,
+    `heroic vendor currency drifted: ${extracted.heroic_vendor.currency_item_id}`,
+  );
+  invariant(
+    JSON.stringify(extracted.heroic_vendor.stock.map((entry) => entry.item_id)) ===
+      JSON.stringify(EXPECTED_HEROIC_VENDOR_ITEM_IDS),
+    `heroic vendor stock drifted: ${JSON.stringify(extracted.heroic_vendor.stock)}`,
+  );
+  for (const itemId of [
+    EXPECTED_HEROIC_CURRENCY_ITEM_ID,
+    ...EXPECTED_HEROIC_VENDOR_ITEM_IDS,
+  ]) {
+    addUse(uses.item_ids, itemId, 'heroic_vendor');
+  }
+  invariant(
+    JSON.stringify(extracted.delve_shops.flatMap((shop) =>
+      shop.stock.map((entry) => entry.item_id))) ===
+      JSON.stringify(EXPECTED_DELVE_SHOP_ITEM_IDS),
+    `Delve shop stock drifted: ${JSON.stringify(extracted.delve_shops)}`,
+  );
+  invariant(
+    JSON.stringify(extracted.delve_shops.map((shop) => shop.auto_companion_id)) ===
+      JSON.stringify(EXPECTED_DELVE_SHOP_COMPANION_IDS),
+    `Delve shop companion routing drifted: ${JSON.stringify(extracted.delve_shops)}`,
+  );
+  for (const itemId of EXPECTED_DELVE_SHOP_ITEM_IDS) {
+    addUse(uses.item_ids, itemId, 'delve_shop');
+  }
+  invariant(
+    JSON.stringify(extracted.mech_chromas.map((entry) => [entry.id, entry.rank])) ===
+      JSON.stringify(EXPECTED_MECH_CHROMAS) &&
+      extracted.mech_chromas.every((entry, index) =>
+        entry.skin_index === index &&
+        entry.item_id === EXPECTED_MECH_CHROMA_ITEM_IDS[index]),
+    `mech chroma content drifted: ${JSON.stringify(extracted.mech_chromas)}`,
+  );
+  for (const itemId of EXPECTED_MECH_CHROMA_ITEM_IDS) {
+    addUse(uses.item_ids, itemId, 'mech_chroma');
+  }
   invariant(
     JSON.stringify([...uses.item_ids.keys()].sort()) === JSON.stringify(FINAL_EXPECTED_ITEM_IDS),
     `final M5 item scope drifted: ${JSON.stringify([...uses.item_ids.keys()].sort())}`,
@@ -224,7 +374,7 @@ function main() {
   );
 
   const catalog = {
-    schema_version: 2,
+    schema_version: 6,
     source_commit: SOURCE_COMMIT,
     generated_by: 'examples/woc/tools/m5_content_codegen.mjs',
     scenarios: scenarios.map((entry) => entry.name).sort(),
@@ -234,6 +384,9 @@ function main() {
       ...scenarioIdentity,
     },
     market_cut: extractNumberConstant(gitShow(marketSourcePath), marketSourcePath, 'MARKET_CUT'),
+    heroic_vendor: extracted.heroic_vendor,
+    delve_shops: extracted.delve_shops,
+    mech_chromas: extracted.mech_chromas,
     constants: extracted.constants,
     specs: entriesFromUses(
       uses.spec_ids,
@@ -260,6 +413,9 @@ function main() {
   catalog.catalog_sha256 = hashText(JSON.stringify({
     scenarios: catalog.scenarios,
     market_cut: catalog.market_cut,
+    heroic_vendor: catalog.heroic_vendor,
+    delve_shops: catalog.delve_shops,
+    mech_chromas: catalog.mech_chromas,
     constants: catalog.constants,
     specs: catalog.specs,
     items: catalog.items,
@@ -455,6 +611,11 @@ function sourceIdentities(scenarioText) {
     'src/sim/data.ts',
     'src/sim/content/classes.ts',
     'src/sim/content/items.ts',
+    'src/sim/content/heroic_vendor.ts',
+    'src/sim/content/dungeon_difficulty.ts',
+    'src/sim/content/delves/shop.ts',
+    'src/sim/content/delves/collapsed_reliquary.ts',
+    'src/sim/content/delves/drowned_litany.ts',
     'src/sim/content/talents.ts',
     'src/sim/content/talent_rows.ts',
     'src/sim/content/talents_warrior.ts',

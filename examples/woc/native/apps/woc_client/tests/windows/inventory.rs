@@ -1,14 +1,13 @@
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-
 use woc_client::{
     build_inventory_window_view, decode_inventory_filter, encode_inventory_filter,
     inventory_filter_is_default, inventory_order_is_manual, load_inventory_filter,
-    persist_inventory_filter, InventoryCategory, InventoryFilter, InventoryGridState,
-    InventoryItemKind, InventoryItemPresentation, InventoryQuality, InventorySort,
-    PreferenceStorage, INVENTORY_CATEGORIES, INVENTORY_FILTER_STORAGE_KEY, INVENTORY_SORTS,
+    persist_inventory_filter, try_load_inventory_filter, InventoryCategory, InventoryFilter,
+    InventoryGridState, InventoryItemKind, InventoryItemPresentation, InventoryQuality,
+    InventorySort, INVENTORY_CATEGORIES, INVENTORY_FILTER_STORAGE_KEY, INVENTORY_SORTS,
 };
 use woc_runtime::{EquippedBagProjection, InventoryItemProjection, InventoryWindowProjection};
+
+use crate::preference_storage_support::MemoryPreferenceStorage as MemoryStorage;
 
 fn item(inventory_index: u16, cell_hint: Option<u16>, item_id: &str) -> InventoryItemProjection {
     InventoryItemProjection {
@@ -285,39 +284,12 @@ fn filter_persistence_is_tolerant_and_pins_the_exact_option_order() {
     }));
 }
 
-#[derive(Default)]
-struct MemoryStorage {
-    values: RefCell<HashMap<String, String>>,
-    unavailable: Cell<bool>,
-}
-
-impl PreferenceStorage for MemoryStorage {
-    type Error = ();
-
-    fn read(&self, key: &str) -> Result<Option<String>, Self::Error> {
-        if self.unavailable.get() {
-            return Err(());
-        }
-        Ok(self.values.borrow().get(key).cloned())
-    }
-
-    fn write(&self, key: &str, value: &str) -> Result<(), Self::Error> {
-        if self.unavailable.get() {
-            return Err(());
-        }
-        self.values
-            .borrow_mut()
-            .insert(key.to_owned(), value.to_owned());
-        Ok(())
-    }
-}
-
 #[test]
 fn inventory_filter_storage_uses_the_target_key_and_degrades_when_unavailable() {
     let storage = MemoryStorage::default();
-    storage.values.borrow_mut().insert(
-        INVENTORY_FILTER_STORAGE_KEY.into(),
-        r#"{"category":"quest","sort":"quality","search":"sigil"}"#.into(),
+    storage.insert(
+        INVENTORY_FILTER_STORAGE_KEY,
+        r#"{"category":"quest","sort":"quality","search":"sigil"}"#,
     );
     assert_eq!(
         load_inventory_filter(&storage),
@@ -333,10 +305,45 @@ fn inventory_filter_storage_uses_the_target_key_and_degrades_when_unavailable() 
         sort: InventorySort::Name,
         search: "ore".into(),
     };
-    persist_inventory_filter(&storage, &changed);
+    let _ = persist_inventory_filter(&storage, &changed);
     assert_eq!(load_inventory_filter(&storage), changed);
 
-    storage.unavailable.set(true);
-    assert_eq!(load_inventory_filter(&storage), InventoryFilter::default());
-    persist_inventory_filter(&storage, &InventoryFilter::default());
+    storage.set_unavailable(true);
+    assert_eq!(load_inventory_filter(&storage), changed);
+
+    let unavailable = MemoryStorage::default();
+    unavailable.set_unavailable(true);
+    assert_eq!(
+        load_inventory_filter(&unavailable),
+        InventoryFilter::default()
+    );
+    let _ = persist_inventory_filter(&unavailable, &InventoryFilter::default());
+    assert!(unavailable
+        .persisted(INVENTORY_FILTER_STORAGE_KEY)
+        .is_none());
+}
+
+#[test]
+fn fresh_backend_inventory_filter_loads_after_the_cold_read_completes() {
+    let storage = MemoryStorage::default();
+    storage.seed_persisted(
+        INVENTORY_FILTER_STORAGE_KEY,
+        r#"{"category":"quest","sort":"quality","search":"sigil"}"#,
+    );
+    storage.block_read(INVENTORY_FILTER_STORAGE_KEY);
+
+    assert_eq!(try_load_inventory_filter(&storage), None);
+    storage.wait_until_read_started(INVENTORY_FILTER_STORAGE_KEY);
+    assert_eq!(try_load_inventory_filter(&storage), None);
+    storage.release_read(INVENTORY_FILTER_STORAGE_KEY);
+    storage.wait_until_loaded(INVENTORY_FILTER_STORAGE_KEY);
+
+    assert_eq!(
+        try_load_inventory_filter(&storage),
+        Some(InventoryFilter {
+            category: InventoryCategory::Quest,
+            sort: InventorySort::Quality,
+            search: "sigil".into(),
+        })
+    );
 }

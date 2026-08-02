@@ -1,5 +1,5 @@
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::CompiledRenderPipeline;
 
 const SPRITE_GRAPH_STAGES: &[RenderPassStage] = &[
     RenderPassStage::Opaque2d,
@@ -37,7 +37,7 @@ fn pipeline_has_active_sprite_stage(
 
 #[cfg(test)]
 mod tests {
-    use super::{SPRITE_GRAPH_STAGES, active_sprite_graph_stages};
+    use super::{active_sprite_graph_stages, SPRITE_GRAPH_STAGES};
     use crate::core::framework::render::RenderPipelineHandle;
     use crate::graphics::pipeline::RenderPassStage;
     use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};

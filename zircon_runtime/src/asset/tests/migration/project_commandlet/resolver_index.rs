@@ -248,6 +248,97 @@ fn compound_zmeta_binding_produces_the_persisted_project_hint() {
 }
 
 #[test]
+fn retired_compound_meta_toml_uses_the_published_zmeta_hint_in_the_same_transaction() {
+    let root = fixture_root("indexed-resolver-retired-compound");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "a5111111-2222-4333-8444-555555555555".parse().unwrap();
+    let compound_root = root.join("assets/shaders/legacy_redirect_surface");
+    fs::create_dir_all(&compound_root).unwrap();
+    let retired_meta = root.join("assets/shaders/legacy_redirect_surface.meta.toml");
+    fs::write(
+        &retired_meta,
+        format!(
+            "format_version = 6\nuuid = \"{guid}\"\nurl = \"res://shaders/legacy_redirect_surface\"\nasset_kind = \"Shader\"\nunit = \"compound\"\nsource_hash = \"legacy-redirect-digest\"\n"
+        ),
+    )
+    .unwrap();
+    let material = root.join("assets/materials/legacy_redirect.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    fs::write(
+        &material,
+        format!(
+            "version = 2\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://shaders/legacy_redirect_surface\"\n"
+        ),
+    )
+    .unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(report.succeeded(), "{}", report.format_text());
+    let migrated: toml::Value = toml::from_str(&fs::read_to_string(&material).unwrap()).unwrap();
+    assert_eq!(
+        migrated["shader"]["path_hint"].as_str(),
+        Some("assets/shaders/legacy_redirect_surface.zmeta")
+    );
+    assert!(!retired_meta.exists());
+    assert!(
+        root.join("assets/shaders/legacy_redirect_surface.zmeta")
+            .is_file()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn retired_compound_meta_toml_defers_to_an_identical_current_zmeta() {
+    let root = fixture_root("indexed-resolver-retired-compound-current");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "a6111111-2222-4333-8444-555555555555".parse().unwrap();
+    let compound_root = root.join("assets/shaders/legacy_redirect_surface");
+    fs::create_dir_all(&compound_root).unwrap();
+    let retired_meta = root.join("assets/shaders/legacy_redirect_surface.meta.toml");
+    let retired_source = format!(
+        "format_version = 6\nuuid = \"{guid}\"\nurl = \"res://shaders/legacy_redirect_surface\"\nasset_kind = \"Shader\"\nunit = \"compound\"\nsource_hash = \"legacy-redirect-digest\"\n"
+    );
+    fs::write(&retired_meta, &retired_source).unwrap();
+    let mut current_value = toml::from_str::<toml::Value>(&retired_source).unwrap();
+    let current_table = current_value.as_table_mut().unwrap();
+    current_table.insert("format_version".to_string(), toml::Value::Integer(7));
+    let source_hash = current_table.remove("source_hash").unwrap();
+    current_table.insert("source_digest".to_string(), source_hash);
+    let current_meta = root.join("assets/shaders/legacy_redirect_surface.zmeta");
+    fs::write(
+        &current_meta,
+        toml::to_string_pretty(&current_value).unwrap(),
+    )
+    .unwrap();
+    let material = root.join("assets/materials/legacy_redirect.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    fs::write(
+        &material,
+        format!(
+            "version = 2\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://shaders/legacy_redirect_surface\"\n"
+        ),
+    )
+    .unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(report.succeeded(), "{}", report.format_text());
+    let migrated: toml::Value = toml::from_str(&fs::read_to_string(&material).unwrap()).unwrap();
+    assert_eq!(
+        migrated["shader"]["path_hint"].as_str(),
+        Some("assets/shaders/legacy_redirect_surface.zmeta")
+    );
+    assert!(!retired_meta.exists());
+    assert!(current_meta.is_file());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn duplicate_registry_entry_precedes_resolver_ambiguity() {
     let root = fixture_root("indexed-resolver-registry-conflict");
     write_manifest(&root, &["assets", "content"]);

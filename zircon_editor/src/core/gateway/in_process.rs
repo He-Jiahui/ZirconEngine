@@ -4,7 +4,7 @@ use std::sync::Arc;
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{LevelSystem, World};
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
@@ -93,7 +93,7 @@ impl EditorRuntimeGateway for InProcessGateway {
     fn poll_operation(
         &self,
         _handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })

@@ -9,7 +9,7 @@ use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::style::resolve_button_style_from_values;
-use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
+use zircon_runtime::ui::surface::{UiSurface, extract_ui_render_tree};
 use zircon_runtime::ui::v2::{UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -20,7 +20,7 @@ use zircon_runtime_interface::ui::{
     v2::UiV2AssetError,
 };
 
-use super::{load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData};
+use super::{ViewTemplateFrameData, ViewTemplateNodeData, load_preview_image};
 
 pub(crate) struct ViewTemplateVisualAssets {
     pub(crate) media_source: String,
@@ -176,6 +176,9 @@ fn view_template_nodes_from_surface(
             .or_else(|| component_owned_text_by_control_id.get(&control_id).cloned())
             .or(command.text.clone())
             .unwrap_or_default();
+        let text = icon_button_hides_label(metadata)
+            .then(String::new)
+            .unwrap_or(text);
         let component_role = resolve_component_role(&metadata.component);
         let component_variant = resolve_component_variant(metadata);
         let binding_id = preferred_binding_id(metadata, None).unwrap_or_default();
@@ -437,10 +440,17 @@ fn should_skip_duplicate_component_owned_command(
 }
 
 fn component_owns_text_paint(metadata: &UiTemplateNodeMetadata) -> bool {
-    matches!(
-        metadata.component.as_str(),
-        "Button" | "EditableTable" | "InputField" | "NumberField" | "Table" | "TextField"
-    )
+    match metadata.component.as_str() {
+        "IconButton" => icon_button_hides_label(metadata),
+        "Button" | "EditableTable" | "InputField" | "NumberField" | "Table" | "TextField" => true,
+        _ => false,
+    }
+}
+
+fn icon_button_hides_label(metadata: &UiTemplateNodeMetadata) -> bool {
+    metadata.component == "IconButton"
+        && string_attribute(metadata, "icon_placement")
+            .is_some_and(|placement| placement.eq_ignore_ascii_case("icon_only"))
 }
 
 pub(crate) fn resolve_visual_assets(metadata: &UiTemplateNodeMetadata) -> ViewTemplateVisualAssets {

@@ -15,6 +15,10 @@ impl RetainedEditorHost {
     ) -> Result<(), String> {
         zircon_runtime::profile_scope!("editor", "retained_host", "refresh_project_assets");
         let events = self.drain_asset_refresh_events();
+        if !events.is_empty() {
+            crate::ui::retained_host::host_contract::invalidate_editor_sprite_atlas_cache();
+            crate::ui::retained_host::host_contract::clear_visual_asset_pixels_cache();
+        }
         if !events.asset_changes.is_empty() {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -40,13 +44,17 @@ impl RetainedEditorHost {
             .map_err(|error| error.to_string())?
             .current_project()
             .map(|project| project.default_scene_uri);
-        let plan = plan_asset_backend_refresh(
+        let mut plan = plan_asset_backend_refresh(
             selected_asset_uuid.as_deref(),
             default_scene_uri.as_deref(),
             &events.asset_changes,
             &events.editor_asset_changes,
             &events.resource_changes,
         );
+        if events.resource_generation_lagged {
+            plan.sync_resources = true;
+            plan.mark_presentation_dirty = true;
+        }
         record_asset_refresh_plan_counters(&plan);
         self.apply_asset_refresh_plan(&plan)
     }

@@ -2,7 +2,7 @@
 related_code:
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
-  - zircon_editor/src/ui/workbench/view/preferred_host_to_view_host.rs
+  - zircon_editor/src/ui/workbench/view/workbench_slot_to_view_host.rs
   - zircon_editor/src/ui/workbench/layout/manager/attach.rs
   - zircon_editor/src/ui/workbench/layout/manager/apply.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs

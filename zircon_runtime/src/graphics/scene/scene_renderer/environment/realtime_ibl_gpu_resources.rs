@@ -1,8 +1,5 @@
-use std::collections::HashSet;
-
 use crate::core::framework::render::{IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactRequest};
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
-use crate::render_graph::CompiledRenderGraph;
 
 use super::realtime_ibl_graph_plan::{
     RealtimeIblGraphPlan, RealtimeIblGraphSlotResources, RealtimeIblGraphTextureResources,
@@ -44,28 +41,28 @@ impl RealtimeIblGpuResources {
     pub(in crate::graphics) fn bind_graph_plan(
         &self,
         plan: &RealtimeIblGraphPlan,
-        graph: &CompiledRenderGraph,
+        required_resource_names: &[String],
         resources: &mut RenderGraphExecutionResources,
     ) -> Result<(), String> {
-        let live_resource_names = graph
-            .resource_lifetimes()
-            .iter()
-            .map(|lifetime| lifetime.name.as_str())
-            .collect::<HashSet<_>>();
-        self.bind_slot(&plan.ready, &live_resource_names, resources)?;
-        self.bind_slot(&plan.work, &live_resource_names, resources)
+        self.bind_slot(&plan.ready, required_resource_names, resources)?;
+        self.bind_slot(&plan.work, required_resource_names, resources)
     }
 
     fn bind_slot(
         &self,
         graph: &RealtimeIblGraphSlotResources,
-        live_resource_names: &HashSet<&str>,
+        required_resource_names: &[String],
         resources: &mut RenderGraphExecutionResources,
     ) -> Result<(), String> {
         let gpu = self.slot(graph.slot);
-        bind_texture_views(&graph.source, &gpu.source, live_resource_names, resources)?;
-        bind_texture_views(&graph.pmrem, &gpu.pmrem, live_resource_names, resources)?;
-        if live_resource_names.contains(graph.sh9.name.as_str()) {
+        bind_texture_views(
+            &graph.source,
+            &gpu.source,
+            required_resource_names,
+            resources,
+        )?;
+        bind_texture_views(&graph.pmrem, &gpu.pmrem, required_resource_names, resources)?;
+        if is_required_resource(required_resource_names, &graph.sh9.name) {
             resources.bind_execution_owned_buffer(&graph.sh9.name, &graph.sh9.name, &gpu.sh9);
         }
         Ok(())
@@ -199,7 +196,7 @@ impl RealtimeIblGpuTextureResources {
 fn bind_texture_views(
     graph: &RealtimeIblGraphTextureResources,
     gpu: &RealtimeIblGpuTextureResources,
-    live_resource_names: &HashSet<&str>,
+    required_resource_names: &[String],
     resources: &mut RenderGraphExecutionResources,
 ) -> Result<(), String> {
     if graph.sampled_mips.len() != gpu.sampled_mips.len()
@@ -210,20 +207,26 @@ fn bind_texture_views(
             graph.sampled.name
         ));
     }
-    if live_resource_names.contains(graph.sampled.name.as_str()) {
+    if is_required_resource(required_resource_names, &graph.sampled.name) {
         resources.import_borrowed_texture_view(&graph.sampled.name, &gpu.sampled);
     }
     for (logical, view) in graph.sampled_mips.iter().zip(&gpu.sampled_mips) {
-        if live_resource_names.contains(logical.name.as_str()) {
+        if is_required_resource(required_resource_names, &logical.name) {
             resources.import_borrowed_texture_view(&logical.name, view);
         }
     }
     for (logical, view) in graph.storage_mips.iter().zip(&gpu.storage_mips) {
-        if live_resource_names.contains(logical.name.as_str()) {
+        if is_required_resource(required_resource_names, &logical.name) {
             resources.import_borrowed_texture_view(&logical.name, view);
         }
     }
     Ok(())
+}
+
+fn is_required_resource(required_resource_names: &[String], name: &str) -> bool {
+    required_resource_names
+        .binary_search_by(|candidate| candidate.as_str().cmp(name))
+        .is_ok()
 }
 
 fn sampled_view_descriptor(

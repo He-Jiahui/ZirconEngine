@@ -1,4 +1,5 @@
-use crate::core::editor_event::{MenuAction, ViewDescriptorId};
+use crate::core::editor_event::{ConsoleMessageFilter, MenuAction, ViewDescriptorId};
+use crate::core::play::PlayKind;
 
 use super::node_kind_from_id::{node_kind_from_control_id, node_kind_from_id};
 
@@ -16,6 +17,23 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "workbench.project.close" => Some(MenuAction::CloseProject),
         "workbench.layout.save" => Some(MenuAction::SaveLayout),
         "workbench.layout.reset" => Some(MenuAction::ResetLayout),
+        "workbench.console.clear" => Some(MenuAction::ClearConsole),
+        "workbench.console.filter.all" | "SetConsoleMessageFilter.All" => Some(
+            MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::All),
+        ),
+        "workbench.console.filter.info" | "SetConsoleMessageFilter.Info" => Some(
+            MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Info),
+        ),
+        "workbench.console.filter.warning" | "SetConsoleMessageFilter.Warning" => Some(
+            MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Warning),
+        ),
+        "workbench.console.filter.error" | "SetConsoleMessageFilter.Error" => Some(
+            MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Error),
+        ),
+        "workbench.play_mode.select.play" => Some(MenuAction::SelectPlayMode(PlayKind::Play)),
+        "workbench.play_mode.select.simulate" => {
+            Some(MenuAction::SelectPlayMode(PlayKind::Simulate))
+        }
         "workbench.play_mode.enter" => Some(MenuAction::EnterPlayMode),
         "workbench.play_mode.exit" => Some(MenuAction::ExitPlayMode),
         "workbench.history.undo" => Some(MenuAction::Undo),
@@ -28,6 +46,9 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "CloseProject" => Some(MenuAction::CloseProject),
         "SaveLayout" => Some(MenuAction::SaveLayout),
         "ResetLayout" => Some(MenuAction::ResetLayout),
+        "ClearConsole" => Some(MenuAction::ClearConsole),
+        "SelectPlayMode.Play" => Some(MenuAction::SelectPlayMode(PlayKind::Play)),
+        "SelectPlayMode.Simulate" => Some(MenuAction::SelectPlayMode(PlayKind::Simulate)),
         "EnterPlayMode" => Some(MenuAction::EnterPlayMode),
         "ExitPlayMode" => Some(MenuAction::ExitPlayMode),
         "Undo" => Some(MenuAction::Undo),

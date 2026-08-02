@@ -6,7 +6,7 @@ use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_primitives::{
     draw_border, draw_label_marker, draw_rect, draw_separator_line,
 };
-use super::super::paint_theme::{current_host_metrics, current_host_palette, HostMaterialPalette};
+use super::super::paint_theme::{HostMaterialPalette, current_host_metrics, current_host_palette};
 use super::root_frames::RootFrames;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

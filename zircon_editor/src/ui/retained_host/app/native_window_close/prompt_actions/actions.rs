@@ -1,4 +1,4 @@
-use super::super::super::{RetainedEditorHost, close_prompt};
+use super::super::super::{close_prompt, RetainedEditorHost};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn close_prompt_action_clicked(
@@ -21,13 +21,10 @@ impl RetainedEditorHost {
                 self.finish_prompted_close(prompt);
             }
             "save" => {
-                if let Err(error) = self.save_dirty_prompt_views(&prompt.dirty_views) {
-                    self.set_status_line(error);
-                    self.show_close_prompt(&prompt);
-                    return;
-                }
-                self.clear_close_prompt(&prompt.target);
-                self.finish_prompted_close(prompt);
+                self.set_status_line(
+                    "Documents could not be saved; use Discard or Cancel".to_string(),
+                );
+                self.show_close_prompt(&prompt);
             }
             _ => {}
         }

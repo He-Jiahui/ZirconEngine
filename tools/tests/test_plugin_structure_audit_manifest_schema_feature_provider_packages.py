@@ -47,7 +47,7 @@ def write_sound_feature_provider_repo(repo_root: Path) -> None:
     (sound_root / "plugin.toml").write_text(
         "\n".join(
             [
-                "# @generated from Rust descriptor package_manifest(); do not edit by hand.",
+                "# @generated from Rust PluginDeclaration; do not edit by hand.",
                 'id = "sound"',
                 'version = "0.1.0"',
                 'sdk_api_version = "0.1.0"',

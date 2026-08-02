@@ -4,7 +4,7 @@ use super::super::super::paint_geometry::is_visible_frame;
 use super::super::super::paint_primitives::{draw_border_clipped, draw_rect_clipped};
 use super::super::super::paint_text::{draw_text_with_size_and_style, measure_runtime_text_width};
 use super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
 };
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -166,9 +166,11 @@ mod tests {
 
         assert!(slots[0].width > 0.0);
         assert!(slots[0].width < slots[1].width);
-        assert!(slots
-            .windows(2)
-            .all(|pair| pair[0].x + pair[0].width <= pair[1].x));
+        assert!(
+            slots
+                .windows(2)
+                .all(|pair| pair[0].x + pair[0].width <= pair[1].x)
+        );
         assert!(slots[3].x + slots[3].width <= toolbar.x + toolbar.width);
     }
 
@@ -191,9 +193,11 @@ mod tests {
             METRICS,
         );
 
-        assert!(slots
-            .windows(2)
-            .all(|pair| pair[0].x + pair[0].width <= pair[1].x));
+        assert!(
+            slots
+                .windows(2)
+                .all(|pair| pair[0].x + pair[0].width <= pair[1].x)
+        );
         assert!((slots[0].width - slots[1].width).abs() < f32::EPSILON);
         assert!(slots[3].x + slots[3].width <= toolbar.x + toolbar.width);
     }

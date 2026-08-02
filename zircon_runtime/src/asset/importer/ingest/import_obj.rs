@@ -17,6 +17,7 @@ pub(crate) fn import_obj(
     .map_err(|error| AssetImportError::Parse(format!("parse obj: {error}")))?;
 
     let source_hint = context.uri.to_string();
+    let virtual_geometry_request = context.virtual_geometry_cook_request()?;
     let primitives = models
         .into_iter()
         .map(|model| {
@@ -32,6 +33,7 @@ pub(crate) fn import_obj(
                 &[],
                 Some(model.name.as_str()),
                 &source_hint,
+                &virtual_geometry_request,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;

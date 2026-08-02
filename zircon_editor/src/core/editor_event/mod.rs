@@ -39,7 +39,7 @@ pub use types::{
     EditorViewportEvent,
 };
 pub use workbench::{
-    ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId, MenuAction, SplitAxis,
-    SplitPlacement, TabInsertionAnchor, TabInsertionSide, ViewDescriptorId, ViewHost,
-    ViewInstanceId, WorkspaceTarget,
+    ActivityDrawerMode, ActivityDrawerSlot, ConsoleMessageFilter, LayoutCommand, MainPageId,
+    MenuAction, SplitAxis, SplitPlacement, TabInsertionAnchor, TabInsertionSide, ViewDescriptorId,
+    ViewHost, ViewInstanceId, WorkspaceTarget,
 };

@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use super::super::{Format, LoadError, load_versioned};
+use super::super::{load_versioned, Format, LoadError};
 use super::FixtureDocument;
 
 #[test]

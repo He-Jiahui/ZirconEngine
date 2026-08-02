@@ -6,6 +6,7 @@
 > 最新进度（2026-07-12）：M1 已完成；M2-T1 形状五变体、共享 Runtime 消费者收敛、builtin typed Unsupported，以及 Jolt Cylinder/ConvexHull/Compound/资源型 TriangleMesh/HeightField 映射均已验收。Windows Jolt 插件库 21/21、Runtime collider 消费者 10/10、mesh DTO 1/1；M2-T2 MassProperties/CCD/SleepPolicy/BodyType 运行期切换为下一切片。
 - fixed 已修复：[collider-shape-consumer-exhaustiveness](../zircon_editor/editor/01/fixed-2026-07-12-collider-shape-consumer-exhaustiveness.md)
 - fixed 已修复：[rigid-body-sleep-policy-consumer-cutover](../zircon_editor/editor/08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md)
+- open failure：[physics-debug-overlay-provider-missing](03/failure-2026-08-01-physics-debug-overlay-provider-missing.md)
 
 ## 1. 目标
 

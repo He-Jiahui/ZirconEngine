@@ -1,4 +1,4 @@
-use super::fixture::{EventBusSources, assert_absent, assert_contains, assert_ordered};
+use super::fixture::{assert_absent, assert_contains, assert_ordered, EventBusSources};
 
 #[test]
 fn event_bus_subscribe_binds_an_explicit_delivery_policy_to_state() {

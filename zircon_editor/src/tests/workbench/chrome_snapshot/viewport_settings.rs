@@ -29,9 +29,10 @@ fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
     };
     let chrome = EditorChromeSnapshot::build(
         EditorDataSnapshot {
-            scene_entries: Vec::new(),
+            scene_entries: Default::default(),
             inspector: None,
             status_line: "Ready".to_string(),
+            console_output: "Ready".into(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

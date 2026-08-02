@@ -2,8 +2,8 @@ use crate::core::framework::render::{
     IblBakeArtifactRequest, IblBakeKey, ProceduralSkyParams, SOURCE_CUBEMAP_PMREM_FACE_SIZE,
     SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
+use crate::graphics::backend::GpuReadbackQueue;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
-use crate::render_graph::RenderGraphBuilder;
 
 use super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
 use super::realtime_ibl_gpu_resources::RealtimeIblGpuResources;
@@ -11,12 +11,15 @@ use super::realtime_ibl_gpu_timestamps::{
     RealtimeIblGpuTimestampCollector, RealtimeIblGpuTimestampReadback,
     RealtimeIblGpuTimingMetadata, RealtimeIblGpuTimingReport,
 };
-use super::realtime_ibl_graph_plan::append_realtime_ibl_graph_plan;
 use super::realtime_ibl_time_slice::{
     IblRealtimeBufferSlot, RealtimeIblBatchToken, RealtimeIblFrameBatch, RealtimeIblOperation,
     RealtimeIblTimeSliceConfig, RealtimeIblTimeSliceScheduler,
 };
 use super::realtime_ibl_wgpu_recorder::{RealtimeIblWgpuRecordReport, RealtimeIblWgpuRecorder};
+
+mod compiled_graph_cache;
+
+use compiled_graph_cache::RealtimeIblCompiledGraphCache;
 
 const REALTIME_IBL_SOURCE_FACE_SIZE: u32 = SOURCE_CUBEMAP_PMREM_FACE_SIZE;
 const REALTIME_IBL_SOURCE_MIP_COUNT: u32 = SOURCE_CUBEMAP_PMREM_MIP_COUNT;
@@ -53,13 +56,14 @@ pub(in crate::graphics) struct RealtimeIblPendingSubmission {
     token: RealtimeIblBatchToken,
     pub report: RealtimeIblWgpuRecordReport,
     timestamp_readback: Option<RealtimeIblGpuTimestampReadback>,
-    timestamp_metadata: RealtimeIblGpuTimingMetadata,
+    timestamp_metadata: Option<RealtimeIblGpuTimingMetadata>,
 }
 
 pub(in crate::graphics) struct RealtimeIblRuntime {
     scheduler: RealtimeIblTimeSliceScheduler,
     resources: Option<RealtimeIblGpuResources>,
     recorder: Option<RealtimeIblWgpuRecorder>,
+    compiled_graph_cache: RealtimeIblCompiledGraphCache,
     timestamp_collector: Option<RealtimeIblGpuTimestampCollector>,
     frame_number: u64,
 }
@@ -76,6 +80,7 @@ impl RealtimeIblRuntime {
             ),
             resources: None,
             recorder: None,
+            compiled_graph_cache: RealtimeIblCompiledGraphCache::new(),
             timestamp_collector: None,
             frame_number: 0,
         }
@@ -119,13 +124,20 @@ impl RealtimeIblRuntime {
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
+        gpu_timing_enabled: bool,
         prepared: &RealtimeIblPreparedFrame,
         pipeline_cache: &mut IblBakeWgpuPipelineCache,
     ) -> Result<Option<RealtimeIblPendingSubmission>, String> {
         let Some(batch) = prepared.batch.as_ref() else {
             return Ok(None);
         };
-        let result = self.record_prepared_frame_inner(device, encoder, prepared, pipeline_cache);
+        let result = self.record_prepared_frame_inner(
+            device,
+            encoder,
+            gpu_timing_enabled,
+            prepared,
+            pipeline_cache,
+        );
         if result.is_err() {
             self.scheduler.complete_frame(batch.token(), false);
         }
@@ -136,6 +148,7 @@ impl RealtimeIblRuntime {
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
+        gpu_timing_enabled: bool,
         prepared: &RealtimeIblPreparedFrame,
         pipeline_cache: &mut IblBakeWgpuPipelineCache,
     ) -> Result<RealtimeIblPendingSubmission, String> {
@@ -143,10 +156,11 @@ impl RealtimeIblRuntime {
             .batch
             .as_ref()
             .ok_or_else(|| "realtime IBL prepared frame has no pending batch".to_string())?;
-        let mut builder = RenderGraphBuilder::new("realtime-ibl-frame");
-        let plan = append_realtime_ibl_graph_plan(&mut builder, &prepared.request, batch)
+        let frame_number = self.frame_number;
+        let artifact = self
+            .compiled_graph_cache
+            .resolve(&prepared.request, batch)
             .map_err(|error| error.to_string())?;
-        let graph = builder.compile().map_err(|error| error.to_string())?;
         let mut graph_resources = RenderGraphExecutionResources::new();
         let resources = self
             .resources
@@ -154,27 +168,36 @@ impl RealtimeIblRuntime {
             .expect("realtime IBL resources must be initialized by prepare_frame");
         let recorder = self
             .recorder
-            .as_ref()
+            .as_mut()
             .expect("realtime IBL recorder must be initialized by prepare_frame");
-        resources.bind_graph_plan(&plan, &graph, &mut graph_resources)?;
-        graph_resources.validate_materialized_graph_resources(&graph)?;
+        resources.bind_graph_plan(
+            artifact.plan(),
+            artifact.required_resource_names(),
+            &mut graph_resources,
+        )?;
+        graph_resources.validate_materialized_graph_resources(artifact.graph())?;
         let result = recorder.record_graph_plan(
             device,
             encoder,
+            gpu_timing_enabled,
             &prepared.request,
             &prepared.sky,
-            &plan,
+            artifact.plan(),
             resources,
             pipeline_cache,
         )?;
-        let timestamp_metadata = RealtimeIblGpuTimingMetadata {
-            frame_number: self.frame_number,
-            logical_state: batch.logical_state(),
-            full_update: batch.is_full_update(),
-            operation_label: operation_label(batch.operations()),
-            pass_count: result.report.pass_count,
-            dispatch_count: result.report.dispatch_count,
-        };
+        let timestamp_metadata =
+            result
+                .timestamp_readback
+                .as_ref()
+                .map(|_| RealtimeIblGpuTimingMetadata {
+                    frame_number,
+                    logical_state: batch.logical_state(),
+                    full_update: batch.is_full_update(),
+                    operation_label: operation_label(batch.operations()),
+                    pass_count: result.report.pass_count,
+                    dispatch_count: result.report.dispatch_count,
+                });
         Ok(RealtimeIblPendingSubmission {
             token: batch.token(),
             report: result.report,
@@ -185,34 +208,32 @@ impl RealtimeIblRuntime {
 
     pub(in crate::graphics) fn complete_submission(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
         submission: RealtimeIblPendingSubmission,
         gpu_succeeded: bool,
     ) {
-        if gpu_succeeded {
-            if let (Some(readback), Some(timestamp_collector)) = (
-                submission.timestamp_readback,
-                self.timestamp_collector.as_mut(),
-            ) {
-                timestamp_collector.begin_readback(
-                    readback,
-                    submission.timestamp_metadata,
-                    queue.get_timestamp_period(),
-                );
-            }
-        }
         self.scheduler
             .complete_frame(submission.token, gpu_succeeded);
-        if let Some(timestamp_collector) = self.timestamp_collector.as_mut() {
-            timestamp_collector.poll(device, false);
-        }
     }
 
-    pub(in crate::graphics) fn poll_gpu_timestamps(&mut self, device: &wgpu::Device) {
-        if let Some(timestamp_collector) = self.timestamp_collector.as_mut() {
-            timestamp_collector.poll(device, false);
-        }
+    pub(in crate::graphics) fn request_gpu_timestamp_readback(
+        &mut self,
+        submission: &RealtimeIblPendingSubmission,
+        timestamp_period_nanoseconds: f32,
+        readback_queue: &mut GpuReadbackQueue,
+    ) -> bool {
+        let (Some(readback), Some(metadata), Some(timestamp_collector)) = (
+            submission.timestamp_readback.as_ref(),
+            submission.timestamp_metadata.as_ref(),
+            self.timestamp_collector.as_mut(),
+        ) else {
+            return false;
+        };
+        timestamp_collector.request_readback(
+            readback,
+            metadata.clone(),
+            timestamp_period_nanoseconds,
+            readback_queue,
+        )
     }
 
     pub(in crate::graphics) fn gpu_timestamps_supported(&self) -> bool {
@@ -223,12 +244,11 @@ impl RealtimeIblRuntime {
 
     pub(in crate::graphics) fn take_gpu_timing_reports(
         &mut self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
     ) -> Vec<RealtimeIblGpuTimingReport> {
         let Some(timestamp_collector) = self.timestamp_collector.as_mut() else {
             return Vec::new();
         };
-        timestamp_collector.poll(device, true);
         timestamp_collector.take_completed()
     }
 

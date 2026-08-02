@@ -23,7 +23,7 @@
 | `dev/UnrealEngine/.../RenderCore/Public/ShaderParameterMacros.h`、`ShaderParameterStruct.h` | `FShaderParametersMetadata`:名称/偏移/类型元数据一次生成、上传与校验多处消费——`MaterialPropertyLayout` 的语义样板(本计划用数据驱动而非宏,因资产在运行期加载) |
 | `dev/bevy/crates/bevy_render/macros/src/as_bind_group.rs` | 字段 → BindGroupLayoutEntry 自动生成、绑定槽冲突检查(`BindingState`)——Rust 侧生成 bind group layout 的落地形态 |
 | `dev/Graphics/.../Shaders/Lit.shader` pragma 段 | `shader_feature_local`(稀疏材质变体)与 `multi_compile`(全局)的二分——options 语义定位 |
-| 本仓库 `core/framework/render/material/property_uniform.rs`、`graphics/scene/resources/gpu_material_uniform/` | 被替换的手工映射路径与上传时序 |
+| 本仓库 `core/framework/render/material/property_uniform.rs`、`graphics/scene/resources/gpu_material_uniform/` | 布局表驱动的 payload builder 与上传时序；被删除的是逐 standard 字段手工映射，不是 owner 文件 |
 
 ## 目标架构
 
@@ -101,6 +101,8 @@ pub struct MaterialOptionTable {
 
 `MaterialPropertyLayout` + `MaterialOptionTable` + 生成 WGSL 源一并存入 `ShaderAsset` artifact;`layout_hash` 参与变体 `canonical_string`(经 SH-04 登记进计划 08)。
 
+`RenderMaterialPropertyUniformField` 是布局表消费后的已编码字段摘要：`offset`、`size = component_count * 4` 与 `alignment = 4` 描述属性在 vec4 槽内的子槽字节跨度和起始粒度，不描述 WGSL struct 成员 stride。vec3 的 `.w` 可被后续同类标量回填，因此把该字段报告为 16 字节会错误覆盖合法回填；整槽放置由 `MaterialPropertySlotRef` 负责，buffer 总长度仍由 16 字节对齐的 `packed_size` 负责。Inspector 或校验器不得从该摘要反推 WGSL 成员布局。
+
 ### Rust 上传侧单一来源
 
 - `gpu_material_uniform` 重构:按 `MaterialPropertyLayout` 写 CPU 暂存(f32 段 + u32 段),属性名 → 槽位查表;删除 `property_uniform.rs` 中与 standard material 字段一一手写的映射(standard material 的 PBR 属性表由内建 surface shader 的同一条 zshader 声明产出——内建材质与用户材质走同一代码路径,这是"减少重复工作"的关键闭环)。
@@ -149,14 +151,7 @@ pub struct MaterialOptionTable {
 - 打包算法演进:算法版本号进 layout_hash,升级即全量失效重编(宁可多失效,与计划 08 磁盘缓存口径一致);不做旧算法兼容读取。
 - 访问函数内联开销:naga/wgpu 下游会内联平凡函数,不做手工展开;若抓帧证实开销,再评估生成期展开,不改用户 API。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-基于对布局契约与上传侧实现的实际阅读。
-
-### 与代码现状不符，需修订
-
-- 「Rust 上传侧单一来源」与 SH02-M2 切片写「删除 `property_uniform.rs`」,但 `zircon_runtime/src/core/framework/render/material/property_uniform.rs` 仍存在,并已重构为布局表驱动的 `RenderMaterialPropertyUniformPayload::from_layout_and_values(...)`(`property_uniform.rs:24-52`),按 `MaterialPropertyLayout.properties` 遍历写偏移,不再逐 standard 字段手写。实现方向与计划一致,但「删除该文件」的措辞已过时。建议把描述改为「`property_uniform.rs` 改为消费 `MaterialPropertyLayout` 的 payload builder,删除逐字段手写映射」,与保留下来的文件对齐。
-
-### 设计优化建议
-
-- `property_uniform.rs:36-40` 写出的 `RenderMaterialPropertyUniformField.alignment` 恒为 4,`size` 为 `component_count*4`。这对 vec3(component_count=3)会报 size=12/alignment=4,与 WGSL `vec4` 槽的 16 字节对齐语义有落差。SH02-M1 的打包器已用 vec4 槽 first-fit,但该 field 元数据把对齐降级为标量粒度。若下游(Inspector/校验)按此 alignment 推断布局会与 WGSL 实际 16 对齐不符,建议在计划里明确该 field 元数据的 alignment 语义(标量偏移粒度 vs vec4 槽对齐),避免消费方误用。
+- 计划原文要求删除的是 `property_uniform.rs` 内逐 standard 字段的手工映射，不是删除 owner 文件；参考代码表已同步为当前布局表驱动的 payload builder。
+- 已固定 `RenderMaterialPropertyUniformField.size/alignment` 的子槽摘要语义。vec3 报告 12/4 是有意保留 `.w` 回填能力，WGSL 槽布局与 16 字节 buffer 对齐继续由 `MaterialPropertySlotRef` 和 `packed_size` 掌管。

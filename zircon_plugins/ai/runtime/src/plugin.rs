@@ -1,34 +1,35 @@
 use std::sync::Arc;
 
+use crate::capability::{AI_DECLARATION, RUNTIME_CRATE_NAME};
 use zircon_runtime::core::framework::bridge::PluginInterface;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDependencyManifest,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::behavior_tree::BehaviorNodeRegistry;
 use crate::perception::ai_perception_component_descriptors;
 use crate::{
-    module_descriptor_with_manager, DefaultAiManager, AI_BEHAVIOR_TREE_CAPABILITY,
-    AI_BLACKBOARD_CAPABILITY, AI_PERCEPTION_CAPABILITY, AI_RUNTIME_CAPABILITY, PLUGIN_ID,
-    RUNTIME_CAPABILITIES,
+    AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY, AI_PERCEPTION_CAPABILITY,
+    AI_RUNTIME_CAPABILITY, DefaultAiManager, PLUGIN_ID, RUNTIME_CAPABILITIES,
+    module_descriptor_with_manager,
 };
 
 mod registration;
 
 #[cfg(test)]
-pub(crate) use registration::{collect_perception_hearing_events, PerceptionEventSubscriptions};
+pub(crate) use registration::{PerceptionEventSubscriptions, collect_perception_hearing_events};
 
-use registration::{ai_event_catalog, register_runtime_extensions};
 pub use registration::{
     AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID, AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA,
-    AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE, AI_PERCEPTION_TICK_SYSTEM,
+    AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE, AI_MAIN_SYSTEM_SET, AI_PERCEPTION_TICK_SYSTEM,
     BT_NODE_RESULT_EVENT_ID, BT_NODE_RESULT_PAYLOAD_SCHEMA,
 };
+use registration::{ai_event_catalog, register_runtime_extensions};
 
 pub const AI_DIST_CRATE_NAME: &str = "zircon_plugin_ai_dist";
 pub const AI_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_ai_runtime_entry_v3";
@@ -92,9 +93,6 @@ impl RuntimePlugin for AiRuntimePlugin {
                 zircon_runtime::core::framework::physics::PHYSICS_QUERY_INTERFACE_ID,
             ),
         );
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("ai.dist", AI_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -131,25 +129,11 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
 fn runtime_plugin_descriptor_with_manager(
     manager: Arc<DefaultAiManager>,
 ) -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "AI",
-        RuntimePluginId::Ai,
-        "zircon_plugin_ai_runtime",
-    )
+    AI_DECLARATION
+    .runtime_declaration(RUNTIME_CRATE_NAME)
     .with_module_descriptor(module_descriptor_with_manager(Some(manager)))
     .with_system_anchors([AI_PERCEPTION_TICK_SYSTEM, AI_BEHAVIOR_TICK_SYSTEM])
-    .with_category("runtime")
-    .with_maturity(PluginMaturity::Experimental)
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::ServerRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(AI_RUNTIME_CAPABILITY)
-    .with_capability(AI_BEHAVIOR_TREE_CAPABILITY)
-    .with_capability(AI_BLACKBOARD_CAPABILITY)
-    .with_capability(AI_PERCEPTION_CAPABILITY)
+    .with_system_sets([AI_MAIN_SYSTEM_SET])
     .with_capability_status(
         CapabilityStatusManifest::new(AI_RUNTIME_CAPABILITY, CapabilityStatus::Partial).with_note(
             "Foundational AI runtime package; deterministic selector/sequence/task execution and blackboard decorators are available while advanced node families remain partial.",
@@ -168,7 +152,7 @@ fn runtime_plugin_descriptor_with_manager(
         CapabilityStatus::Complete,
     ))
     .with_provided_interface_id(<dyn BehaviorNodeRegistry as PluginInterface>::INTERFACE_ID)
-    .build()
+    .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(AiRuntimePlugin);

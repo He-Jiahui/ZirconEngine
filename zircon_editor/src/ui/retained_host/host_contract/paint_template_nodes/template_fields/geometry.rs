@@ -1,5 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::search::search_field_paint_rect;
+use crate::ui::retained_host::host_contract::paint_geometry::{
+    corner_radius_for_frame, inward_pixel_aligned_rect,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_paint_rect(
     node: &TemplatePaneNodeData,
@@ -47,34 +50,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    if !has_paintable_field_extent(rect) {
-        return FrameRect {
-            x: rect.x,
-            y: rect.y,
-            width: 0.0,
-            height: 0.0,
-        };
-    }
+    inward_pixel_aligned_rect(rect)
+}
 
-    let right = rect.x + rect.width;
-    let bottom = rect.y + rect.height;
-    if !right.is_finite() || !bottom.is_finite() {
-        return FrameRect {
-            x: rect.x,
-            y: rect.y,
-            width: 0.0,
-            height: 0.0,
-        };
-    }
-
-    let x = rect.x.ceil();
-    let y = rect.y.ceil();
-    let right = right.floor();
-    let bottom = bottom.floor();
-    FrameRect {
-        x,
-        y,
-        width: (right - x).max(0.0),
-        height: (bottom - y).max(0.0),
-    }
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_surface_radius(
+    rect: &FrameRect,
+    requested_radius: f32,
+) -> f32 {
+    corner_radius_for_frame(rect, requested_radius)
 }

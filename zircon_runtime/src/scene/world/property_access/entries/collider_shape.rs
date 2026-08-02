@@ -236,9 +236,11 @@ mod tests {
                 entries.len(),
                 collider_shape_property_entry_capacity(&shape)
             );
-            assert!(entries
-                .iter()
-                .any(|(path, _, _)| path == "Collider.shape.kind"));
+            assert!(
+                entries
+                    .iter()
+                    .any(|(path, _, _)| path == "Collider.shape.kind")
+            );
         }
     }
 

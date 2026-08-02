@@ -3,11 +3,10 @@ use zircon_runtime::graphics::GraphicsError;
 use super::read_buffer_u32s::read_buffer_u32s;
 
 pub(in crate::virtual_geometry::renderer::gpu_readback) fn completed_page_assignments(
-    device: &wgpu::Device,
-    completed_buffer: &wgpu::Buffer,
+    completed_bytes: &[u8],
     completed_word_count: usize,
 ) -> Result<(Vec<(u32, u32)>, Vec<u32>, Vec<(u32, u32)>), GraphicsError> {
-    let completed_words = read_buffer_u32s(device, completed_buffer, completed_word_count)?;
+    let completed_words = read_buffer_u32s(completed_bytes, completed_word_count)?;
     let completed_count = completed_words.first().copied().unwrap_or_default() as usize;
     let completed_triplets = completed_words
         .into_iter()

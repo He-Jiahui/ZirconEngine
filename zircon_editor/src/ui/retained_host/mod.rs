@@ -3,6 +3,7 @@ mod app;
 mod asset_control_ids;
 pub(crate) mod asset_pointer;
 pub(crate) mod callback_dispatch;
+mod console_output;
 pub(crate) mod detail_pointer;
 pub(crate) mod document_tab_pointer;
 pub(crate) mod drawer_header_pointer;
@@ -31,16 +32,16 @@ pub(crate) mod workbench_notifications;
 pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
 
-pub(crate) use app::build_startup_state;
 pub(crate) use app::HostInvalidationMask;
+pub(crate) use app::build_startup_state;
 pub(crate) use host_contract::*;
 
 #[cfg(test)]
-pub(crate) use app::backend_refresh::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
+pub(crate) use app::backend_refresh::{AssetBackendRefreshPlan, plan_asset_backend_refresh};
 #[cfg(test)]
 pub(crate) use app::{
-    collect_native_floating_window_targets, configure_native_floating_window_presentation,
-    NativeFloatingWindowTarget, NativeWindowPresenterStore,
+    NativeFloatingWindowTarget, NativeWindowPresenterStore, collect_native_floating_window_targets,
+    configure_native_floating_window_presentation,
 };
 pub use app::{run_editor, run_editor_with_config, run_editor_with_startup_request};
 pub use run_config::EditorHostRunConfig;

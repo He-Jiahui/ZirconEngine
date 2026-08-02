@@ -3,8 +3,20 @@
   "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
   "generated_by": "examples/woc/tools/rewind_contract_codegen.mjs",
   "source_blobs": {
+    "src/sim/content/classes.ts": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889",
     "src/sim/combat/damage_history.ts": "85d1752af0e752e71672d658b40a00dc6246658c318d6a856638dd514f3ee0dc",
     "src/sim/combat/rewind.ts": "3a76f111fd2b4ae0fefa99177e8a1dd1a4cfb5f1ea0370fbc8cd269d592f3f2f"
+  },
+  "ability": {
+    "id": "temporal_rewind",
+    "class": "mage",
+    "learn_level": 14,
+    "resource_cost": 150,
+    "cast_time_seconds": 0,
+    "cooldown_seconds": 120,
+    "range": 0,
+    "requires_target": false,
+    "radius": 40
   },
   "damage_history": {
     "window_seconds": 5,

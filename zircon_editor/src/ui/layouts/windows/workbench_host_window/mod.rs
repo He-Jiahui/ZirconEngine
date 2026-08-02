@@ -38,11 +38,9 @@ pub(crate) use host_data::{
     PerformanceTimelinePaneViewData, PerformanceTimelineSpanRowViewData, ProjectOverviewData,
     ProjectOverviewPaneViewData, SceneNodeData, TabData,
 };
-#[allow(unused_imports)]
-pub(crate) use pane_payload::{
-    PanePayload, PerformanceTimelineCaptureControlPayload, PerformanceTimelinePanePayload,
-    RuntimeDiagnosticsPanePayload,
-};
+#[cfg(test)]
+pub(crate) use pane_payload::PerformanceTimelineCaptureControlPayload;
+pub(crate) use pane_payload::{PanePayload, RuntimeDiagnosticsPanePayload};
 pub(crate) use pane_presentation::{
     build_pane_body_presentation, PaneActionPresentation, PaneBodyPresentation,
     PaneEmptyStatePresentation, PanePayloadBuildContext, PanePresentation, PaneShellPresentation,

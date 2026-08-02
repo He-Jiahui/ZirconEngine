@@ -1,7 +1,7 @@
 use super::super::super::super::super::super::data::{FrameRect, PaneData};
 
 use super::super::fallback::{
-    header_fallback, hero_fallback, status_fallback, WelcomeMainColumnFrameMetrics,
+    WelcomeMainColumnFrameMetrics, header_fallback, hero_fallback, status_fallback,
 };
 use super::super::resolve::resolve_welcome_frame;
 

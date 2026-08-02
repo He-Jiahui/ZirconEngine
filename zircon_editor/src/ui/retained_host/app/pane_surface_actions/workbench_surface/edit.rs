@@ -15,7 +15,21 @@ impl RetainedEditorHost {
             .workbench_window_bridge
             .binding_id_for_action_id(binding_id)
             .unwrap_or_else(|| binding_id.to_string());
+        if let Some(result) = self.dispatch_workbench_scene_picker_window_requested(
+            control_id,
+            binding_id.as_str(),
+            value,
+        ) {
+            return Some(result);
+        }
         if let Some(result) = self.dispatch_workbench_command_palette_window_requested(
+            control_id,
+            binding_id.as_str(),
+            value,
+        ) {
+            return Some(result);
+        }
+        if let Some(result) = self.dispatch_workbench_scene_picker_query_edited(
             control_id,
             binding_id.as_str(),
             value,
@@ -27,6 +41,11 @@ impl RetainedEditorHost {
             binding_id.as_str(),
             value,
         ) {
+            return Some(result);
+        }
+        if let Some(result) =
+            self.dispatch_workbench_scene_picker_committed(control_id, binding_id.as_str(), value)
+        {
             return Some(result);
         }
         if let Some(result) =

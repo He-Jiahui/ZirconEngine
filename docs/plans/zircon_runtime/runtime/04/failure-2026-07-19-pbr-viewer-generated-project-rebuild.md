@@ -20,11 +20,24 @@ tests:
 
 # Runtime04：PBR viewer生成project重复构建
 
-## 现象与根因
+## 来源执行者
+
+- 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
+- 来源执行切片：PERF-MVP-428 PBR viewer cold/warm startup review
+- 修复责任计划：`docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md`
+- 交接原因：版本化 fixture、project open/import generation 与 artifact owner 均属于 Runtime04；Performance01 只消费 cold/warm 和像素证据。
+
+## 失败现象与复现证据
 
 PBR viewer每次启动都在临时目录生成固定96×192 sphere（18,721 vertices、110,592 indices）、material和scene的大TOML文件。为获得model/material UUID，writer先`ProjectManager::open + scan_and_import`；runtime asset manager随后再次打开同一project。稳定诊断fixture没有版本化artifact owner，因此cold/warm运行都重复CPU mesh生成、序列化、文件I/O、扫描和导入。
 
-## 修复验收
+## 最低共享层根因
+
+稳定诊断 fixture 没有 content/version keyed artifact owner，writer 与 Runtime asset manager
+分别打开并导入同一 generated project；重复工作发生在 Runtime04 project/artifact generation
+边界，而不是 viewer 渲染或 Performance01 观测层。
+
+## 架构修复验收
 
 - 固定sphere/material/scene成为版本化builtin或checked-in/generated-once fixture；warm启动mesh generation/TOML write/import为0。
 - 若必须生成，使用content/version key的persistent artifact并原子发布；同generation project open/scan/import至多1次。

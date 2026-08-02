@@ -1,5 +1,15 @@
-use crate::core::framework::channel::ChannelReceiver;
-use crate::core::resource::{ResourceEvent, ResourceRecord, ResourceState};
+use std::sync::Arc;
+
+use crate::core::resource::{ResourceEventReceiver, ResourceRecord, ResourceState};
+
+mod management_generation;
+
+pub use management_generation::{
+    ResourceManagementGeneration, ResourceManagementKindSummary, ResourceManagementPage,
+    ResourceManagementQuery, ResourceManagementRow, ResourceManagementScan,
+    ResourceManagementSummary,
+};
+pub(crate) use management_generation::{ResourceManagementShard, resource_management_shard_index};
 
 /// Minimal invalidation stamp for caches that do not need a cloned resource record.
 ///
@@ -14,7 +24,7 @@ pub struct ResourceCacheIdentity {
 pub trait ResourceManager: Send + Sync {
     fn resolve_resource_id(&self, locator: &str) -> Option<String>;
     fn resource_status(&self, locator: &str) -> Option<ResourceRecord>;
-    fn list_resources(&self) -> Vec<ResourceRecord>;
+    fn resource_management_generation(&self) -> Arc<ResourceManagementGeneration>;
     fn resource_revision(&self, locator: &str) -> Option<u64>;
     fn resource_cache_identity(&self, locator: &str) -> Option<ResourceCacheIdentity> {
         self.resource_status(locator)
@@ -23,5 +33,5 @@ pub trait ResourceManager: Send + Sync {
                 state: record.state,
             })
     }
-    fn subscribe_resource_changes(&self) -> ChannelReceiver<ResourceEvent>;
+    fn subscribe_resource_changes(&self) -> ResourceEventReceiver;
 }

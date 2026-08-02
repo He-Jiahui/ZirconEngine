@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
 
-use super::super::PostProcessLutTextureResource;
 use super::super::prepared::PreparedPostProcessLutTexture;
+use super::super::PostProcessLutTextureResource;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {

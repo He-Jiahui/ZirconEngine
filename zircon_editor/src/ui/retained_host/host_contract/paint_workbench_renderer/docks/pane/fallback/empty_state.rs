@@ -6,9 +6,9 @@ use super::super::super::super::super::paint_primitives::{
 };
 use super::super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics,
+    HostControlMetrics, current_host_metrics, current_host_palette,
 };
-use super::super::super::super::{first_non_empty, MUTED_TEXT};
+use super::super::super::super::{MUTED_TEXT, first_non_empty};
 
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks::pane) fn draw_pane_fallback(
     frame: &mut HostRgbaFrame,

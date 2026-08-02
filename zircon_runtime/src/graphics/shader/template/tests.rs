@@ -1,19 +1,19 @@
 use crate::core::framework::render::{
-    GBufferChannelMask, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    GeometrySourceDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
-    RenderMaterialFallbackPolicy, RenderMaterialLightingModel, RenderMaterialTextureTransform,
-    RenderQueueValue, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
-    ShadingModelDescriptor, ShadingModelId, StandardMaterialDescriptor,
-    StandardPbrMaterialFeatures, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, GBufferChannelMask, GeometrySourceDescriptor,
+    RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
+    RenderMaterialLightingModel, RenderMaterialTextureTransform, RenderQueueValue,
+    ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor, ShadingModelId,
+    StandardMaterialDescriptor, StandardPbrMaterialFeatures, GEOMETRY_SOURCE_ID_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::resource::{AssetReference, ResourceLocator};
 
 use super::assemble::{
-    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError, assemble_material_shader_template,
+    assemble_material_shader_template, MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
 };
 use super::deferred_gbuffer::{
-    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
+    assemble_deferred_gbuffer_shader_template, DeferredGBufferShaderTemplateRequest,
 };
 use super::material_surface::{
     standard_material_surface_source, standard_material_surface_source_for_features,
@@ -99,7 +99,7 @@ fn forward_material_template_applies_integrated_volumetric_lighting() {
 }
 
 #[test]
-fn standard_pbr_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
+fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
     let light_loop = STANDARD_PBR_FORWARD_SHADER
         .split("fn zr_standard_pbr_gpu_light_lighting(")
         .nth(1)
@@ -107,14 +107,13 @@ fn standard_pbr_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
         .expect("standard PBR should retain the GPU light-grid owner");
     for expected in [
         "let world_normal = zr_normalize_or_zero(surface.normal_ws);",
-        "let world_view = zr_normalize_or_zero(view_dir_ws);",
         "if (surface.shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID)",
         "let direct_metallic = clamp(surface.metallic, 0.0, 1.0);",
         "direct_f0 = mix(",
         "direct_metallic,",
         "direct_diffuse_brdf =",
-        "direct_base_energy = zr_pbr_clearcoat_base_energy_scale(surface, world_view);",
-        "direct_clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);",
+        "direct_clearcoat_normal = clearcoat_normal;",
+        "zr_pbr_clearcoat_base_energy_scale_normalized(",
         "world_normal,",
         "world_view,",
         "direct_f0,",
@@ -143,17 +142,17 @@ fn standard_pbr_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
         "direct PBR setup must not reuse unbounded surface metallic after normalization"
     );
     let clearcoat_setup_guard = light_loop
-        .find("if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat != 0.0) {")
+        .find("if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {")
         .expect("light-grid setup must skip clearcoat preparation when it cannot contribute");
-    let clearcoat_base_energy = light_loop
-        .find("direct_base_energy = zr_pbr_clearcoat_base_energy_scale(surface, world_view);")
-        .expect("light-grid setup must prepare clearcoat base energy when required");
     let clearcoat_normal = light_loop
-        .find("direct_clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);")
-        .expect("light-grid setup must prepare a clearcoat normal when required");
+        .find("direct_clearcoat_normal = clearcoat_normal;")
+        .expect("light-grid setup must consume the prepared clearcoat normal when required");
+    let clearcoat_base_energy = light_loop
+        .find("direct_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(")
+        .expect("light-grid setup must prepare clearcoat base energy when required");
     assert!(
-        clearcoat_setup_guard < clearcoat_base_energy && clearcoat_base_energy < clearcoat_normal,
-        "clearcoat preparation must remain inside the feature and material-weight guard"
+        clearcoat_setup_guard < clearcoat_normal && clearcoat_normal < clearcoat_base_energy,
+        "clearcoat preparation must reuse validated inputs before attenuating the base layer"
     );
 
     let per_light = STANDARD_PBR_FORWARD_SHADER
@@ -225,7 +224,7 @@ fn standard_pbr_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
     }
     for (feature_guard, material_weight, lobe) in [
         (
-            "if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat != 0.0)",
+            "if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0)",
             "surface.clearcoat",
             "zr_clearcoat_lobe(",
         ),
@@ -253,7 +252,7 @@ fn standard_pbr_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
         .expect("standard PBR must retain forward shading");
     for (feature_guard, helper) in [
         (
-            "if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat != 0.0) {",
+            "if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {",
             "zr_pbr_clearcoat_base_energy_scale(surface, view_dir_ws);",
         ),
         (
@@ -274,14 +273,119 @@ fn standard_pbr_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
     }
 }
 
+#[test]
+fn standard_pbr_clearcoat_direct_lighting_uses_its_own_normal_and_skips_zero_normal() {
+    let standard_lobe = STANDARD_PBR_FORWARD_SHADER
+        .split("fn zr_standard_pbr_shade_standard_light_vector_normalized(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("fn zr_standard_pbr_shade_blinn_phong_light_vector_normalized(")
+                .next()
+        })
+        .expect("standard PBR must retain the direct-light lobe owner");
+
+    let clearcoat_no_l = standard_lobe
+        .find("let clearcoat_no_l = max(dot(direct_clearcoat_normal, light_vector), 0.0);")
+        .expect("clearcoat direct lighting must use its own normal for NoL");
+    let clearcoat_guard = standard_lobe
+        .find("if (clearcoat_no_l > 0.0) {")
+        .expect("zero clearcoat normal must skip its GGX lobe");
+    let clearcoat_lobe = standard_lobe
+        .find("clearcoat = zr_clearcoat_lobe(")
+        .expect("standard PBR must retain the clearcoat direct-light lobe");
+
+    assert!(
+        clearcoat_no_l < clearcoat_guard && clearcoat_guard < clearcoat_lobe,
+        "clearcoat NoL must guard GGX evaluation before it can receive a zero normal"
+    );
+    assert!(
+        standard_lobe.contains("* radiance * clearcoat_no_l * clamp(surface.clearcoat, 0.0, 1.0);"),
+        "clearcoat direct radiance must use its own clamped material weight and NoL"
+    );
+    assert!(
+        !standard_lobe.contains("* radiance * no_l * surface.clearcoat;"),
+        "clearcoat direct radiance must not use the base-layer normal or raw material weight"
+    );
+}
+
+#[test]
+fn standard_pbr_clearcoat_hot_path_reuses_normalized_inputs() {
+    let light_loop = STANDARD_PBR_FORWARD_SHADER
+        .split("fn zr_standard_pbr_gpu_light_lighting(")
+        .nth(1)
+        .and_then(|source| source.split("fn shade_forward(").next())
+        .expect("standard PBR should retain the GPU light-grid owner");
+    let direct_energy = light_loop
+        .split("direct_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(")
+        .nth(1)
+        .and_then(|source| source.split(");").next())
+        .expect("direct-light clearcoat setup must retain its normalized base-energy call");
+    let surface = direct_energy
+        .find("surface,")
+        .expect("normalized base energy must receive the surface");
+    let clearcoat_normal = direct_energy
+        .find("clearcoat_normal,")
+        .expect("normalized base energy must receive the prepared clearcoat normal");
+    let world_view = direct_energy
+        .find("world_view,")
+        .expect("normalized base energy must receive the prepared world view");
+    assert!(
+        surface < clearcoat_normal && clearcoat_normal < world_view,
+        "direct-light clearcoat setup must not renormalize its prepared normal or view"
+    );
+
+    let forward_shading = STANDARD_PBR_FORWARD_SHADER
+        .split("fn shade_forward(")
+        .nth(1)
+        .expect("standard PBR must retain forward shading");
+    for expected in [
+        "let clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);",
+        "zr_pbr_clearcoat_base_energy_scale_normalized(",
+        "zr_pbr_advanced_environment_normalized(",
+    ] {
+        assert!(
+            forward_shading.contains(expected),
+            "Forward clearcoat hot path must retain `{expected}`"
+        );
+    }
+    assert!(
+        !forward_shading.contains("zr_pbr_clearcoat_base_energy_scale(surface, view_dir_ws);"),
+        "Forward clearcoat must not call the defensive normalizing wrapper"
+    );
+    assert!(
+        !forward_shading
+            .contains("zr_pbr_advanced_environment(surface, ctx.position_ws, view_dir_ws);"),
+        "Forward clearcoat must not call the defensive normalizing wrapper"
+    );
+}
+
+#[test]
+fn standard_pbr_clearcoat_scales_ambient_base_layer_once() {
+    let forward_shading = STANDARD_PBR_FORWARD_SHADER
+        .split("fn shade_forward(")
+        .nth(1)
+        .expect("standard PBR must retain forward shading");
+    assert!(
+        forward_shading.contains(
+            "diffuse_color * zr_standard_pbr_diffuse_energy_scale(surface) * ambient * clearcoat_base_energy"
+        ),
+        "clearcoat base energy must attenuate ambient diffuse exactly as it attenuates direct and environment base lighting"
+    );
+}
+
 macro_rules! assert_missing_include_token {
     ($assembly:expr, $token:expr) => {
         assert!(!has_include_token(&($assembly).include_tokens, $token));
     };
 }
 
+#[path = "tests/environment.rs"]
+mod environment;
 #[path = "tests/standard_material_surface_template.rs"]
 mod standard_material_surface_template;
+#[path = "tests/standard_pbr_specialization.rs"]
+mod standard_pbr_specialization;
 #[path = "tests/surface_modules.rs"]
 mod surface_modules;
 
@@ -320,11 +424,9 @@ fn render_shader_template_assembles_static_and_skinned_geometry_sources() {
     assert_include_token!(static_assembly, "zr_environment.wgsl");
     assert_missing_include_token!(static_assembly, "zr_oit.wgsl");
     assert_include_token!(skinned_assembly, "zr_geometry_skinned.wgsl");
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("fn zr_material_surface(")
-    );
+    assert!(static_assembly
+        .wgsl_source
+        .contains("fn zr_material_surface("));
     assert!(static_assembly.wgsl_source.contains("fn zr_vs_main_impl("));
     assert!(static_assembly.wgsl_source.contains("fn zr_fs_main_impl("));
     assert!(static_assembly.wgsl_source.contains("fn zr_vs_main("));
@@ -333,56 +435,36 @@ fn render_shader_template_assembles_static_and_skinned_geometry_sources() {
     assert!(static_assembly.wgsl_source.contains("fn fs_main("));
     assert!(!static_assembly.wgsl_source.contains("fn fs_oit("));
     assert!(!static_assembly.wgsl_source.contains("oit_draw("));
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("return zr_vs_main_impl(v, instance_index);")
-    );
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("return zr_fs_main_impl(input);")
-    );
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("ZR_GEOMETRY_SOURCE_STATIC_MESH")
-    );
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("@group(0) @binding(0) var<uniform> scene: SceneUniform")
-    );
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("@group(3) @binding(1) var<storage, read> zr_instance_data")
-    );
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("let world_from_local = zr_world_from_local(instance_index);")
-    );
-    assert!(
-        static_assembly
-            .wgsl_source
-            .contains("output.clip_position = scene.view_proj * position_ws;")
-    );
-    assert!(
-        skinned_assembly
-            .wgsl_source
-            .contains("zr_skinned_joint_matrix(v.joints.x)")
-    );
-    assert!(
-        skinned_assembly
-            .wgsl_source
-            .contains("@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette")
-    );
-    assert!(
-        !skinned_assembly
-            .wgsl_source
-            .contains("@group(3) @binding(1) var<storage, read> zr_joint_palette")
-    );
+    assert!(static_assembly
+        .wgsl_source
+        .contains("return zr_vs_main_impl(v, instance_index);"));
+    assert!(static_assembly
+        .wgsl_source
+        .contains("return zr_fs_main_impl(input);"));
+    assert!(static_assembly
+        .wgsl_source
+        .contains("ZR_GEOMETRY_SOURCE_STATIC_MESH"));
+    assert!(static_assembly
+        .wgsl_source
+        .contains("@group(0) @binding(0) var<uniform> scene: SceneUniform"));
+    assert!(static_assembly
+        .wgsl_source
+        .contains("@group(3) @binding(1) var<storage, read> zr_instance_data"));
+    assert!(static_assembly
+        .wgsl_source
+        .contains("let world_from_local = zr_world_from_local(instance_index);"));
+    assert!(static_assembly
+        .wgsl_source
+        .contains("output.clip_position = scene.view_proj * position_ws;"));
+    assert!(skinned_assembly
+        .wgsl_source
+        .contains("zr_skinned_joint_matrix(v.joints.x)"));
+    assert!(skinned_assembly
+        .wgsl_source
+        .contains("@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette"));
+    assert!(!skinned_assembly
+        .wgsl_source
+        .contains("@group(3) @binding(1) var<storage, read> zr_joint_palette"));
     validate_material_shader_template_wgsl(&static_assembly.wgsl_source)
         .expect("static template WGSL should validate");
     validate_material_shader_template_wgsl(&skinned_assembly.wgsl_source)
@@ -411,16 +493,12 @@ fn render_volumetric_forward_shader_variant_removes_bindings_when_disabled() {
         assert!(!disabled.wgsl_source.contains(binding));
         assert!(enabled.wgsl_source.contains(binding));
     }
-    assert!(
-        disabled
-            .wgsl_source
-            .contains("const ZR_FEATURE_VOLUMETRIC_FOG: bool = false;")
-    );
-    assert!(
-        enabled
-            .wgsl_source
-            .contains("const ZR_FEATURE_VOLUMETRIC_FOG: bool = true;")
-    );
+    assert!(disabled
+        .wgsl_source
+        .contains("const ZR_FEATURE_VOLUMETRIC_FOG: bool = false;"));
+    assert!(enabled
+        .wgsl_source
+        .contains("const ZR_FEATURE_VOLUMETRIC_FOG: bool = true;"));
     validate_material_shader_template_wgsl(&disabled.wgsl_source)
         .expect("disabled volumetric forward WGSL should validate");
     validate_material_shader_template_wgsl(&enabled.wgsl_source)
@@ -446,16 +524,12 @@ fn render_transmission_uses_viewport_local_uv_for_nonzero_viewport_origins() {
             "transmission source should contain viewport-local contract `{expected}`"
         );
     }
-    assert!(
-        !assembly
-            .wgsl_source
-            .contains("fragment_position / max(transmission_extent")
-    );
-    assert!(
-        !assembly
-            .wgsl_source
-            .contains("textureDimensions(zr_transmission_scene_color)")
-    );
+    assert!(!assembly
+        .wgsl_source
+        .contains("fragment_position / max(transmission_extent"));
+    assert!(!assembly
+        .wgsl_source
+        .contains("textureDimensions(zr_transmission_scene_color)"));
     assert!(!assembly.wgsl_source.contains(
         "zr_pbr_screen_space_transmission(\n        surface,\n        ctx.frag_coord.xy"
     ));
@@ -514,19 +588,15 @@ fn render_shader_template_validates_morphed_geometry_sources_with_payload_slots(
 
             assert_include_token!(assembly, include_token);
             assert!(assembly.wgsl_source.contains(source_define));
-            assert!(
-                assembly
-                    .wgsl_source
-                    .contains("@builtin(vertex_index) vertex_index: u32")
-            );
+            assert!(assembly
+                .wgsl_source
+                .contains("@builtin(vertex_index) vertex_index: u32"));
             assert!(assembly.wgsl_source.contains("morph_payload_slot"));
             assert!(assembly.wgsl_source.contains("zr_gpu_scene_morph_payload"));
             assert!(assembly.wgsl_source.contains("zr_morph_previous_weight"));
-            assert!(
-                assembly
-                    .wgsl_source
-                    .contains("payload.y + payload.w + target_index")
-            );
+            assert!(assembly
+                .wgsl_source
+                .contains("payload.y + payload.w + target_index"));
             validate_material_shader_template_wgsl(&assembly.wgsl_source)
                 .expect("morphed template WGSL should validate");
         }
@@ -544,24 +614,18 @@ fn standard_material_surface_source_can_be_built_from_runtime_features() {
 
     assert_eq!(surface_source.entry_point, "standard_material_surface");
     assert_eq!(surface_source.features, features);
-    assert!(
-        surface_source
-            .source
-            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 1.00000000;")
-    );
-    assert!(
-        surface_source
-            .features
-            .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-    );
+    assert!(surface_source
+        .source
+        .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 1.00000000;"));
+    assert!(surface_source
+        .features
+        .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
 
     let nan_surface_source =
         standard_material_surface_source_for_features(ShaderFeatureBits::default(), f32::NAN);
-    assert!(
-        nan_surface_source
-            .source
-            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.00000000;")
-    );
+    assert!(nan_surface_source
+        .source
+        .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.00000000;"));
 }
 
 #[test]
@@ -759,67 +823,47 @@ fn render_shader_template_specializes_depth_and_velocity_passes() {
     assert_include_token!(depth_no_alpha, "zr_template_depth.wgsl");
     assert!(!depth_no_alpha.wgsl_source.contains("zr_material_surface"));
     assert!(!depth_no_alpha.wgsl_source.contains("@fragment"));
-    assert!(
-        !depth_no_alpha
-            .wgsl_source
-            .contains("surface.normal_ws * 0.5")
-    );
-    assert!(
-        !depth_no_alpha
-            .wgsl_source
-            .contains("zr_template_gbuffer.wgsl")
-    );
+    assert!(!depth_no_alpha
+        .wgsl_source
+        .contains("surface.normal_ws * 0.5"));
+    assert!(!depth_no_alpha
+        .wgsl_source
+        .contains("zr_template_gbuffer.wgsl"));
     assert!(depth_alpha.wgsl_source.contains("zr_material_surface"));
     assert_include_token!(depth_alpha, "zr_template_depth_alpha.wgsl");
-    assert!(
-        depth_alpha
-            .wgsl_source
-            .contains("zr_apply_alpha_clip(surface);")
-    );
+    assert!(depth_alpha
+        .wgsl_source
+        .contains("zr_apply_alpha_clip(surface);"));
     assert!(!depth_alpha.wgsl_source.contains("surface.normal_ws * 0.5"));
     assert!(!depth_alpha.wgsl_source.contains("zr_template_gbuffer.wgsl"));
     assert!(velocity.wgsl_source.contains("fetch_prev_position"));
-    assert!(
-        velocity
-            .wgsl_source
-            .contains("struct ZrVelocityVertexInput")
-    );
-    assert!(
-        velocity
-            .wgsl_source
-            .contains("@location(8) previous_position")
-    );
-    assert!(
-        velocity
-            .wgsl_source
-            .contains("let previous_input = zr_velocity_vertex_input(v, v.previous_position);")
-    );
+    assert!(velocity
+        .wgsl_source
+        .contains("struct ZrVelocityVertexInput"));
+    assert!(velocity
+        .wgsl_source
+        .contains("@location(8) previous_position"));
+    assert!(velocity
+        .wgsl_source
+        .contains("let previous_input = zr_velocity_vertex_input(v, v.previous_position);"));
     assert!(velocity.wgsl_source.contains("fn zr_vs_main_impl("));
     assert!(velocity.wgsl_source.contains("fn zr_fs_main_impl("));
     assert!(velocity.wgsl_source.contains("fn vs_main("));
     assert!(velocity.wgsl_source.contains("fn fs_main("));
-    assert!(
-        velocity
-            .wgsl_source
-            .contains("scene.view_proj_unjittered * current_world")
-    );
-    assert!(
-        velocity
-            .wgsl_source
-            .contains("scene.previous_view_proj_unjittered * previous_world")
-    );
-    assert!(
-        velocity
-            .wgsl_source
-            .contains("return zr_vs_main_impl(v, instance_index);")
-    );
+    assert!(velocity
+        .wgsl_source
+        .contains("scene.view_proj_unjittered * current_world"));
+    assert!(velocity
+        .wgsl_source
+        .contains("scene.previous_view_proj_unjittered * previous_world"));
+    assert!(velocity
+        .wgsl_source
+        .contains("return zr_vs_main_impl(v, instance_index);"));
     assert!(!velocity.wgsl_source.contains("zr_material_surface"));
     assert!(velocity_alpha.wgsl_source.contains("zr_material_surface"));
-    assert!(
-        velocity_alpha
-            .wgsl_source
-            .contains("zr_surface_fails_alpha_clip(surface)")
-    );
+    assert!(velocity_alpha
+        .wgsl_source
+        .contains("zr_surface_fails_alpha_clip(surface)"));
     assert_include_token!(velocity_alpha, "zr_template_velocity_alpha.wgsl");
     validate_material_shader_template_wgsl(&depth_no_alpha.wgsl_source)
         .expect("assembled depth-only WGSL should validate");
@@ -839,133 +883,6 @@ fn render_shader_template_specializes_depth_and_velocity_passes() {
     assert!(!velocity_pass.requires_material_surface);
     assert!(velocity_alpha_pass.uses_previous_position);
     assert!(velocity_alpha_pass.requires_material_surface);
-}
-
-#[test]
-fn forward_environment_fallback_does_not_synthesize_roughness_without_pmrem() {
-    let assembly = assemble_material_shader_template(material_template_request(
-        static_mesh_descriptor(),
-        ShaderPassType::Forward,
-    ))
-    .expect("forward template assembly");
-    let sky_reflection = assembly
-        .wgsl_source
-        .split("fn zr_environment_sky_reflection_color(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_planar_reflection(").next())
-        .expect("forward environment source should retain the sky-reflection owner");
-
-    assert!(
-        sky_reflection
-            .contains("return zr_environment_procedural_sky_color_normalized(reflected);"),
-        "a fallback without a PMREM must preserve the reflected direction"
-    );
-    assert_eq!(
-        sky_reflection
-            .matches("zr_environment_procedural_sky_color_normalized(")
-            .count(),
-        1,
-        "a fallback without a PMREM must sample the sky only once"
-    );
-    for forbidden in [
-        "zr_environment_procedural_sky_color_normalized(normal)",
-        "mix(sharp_reflection, rough_reflection, roughness)",
-    ] {
-        assert!(
-            !sky_reflection.contains(forbidden),
-            "a fallback without a PMREM must not synthesize roughness with `{forbidden}`"
-        );
-    }
-}
-
-#[test]
-fn forward_environment_skips_zero_weight_probe_samples() {
-    let assembly = assemble_material_shader_template(material_template_request(
-        static_mesh_descriptor(),
-        ShaderPassType::Forward,
-    ))
-    .expect("forward template assembly");
-    let reflection = assembly
-        .wgsl_source
-        .split("fn zr_environment_reflection_color_after_planar(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_diffuse_color(").next())
-        .expect("forward environment source should retain the probe-reflection owner");
-
-    for (weight, target) in [
-        ("selection.primary_weight", "selection.primary_index"),
-        ("selection.secondary_weight", "selection.secondary_index"),
-    ] {
-        let gate = format!("if ({weight} > 0.0) {{");
-        let guarded_sample = reflection
-            .split(&gate)
-            .nth(1)
-            .unwrap_or_else(|| panic!("the {weight} probe sample should be gated"));
-        assert!(
-            guarded_sample.contains("zr_environment_probe_color(")
-                && guarded_sample.contains(target),
-            "the {weight} gate must own its cubemap sample"
-        );
-    }
-}
-
-#[test]
-fn forward_environment_skips_all_sampling_when_occlusion_is_zero() {
-    let assembly = assemble_material_shader_template(material_template_request(
-        static_mesh_descriptor(),
-        ShaderPassType::Forward,
-    ))
-    .expect("forward template assembly");
-    let components = assembly
-        .wgsl_source
-        .split("fn zr_environment_pbr_components(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_indirect(").next())
-        .expect("forward environment source should retain the PBR-components owner");
-
-    let occlusion = components
-        .find("let clamped_occlusion = clamp(occlusion, 0.0, 1.0);")
-        .expect("environment PBR components should clamp occlusion");
-    let early_out = components
-        .find("if (clamped_occlusion <= 0.0) {")
-        .expect("zero occlusion should skip environment sampling");
-    let normalization = components
-        .find("let normal = zr_environment_normalize_or_zero(normal_ws);")
-        .expect("environment PBR components should normalize the normal after its early-out");
-    assert!(
-        occlusion < early_out && early_out < normalization,
-        "zero occlusion must return before normal, PMREM, SH, or BRDF work"
-    );
-}
-
-#[test]
-fn forward_environment_reuses_normalized_normal_for_diffuse_ibl() {
-    let assembly = assemble_material_shader_template(material_template_request(
-        static_mesh_descriptor(),
-        ShaderPassType::Forward,
-    ))
-    .expect("forward template assembly");
-    let components = assembly
-        .wgsl_source
-        .split("fn zr_environment_pbr_components(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_indirect(").next())
-        .expect("forward environment source should retain the PBR-components owner");
-
-    let normalized_normal = components
-        .find("let normal = zr_environment_normalize_or_zero(normal_ws);")
-        .expect("PBR components should normalize the normal once");
-    let diffuse = components
-        .find("zr_environment_diffuse_color_normalized(normal)")
-        .expect("PBR diffuse IBL should reuse the normalized normal");
-    assert!(
-        normalized_normal < diffuse,
-        "PBR diffuse IBL must consume the already-normalized normal"
-    );
-    assert!(
-        !components.contains("zr_environment_diffuse_color(normal)"),
-        "PBR diffuse IBL must not re-enter the defensive normalization wrapper"
-    );
 }
 
 #[test]
@@ -996,16 +913,12 @@ fn render_shader_template_uses_shading_model_descriptor_forward_include() {
             .count(),
         1
     );
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("// include: zr_shading_standard_pbr.wgsl")
-    );
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext)")
-    );
+    assert!(assembly
+        .wgsl_source
+        .contains("// include: zr_shading_standard_pbr.wgsl"));
+    assert!(assembly
+        .wgsl_source
+        .contains("fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext)"));
 }
 
 #[test]
@@ -1044,18 +957,14 @@ fn render_shader_template_uses_custom_shading_model_forward_include_source() {
 
     assert_include_token!(assembly, "zr_shading_toon.wgsl");
     assert_missing_include_token!(assembly, "zr_shading_standard_pbr.wgsl");
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("// include: zr_shading_toon.wgsl")
-    );
+    assert!(assembly
+        .wgsl_source
+        .contains("// include: zr_shading_toon.wgsl"));
     assert!(assembly.wgsl_source.contains("ZR_SHADING_TOON_DEBUG_ID"));
     assert!(assembly.wgsl_source.contains("fn zr_toon_band"));
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext)")
-    );
+    assert!(assembly
+        .wgsl_source
+        .contains("fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext)"));
     assert_include_token!(assembly, "zr_environment.wgsl");
     validate_material_shader_template_wgsl(&assembly.wgsl_source)
         .expect("custom shading include template WGSL should validate");
@@ -1097,18 +1006,14 @@ fn render_deferred_gbuffer_template_uses_custom_shading_model_gbuffer_include_so
 
     assert_include_token!(assembly, "zr_gbuffer_encode_toon.wgsl");
     assert_missing_include_token!(assembly, "zr_gbuffer_encode_standard_pbr.wgsl");
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("// include: zr_gbuffer_encode_toon.wgsl")
-    );
+    assert!(assembly
+        .wgsl_source
+        .contains("// include: zr_gbuffer_encode_toon.wgsl"));
     assert!(assembly.wgsl_source.contains("ZR_GBUFFER_TOON_DEBUG_ID"));
     assert!(assembly.wgsl_source.contains("fn encode_gbuffer"));
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("// include: zr_template_deferred_gbuffer.wgsl")
-    );
+    assert!(assembly
+        .wgsl_source
+        .contains("// include: zr_template_deferred_gbuffer.wgsl"));
     validate_material_shader_template_wgsl(&assembly.wgsl_source)
         .expect("custom deferred GBuffer include template WGSL should validate");
 }

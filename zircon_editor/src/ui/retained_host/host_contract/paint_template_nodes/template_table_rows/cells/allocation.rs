@@ -1,5 +1,5 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::metrics::{table_column_metrics, WorkbenchTableColumnMetrics, TABLE_COLUMN_COUNT};
+use super::metrics::{TABLE_COLUMN_COUNT, WorkbenchTableColumnMetrics, table_column_metrics};
 
 const TABLE_LAYOUT_NARROW_VARIANT: &str = "layoutNarrow";
 

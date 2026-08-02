@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 38);
+assert.equal(payloads.schema_version, 60);
 const expected = [
   [129, 'mail_take', 'mailTake', 'mailTake', 'MAIL_TAKE_COMMAND_ID'],
   [130, 'mail_delete', 'mailDelete', 'mailDelete', 'MAIL_DELETE_COMMAND_ID'],
@@ -57,9 +57,9 @@ for (const intent of ['TakeMail', 'DeleteMail', 'MarkMailRead']) {
   assert.match(input, new RegExp(`\\b${intent}\\b`));
 }
 
-assert.equal(coverage.totals.typed_contract_commands, 135);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 134);
-assert.equal(coverage.totals.source_shape_only_commands, 22);
+assert.equal(coverage.totals.typed_contract_commands, 157);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 156);
+assert.equal(coverage.totals.source_shape_only_commands, 0);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 
 process.stdout.write('mail command payload contracts are complete\n');

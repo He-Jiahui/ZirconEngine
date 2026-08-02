@@ -4,7 +4,6 @@ status: open
 created_at: 2026-07-26
 summary_slug: live-lease-attribution-validation-copy-divergence
 origin_plan: docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
-origin_workflow_node: root facade atomic integration validation
 fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 origin_child_dir: docs/plans/zircon_editor/editor/00
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01

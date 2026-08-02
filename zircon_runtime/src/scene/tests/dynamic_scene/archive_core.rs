@@ -102,9 +102,11 @@ fn runtime_session_archive_push_and_upsert_keep_scene_payload_versionless() {
         .expect("push_slot should accept a current typed scene envelope");
     let push_json = push_archive.to_versioned_json_pretty().unwrap();
     let push_document: serde_json::Value = serde_json::from_str(&push_json).unwrap();
-    assert!(push_document["slots"][0]["scene"]["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        push_document["slots"][0]["scene"]["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 
     let mut upsert_archive = RuntimeSessionArchive::empty();
     let upsert_slot =
@@ -115,9 +117,11 @@ fn runtime_session_archive_push_and_upsert_keep_scene_payload_versionless() {
         .expect("upsert_slot should accept a current typed scene envelope");
     let upsert_json = upsert_archive.to_versioned_json_pretty().unwrap();
     let upsert_document: serde_json::Value = serde_json::from_str(&upsert_json).unwrap();
-    assert!(upsert_document["slots"][0]["scene"]["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        upsert_document["slots"][0]["scene"]["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 }
 
 #[test]
@@ -135,11 +139,12 @@ fn runtime_session_archive_rejects_non_canonical_slot_ids() {
             if slot_id == " slot " && canonical == "slot"
     ));
 
-    let json = serde_json::to_string(&RuntimeSessionArchive {
-        format_version: 1,
-        slots: vec![slot],
-    })
-    .expect("bad archive fixture should serialize");
+    slot.slot_id = "slot".to_string();
+    let json = RuntimeSessionArchive::from_slots(vec![slot])
+        .unwrap()
+        .to_versioned_json_pretty()
+        .unwrap()
+        .replacen("\"slot_id\": \"slot\"", "\"slot_id\": \" slot \"", 1);
     let error = RuntimeSessionArchive::from_versioned_json(&json)
         .expect_err("non-canonical slot ids should fail during load");
     assert!(matches!(
@@ -152,13 +157,11 @@ fn runtime_session_archive_rejects_non_canonical_slot_ids() {
 #[test]
 fn runtime_session_archive_serializes_manual_slots_in_canonical_order() {
     let source = World::empty();
-    let archive = RuntimeSessionArchive {
-        format_version: 1,
-        slots: vec![
-            RuntimeSessionSlot::from_world("slot-b", &source).expect("slot-b should capture"),
-            RuntimeSessionSlot::from_world("slot-a", &source).expect("slot-a should capture"),
-        ],
-    };
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world("slot-b", &source).expect("slot-b should capture"),
+        RuntimeSessionSlot::from_world("slot-a", &source).expect("slot-a should capture"),
+    ])
+    .expect("manual slots should canonicalize");
 
     let encoded = archive
         .to_versioned_json_pretty()
@@ -179,23 +182,21 @@ fn runtime_session_archive_serializes_manual_slots_in_canonical_order() {
 #[test]
 fn runtime_session_archive_normalizes_metadata_tags_for_manifest_and_json() {
     let source = World::empty();
-    let archive = RuntimeSessionArchive {
-        format_version: 1,
-        slots: vec![RuntimeSessionSlot {
-            slot_id: "slot".to_string(),
-            metadata: RuntimeSessionMetadata {
-                tags: vec![
-                    " beta ".to_string(),
-                    "alpha".to_string(),
-                    "".to_string(),
-                    "beta".to_string(),
-                    "  ".to_string(),
-                ],
-                ..Default::default()
-            },
-            scene: DynamicScene::from_world(&source).expect("source world should export"),
-        }],
-    };
+    let archive = RuntimeSessionArchive::from_slots(vec![RuntimeSessionSlot {
+        slot_id: "slot".to_string(),
+        metadata: RuntimeSessionMetadata {
+            tags: vec![
+                " beta ".to_string(),
+                "alpha".to_string(),
+                "".to_string(),
+                "beta".to_string(),
+                "  ".to_string(),
+            ],
+            ..Default::default()
+        },
+        scene: DynamicScene::from_world(&source).expect("source world should export"),
+    }])
+    .expect("manual archive should normalize");
 
     let manifest = archive
         .manifest()

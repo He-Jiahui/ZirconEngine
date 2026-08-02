@@ -19,14 +19,14 @@ plan_sources:
   - .codex/plans/Material UI 全组件样式设计与验证计划.md
   - .codex/plans/Editor 基础组件 Material 化视觉优化计划.md
   - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
-status: planned
+status: in_progress
 ---
 
 # 04 样式主题与中立绘制状态选择器
 
 ## 1. 目标
 
-两件事：(a) 建立中央主题（theme token）治理——目前没有任何 theme 文档/资产类型（归档 M11 未完成项）；(b) 把已存在于接口层的 `UiPainterStyleSelector` 推到全组件覆盖——组件逻辑只产出语义状态，最终视觉样式由 selector 按固定优先级解析，逐组件删除中立 `paint_template_nodes/` 绘制族里的 hovered/pressed/disabled 内联分支（归档 M2 伪状态样式应用的正面解决）。
+两件事：(a) 收束已经落地的中央主题（theme token）文档、registry 与资产消费链，补齐 token 治理、热重载和 source-chain 验收；(b) 把已存在于接口层的 `UiPainterStyleSelector` 推到全组件覆盖——组件逻辑只产出语义状态，最终视觉样式由 selector 按固定优先级解析，逐组件删除中立 `paint_template_nodes/` 绘制族里的 hovered/pressed/disabled 内联分支（归档 M2 伪状态样式应用的正面解决）。
 
 ## 2. 现状（按代码核实修正）
 
@@ -37,6 +37,7 @@ status: planned
 | **状态选择器（已在接口层落地一轮）** | `zircon_runtime_interface/src/ui/style.rs` | `UiPainterStyleSelector`（:272）、`UiPainterFamily`（:209）、`UiPainterResolvedState`（:233，含 Disabled/Loading/Pressed/Focused/Hovered/DropHovered/Selected 等）、`UiPainterState`（:254，`normal()`/`is_active`/`is_focus_visible`/`is_pointer_hot`）；按 family 折叠：`resolved_state_for_family`/`interactive_resolved_state`/`selection_control_resolved_state`/`slider_resolved_state`/`button_resolved_state`（:275–:455） |
 | Button 样式语义 | 同上 | `ButtonVariant/ButtonColor/ButtonSize/ButtonIconPlacement/ButtonInteractionState`（:105–:207）、`ResolvedButtonStyle`（:471） |
 | 基础样式 DTO | 同上 | `UiRgbaColor`（:4）、`UiStyleColor`（:52）、`StyleDimension`（:61）、`UiResolvedElementStyle`（:77） |
+| 中央主题文档与 registry | `zircon_runtime_interface/src/ui/style.rs`、`zircon_runtime/src/ui/theme/` | `UiThemeDocument` 与 `UiThemeRegistry` 已存在，runtime/editor 已有消费与主题契约测试。 |
 | v2 样式解析骨架 | `zircon_runtime/src/ui/v2/style.rs` | `UiV2StyleResolver::resolve`（:16/:19）——**无伪状态（hover 等）处理** |
 | 模板编译样式链 | `zircon_runtime/src/ui/template/asset/compiler/` | `ui_style_resolver.rs`、`style_apply.rs` + `style_apply/` 目录 |
 | editor 中立软件绘制族 | `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/` | `style_selector/`（已消费接口 selector）、`material_state_layer.rs`、`template_buttons.rs`、`template_icon_buttons.rs(+tests)`、`template_dropdowns.rs`、`template_popup_rows.rs`、`template_list_rows.rs`、`template_property_rows.rs`、`template_inspector_rows.rs`、`template_fields.rs`、`template_chips.rs`、`template_alerts.rs`、`material_primitives/`、`mui_x_primitives/` 等；旧 `host_contract/painter/` 目录已在 08 M3.S2 硬删除 |
@@ -45,7 +46,7 @@ status: planned
 
 ### 2.2 真实缺口
 
-1. **无中央主题**：仓内不存在 `UiThemeDocument`/theme 资产类型（grep 无命中）；颜色/尺寸散落在模板与 `paint_template_nodes/` 常量里，无 token source-chain 可回溯，无裸 hex 禁令，无主题热重载。
+1. **中央主题已落地但治理未闭环**：`UiThemeDocument`、`UiThemeRegistry` 与 `.zui` `theme_tokens` 资产已存在；仍需收束散落在模板与 `paint_template_nodes/` 的颜色/尺寸常量，建立 token source-chain、裸 hex 门禁，以及主题热重载的不重建树验收。
 2. **v2 伪状态解析缺失**：`UiV2StyleResolver` 无 `:hover/:pressed/:focused/...` 匹配；render extract 侧拿不到状态分档样式，状态视觉目前只在 retained-host 软件绘制一侧成立——双路不同源。
 3. **状态集不全且生产者未收口**：`UiPainterState` 覆盖主要交互态，但 checked/open/dragging 等语义态的写入路径分散（依赖 01 M3 的 reply 统一后才有唯一生产者）。
 4. **组件内联分支未清**：`template_buttons.rs` 等投影文件仍有按状态硬编码的颜色/边框分支，未全部改经 selector + theme token。
@@ -161,25 +162,25 @@ impl UiV2StyleResolver {
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
-| M1.S1 | style.rs 拆 style/ 目录（纯平移，零行为变化） | interface style/ | `cargo test -p zircon_runtime_interface --locked` | style.rs 删除（被目录取代） |
-| M1.S2 | `UiThemeDocument` + 默认 dark theme（`.zui` theme_tokens profile，对齐 editor_tokens.zui；2026-07-02 评审收口，原 TOML 新载体作废）+ ThemeRegistry/loader | theme.rs、runtime ui/theme/ | `cargo test -p zircon_runtime --lib theme --locked` | 无删除 |
-| M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui` UI 文档与 `paint_template_nodes` 源，白名单清单显式） | token_check.rs、各模板 | `cargo test -p zircon_runtime --lib token_check --locked` | 中立绘制族内重复常量表删除 |
-| M2.S1 | `UiPainterState` 状态集盘点补全（checked/open/dragging 字段与折叠规则） | interface style/selector.rs | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
-| M2.S2 | 生产者唯一化：交互态只由 01 reply 写入、语义态只由 reducer 写入（依赖 01 M3） | surface 组件状态写入点 | `cargo test -p zircon_runtime --lib --locked` | 散落写入点删除 |
-| M3.S1 | v2 伪状态匹配 + `resolve_with_state`（折叠调 selector，不复制优先级） | v2/style.rs、ui_style_resolver.rs | `cargo test -p zircon_runtime --lib v2_style --locked` | 无删除 |
+| M1.S1 | style.rs 拆 style/ 目录（纯平移，零行为变化） | interface style/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests` | style.rs 删除（被目录取代） |
+| M1.S2 | 收束现有 `UiThemeDocument` + 默认 dark theme（`.zui` theme_tokens profile，对齐 editor_tokens.zui；2026-07-02 评审收口，原 TOML 新载体作废）+ ThemeRegistry/loader | theme.rs、runtime ui/theme/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter theme` | 无删除 |
+| M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui` UI 文档与 `paint_template_nodes` 源，白名单清单显式） | token_check.rs、各模板 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter token_check` | 中立绘制族内重复常量表删除 |
+| M2.S1 | `UiPainterState` 状态集盘点补全（checked/open/dragging 字段与折叠规则） | interface style/selector.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests` | 无删除 |
+| M2.S2 | 生产者唯一化：交互态只由 01 reply 写入、语义态只由 reducer 写入（依赖 01 M3） | surface 组件状态写入点 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests` | 散落写入点删除 |
+| M3.S1 | v2 伪状态匹配 + `resolve_with_state`（折叠调 selector，不复制优先级） | v2/style.rs、ui_style_resolver.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter v2_style` | 无删除 |
 | M3.S2 | 状态矩阵快照（runtime 侧）：family × 状态组合 resolved style 基线 | v2 测试 | 同上 | 无删除 |
-| M4.S1 | Button 切换：template_buttons.rs 全分支改 selector+token，删内联 | template_buttons.rs | `cargo test -p zircon_editor --lib template_buttons --locked` | 删内联分支 |
-| M4.S2 | IconButton 切换（同模式，template_icon_buttons.rs + tests） | template_icon_buttons* | `cargo test -p zircon_editor --lib icon_buttons --locked` | 删内联分支 |
-| M4.S3 | 双路对拍：Button/IconButton 状态矩阵 extract vs painter 同源断言 + 实机 hover/press 无回归 | 对拍测试 | `cargo test -p zircon_editor --lib --locked` + 实机 | 无删除 |
-| M5.S1 | Checkbox/Radio/Toggle + Slider 切换（material_primitives/ 内） | material_primitives/ | `cargo test -p zircon_editor --lib material_primitives --locked` | 删内联分支 |
-| M5.S2 | Dropdown/PopupRow + Tab/Segmented 切换 | template_dropdowns.rs、template_popup_rows.rs 等 | `cargo test -p zircon_editor --lib --locked` | 删内联分支 |
+| M4.S1 | Button 切换：template_buttons.rs 全分支改 selector+token，删内联 | template_buttons.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter template_buttons` | 删内联分支 |
+| M4.S2 | IconButton 切换（同模式，template_icon_buttons.rs + tests） | template_icon_buttons* | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter icon_buttons` | 删内联分支 |
+| M4.S3 | 双路对拍：Button/IconButton 状态矩阵 extract vs painter 同源断言 + 实机 hover/press 无回归 | 对拍测试 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` + 实机 | 无删除 |
+| M5.S1 | Checkbox/Radio/Toggle + Slider 切换（material_primitives/ 内） | material_primitives/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter material_primitives` | 删内联分支 |
+| M5.S2 | Dropdown/PopupRow + Tab/Segmented 切换 | template_dropdowns.rs、template_popup_rows.rs 等 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` | 删内联分支 |
 | M5.S3 | Rows（list/property/inspector）+ Tooltip/Toast 切换；全组件状态矩阵 + 契约脚本 | template_*_rows.rs、template_alerts.rs | 同上 + `verify-native-component-contract.mjs` | 删内联分支 |
-| M6.S1 | 主题热重载（依赖 05 M2）：watch → registry → restyle 失效 → damage | ui/theme/、05 watch 链 | `cargo test -p zircon_runtime --lib theme_reload --locked` | 无删除 |
+| M6.S1 | 主题热重载（依赖 05 M2）：watch → registry → restyle 失效 → damage | ui/theme/、05 watch 链 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter theme_reload` | 无删除 |
 | M6.S2 | 实机改 theme 文件即时生效验收 | 实机 | editor 实机 | 无删除 |
 
 ## 8. 测试矩阵（代表性用例）
 
-- **M1**：`theme_document_round_trips_toml`、`token_resolves_to_palette_color`、`bare_hex_scan_rejects_unlisted_literal`
+- **M1**：`theme_tokens_zui_profile_round_trips`、`token_resolves_to_palette_color`、`bare_hex_scan_rejects_unlisted_literal`
 - **M2**：`painter_state_priority_disabled_over_pressed`、`interaction_state_written_only_by_reply`、`semantic_state_written_only_by_reducer`
 - **M3**：`v2_pseudo_hover_matches_only_when_hovered`、`v2_state_fold_uses_selector_priority`、`state_matrix_snapshot_button_family`
 - **M4/M5**：`button_resolved_style_same_for_extract_and_painter`、`dropdown_open_state_styles_from_selector`、每组件 `*_state_matrix_snapshot`
@@ -214,7 +215,7 @@ impl UiV2StyleResolver {
 - v2 与 retained-host 绘制状态折叠同源；全组件状态矩阵快照双路一致。
 - template_* 投影文件无状态硬编码分支。
 - 实机：hover/press/focus/disabled 视觉无回归；改 theme 文件即时生效。
-- 验收命令组：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib --locked`（theme/v2_style/token_check 过滤）、`cargo test -p zircon_editor --lib --locked`、`node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs`。
+- 验收命令组：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter theme`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`、`node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs`。
 
 ## 12. 边界约束
 
@@ -236,6 +237,11 @@ impl UiV2StyleResolver {
 | 状态装饰器 | `dev/Fyrox/fyrox-ui/src/{decorator.rs, brush.rs}` | — | hover/pressed/selected 的装饰器切换实现（selector 的另一种形态，对照取舍） |
 
 ## 14. 状态与产出记录
+
+- 当前失败交接（均为 `open / 待修复`）：
+  - [`04/failure-2026-07-18-runtime-button-style-single-map-resolution-overhead.md`](04/failure-2026-07-18-runtime-button-style-single-map-resolution-overhead.md)
+  - [`04/failure-2026-07-18-runtime-ui-render-visual-descriptor-reparse.md`](04/failure-2026-07-18-runtime-ui-render-visual-descriptor-reparse.md)
+  - [`04/failure-2026-07-18-runtime-ui-v2-runtime-style-full-rule-subtree-rebuild.md`](04/failure-2026-07-18-runtime-ui-v2-runtime-style-full-rule-subtree-rebuild.md)
 
 | 日期 | 范围 | 状态 | 完成项目 | 验证 |
 | --- | --- | --- | --- | --- |

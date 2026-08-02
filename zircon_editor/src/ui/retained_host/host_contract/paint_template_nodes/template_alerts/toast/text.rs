@@ -1,6 +1,6 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_node_labels::template_node_label;
-use super::super::layout::{frame_is_within, toast_text_rect, WorkbenchToastMetrics};
+use super::super::layout::{WorkbenchToastMetrics, frame_is_within, toast_text_rect};
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -8,7 +8,7 @@ pub(super) fn push_toast_text(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
-    icon: &FrameRect,
+    icon: Option<&FrameRect>,
     close: &FrameRect,
     clip: &FrameRect,
     order: i32,

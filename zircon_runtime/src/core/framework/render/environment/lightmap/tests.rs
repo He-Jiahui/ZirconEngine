@@ -121,7 +121,7 @@ fn bake_output_imports_a_validated_rgba16f_array_contract() {
         .expect("valid bake output should become a consumption contract after import");
 
     assert_eq!(contract.atlas_descriptor, atlas_descriptor());
-    assert_eq!(contract.slots, vec![(7, slot())]);
+    assert_eq!(contract.slots(), &[(7, slot())]);
     assert!(probe_grid.is_some());
 }
 
@@ -150,6 +150,56 @@ fn render_env_lightmap_contract_resolves_stable_instance_slot() {
 }
 
 #[test]
+fn lightmap_consume_contract_slot_lookup_tracks_public_slot_mutation() {
+    let mut contract = lightmaps(5);
+    let replacement = LightmapInstanceSlot {
+        atlas_page: 0,
+        uv_rect: Vec4::new(0.25, 0.25, 0.5, 0.5),
+    };
+
+    contract.slots = vec![(9, replacement)];
+
+    assert_eq!(contract.slot_for_instance(7), None);
+    assert_eq!(contract.slot_for_instance(9), Some(replacement));
+}
+
+#[test]
+fn lightmap_consume_contract_serde_roundtrip_preserves_slots() {
+    let contract = LightmapConsumeContract::new(
+        5,
+        ResourceId::from_stable_label("res://lighting/test.lightmap-array"),
+        atlas_descriptor(),
+        vec![
+            (7, slot()),
+            (
+                9,
+                LightmapInstanceSlot {
+                    atlas_page: 0,
+                    uv_rect: Vec4::new(0.25, 0.25, 0.5, 0.5),
+                },
+            ),
+        ],
+    );
+    let json = serde_json::to_string(&contract).expect("contract should serialize");
+    let decoded: LightmapConsumeContract =
+        serde_json::from_str(&json).expect("contract should deserialize");
+
+    assert_eq!(decoded, contract);
+    decoded
+        .validate()
+        .expect("deserialized contract should preserve a valid slot contract");
+    assert_eq!(decoded.slots(), contract.slots());
+    assert_eq!(decoded.slot_for_instance(7), Some(slot()));
+    assert_eq!(
+        decoded.slot_for_instance(9),
+        Some(LightmapInstanceSlot {
+            atlas_page: 0,
+            uv_rect: Vec4::new(0.25, 0.25, 0.5, 0.5),
+        })
+    );
+}
+
+#[test]
 fn lightmap_slots_reject_duplicate_instances_and_out_of_bounds_uvs() {
     let duplicate = LightmapConsumeContract::new(
         1,
@@ -161,6 +211,7 @@ fn lightmap_slots_reject_duplicate_instances_and_out_of_bounds_uvs() {
         duplicate.validate(),
         Err(LightmapContractValidationError::DuplicateInstanceId { instance_id: 7 })
     );
+    assert_eq!(duplicate.slot_for_instance(7), Some(slot()));
 
     let invalid_slot = LightmapInstanceSlot {
         atlas_page: 0,

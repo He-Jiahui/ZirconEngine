@@ -1,8 +1,8 @@
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits,
-    ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
-    ShadingModelDescriptor,
+    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmRequest, ShadingModelDescriptor, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::dynamic_api::{
     builtin_fallback_shader_prewarm_manifest,
@@ -25,43 +25,36 @@ pub(super) const REGISTRY_MATERIAL_PASS_TYPES: [ShaderPassType; 6] = [
 pub(super) fn registry_material_pass_product_prewarm_manifest(
     cases: &[RegistryShaderCase],
 ) -> ShaderVariantPrewarmManifest {
-    let standard_material_variants =
-        builtin_standard_material_shader_prewarm_manifest_for_geometry(
-            ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
-            SHADING_MODEL_ID_STANDARD_PBR,
-            None,
-            GEOMETRY_SOURCE_ID_STATIC_MESH,
-            &[ShaderQualityTier::Medium],
-        )
-        .variants;
-    let mut variants = builtin_fallback_shader_prewarm_manifest().variants;
+    let standard_material_manifest = builtin_standard_material_shader_prewarm_manifest_for_geometry(
+        ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
+        SHADING_MODEL_ID_STANDARD_PBR,
+        None,
+        GEOMETRY_SOURCE_ID_STATIC_MESH,
+        &[ShaderQualityTier::Medium],
+    );
+    let mut manifest = builtin_fallback_shader_prewarm_manifest();
     for case in cases.iter().copied() {
-        variants.extend(
-            standard_material_variants
-                .iter()
-                .cloned()
-                .map(|mut request| {
-                    request.key.material_shader = case.shader_id();
-                    request.key.material_revision = case.revision;
-                    request.source_label = case.source_label_for_pass(request.key.pass_type);
-                    request
-                }),
-        );
+        append_case_variants(&mut manifest, &standard_material_manifest, case);
     }
-    ShaderVariantPrewarmManifest::new(variants)
+    manifest
 }
 
 pub(super) fn registry_material_pass_live_source_label_prewarm_manifest(
     cases: &[RegistryShaderCase],
 ) -> ShaderVariantPrewarmManifest {
     let mut manifest = registry_material_pass_product_prewarm_manifest(cases);
-    for request in &mut manifest.variants {
+    for request_index in 0..manifest.variants.len() {
+        let request = &manifest.variants[request_index];
         if let Some(case) = cases
             .iter()
             .copied()
             .find(|case| request_belongs_to_case(request, *case))
         {
-            request.source_label = case.locator.to_string();
+            let source = manifest
+                .source_for(request)
+                .expect("live source label prewarm source")
+                .with_source_label(case.locator);
+            assert!(manifest.replace_variant_source(request_index, source));
         }
     }
     manifest
@@ -75,7 +68,7 @@ pub(super) fn registry_material_pass_product_prewarm_manifest_with_plugin_shadin
     let custom_shading_model = plugin_shading_models
         .first()
         .expect("registry material-pass custom shading model");
-    let custom_material_variants =
+    let custom_material_manifest =
         builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models(
             asset_manager,
             ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
@@ -84,18 +77,12 @@ pub(super) fn registry_material_pass_product_prewarm_manifest_with_plugin_shadin
             GEOMETRY_SOURCE_ID_STATIC_MESH,
             &[ShaderQualityTier::Medium],
             plugin_shading_models,
-        )?
-        .variants;
-    let mut variants = builtin_fallback_shader_prewarm_manifest().variants;
+        )?;
+    let mut manifest = builtin_fallback_shader_prewarm_manifest();
     for case in cases.iter().copied() {
-        variants.extend(custom_material_variants.iter().cloned().map(|mut request| {
-            request.key.material_shader = case.shader_id();
-            request.key.material_revision = case.revision;
-            request.source_label = case.source_label_for_pass(request.key.pass_type);
-            request
-        }));
+        append_case_variants(&mut manifest, &custom_material_manifest, case);
     }
-    Ok(ShaderVariantPrewarmManifest::new(variants))
+    Ok(manifest)
 }
 
 pub(super) fn raw_wgsl_hash(source: &str) -> String {
@@ -112,6 +99,25 @@ fn request_belongs_to_case(
 ) -> bool {
     request.key.material_shader == case.shader_id()
         && request.key.material_revision == case.revision
+}
+
+fn append_case_variants(
+    manifest: &mut ShaderVariantPrewarmManifest,
+    template_manifest: &ShaderVariantPrewarmManifest,
+    case: RegistryShaderCase,
+) {
+    for request in &template_manifest.variants {
+        let source = template_manifest
+            .source_for(request)
+            .expect("template prewarm source")
+            .with_source_label(case.source_label_for_pass(request.key.pass_type));
+        let mut request = request.clone();
+        request.key.material_shader = case.shader_id();
+        request.key.material_revision = case.revision;
+        request.source_id = source.id.clone();
+        manifest.sources.push(source);
+        manifest.variants.push(request);
+    }
 }
 
 #[cfg(test)]

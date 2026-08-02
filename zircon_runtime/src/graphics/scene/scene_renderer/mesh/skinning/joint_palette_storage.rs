@@ -44,6 +44,15 @@ impl SkinnedMeshJointPaletteStorage {
         self.params[0]
     }
 
+    pub(in crate::graphics::scene) fn active_upload_byte_len(&self) -> u64 {
+        let matrix_bytes = usize::try_from(self.joint_count())
+            .expect("skinned joint count did not fit usize")
+            .checked_mul(std::mem::size_of::<[[f32; 4]; 4]>())
+            .expect("skinned joint matrix upload size overflowed usize");
+        u64::try_from(matrix_bytes + std::mem::size_of_val(&self.params))
+            .expect("skinned joint palette upload size did not fit u64")
+    }
+
     pub(in crate::graphics::scene::scene_renderer::mesh) fn joint_matrices(
         &self,
     ) -> &[[[f32; 4]; 4]; SKINNED_MESH_MAX_JOINT_MATRICES] {
@@ -63,12 +72,20 @@ impl SkinnedMeshJointPaletteStorage {
         )
     }
 
-    pub(in crate::graphics::scene) fn write_buffer(
+    pub(in crate::graphics::scene) fn write_active_prefix(
         &self,
         queue: &wgpu::Queue,
         buffer: &wgpu::Buffer,
     ) {
-        queue.write_buffer(buffer, 0, bytemuck::bytes_of(self));
+        let joint_count =
+            usize::try_from(self.joint_count()).expect("skinned joint count did not fit usize");
+        let matrix_bytes = bytemuck::cast_slice(&self.joint_matrices[..joint_count]);
+        if !matrix_bytes.is_empty() {
+            queue.write_buffer(buffer, 0, matrix_bytes);
+        }
+        let params_offset = u64::try_from(std::mem::size_of_val(&self.joint_matrices))
+            .expect("skinned joint palette params offset did not fit u64");
+        queue.write_buffer(buffer, params_offset, bytemuck::bytes_of(&self.params));
     }
 }
 
@@ -106,6 +123,31 @@ mod tests {
     }
 
     #[test]
+    fn active_palette_upload_writes_only_joint_prefix_and_params() {
+        let no_joints = SkinnedMeshJointPaletteStorage::from_matrices(&[])
+            .expect("empty palette fits storage ABI");
+        let sixty_four_joints =
+            SkinnedMeshJointPaletteStorage::from_matrices(&[Mat4::IDENTITY; 64])
+                .expect("64-joint palette fits storage ABI");
+        let full_palette = SkinnedMeshJointPaletteStorage::from_matrices(
+            &[Mat4::IDENTITY; SKINNED_MESH_MAX_JOINT_MATRICES],
+        )
+        .expect("full palette fits storage ABI");
+
+        let matrix_bytes = std::mem::size_of::<[[f32; 4]; 4]>() as u64;
+        let params_bytes = std::mem::size_of::<[u32; 4]>() as u64;
+        assert_eq!(no_joints.active_upload_byte_len(), params_bytes);
+        assert_eq!(
+            sixty_four_joints.active_upload_byte_len(),
+            64 * matrix_bytes + params_bytes
+        );
+        assert_eq!(
+            full_palette.active_upload_byte_len(),
+            std::mem::size_of::<SkinnedMeshJointPaletteStorage>() as u64
+        );
+    }
+
+    #[test]
     #[ignore = "manual WGPU upload benchmark; run explicitly for M4 evidence"]
     fn gpu_skinning_storage_upload_benchmark_for_1000_instances() {
         let Ok(backend) = crate::graphics::backend::RenderBackend::new_offscreen() else {
@@ -118,11 +160,23 @@ mod tests {
         let buffers = (0..BENCHMARK_INSTANCE_COUNT * 2)
             .map(|_| payload.create_buffer(&backend.device))
             .collect::<Vec<_>>();
+        let uploaded_bytes = u64::try_from(buffers.len())
+            .expect("benchmark palette count did not fit u64")
+            .checked_mul(payload.active_upload_byte_len())
+            .expect("benchmark palette upload bytes overflowed u64");
+        for buffer in &buffers {
+            payload.write_active_prefix(&backend.queue, buffer);
+        }
 
         assert_eq!(buffers.len(), BENCHMARK_INSTANCE_COUNT * 2);
+        assert_eq!(
+            uploaded_bytes,
+            (BENCHMARK_INSTANCE_COUNT * 2) as u64 * (64 * 64 + 16),
+            "the 64-joint benchmark must exclude the fixed 256-joint tail"
+        );
         eprintln!(
-            "gpu_skinning_storage_upload_1000_instances_elapsed_us={}",
-            started.elapsed().as_micros()
+            "gpu_skinning_storage_upload_1000_instances_elapsed_us={} uploaded_bytes={uploaded_bytes}",
+            started.elapsed().as_micros(),
         );
     }
 }

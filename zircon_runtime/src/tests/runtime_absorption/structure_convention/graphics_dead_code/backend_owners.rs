@@ -15,7 +15,6 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
     let runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let render_index = runtime_15_plan.clone();
     let review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
@@ -76,7 +75,6 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),
-        ("Render index", render_index.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),

@@ -80,7 +80,9 @@ fn render_text_atlas_draw_plan_keeps_color_rgba_distinct_from_subpixel() {
         color_instance.render_contract.blend_mode,
         GlyphAtlasBlendMode::SourceRgba
     );
-    assert!(!color_quad.render_contract.requires_background_composite());
+    assert!(!color_instance
+        .render_contract
+        .requires_background_composite());
 }
 
 #[test]

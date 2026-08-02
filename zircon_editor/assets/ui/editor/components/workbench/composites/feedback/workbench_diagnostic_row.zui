@@ -1,0 +1,31 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui"
+version = 2
+display_name = "Workbench Diagnostic Row"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchDiagnosticRow]
+root = "root"
+default_classes = ["workbench-diagnostic-row", "workbench-composite"]
+slots = { severity = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchStatusItem"] }, message = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchStatusItem"] } }
+
+[nodes.root]
+component = "HorizontalGroup"
+control_id = "WorkbenchDiagnosticRowRoot"
+classes = ["workbench-diagnostic-row"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+children = [{ node = "severity_slot" }, { node = "message_slot" }]
+
+[nodes.severity_slot]
+component = "Slot"
+props = { name = "severity" }
+layout = { width = { min = 80.0, preferred = 84.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.message_slot]
+component = "Slot"
+props = { name = "message" }
+layout = { width = { min = 32.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }

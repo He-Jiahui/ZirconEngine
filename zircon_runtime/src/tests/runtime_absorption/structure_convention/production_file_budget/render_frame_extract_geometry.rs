@@ -1,4 +1,4 @@
-use super::{assert_contains_all, read_repo, read_runtime_src};
+use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_frame_extract_geometry_is_child_owner() {
@@ -76,7 +76,7 @@ fn runtime_15_frame_extract_geometry_is_child_owner() {
         ("structure convention", structure_convention.as_str()),
         ("frame extract docs", frame_extract_doc.as_str()),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             doc,
             &[

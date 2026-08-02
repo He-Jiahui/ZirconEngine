@@ -13,8 +13,12 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         last_ui_text_unmapped_glyph_count: 2,
         last_ui_text_visible_raster_glyph_count: 11,
         last_ui_text_raster_source_image_count: 10,
+        last_ui_text_missing_raster_image_count: 2,
+        last_ui_text_visible_raster_placeholder_count: 3,
         last_ui_text_raster_worker_pending_count: 3,
         last_ui_text_raster_worker_failed_count: 1,
+        last_ui_text_raster_renderer_upload_requeued_count: 4,
+        last_ui_text_raster_renderer_upload_failure_count: 5,
         ..RenderStats::default()
     };
 
@@ -36,6 +40,18 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
     );
     assert_series(
         &store,
+        "render.ui.text.raster.missing_image_count",
+        2.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.visible_placeholder_count",
+        3.0,
+        "count",
+    );
+    assert_series(
+        &store,
         "render.ui.text.raster.worker_pending_count",
         3.0,
         "count",
@@ -44,6 +60,18 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         &store,
         "render.ui.text.raster.worker_failed_count",
         1.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.renderer_upload_requeued_count",
+        4.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.renderer_upload_failure_count",
+        5.0,
         "count",
     );
 }

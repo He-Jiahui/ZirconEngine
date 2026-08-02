@@ -22,10 +22,10 @@ tests:
 
 ## 来源执行者
 
-- 来源计划: `docs/plans/zircon_runtime/runtime/11-job-system-task-model.md`
-- 来源执行切片: Runtime11 native-plugin discovery bounded refresh publication contract
-- 修复责任计划: `docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md`
-- 交接原因: Frameworks04 owns the native discovery authority, filesystem/manifest collection projection, and the collector boundary consumed by Runtime11. Runtime11 owns task admission, cancellation, terminal tickets, and immutable publication, but cannot enforce resource limits after a foreign collector has already allocated its public payload.
+- 来源计划：`docs/plans/zircon_runtime/runtime/11-job-system-task-model.md`
+- 来源执行切片：Runtime11 native-plugin discovery bounded refresh publication contract
+- 修复责任计划：`docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md`
+- 交接原因：Frameworks04 owns the native discovery authority, filesystem/manifest collection projection, and the collector boundary consumed by Runtime11. Runtime11 owns task admission, cancellation, terminal tickets, and immutable publication, but cannot enforce resource limits after a foreign collector has already allocated its public payload.
 - 生命周期键: `native-discovery-metered-collector-contract`
 
 ## 失败现象与复现证据
@@ -268,3 +268,44 @@ New r4 tests must cover queued-before-start deadline, terminal-observer re-entry
 rejection, and warm root identity reuse. The pending reservation is to be released before these
 source changes; this failure remains open with no test, review, fixed, commit, or upward-runtime
 claim.
+
+## r5 前向修复与二次审查（2026-08-01）
+
+- Session `frameworks04-native-discovery-authority-materialization-r5-20260801` continued from the
+  integrated r4 source. Its first independent review was C0/I3/M0: it found an unmetered
+  `CollectingManifestVisitor` aggregate/test bypass, a test-only unbounded manifest read, two stale
+  source-string assertions, and missing behavioral coverage for queued-before-start deadline,
+  production read stability, and warm root reuse.
+- The non-conflicting owner scope now hard-cuts the aggregate collector and its collection result;
+  all retained discovery paths use the canonical visitor traversal. The test-only
+  `fs::read_to_string` path and disconnected stability helper are deleted, and dead read/change
+  candidate-error variants are removed rather than retained as compatibility contracts.
+- The queued-deadline regression now saturates a real one-worker `TaskPool`, verifies the ticket
+  terminalizes before collector start, releases the worker, and proves late collector completion
+  cannot replace `DeadlineExceeded`, publish a snapshot, or erase the typed last failure. The
+  manifest-length regression calls the production `ensure_bounded_read_is_stable` helper, and the
+  source guards match the current multiline completion and authority failure-report calls.
+- The first r5 re-review was C0/I1/M0. Every metered-collector finding above passed; the remaining
+  Important item was the lack of a behavioral warm-root no-restat regression. The successor test
+  now discovers through a lexical `..` alias, removes the canonical root, and requires warm
+  generation and report projection to preserve the published identity and generation. A repeated
+  canonicalization/stat path would lose that canonical identity after removal instead of serving
+  the last-good snapshot.
+- Static evidence for the five changed Rust files is GREEN under Rust 1.94.1 `rustfmt --check` and
+  scoped `git diff --check`; the latter reports only existing CRLF conversion notices. The final
+  independent re-review is C0/I0/M0, Source Ready: it confirms the alias-removal regression fails
+  if warm lookup re-canonicalizes to the now-missing lexical path and therefore behaviorally guards
+  the cached identity. No Cargo command has been run directly or claimed GREEN.
+
+This record remains `open` / `resolving_failure` until a fresh coordinator-managed lib-only gate
+returns. Pending or running coordinator work delays only accepted closeout; it does not convert
+Source Ready evidence into a fixed artifact or stop subsequent Goal execution.
+
+Coordinator receipt note: exact-scope lease refresh succeeded as request
+`f9dd87d5a97d442ea2579c56544d1921`. The following snapshot request
+`ae1c9d9529a6432db2934f4e75e338b6` timed out during coordinator health preflight with explicit
+`submission: not_submitted`; therefore there is no snapshot, reservation, job, or test result to
+reuse or claim. Per receipt-driven execution policy, no recovery polling or resubmission loop was
+started. The locally recomputed ordinal, LF/no-final-LF nine-Rust-path source fingerprint is
+`d3f1dc5efb84b2533cfc3171ab98c0ae6f6b2d50aed2ce0643f9632987773408`; it records Source Ready
+identity only and is not a substitute for a coordinator snapshot.

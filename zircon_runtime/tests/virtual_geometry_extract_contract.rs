@@ -45,6 +45,7 @@ fn virtual_geometry_extract_preserves_instance_ranges_and_debug_state() {
         }],
         instances: vec![RenderVirtualGeometryInstance {
             entity: 7,
+            stable_instance_key: 0,
             source_model: Some(model_id),
             transform: Transform::from_translation(Vec3::new(10.0, 0.0, 0.0)),
             cluster_offset: 0,

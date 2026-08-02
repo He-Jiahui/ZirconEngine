@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_plugins/gltf_importer/dist/src/lib.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
@@ -51,6 +54,9 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_markdown.py
 implementation_files:
   - docs/engine-architecture/native-plugin-boundary.md
+  - zircon_plugins/gltf_importer/dist/src/lib.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
   - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
@@ -186,6 +192,26 @@ entity. Resource ids follow the same registration-time access contract.
 ## Hot-reload rollback disposition
 
 `NativePluginHotReloadState` tracks the previous native package with an explicit disposition: not loaded, held for rollback, unloaded, or restored. When replacement state restore fails, the host unloads the replacement, restores the previous snapshot, reinserts the previous package, and then marks the disposition as restored before formatting the lifecycle error. The diagnostic therefore describes the actual live-host state instead of confusing an earlier unload with the final rollback result.
+
+## Importer state and development watch
+
+`gltf_importer` is the first production importer sample for the stateful ABI
+contract. Its behavior table is not stateless: schema version 1 snapshots the
+`ZRGLTF01` format marker and importer epoch, restores only an exact schema payload,
+and exposes save, restore, and unload callbacks through the SDK-owned v3
+descriptor/v4 behavior projection. The fixture rejects a same-size foreign schema
+without mutating live state and rejects a null save output.
+
+After a manual editor-plugin hot reload succeeds, debug builds select the unique
+discovered artifact for that plugin and install a non-recursive watcher on its
+canonical parent directory. The filesystem callback accepts only create,
+modify, or remove events whose path exactly matches that artifact; manifest
+changes and neighboring plugin libraries cannot cross-trigger the watcher. It
+coalesces accepted changes into a capacity-one signal, and a debounced worker calls the same
+`NativePluginLiveHost::hot_reload_editor_plugin` path, so state migration,
+generation replacement, and rollback retain one authority. Unload or backend drop
+removes the watcher and joins its worker. Release builds contain no development
+watch registry or worker.
 
 ## Current Audit
 

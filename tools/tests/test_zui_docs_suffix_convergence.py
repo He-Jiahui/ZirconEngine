@@ -175,42 +175,6 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
                 + "\n".join(failures)
             )
 
-    def test_plugin_export_plan_m6_current_progress_uses_zui_report_templates(self):
-        repo_root = Path(__file__).resolve().parents[2]
-        plan_text = (
-            repo_root / "docs/plans/zircon_plugins/09-export-publishing.md"
-        ).read_text(encoding="utf-8")
-        current_progress = _section(
-            plan_text,
-            "#### M6 当前进度（2026-06-14）",
-            "## 5. 里程碑与任务分解",
-        )
-
-        stale_phrases = [
-            "当前仍不声明 `.zui` 模板",
-            "主面板与三类报告现在是 `.v2.ui.toml` view 模板",
-            "当前不声明 `.v2.ui.toml` 真实渲染",
-        ]
-        required_phrases = [
-            "主面板与三类报告当前均为 `.zui` view 模板",
-            "profile drawer 保持 `.zui` component 模板",
-            "`.ui.toml` / `.v2.ui.toml` 后缀已退役",
-        ]
-
-        failures: list[str] = []
-        for phrase in stale_phrases:
-            if phrase in current_progress:
-                failures.append(f"stale export wizard template authority: {phrase}")
-        for phrase in required_phrases:
-            if phrase not in current_progress:
-                failures.append(f"missing export wizard zui authority fact: {phrase}")
-
-        if failures:
-            self.fail(
-                "Plugin export plan M6 current progress still references retired report-template suffixes:\n"
-                + "\n".join(failures)
-            )
-
     def test_editor_build_export_desktop_doc_current_templates_use_zui(self):
         repo_root = Path(__file__).resolve().parents[2]
         doc_text = (
@@ -250,40 +214,6 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
         if failures:
             self.fail(
                 "Desktop export plugin doc still describes current templates with retired suffix authority:\n"
-                + "\n".join(failures)
-            )
-
-    def test_editor_command_workflow_component_drawer_uses_zui_document_authority(self):
-        repo_root = Path(__file__).resolve().parents[2]
-        workflow_text = (
-            repo_root / "docs/editor-and-tooling/editor-command-workflow.md"
-        ).read_text(encoding="utf-8")
-        drawer_projection = _section(
-            workflow_text,
-            "### Component Drawer Template Projection",
-            "### EditorOperation 分派",
-        )
-
-        stale_phrases = [
-            "UI document must be a `.v2.ui.toml` asset",
-            "registry rejects legacy `.ui.toml` drawer and template documents",
-        ]
-        required_phrases = [
-            "UI document must be a `.zui` component asset",
-            "registry rejects stale `.ui.toml` and `.v2.ui.toml` drawer/template documents",
-        ]
-
-        failures: list[str] = []
-        for phrase in stale_phrases:
-            if phrase in drawer_projection:
-                failures.append(f"stale component drawer document authority: {phrase}")
-        for phrase in required_phrases:
-            if phrase not in drawer_projection:
-                failures.append(f"missing component drawer zui authority fact: {phrase}")
-
-        if failures:
-            self.fail(
-                "Editor command workflow still describes component drawer documents with retired suffix authority:\n"
                 + "\n".join(failures)
             )
 

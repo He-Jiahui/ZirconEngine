@@ -1,28 +1,30 @@
 use crate::capability::{
-    NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+    NAVIGATION_DECLARATION, NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY,
+    RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
 };
 use crate::{
-    module_descriptor, navigation_component_descriptors, navigation_event_catalog,
-    navigation_plugin_options, NAVIGATION_MODULE_NAME, PLUGIN_ID,
+    NAVIGATION_MODULE_NAME, PLUGIN_ID, module_descriptor, navigation_component_descriptors,
+    navigation_event_catalog, navigation_plugin_options,
 };
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationDebugCapture, NavigationError,
     OffMeshTraverseEvent,
 };
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::navigation::NavRepathBudget;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
 use zircon_runtime::scene::{
-    SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+    SCENE_NAVIGATION_RUNTIME_DRIVER_NAME, SceneNavigationRuntime, SceneNavigationRuntimeHandle,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const NAVIGATION_DIST_CRATE_NAME: &str = "zircon_plugin_navigation_dist";
 pub const NAVIGATION_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_navigation_runtime_entry_v3";
+pub const NAVIGATION_MAIN_SYSTEM_SET: &str = "navigation.main";
 const NAVIGATION_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
@@ -61,9 +63,6 @@ impl RuntimePlugin for NavigationRuntimePlugin {
             manifest = manifest.with_option(option);
         }
         manifest = manifest.with_event_catalog(navigation_event_catalog());
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("navigation.dist", NAVIGATION_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -163,6 +162,7 @@ impl RuntimePlugin for NavigationRuntimePlugin {
                         })
                 },
             )
+            .in_set(NAVIGATION_MAIN_SYSTEM_SET)
             .after(zircon_runtime::scene::ecs::SystemRef::System(
                 "ai.behavior_tick".to_string(),
             ))
@@ -172,29 +172,18 @@ impl RuntimePlugin for NavigationRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Navigation",
-        RuntimePluginId::Navigation,
-        "zircon_plugin_navigation_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_system_anchors([NAVIGATION_AGENT_TICK_SYSTEM])
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::ServerRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(NAVIGATION_RUNTIME_CAPABILITY)
-    .with_capability(NAVIGATION_RECAST_CAPABILITY)
-    .with_maturity(PluginMaturity::Beta)
-    .with_capability_status(
-        CapabilityStatusManifest::new(NAVIGATION_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
-            .with_note(
-                "Gameplay navmesh/pathfinding is optional; UI navigation parity is separate.",
-            ),
-    )
-    .build()
+    NAVIGATION_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .with_system_sets([NAVIGATION_MAIN_SYSTEM_SET])
+        .with_system_anchors([NAVIGATION_AGENT_TICK_SYSTEM])
+        .with_capability_status(
+            CapabilityStatusManifest::new(NAVIGATION_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
+                .with_note(
+                    "Gameplay navmesh/pathfinding is optional; UI navigation parity is separate.",
+                ),
+        )
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(NavigationRuntimePlugin);

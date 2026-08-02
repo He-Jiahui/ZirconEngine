@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use crate::core::math::UVec2;
 
-use crate::graphics::debug_markers::{RENDERDOC_MARKER_READBACK, insert_marker};
+use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
 use crate::graphics::types::GraphicsError;
 
 pub(crate) fn read_texture_rgba(

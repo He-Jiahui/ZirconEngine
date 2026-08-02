@@ -9,7 +9,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/asset_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/viewport.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/welcome.rs
@@ -30,7 +29,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/asset_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/viewport.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/welcome.rs
@@ -62,7 +60,7 @@ doc_type: module-detail
 
 `globals/ui_context.rs` exposes host-level state and chrome callbacks: menu pointer events, activity rail clicks, document and drawer tab clicks, floating header clicks, drag/resize forwarding, frame requests, close-prompt actions, and unhandled keyboard forwarding.
 
-`globals/pane_context.rs` owns the `PaneSurfaceHostContext` wrapper and `HostContractGlobal` construction. `globals/pane_context/setters.rs` is now a structural setter-family entry. `setters/welcome.rs` owns Welcome/project-overview pane setters, `setters/viewport.rs` owns viewport image and mesh-import setters, `setters/asset_data.rs` owns projected asset pane data placeholders, and `setters/interaction.rs` owns retained pane interaction state mutation. `globals/pane_context/callbacks.rs` exposes pane-level callback registration/invocation for Welcome, hierarchy, console, inspector, component showcase, asset panes, viewport, and UI asset detail/collection callbacks.
+`globals/pane_context.rs` owns the `PaneSurfaceHostContext` wrapper and `HostContractGlobal` construction. `globals/pane_context/setters.rs` is now a structural setter-family entry. `setters/welcome.rs` owns Welcome/project-overview pane setters, `setters/viewport.rs` owns viewport image and mesh-import setters, and `setters/interaction.rs` owns retained hierarchy, console, inspector, and asset-pane interaction state mutation. Projected asset data comes from the host snapshot path rather than a placeholder setter leaf. `globals/pane_context/callbacks.rs` exposes pane-level callback registration/invocation for Welcome, hierarchy, console, inspector, component showcase, asset panes, viewport, and UI asset detail/collection callbacks.
 
 ## Callback Ownership
 
@@ -104,7 +102,7 @@ The 2026-06-21 callback host/pane/type split reduced `globals/callbacks.rs` from
 
 The 2026-06-21 pane-context setters/callbacks split reduced `globals/pane_context.rs` from 161 lines to a 22-line context wrapper entry. `pane_context/setters.rs` is 114 lines and owns pane state setter/placeholders plus direct retained state mutations, while `pane_context/callbacks.rs` is 51 lines and owns pane callback registration/invocation macro expansion. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a globals pane-context setters/callbacks ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
 
-The 2026-06-21 pane-context setter family split reduced `globals/pane_context/setters.rs` from 114 lines to a 4-line structural entry. `setters/welcome.rs` owns Welcome/project-overview state setters, `setters/viewport.rs` owns viewport image conversion and mesh-import placeholder, `setters/asset_data.rs` owns asset pane projected-data placeholders, and `setters/interaction.rs` owns hierarchy/asset interaction state mutation plus remaining scroll/hover placeholders. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a globals pane-context setter family ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+The 2026-06-21 pane-context setter family split initially included a projected asset-data placeholder leaf. That leaf is now retired; `setters/interaction.rs` owns the remaining hierarchy, console, inspector, and asset-pane scroll/hover state, while projected asset data arrives through the host snapshot path. The structural `setters.rs`, Welcome, and viewport owners remain unchanged.
 
 The 2026-07-05 logical-width breakpoint cutover added normalized `window_scale_factor` storage to `HostContractState` so retained host layout can consume DPI scale through the same shared state cell as size and visibility. Validation used `cargo test -p zircon_editor --lib window_scale_factor_defaults_to_one_and_filters_invalid_values --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-layout-tier-logical-0705 --message-format short --color never -- --nocapture --test-threads=1`, which passed 1/1.
 

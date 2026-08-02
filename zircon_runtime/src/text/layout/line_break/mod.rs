@@ -29,6 +29,7 @@ pub(crate) struct LineBreakChunk<'a> {
     pub visual_range: TextRange,
     pub source_range: TextRange,
     pub allow_glyph_fallback: bool,
+    pub mandatory_break: bool,
     pub break_suffix: Option<LineBreakSuffix>,
 }
 
@@ -65,16 +66,30 @@ where
 
     for line in &shaped.lines {
         for glyph in &line.glyphs {
-            if !glyph.cluster_flags.cluster_start || !glyph.cluster_flags.soft_break {
+            if !glyph.cluster_flags.cluster_start
+                || (!glyph.cluster_flags.soft_break && !glyph.cluster_flags.mandatory_break)
+            {
                 continue;
             }
 
-            let chunk_end = glyph.visual_range.end.min(text.len());
+            let Some(chunk_end) = glyph
+                .source_range
+                .end
+                .checked_sub(shaped.source_range.start)
+                .map(|end| end.min(text.len()))
+            else {
+                continue;
+            };
             if chunk_end <= chunk_start || !text.is_char_boundary(chunk_end) {
                 continue;
             }
 
             soft_hyphen::push_chunks(text, chunk_start, chunk_end, &mut chunks);
+            if glyph.cluster_flags.mandatory_break {
+                if let Some(chunk) = chunks.last_mut() {
+                    chunk.mandatory_break = true;
+                }
+            }
             chunk_start = chunk_end;
         }
     }
@@ -146,6 +161,7 @@ impl<'a> LineBreakChunk<'a> {
             visual_range,
             source_range,
             allow_glyph_fallback: allows_glyph_fallback(text),
+            mandatory_break: false,
             break_suffix,
         }
     }

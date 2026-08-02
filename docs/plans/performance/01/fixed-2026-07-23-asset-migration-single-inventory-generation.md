@@ -56,7 +56,7 @@ migration没有消费project generation inventory，也没有独立运行时的�
 2026-07-23 书面拆分获批后，本 lifecycle 只保留已经实现并验证的 single-walk inventory owner。原 PERF-MVP-511 中尚未完成的三个独立合同继续保持 open，不与本 fixed scope 重叠：
 
 - [indexed resolver generation](../../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md)：`resolver.rs` 的 logical→physical O(1) generation index 与 per-reference filesystem probe=0。
-- [single-parse document artifact](../../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-single-parse-document-artifact.md)：`document.rs`/formal reader 共享一次 typed parse artifact，完整 Value 深 clone=0。
+- [single-parse document artifact fixed](fixed-2026-07-23-asset-migration-single-parse-document-artifact.md)：`document.rs`/formal reader 共享一次 typed parse artifact，完整 Value 深 clone=0。
 - [scale acceptance matrix](../../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-scale-acceptance-matrix.md)：1/1k/100k files/dirs/refs、1/4 roots、dry-run/apply/unchanged/1% change 的计数与等价性证据。
 
 ## 修复结果与回传

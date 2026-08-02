@@ -57,6 +57,9 @@ const zr = `// Generated from ${SOURCE_COMMIT}; do not edit by hand.\n` +
   'pub heatingUpId(): string { return "heating_up"; }\n' +
   'pub hotStreakId(): string { return "hot_streak"; }\n' +
   'pub hotStreakInstantId(): string { return "hot_streak_instant"; }\n' +
+  '// WOS-owned stable identities for the source pair; their target scope is gameplay state.\n' +
+  'pub hotStreakFreeModifierIdentityCode(): uint { return <uint>1; }\n' +
+  'pub hotStreakInstantModifierIdentityCode(): uint { return <uint>2; }\n' +
   'pub temporalBarrierId(): string { return "temporal_barrier"; }\n' +
   'pub blazingBarrierId(): string { return "blazing_barrier"; }\n' +
   'pub iceBarrierId(): string { return "ice_barrier"; }\n' +

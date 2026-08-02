@@ -38,11 +38,18 @@ impl RetainedEditorHost {
 
         let stream_started = Instant::now();
         let mut resource_changes = Vec::new();
+        let mut resource_generation_lagged = false;
         while can_drain_more(stream_started, resource_changes.len()) {
-            let Ok(change) = self.resource_change_events.try_recv() else {
-                break;
-            };
-            resource_changes.push(change);
+            match self.resource_change_events.try_recv() {
+                Ok(change) => resource_changes.push(change),
+                Err(zircon_runtime::core::resource::ResourceEventTryRecvError::Lagged(_)) => {
+                    resource_generation_lagged = true;
+                }
+                Err(zircon_runtime::core::resource::ResourceEventTryRecvError::Empty)
+                | Err(zircon_runtime::core::resource::ResourceEventTryRecvError::Disconnected) => {
+                    break;
+                }
+            }
         }
 
         let asset_pending = self.asset_change_events.len();
@@ -69,6 +76,7 @@ impl RetainedEditorHost {
             asset_changes,
             editor_asset_changes,
             resource_changes,
+            resource_generation_lagged,
         }
     }
 }

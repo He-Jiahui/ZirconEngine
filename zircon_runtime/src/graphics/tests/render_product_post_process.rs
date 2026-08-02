@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::asset::{AssetUri, RGBA8_UNORM_FORMAT, TextureAsset, TextureAssetDescriptor};
+use crate::asset::{AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT};
 use crate::core::framework::render::{
-    COLOR_LUT_SIZE_DEFAULT, CapturedFrame, DEFAULT_CAMERA_EXPOSURE_EV100, FallbackSkyboxKind,
-    PreviewEnvironmentExtract, RenderChromaticAberrationSettings, RenderColorGradingSettings,
-    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderColorLutReadbackReference,
-    RenderDitherSettings, RenderFilmGrainSettings, RenderFrameExtract, RenderFramework,
-    RenderImageColorSpace, RenderPostProcessEffectStackSettings, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderTonemapOperator,
-    RenderTonemapSettings, RenderViewportDescriptor, RenderVignetteSettings,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract,
+    RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
+    RenderColorLookupTextureLayout, RenderColorLutReadbackReference, RenderDitherSettings,
+    RenderFilmGrainSettings, RenderFrameExtract, RenderFramework, RenderImageColorSpace,
+    RenderPostProcessEffectStackSettings, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderStats, RenderTonemapOperator, RenderTonemapSettings,
+    RenderViewportDescriptor, RenderVignetteSettings, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot, COLOR_LUT_SIZE_DEFAULT, DEFAULT_CAMERA_EXPOSURE_EV100,
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{

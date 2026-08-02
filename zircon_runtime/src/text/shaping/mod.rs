@@ -4,6 +4,7 @@ mod bidi;
 mod cosmic;
 mod fallback_spans;
 mod horizontal;
+mod itemize;
 mod line_break;
 mod normalize;
 mod script_segment;
@@ -24,6 +25,8 @@ pub(crate) use fallback_spans::{fallback_text_spans, FallbackTextSpan};
 pub(crate) use vertical::{vertical_glyph_advance, vertical_glyph_rotation};
 
 pub(crate) fn shape_text(request: BackendShapeRequest<'_>) -> ShapedGlyphRun {
+    let canonical_request = request.canonicalized();
+    let request = canonical_request.request();
     cosmic::shape_text(request)
 }
 

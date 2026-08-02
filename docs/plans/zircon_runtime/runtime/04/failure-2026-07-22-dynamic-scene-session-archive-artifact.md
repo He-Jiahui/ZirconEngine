@@ -52,4 +52,17 @@ session没有以project/scene/schema generation为identity的不可变capture/co
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `实现完成，等待受管验证与二次审查`; no pass is claimed.
+
+- 已实现generation-owned immutable `RuntimeSessionArchiveArtifact`；manifest、statistics、slot index、serialized bytes共享同一payload与generation cache。
+- current schema使用typed serde直读写；preview/query借用封口artifact，save写入缓存字节且拒绝旧generation覆盖同一路径的新artifact；World/Level capture不在world锁内serialize。
+- 已补充同generation单次capture/normalize/validate/serialize、mutation发布新generation、stale save不覆盖newer path测试，内部JSON roundtrip计数保持0。
+- Windows受管compile receipt：ticket `0e933cadb8814993821c52e5cbe70de7`，request `runtime04-dynamic-reload-archive-r5-compile-20260801-ef7edf57baec`，source manifest `a1c42abdc37f3d636c7b66b00a88b2418a178a3a20827de83e6afc4f8079a9d8`；receipt状态为`queued`，不据此声明compile/test通过。
+- accepted closeout仅等待受管terminal evidence与全实现后的独立二次审查；Session继续执行其他open failure，不因验证排队停住。
+
+### 2026-08-01 forward repair candidate
+
+- Archive text input now rejects over-limit JSON before decode, and its public payload no longer implements `Deserialize`; only the session-private wire DTO reaches construction. Canonical current scene documents deserialize header-first into typed payloads; payload-before-header is rejected, while the migration bridge remains limited to supported legacy schemas.
+- Path intent is assigned before every writer admission and synchronous save. The atomic commit rechecks that ticket against one canonical path state, so a delayed writer from another lane cannot overwrite a later writer or direct save. The regression covers two independent writers plus a later direct save.
+- The archive scale guard now streams real 1/64/512 MiB write budgets without allocating a test payload, and derives 1/1k/100k manifest/index/statistics from captured entity and resource data rather than synthetic counters.
+- Fresh source-bound receipts are `50eed030fffe421c8ca6cf0723edf258` for `cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1 --color never` and `78c053989d304cb6a1123954287b6bd7` for the dynamic-scene focused lib test. Both are materializing receipts only. Post-repair independent review reports `0 Critical / 0 Important / 0 Minor`; this handoff remains open solely pending terminal evidence.

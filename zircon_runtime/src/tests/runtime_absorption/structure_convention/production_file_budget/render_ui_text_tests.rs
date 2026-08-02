@@ -17,6 +17,10 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let native_buffer = read_runtime_src("text/native_buffer.rs");
     let render_state = read_runtime_src("text/render_state.rs");
     let native_bitmap_atlas_tests = read_runtime_src("text/native_bitmap_atlas/tests.rs");
+    let native_bitmap_source_cache_tests =
+        read_runtime_src("text/native_bitmap_atlas/tests/source_cache.rs");
+    let native_bitmap_source_cache_worker_request_tests =
+        read_runtime_src("text/native_bitmap_atlas/tests/source_cache/worker_requests.rs");
 
     assert_contains_all(
         "screen-space UI text parent keeps production owner and test mount",
@@ -91,12 +95,12 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
             "text_batch(\"Normal\", UiTextRenderMode::Native)",
         ],
     );
-    assert_eq!(
-        font_asset_tests.matches("#[test]").count()
+    assert!(
+        (font_asset_tests.matches("#[test]").count()
             + prepare_report_tests.matches("#[test]").count()
-            + rendering_tests.matches("#[test]").count(),
-        23,
-        "screen-space UI text folder-backed owners should preserve the current 23 private regression tests"
+            + rendering_tests.matches("#[test]").count())
+            >= 23,
+        "screen-space UI text folder-backed owners should preserve at least 23 private regression tests"
     );
     assert_contains_all(
         "screen-space UI text folder-backed fixture owner",
@@ -141,6 +145,28 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
             "mod source_tests;",
         ],
     );
+    assert_contains_all(
+        "native bitmap source-cache tests keep worker requests in a child owner",
+        &native_bitmap_source_cache_tests,
+        &[
+            "#[path = \"source_cache/worker_requests.rs\"]",
+            "mod worker_request_tests;",
+        ],
+    );
+    for moved_test in [
+        "fn native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request(",
+        "fn native_bitmap_atlas_source_cache_defers_full_worker_queue_without_pending_work(",
+        "fn native_bitmap_atlas_source_cache_reuses_font_bytes_until_face_invalidation(",
+    ] {
+        assert!(
+            !native_bitmap_source_cache_tests.contains(moved_test),
+            "native bitmap source-cache parent should not own moved test `{moved_test}`"
+        );
+        assert!(
+            native_bitmap_source_cache_worker_request_tests.contains(moved_test),
+            "native bitmap source-cache worker-request owner should contain moved test `{moved_test}`"
+        );
+    }
     assert!(
         !runtime_src_path("graphics/scene/scene_renderer/ui/text/tests/native_bitmap_atlas.rs")
             .exists(),

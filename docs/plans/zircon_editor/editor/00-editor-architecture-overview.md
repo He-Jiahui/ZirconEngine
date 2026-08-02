@@ -57,33 +57,30 @@ status: planned
 
 层间依赖只允许**上层依赖下层**；同层横向依赖须经事件（bus）或注册表（贡献），禁止直接互持。判定示例：inspector（L5）改字段 → 发命令（L4）→ 事务引擎（L3）→ gateway（L2）→ runtime；runtime 变更 → invalidation（L2）→ `ViewDirtySet`（L1 bus 拓扑）→ 面板重取（L5）。**任何绕层直连（面板直接 `with_world_mut`）都是返工项。**
 
-## 3. 内核聚合根 `EditorContext`（01 详设，此处定形）
+## 3. 内核聚合根 `EditorContext`（01 详设，按当前实现与规划边界定形）
+
+当前已实现聚合面（`core/context/editor_context.rs`）：
 
 ```rust
 pub struct EditorContext {
-    // L1 服务（构造期注入，全部 Arc，无全局单例）
-    pub bus: Arc<EditorMessageBus>,            // 既有类型，载荷类型化后
-    pub jobs: Arc<EditorJobSystem>,            // 14
-    pub settings: Arc<SettingsRegistry>,       // 17
-    pub log: Arc<EditorLog>,                   // 17
-    pub journal: Arc<EditorEventJournal>,      // 既有
-    // L2 门面
-    pub gateway: Arc<dyn EditorRuntimeGateway>, // 01：InProcess / Session 双实现
-    // L3 权威模型
-    pub transactions: Arc<EditorTransactionEngine>, // 03
-    pub selection: Arc<SelectionModel>,             // 05
-    pub assets: Arc<EditorAssetIndex>,              // 09
-    pub project: Arc<ProjectAuthority>,             // 10
-    // L4 扩展面
-    pub contributions: Arc<ContributionStore>,      // 06（收拢既有 13 表）
-    pub commands: Arc<EditorCommandRegistry>,       // 既有，08 迁 core/
+    bus: SharedEditorMessageBus,
+    events: Arc<EditorEventService>,
+    jobs: EditorJobSystem,
+    notifications: EditorNotificationService,
+    transactions: EditorTransactionEngine,
+    commands: EditorCommandRegistryHandle,
+    command_eval: CommandEvalSnapshotHandle,
+    tools: ToolSchedulerService,
+    gateway: EditorRuntimeGatewayHandle,
 }
 ```
+
+规划接入字段不是当前实现：`settings` / `log`（17）、`journal`、`selection`（05）、`assets`（09）、`project`（10）、`contributions`（06）。这些 owner 只有在对应计划交付真实服务和构造依赖后才接入 `EditorContext`；不得先加空壳字段或第二事实源来让代码表面符合计划。
 
 定形规则：
 
 - `EditorContext` 由 `EditorManager`（既有 Lazy manager，`ui/host/module.rs:54-63`）在首次物化时构造并持有；headless 路径由 commandlet runner（16）直接构造，**不经工作台**。
-- 字段只增不藏：新 L1–L4 服务一律显式成字段，禁止 `HashMap<TypeId, Box<dyn Any>>` 式服务定位器（丢编译期检查）。
+- 字段显式、访问受控：新 L1–L4 服务一律成为私有字段并由类型化访问器暴露，禁止 `HashMap<TypeId, Box<dyn Any>>` 式服务定位器（丢编译期检查）。`EditorContextBuilder` 的构造顺序必须遵循依赖拓扑，禁止各计划无约束地向尾部堆叠初始化。
 - `EditorEventRuntimeState` 的 14 字段按 §6 事实源表拆散归位后删除该类型（01 迁移映射表为执行合同）。
 
 ## 4. 线程模型
@@ -118,14 +115,14 @@ pub struct EditorContext {
 | 状态                       | 权威                                                   | 消费方式                                                              |
 | -------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------- |
 | 世界数据（实体/组件/层级） | runtime`LevelSystem`（每 session 独立）              | 02 query/watch；编辑经 03 事务                                        |
-| 选中集（场景域/资产域）    | `SelectionModel`（05）                               | bus`Focus` 族事件；**`selected_node` 迁出 runtime session** |
+| 选中集（场景域/资产域）    | `SelectionModel`（05；尚未接入 `EditorContext`）     | bus`Focus` 族事件；**`selected_node` 迁出 runtime session** |
 | 文档脏态                   | `HistoryStore.saved_top`（03）                       | 标题星号/关闭拦截/autosave 触发均问它                                 |
 | Edit/Play 状态             | `PlaySessionController`（04）                        | bus`Mode` 族事件；命令 `WhenClause` 引用                          |
-| 资产元数据/引用图          | `EditorAssetIndex` + `AssetRegistryIndex`（09/10） | 查询 API；变更走导入管线                                              |
-| 工程身份/路径/设置指针     | `ZirconProjectManifest`（10）                        | 只读快照；写经`ProjectAuthority`                                    |
-| 设置值                     | `SettingsRegistry` 三层 resolve（17）                | `SettingChanged` 热应用                                             |
+| 资产元数据/引用图          | `EditorAssetIndex` + `AssetRegistryIndex`（09/10；尚未接入 `EditorContext`） | 查询 API；变更走导入管线                                              |
+| 工程身份/路径/设置指针     | `ZirconProjectManifest`（10；`ProjectAuthority` 尚未接入 `EditorContext`） | 只读快照；写经`ProjectAuthority`                                    |
+| 设置值                     | `SettingsRegistry` 三层 resolve（17；尚未接入 `EditorContext`） | `SettingChanged` 热应用                                             |
 | 布局/视图态                | `ViewHost` + `LayoutPreset`（06）                  | 持久化走 17 路径规则                                                  |
-| 扩展贡献                   | `ContributionStore`（06）                            | ticket 注册 / revoke / changed_since 拉取                             |
+| 扩展贡献                   | `ContributionStore`（06；尚未接入 `EditorContext`）  | ticket 注册 / revoke / changed_since 拉取                             |
 
 ## 7. 目标目录布局（`zircon_editor/src` 收敛终态）
 
@@ -134,7 +131,11 @@ zircon_editor/src/
   lib.rs                    # 薄化：只留 EditorModule/EditorPlugin/入口 run_* 等高层导出
                             # （现状 :18-58 的 export-wizard 巨型 re-export 面收回 owner 模块）
   core/                     # L1–L3：headless 可用，禁止依赖 ui/
-    context.rs              # EditorContext（01）
+    context/                # EditorContext 聚合根与构造 owner（01）
+      mod.rs
+      builder.rs
+      editor_context.rs
+      tool_scheduler.rs
     editor_message/         # 既有 bus + 类型化载荷（01）
     sync/                   # WorldSyncProtocol（02）
     transactions/           # EditCommand/HistoryStore/TransactionScope（03）
@@ -172,14 +173,15 @@ zircon_editor/src/
 
 `EditorModule`（`ui/host/module.rs:37-101`）保持五模块依赖与「1 Driver + 4 Lazy Manager」注册形态不变；本计划集新增服务**不逐个注册进模块内核**，而是全部经 `EditorContext` 聚合（`EditorManager` 构造）。理由：模块内核的 manager 粒度面向 runtime 生命周期，编辑器内部服务粒度细得多，逐个注册会把 13+ 服务名常量灌进模块描述符（root wiring 变厚，违反结构规则）。`EDITOR_COMMAND_REGISTRY_NAME`/`EDITOR_KEYMAP_NAME` 两个既有 manager 注册位在 08 迁移后指向 core/ 新 owner，名称与解析行为保持。
 
-## Code Review 建议 (2026-07-30)
+## Code Review 收敛结果（2026-08-01）
 
-### 与代码现状不符，需修订
+### 已同步当前实现
 
-- §3 的 `EditorContext` 定形结构体与已落地实现不一致。`zircon_editor/src/core/context/editor_context.rs:14-24` 当前字段为 `bus / events / jobs / notifications / transactions / commands / command_eval / tools / gateway`：计划列出的 `settings(17) / log(17) / journal / selection(05) / assets(09) / project(10) / contributions(06)` 七个字段尚未落地，而计划漏列了**已落地**的 `events(EditorEventService) / notifications(EditorNotificationService) / command_eval(CommandEvalSnapshotHandle) / tools(ToolSchedulerService)` 四字段。建议把 §3 拆成「当前字段」与「规划字段（含落点计划号）」两栏，避免读者按计划的理想结构去核对代码时误判为回归。
-- §7 目录终态把 `EditorContext` 落点写作单文件 `context.rs`，但实现已是文件夹 `core/context/`（`editor_context.rs` + `builder.rs` + `tool_scheduler.rs` + `mod.rs`，见 `core/context/mod.rs:1-7`）。§3 定形规则「字段只增不藏」已由 `editor_context.rs` 的私有字段 + 访问器（`:51-89`）满足，但目录终态图应同步为文件夹形态。
-- §6 事实源表把 `ContributionStore(06)`、`EditorAssetIndex(09)`、`ProjectAuthority(10)` 列为既定权威，但 `core/context/editor_context.rs` 聚合根尚未持有这些服务；表格宜标注「未接入 EditorContext」的当前状态，防止与「单事实源经聚合根暴露」的原则读起来自相矛盾。
+- §3 已拆分当前聚合字段与规划接入字段；未交付服务不再伪装成当前 `EditorContext` 成员。
+- §7 已同步为 `core/context/` 目录 owner，并列出 `mod.rs`、`builder.rs`、`editor_context.rs`、`tool_scheduler.rs`。
+- §6 已标注尚未接入 `EditorContext` 的权威服务；这不关闭对应计划，也不关闭现有 core-root facade failure。
 
-### 设计优化建议
+### 保留的架构约束
 
-- §3 明令「禁止 `HashMap<TypeId, Box<dyn Any>>` 式服务定位器」，当前 `EditorContext` 也确实是显式字段。随着 §3 规划字段（settings/log/selection/assets/project/contributions/…）逐个加入，`EditorContextBuilder::build`（`core/context/builder.rs:118-144`）的构造顺序会线性膨胀。建议在本文补一条「构造顺序 = 依赖拓扑」的显式约束（如 bus→events→jobs→gateway→transactions→…），让后续计划新增字段时有明确插入位次，而不是各自往 builder 尾部堆。
+- 继续禁止服务定位器；新增服务必须显式建模，并按 `EditorContextBuilder` 依赖拓扑构造。
+- 当前源码与计划的收敛证据见 [`00/2026-08-01-current-source-plan-convergence.md`](00/2026-08-01-current-source-plan-convergence.md)。

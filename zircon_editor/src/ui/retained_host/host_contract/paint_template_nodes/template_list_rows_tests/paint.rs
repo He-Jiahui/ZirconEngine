@@ -82,9 +82,11 @@ fn disabled_list_row_keeps_background_empty_and_draws_disabled_adornment() {
         0,
         1.0,
     ));
-    assert!(commands
-        .iter()
-        .all(|command| command.background_color.is_none()));
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.background_color.is_none())
+    );
 
     let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![node]));
 

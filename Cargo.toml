@@ -7,6 +7,7 @@ members = [
     "zircon_editor",
     "zircon_runtime_interface",
     "zircon_hub",
+    "tools/cargo-zircon",
 ]
 resolver = "2"
 default-members = ["zircon_runtime"]
@@ -31,7 +32,8 @@ naga = { version = "29.0.1", features = ["glsl-in", "spv-in", "wgsl-in", "wgsl-o
 notify = "9.0.0-rc.3"
 pollster = "0.4.0"
 rectangle-pack = "0.4"
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive", "rc"] }
+self_cell = "1.2.2"
 sha2 = "0.10.9"
 tobj = "4.0.3"
 thiserror = "2.0.18"

@@ -19,11 +19,14 @@ class RuntimeAssetPipelineAuditTests(unittest.TestCase):
 
         audit = asset_pipeline_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_source_file_count"], 24)
-        self.assertEqual(audit["expected_guard_file_count"], 20)
+        self.assertEqual(audit["expected_source_file_count"], 25)
+        self.assertEqual(audit["expected_guard_file_count"], 22)
+        self.assertEqual(audit["test_anchor_count"], 28)
+        self.assertEqual(audit["behavior_test_anchor_count"], 24)
         self.assertEqual(audit["missing_guard_files"], [])
         self.assertEqual(audit["missing_test_anchors"], [])
         self.assertEqual(audit["missing_behavior_test_anchors"], [])
+        self.assertEqual(audit["missing_cargo_gate_anchors"], [])
         self.assertTrue(audit["mirror_docs_guard_present"])
         self.assertEqual(audit["risks"], [])
 

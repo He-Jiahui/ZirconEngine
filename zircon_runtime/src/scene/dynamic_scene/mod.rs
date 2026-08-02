@@ -14,13 +14,13 @@ mod value;
 
 pub use asset_reload::{
     DynamicSceneAssetReloadAppliedScene, DynamicSceneAssetReloadApplyFailure,
-    DynamicSceneAssetReloadApplyReport, DynamicSceneAssetReloadDrainReport,
-    DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadPendingReport,
+    DynamicSceneAssetReloadApplyReport, DynamicSceneAssetReloadDiagnostics,
+    DynamicSceneAssetReloadDrainReport, DynamicSceneAssetReloadFrameApplyReport,
+    DynamicSceneAssetReloadLimits, DynamicSceneAssetReloadPendingReport,
     DynamicSceneAssetReloadPendingTaskSnapshot, DynamicSceneAssetReloadQueue,
-    DynamicSceneAssetReloadReadyReport, DynamicSceneAssetReloadResult,
     DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent,
     DynamicSceneAssetReloadStaleResult, DynamicSceneAssetReloadSupersededTask,
-    DynamicSceneAssetReloadTask, DynamicSceneAssetReloadTickReport,
+    DynamicSceneAssetReloadTask,
 };
 pub use entity::{DynamicComponent, DynamicEntity, DynamicResource};
 pub use error::DynamicSceneError;
@@ -29,17 +29,23 @@ pub use patch::{
     ScenePatchPreviewReport, ScenePatchPreviewResource,
 };
 pub use remap::EntityRemap;
+pub(crate) use scene::CompiledSceneSpawn;
 pub use scene::DynamicScene;
 pub use session::{
-    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveArtifactDiagnostics,
+    RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
     RuntimeSessionArchiveManifest, RuntimeSessionArchiveMergePolicy,
     RuntimeSessionArchiveMergeReport, RuntimeSessionArchivePathStatus,
     RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy,
     RuntimeSessionArchiveSavePreviewReport, RuntimeSessionArchiveStatistics,
+    RuntimeSessionArchiveWriteSubmission, RuntimeSessionArchiveWriter,
+    RuntimeSessionArchiveWriterLimits, RuntimeSessionArchiveWriterSubmitError,
     RuntimeSessionLevelRestoreReport, RuntimeSessionMetadata, RuntimeSessionSlot,
     RuntimeSessionSlotCapturePreviewReport, RuntimeSessionSlotDiffReport,
     RuntimeSessionSlotExportPreviewReport, RuntimeSessionSlotImportPreviewReport,
     RuntimeSessionSlotMutationPreviewReport, RuntimeSessionSlotSelectionReport,
-    RuntimeSessionSlotSelector, RuntimeSessionSlotSummary, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RuntimeSessionSlotSelector, RuntimeSessionSlotSummary,
 };
+pub(crate) use spawn_task::{DynamicSceneSpawnTargetSnapshot, StagedDynamicSceneSpawn};
 pub use spawn_task::{DynamicSceneSpawnTask, PreparedDynamicSceneSpawn};

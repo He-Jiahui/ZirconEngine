@@ -1,5 +1,5 @@
 use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry};
-use crate::core::editor_extension::EditorExtensionRegistry;
+use crate::core::extension::{CapabilitySet, ContributionSnapshot};
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::startup::EditorSessionMode;
 
@@ -29,28 +29,40 @@ impl WorkbenchViewModel {
         chrome: &EditorChromeSnapshot,
         context: &CommandEvalCtx,
     ) -> Self {
-        Self::build_with_extensions_and_context(command_registry, chrome, &[], context)
+        Self::build_with_contributions_and_context(
+            command_registry,
+            chrome,
+            &ContributionSnapshot::default(),
+            &CapabilitySet::default(),
+            context,
+        )
     }
 
     #[cfg(test)]
-    pub fn build_with_extensions(
+    pub fn build_with_contributions(
         command_registry: &EditorCommandRegistry,
         chrome: &EditorChromeSnapshot,
-        extensions: &[EditorExtensionRegistry],
+        contributions: &ContributionSnapshot,
     ) -> Self {
         let context = super::super::host_command_eval_ctx_for_test(
             chrome,
             crate::core::play::PlayModeKind::Edit,
             &[],
         );
-        Self::build_with_extensions_and_context(command_registry, chrome, extensions, &context)
+        Self::build_with_contributions_and_context(
+            command_registry,
+            chrome,
+            contributions,
+            &CapabilitySet::default(),
+            &context,
+        )
     }
 
     #[cfg(test)]
-    pub fn build_with_extensions_and_capabilities(
+    pub fn build_with_contributions_and_capabilities(
         command_registry: &EditorCommandRegistry,
         chrome: &EditorChromeSnapshot,
-        extensions: &[EditorExtensionRegistry],
+        contributions: &ContributionSnapshot,
         enabled_capabilities: &[String],
     ) -> Self {
         let context = super::super::host_command_eval_ctx_for_test(
@@ -58,13 +70,20 @@ impl WorkbenchViewModel {
             crate::core::play::PlayModeKind::Edit,
             enabled_capabilities,
         );
-        Self::build_with_extensions_and_context(command_registry, chrome, extensions, &context)
+        Self::build_with_contributions_and_context(
+            command_registry,
+            chrome,
+            contributions,
+            &enabled_capabilities.iter().cloned().collect(),
+            &context,
+        )
     }
 
-    pub fn build_with_extensions_and_context(
+    pub fn build_with_contributions_and_context(
         command_registry: &EditorCommandRegistry,
         chrome: &EditorChromeSnapshot,
-        extensions: &[EditorExtensionRegistry],
+        contributions: &ContributionSnapshot,
+        capabilities: &CapabilitySet,
         context: &CommandEvalCtx,
     ) -> Self {
         let active_page = active_page_snapshot(chrome);
@@ -74,8 +93,13 @@ impl WorkbenchViewModel {
 
         Self {
             is_playing: chrome.session_mode == EditorSessionMode::Playing,
-            asset_creation_templates: chrome.asset_browser.creation_templates.clone(),
-            menu_bar: default_menu_bar_with_extensions(command_registry, extensions, context),
+            asset_creation_menu: chrome.asset_browser.creation_menu.clone(),
+            menu_bar: default_menu_bar_with_extensions(
+                command_registry,
+                contributions,
+                capabilities,
+                context,
+            ),
             host_strip,
             drawer_ring: DrawerRingModel {
                 visible: drawer_visible,

@@ -3,9 +3,9 @@ related_code:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/core/mod.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/mod.rs
   - zircon_editor/src/scene/viewport
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/scene/inspection/mod.rs

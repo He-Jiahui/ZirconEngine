@@ -195,7 +195,7 @@ events = [{ id = "WorkbenchExtension/UiAssetEditorOpen", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchHudPreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8" }
+props = { text = "Preview", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 76.0, preferred = 76.0, max = 86.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/HudPreview", event = "Click", route = "workbench.module.hud.preview" }]
 

@@ -1,4 +1,5 @@
 use super::PlayStartRequest;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum PlayModeKind {
@@ -8,7 +9,7 @@ pub enum PlayModeKind {
     Playing,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlayKind {
     #[default]
     Play,

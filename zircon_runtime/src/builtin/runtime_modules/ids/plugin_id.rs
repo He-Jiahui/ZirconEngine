@@ -247,7 +247,7 @@ mod tests {
     use std::sync::Arc;
     use std::time::Instant;
 
-    use super::{RuntimePluginId, RuntimePluginIdStorage, normalize_runtime_plugin_key};
+    use super::{normalize_runtime_plugin_key, RuntimePluginId, RuntimePluginIdStorage};
 
     #[test]
     fn runtime_plugin_id_accepts_external_keys_without_core_variant() {
@@ -427,7 +427,7 @@ mod tests {
     #[cfg(windows)]
     fn current_rss_bytes() -> Option<usize> {
         use std::ffi::c_void;
-        use std::mem::{MaybeUninit, size_of};
+        use std::mem::{size_of, MaybeUninit};
 
         #[repr(C)]
         struct ProcessMemoryCounters {

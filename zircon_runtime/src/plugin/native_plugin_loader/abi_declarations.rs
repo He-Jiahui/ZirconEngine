@@ -4,6 +4,9 @@ use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
 
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
+pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
+pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2: &[u8] =
+    b"zircon_native_plugin_descriptor_v2\0";
 /// The descriptor and entry-point ABI remain v3. Behavior callbacks are a separately
 /// versioned contract and deliberately hard-cut to v4.
 pub const ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4: u32 = 4;
@@ -16,6 +19,17 @@ pub const ZIRCON_NATIVE_PLUGIN_STATUS_OK: u32 = 0;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_ERROR: u32 = 1;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_DENIED: u32 = 2;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_PANIC: u32 = 3;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginAbiV2 {
+    pub abi_version: u32,
+    pub plugin_id: *const c_char,
+    pub package_manifest_toml: *const c_char,
+    pub runtime_entry_name: *const c_char,
+    pub editor_entry_name: *const c_char,
+    pub requested_capabilities: *const c_char,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -39,6 +53,16 @@ pub struct NativePluginSchemaVersionsV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+pub struct NativePluginEntryReportV2 {
+    pub abi_version: u32,
+    pub package_manifest_toml: *const c_char,
+    pub diagnostics: *const c_char,
+    pub negotiated_capabilities: *const c_char,
+    pub behavior: *const NativePluginBehaviorV2,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct NativePluginEntryReportV3 {
     pub layout_epoch: u32,
     pub package_manifest_toml: *const c_char,
@@ -48,6 +72,16 @@ pub struct NativePluginEntryReportV3 {
     pub denied_capabilities: *const c_char,
     pub behavior: *const NativePluginBehaviorV4,
     pub bridge_methods: *const NativePluginBridgeMethodTableV3,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginHostFunctionTableV2 {
+    pub abi_version: u32,
+    pub host_handle: u64,
+    pub granted_capabilities: *const c_char,
+    pub host_abi_version: Option<unsafe extern "C" fn() -> u32>,
+    pub host_has_capability: Option<NativePluginHostHasCapabilityFnV2>,
 }
 
 #[repr(C)]
@@ -96,6 +130,19 @@ impl NativePluginOwnedByteBufferV2 {
 pub struct NativePluginCallbackStatusV2 {
     pub code: u32,
     pub diagnostics: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBehaviorV2 {
+    pub abi_version: u32,
+    pub is_stateless: u32,
+    pub command_manifest: *const c_char,
+    pub event_manifest: *const c_char,
+    pub invoke_command: Option<NativePluginInvokeCommandFnV2>,
+    pub save_state: Option<NativePluginSaveStateFnV2>,
+    pub restore_state: Option<NativePluginRestoreStateFnV2>,
+    pub unload: Option<NativePluginUnloadFnV2>,
 }
 
 #[repr(C)]
@@ -151,6 +198,11 @@ pub struct NativePluginBridgeMethodCallV3 {
 
 pub type NativePluginFreeBytesFnV2 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
+pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
+    *const c_char,
+    NativePluginByteSliceV2,
+    *mut NativePluginOwnedByteBufferV2,
+) -> NativePluginCallbackStatusV2;
 pub type NativePluginOutputWriteFnV4 =
     unsafe extern "C" fn(*mut c_void, NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
 pub type NativePluginInvokeCommandFnV4 = unsafe extern "C" fn(
@@ -173,6 +225,8 @@ pub type NativePluginBridgeMethodFnV3 =
     unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> ZrStatus;
 pub type NativePluginHostHasCapabilityFnV3 =
     unsafe extern "C" fn(*const NativePluginHostFunctionTableV3, *const c_char) -> u32;
+pub type NativePluginHostHasCapabilityFnV2 =
+    unsafe extern "C" fn(*const NativePluginHostFunctionTableV2, *const c_char) -> u32;
 pub type NativePluginHostLogFnV3 = unsafe extern "C" fn(
     *const NativePluginHostFunctionTableV3,
     u32,

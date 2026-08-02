@@ -14,15 +14,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use asset:
     load_existing_icon_asset_pixels_for_size, load_visual_asset_pixels,
     load_visual_asset_pixels_for_size,
 };
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use loading::clear_visual_asset_pixels_cache;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use pixels::HostPaintImagePixels;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use retained::retained_image_pixels;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use target::{
-    raster_size_from_frame, RasterTargetSize, MAX_VECTOR_RASTER_EDGE,
+    MAX_VECTOR_RASTER_EDGE, RasterTargetSize, raster_size_from_frame,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use template::template_image_pixels;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use tint::{
-    template_image_tint, tint_non_transparent_pixels, ICON_TINT, ICON_TINT_ACTIVE,
-    ICON_TINT_DISABLED, ICON_TINT_ERROR, ICON_TINT_WARNING,
+    ICON_TINT, ICON_TINT_ACTIVE, ICON_TINT_DISABLED, ICON_TINT_ERROR, ICON_TINT_WARNING,
+    template_image_tint, tint_non_transparent_pixels,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use keys::retained_image_resource_key;

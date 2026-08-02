@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizm
 fixing_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
 origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_editor/editor/05
+failure_scope: local
 related_code:
   - zircon_editor/src/scene/modes/builtin_scene_mode.rs
   - zircon_editor/src/scene/modes/builtin_scene_mode_registry.rs

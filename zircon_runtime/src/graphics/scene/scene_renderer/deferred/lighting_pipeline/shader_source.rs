@@ -2,7 +2,8 @@ use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::shader::template::{
-    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
+    environment_standard_pbr_include, ShaderModuleRegistry, ShaderModuleResolutionError,
+    ShaderTemplateInclude,
 };
 
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
@@ -118,6 +119,10 @@ pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING
     "\n// include: deferred_lighting.wgsl\n",
     include_str!("../shaders/deferred_lighting.wgsl"),
     "\n// include: zr_environment.wgsl\n",
+    include_str!("../../../../shader/wgsl/zr_environment_core.wgsl"),
+    "\n",
+    include_str!("../../../../shader/wgsl/zr_environment_generic_api.wgsl"),
+    "\n",
     include_str!("../../../../shader/wgsl/zr_environment.wgsl")
 );
 
@@ -264,29 +269,17 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
         ]
     };
     roots.extend(builtin_roots.iter().map(|token| (*token).to_string()));
-    let mut module_registry = ShaderModuleRegistry::with_builtin_modules();
-    if !request.volumetric_enabled {
-        module_registry.register(ShaderTemplateInclude::new(
+    let mut source_includes = Vec::new();
+    if !request.volumetric_enabled && roots.iter().any(|root| root == VOLUMETRIC_INCLUDE_TOKEN) {
+        source_includes.push(ShaderTemplateInclude::new(
             VOLUMETRIC_INCLUDE_TOKEN,
             VOLUMETRIC_DISABLED_INCLUDE,
         ));
     }
-    for (token, include) in [
-        (
-            DEFERRED_STANDARD_PBR_INCLUDE_TOKEN,
-            DEFERRED_STANDARD_PBR_INCLUDE,
-        ),
-        (
-            DEFERRED_BLINN_PHONG_INCLUDE_TOKEN,
-            DEFERRED_BLINN_PHONG_INCLUDE,
-        ),
-        (DEFERRED_UNLIT_INCLUDE_TOKEN, DEFERRED_UNLIT_INCLUDE),
-        (
-            DEFERRED_SUBSURFACE_INCLUDE_TOKEN,
-            DEFERRED_SUBSURFACE_INCLUDE,
-        ),
-    ] {
-        module_registry.register(ShaderTemplateInclude::new(token, include));
+    for token in builtin_roots {
+        let source = builtin_deferred_include_source(token)
+            .expect("deferred lighting profiles must select known builtin roots");
+        source_includes.push(ShaderTemplateInclude::new(*token, source));
     }
     for descriptor in request.shading_model_descriptors.iter() {
         if builtin_deferred_include_token(descriptor.deferred_include.as_str()) {
@@ -303,7 +296,7 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
                     token: descriptor.deferred_include.clone(),
                 },
             )?;
-        module_registry.register(ShaderTemplateInclude::new(&include.token, &include.source));
+        source_includes.push(ShaderTemplateInclude::new(&include.token, &include.source));
         roots.push(include.token.clone());
     }
 
@@ -320,13 +313,26 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
                 &format!("{CUSTOM_DISPATCH_MARKER}\n{custom_dispatch}"),
             )
     };
-    module_registry.register(ShaderTemplateInclude::new(
+    source_includes.push(ShaderTemplateInclude::new(
         "deferred_lighting.wgsl",
         template,
     ));
     roots.push("deferred_lighting.wgsl".to_string());
+    match request.deferred_lighting_profile {
+        SceneRendererDeferredLightingProfile::FullScene
+        | SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview => {}
+        SceneRendererDeferredLightingProfile::StandardPbrPreview => {
+            // The preview dispatch has no generic environment API callers, but it
+            // still needs the complete local probe and planar-reflection provider.
+            source_includes.push(environment_standard_pbr_include());
+        }
+    }
     roots.push(ENVIRONMENT_INCLUDE_TOKEN.to_string());
 
+    let module_registry = ShaderModuleRegistry::with_builtin_modules_for_roots(
+        roots.iter().cloned(),
+        source_includes,
+    );
     let resolved = module_registry
         .resolve_roots(roots)
         .map_err(deferred_module_resolution_error)?;
@@ -388,14 +394,18 @@ fn custom_deferred_dispatch(
 }
 
 fn builtin_deferred_include_token(token: &str) -> bool {
+    builtin_deferred_include_source(token).is_some()
+}
+
+fn builtin_deferred_include_source(token: &str) -> Option<&'static str> {
     let token = token.trim_end_matches(".wgsl");
-    matches!(
-        token,
-        "zr_shade_deferred_standard_pbr"
-            | "zr_shade_deferred_blinn_phong"
-            | "zr_shade_deferred_unlit"
-            | "zr_shade_deferred_subsurface"
-    )
+    match token {
+        "zr_shade_deferred_standard_pbr" => Some(DEFERRED_STANDARD_PBR_INCLUDE),
+        "zr_shade_deferred_blinn_phong" => Some(DEFERRED_BLINN_PHONG_INCLUDE),
+        "zr_shade_deferred_unlit" => Some(DEFERRED_UNLIT_INCLUDE),
+        "zr_shade_deferred_subsurface" => Some(DEFERRED_SUBSURFACE_INCLUDE),
+        _ => None,
+    }
 }
 
 fn deferred_include_tokens_match(left: &str, right: &str) -> bool {
@@ -412,8 +422,8 @@ fn deferred_shading_function_name(token: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GBufferChannelMask, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
-        SHADING_MODEL_ID_UNLIT, ShadingModelDescriptor, ShadingModelId,
+        GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, SHADING_MODEL_ID_BLINN_PHONG,
+        SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
     };
     use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 
@@ -456,6 +466,22 @@ mod tests {
     }
 
     #[test]
+    fn deferred_source_assembly_constructs_only_the_requested_module_closure() {
+        let source = include_str!("shader_source.rs");
+        let body = source
+            .split_once("pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_lighting_shader_source")
+            .expect("deferred source assembly function must exist")
+            .1
+            .split_once("\nfn deferred_module_resolution_error")
+            .expect("deferred source assembly function must have a stable end")
+            .0;
+
+        assert!(body.contains("with_builtin_modules_for_roots("));
+        assert!(!body.contains("with_builtin_modules();"));
+        assert!(body.contains("roots.iter().any(|root| root == VOLUMETRIC_INCLUDE_TOKEN)"));
+    }
+
+    #[test]
     fn standard_pbr_preview_assembles_only_the_standard_builtin_material_variant() {
         let source = assemble_deferred_lighting_shader_source(
             DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
@@ -470,6 +496,63 @@ mod tests {
         assert!(!source.contains("// include: zr_shade_deferred_subsurface.wgsl"));
         assert!(!source.contains("shade_deferred_blinn_phong("));
         assert!(!source.contains("shade_deferred_unlit("));
+    }
+
+    #[test]
+    fn standard_pbr_preview_prunes_generic_environment_api_but_keeps_local_reflections() {
+        let standard = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::StandardPbrPreview,
+            ),
+        )
+        .expect("standard PBR preview source should assemble");
+        let full_scene = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new()
+                .with_deferred_lighting_profile(SceneRendererDeferredLightingProfile::FullScene),
+        )
+        .expect("full-scene deferred source should assemble");
+
+        for required in [
+            "@group(1) @binding(16)",
+            "@group(1) @binding(17)",
+            "@group(1) @binding(18)",
+            "@group(1) @binding(29)",
+            "@group(1) @binding(30)",
+            "fn zr_environment_select_probes(",
+            "fn zr_environment_planar_reflection(",
+            "fn zr_environment_pbr_indirect(",
+        ] {
+            assert!(
+                standard.contains(required),
+                "standard PBR preview must retain local reflection source `{required}`"
+            );
+        }
+        for excluded in [
+            "fn zr_environment_fix_source_cube_lookup(",
+            "fn zr_environment_source_cube_color_at_lod(",
+            "fn zr_environment_specular_pmrem_color_at_lod(",
+            "fn zr_environment_env_brdf_approx(",
+            "fn zr_environment_sh9_eval(",
+            "fn zr_environment_irradiance_cube_color(",
+            "fn zr_environment_procedural_sky_color(",
+            "fn zr_environment_sky_color(",
+            "fn zr_environment_diffuse_color(",
+        ] {
+            assert!(
+                !standard.contains(excluded),
+                "standard PBR preview must prune unreachable API `{excluded}`"
+            );
+            assert!(
+                full_scene.contains(excluded),
+                "full-scene deferred must retain generic API `{excluded}`"
+            );
+        }
+        assert!(
+            standard.len() < full_scene.len(),
+            "specialized preview should compile less source, standard={} full-scene={}",
+            standard.len(),
+            full_scene.len(),
+        );
     }
 
     #[test]
@@ -521,5 +604,108 @@ mod tests {
         assert!(!source.contains("// include: zr_shadow.wgsl"));
         assert!(!source.contains("// include: zr_volumetric.wgsl"));
         assert!(!source.contains("fn fs_main_sss("));
+    }
+
+    #[test]
+    fn environment_only_pbr_preview_mirrors_rotation_abi() {
+        let source = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+            ),
+        )
+        .expect("environment-only PBR source should assemble");
+
+        assert!(source.contains("fn zr_environment_pbr_indirect("));
+        let scene_uniform = source
+            .split("struct SceneUniform {")
+            .nth(1)
+            .and_then(|source| source.split("};").next())
+            .expect("deferred preview must declare SceneUniform");
+        assert!(
+            scene_uniform.contains("environment_rotation_sin_cos: vec4<f32>,"),
+            "deferred preview SceneUniform must mirror the rotation tail"
+        );
+        assert!(
+            scene_uniform
+                .find("environment_sample_params")
+                .expect("sample params")
+                < scene_uniform
+                    .find("environment_rotation_sin_cos")
+                    .expect("rotation tail"),
+            "the rotation field must append after existing SceneUniform fields"
+        );
+    }
+
+    #[test]
+    fn environment_only_pbr_preview_retains_generic_environment_for_provider_upgrades() {
+        let source = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+            ),
+        )
+        .expect("environment-only PBR source should assemble");
+
+        for required in [
+            "@group(1) @binding(16)",
+            "@group(1) @binding(17)",
+            "@group(1) @binding(18)",
+            "@group(1) @binding(29)",
+            "@group(1) @binding(30)",
+            "fn zr_environment_select_probes(",
+            "fn zr_environment_planar_reflection(",
+            "fn zr_environment_specular_pmrem_color_at_lod(",
+            "fn zr_environment_irradiance_cube_color(",
+        ] {
+            assert!(
+                source.contains(required),
+                "environment-only deferred must retain provider-upgrade source `{required}`"
+            );
+        }
+    }
+
+    #[test]
+    fn deferred_pbr_gbuffer_normal_decode_uses_zero_safe_normalization() {
+        let environment_only = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+            ),
+        )
+        .expect("environment-only PBR source should assemble");
+
+        for (label, source, expected_normal_decode) in [
+            (
+                "generic",
+                DEFERRED_LIGHTING_SHADER,
+                "let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));",
+            ),
+            (
+                "environment-only",
+                environment_only.as_str(),
+                "let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0));",
+            ),
+        ] {
+            assert!(
+                source.contains("fn normalize_or_zero(value: vec3<f32>) -> vec3<f32>"),
+                "{label} deferred source must retain the zero-safe normal helper"
+            );
+            assert!(
+                source.contains(expected_normal_decode),
+                "{label} deferred source must safely decode a degenerate GBuffer normal"
+            );
+            assert!(
+                !source.contains("let normal = normalize(encoded_normal"),
+                "{label} deferred source must not normalize a potentially zero GBuffer normal directly"
+            );
+        }
+
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains("fn fs_main_sss("),
+            "generic deferred source must retain its SSS fragment entry point"
+        );
+        assert!(
+            DEFERRED_LIGHTING_SHADER
+                .contains("let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0));"),
+            "generic SSS deferred source must safely decode a degenerate GBuffer normal"
+        );
     }
 }

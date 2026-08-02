@@ -23,7 +23,7 @@ impl RuntimeEntryApp {
         }
 
         let mut disconnected_gamepads = Vec::new();
-        let mut should_exit = false;
+        let mut dispatch_error = None;
         let mut drain_budget_exhausted = false;
         let mut drain_budget = GamepadDrainBudget::begin(std::time::Instant::now());
         let session = &self.session;
@@ -83,12 +83,12 @@ impl RuntimeEntryApp {
                     EventType::Dropped | EventType::ForceFeedbackEffectCompleted => Ok(()),
                     _ => Ok(()),
                 };
-                if result.is_err() {
-                    should_exit = true;
+                if let Err(error) = result {
+                    dispatch_error = Some(error);
                     break;
                 }
             }
-            if !should_exit {
+            if dispatch_error.is_none() {
                 gamepads.inc();
             }
         }
@@ -99,7 +99,13 @@ impl RuntimeEntryApp {
             );
         }
         super::rumble::clear_finished_rumble_effects(self.gamepad_rumble_effects.as_mut());
-        if should_exit {
+        if let Some(error) = dispatch_error {
+            self.report_fatal_failure(
+                "runtime_event_dispatch",
+                "gamepad_event_stream",
+                format!("runtime gamepad event dispatch failed: {error}"),
+                "verify the runtime library ABI and gamepad event handler, then restart zircon_runtime",
+            );
             event_loop.exit();
         } else if drain_budget_exhausted {
             self.request_runtime_frame();
@@ -112,8 +118,9 @@ impl RuntimeEntryApp {
         let Some(gamepads) = self.gamepads.as_mut() else {
             return true;
         };
+        let mut dispatch_error = None;
         for (id, pad) in gamepads.gamepads() {
-            if send_connection(
+            if let Err(error) = send_connection(
                 session,
                 viewport,
                 gamepad_id(id),
@@ -121,13 +128,22 @@ impl RuntimeEntryApp {
                 pad.name(),
                 pad.vendor_id(),
                 pad.product_id(),
-            )
-            .is_err()
-            {
-                event_loop.exit();
-                return false;
+            ) {
+                dispatch_error = Some(error);
+                break;
             }
         }
-        true
+        if let Some(error) = dispatch_error {
+            self.report_fatal_failure(
+                "runtime_event_dispatch",
+                "connected_gamepad_inventory",
+                format!("runtime gamepad connection dispatch failed: {error}"),
+                "verify the runtime library ABI and gamepad event handler, then restart zircon_runtime",
+            );
+            event_loop.exit();
+            false
+        } else {
+            true
+        }
     }
 }

@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
   - zircon_runtime/src/text/font/shared.rs
@@ -264,6 +263,8 @@ fn msdf_alpha(s: vec4<f32>, screen_px_range: f32) -> f32 {
 2026-07-17 Text MVP 稳定性切片已把 generation-sensitive SDF cache 回归拆到 `font_bake/tests/cache_generation.rs`，并用 test-only shared snapshot read guard 隔离并行全局字体发布；生产 SDF 路径不新增锁。根因修复位于 Text01/09 的共享字体发布 owner：等价 FontDatabase 不再推进 generation，因此 renderer 构造顺序不会清空 resident SDF fonts/glyphs。`measure_key(...)` 在 ensure/map 异常不一致时也会继续候选并最终返回既有 fallback metrics，而不是 production panic。旧串行 SDF 20/20 证明功能本体正常；当前源码并行 20 项与真实 framebuffer 门仍在共享 Cargo 队列，故本切片记录为 `implemented / validation_pending`，不宣称 Text05 新里程碑完成。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
+
+2026-08-01 performance failure implementation advance：Text05 非验收实现与二次审查已收敛 generation-owned parsed source、runtime/offline deterministic batch generator、bounded async scheduler、completion/panic 前向重试、bounded source/offline/baked caches、run-shared `Arc<str>` glyph identity、single `SdfAtlasBake` failure/render artifact、compiled atlas/CPU/vertex-material frame caches、persistent CPU atlas dirty pages、page-local borrowed upload 与 capacity/hash managed vertex buffer。稳定帧跳过 key/slot transition、CPU metrics、failure map、bake metadata、material/draw/vertex build 和 GPU write；pending/deferred/font reload/atlas upload/device recreate 均 fail closed 到重建。二次审查累计前向修复永久 pending、逐 glyph String 深拷贝、无界 resident caches、stable metadata/failure-map 分配、no-fallback Vec 搬移与 renderer generation 双 owner；production owner 全部低于 800 行且禁用模式扫描为 0。两份 2026-07-18 failure 保持 `open / non_validation_implementation_complete / secondary_review_complete / managed_validation_pending`：managed Cargo、1/100/10k 规模 p50/p95/RSS、reload/device-loss、真实 WGPU/RenderDoc 与新截图仍待 coordinator receipt。本轮不等待/轮询协调器，也未向 `target` 或 `docs/tests/runtime/text` 写入伪验证图。
 
 - 迁入记录：[`05/2026-07-09-sdf-msdf-pipeline-output-records.md`](05/2026-07-09-sdf-msdf-pipeline-output-records.md)
 - fixed 已修复：[ui-text-distance-field-effects-type-resolution](../../zircon_editor/editor_layout/15/fixed-2026-07-13-ui-text-distance-field-effects-type-resolution.md)

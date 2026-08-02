@@ -14,8 +14,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_la
     rect: &FrameRect,
     label: &str,
 ) -> Option<(FrameRect, f32, f32)> {
-    let font_size = chip_font_size(node);
-    let line_height = chip_label_line_height(font_size);
+    let font_size = chip_font_size(node, rect);
+    let line_height = chip_label_line_height(font_size, rect);
     let left = rect.x + chip_label_left_padding(node);
     let right = rect.x + rect.width - chip_label_right_padding(node);
     if right <= left {
@@ -81,7 +81,7 @@ mod tests {
             .expect("chip label has enough horizontal space")
             .0;
         let expected_width = chip_label_width(
-            measure_runtime_text_width(label, chip_font_size(&node)),
+            measure_runtime_text_width(label, chip_font_size(&node, &rect(220.0))),
             220.0 - chip_label_left_padding(&node) - chip_label_right_padding(&node),
         );
 
@@ -107,5 +107,24 @@ mod tests {
             .0;
 
         assert!((frame.width - available_width).abs() <= 0.01);
+    }
+
+    #[test]
+    fn chip_label_frame_stays_inside_short_chip_bounds() {
+        let node = node(0.0);
+        let rect = FrameRect {
+            x: 8.0,
+            y: 10.0,
+            width: 40.0,
+            height: 0.6,
+        };
+        let frame = chip_label_frame(&node, &rect, "Chip")
+            .expect("chip has enough horizontal label space")
+            .0;
+
+        assert!(frame.x >= rect.x);
+        assert!(frame.y >= rect.y);
+        assert!(frame.right() <= rect.right());
+        assert!(frame.bottom() <= rect.bottom());
     }
 }

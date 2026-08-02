@@ -115,7 +115,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchPerceptionSimulateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Simulate", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8" }
+props = { text = "Simulate", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/PerceptionSimulate", event = "Click", route = "workbench.module.perception.simulate" }]
 

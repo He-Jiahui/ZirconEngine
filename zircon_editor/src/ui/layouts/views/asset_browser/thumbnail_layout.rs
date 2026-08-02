@@ -1,10 +1,12 @@
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::asset_content_layout::{
     AssetThumbnailGridMetrics, BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
 };
 
-use super::thumbnail_nodes::thumbnail_control_id;
+use super::thumbnail_nodes::{compact_thumbnail_file_name_to_width, thumbnail_control_id};
 
 const THUMBNAIL_VISUAL_MIN_HEIGHT: f32 = 72.0;
 const THUMBNAIL_VISUAL_MAX_HEIGHT: f32 = 88.0;
@@ -14,19 +16,33 @@ const THUMBNAIL_INFO_BAND_STACKED_HEIGHT: f32 = 54.0;
 const THUMBNAIL_INFO_TEXT_INSET_X: f32 = 5.0;
 const THUMBNAIL_SELECTION_MARKER_WIDTH: f32 = 0.0;
 const THUMBNAIL_NAME_PRIMARY_OFFSET_Y: f32 = 5.0;
-const THUMBNAIL_NAME_CONTINUATION_OFFSET_Y: f32 = 18.0;
-const THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT: f32 = 13.0;
-const THUMBNAIL_NAME_CONTINUATION_LINE_HEIGHT: f32 = 11.0;
+const THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const THUMBNAIL_NAME_CONTINUATION_OFFSET_Y: f32 =
+    THUMBNAIL_NAME_PRIMARY_OFFSET_Y + THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT;
+const THUMBNAIL_NAME_CONTINUATION_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 const THUMBNAIL_META_ROW_SINGLE_OFFSET_Y: f32 = 25.0;
 const THUMBNAIL_META_ROW_STACKED_OFFSET_Y: f32 = 36.0;
 const THUMBNAIL_TYPE_BADGE_MIN_WIDTH: f32 = 42.0;
 const THUMBNAIL_TYPE_BADGE_MAX_WIDTH: f32 = 48.0;
 const THUMBNAIL_TYPE_BADGE_HEIGHT: f32 = 13.0;
 const THUMBNAIL_TYPE_BADGE_TEXT_INSET_X: f32 = 5.0;
-const THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.5;
+const THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const THUMBNAIL_TYPE_BADGE_PADDING_X: f32 = 6.0;
 const THUMBNAIL_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.55;
 const THUMBNAIL_META_ROW_GAP: f32 = 5.0;
+const THUMBNAIL_CARD_LAYOUT_PARTS: [&str; 9] = [
+    "Card",
+    "Visual",
+    "InfoBand",
+    "SelectionMarker",
+    "Name",
+    "NameContinuation",
+    "TypeBadge",
+    "Type",
+    "Meta",
+];
 
 pub(super) fn has_thumbnail_grid(nodes: &[ViewTemplateNodeData]) -> bool {
     node_frame(nodes, BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID).is_some()
@@ -68,9 +84,10 @@ pub(super) fn apply_compact_thumbnail_grid_layout(
     );
 
     for index in 0..count {
-        let frame = metrics
-            .item_frame(index)
-            .expect("thumbnail index is in range");
+        let Some(frame) = metrics.item_frame(index) else {
+            collapse_thumbnail_card(nodes, index);
+            continue;
+        };
         layout_thumbnail_card(
             nodes,
             index,
@@ -78,6 +95,19 @@ pub(super) fn apply_compact_thumbnail_grid_layout(
             y + frame.y,
             frame.width,
             frame.height,
+        );
+    }
+}
+
+fn collapse_thumbnail_card(nodes: &mut [ViewTemplateNodeData], index: usize) {
+    for part in THUMBNAIL_CARD_LAYOUT_PARTS {
+        set_node_frame(
+            nodes,
+            &thumbnail_control_id(part, index),
+            0.0,
+            0.0,
+            0.0,
+            0.0,
         );
     }
 }
@@ -154,6 +184,7 @@ fn layout_thumbnail_card(
         text_width,
         THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT,
     );
+    compact_thumbnail_name_to_frame(nodes, index, text_width);
     set_node_frame(
         nodes,
         &thumbnail_control_id("NameContinuation", index),
@@ -186,6 +217,24 @@ fn layout_thumbnail_card(
         meta_width,
         THUMBNAIL_TYPE_BADGE_HEIGHT,
     );
+}
+
+fn compact_thumbnail_name_to_frame(
+    nodes: &mut [ViewTemplateNodeData],
+    index: usize,
+    max_width: f32,
+) {
+    let Some(node) = nodes
+        .iter_mut()
+        .find(|node| node.control_id.as_str() == thumbnail_control_id("Name", index))
+    else {
+        return;
+    };
+    if node.value_text.is_empty() {
+        return;
+    }
+
+    node.text = compact_thumbnail_file_name_to_width(node.value_text.as_str(), max_width).into();
 }
 
 fn thumbnail_type_badge_width(
@@ -238,6 +287,87 @@ mod tests {
             (width - expected).abs() <= 0.01,
             "expected {expected:.3}, got {width:.3}",
         );
+    }
+
+    #[test]
+    fn thumbnail_badge_measurement_uses_the_workbench_caption_size() {
+        assert_eq!(
+            THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE,
+            zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+        );
+    }
+
+    #[test]
+    fn thumbnail_text_line_geometry_follows_workbench_typography_without_overlap() {
+        assert_eq!(
+            THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT,
+            EditorTypographyTokens::WORKBENCH_BODY_SIZE
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+        );
+        assert_eq!(
+            THUMBNAIL_NAME_CONTINUATION_LINE_HEIGHT,
+            EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+                * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+        );
+        assert!(
+            THUMBNAIL_NAME_CONTINUATION_OFFSET_Y
+                >= THUMBNAIL_NAME_PRIMARY_OFFSET_Y + THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT
+        );
+    }
+
+    #[test]
+    fn thumbnail_file_name_compacts_to_its_actual_card_text_frame() {
+        let source_name = "workbench_extension_accessibility_workspace.zui";
+        let mut name = node(&thumbnail_control_id("Name", 0), "Label", source_name);
+        name.value_text = source_name.into();
+        let mut nodes = vec![
+            node(BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID, "Panel", ""),
+            node(&thumbnail_control_id("Card", 0), "Panel", ""),
+            name,
+        ];
+
+        apply_compact_thumbnail_grid_layout(&mut nodes, 0.0, 0.0, 120.0, 160.0);
+
+        let name_frame = node_frame(&nodes, &thumbnail_control_id("Name", 0))
+            .expect("thumbnail name should receive a frame");
+        let compact_name = node_text(&nodes, &thumbnail_control_id("Name", 0))
+            .expect("thumbnail name should retain text");
+        assert!(compact_name.ends_with(".zui"));
+        assert!(
+            measure_runtime_text_width(compact_name, EditorTypographyTokens::WORKBENCH_BODY_SIZE)
+                <= name_frame.width + 0.01,
+            "thumbnail title must fit its real frame: text={compact_name}, frame={name_frame:?}"
+        );
+    }
+
+    #[test]
+    fn collapsed_grid_clears_each_thumbnail_card_descendant() {
+        let mut nodes = [
+            node(BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID, "Panel", ""),
+            node(&thumbnail_control_id("Card", 0), "Panel", ""),
+            node(&thumbnail_control_id("Visual", 0), "Panel", ""),
+            node(&thumbnail_control_id("InfoBand", 0), "Panel", ""),
+            node(&thumbnail_control_id("SelectionMarker", 0), "Panel", ""),
+            node(&thumbnail_control_id("Name", 0), "Label", "asset"),
+            node(
+                &thumbnail_control_id("NameContinuation", 0),
+                "Label",
+                "asset",
+            ),
+            node(&thumbnail_control_id("TypeBadge", 0), "Panel", ""),
+            node(&thumbnail_control_id("Type", 0), "Label", "UI"),
+            node(&thumbnail_control_id("Meta", 0), "Label", "Ready"),
+        ]
+        .to_vec();
+
+        apply_compact_thumbnail_grid_layout(&mut nodes, 10.0, 20.0, 0.0, 120.0);
+
+        for part in THUMBNAIL_CARD_LAYOUT_PARTS {
+            let frame = node_frame(&nodes, &thumbnail_control_id(part, 0))
+                .expect("thumbnail part should remain in the node model");
+            assert_eq!(frame.width, 0.0, "{part} width should collapse");
+            assert_eq!(frame.height, 0.0, "{part} height should collapse");
+        }
     }
 
     fn node(control_id: &str, role: &str, text: &str) -> ViewTemplateNodeData {

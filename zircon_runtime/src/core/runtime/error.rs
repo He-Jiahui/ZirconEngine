@@ -67,6 +67,17 @@ pub enum CoreError {
     ModuleDependencyCycle { path: Vec<String> },
     #[error("module ready timeout for {module} after {budget:?}")]
     ModuleReadyTimeout { module: String, budget: Duration },
+    #[error(
+        "module cleanup timeout for {module} operation {operation} after {budget:?}; {incomplete_entries} entries remain"
+    )]
+    ModuleCleanupTimeout {
+        module: String,
+        operation: String,
+        budget: Duration,
+        incomplete_entries: usize,
+        failed: u64,
+        cancelled: u64,
+    },
     #[error("module activation failed: {activation}; cleanup also failed: {cleanup}")]
     ModuleActivationRollback {
         activation: Box<CoreError>,

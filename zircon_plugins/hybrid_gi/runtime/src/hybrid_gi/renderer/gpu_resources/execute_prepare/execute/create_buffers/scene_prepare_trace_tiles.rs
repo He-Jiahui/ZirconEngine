@@ -3,9 +3,7 @@ use std::collections::BTreeSet;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use super::super::super::super::buffer_helpers::{
-    buffer_size_for_words, create_readback_buffer, create_u32_storage_buffer,
-};
+use super::super::super::super::buffer_helpers::create_u32_storage_buffer;
 use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
 
@@ -29,9 +27,7 @@ pub(super) struct ScenePrepareProbeTraceTileResources {
     pub(super) probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
     pub(super) probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
     pub(super) probe_trace_tile_buffer: Option<wgpu::Buffer>,
-    pub(super) probe_trace_tile_readback: Option<wgpu::Buffer>,
     pub(super) probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
-    pub(super) probe_trace_indirect_args_readback: Option<wgpu::Buffer>,
     pub(super) probe_trace_tile_word_count: usize,
     pub(super) probe_trace_tile_record_count: usize,
     pub(super) probe_trace_indirect_arg_word_count: usize,
@@ -58,9 +54,7 @@ pub(super) fn scene_prepare_probe_trace_tile_resources(
             probe_trace_tile_seed_buffer: None,
             probe_trace_tile_params_buffer: None,
             probe_trace_tile_buffer: None,
-            probe_trace_tile_readback: None,
             probe_trace_indirect_args_buffer: None,
-            probe_trace_indirect_args_readback: None,
             probe_trace_tile_word_count: 0,
             probe_trace_tile_record_count: 0,
             probe_trace_indirect_arg_word_count: 0,
@@ -84,21 +78,11 @@ pub(super) fn scene_prepare_probe_trace_tile_resources(
         &vec![0; words.len()],
         wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     );
-    let probe_trace_tile_readback = create_readback_buffer(
-        device,
-        "zircon-hybrid-gi-scene-prepare-probe-trace-tiles-readback",
-        words.len(),
-    );
     let probe_trace_indirect_args_buffer = create_u32_storage_buffer(
         device,
         "zircon-hybrid-gi-scene-prepare-probe-trace-indirect-args",
         &vec![0; PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT],
         wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::INDIRECT,
-    );
-    let probe_trace_indirect_args_readback = create_readback_buffer(
-        device,
-        "zircon-hybrid-gi-scene-prepare-probe-trace-indirect-args-readback",
-        PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT,
     );
     encode_probe_trace_tile_generation(
         device,
@@ -109,28 +93,11 @@ pub(super) fn scene_prepare_probe_trace_tile_resources(
         &probe_trace_indirect_args_buffer,
         probe_trace_tile_record_count,
     );
-    encoder.copy_buffer_to_buffer(
-        &probe_trace_tile_buffer,
-        0,
-        &probe_trace_tile_readback,
-        0,
-        buffer_size_for_words(words.len()),
-    );
-    encoder.copy_buffer_to_buffer(
-        &probe_trace_indirect_args_buffer,
-        0,
-        &probe_trace_indirect_args_readback,
-        0,
-        buffer_size_for_words(PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT),
-    );
-
     ScenePrepareProbeTraceTileResources {
         probe_trace_tile_seed_buffer: Some(probe_trace_tile_seed_buffer),
         probe_trace_tile_params_buffer: Some(probe_trace_tile_params_buffer),
         probe_trace_tile_buffer: Some(probe_trace_tile_buffer),
-        probe_trace_tile_readback: Some(probe_trace_tile_readback),
         probe_trace_indirect_args_buffer: Some(probe_trace_indirect_args_buffer),
-        probe_trace_indirect_args_readback: Some(probe_trace_indirect_args_readback),
         probe_trace_tile_word_count: words.len(),
         probe_trace_tile_record_count,
         probe_trace_indirect_arg_word_count: PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT,

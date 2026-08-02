@@ -1,4 +1,4 @@
-# @generated from Rust descriptor package_manifest(); do not edit by hand.
+# @generated from Rust PluginDeclaration; do not edit by hand.
 id = "ai"
 version = "0.1.0"
 sdk_api_version = "0.2.0"
@@ -87,6 +87,7 @@ crate_name = "zircon_plugin_ai_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.ai", "runtime.feature.ai.behavior_tree", "runtime.feature.ai.blackboard", "runtime.feature.ai.perception"]
 system_anchors = ["ai.perception_tick", "ai.behavior_tick"]
+system_sets = ["ai.main"]
 
 [[modules]]
 name = "ai.dist"

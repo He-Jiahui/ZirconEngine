@@ -54,16 +54,12 @@ impl ResourceStore {
         stored.value.downcast_mut::<T>()
     }
 
-    pub fn get_mut_at_tick_with_ticks<T: 'static + Send + Sync>(
+    pub fn get_mut_with_ticks<T: 'static + Send + Sync>(
         &mut self,
-        tick: ChangeTick,
-    ) -> Option<(&mut T, ComponentTicks)> {
+    ) -> Option<(&mut T, &mut ComponentTicks)> {
         let stored = self.resources.get_mut(&TypeId::of::<T>())?;
-        stored.ticks.set_changed(tick);
-        let ticks = stored.ticks;
-        let Some(value) = stored.value.downcast_mut::<T>() else {
-            return None;
-        };
+        let StoredResource { value, ticks, .. } = stored;
+        let value = value.downcast_mut::<T>()?;
         Some((value, ticks))
     }
 
@@ -103,6 +99,18 @@ impl ResourceStore {
         }
         names.sort_unstable();
         names
+    }
+
+    pub(in crate::scene) fn merge_overrides_from(&mut self, overrides: Self) -> Self {
+        let mut replaced = HashMap::with_capacity(overrides.resources.len());
+        for (type_id, resource) in overrides.resources {
+            if let Some(previous) = self.resources.insert(type_id, resource) {
+                replaced.insert(type_id, previous);
+            }
+        }
+        Self {
+            resources: replaced,
+        }
     }
 }
 

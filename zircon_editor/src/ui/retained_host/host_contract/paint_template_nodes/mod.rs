@@ -81,6 +81,8 @@ mod template_viewport_scene_surfaces;
 mod template_weight_heatmap;
 mod visual_assets;
 
+pub(in crate::ui::retained_host) use sprite_atlas::copy_editor_sprite_atlas_rgba;
+pub(in crate::ui::retained_host) use visual_assets::clear_visual_asset_pixels_cache;
 pub(super) use template_node_pipeline::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
     TemplateNodePaintTransform,
@@ -94,3 +96,5 @@ pub(crate) use render_commands::paint_runtime_render_commands_for_test;
 pub(crate) use template_node_pipeline::{
     paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
 };
+#[cfg(test)]
+pub(crate) use template_nodes::template_node_command_summary_for_test;

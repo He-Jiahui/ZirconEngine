@@ -74,7 +74,7 @@ pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_rendere
 
 #[cfg(test)]
 mod tests {
-    use super::{SKY_SHADER, sky_shader_source};
+    use super::{sky_shader_source, SKY_SHADER};
 
     #[test]
     fn skybox_shader_variant_removes_volumetric_bindings_when_disabled() {
@@ -102,6 +102,33 @@ mod tests {
                 "skybox shader should use `{expected}` for camera-space cubemap lookup"
             );
         }
+    }
+
+    #[test]
+    fn skybox_shader_rotation_uses_cpu_precomputed_trigonometry() {
+        let rotation = SKY_SHADER
+            .split("fn skybox_rotated_direction_normalized(")
+            .nth(1)
+            .and_then(|source| source.split("fn skybox_normalize_or_fallback(").next())
+            .expect("skybox shader should retain its rotation helper");
+
+        let environment_sample_params = SKY_SHADER
+            .find("environment_sample_params: vec4<f32>,")
+            .expect("skybox SceneUniform should retain the environment sampling parameters");
+        let rotation_tail = SKY_SHADER
+            .find("environment_rotation_sin_cos: vec4<f32>,")
+            .expect("skybox SceneUniform should append the rotation tail");
+        assert!(
+            environment_sample_params < rotation_tail,
+            "the skybox SceneUniform mirror must append the rotation tail after existing fields"
+        );
+        assert!(rotation.contains("scene.environment_rotation_sin_cos.z < 0.5"));
+        assert!(
+            rotation.contains("scene.environment_rotation_sin_cos.x")
+                && rotation.contains("scene.environment_rotation_sin_cos.y")
+        );
+        assert!(!rotation.contains("sin(rotation)"));
+        assert!(!rotation.contains("cos(rotation)"));
     }
 
     #[test]

@@ -21,29 +21,58 @@ const GPU_SCENE_REMAP_PARAMS_VISIBILITY: wgpu::ShaderStages =
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Pod, Zeroable)]
 pub(crate) struct GpuSceneVisibleInstanceRemapParams {
+    // [remap_enabled, light_count, active_vg_page_count, active_vg_cluster_word_count]
     values: [u32; 4],
 }
 
 impl GpuSceneVisibleInstanceRemapParams {
     pub(crate) const fn direct() -> Self {
-        Self::direct_with_light_count(0)
+        Self::direct_with_scene_counts(0, 0, 0)
     }
 
     pub(crate) const fn remapped() -> Self {
-        Self::remapped_with_light_count(0)
+        Self::remapped_with_scene_counts(0, 0, 0)
     }
 
-    pub(crate) const fn direct_with_light_count(light_count: u32) -> Self {
-        Self::with_values(0, light_count)
+    pub(crate) const fn direct_with_scene_counts(
+        light_count: u32,
+        virtual_geometry_page_count: u32,
+        virtual_geometry_cluster_word_count: u32,
+    ) -> Self {
+        Self::with_values(
+            0,
+            light_count,
+            virtual_geometry_page_count,
+            virtual_geometry_cluster_word_count,
+        )
     }
 
-    pub(crate) const fn remapped_with_light_count(light_count: u32) -> Self {
-        Self::with_values(1, light_count)
+    pub(crate) const fn remapped_with_scene_counts(
+        light_count: u32,
+        virtual_geometry_page_count: u32,
+        virtual_geometry_cluster_word_count: u32,
+    ) -> Self {
+        Self::with_values(
+            1,
+            light_count,
+            virtual_geometry_page_count,
+            virtual_geometry_cluster_word_count,
+        )
     }
 
-    const fn with_values(remap_enabled: u32, light_count: u32) -> Self {
+    const fn with_values(
+        remap_enabled: u32,
+        light_count: u32,
+        virtual_geometry_page_count: u32,
+        virtual_geometry_cluster_word_count: u32,
+    ) -> Self {
         Self {
-            values: [remap_enabled, light_count, 0, 0],
+            values: [
+                remap_enabled,
+                light_count,
+                virtual_geometry_page_count,
+                virtual_geometry_cluster_word_count,
+            ],
         }
     }
 }
@@ -324,6 +353,18 @@ mod tests {
         assert_eq!(
             compute_storage_binding_count as u32,
             GPU_SCENE_COMPUTE_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
+    }
+
+    #[test]
+    fn render_gpu_scene_remap_params_carry_active_virtual_geometry_counts() {
+        assert_eq!(
+            GpuSceneVisibleInstanceRemapParams::direct_with_scene_counts(3, 5, 7).values,
+            [0, 3, 5, 7]
+        );
+        assert_eq!(
+            GpuSceneVisibleInstanceRemapParams::remapped_with_scene_counts(3, 5, 7).values,
+            [1, 3, 5, 7]
         );
     }
 }

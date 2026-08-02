@@ -1,6 +1,6 @@
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_text::draw_text_with_size_and_style;
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::command::HostPaintCommand;
 use super::color::color_with_opacity;
 

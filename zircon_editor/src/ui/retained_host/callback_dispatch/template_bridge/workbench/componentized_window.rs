@@ -32,6 +32,7 @@ use crate::ui::workbench::reference::{
 use super::super::popup_primitives::toml_value_string_list;
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
+use super::asset_creation_menu::AssetCreationMenuState;
 use super::blend_space_transport::is_animation_transport_action;
 use super::drawer_layout::{
     BOTTOM_DRAWER_CONTENT_CONTROL_ID, BOTTOM_DRAWER_HEADER_CONTROL_ID,
@@ -62,11 +63,14 @@ use super::module_navigation::{
     MODULE_TAB_CONTROLS, MODULE_WORKSPACE_CONTROLS,
 };
 
+mod refresh_layout;
+
 pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) runtime: Arc<EditorUiHostRuntime>,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     pub(super) template_surface: EditorWorkbenchTemplateSurface,
     pub(super) mount_frame: UiFrame,
+    pub(super) asset_creation_menu: AssetCreationMenuState,
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
@@ -108,6 +112,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             bindings_by_id,
             template_surface,
             mount_frame,
+            asset_creation_menu: AssetCreationMenuState::default(),
         };
         bridge.apply_responsive_toolbar_layout(shell_size)?;
         bridge
@@ -122,29 +127,17 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.mount_frame =
             normalized_mount_frame(UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height));
-        self.recompute_local_layout(shell_size)
+        refresh_layout::recompute(self, shell_size)
     }
 
-    pub(super) fn recompute_layout_at_mount(
+    pub(crate) fn recompute_layout_at_mount(
         &mut self,
         mount_frame: UiFrame,
     ) -> Result<UiSize, BuiltinHostWindowTemplateBridgeError> {
         self.mount_frame = normalized_mount_frame(mount_frame);
         let shell_size = UiSize::new(self.mount_frame.width, self.mount_frame.height);
-        self.recompute_local_layout(shell_size)?;
+        refresh_layout::recompute(self, shell_size)?;
         Ok(shell_size)
-    }
-
-    fn recompute_local_layout(
-        &mut self,
-        shell_size: UiSize,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.template_surface
-            .recompute_layout(self.runtime.as_ref(), shell_size)?;
-        self.apply_responsive_toolbar_layout(shell_size)?;
-        self.template_surface
-            .refresh_after_state_change(self.runtime.as_ref())?;
-        Ok(())
     }
 
     pub(crate) fn surface(&self) -> &UiSurface {
@@ -161,6 +154,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
         self.template_surface.visible_control_frame(control_id)
+    }
+
+    pub(super) fn control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
+        self.template_surface.control_node_id(control_id)
     }
 
     pub(crate) fn layout_frames(&self) -> BuiltinWorkbenchWindowLayoutFrames {
@@ -696,7 +693,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         if values.is_empty() {
             return Ok(());
         }
-        let Some(node_id) = control_node_id(&self.template_surface.surface, control_id) else {
+        let Some(node_id) = self.control_node_id(control_id) else {
             return Ok(());
         };
         let current = self
@@ -724,7 +721,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         property: &str,
         value: UiValue,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let Some(node_id) = control_node_id(&self.template_surface.surface, control_id) else {
+        let Some(node_id) = self.control_node_id(control_id) else {
             return Ok(());
         };
         let _ = self
@@ -759,15 +756,17 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 
     pub(super) fn control_bool(&self, control_id: &str, property: &str) -> bool {
+        let Some(node_id) = self.control_node_id(control_id) else {
+            return false;
+        };
         self.template_surface
             .surface
             .tree
             .nodes
-            .values()
-            .find_map(|node| {
+            .get(&node_id)
+            .and_then(|node| {
                 node.template_metadata
                     .as_ref()
-                    .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
                     .and_then(|metadata| metadata.attributes.get(property))
                     .and_then(toml::Value::as_bool)
             })
@@ -775,15 +774,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 
     pub(super) fn control_string(&self, control_id: &str, property: &str) -> Option<String> {
+        let node_id = self.control_node_id(control_id)?;
         self.template_surface
             .surface
             .tree
             .nodes
-            .values()
-            .find_map(|node| {
+            .get(&node_id)
+            .and_then(|node| {
                 node.template_metadata
                     .as_ref()
-                    .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
                     .and_then(|metadata| metadata.attributes.get(property))
                     .and_then(toml::Value::as_str)
                     .map(str::to_string)
@@ -791,15 +790,17 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 
     pub(super) fn control_string_array(&self, control_id: &str, property: &str) -> Vec<String> {
+        let Some(node_id) = self.control_node_id(control_id) else {
+            return Vec::new();
+        };
         self.template_surface
             .surface
             .tree
             .nodes
-            .values()
-            .find_map(|node| {
+            .get(&node_id)
+            .and_then(|node| {
                 node.template_metadata
                     .as_ref()
-                    .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
                     .and_then(|metadata| metadata.attributes.get(property))
                     .map(toml_value_string_list)
             })

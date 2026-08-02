@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime_interface::project::{
-    render_project_template, ProjectManifestSummary, RenderedProjectTemplate,
+    ProjectManifestSummary, RenderedProjectTemplate, render_project_template,
 };
 
 use super::filesystem::{
@@ -137,7 +137,18 @@ impl ProjectAuthority {
                     return Err(source.into());
                 }
             };
-            remove_empty_target_backup(&backup, replaced_empty_target);
+            if let Err(error) = finalize_empty_target_backup(target, &backup, replaced_empty_target)
+            {
+                drop(project);
+                rollback_committed_project(
+                    &staging,
+                    target,
+                    &backup,
+                    replaced_empty_target,
+                    |from, to| fs::rename(from, to),
+                )?;
+                return Err(error);
+            }
             let summary = project.manifest().summary();
             Ok(CreatedProject {
                 root,
@@ -322,6 +333,41 @@ where
         rename(target, backup).map_err(|source| {
             ProjectAuthorityError::io("stage empty target rollback", target, source)
         })?;
+        match directory_is_empty(backup) {
+            Ok(true) => {}
+            Ok(false) => {
+                let commit_source = std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    "project target became non-empty during creation",
+                );
+                rename(backup, target).map_err(|restore_source| {
+                    ProjectAuthorityError::CommitRollbackFailed {
+                        target: target.to_path_buf(),
+                        backup: backup.to_path_buf(),
+                        commit_source,
+                        restore_source,
+                    }
+                })?;
+                return Err(ProjectAuthorityError::TargetNotEmpty {
+                    path: target.to_path_buf(),
+                });
+            }
+            Err(commit_source) => {
+                if let Err(restore_source) = rename(backup, target) {
+                    return Err(ProjectAuthorityError::CommitRollbackFailed {
+                        target: target.to_path_buf(),
+                        backup: backup.to_path_buf(),
+                        commit_source,
+                        restore_source,
+                    });
+                }
+                return Err(ProjectAuthorityError::io(
+                    "recheck empty project target before commit",
+                    target,
+                    commit_source,
+                ));
+            }
+        }
     }
 
     if let Err(commit_source) = rename(staging, target) {
@@ -343,6 +389,11 @@ where
     }
 
     Ok(())
+}
+
+fn directory_is_empty(path: &Path) -> std::io::Result<bool> {
+    let mut entries = fs::read_dir(path)?;
+    Ok(entries.next().transpose()?.is_none())
 }
 
 pub(super) fn rollback_committed_project<R>(
@@ -376,18 +427,29 @@ where
     Ok(())
 }
 
-fn remove_empty_target_backup(backup: &Path, replace_empty_target: bool) {
+pub(super) fn finalize_empty_target_backup(
+    target: &Path,
+    backup: &Path,
+    replace_empty_target: bool,
+) -> Result<(), ProjectAuthorityError> {
     if !replace_empty_target {
-        return;
+        return Ok(());
     }
 
-    // The backup is known to be the previously empty target. Failure to remove this empty
-    // directory does not invalidate the committed and opened project, so preserve it for later
-    // cleanup.
     match fs::remove_dir(backup) {
-        Ok(()) => {}
-        Err(source) if source.kind() == std::io::ErrorKind::NotFound => {}
-        Err(_cleanup_source) => {}
+        Ok(()) => Ok(()),
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(source) => match directory_is_empty(backup) {
+            Ok(false) => Err(ProjectAuthorityError::TargetNotEmpty {
+                path: target.to_path_buf(),
+            }),
+            Err(inspect_source) if inspect_source.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Ok(true) | Err(_) => Err(ProjectAuthorityError::io(
+                "finalize empty project target backup",
+                backup,
+                source,
+            )),
+        },
     }
 }
 

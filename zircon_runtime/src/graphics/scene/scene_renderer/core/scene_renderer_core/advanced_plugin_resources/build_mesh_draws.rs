@@ -3,8 +3,8 @@ use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::{
-    BuiltMeshDraws, CachedMeshDrawCommands, PendingMeshCommandCacheExtractionContext,
-    build_mesh_draws,
+    build_mesh_draws, BuiltMeshDraws, CachedMeshDrawCommands,
+    PendingMeshCommandCacheExtractionContext,
 };
 use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
 use crate::graphics::types::ViewportRenderFrame;

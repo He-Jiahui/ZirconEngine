@@ -8,5 +8,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use flags:
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use flags::menu_item_has_flag;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use glyphs::push_popup_row_adornment;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::{
-    menu_row_adornment_kind, option_adornment_kind, PopupRowAdornmentKind,
+    PopupRowAdornmentKind, menu_row_adornment_kind, option_adornment_kind,
 };

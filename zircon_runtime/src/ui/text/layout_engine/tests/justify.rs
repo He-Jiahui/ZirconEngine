@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::text::layout::measured_grapheme_widths;
-use crate::ui::text::adapter::text_style;
+use crate::text::text_style;
 
 use super::{layout_text, measure_text_size, test_style};
 

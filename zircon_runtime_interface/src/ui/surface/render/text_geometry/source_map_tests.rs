@@ -45,6 +45,153 @@ fn mixed_bidi_logical_boundary_affinity_selects_distinct_visual_edges() {
 }
 
 #[test]
+fn visual_advance_prefix_preserves_non_uniform_grapheme_boundaries() {
+    let line = UiResolvedTextLine {
+        text: "a\u{754c}e\u{301}".to_string(),
+        frame: UiFrame::new(10.0, 20.0, 21.0, 12.0),
+        source_range: UiTextRange { start: 0, end: 7 },
+        visual_range: UiTextRange { start: 0, end: 7 },
+        measured_width: 21.0,
+        glyph_advances: vec![3.0, 7.0, 11.0],
+        baseline: 9.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![run(
+            "a\u{754c}e\u{301}",
+            0,
+            7,
+            0,
+            7,
+            UiTextDirection::LeftToRight,
+        )],
+        ellipsized: false,
+    };
+    let map = UiTextLineSourceMap::new(&line);
+
+    assert_eq!(map.advance_to_visual_offset(0), 0.0);
+    assert_eq!(map.advance_to_visual_offset(1), 3.0);
+    assert_eq!(map.advance_to_visual_offset(4), 10.0);
+    assert_eq!(map.advance_to_visual_offset(7), 21.0);
+}
+
+#[test]
+fn mismatched_glyph_advances_keep_legacy_proportional_fallback() {
+    let line = UiResolvedTextLine {
+        text: "ab\u{754c}".to_string(),
+        frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
+        source_range: UiTextRange { start: 0, end: 5 },
+        visual_range: UiTextRange { start: 0, end: 5 },
+        measured_width: 30.0,
+        glyph_advances: vec![30.0],
+        baseline: 9.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![run("ab\u{754c}", 0, 5, 0, 5, UiTextDirection::LeftToRight)],
+        ellipsized: false,
+    };
+    let map = UiTextLineSourceMap::new(&line);
+
+    assert_eq!(map.advance_to_visual_offset(0), 0.0);
+    assert_eq!(map.advance_to_visual_offset(1), 10.0);
+    assert_eq!(map.advance_to_visual_offset(2), 20.0);
+    assert_eq!(map.advance_to_visual_offset(5), 30.0);
+}
+
+#[test]
+fn isomorphic_single_run_preserves_internal_ltr_caret_and_selection_offsets() {
+    let line = mixed_bidi_line();
+    let map = UiTextLineSourceMap::new(&line);
+
+    for affinity in [
+        UiTextCaretAffinity::Upstream,
+        UiTextCaretAffinity::Downstream,
+    ] {
+        assert_eq!(
+            map.visual_offset_for_caret(&UiTextCaret {
+                offset: 1,
+                affinity,
+            }),
+            1,
+            "the internal LTR caret must retain its source-relative visual boundary"
+        );
+    }
+    assert_eq!(
+        map.caret_for_visual_boundary(
+            1,
+            UiTextVisualBoundaryBias::LeadingCurrent,
+            line.source_range.start,
+        ),
+        UiTextCaret {
+            offset: 1,
+            affinity: UiTextCaretAffinity::Downstream,
+        }
+    );
+    assert_eq!(
+        map.caret_for_visual_boundary(
+            1,
+            UiTextVisualBoundaryBias::TrailingPrevious,
+            line.source_range.end,
+        ),
+        UiTextCaret {
+            offset: 1,
+            affinity: UiTextCaretAffinity::Upstream,
+        }
+    );
+    assert_eq!(
+        map.visual_spans_for_source_range(UiTextRange { start: 1, end: 2 }),
+        vec![UiTextVisualSpan {
+            visual_range: UiTextRange { start: 1, end: 2 },
+        }]
+    );
+}
+
+#[test]
+fn isomorphic_single_rtl_run_reverses_internal_source_offsets() {
+    let line = UiResolvedTextLine {
+        text: "\u{5d1}\u{5d0}".to_string(),
+        frame: UiFrame::new(10.0, 20.0, 20.0, 12.0),
+        source_range: UiTextRange { start: 0, end: 4 },
+        visual_range: UiTextRange { start: 0, end: 4 },
+        measured_width: 20.0,
+        glyph_advances: vec![10.0, 10.0],
+        baseline: 9.0,
+        direction: UiTextDirection::RightToLeft,
+        runs: vec![run(
+            "\u{5d1}\u{5d0}",
+            0,
+            4,
+            0,
+            4,
+            UiTextDirection::RightToLeft,
+        )],
+        ellipsized: false,
+    };
+    let map = UiTextLineSourceMap::new(&line);
+
+    assert_eq!(
+        map.caret_for_visual_boundary(
+            1,
+            UiTextVisualBoundaryBias::LeadingCurrent,
+            line.source_range.start,
+        ),
+        UiTextCaret {
+            offset: 2,
+            affinity: UiTextCaretAffinity::Downstream,
+        }
+    );
+    for affinity in [
+        UiTextCaretAffinity::Upstream,
+        UiTextCaretAffinity::Downstream,
+    ] {
+        assert_eq!(
+            map.visual_offset_for_caret(&UiTextCaret {
+                offset: 2,
+                affinity,
+            }),
+            2
+        );
+    }
+}
+
+#[test]
 fn mixed_bidi_source_range_projects_discontiguous_visual_spans() {
     let line = mixed_bidi_line();
     let map = UiTextLineSourceMap::new(&line);
@@ -120,6 +267,62 @@ fn non_isomorphic_multi_grapheme_caret_snaps_to_whole_run_edges() {
             affinity: UiTextCaretAffinity::Downstream,
         }),
         2
+    );
+}
+
+#[test]
+fn combining_grapheme_split_across_runs_keeps_one_cluster_and_legal_caret_edges() {
+    let line = UiResolvedTextLine {
+        text: "a\u{0301}".to_string(),
+        frame: UiFrame::new(10.0, 20.0, 20.0, 12.0),
+        source_range: UiTextRange { start: 0, end: 3 },
+        visual_range: UiTextRange { start: 0, end: 3 },
+        measured_width: 20.0,
+        glyph_advances: vec![20.0],
+        baseline: 9.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![
+            run("a", 0, 1, 0, 1, UiTextDirection::LeftToRight),
+            run("\u{0301}", 1, 3, 1, 3, UiTextDirection::LeftToRight),
+        ],
+        ellipsized: false,
+    };
+    let map = UiTextLineSourceMap::new(&line);
+
+    assert_eq!(map.cluster_count(), 1);
+    assert_eq!(map.advance_to_visual_offset(3), 20.0);
+    assert_eq!(
+        map.caret_for_visual_boundary(
+            0,
+            UiTextVisualBoundaryBias::LeadingCurrent,
+            line.source_range.start,
+        ),
+        UiTextCaret {
+            offset: 0,
+            affinity: UiTextCaretAffinity::Downstream,
+        }
+    );
+    assert_eq!(
+        map.caret_for_visual_boundary(
+            1,
+            UiTextVisualBoundaryBias::LeadingCurrent,
+            line.source_range.end,
+        ),
+        UiTextCaret {
+            offset: 3,
+            affinity: UiTextCaretAffinity::Downstream,
+        }
+    );
+    assert_eq!(
+        map.caret_for_visual_boundary(
+            1,
+            UiTextVisualBoundaryBias::TrailingPrevious,
+            line.source_range.end,
+        ),
+        UiTextCaret {
+            offset: 3,
+            affinity: UiTextCaretAffinity::Upstream,
+        }
     );
 }
 

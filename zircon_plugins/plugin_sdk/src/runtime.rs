@@ -1,8 +1,8 @@
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use zircon_runtime::plugin::{
-    CapabilityStatusManifest, PluginFeatureBundleManifest, PluginMaturity, PluginPackageManifest,
-    RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
+    CapabilityStatusManifest, PluginFeatureBundleManifest, PluginInterfaceManifest, PluginMaturity,
+    PluginPackageManifest, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
 };
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
@@ -104,6 +104,16 @@ impl RuntimePluginDeclaration {
         self
     }
 
+    pub fn with_provided_interface(mut self, interface: PluginInterfaceManifest) -> Self {
+        self.builder = self.builder.with_provided_interface(interface);
+        self
+    }
+
+    pub fn with_provided_interface_id(mut self, interface_id: impl Into<String>) -> Self {
+        self.builder = self.builder.with_provided_interface_id(interface_id);
+        self
+    }
+
     pub fn with_default_packaging(
         mut self,
         packaging: impl IntoIterator<Item = ExportPackagingStrategy>,
@@ -159,11 +169,13 @@ mod tests {
         assert_eq!(manifest.maturity, descriptor.maturity());
         assert_eq!(manifest.supported_targets, descriptor.target_modes());
         assert_eq!(manifest.capabilities, descriptor.capabilities());
-        assert!(manifest
-            .modules
-            .iter()
-            .any(|module| module.name == "navigation.runtime"
-                && module.crate_name == "zircon_plugin_navigation_runtime"
-                && module.system_anchors == ["navigation.runtime.tick".to_string()]));
+        assert!(
+            manifest
+                .modules
+                .iter()
+                .any(|module| module.name == "navigation.runtime"
+                    && module.crate_name == "zircon_plugin_navigation_runtime"
+                    && module.system_anchors == ["navigation.runtime.tick".to_string()])
+        );
     }
 }

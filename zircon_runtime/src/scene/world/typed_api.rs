@@ -17,15 +17,19 @@ impl World {
         Ok(entity)
     }
 
-    pub(crate) fn spawn_empty_at(&mut self, entity: EntityId) -> bool {
+    pub(crate) fn spawn_empty_at(&mut self, entity: EntityId) -> SceneResult<bool> {
         if self.contains_entity(entity) {
-            return false;
+            return Ok(false);
         }
-        if self.next_id <= entity {
-            self.next_id = entity + 1;
-        }
-        self.register_stable_entity(entity)
-            .expect("reserved scene entity must have a unique stable id");
+        let next_id = if self.next_id <= entity {
+            entity
+                .checked_add(1)
+                .ok_or(SceneError::EntityIdExhausted { entity })?
+        } else {
+            self.next_id
+        };
+        self.register_stable_entity(entity)?;
+        self.next_id = self.next_id.max(next_id);
         self.entities.push(entity);
         self.kinds.insert(entity, NodeKind::Empty);
         self.record_node_kind_added(NodeKind::Empty);
@@ -35,14 +39,16 @@ impl World {
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
         self.advance_scene_binding_generations_for_new_descendant(entity);
-        true
+        Ok(true)
     }
 
     pub(crate) fn spawn_at<B>(&mut self, entity: EntityId, bundle: B) -> SceneResult<EntityId>
     where
         B: Bundle,
     {
-        self.spawn_empty_at(entity);
+        if !self.spawn_empty_at(entity)? {
+            return Err(SceneError::DuplicateEntity { entity });
+        }
         self.insert_bundle(entity, bundle)?;
         Ok(entity)
     }
@@ -139,7 +145,7 @@ impl World {
         self.insert_fixed_component(entity, &component)?;
         let internal = self
             .internal_entity(entity)
-            .expect("stable entity must have an internal identity");
+            .ok_or_else(|| SceneError::missing_entity("insert component on", entity))?;
         let old = match self.component_storage.insert_at_tick(
             component_id,
             T::STORAGE_TYPE,
@@ -207,6 +213,13 @@ impl World {
             .get_mut_at_tick(component_id, internal, tick)
     }
 
+    pub(in crate::scene) fn has_fixed_component_owner<T>(&self) -> bool
+    where
+        T: Component,
+    {
+        self.is_fixed_component_type::<T>()
+    }
+
     pub fn remove<T>(&mut self, entity: EntityId) -> SceneResult<Option<T>>
     where
         T: Component,
@@ -217,7 +230,7 @@ impl World {
         let component_id = self.registered_component_id::<T>();
         let internal = self
             .internal_entity(entity)
-            .expect("stable entity must have an internal identity");
+            .ok_or_else(|| SceneError::missing_entity("remove component from", entity))?;
         if self.is_fixed_component_type::<T>() {
             if let Some(component_id) = component_id {
                 if self.contains_component_id(entity, component_id) {
@@ -237,10 +250,10 @@ impl World {
                     Err(error) => return Err(error.into()),
                 }
             }
-            if removed.is_some() {
+            if let Some(removed) = removed.as_ref() {
                 self.record_removed_component::<T>(entity);
                 self.mark_component_mutation::<T>(entity);
-                self.mark_scene_binding_component_removal::<T>(entity, removed.as_ref().unwrap());
+                self.mark_scene_binding_component_removal::<T>(entity, removed);
             }
             if removed.is_some() || removed_from_storage {
                 self.refresh_entity_archetype(entity);
@@ -259,10 +272,10 @@ impl World {
             Ok(None) => None,
             Err(error) => return Err(error.into()),
         };
-        if removed.is_some() {
+        if let Some(removed) = removed.as_ref() {
             self.record_removed_component::<T>(entity);
             self.mark_component_mutation::<T>(entity);
-            self.mark_scene_binding_component_removal::<T>(entity, removed.as_ref().unwrap());
+            self.mark_scene_binding_component_removal::<T>(entity, removed);
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
         }
@@ -375,9 +388,11 @@ impl World {
     where
         T: Resource,
     {
-        let Some((resource, _ticks)) = self.resource_mut_with_ticks::<T>() else {
+        let Some((resource, ticks, tick)) = self.resource_mut_with_ticks::<T>() else {
             return None;
         };
+
+        ticks.set_changed(tick);
 
         Some(resource)
     }
@@ -416,9 +431,9 @@ impl World {
         let component_id = self
             .component_registry
             .dynamic_component_id(component_type_id);
-        let internal = self
-            .internal_entity(entity)
-            .expect("stable entity must have an internal identity");
+        let internal = self.internal_entity(entity).ok_or_else(|| {
+            SceneError::missing_entity("insert dynamic component presence for", entity)
+        })?;
         let tick = self.mutation_change_tick();
         let old = self.component_storage.insert_at_tick(
             component_id,
@@ -624,8 +639,7 @@ impl World {
             return None;
         }
         let hierarchy = (component as &dyn std::any::Any)
-            .downcast_ref::<crate::scene::components::Hierarchy>()
-            .expect("Hierarchy type identity must match its concrete component");
+            .downcast_ref::<crate::scene::components::Hierarchy>()?;
         Some(hierarchy.parent)
     }
 

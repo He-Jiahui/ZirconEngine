@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::core::framework::platform::{
-    PreferenceFlushTicket, PreferenceKey, PreferenceMutationSubmission, PreferenceReadSnapshot,
-    PreferenceStorage, PreferenceStorageError, PreferenceWorkDeadline,
+    PreferenceEviction, PreferenceFlushTicket, PreferenceKey, PreferenceMutationSubmission,
+    PreferenceReadSnapshot, PreferenceStorage, PreferenceStorageError, PreferenceWorkDeadline,
 };
 
 use super::PlatformDriver;
@@ -25,12 +25,6 @@ impl PlatformManager {
 
     pub fn capability_report(&self, config: &PlatformConfig) -> PlatformCapabilityReport {
         config.capability_report_with_preference_storage_backend(self.backend_kind())
-    }
-}
-
-impl Default for PlatformManager {
-    fn default() -> Self {
-        Self::new(Arc::new(PlatformDriver::default()))
     }
 }
 
@@ -68,5 +62,9 @@ impl PreferenceStorage for PlatformManager {
         deadline: PreferenceWorkDeadline,
     ) -> Result<Arc<dyn PreferenceFlushTicket>, PreferenceStorageError> {
         self.preferences.flush_fence(deadline)
+    }
+
+    fn evict(&self, key: &PreferenceKey) -> Option<PreferenceEviction> {
+        self.preferences.evict(key)
     }
 }

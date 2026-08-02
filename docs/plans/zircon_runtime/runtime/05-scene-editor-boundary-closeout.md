@@ -5,7 +5,9 @@ related_code:
   - tools/tests/test_runtime_plan_status_archive_ownership.py
   - tests/acceptance/runtime-plan-status-archive-ownership-sync.md
   - zircon_runtime/src/scene/inspection/mod.rs
+  - zircon_runtime/src/scene/inspection/artifact.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
+  - zircon_runtime/src/scene/inspection/subscription.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
@@ -414,7 +416,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 status: completed
-last_refined: 2026-07-13
+last_refined: 2026-08-01
 ---
 
 # 05 scene/editor 边界收尾
@@ -426,7 +428,7 @@ last_refined: 2026-07-13
 - **空目录已删（矫正）**：`zircon_runtime/src/scene/editor_projection/` 已不存在（`ls` 报 No such file or directory）。全仓 `editor_projection` 残留引用仅 1 处文本：`scene/tests/component_structure.rs`（执行时核验语义：是"断言不存在"的守卫还是过期注释）。原 M1 切片 1 的"删目录"工作已完成。
 - **序列化纯净守卫已枚举完备（矫正）**：`scene/tests/authoring_boundary.rs` 已有双 token 禁入清单——`SERIALIZED_AUTHORING_TOKENS`（19 词：selection/selection_anchors/scene_gizmos/gizmo/overlay/camera_override/preview_lighting/viewport_camera/SceneViewportSettings/pane 等）与 `SOURCE_AUTHORING_TOKENS`（25 词：含 SelectionHighlightExtract/GridOverlayExtract/SceneGizmoOverlayExtract 等 extract 类型名）；helper `assert_text_excludes_authoring_tokens` + 负例自检 `authoring_boundary_guard_fails_on_representative_tokens`。消费方覆盖 world project、dynamic scene、asset scene、inspection JSON 与 serialization source 守卫。
 - **inspection 守卫已存在（矫正）**：`scene/tests/inspection.rs` 已有 `world_inspection_serialization_excludes_editor_authoring_tokens` 与 `world_inspection_filters_missing_focus_without_storing_authoring_state`。原 M2 切片 2 的"给 inspection 加守卫"已完成。
-- **inspection 公共面**：`scene/inspection/mod.rs` 仅导出 `WorldInspectionField` / `WorldInspectionHierarchyRow` / `WorldInspection` 三类型（field/hierarchy/snapshot 三文件），形状中性。
+- **inspection 公共面（2026-08-01 修订）**：`scene/inspection/mod.rs` 当前拥有 `artifact/field/hierarchy/snapshot/subscription` 五个子模块。公共面除 `WorldInspectionField` / `WorldInspectionHierarchyRow` / `WorldInspection` 外，还包含 artifact/delta/summary 与 subscription table 族；这些新增类型是内存投影与订阅状态，不实现 `Serialize`，并未新增 scene 持久化出口。authoring-token 序列化守卫仍由 `inspection.rs::world_inspection_serialization_excludes_editor_authoring_tokens` 覆盖 `WorldInspection` 快照。
 - **剩余真实工作 1——"editor" 命名白名单**：runtime 内 "editor" 命中约 181 文件（执行时重核：Grep `-l editor`，path `zircon_runtime/src`），混杂三类：合法 editor-host 目标语义（`dynamic_api/session.rs` 的 editor 模式、`plugin/core_profiles.rs:10` `pub struct EditorCoreProfile`、native loader 的 editor_host 校验）、测试夹具、待裁决 authoring 残留。无白名单则无法机器化判定新增违规。
 - **剩余真实工作 2——"legacy" 命名裁决**："legacy" 403 处/84 文件。实仓抽样（`ui/surface/input/navigation.rs:22-54`）：`legacy` 是 `dispatch_navigation_event` 旧路由回复的本地变量名，承载真实运行语义（route/focus/diagnostics 全从它取值）——属"领域词化的迁移痕迹"，需逐类裁决是改名、文档化还是列债。
 - 命名审计文档锚点（2026-06-12 实测存在）：`docs/engine-architecture/non-network-server-naming-m1.md`、`hard-cutover-migration-smells-m1.md`、`runtime-root-surface-m1.md`、`runtime-architecture-review-m0.md`——白名单产出并入这些既有口径，不另起新文件。
@@ -439,7 +441,7 @@ last_refined: 2026-07-13
 
 ## 非目标
 
-- 不迁移任何已在 `zircon_editor` 的投影/选中/gizmo 逻辑；不改 inspection 三类型的数据形状（除非裁决发现 authoring 泄漏）。
+- 不迁移任何已在 `zircon_editor` 的投影/选中/gizmo 逻辑；不改 inspection 的既有 neutral snapshot/artifact/subscription 合同（除非裁决发现 authoring 泄漏）。
 - 不在本计划处理 ui/surface/input 的输入路径重构（"legacy" 若裁决为迁移债，移交 UI 边界 owner 计划）。
 - 渲染骨架内容归 render 计划 01-08。
 
@@ -452,11 +454,11 @@ last_refined: 2026-07-13
 1. 活动会话对齐：serialization 守卫与 inspection 均在 `20260604-1232` 会话工作区延长线上——执行前确认该会话对应切片已完成或已交接，避免双写同一守卫。
 2. worktree 脏文件检查：`git status --porcelain -- zircon_runtime/src/scene/ docs/engine-architecture/`。
 3. 事实重核：
-   - `ls zircon_runtime/src/scene/ | grep editor_projection`（应无输出）
-   - `grep -rn "editor_projection" zircon_runtime/src --include=*.rs`（应仅 component_structure.rs 1 处）
-   - `grep -rl "editor" zircon_runtime/src --include=*.rs | wc -l`（editor 命中文件数基线重核）
-   - `grep -rn "legacy" zircon_runtime/src/ui/surface/input --include=*.rs | wc -l`
-4. 基线记录：`cargo test -p zircon_runtime --lib scene:: --locked` 通过数记入状态节。
+   - `Get-ChildItem zircon_runtime/src/scene/ | Where-Object Name -eq 'editor_projection'`（应无输出）
+   - `Get-ChildItem zircon_runtime/src -Recurse -Filter '*.rs' | Select-String -Pattern 'editor_projection'`
+   - `Get-ChildItem zircon_runtime/src -Recurse -Filter '*.rs' | Select-String -Pattern 'editor' | Select-Object -ExpandProperty Path -Unique`
+   - `Get-ChildItem zircon_runtime/src/ui/surface/input -Recurse -Filter '*.rs' | Select-String -Pattern 'legacy'`
+4. 基线记录：通过 `validate-matrix.ps1` 的 `zircon_runtime/scene::` 受管过滤门记录通过数；禁止直接运行裸 Cargo。
 
 ## 里程碑
 
@@ -509,15 +511,14 @@ last_refined: 2026-07-13
 
 - 调用方迁移：无。
 - 验收：守卫对违规注入有负例（参照既有 `authoring_boundary_guard_fails_on_representative_tokens` :62 的自检模式）。
-- DoD：`cargo test -p zircon_runtime --lib naming_boundary --locked` 全绿且白名单外新增命名会失败。
+- DoD：受管 `naming_boundary` 过滤门全绿且白名单外新增命名会失败。
 
 #### M1 测试阶段（milestone-first）
 
-- 切片期：`cargo check -p zircon_runtime --lib --locked`
 - 里程碑末：
-  - `cargo test -p zircon_runtime --lib scene:: --locked`（无回归）
-  - `cargo test -p zircon_runtime --lib authoring --locked -- --nocapture`（新守卫）
-  - `cargo test -p zircon_runtime --lib naming_boundary --locked -- --nocapture`（命名白名单）
+  - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter scene::`（无回归）
+  - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter authoring`（新守卫）
+  - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter naming_boundary`（命名白名单）
 - 验收证据：白名单/违规清单写入既有命名审计文档（与 `20260604-1232` 口径合并）；守卫进常驻测试树。
 
 ### M2 守卫覆盖矩阵审计与维护公约
@@ -525,7 +526,7 @@ last_refined: 2026-07-13
 #### 切片 2.1 覆盖矩阵成表
 
 - 目标文件：`docs/zircon_runtime/scene/inspection.md`（既有，刷新守卫说明；执行时核验：`ls docs/zircon_runtime/scene/`）。
-- 改动形态：纯文档。成表：行 = 四个出口（world 序列化、dynamic scene、asset scene、inspection 快照），列 = 双 token 表（SERIALIZED 19 词 / SOURCE 25 词）与负例自检；逐格标注承载测试（已核实：`world_basics.rs` / `component_structure.rs` / `derived_state.rs` / `asset_scene.rs` / `inspection.rs:148,161`）。空格（某出口未覆盖某表）即补测试条目。
+- 改动形态：纯文档。矩阵分两类而不是错误的笛卡尔积：(a) 四个 serialized 出口（world project、dynamic scene、asset scene、inspection snapshot）分别落到 `world_basics.rs`/`dynamic_scene*`/`asset_scene.rs`/`inspection.rs:161` 的 `SERIALIZED_AUTHORING_TOKENS` 断言；(b) serialization owner 源码由 `component_structure/project_serialization.rs` 使用 `SOURCE_AUTHORING_TOKENS` 横切约束。`artifact.rs`/`subscription.rs` 是不实现 `Serialize` 的内存投影，不计为第五个持久化出口；其 neutral 形状由 inspection 单元测试与公共面审计覆盖。
 - 调用方迁移：无。
 - 验收：矩阵无空格，或空格有补测试切片。
 - DoD：矩阵落 `inspection.md` 且每格可点到测试名。
@@ -540,8 +541,8 @@ last_refined: 2026-07-13
 
 #### M2 测试阶段（milestone-first）
 
-- `cargo test -p zircon_runtime --lib authoring --locked -- --nocapture`
-- `cargo test -p zircon_runtime --lib inspection --locked -- --nocapture`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter authoring`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter inspection`
 - 验收证据：覆盖矩阵 + 公约 + 守卫测试全绿；`docs/zircon_runtime/scene/inspection.md` 刷新。
 
 ### M3 收尾闭环（2026-06-12 二次细化新增；M1/M2 全切片已完成后的关账步骤）
@@ -551,19 +552,19 @@ last_refined: 2026-07-13
 - 目标文件：本计划状态节 + 各 owner 计划/审计文档交叉引用。
 - 改动形态：核对 `runtime_naming_boundary` 审计输出中的 legacy naming debt bucket（2026-06-21 当前为 7 个：runtime graphics、DDS container policy、UI template schema、input event、asset schema、dynamic API migration、scene schema/render）——每个 bucket 必须可点到 owner 计划条目或审计文档判词；缺失者补交叉引用（input/UI template 债 → UI/Input 边界 owner 计划；DDS/graphics/scene render 债 → render/asset/scene 对应子计划）。
 - 调用方迁移：无。
-- 验收：10 bucket 全部有 owner 落点链接。
+- 验收：2026-06-21 的 7 个 debt owner bucket 全部有 owner 落点链接（7/7）；不再沿用 2026-06-12 的历史 10-bucket 数字。
 - DoD：移交表落状态节。
 
 #### 切片 3.2 状态闭环
 
 - 目标文件：本计划 frontmatter（status → completed）；`docs/plans/zircon_runtime/runtime/index.md` §3 状态行同步。
-- 改动形态：收尾回归 `cargo test -p zircon_runtime --lib scene:: --locked`（全族无回归确认，此前验证用的是 naming_boundary/authoring/inspection 过滤词）；通过后翻转状态并在 §2.2 P6/P9 行补"已闭环"判词。
+- 改动形态：收尾回归受管 `scene::` 过滤门（全族无回归确认，此前验证用的是 naming_boundary/authoring/inspection 过滤词）；通过后翻转状态并在 §2.2 P6/P9 行补"已闭环"判词。
 - 验收：scene:: 全族绿；index 与本计划状态一致。
 - DoD：status: completed 落盘。
 
 #### M3 测试阶段（milestone-first）
 
-- `cargo test -p zircon_runtime --lib scene:: --locked`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter scene::`
 - 验收证据：命令输出摘要 + 状态翻转 + index 同步。
 
 ## 状态与产出记录
@@ -580,15 +581,3 @@ last_refined: 2026-07-13
 - 2026-07-18 post-completion性能复核：scene framework 24/24确认`EntityPath`与`ComponentPropertyPath`同时拥有raw及逐段String，路径clone/resolve会随animation/property/editor payload放大。Runtime05既有closeout不重开；interned PathId/Arc storage与scene-generation dense resolve由Runtime08联动性能计划承接，见PERF-MVP-329。
 - 2026-07-22 post-completion dynamic scene复核：非session基础35/35已静态覆盖并完成owned JSON/capture sort/descriptor key三组止损（PERF-MVP-470）。asset reload有界single-flight归Runtime04/11 PERF-MVP-471，target-world compiled spawn transaction归Runtime08 PERF-MVP-472；Runtime05 closeout不重开，只共同验收scene格式、preview/apply与editor边界语义。
 - 2026-07-27 post-completion 动态组件属性 generation 复核：reflection 直达动态属性写入未统一发布 inspection/world generation；Runtime05 closeout 不重开，交给 Runtime08 的 [dynamic-component-property-world-generation](08/failure-2026-07-27-dynamic-component-property-world-generation.md) 统一修复并回跑 Navigation projection gate。
-
-## Code Review 建议 (2026-07-31)
-
-### 与代码现状不符，需修订
-
-- 「现状与证据」§「inspection 公共面」条称「`scene/inspection/mod.rs` 仅导出 `WorldInspectionField` / `WorldInspectionHierarchyRow` / `WorldInspection` 三类型（field/hierarchy/snapshot 三文件）」已不成立。当前 `zircon_runtime/src/scene/inspection/mod.rs:3-21` 声明 `artifact/field/hierarchy/snapshot/subscription` 五个子模块，公共面已扩展到 artifact 缓存/增量族（`WorldInspectionArtifact`、`WorldInspectionArtifactDiagnostics`、`WorldInspectionDelta`、`WorldInspectionFieldDelta`、`WorldInspectionFieldPath`、`WorldInspectionFieldsArtifact`、`WorldInspectionSummary`，:13-17）与订阅表族（`SubscriptionTable`、`SubscriptionTableDiagnostics`、`SubscriptionTableLimits`，:21）。建议把该条更新为当前五文件/多导出形态，并复核这些新增 artifact/subscription 类型是否已纳入 M2 覆盖矩阵与 authoring-token 守卫的核对范围（非目标声明「不改 inspection 三类型数据形状」的前提已随扩面失效）。
-
-### 验证缺口
-
-- M2 切片 2.1 覆盖矩阵以「四个出口（world 序列化、dynamic scene、asset scene、inspection 快照）」为行，但当前 `scene/tests/authoring_boundary.rs:53-54` 的 `SERIALIZED_AUTHORING_SURFACES` 只固定两条序列化出口（`"versioned dynamic scene JSON"`、`"versioned reflected JSON"`）。inspection artifact/delta（新增 :13-17 导出）与 asset scene 出口是否有等价的 authoring-token 断言未在该常量中体现，建议在覆盖矩阵补 inspection artifact/subscription 出口行，或说明其复用哪条既有断言，避免扩面后的 authoring 泄漏无守卫。
-
-（注：M2 切片 2.2 的 `authoring_token_tables_stay_sorted_and_deduplicated` 已落地于 `authoring_boundary.rs:77-82`，SERIALIZED/SOURCE token 表当前为 19/25 词，与计划描述一致，无需修订。）

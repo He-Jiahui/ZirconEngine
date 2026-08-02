@@ -1,24 +1,34 @@
-use std::collections::{hash_map::Entry, BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap};
 use std::io::{self, Write};
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
 };
 
-use crate::core::{CoreHandle, JobScheduler};
+use crate::core::CoreHandle;
+use crate::core::runtime::tasks::TaskTimerSubscription;
 use crate::scene::World;
 
+use super::maintenance::{
+    expire_due_deadlines_in_state, expire_terminal_results_in_state, lock_operation_state,
+    refresh_operation_maintenance_alarm,
+};
 use super::task::RuntimeOperationTask;
 use super::{RuntimeOperationContext, RuntimeOperationHandler, RuntimeOperationServiceError};
+
+mod admission;
+mod completion;
 
 const DEFAULT_MAX_TASKS: usize = 1_024;
 const DEFAULT_MAX_IN_FLIGHT_PREPARES: usize = 32;
 const DEFAULT_MAX_RETAINED_BYTES: usize = 4 * 1024 * 1024;
 const DEFAULT_MAX_OWNER_APPLIES_PER_TICK: usize = 8;
+const DEFAULT_TERMINAL_RESULT_TTL: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct RuntimeOperationLimits {
@@ -26,6 +36,7 @@ pub(super) struct RuntimeOperationLimits {
     pub(super) max_in_flight_prepares: usize,
     pub(super) max_retained_bytes: usize,
     pub(super) max_owner_applies_per_tick: usize,
+    pub(super) terminal_result_ttl: Duration,
 }
 
 impl Default for RuntimeOperationLimits {
@@ -35,16 +46,22 @@ impl Default for RuntimeOperationLimits {
             max_in_flight_prepares: DEFAULT_MAX_IN_FLIGHT_PREPARES,
             max_retained_bytes: DEFAULT_MAX_RETAINED_BYTES,
             max_owner_applies_per_tick: DEFAULT_MAX_OWNER_APPLIES_PER_TICK,
+            terminal_result_ttl: DEFAULT_TERMINAL_RESULT_TTL,
         }
     }
 }
 
 #[derive(Default)]
-struct RuntimeOperationTaskState {
-    next_handle: u64,
-    tasks: HashMap<ZrRuntimeOperationHandle, RuntimeOperationTask>,
-    retained_bytes: usize,
-    in_flight_prepares: usize,
+pub(super) struct RuntimeOperationTaskState {
+    pub(super) next_handle: u64,
+    pub(super) tasks: HashMap<ZrRuntimeOperationHandle, RuntimeOperationTask>,
+    pub(super) retained_bytes: usize,
+    pub(super) pending_admissions: usize,
+    pub(super) pending_admission_bytes: usize,
+    pub(super) in_flight_prepares: usize,
+    pub(super) maintenance_subscription: Option<TaskTimerSubscription>,
+    pub(super) maintenance_deadline: Option<Instant>,
+    pub(super) maintenance_generation: u64,
 }
 
 impl RuntimeOperationTaskState {
@@ -66,22 +83,41 @@ impl RuntimeOperationTaskState {
 enum RuntimeOperationPrepareCompletion {
     Prepared {
         handle: ZrRuntimeOperationHandle,
-        prepared: serde_json::Value,
-        prepared_bytes: usize,
+        command: serde_json::Value,
+        result: serde_json::Value,
+        command_bytes: usize,
+        result_bytes: usize,
     },
     Failed {
         handle: ZrRuntimeOperationHandle,
         error: String,
+        detail_kind: ZrRuntimeOperationDetailKindV2,
     },
+}
+
+struct RuntimeOperationCompletionBatch {
+    sender: SyncSender<RuntimeOperationPrepareCompletion>,
+    receiver: Receiver<RuntimeOperationPrepareCompletion>,
+    handles: Vec<ZrRuntimeOperationHandle>,
+}
+
+struct RuntimeOperationCompletionReceiver {
+    receiver: Receiver<RuntimeOperationPrepareCompletion>,
+    handles: Vec<ZrRuntimeOperationHandle>,
+}
+
+#[derive(Clone, Copy)]
+struct RuntimeOperationAdmissionReservation {
+    bytes: usize,
 }
 
 /// Registry, bounded task store, and prepare completion queue for one runtime session.
 pub struct RuntimeOperationService {
     handlers: BTreeMap<String, Arc<dyn RuntimeOperationHandler>>,
     limits: RuntimeOperationLimits,
-    state: Mutex<RuntimeOperationTaskState>,
-    completion_sender: SyncSender<RuntimeOperationPrepareCompletion>,
-    completion_receiver: Mutex<Receiver<RuntimeOperationPrepareCompletion>>,
+    state: Arc<Mutex<RuntimeOperationTaskState>>,
+    maintenance_refresh: Arc<Mutex<()>>,
+    completion_receivers: Mutex<Vec<RuntimeOperationCompletionReceiver>>,
 }
 
 impl RuntimeOperationService {
@@ -90,14 +126,12 @@ impl RuntimeOperationService {
     }
 
     pub(super) fn with_limits(limits: RuntimeOperationLimits) -> Self {
-        let (completion_sender, completion_receiver) =
-            mpsc::sync_channel(limits.max_in_flight_prepares);
         Self {
             handlers: BTreeMap::new(),
             limits,
-            state: Mutex::new(RuntimeOperationTaskState::default()),
-            completion_sender,
-            completion_receiver: Mutex::new(completion_receiver),
+            state: Arc::new(Mutex::new(RuntimeOperationTaskState::default())),
+            maintenance_refresh: Arc::new(Mutex::new(())),
+            completion_receivers: Mutex::new(Vec::new()),
         }
     }
 
@@ -117,60 +151,6 @@ impl RuntimeOperationService {
         Ok(())
     }
 
-    pub fn submit(
-        &self,
-        request: ZrRuntimeOperationSubmitRequestV1,
-    ) -> Result<ZrRuntimeOperationHandle, RuntimeOperationServiceError> {
-        if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-            return Err(RuntimeOperationServiceError::UnsupportedAbiVersion {
-                actual: request.abi_version,
-            });
-        }
-        if request.operation_id.trim().is_empty() {
-            return Err(RuntimeOperationServiceError::EmptyOperationId);
-        }
-        let handler = self
-            .handlers
-            .get(&request.operation_id)
-            .cloned()
-            .ok_or_else(|| RuntimeOperationServiceError::UnknownOperation {
-                operation_id: request.operation_id.clone(),
-            })?;
-        let payload_bytes = json_value_byte_len(&request.payload)?;
-        let mut state = self.lock_state();
-        if state.tasks.len() >= self.limits.max_tasks {
-            return Err(RuntimeOperationServiceError::TaskCapacityReached {
-                maximum: self.limits.max_tasks,
-            });
-        }
-        let retained_bytes = state.retained_bytes.checked_add(payload_bytes).ok_or(
-            RuntimeOperationServiceError::RetainedBytesCapacityReached {
-                maximum: self.limits.max_retained_bytes,
-            },
-        )?;
-        if retained_bytes > self.limits.max_retained_bytes {
-            return Err(RuntimeOperationServiceError::RetainedBytesCapacityReached {
-                maximum: self.limits.max_retained_bytes,
-            });
-        }
-        let handle = state.allocate_handle()?;
-        state.tasks.insert(
-            handle,
-            RuntimeOperationTask {
-                handle,
-                operation_id: request.operation_id,
-                phase: ZrRuntimeOperationPhase::Queued,
-                handler,
-                payload: Some(request.payload),
-                prepared: None,
-                retained_bytes: payload_bytes,
-                result: None,
-            },
-        );
-        state.retained_bytes = retained_bytes;
-        Ok(handle)
-    }
-
     /// Upper bound for the raw V1 request accepted by this session.
     pub fn max_retained_bytes(&self) -> usize {
         self.limits.max_retained_bytes
@@ -180,20 +160,70 @@ impl RuntimeOperationService {
     pub fn poll(
         &self,
         handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, RuntimeOperationServiceError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, RuntimeOperationServiceError> {
         let state = self.lock_state();
         state
             .tasks
             .get(&handle)
-            .map(RuntimeOperationTask::progress)
+            .map(RuntimeOperationTask::status)
             .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })
     }
 
-    /// Advances bounded prepare work and applies at most one owner budget per runtime frame.
+    /// Advances bounded owner snapshots, worker preparation, and owner applies per runtime frame.
     pub fn tick(&self, core: &CoreHandle, world: &mut World) {
+        self.expire_due_deadlines(Instant::now());
+        self.expire_terminal_results(Instant::now());
         self.drain_prepare_completions();
+        self.expire_due_deadlines(Instant::now());
         self.apply_prepared(core, world);
-        self.dispatch_queued_prepares(core.scheduler());
+        self.expire_due_deadlines(Instant::now());
+        self.snapshot_and_dispatch_queued_prepares(core, world);
+    }
+
+    /// Cancels an operation before its owner-thread apply phase is claimed.
+    pub fn cancel(
+        &self,
+        handle: ZrRuntimeOperationHandle,
+    ) -> Result<(), RuntimeOperationServiceError> {
+        let now = Instant::now();
+        let mut state = self.lock_state();
+        let released_bytes = {
+            let task = state
+                .tasks
+                .get_mut(&handle)
+                .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?;
+            if task.apply_claimed
+                || !matches!(
+                    task.phase,
+                    ZrRuntimeOperationPhase::Queued
+                        | ZrRuntimeOperationPhase::Preparing
+                        | ZrRuntimeOperationPhase::ReadyToApply
+                )
+            {
+                return Err(RuntimeOperationServiceError::NotCancellable { handle });
+            }
+            let released_bytes = std::mem::replace(&mut task.retained_bytes, 0);
+            task.payload = None;
+            task.prepared_command = None;
+            task.prepared_result = None;
+            task.prepared_command_bytes = 0;
+            task.prepared_result_bytes = 0;
+            task.result = None;
+            task.deadline_armed = false;
+            task.snapshot_claimed = false;
+            task.phase = ZrRuntimeOperationPhase::Cancelled;
+            task.detail_kind = ZrRuntimeOperationDetailKindV2::Cancelled;
+            task.detail_value = 0;
+            task.terminal_at = Some(now);
+            released_bytes
+        };
+        state.retained_bytes = state
+            .retained_bytes
+            .checked_sub(released_bytes)
+            .expect("cancelled operation bytes must remain accounted");
+        drop(state);
+        self.refresh_maintenance_after_transition();
+        Ok(())
     }
 
     pub fn harvest(
@@ -201,157 +231,307 @@ impl RuntimeOperationService {
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationResultV1, RuntimeOperationServiceError> {
         let mut state = self.lock_state();
-        let task = match state.tasks.entry(handle) {
-            Entry::Occupied(entry) => {
-                if !entry.get().phase.is_terminal() {
-                    return Err(RuntimeOperationServiceError::NotTerminal { handle });
-                }
-                entry.remove()
+        let (result, released_bytes, terminal_phase) = {
+            let task = state
+                .tasks
+                .get_mut(&handle)
+                .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?;
+            if task.phase == ZrRuntimeOperationPhase::Harvested {
+                return Err(RuntimeOperationServiceError::AlreadyHarvested { handle });
             }
-            Entry::Vacant(_) => return Err(RuntimeOperationServiceError::UnknownHandle { handle }),
+            if task.phase == ZrRuntimeOperationPhase::Cancelled {
+                return Err(RuntimeOperationServiceError::OperationCancelled { handle });
+            }
+            if task.phase == ZrRuntimeOperationPhase::Expired {
+                return Err(RuntimeOperationServiceError::OperationExpired { handle });
+            }
+            if !matches!(
+                task.phase,
+                ZrRuntimeOperationPhase::Completed | ZrRuntimeOperationPhase::Failed
+            ) {
+                return Err(RuntimeOperationServiceError::NotTerminal { handle });
+            }
+            let terminal_phase = task.phase;
+            let result = task
+                .result
+                .take()
+                .ok_or(RuntimeOperationServiceError::NotTerminal { handle })?;
+            let released_bytes = std::mem::replace(&mut task.retained_bytes, 0);
+            task.payload = None;
+            task.prepared_command = None;
+            task.prepared_result = None;
+            task.prepared_command_bytes = 0;
+            task.prepared_result_bytes = 0;
+            task.deadline_armed = false;
+            task.phase = ZrRuntimeOperationPhase::Harvested;
+            task.detail_kind = ZrRuntimeOperationDetailKindV2::Harvested;
+            task.detail_value = u64::from(terminal_phase.raw());
+            (result, released_bytes, terminal_phase)
         };
-        state.retained_bytes = state.retained_bytes.saturating_sub(task.retained_bytes);
-        task.result
-            .ok_or(RuntimeOperationServiceError::NotTerminal { handle })
+        debug_assert!(terminal_phase.is_terminal());
+        state.retained_bytes = state
+            .retained_bytes
+            .checked_sub(released_bytes)
+            .expect("harvested operation bytes must remain accounted");
+        drop(state);
+        self.refresh_maintenance_after_transition();
+        Ok(result)
     }
 
-    fn dispatch_queued_prepares(&self, scheduler: &JobScheduler) {
-        loop {
-            let prepare = {
+    fn arm_deadline(
+        &self,
+        handle: ZrRuntimeOperationHandle,
+        deadline: Instant,
+    ) -> Result<(), RuntimeOperationServiceError> {
+        self.refresh_maintenance().map_err(|error| {
+            self.rollback_unarmed_admission(handle);
+            error
+        })?;
+        let mut state = self.lock_state();
+        let Some(task) = state.tasks.get_mut(&handle) else {
+            return Ok(());
+        };
+        if matches!(
+            task.phase,
+            ZrRuntimeOperationPhase::Queued
+                | ZrRuntimeOperationPhase::Preparing
+                | ZrRuntimeOperationPhase::ReadyToApply
+        ) && task.deadline == Some(deadline)
+        {
+            task.deadline_armed = true;
+        }
+        Ok(())
+    }
+
+    fn rollback_unarmed_admission(&self, handle: ZrRuntimeOperationHandle) {
+        let mut state = self.lock_state();
+        let Some(task) = state.tasks.remove(&handle) else {
+            return;
+        };
+        debug_assert!(!task.deadline_armed);
+        state.retained_bytes = state
+            .retained_bytes
+            .checked_sub(task.retained_bytes)
+            .expect("rolled back operation bytes must remain accounted");
+    }
+
+    fn snapshot_and_dispatch_queued_prepares(&self, core: &CoreHandle, world: &mut World) {
+        let mut completion_batch = None;
+        for _ in 0..self.limits.max_owner_applies_per_tick {
+            let Some((handle, handler, payload)) = self.take_queued_snapshot_task() else {
+                break;
+            };
+            let snapshot = catch_unwind(AssertUnwindSafe(|| {
+                handler.snapshot(RuntimeOperationContext::new(core, world), payload)
+            }));
+            let snapshot = match snapshot {
+                Ok(Ok(snapshot)) => snapshot,
+                Ok(Err(error)) => {
+                    self.finish_snapshot_failed_task(handle, error.to_string());
+                    continue;
+                }
+                Err(_) => {
+                    self.finish_snapshot_failed_task(
+                        handle,
+                        "runtime operation owner snapshot panicked".to_owned(),
+                    );
+                    continue;
+                }
+            };
+            let should_dispatch = {
                 let mut state = self.lock_state();
                 if state.in_flight_prepares >= self.limits.max_in_flight_prepares {
-                    return;
+                    false
+                } else if let Some(task) = state.tasks.get_mut(&handle) {
+                    if task.phase == ZrRuntimeOperationPhase::Queued
+                        && task.snapshot_claimed
+                        && task.deadline_armed
+                        && !task.apply_claimed
+                        && task
+                            .deadline
+                            .is_none_or(|deadline| deadline > Instant::now())
+                    {
+                        task.phase = ZrRuntimeOperationPhase::Preparing;
+                        task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
+                        task.detail_value = 0;
+                        task.snapshot_claimed = false;
+                        task.prepare_in_flight = true;
+                        state.in_flight_prepares = state
+                            .in_flight_prepares
+                            .checked_add(1)
+                            .expect("operation prepare capacity was preflighted");
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
                 }
-                let Some(handle) = state.tasks.iter().find_map(|(handle, task)| {
-                    (task.phase == ZrRuntimeOperationPhase::Queued).then_some(*handle)
-                }) else {
-                    return;
-                };
-                let (handler, payload) = {
-                    let Some(task) = state.tasks.get_mut(&handle) else {
-                        continue;
-                    };
-                    let Some(payload) = task.payload.take() else {
-                        self.finish_failed_task(
-                            &mut state,
-                            handle,
-                            "queued runtime operation lost its payload",
-                        );
-                        continue;
-                    };
-                    task.phase = ZrRuntimeOperationPhase::Running;
-                    (Arc::clone(&task.handler), payload)
-                };
-                state.in_flight_prepares += 1;
-                (handle, handler, payload)
             };
-            let completion_sender = self.completion_sender.clone();
-            scheduler.spawn(move || {
-                let (handle, handler, payload) = prepare;
-                let completion = match catch_unwind(AssertUnwindSafe(|| handler.prepare(payload))) {
-                    Ok(Ok(prepared)) => match json_value_byte_len(&prepared) {
-                        Ok(prepared_bytes) => RuntimeOperationPrepareCompletion::Prepared {
-                            handle,
-                            prepared,
-                            prepared_bytes,
-                        },
-                        Err(error) => RuntimeOperationPrepareCompletion::Failed {
-                            handle,
-                            error: error.to_string(),
-                        },
-                    },
+            if !should_dispatch {
+                continue;
+            }
+            let batch = completion_batch.get_or_insert_with(|| {
+                let (sender, receiver) = mpsc::sync_channel(self.limits.max_in_flight_prepares);
+                RuntimeOperationCompletionBatch {
+                    sender,
+                    receiver,
+                    handles: Vec::new(),
+                }
+            });
+            batch.handles.push(handle);
+            let completion_sender = batch.sender.clone();
+            core.scheduler().spawn(move || {
+                let completion = match catch_unwind(AssertUnwindSafe(|| handler.prepare(snapshot)))
+                {
+                    Ok(Ok(prepared)) => {
+                        let (command, result) = prepared.into_parts();
+                        match (json_value_byte_len(&command), json_value_byte_len(&result)) {
+                            (Ok(command_bytes), Ok(result_bytes)) => {
+                                RuntimeOperationPrepareCompletion::Prepared {
+                                    handle,
+                                    command,
+                                    result,
+                                    command_bytes,
+                                    result_bytes,
+                                }
+                            }
+                            (Err(error), _) | (_, Err(error)) => {
+                                RuntimeOperationPrepareCompletion::Failed {
+                                    handle,
+                                    error: error.to_string(),
+                                    detail_kind: ZrRuntimeOperationDetailKindV2::None,
+                                }
+                            }
+                        }
+                    }
                     Ok(Err(error)) => RuntimeOperationPrepareCompletion::Failed {
                         handle,
                         error: error.to_string(),
+                        detail_kind: ZrRuntimeOperationDetailKindV2::None,
                     },
                     Err(_) => RuntimeOperationPrepareCompletion::Failed {
                         handle,
                         error: "runtime operation prepare panicked".to_owned(),
+                        detail_kind: ZrRuntimeOperationDetailKindV2::WorkerPanic,
                     },
                 };
                 let _ = completion_sender.send(completion);
             });
         }
+        if let Some(RuntimeOperationCompletionBatch {
+            sender,
+            receiver,
+            handles,
+        }) = completion_batch
+        {
+            drop(sender);
+            self.lock_completion_receivers()
+                .push(RuntimeOperationCompletionReceiver { receiver, handles });
+        }
     }
 
-    fn drain_prepare_completions(&self) {
-        loop {
-            let completion = match self.lock_completion_receiver().try_recv() {
-                Ok(completion) => completion,
-                Err(TryRecvError::Empty | TryRecvError::Disconnected) => return,
-            };
-            let mut state = self.lock_state();
-            state.in_flight_prepares = state.in_flight_prepares.saturating_sub(1);
-            match completion {
-                RuntimeOperationPrepareCompletion::Prepared {
-                    handle,
-                    prepared,
-                    prepared_bytes,
-                } => {
-                    let Some(previous_bytes) = state.tasks.get(&handle).and_then(|task| {
-                        (task.phase == ZrRuntimeOperationPhase::Running)
-                            .then_some(task.retained_bytes)
-                    }) else {
-                        continue;
-                    };
-                    let Some(retained_bytes) = state
-                        .retained_bytes
-                        .saturating_sub(previous_bytes)
-                        .checked_add(prepared_bytes)
-                    else {
-                        self.finish_failed_task(
-                            &mut state,
-                            handle,
-                            "runtime operation prepared payload exceeds retained byte budget",
-                        );
-                        continue;
-                    };
-                    if retained_bytes > self.limits.max_retained_bytes {
-                        self.finish_failed_task(
-                            &mut state,
-                            handle,
-                            "runtime operation prepared payload exceeds retained byte budget",
-                        );
-                        continue;
-                    }
-                    state.retained_bytes = retained_bytes;
-                    let Some(task) = state.tasks.get_mut(&handle) else {
-                        continue;
-                    };
-                    task.prepared = Some(prepared);
-                    task.retained_bytes = prepared_bytes;
-                }
-                RuntimeOperationPrepareCompletion::Failed { handle, error } => {
-                    self.finish_failed_task(&mut state, handle, error);
-                }
-            }
+    fn take_queued_snapshot_task(
+        &self,
+    ) -> Option<(
+        ZrRuntimeOperationHandle,
+        Arc<dyn RuntimeOperationHandler>,
+        serde_json::Value,
+    )> {
+        let mut state = self.lock_state();
+        if state.in_flight_prepares >= self.limits.max_in_flight_prepares {
+            return None;
+        }
+        let handle = state.tasks.iter().find_map(|(handle, task)| {
+            (task.phase == ZrRuntimeOperationPhase::Queued
+                && !task.snapshot_claimed
+                && task.deadline_armed
+                && task
+                    .deadline
+                    .is_none_or(|deadline| deadline > Instant::now()))
+            .then_some(*handle)
+        })?;
+        let (handler, payload) = {
+            let task = state.tasks.get_mut(&handle)?;
+            task.snapshot_claimed = true;
+            (Arc::clone(&task.handler), task.payload.take())
+        };
+        let Some(payload) = payload else {
+            self.finish_failed_task(
+                &mut state,
+                handle,
+                "queued runtime operation lost its payload",
+                ZrRuntimeOperationDetailKindV2::None,
+                0,
+            );
+            return None;
+        };
+        Some((handle, handler, payload))
+    }
+
+    fn finish_snapshot_failed_task(&self, handle: ZrRuntimeOperationHandle, error: String) {
+        let mut state = self.lock_state();
+        let should_finish = state.tasks.get(&handle).is_some_and(|task| {
+            task.phase == ZrRuntimeOperationPhase::Queued
+                && task.snapshot_claimed
+                && !task.apply_claimed
+        });
+        if should_finish {
+            self.finish_failed_task(
+                &mut state,
+                handle,
+                error,
+                ZrRuntimeOperationDetailKindV2::None,
+                0,
+            );
+        }
+        drop(state);
+        if should_finish {
+            self.refresh_maintenance_after_transition();
         }
     }
 
     fn apply_prepared(&self, core: &CoreHandle, world: &mut World) {
+        let mut terminal_transition = false;
         for _ in 0..self.limits.max_owner_applies_per_tick {
-            let Some((handle, operation_id, handler, prepared)) = self.take_prepared_task() else {
-                return;
+            let Some((handle, handler, command)) = self.take_prepared_task() else {
+                break;
             };
             let result = catch_unwind(AssertUnwindSafe(|| {
-                handler.apply(RuntimeOperationContext::new(core, world), prepared)
+                handler.apply(RuntimeOperationContext::new(core, world), command)
             }));
             let mut state = self.lock_state();
             match result {
-                Ok(Ok(output)) => {
-                    if let Err(error) =
-                        self.finish_completed_task(&mut state, handle, operation_id, output)
-                    {
-                        self.finish_failed_task(&mut state, handle, error.to_string());
+                Ok(Ok(())) => {
+                    if let Err(error) = self.finish_completed_task(&mut state, handle) {
+                        self.finish_failed_task(
+                            &mut state,
+                            handle,
+                            error.to_string(),
+                            ZrRuntimeOperationDetailKindV2::AdmissionByteLimit,
+                            self.limits.max_retained_bytes as u64,
+                        );
                     }
                 }
-                Ok(Err(error)) => self.finish_failed_task(&mut state, handle, error.to_string()),
+                Ok(Err(error)) => self.finish_failed_task(
+                    &mut state,
+                    handle,
+                    error.to_string(),
+                    ZrRuntimeOperationDetailKindV2::OwnerApplyFailed,
+                    0,
+                ),
                 Err(_) => self.finish_failed_task(
                     &mut state,
                     handle,
                     "runtime operation owner apply panicked",
+                    ZrRuntimeOperationDetailKindV2::OwnerApplyFailed,
+                    0,
                 ),
             }
+            terminal_transition = true;
+        }
+        if terminal_transition {
+            self.refresh_maintenance_after_transition();
         }
     }
 
@@ -359,21 +539,26 @@ impl RuntimeOperationService {
         &self,
     ) -> Option<(
         ZrRuntimeOperationHandle,
-        String,
         Arc<dyn RuntimeOperationHandler>,
         serde_json::Value,
     )> {
         let mut state = self.lock_state();
+        let now = Instant::now();
         let handle = state.tasks.iter().find_map(|(handle, task)| {
-            (task.phase == ZrRuntimeOperationPhase::Running && task.prepared.is_some())
-                .then_some(*handle)
+            (task.phase == ZrRuntimeOperationPhase::ReadyToApply
+                && task.prepared_command.is_some()
+                && task.prepared_result.is_some()
+                && !task.apply_claimed
+                && task.deadline_armed
+                && task.deadline.is_none_or(|deadline| deadline > now))
+            .then_some(*handle)
         })?;
         let task = state.tasks.get_mut(&handle)?;
+        task.apply_claimed = true;
         Some((
             handle,
-            task.operation_id.clone(),
             Arc::clone(&task.handler),
-            task.prepared.take()?,
+            task.prepared_command.take()?,
         ))
     }
 
@@ -381,40 +566,47 @@ impl RuntimeOperationService {
         &self,
         state: &mut RuntimeOperationTaskState,
         handle: ZrRuntimeOperationHandle,
-        operation_id: String,
-        output: serde_json::Value,
     ) -> Result<(), RuntimeOperationServiceError> {
-        let output_bytes = json_value_byte_len(&output)?;
-        let previous_bytes = state
-            .tasks
-            .get(&handle)
-            .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?
-            .retained_bytes;
+        let (operation_id, command_bytes, result_bytes) = {
+            let task = state
+                .tasks
+                .get(&handle)
+                .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?;
+            (
+                task.operation_id.clone(),
+                task.prepared_command_bytes,
+                task.prepared_result_bytes,
+            )
+        };
         let retained_bytes = state
             .retained_bytes
-            .saturating_sub(previous_bytes)
-            .checked_add(output_bytes)
-            .ok_or(RuntimeOperationServiceError::RetainedBytesCapacityReached {
-                maximum: self.limits.max_retained_bytes,
-            })?;
-        if retained_bytes > self.limits.max_retained_bytes {
-            return Err(RuntimeOperationServiceError::RetainedBytesCapacityReached {
-                maximum: self.limits.max_retained_bytes,
-            });
-        }
-        state.retained_bytes = retained_bytes;
+            .checked_sub(command_bytes)
+            .expect("prepared command bytes must remain reserved before owner apply");
         let task = state
             .tasks
             .get_mut(&handle)
             .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?;
+        let result = task
+            .prepared_result
+            .take()
+            .ok_or(RuntimeOperationServiceError::NotTerminal { handle })?;
+        task.prepared_command = None;
+        task.prepared_command_bytes = 0;
+        task.prepared_result_bytes = 0;
         task.phase = ZrRuntimeOperationPhase::Completed;
-        task.retained_bytes = output_bytes;
+        task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
+        task.detail_value = 0;
+        task.retained_bytes = result_bytes;
+        task.deadline_armed = false;
+        task.terminal_at = Some(Instant::now());
+        task.apply_claimed = false;
         task.result = Some(ZrRuntimeOperationResultV1::succeeded(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
             handle,
             operation_id,
-            output,
+            result,
         ));
+        state.retained_bytes = retained_bytes;
         Ok(())
     }
 
@@ -423,6 +615,8 @@ impl RuntimeOperationService {
         state: &mut RuntimeOperationTaskState,
         handle: ZrRuntimeOperationHandle,
         error: impl Into<String>,
+        detail_kind: ZrRuntimeOperationDetailKindV2,
+        detail_value: u64,
     ) {
         let error = error.into();
         let Some((previous_bytes, operation_id)) = state
@@ -432,40 +626,74 @@ impl RuntimeOperationService {
         else {
             return;
         };
-        let retained_without_task = state.retained_bytes.saturating_sub(previous_bytes);
+        let retained_without_task = state
+            .retained_bytes
+            .checked_sub(previous_bytes)
+            .expect("failed operation bytes must remain accounted");
         let error = truncate_utf8_to_bytes(
             error,
             self.limits
                 .max_retained_bytes
-                .saturating_sub(retained_without_task),
+                .checked_sub(retained_without_task)
+                .expect("other retained operation bytes must remain within capacity"),
         );
         let error_bytes = error.len();
-        state.retained_bytes = retained_without_task.saturating_add(error_bytes);
+        state.retained_bytes = retained_without_task
+            .checked_add(error_bytes)
+            .expect("failed operation error bytes must fit retained capacity");
         let Some(task) = state.tasks.get_mut(&handle) else {
             return;
         };
         task.phase = ZrRuntimeOperationPhase::Failed;
+        task.detail_kind = detail_kind;
+        task.detail_value = detail_value;
         task.payload = None;
-        task.prepared = None;
+        task.prepared_command = None;
+        task.prepared_result = None;
+        task.prepared_command_bytes = 0;
+        task.prepared_result_bytes = 0;
         task.retained_bytes = error_bytes;
+        task.deadline_armed = false;
         task.result = Some(ZrRuntimeOperationResultV1::failed(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
             handle,
             operation_id,
             error,
         ));
+        task.terminal_at = Some(Instant::now());
+        task.snapshot_claimed = false;
+        task.apply_claimed = false;
     }
 
     fn lock_state(&self) -> MutexGuard<'_, RuntimeOperationTaskState> {
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+        lock_operation_state(&self.state)
     }
 
-    fn lock_completion_receiver(
-        &self,
-    ) -> MutexGuard<'_, Receiver<RuntimeOperationPrepareCompletion>> {
-        self.completion_receiver
+    fn expire_due_deadlines(&self, now: Instant) {
+        let mut state = self.lock_state();
+        expire_due_deadlines_in_state(&mut state, now);
+    }
+
+    fn expire_terminal_results(&self, now: Instant) {
+        let mut state = self.lock_state();
+        expire_terminal_results_in_state(&mut state, self.limits.terminal_result_ttl, now);
+    }
+
+    fn refresh_maintenance(&self) -> Result<(), RuntimeOperationServiceError> {
+        refresh_operation_maintenance_alarm(
+            &self.state,
+            &self.maintenance_refresh,
+            self.limits.terminal_result_ttl,
+        )
+        .map_err(|_| RuntimeOperationServiceError::DeadlineTimerUnavailable)
+    }
+
+    fn refresh_maintenance_after_transition(&self) {
+        let _ = self.refresh_maintenance();
+    }
+
+    fn lock_completion_receivers(&self) -> MutexGuard<'_, Vec<RuntimeOperationCompletionReceiver>> {
+        self.completion_receivers
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -475,6 +703,20 @@ impl Default for RuntimeOperationService {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn consume_raw_admission(
+    state: &mut RuntimeOperationTaskState,
+    reservation: RuntimeOperationAdmissionReservation,
+) {
+    state.pending_admissions = state
+        .pending_admissions
+        .checked_sub(1)
+        .expect("raw operation admission count must be released exactly once");
+    state.pending_admission_bytes = state
+        .pending_admission_bytes
+        .checked_sub(reservation.bytes)
+        .expect("raw operation admission bytes must be released exactly once");
 }
 
 struct JsonByteCounter(usize);

@@ -3,11 +3,10 @@ use zircon_runtime::graphics::GraphicsError;
 use super::read_buffer_u32s::read_buffer_u32s;
 
 pub(in crate::hybrid_gi::renderer::gpu_readback) fn probe_irradiance_rgb(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
+    bytes: &[u8],
     word_count: usize,
 ) -> Result<Vec<(u32, [u8; 3])>, GraphicsError> {
-    let irradiance_words = read_buffer_u32s(device, buffer, word_count)?;
+    let irradiance_words = read_buffer_u32s(bytes, word_count)?;
     let irradiance_count = irradiance_words.first().copied().unwrap_or_default() as usize;
 
     Ok(irradiance_words

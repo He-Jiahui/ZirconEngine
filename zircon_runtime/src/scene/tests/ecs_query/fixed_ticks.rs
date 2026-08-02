@@ -16,8 +16,8 @@ fn fixed_scene_components_are_queryable_through_m3_api() {
 
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].0, entity);
-    assert_eq!(rows[0].1 .0, "Renderable");
-    assert_eq!(rows[0].2 .0, 0b0101);
+    assert_eq!(rows[0].1.0, "Renderable");
+    assert_eq!(rows[0].2.0, 0b0101);
 }
 
 #[test]

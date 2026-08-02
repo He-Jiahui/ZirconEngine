@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 
 use crate::core::framework::foundation::ConfigManager;
 use crate::core::CoreRuntime;
-use crate::foundation::persistence::atomic_file::{
+use crate::core::resource::io::atomic_file::{
     atomic_write_with_fault, stage_atomic_write, AtomicWriteFault,
 };
 

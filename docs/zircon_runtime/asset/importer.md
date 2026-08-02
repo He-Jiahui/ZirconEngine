@@ -624,7 +624,7 @@ This makes import formats a runtime extension point. The runtime still owns the 
 
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
-Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry rejects `.ui.toml` source-template and `.v2.ui.toml` source-template importer descriptors on the production path, so plugin manifests cannot reintroduce recursive UI source schemas or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test source-template fixtures are allowed to register those matchers for schema migration coverage.
+Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry rejects `.ui.toml` source-template and `.v2.ui.toml` source-template importer descriptors, so plugin manifests and tests cannot reintroduce recursive UI source schemas or the pre-`.zui` mixed view/component/style UI v2 importer. Runtime schema migration accepts only UI asset documents with an explicit `[asset]` header.
 
 ### Data import error sources
 

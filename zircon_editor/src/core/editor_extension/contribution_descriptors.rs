@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::asset::AssetTypeId;
-use crate::core::editor_operation::{EditorOperationPath, EditorOperationPathError};
+use crate::core::editor_operation::EditorOperationPath;
 
 use super::{EditorExtensionRegistryError, validate_contribution_id};
 
@@ -127,108 +127,6 @@ pub(super) fn validate_menu_item_path(
 }
 
 const MIN_MENU_PATH_SEGMENTS: usize = 2;
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ComponentDrawerDescriptor {
-    component_type: String,
-    ui_document: String,
-    controller: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    template_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    data_root: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    bindings: Vec<String>,
-}
-
-impl ComponentDrawerDescriptor {
-    pub fn new(
-        component_type: impl Into<String>,
-        ui_document: impl Into<String>,
-        controller: impl Into<String>,
-    ) -> Self {
-        Self {
-            component_type: component_type.into(),
-            ui_document: ui_document.into(),
-            controller: controller.into(),
-            template_id: None,
-            data_root: None,
-            bindings: Vec::new(),
-        }
-    }
-
-    pub fn with_template_id(mut self, template_id: impl Into<String>) -> Self {
-        self.template_id = Some(template_id.into());
-        self
-    }
-
-    pub fn with_data_root(mut self, data_root: impl Into<String>) -> Self {
-        self.data_root = Some(data_root.into());
-        self
-    }
-
-    pub fn with_binding(mut self, binding: impl Into<String>) -> Self {
-        self.bindings.push(binding.into());
-        self
-    }
-
-    pub fn component_type(&self) -> &str {
-        &self.component_type
-    }
-
-    pub fn ui_document(&self) -> &str {
-        &self.ui_document
-    }
-
-    pub fn controller(&self) -> &str {
-        &self.controller
-    }
-
-    pub fn template_id(&self) -> Option<&str> {
-        self.template_id.as_deref()
-    }
-
-    pub fn data_root(&self) -> Option<&str> {
-        self.data_root.as_deref()
-    }
-
-    pub fn bindings(&self) -> &[String] {
-        &self.bindings
-    }
-}
-
-pub(super) fn validate_component_drawer(
-    descriptor: &ComponentDrawerDescriptor,
-) -> Result<(), EditorExtensionRegistryError> {
-    validate_zui_component_document("component drawer document", descriptor.ui_document())?;
-    if let Some(template_id) = descriptor.template_id() {
-        validate_contribution_id("component drawer template", template_id)?;
-    }
-    if let Some(data_root) = descriptor.data_root() {
-        validate_contribution_id("component drawer data root", data_root)?;
-    }
-    for binding in descriptor.bindings() {
-        if !EditorOperationPath::is_valid(binding) {
-            return Err(EditorExtensionRegistryError::OperationPath(
-                EditorOperationPathError::InvalidOperationPath(binding.clone()),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn validate_zui_component_document(
-    kind: &'static str,
-    document: &str,
-) -> Result<(), EditorExtensionRegistryError> {
-    if is_invalid_ui_document(document) || !document.ends_with(".zui") {
-        return Err(EditorExtensionRegistryError::InvalidUiDocument {
-            kind,
-            document: document.to_string(),
-        });
-    }
-    Ok(())
-}
 
 fn is_invalid_ui_document(document: &str) -> bool {
     document.trim().is_empty() || document.trim() != document

@@ -16,6 +16,7 @@ struct SceneUniform {
     sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_rotation_sin_cos: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;

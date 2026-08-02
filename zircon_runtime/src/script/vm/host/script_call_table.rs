@@ -3,9 +3,10 @@ use std::fmt;
 use std::sync::Arc;
 
 use crate::core::framework::script::{
-    ScriptHostCallContext, ScriptHostFunctionDescriptor, ScriptHostValue,
+    ScriptHostCallFrame, ScriptHostFunctionDescriptor, ScriptHostValue,
 };
 
+use super::super::runtime_context::with_active_script_runtime_call_context;
 use super::super::{CapabilitySet, VmError};
 use super::host_export_registry::HostExportCallback;
 
@@ -68,13 +69,17 @@ impl ScriptCallSite {
         validate_call_arity(self, arguments.len())?;
         validate_call_capabilities(self, granted_capabilities)?;
 
-        let context = ScriptHostCallContext {
-            module_name: self.module_name().to_string(),
-            function_name: self.function_name().to_string(),
-            arguments,
-            granted_capabilities: granted_capabilities.capabilities.clone(),
-        };
-        (self.callback)(&context).map_err(|error| {
+        let result = with_active_script_runtime_call_context(|runtime_context| {
+            let frame = ScriptHostCallFrame::new(
+                self.module_name(),
+                self.function_name(),
+                &arguments,
+                &granted_capabilities.capabilities,
+                runtime_context.map(|context| context as &dyn std::any::Any),
+            );
+            (self.callback)(&frame)
+        });
+        result.map_err(|error| {
             VmError::Operation(format!(
                 "host export call failed: {}.{}: {}",
                 self.module_name(),

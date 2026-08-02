@@ -1,4 +1,4 @@
-# @generated from Rust descriptor package_manifest(); do not edit by hand.
+# @generated from Rust PluginDeclaration; do not edit by hand.
 id = "net"
 version = "0.1.0"
 sdk_api_version = "0.2.0"
@@ -41,7 +41,7 @@ kind = "runtime"
 crate_name = "zircon_plugin_net_runtime"
 target_modes = ["server_runtime", "client_runtime", "editor_host"]
 capabilities = ["runtime.plugin.net"]
-system_sets = ["net.transport"]
+system_sets = ["net.main", "net.transport"]
 system_anchors = ["net.poll_ingress", "net.flush_egress"]
 
 [[modules]]

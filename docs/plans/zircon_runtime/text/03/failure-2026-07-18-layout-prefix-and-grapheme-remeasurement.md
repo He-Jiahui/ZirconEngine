@@ -9,6 +9,7 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/text/03
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/layout
   - zircon_runtime/src/text/layout/advance_index.rs
   - zircon_runtime/src/text/layout/line_break/boundary_correction.rs
@@ -88,5 +89,6 @@ Open state: 本失败仍未关闭；非验收算法实现与二次静态审查�
 - 2026-08-01 soft-hyphen 已形成测量到绘制闭环：合法 chunk 断点以 suffix 修正宽度，普通 UI 使用 pending suffix，rich-inline horizontal/VerticalRl 追加 synthetic `-` run、隐藏 U+00AD source range 和真实 advance。1/100/1k/10k grapheme backend-call/window、1/100/1k alternating rich-run single-shape 和 UI token cache-miss 线性回归已写入源码。
 - ignored `boundary_scale_evidence_reports_p50_p95` 已就绪，按 31 samples 输出各 grapheme 规模的 line count/backend calls/max window/p50/p95 ns，不用机器时延阈值伪造正确性 pass。
 - 2026-08-01 二次静态审查已修复重复 planner、O(G^2) edge-unit materialization 和 rich suffix 漏投影三项缺陷；owner 均低于 800 行，格式/whitespace/旧增长候选/production panic-unwrap-expect-dead-code allow 扫描通过，未留下 actionable P0/P1/P2。
+- 2026-08-01 Text02实现完成后的定向二次审查发现Text03 hard-line消费仍有偏差；现已由公共`text/hard_line.rs`统一CR/CRLF/LF/VT/FF/NEL/LS/PS，measure/rich/UI与shaping共用同一content/separator range。line-break chunk改用absolute source range并保留mandatory标记，kinsoku/word-smart禁止跨强制边界合并；BIDI line order只计算一次reordered levels。对应回归已写入，managed Cargo仍待coordinator，failure不提前标记fixed。
 - 当前 failure 保持 `open` 的原因已从“算法实现未完成”收窄为 managed focused/upward Cargo/规模回归执行与 p50/p95、Text09 cache 回归和新鲜 WGPU 产品 framebuffer 尚未验收。状态为 `implementation_complete / resolving_failure / managed_validation_pending`，不是 blocked，也不允许用旧 PNG 或策略图关闭。
 - Coordinator handoff：validation submit 因 Session numbered-Plan registration 尚未物化而被拒绝/health-preflight timeout，未产生 queued/running ticket；完整 registration 已收到 durable accepted receipt `a6d7f08e10c24387be4c8b73611319e6`。按规则不轮询 receipt，coordinator wakeup 后前向提交 `boundary`、`rich_span_index`、`soft_hyphen`、ignored p50/p95 exporter 与 ignored exact WGPU product 命令。

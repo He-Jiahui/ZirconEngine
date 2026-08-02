@@ -87,7 +87,8 @@ function Get-MvpEditorProjectOpenEvidence {
     param(
         [Parameter(Mandatory)][string]$DiagnosticText,
         [Parameter(Mandatory)][string]$StagingRoot,
-        [Parameter(Mandatory)][string]$ProjectRoot
+        [Parameter(Mandatory)][string]$ProjectRoot,
+        [string]$ExpectedProjectRoot
     )
 
     $diagnosticLines = @(
@@ -105,7 +106,12 @@ function Get-MvpEditorProjectOpenEvidence {
     $reportedProjectRoot = ConvertFrom-MvpProjectOpenDiagnosticToken `
         -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'project_root') `
         -Name 'project_root'
-    $expectedProjectRoot = [IO.Path]::GetFullPath($ProjectRoot)
+    $expectedProjectRoot = if ([string]::IsNullOrWhiteSpace($ExpectedProjectRoot)) {
+        [IO.Path]::GetFullPath($ProjectRoot)
+    }
+    else {
+        [IO.Path]::GetFullPath($ExpectedProjectRoot)
+    }
     $resolvedReportedProjectRoot = [IO.Path]::GetFullPath($reportedProjectRoot)
     if (-not $resolvedReportedProjectRoot.Equals($expectedProjectRoot, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Editor project-open diagnostic project_root '$reportedProjectRoot' differs from staged project '$expectedProjectRoot'."
@@ -161,7 +167,7 @@ function Get-MvpEditorProjectOpenEvidence {
     }
 
     return [pscustomobject][ordered]@{
-        project_root = Get-MvpProjectOpenRelativePath -StagingRoot $StagingRoot -ProjectRoot $expectedProjectRoot
+        project_root = Get-MvpProjectOpenRelativePath -StagingRoot $StagingRoot -ProjectRoot $ProjectRoot
         manifest_identity = $manifestIdentity
         scene_uri = $sceneUri
         registry_asset_count = $counts.registry_asset_count
@@ -180,13 +186,15 @@ function Assert-MvpEditorProjectOpenEvidence {
         [Parameter(Mandatory)]$Evidence,
         [Parameter(Mandatory)][string]$DiagnosticText,
         [Parameter(Mandatory)][string]$StagingRoot,
-        [Parameter(Mandatory)][string]$ProjectRoot
+        [Parameter(Mandatory)][string]$ProjectRoot,
+        [string]$ExpectedProjectRoot
     )
 
     $parsed = Get-MvpEditorProjectOpenEvidence `
         -DiagnosticText $DiagnosticText `
         -StagingRoot $StagingRoot `
-        -ProjectRoot $ProjectRoot
+        -ProjectRoot $ProjectRoot `
+        -ExpectedProjectRoot $ExpectedProjectRoot
     foreach ($name in @(
         'project_root',
         'manifest_identity',

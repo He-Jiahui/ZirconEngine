@@ -3,20 +3,26 @@ use std::collections::HashSet;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 use super::super::render::{
-    ScreenSpaceUiTextBatch, text_advances::refresh_screen_space_text_batch_glyphs,
+    text_advances::refresh_screen_space_text_batch_glyphs, ScreenSpaceUiTextBatch,
 };
-use super::font_assets::{UiFontAssetCache, effective_text_render_mode, ensure_font_asset_record};
+use super::font_assets::{effective_text_render_mode, ensure_font_asset_record, UiFontAssetCache};
 use crate::asset::ProjectAssetManager;
 use crate::text::raster::{
-    GlyphRasterEffects, GlyphRasterPath, GlyphRasterPolicyRequest, raster_path_for_request,
+    raster_path_for_request, GlyphRasterEffects, GlyphRasterPath, GlyphRasterPolicyRequest,
 };
 use crate::text::{TextLayoutFallbackReport, TextRenderState};
+
+#[path = "resolved_batches/auto_route.rs"]
+mod auto_route;
+
+pub(super) use auto_route::{AutoTextRasterRouteFrameReport, AutoTextRasterRouter};
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct ResolvedScreenSpaceUiTextBatches {
     pub(super) native_texts: Vec<ScreenSpaceUiTextBatch>,
     pub(super) sdf_texts: Vec<ScreenSpaceUiTextBatch>,
     font_faces_changed: bool,
+    auto_route: AutoTextRasterRouteFrameReport,
 }
 
 impl ResolvedScreenSpaceUiTextBatches {
@@ -28,6 +34,7 @@ impl ResolvedScreenSpaceUiTextBatches {
             native_texts: native_texts.to_vec(),
             sdf_texts: sdf_texts.to_vec(),
             font_faces_changed: false,
+            auto_route: AutoTextRasterRouteFrameReport::default(),
         }
     }
 
@@ -54,6 +61,10 @@ impl ResolvedScreenSpaceUiTextBatches {
 
     pub(super) fn font_faces_changed(&self) -> bool {
         self.font_faces_changed
+    }
+
+    pub(super) fn auto_route_report(&self) -> AutoTextRasterRouteFrameReport {
+        self.auto_route
     }
 
     pub(super) fn layout_fallback_report(&self) -> TextLayoutFallbackReport {
@@ -92,14 +103,7 @@ pub(super) fn resolved_auto_text_render_mode(
         return resolved_font_mode;
     }
 
-    let mut request = GlyphRasterPolicyRequest::new(text.font_size, false);
-    request.effects = GlyphRasterEffects {
-        outline: text.text_effects.outline.is_some(),
-        shadow: text.text_effects.shadow.is_some(),
-        glow: text.text_effects.glow.is_some(),
-        true_distance_effects: text.text_effects.glow.is_some(),
-    };
-    match raster_path_for_request(request) {
+    match raster_path_for_request(auto_text_policy_request(text)) {
         GlyphRasterPath::Bitmap => UiTextRenderMode::Native,
         GlyphRasterPath::Sdf => UiTextRenderMode::Sdf,
         GlyphRasterPath::Msdf => UiTextRenderMode::Msdf,
@@ -107,14 +111,27 @@ pub(super) fn resolved_auto_text_render_mode(
     }
 }
 
+fn auto_text_policy_request(text: &ScreenSpaceUiTextBatch) -> GlyphRasterPolicyRequest {
+    let mut request = GlyphRasterPolicyRequest::new(text.font_size, false);
+    request.effects = GlyphRasterEffects {
+        outline: text.text_effects.outline.is_some(),
+        shadow: text.text_effects.shadow.is_some(),
+        glow: text.text_effects.glow.is_some(),
+        true_distance_effects: text.text_effects.glow.is_some(),
+    };
+    request
+}
+
 pub(super) fn resolve_text_batches(
     text_state: &mut TextRenderState,
     font_assets: &mut UiFontAssetCache,
     asset_manager: &ProjectAssetManager,
+    auto_router: &mut AutoTextRasterRouter,
     auto_texts: &[ScreenSpaceUiTextBatch],
     native_texts: &[ScreenSpaceUiTextBatch],
     sdf_texts: &[ScreenSpaceUiTextBatch],
 ) -> ResolvedScreenSpaceUiTextBatches {
+    auto_router.begin_frame();
     let mut loaded_assets = HashSet::new();
     let mut shaping_changed = text_state.refresh_shared_font_database();
     let mut font_faces_changed = shaping_changed;
@@ -152,11 +169,9 @@ pub(super) fn resolve_text_batches(
         let font_asset = font_assets
             .get(asset)
             .and_then(|entry| entry.loaded_asset());
-        resolved.push_resolved_auto_text(
-            text.clone(),
-            resolved_auto_text_render_mode(text, font_asset),
-        );
+        resolved.push_resolved_auto_text(text.clone(), auto_router.resolve(text, font_asset));
     }
+    resolved.auto_route = auto_router.frame_report();
 
     if shaping_changed {
         resolved.refresh_shaping_after_font_load();

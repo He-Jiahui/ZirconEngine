@@ -40,7 +40,7 @@ impl SceneScheduleRunner {
             ) {
                 match step {
                     ScheduledSceneStepRef::Internal(system) => {
-                        flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+                        flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                         level.with_world_mut(|world| {
                             world.run_internal_scene_system(system.system())
                         });
@@ -62,11 +62,11 @@ impl SceneScheduleRunner {
                                 .iter()
                                 .any(|other| native_conflicts.systems_conflict(other, id))
                             {
-                                flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+                                flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                             }
                             worker_batch.push(id);
                         } else {
-                            flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+                            flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                             level.with_world_mut(|world| {
                                 let started_at = Instant::now();
                                 let result = catch_unwind(AssertUnwindSafe(|| {
@@ -83,22 +83,22 @@ impl SceneScheduleRunner {
                         }
                     }
                     ScheduledSceneStepRef::Runtime { id, .. } => {
-                        flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+                        flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                         level.run_runtime_scene_system(core, id, delta_seconds)?;
                         level.with_world_mut(|world| world.apply_deferred());
                     }
                     ScheduledSceneStepRef::ApplyDeferred { .. } => {
-                        flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+                        flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                         level.with_world_mut(|world| world.apply_deferred());
                     }
                     ScheduledSceneStepRef::Hook(hook) => {
-                        flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+                        flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                         hook.run(SceneRuntimeHookContext::new(core, level, delta_seconds))?;
                         level.with_world_mut(|world| world.apply_deferred());
                     }
                 }
             }
-            flush_worker_batch(core.scheduler(), level, &mut worker_batch);
+            flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
 
             Ok(())
         }));
@@ -116,9 +116,13 @@ impl SceneScheduleRunner {
     }
 }
 
-fn flush_worker_batch(scheduler: &JobScheduler, level: &LevelSystem, system_ids: &mut Vec<&str>) {
+fn flush_worker_batch(
+    scheduler: &JobScheduler,
+    level: &LevelSystem,
+    system_ids: &mut Vec<&str>,
+) -> Result<(), CoreError> {
     if system_ids.is_empty() {
-        return;
+        return Ok(());
     }
     let ready_at = Instant::now();
     let mut systems = level
@@ -129,6 +133,22 @@ fn flush_worker_batch(scheduler: &JobScheduler, level: &LevelSystem, system_ids:
     let result = catch_unwind(AssertUnwindSafe(|| {
         run_worldless_systems(scheduler, &mut systems, &mut timings, ready_at)
     }));
+    let command_buffer_result = if result.is_ok() {
+        let mut command_buffers = systems
+            .iter_mut()
+            .filter_map(|system| system.worker_command_buffer_mut())
+            .collect::<Vec<_>>();
+        let has_worker_commands = !command_buffers.is_empty();
+        level.with_world_mut(|world| {
+            world.merge_worker_command_buffers(&mut command_buffers)?;
+            if has_worker_commands {
+                world.apply_deferred();
+            }
+            Ok(())
+        })
+    } else {
+        Ok(())
+    };
     let batch_elapsed = batch_started_at.elapsed();
     level.with_world_mut(|world| {
         world.restore_worldless_native_scene_systems(systems);
@@ -138,6 +158,12 @@ fn flush_worker_batch(scheduler: &JobScheduler, level: &LevelSystem, system_ids:
     if let Err(payload) = result {
         resume_unwind(payload);
     }
+    command_buffer_result.map_err(|error| {
+        CoreError::Initialization(
+            "SceneScheduleRunner worker command buffer merge".to_string(),
+            error.to_string(),
+        )
+    })
 }
 
 fn run_worldless_systems(
@@ -196,10 +222,15 @@ mod tests {
     use crate::core::CoreRuntime;
     use crate::core::framework::scene::WorldHandle;
     use crate::plugin::RuntimeExtensionRegistry;
-    use crate::scene::ecs::{SceneSystemThreadAffinity, SystemParamAccess};
+    use crate::scene::ecs::{Resource, SceneSystemThreadAffinity, SystemParamAccess};
     use crate::scene::{LevelMetadata, World};
 
     use super::*;
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct WorkerCommandCallbackOrder(Vec<u8>);
+
+    impl Resource for WorkerCommandCallbackOrder {}
 
     #[test]
     fn disjoint_worker_safe_native_systems_overlap_in_the_production_stage_runner() {
@@ -278,6 +309,87 @@ mod tests {
         assert_eq!(diagnostics.conflict_count(), 1);
         assert_eq!(diagnostics.worker_batch_count(), 2);
         assert_eq!(diagnostics.callback_count(), 2);
+    }
+
+    #[test]
+    fn worker_command_callbacks_merge_once_in_compiled_order_before_apply() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("tests.runtime").unwrap();
+        registry
+            .register_external_native_command_system(
+                owner,
+                "tests.worker_command.z",
+                SystemStage::Update,
+                SceneSystemThreadAffinity::WorkerSafe,
+                |_world| Ok(SystemParamAccess::default()),
+                |commands| {
+                    commands.push(|world: &mut World| {
+                        world
+                            .get_resource_mut::<WorkerCommandCallbackOrder>()
+                            .expect("earlier worker command callbacks should apply first")
+                            .0
+                            .push(3);
+                    });
+                },
+            )
+            .with_order(30)
+            .with_command_capacity(1)
+            .register()
+            .unwrap();
+        registry
+            .register_external_native_command_system(
+                owner,
+                "tests.worker_command.b",
+                SystemStage::Update,
+                SceneSystemThreadAffinity::WorkerSafe,
+                |_world| Ok(SystemParamAccess::default()),
+                |commands| {
+                    commands.push(|world: &mut World| {
+                        world
+                            .get_resource_mut::<WorkerCommandCallbackOrder>()
+                            .expect("first worker command callback should apply first")
+                            .0
+                            .push(2);
+                    });
+                },
+            )
+            .with_order(10)
+            .with_command_capacity(1)
+            .register()
+            .unwrap();
+        registry
+            .register_external_native_command_system(
+                owner,
+                "tests.worker_command.a",
+                SystemStage::Update,
+                SceneSystemThreadAffinity::WorkerSafe,
+                |_world| Ok(SystemParamAccess::default()),
+                |commands| {
+                    commands.push(|world: &mut World| {
+                        world.insert_resource(WorkerCommandCallbackOrder(vec![1]));
+                    });
+                },
+            )
+            .with_order(10)
+            .with_command_capacity(1)
+            .register()
+            .unwrap();
+        let core = CoreRuntime::new();
+        let level = test_level(registry);
+
+        run_test_stage(&core.handle(), &level);
+
+        assert_eq!(
+            level.with_world(|world| world.get_resource::<WorkerCommandCallbackOrder>().cloned()),
+            Some(WorkerCommandCallbackOrder(vec![1, 2, 3]))
+        );
+        let diagnostics = level.with_world(|world| {
+            world
+                .ecs_frame_performance_diagnostics()
+                .native_system_schedule
+        });
+        assert_eq!(diagnostics.worker_batch_count(), 1);
+        assert_eq!(diagnostics.callback_count(), 3);
     }
 
     #[test]

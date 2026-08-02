@@ -3,20 +3,20 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
-    AdvancedRenderFeature, COLOR_LUT_SIZE_DEFAULT, CameraRenderDescriptor, CameraRenderType,
-    FrameHistoryHandle, FrameHistoryInvalidationReason, PostProcessVolumeExtract,
-    RenderBloomSettings, RenderCameraOrderAmbiguity, RenderCameraOrderReport,
-    RenderCameraTargetOrderKey, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderChromaticAberrationSettings, RenderColorGradingSettings,
-    RenderColorLookupSettings, RenderDepthOfFieldSettings, RenderDitherSettings,
-    RenderDynamicResolutionSettings, RenderFilmGrainSettings, RenderFogSettings,
-    RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderHybridGiExtract,
-    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderPostProcessEffectStackSettings,
-    RenderPostProcessVolumeProfile, RenderQualityProfile, RenderScreenSpaceReflectionSettings,
-    RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SortedRenderCamera,
-    ViewportCameraSnapshot, VolumeComponentOverride,
+    AdvancedRenderFeature, CameraRenderDescriptor, CameraRenderType, FrameHistoryHandle,
+    FrameHistoryInvalidationReason, PostProcessVolumeExtract, RenderBloomSettings,
+    RenderCameraOrderAmbiguity, RenderCameraOrderReport, RenderCameraTargetOrderKey,
+    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+    RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
+    RenderDepthOfFieldSettings, RenderDitherSettings, RenderDynamicResolutionSettings,
+    RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderFramework,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPipelineHandle,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderQualityProfile,
+    RenderScreenSpaceReflectionSettings, RenderStats, RenderViewportDescriptor,
+    RenderViewportHandle, RenderVignetteSettings, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource,
+    RenderWorldSnapshotHandle, SortedRenderCamera, ViewportCameraSnapshot, VolumeComponentOverride,
+    COLOR_LUT_SIZE_DEFAULT,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::scene::world::World;
@@ -28,10 +28,10 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use crate::graphics::{
-    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderPassExecutionContext, RenderPassExecutorRegistration,
-    RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    runtime::WgpuRenderFramework,
+    runtime::WgpuRenderFramework, BuiltinRenderFeature, RenderFeatureCapabilityRequirement,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
+    RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
+    RenderPipelineCompileOptions,
 };
 use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
@@ -113,21 +113,19 @@ fn neural_compute_render_feature_descriptor() -> RenderFeatureDescriptor {
         "plugin.neural_compute.activation",
         vec!["view".to_string(), "post_process".to_string()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "plugin-neural-inference",
-                QueueLane::AsyncCompute,
-            )
-            .with_executor_id("plugin.neural.inference")
-            .with_compute_workload(RenderGraphComputeWorkload::viewport(
-                "zircon-neural-inference",
-                [8, 8, 1],
-            ))
-            .read_texture("scene-color")
-            .write_storage_external("neural-inference-output")
-            .with_side_effects(),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "plugin-neural-inference",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("plugin.neural.inference")
+        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            "zircon-neural-inference",
+            [8, 8, 1],
+        ))
+        .read_texture("scene-color")
+        .write_storage_external("neural-inference-output")
+        .with_side_effects()],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute)
 }
@@ -260,5 +258,9 @@ fn average_region_channel(
         }
     }
 
-    if count <= 0.0 { 0.0 } else { total / count }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }

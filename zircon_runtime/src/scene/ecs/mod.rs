@@ -42,7 +42,8 @@ pub use change_detection::{
 };
 pub use commands::{
     Command, CommandQueue, Commands, CommandsParam, DeferredCommandError, DeferredCommandOperation,
-    DeferredCommandReport, EntityCommands, FnCommand,
+    DeferredCommandReport, EntityCommands, FnCommand, WorkerCommandBuffer,
+    WorkerCommandBufferMergeError,
 };
 pub use component::{
     Component, ComponentDescriptor, ComponentDescriptorSource, ComponentId, ComponentRegistry,
@@ -60,7 +61,10 @@ pub use events::{
 pub use frame_performance_diagnostics::EcsFramePerformanceDiagnostics;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
-pub use messages::{Message, MessageCursor, MessageId, MessageReadIter, MessageStore, Messages};
+pub use messages::{
+    Message, MessageCursor, MessageId, MessageReadIter, MessageRetention, MessageRetentionMetrics,
+    MessageStore, Messages,
+};
 pub(crate) use native_system_schedule_diagnostics::NativeSystemCallbackTiming;
 pub use native_system_schedule_diagnostics::{
     NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC, NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC,

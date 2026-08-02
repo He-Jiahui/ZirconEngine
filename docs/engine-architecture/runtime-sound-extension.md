@@ -40,6 +40,12 @@ related_code:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/mod.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/device.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/graph_compile/
+  - zircon_plugins/sound/runtime/src/kira_bridge/graph_validation/
+  - zircon_plugins/sound/runtime/src/kira_bridge/manager/
+  - zircon_plugins/sound/runtime/src/kira_bridge/playback_data.rs
   - zircon_plugins/sound/runtime/src/automation/mod.rs
   - zircon_plugins/sound/runtime/src/automation/binding.rs
   - zircon_plugins/sound/runtime/src/automation/curve.rs
@@ -48,7 +54,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/automation/target/apply.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/mod.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/apply.rs
-  - zircon_plugins/sound/runtime/src/automation/target/effect/common.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/delay.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/dynamics.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/filter.rs
@@ -57,7 +62,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/automation/target/effect/reverb.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/shaper.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/stereo.rs
-  - zircon_plugins/sound/runtime/src/automation/target/helpers.rs
   - zircon_plugins/sound/runtime/src/automation/target/listener.rs
   - zircon_plugins/sound/runtime/src/automation/target/source.rs
   - zircon_plugins/sound/runtime/src/automation/target/track.rs
@@ -65,7 +69,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/components.rs
   - zircon_plugins/sound/runtime/src/config.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/mod.rs
-  - zircon_plugins/sound/runtime/src/descriptor_validation/common.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/external_source.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/hrtf.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/listener.rs
@@ -100,46 +103,20 @@ related_code:
   - zircon_plugins/sound/runtime/src/output/catalog.rs
   - zircon_plugins/sound/runtime/src/output/descriptor_validation.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/mod.rs
-  - zircon_plugins/sound/runtime/src/output/lifecycle/callback.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/config.rs
-  - zircon_plugins/sound/runtime/src/output/lifecycle/session.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/start_stop.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/status.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/storage.rs
   - zircon_plugins/sound/runtime/src/output/status.rs
-  - zircon_plugins/sound/runtime/src/output/software.rs
-  - zircon_plugins/sound/runtime/src/output/ring_buffer.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/mod.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/capability.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/callback.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/device.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/device_thread.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/error.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/producer_thread.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/selection.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/session.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/shared_state.rs
   - zircon_plugins/sound/runtime/src/engine/mod.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/controls.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/delay.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/dynamics.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/apply.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/chain.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/sidechain.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/gain.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/meter.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/modulation.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/reverb.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/shaper.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/stereo.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/delay_line.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_key.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_runtime.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/history.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/track_runtime.rs
   - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
   - zircon_plugins/sound/runtime/src/engine/filter/apply.rs
   - zircon_plugins/sound/runtime/src/engine/filter/coefficients.rs
@@ -157,29 +134,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/engine/occlusion/gain.rs
   - zircon_plugins/sound/runtime/src/engine/occlusion/query.rs
   - zircon_plugins/sound/runtime/src/engine/occlusion/ray_traced.rs
-  - zircon_plugins/sound/runtime/src/engine/render/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/orchestration.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/clip.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/finish.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/mixing.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/pan.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/buffers.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/solo.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/track_send.rs
-  - zircon_plugins/sound/runtime/src/engine/render/runtime_state.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/frame.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/interpolation.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/position.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/step.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/external.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/input.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/orchestration.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/parameters.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/range.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/mod.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/apply.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/constants.rs
@@ -208,13 +162,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/engine/state/snapshot.rs
   - zircon_plugins/sound/runtime/src/engine/state/source.rs
   - zircon_plugins/sound/runtime/src/engine/state/storage.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/effect.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/graph.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/ordering.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/references.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/track.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/values.rs
   - zircon_plugins/sound/runtime/src/module.rs
   - zircon_plugins/sound/runtime/src/package/mod.rs
   - zircon_plugins/sound/runtime/src/package/attach.rs
@@ -279,7 +226,6 @@ related_code:
   - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
   - zircon_plugins/sound/runtime/src/tests.rs
-  - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/manifest.rs
   - zircon_plugins/sound/runtime/src/tests/output_device.rs
@@ -324,6 +270,12 @@ implementation_files:
   - zircon_runtime_interface/src/plugin_events.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/mod.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/device.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/graph_compile/
+  - zircon_plugins/sound/runtime/src/kira_bridge/graph_validation/
+  - zircon_plugins/sound/runtime/src/kira_bridge/manager/
+  - zircon_plugins/sound/runtime/src/kira_bridge/playback_data.rs
   - zircon_plugins/sound/runtime/src/automation/mod.rs
   - zircon_plugins/sound/runtime/src/automation/binding.rs
   - zircon_plugins/sound/runtime/src/automation/curve.rs
@@ -332,7 +284,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/automation/target/apply.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/mod.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/apply.rs
-  - zircon_plugins/sound/runtime/src/automation/target/effect/common.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/delay.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/dynamics.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/filter.rs
@@ -341,14 +292,12 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/automation/target/effect/reverb.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/shaper.rs
   - zircon_plugins/sound/runtime/src/automation/target/effect/stereo.rs
-  - zircon_plugins/sound/runtime/src/automation/target/helpers.rs
   - zircon_plugins/sound/runtime/src/automation/target/listener.rs
   - zircon_plugins/sound/runtime/src/automation/target/source.rs
   - zircon_plugins/sound/runtime/src/automation/target/track.rs
   - zircon_plugins/sound/runtime/src/automation/target/volume.rs
   - zircon_plugins/sound/runtime/src/components.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/mod.rs
-  - zircon_plugins/sound/runtime/src/descriptor_validation/common.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/external_source.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/hrtf.rs
   - zircon_plugins/sound/runtime/src/descriptor_validation/listener.rs
@@ -383,45 +332,19 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/output/catalog.rs
   - zircon_plugins/sound/runtime/src/output/descriptor_validation.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/mod.rs
-  - zircon_plugins/sound/runtime/src/output/lifecycle/callback.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/config.rs
-  - zircon_plugins/sound/runtime/src/output/lifecycle/session.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/start_stop.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/status.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/storage.rs
   - zircon_plugins/sound/runtime/src/output/status.rs
-  - zircon_plugins/sound/runtime/src/output/software.rs
-  - zircon_plugins/sound/runtime/src/output/ring_buffer.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/mod.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/capability.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/callback.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/device.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/device_thread.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/error.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/producer_thread.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/selection.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/session.rs
-  - zircon_plugins/sound/runtime/src/output/cpal/shared_state.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/controls.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/delay.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/dynamics.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/apply.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/chain.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/effects/sidechain.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/gain.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/meter.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/modulation.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/reverb.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/shaper.rs
   - zircon_plugins/sound/runtime/src/engine/dsp/stereo.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/delay_line.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_key.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_runtime.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/history.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state/track_runtime.rs
   - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
   - zircon_plugins/sound/runtime/src/engine/filter/apply.rs
   - zircon_plugins/sound/runtime/src/engine/filter/coefficients.rs
@@ -439,29 +362,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/engine/occlusion/gain.rs
   - zircon_plugins/sound/runtime/src/engine/occlusion/query.rs
   - zircon_plugins/sound/runtime/src/engine/occlusion/ray_traced.rs
-  - zircon_plugins/sound/runtime/src/engine/render/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/orchestration.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/clip.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/finish.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/mixing.rs
-  - zircon_plugins/sound/runtime/src/engine/render/playback/pan.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/buffers.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/solo.rs
-  - zircon_plugins/sound/runtime/src/engine/render/routing/track_send.rs
-  - zircon_plugins/sound/runtime/src/engine/render/runtime_state.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/frame.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/interpolation.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/position.rs
-  - zircon_plugins/sound/runtime/src/engine/render/sampling/step.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/external.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/input.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/orchestration.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/parameters.rs
-  - zircon_plugins/sound/runtime/src/engine/render/source/range.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/mod.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/apply.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/constants.rs
@@ -490,13 +390,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/engine/state/snapshot.rs
   - zircon_plugins/sound/runtime/src/engine/state/source.rs
   - zircon_plugins/sound/runtime/src/engine/state/storage.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/effect.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/graph.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/ordering.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/references.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/track.rs
-  - zircon_plugins/sound/runtime/src/engine/validation/values.rs
   - zircon_plugins/sound/runtime/src/package/mod.rs
   - zircon_plugins/sound/runtime/src/package/attach.rs
   - zircon_plugins/sound/runtime/src/package/dependencies.rs
@@ -561,7 +454,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
   - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_runtime_interface/src/tests/contracts.rs
-  - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/output_device.rs
   - zircon_plugins/sound/runtime/src/tests/presets.rs

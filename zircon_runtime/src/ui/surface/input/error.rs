@@ -50,6 +50,8 @@ pub enum UiSurfaceInputEffectError {
     },
     #[error("input method owner mismatch")]
     InputMethodOwnerMismatch,
+    #[error("input method is disabled for secure text input")]
+    InputMethodDisabledForSecureTextInput,
     #[error("clipboard read request cannot carry text")]
     ClipboardReadRequestCarriesText,
     #[error("clipboard write request missing text")]

@@ -3,28 +3,7 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-#[derive(Debug, Error)]
-pub enum ExportProcessTerminationError {
-    #[error("failed to start process termination command {program}: {source}")]
-    CommandSpawn {
-        program: &'static str,
-        #[source]
-        source: io::Error,
-    },
-    #[error("process termination command {program} failed with status {status_code:?}: {stderr}")]
-    CommandExit {
-        program: &'static str,
-        status_code: Option<i32>,
-        stdout: String,
-        stderr: String,
-    },
-    #[error("fallback child-process termination failed: {source}")]
-    FallbackKill {
-        primary: Option<Box<ExportProcessTerminationError>>,
-        #[source]
-        source: io::Error,
-    },
-}
+pub use crate::core::process::ProcessTreeTerminationError as ExportProcessTerminationError;
 
 #[derive(Debug, Error)]
 pub enum ExportProcessError {

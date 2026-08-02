@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
-use zircon_runtime::core::{ModuleDescriptor, sort_module_activation_order};
+use zircon_runtime::core::{sort_module_activation_order, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 
 pub trait PluginGroup: Sized {

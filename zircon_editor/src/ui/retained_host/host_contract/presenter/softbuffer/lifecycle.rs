@@ -4,8 +4,8 @@ use softbuffer::{Context, Surface};
 use winit::window::Window;
 
 use super::super::super::diagnostics::HostRefreshDiagnostics;
-use super::surface_io::{clamp_size, current_window_size, resize_surface};
 use super::SoftbufferHostPresenter;
+use super::surface_io::{clamp_size, current_window_size, resize_surface};
 
 pub(in crate::ui::retained_host::host_contract) fn new_presenter(
     window: Arc<dyn Window>,

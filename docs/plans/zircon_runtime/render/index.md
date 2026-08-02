@@ -139,7 +139,6 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
-  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/plugin_features.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs

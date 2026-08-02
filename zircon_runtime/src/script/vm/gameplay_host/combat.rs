@@ -1,23 +1,23 @@
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::script::{ScriptHostCallContext, ScriptHostError, ScriptHostValue};
-use crate::script::current_script_runtime_call_context;
+use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
+use crate::script::runtime_context_for_frame;
+use crate::script::vm::scene_hook::script_binding_number_for_entity;
 
 use super::error::GameplayHostResult;
 use super::script_bindings::{
-    apply_damage_to_script_health, apply_heal_to_script_health, script_binding_number,
-    SCRIPT_BINDINGS_COMPONENT,
+    apply_damage_to_script_health, apply_heal_to_script_health, SCRIPT_BINDINGS_COMPONENT,
 };
 use super::values::{
     expect_bool, expect_entity, expect_float, expect_string, to_json_string, vec3_to_array,
 };
 
 pub(super) fn set_animation_bool(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
     let parameter = expect_string(context, 1)?;
     let value = expect_bool(context, 2)?;
-    let runtime = current_script_runtime_call_context()?;
+    let runtime = runtime_context_for_frame(context)?;
     let result = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<bool> {
@@ -26,7 +26,7 @@ pub(super) fn set_animation_bool(
             };
             player
                 .parameters
-                .insert(parameter, AnimationParameterValue::Bool(value));
+                .insert(parameter.to_owned(), AnimationParameterValue::Bool(value));
             world.set_animation_state_machine_player(entity, Some(player))?;
             Ok(true)
         });
@@ -36,11 +36,11 @@ pub(super) fn set_animation_bool(
 }
 
 pub(super) fn damage_entity(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
     let damage = expect_float(context, 1)?.max(0.0) as f64;
-    let runtime = current_script_runtime_call_context()?;
+    let runtime = runtime_context_for_frame(context)?;
     let result = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<bool> {
@@ -67,12 +67,12 @@ pub(super) fn damage_entity(
 }
 
 pub(super) fn heal_entity(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
     let amount = expect_float(context, 1)?.max(0.0) as f64;
     let max_health = expect_float(context, 2)?.max(0.0) as f64;
-    let runtime = current_script_runtime_call_context()?;
+    let runtime = runtime_context_for_frame(context)?;
     let result = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<bool> {
@@ -94,26 +94,23 @@ pub(super) fn heal_entity(
 }
 
 pub(super) fn current_hp(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
     let fallback = expect_float(context, 1)?;
-    let runtime = current_script_runtime_call_context()?;
-    let hp = runtime.level.with_world(|world| {
-        world
-            .dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT)
-            .and_then(|bindings| script_binding_number(bindings, "hp"))
-            .unwrap_or(f64::from(fallback))
-    });
+    let runtime = runtime_context_for_frame(context)?;
+    let hp = script_binding_number_for_entity(&runtime.level, entity, "hp")
+        .map_err(|error| ScriptHostError::new(error.to_string()))?
+        .unwrap_or(f64::from(fallback));
     Ok(ScriptHostValue::Float(hp))
 }
 
 pub(super) fn damage_entity_report(
-    context: &ScriptHostCallContext,
+    context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
     let damage = expect_float(context, 1)?.max(0.0) as f64;
-    let runtime = current_script_runtime_call_context()?;
+    let runtime = runtime_context_for_frame(context)?;
     let report = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<DamageReport> {

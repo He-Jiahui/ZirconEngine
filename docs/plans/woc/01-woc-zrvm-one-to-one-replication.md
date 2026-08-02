@@ -3849,12 +3849,532 @@ multiplayer host projection remain separate work.
 - [ ] Run release security, malformed input, capability isolation, deterministic replay, performance, soak, packaging and license/notice gates.
 - [ ] Produce one completion matrix that links each explicit objective requirement to authoritative current-state evidence and records no unsupported completion claims.
 
+### WOS151 inventory fixed-cell implementation
+
+Source audit pins `moveInventoryItem(from,to)` to command id 21 and the exact
+fixed-cell algorithm in `src/sim/inventory_order.ts`: `from` is a dense stack
+index, `to` is a bounded layout cell, accepted unique hints are retained, stale
+or duplicate hints fill first-free cells, and an occupied target swaps with the
+moved stack's prior cell. Command-payload schema 40 encodes the pair as two
+signed little-endian 32-bit integers and maps it through the native client.
+WOS72 appends one signed manual-cell hint per dense stack, defaults older
+snapshots to `-1`, and routes the authoritative reducer without changing dense
+inventory order. Static regressions cover the pinned source, generated schema,
+native ownership, snapshot compatibility, normalization, park/swap behavior and
+invalid state-neutral moves. This slice requires no new engine infrastructure;
+dynamic ZrVM and Cargo acceptance remain coordinator-owned evidence rather than
+an implementation dependency.
+
+### WOS152 overhead-emote implementation
+
+Source audit pins command id 38 to the 13-value `OVERHEAD_EMOTE_IDS` order, the
+server's `isOverheadEmoteId` admission, a 3.2-second active window and monotonic
+sequence increments. Command-payload schema 41 encodes that closed set as one
+byte; the native protocol exposes only `EmoteId` and rejects codes outside
+`1..13`, while client intent mapping cannot carry an arbitrary string. WOS73
+adds entity-aligned code, absolute-expiry-microsecond and sequence columns,
+defaults WOS2-WOS72 rows to zero, and clears code/expiry at the fixed-tick
+deadline without clearing sequence. The authoritative path deliberately has no
+dead gate because the source server does not share the online client's
+optimistic check. This is WOC application/presentation state over existing
+transaction and array persistence, not a new engine foundation requirement.
+
+### WOS153 saved talent-loadout implementation
+
+Source audit pins command id 98 to `saveLoadout {name,bar,alloc?}` and the exact
+`saveTalentLoadout` order: an explicitly supplied allocation is committed first;
+the effective name is `(name || "Build").toString().slice(0, 24)`; the action bar
+retains its first 22 string-or-null slots; an exact same-name row is overwritten;
+otherwise at most ten rows are retained; and the saved row becomes active. This
+ordering means an eleventh new name is rejected only after a valid supplied
+allocation has changed the live player allocation.
+
+Command-payload schema 42 assigns kind code 52 to a bounded binary projection:
+UTF-8 name bytes with a 24-UTF-16-unit/96-byte ceiling, an optional fixed
+spec-plus-six-row allocation, and up to 22 optional 256-byte ability ids. The
+native protocol validates and round-trips that type, the client exposes a typed
+allocation rather than an opaque object, and the ZrVM authority creates or
+overwrites the existing WOS11/WOS38 loadout projection, pads bars to 22 slots,
+selects the saved row and preserves WOS73 snapshot compatibility. Regression
+coverage includes staged allocation, sparse bars, same-name overwrite, empty-name
+`Build`, snapshot round-trip and the ten-row rejection order. Static generation
+and affected command-domain guards pass at 139 typed commands, 138 typed client
+sends, 18 source-only sends and eight unmapped dispatch rows.
+
+This slice reuses the existing canonical `zr_vm:project` package, command
+transaction, generated catalogs and persisted loadout arrays. It exposes no new
+engine capability gap, so the existing Runtime 04/09/10/13 and Plugins 08/09
+foundation handoffs remain unchanged and no new failure record is issued. Cargo
+and dynamic ZrVM acceptance remain distinct executable evidence and are not
+claimed by the static guard batch.
+
+### WOS154 gathering-node implementation
+
+Source audit pins command id 29 to `harvest_node {node}` and the authoritative
+order in `harvestNode`: resolve a live player and one of 24 generated source
+nodes; enforce the flat five-unit interaction range, per-player readiness and bag
+capacity; write the 120-second deadline; consume exactly one rarity draw; queue
+one proficiency gain; grant the mapped material; invoke the gather-objective
+hook; mark first discovery; grant gathering XP; then emit the personal result.
+The current committed quest projection contains only kill objectives, so the
+hook is explicitly state-neutral rather than an invented gather quest.
+
+Command-payload schema 43 assigns kind code 53 to a non-empty UTF-8 node id with
+a 256-byte ceiling. Native protocol round-trips that bounded type and client
+intent maps it without opaque bytes. Generated gathering and M5 content contracts
+pin all 24 node ids, profession/material mapping, the five-unit range, three
+new append-only material codes and the source XP/rarity rules. Pure gathering
+rules live in `progression/harvest_node_state.zr`; WOS74 appends three
+proficiencies, three pending gains, 24 readiness deadlines, visited/result state,
+routes the command and drains gains during fixed tick. Regression coverage pins
+success, cooldown rejection, RNG ordering, persistence and source parity at 140
+typed commands, 139 typed client sends, 17 source-only sends and eight unmapped
+dispatch rows.
+
+This slice uses only the canonical `zr_vm:project` package and existing
+transaction, RNG, array-codec and generated-contract facilities. It exposes no
+new engine capability gap, so no new cross-session failure handoff is issued.
+Cargo and dynamic ZrVM acceptance remain coordinator-owned executable evidence
+and are not claimed by this static implementation batch.
+
+### WOS155 deed-title implementation
+
+Source audit pins command id 159 to `deed_set_title {deedId}`. The server accepts
+only null or string shape and delegates every semantic rule to `setActiveTitle`:
+null clears unconditionally; a non-null id must be present in `deedsEarned` and
+its deed reward kind must be `title`; every unknown, unearned, rewardless or
+non-title id is a silent no-op. On acceptance, `PlayerMeta.activeTitle` and
+`Entity.title` are written together in the same tick. Source persistence also
+normalizes an absent or stale active title to null.
+
+An AST-driven pinned-source generator records all 193 append-only `DEED_ORDER`
+identities, their 19 title-reward flags, source blob hashes and UTF-8 accessors.
+Command-payload schema 44 assigns the existing optional-UTF-8 kind code 9 to a
+one-byte null marker or a bounded 256-byte deed id. Native protocol and client
+intent round-trip `Option<String>` without opaque bytes. Pure selection rules
+live in `progression/deed_title_state.zr`; WOS75 appends the earned ledger and
+persisted active-title code before saved loadouts, plus one entity-aligned title
+code after skin identity. Old snapshots default to empty state and WOS75 decode
+clears stale invalid titles before enforcing the canonical dual projection.
+
+Regression coverage pins same-tick select, unearned and rewardless no-op, null
+clear, zero RNG consumption, schema round-trip and stale-title normalization at
+141 typed commands, 140 typed client sends, 16 source-only sends and eight
+unmapped dispatch rows. This slice reuses the canonical `zr_vm:project` package
+and existing transaction, array-codec and generated-contract facilities. It
+exposes no new engine capability gap, so no cross-session failure handoff is
+issued. Cargo and dynamic ZrVM acceptance remain coordinator-owned executable
+evidence and are not claimed by this static implementation batch.
+
+### WOS156 town-focus implementation
+
+Source audit pins command id 140 to `set_town_focus {allocation}` and the
+authoritative `setTownFocus` rules. Allocation keys are arbitrary non-empty
+strings, points must be non-negative integers and the positive total may not
+exceed ten. The player must be inside the current zone's inclusive town-hub
+circle. A successful request removes zero entries while preserving property
+order; out-of-town, invalid and over-budget requests preserve the previous map.
+The path has no dead-state gate and consumes no RNG.
+
+Command-payload schema 45 adds the bounded `town_focus_allocation` kind: an
+ordered `u16` entry count followed by repeated `u32` UTF-8 key length, key bytes
+and signed `i32` points. Native protocol uses an ordered vector rather than a
+sorted map, rejects duplicate/malformed keys and round-trips the exact source
+order; client intent maps the typed allocation without opaque bytes. The ZrVM
+wire adapter validates full UTF-8, duplicate keys and the ten-point budget
+without overflow. WOS76 appends the positive allocation after WOS75 deeds and
+before saved loadouts, with WOS2-WOS75 decoding to the canonical empty map.
+
+Regression coverage pins in-town acceptance, out-of-town/invalid/over-budget
+no-op, zero filtering, empty clear, arbitrary UTF-8 persistence, dead-player
+acceptance and zero RNG use at 142 typed commands, 141 typed client sends, 15
+source-only sends and eight unmapped dispatch rows. The slice uses only the
+canonical `zr_vm:project` plugin. ZrVM's missing general validated dynamic
+UTF-8 bytes-to-string API was reported to the engine foundation owner; the WOC
+byte adapter completes this command without repairing engine infrastructure or
+introducing a fallback backend. Cargo and dynamic ZrVM acceptance remain
+coordinator-owned executable evidence and are not claimed by this static batch.
+
+### WOS157 craft-item transport and bounded authoritative transaction
+
+The source audit pins command id 30 to `craft_item {recipe}` and follows the
+current `craftItem -> resolveCraft -> resolveCraftForRecipe` order. Unknown
+recipes fail first; station, combo and acquisition gates precede materials;
+materials precede the rolling ten-crafts-per-60-seconds throttle; every success
+clamps the budget fee at zero copper, determines signing inputs before atomic
+reagent debit, consumes exactly one masterwork-proc draw, grants output, advances
+craft skill and throttle, awards profession XP, increments deed counters and
+invokes the quest hook. Every denial consumes no RNG and mirrors a last result.
+
+Command-payload schema 46 adds the standard bounded `utf8_id` projection for the
+recipe string. Native protocol exposes `CraftItemCommandPayload`, and client
+intent maps the source identity without opaque bytes. The source-pinned parity
+generator now emits exact UTF-8 recipe bytes for the existing two-recipe golden
+fixture, while `progression/craft_item_state.zr` contains only immutable scalar
+facts and strict canonical UTF-8 validation.
+
+WOS77 appends alchemy skill, rolling throttle, successful-craft count and the
+lossless last-result recipe bytes/result fields after WOS76 town focus and before
+saved loadouts. The authoritative world closes
+`recipe_minor_healing_potion` against the real M5 inventory, copper, shared RNG
+and XP ledger, including material-shortage/throttle zero-draw rejection, the
+two-copper fee, atomic linen/spider debit, one unconditional success draw, potion
+grant, skill/XP/counter updates, dead-player parity and snapshot round-trip.
+Malformed UTF-8 is state-neutral; a valid unknown id is retained with source
+`unknown_recipe` reason 1.
+
+The golden `recipe_eastbrook_ritual_vestments` output is a signed non-fungible
+instance with baked `int/spi` rolled stats, but the current WOS inventory codec
+persists only fungible stacks. WOS77 therefore records internal deferred reason
+7 with no currency, material, RNG, skill or XP side effect. It explicitly does
+not claim that recipe or the remaining source catalog complete. The required
+generic item-instance persistence/cross-module mutable-state ABI is reported to
+Plugins08; this session does not repair engine infrastructure or introduce a
+fallback backend. Static coverage advances to 143 typed commands, 142 typed
+client sends, 14 source-only sends and eight unmapped dispatch commands.
+
+### WOS158 chat transport and ready-check route
+
+The source audit pins command id 37 to `chat {text}`. The Sim trims text, slices
+to `MAX_CHAT_MESSAGE_LEN = 255` JavaScript UTF-16 code units, ignores empty input,
+then applies an eight-token bucket refilled at two tokens per second before any
+slash-command or channel route. The `/ready` and `/readycheck` aliases are
+case-insensitive and delegate to the existing leader/party/active-check gates;
+the path has no dead-state gate and consumes no RNG.
+
+Command-payload schema 47 adds `chat_text`: one `u32` UTF-8 length plus at most
+1020 bytes and 255 UTF-16 units. Native protocol exposes `ChatCommandPayload`,
+and client intent preserves the source text without pre-trimming. WOS78 appends
+per-entity token-bucket presence, fixed-six token balance and last-refill time
+after WOS20 ready-check columns; WOS2-WOS77 decode canonical absent zero rows.
+The authoritative adapter validates canonical UTF-8/UTF-16, keeps empty input
+state-neutral, consumes/refills tokens for every other valid message and routes
+only `/ready` / `/readycheck` into the already-persisted ready-check lifecycle.
+
+This slice deliberately does not claim the complete chat router. Moderation,
+ignore/mute account state, whispers/channels, other slash commands and personal
+chat/log events remain future social/host work. `harvestCorpse` was audited first
+for this slice but cannot be completed faithfully on the fungible inventory:
+every yielded component consumes a tier roll and rarity roll, and rare-or-better
+materials must persist a signer-bearing item instance. That existing Plugins08
+item-instance ABI gap was updated rather than approximated. Static coverage
+advances to 144 typed commands, 143 typed client sends, 13 source-only sends and
+eight unmapped dispatch commands.
+
+### WOS159 Heroic Quartermaster transaction
+
+The source audit pins command id 142 to `heroic_buy {itemId}` and the exact
+`buyHeroicVendorItem` order: resolve the offer and item definition, reject dead
+players, require the existing `heroic_quartermaster` within `INTERACT_RANGE + 2`,
+require the stock price in `heroic_mark`, check bag capacity before any debit,
+then remove marks, grant one jewelry item and emit vendor feedback. The path is
+deterministic and consumes no RNG. Six rings cost 12 marks; four necklaces cost
+16, in source stock order.
+
+The pinned M5 extractor now owns the currency id, all ten offers/prices and their
+item definitions. It appends `heroic_mark` plus the stock after the immutable
+38-item code prefix, so old snapshot bytes retain their identities. The inventory
+rules now honor an explicit source `stackSize` before kind defaults, preserving
+Heroic Mark's 20-stack despite its `tool` kind. The quartermaster already exists
+in the M3 static roster at index 23/template code 24; the reducer searches that
+live entity and uses the source-inclusive squared range of 49.
+
+Command-payload schema 48 adds the existing canonical bounded `utf8_id` shape.
+Native protocol exposes `HeroicBuyCommandPayload`, and client intent maps the
+offer id without opaque bytes. WOS79 adds no bytes after WOS78, but advances the
+state identity for the appended item-code vocabulary and accepts WOS2-WOS78 on
+decode. Regression coverage pins the 20-mark stack, successful 12-mark ring
+purchase, insufficient balance, dead and out-of-range neutrality, inclusive
+seven-unit purchase and snapshot round-trip. The source vendor event remains
+presentation-host output and is not claimed as persisted state. Static coverage
+advances to 145 typed commands, 144 typed client sends, 12 source-only sends and
+eight unmapped dispatch commands.
+
+### WOS160 Delve shop transaction
+
+The source audit pins command id 119 to `delve_buy {delveId,itemId}`. Server
+admission requires two strings, a live player, a known Delve and an inclusive
+12-unit radius from that Delve's door before delegating to
+`delveBuyShopItem`. The transaction resolves one of the 18 generated offers,
+applies its `available`, total `clears:N`, or explicit Heroic-clear gate, checks
+the player's shared Delve Mark balance, debits the exact price, force-grants one
+item through the source `addItem` hub and emits presentation-only vendor feedback.
+It consumes no RNG and deliberately has no bag-capacity admission.
+
+The source-pinned M7 shops are promoted into the M5 catalog as two door records,
+nine ordered offers each and 18 appended item definitions. Existing 49 item codes
+remain byte-for-byte stable. Command-payload schema 49 adds canonical kind 55,
+`utf8_id_pair`, with two length-prefixed UTF-8 ids independently bounded to 256
+bytes. Native protocol exposes `DelveBuyCommandPayload`, and client intent carries
+both ids without opaque bytes.
+
+WOS80 appends per-entity Delve Marks plus Normal, Heroic and other-tier clear
+counts for each generated shop; WOS2-WOS79 decode them as zero. Regression
+coverage proves both shop identities and prices, available/three-clear/Heroic
+gates, insufficient balance, dead and out-of-range neutrality, full-bag
+force-grant behavior, cross-shop purchase and snapshot restoration. Static
+coverage advances to 146 typed commands, 145 typed client sends, 11 source-only
+sends and eight unmapped dispatch commands.
+
+### WOS161 companion upgrade and item-discovery closure
+
+The source audit pins command id 118 to `companion_upgrade {companionId}`. Server
+admission requires a string, a live player, a companion referenced by a Delve's
+`autoCompanionId`, and the same inclusive 12-unit door radius used by the shop.
+The transaction defaults each known companion to rank one, rejects rank three,
+resolves the next-rank generated cost, checks Delve Marks and copper before
+debiting either balance, stores the new rank, then marks the player for same-tick
+deed evaluation. Rank two costs three marks; rank three costs five; both launch
+costs require zero copper. The path consumes no RNG.
+
+Command-payload schema 50 uses the existing bounded `utf8_id` kind for the
+companion id. Native protocol exposes `CompanionUpgradeCommandPayload`, and the
+client intent carries that id without opaque bytes. The generated M5 Delve-shop
+projection advances to schema 5 and records each source `autoCompanionId`, while
+the existing M7 companion projection remains the owner of identities, max rank
+and costs. This keeps companion-to-door routing source-generated rather than
+depending on coincident catalog order.
+
+WOS81 appends two source-ordered companion ranks to every player row; non-player
+rows retain zeroes, while WOS2-WOS80 players migrate to rank one. It also closes
+the WOS160 secondary-review finding by appending the primary offline player's
+M5 item-discovery bitset. Every fungible grant now records first possession,
+seeds old snapshots from inventory, equipment, bags and buyback, and evaluates
+the pinned deed triggers that directly read `itemsDiscovered`: total and poor
+counts, first rare/epic/legendary quality, and authored item sets. Presentation
+events remain host output, and auto-equip remains inactive because the pinned
+offline bootstrap uses the source default `autoEquip=false`.
+
+Regression coverage must include rank-one/rank-two success, exact balance,
+rank-three cap, insufficient funds, unknown id, dead player, both door mappings,
+inclusive 12 and rejected 13-unit range, both companion deeds, snapshot and
+WOS80 migration, strict UTF-8 bounds, discovery idempotence and first-quality
+deed persistence. Static transport coverage advances to 147 typed commands,
+146 typed client sends, ten source-only sends and eight unmapped dispatch rows.
+
+**Implementation receipt (2026-08-01):** WOS161 implementation is complete.
+Focused evidence passes the WOS148-WOS161 static guards, all command-payload,
+M5/M7 and deed generated-contract checks, 19 historical payload suites, targeted
+Rust formatting and scoped diff validation. Mandatory secondary review found and
+forward-fixed join-time retro deed closure, guard false positives and the wire
+byte-count wording; its re-review reports no remaining critical or important
+finding. Dynamic ZrVM/Cargo acceptance remains assigned to the existing Plugins08
+runtime handoff and delays only accepted closeout; it does not hold this Session.
+
+### WOS162 mech-chroma account cosmetic closure
+
+The source audit pins command id 32 to `unequip_mech_chroma {chroma}`. Admission
+requires one string but has no dead, range or RNG gate. The authoritative operation
+accepts only one of the 15 source-ordered `MECH_CHROMAS` entries currently owned by
+the shared account cosmetic state, removes that ownership, resets every live player
+using the same mech skin index to class skin zero, and force-grants exactly one
+`{chroma}_armor_plate` to the requesting player. Unknown or unowned ids are
+state-neutral, and a repeated unequip cannot duplicate the returned item.
+
+M5 content advances to schema 6. It source-generates the 15 chroma id/rank/skin
+index/item-id mappings from `src/sim/content/skins.ts`, appends the corresponding
+`src/sim/content/zone2.ts` item definitions after the immutable 67-item prefix and
+retains their `noVendorSell`, `noDiscard` and `noMarketList` flags. The existing
+`use` command consumes one returned armor plate, grants account ownership and
+equips its mech appearance; the existing `change_skin` command's mech branch now
+requires that ownership. Together these paths form the source equip -> unequip ->
+returned-item -> re-equip loop without an alternate runtime or host-owned rule.
+
+Command-payload schema 51 uses canonical bounded `u32_le_utf8` for the chroma id.
+Native protocol exposes `UnequipMechChromaCommandPayload`, and client intent carries
+the id without opaque bytes. WOS82 appends 15 account ownership markers and extends
+the item-discovery suffix for the 15 new inventory identities. WOS81 decode reads
+its historical 67-byte discovery suffix and initializes the appended ownership and
+discovery entries to false; WOS2-WOS80 retain their existing migration paths.
+
+Regression coverage must prove all 15 generated mappings, owned/unowned/unknown
+behavior, active and inactive appearance handling, account-wide player reset,
+dead-player parity, full-bag forced return, repeat-command idempotence, protected
+discard/vendor policy, returned-item reuse, strict 256/257-byte and trailing-byte
+payload bounds, snapshot restoration and an exact WOS81 migration. Static transport
+coverage advances to 148 typed commands, 147 typed client sends, nine source-only
+sends and eight unmapped dispatch rows.
+
+**Implementation receipt (2026-08-01):** WOS162 implementation is complete.
+Focused evidence passes its command-payload, generated M5 catalog, coverage and
+runtime static guards. Mandatory secondary review found and forward-fixed
+canonical UTF-8 admission, cross-function false positives, full 15-entry mapping
+and protection-flag locks, and command-local native/client ABI assertions. Its
+final re-review reports no remaining critical or important finding. Dynamic
+ZrVM/Cargo acceptance remains assigned to the existing Plugins08 runtime handoff
+and delays only accepted closeout; it does not hold this Session.
+
+### WOS163 account weapon-skin loadout closure
+
+The source audit pins command id 34 to `change_weapon_skin {skin,wtype}`. The
+server interprets it as a discriminated operation: a non-null skin id applies a
+known, account-owned skin only when its generated weapon type matches the
+requesting player's currently displayed mainhand; a null skin plus one of the
+eight canonical weapon types detaches an existing loadout entry. Neither branch
+has a dead-state or RNG gate. The supplied `wtype` is ignored on apply because
+the skin catalog is authoritative for its type.
+
+A source-pinned weapon-skin contract will generate all 29 Season 1 identities,
+their eight ordered weapon types, rarity/collection/model metadata and the full
+source item-to-weapon-type table. Non-hunter players resolve against the actual
+equipped M5 mainhand, including the source starting weapon and explicit empty
+state. Hunters may apply only bow or crossbow skins while a mainhand exists;
+those entries are mutually exclusive and crossbow wins deterministic active-skin
+resolution when state is seeded. Applying or detaching updates the account-wide
+loadout and re-resolves every live player row, so parked skins become active again
+after a compatible equipment change.
+
+Command-payload schema 52 adds canonical kind `weapon_skin_change`: one mode byte
+followed by either a bounded `u32` UTF-8 skin id or one generated weapon-type
+code. Native protocol exposes a typed apply/detach enum and client intent carries
+that enum without opaque bytes. WOS83 appends the 29 ownership markers and eight
+source-ordered loadout codes; active per-entity skin identity remains derived
+from account loadout, class and mainhand and is recomputed after decode and every
+equipment/loadout mutation. WOS2-WOS82 migrate to empty ownership and loadout.
+Offline bootstrap v2 supplies the same 29 ownership markers and eight loadout
+codes before Tick 1, so the host account boundary can hydrate a real fresh world
+without a test-only state write. The pending generic `zr_vm:project` dual-output
+transaction capability remains the only acceptable path from that derived entity
+identity to native `ActorAppearance.weapon_skin_id`; it is recorded in Plugins08,
+not replaced with a WOC-specific VM adapter.
+
+Regression coverage must prove all 29 identities and eight type mappings, owned
+apply, unowned/unknown/type-mismatch neutrality, detach and repeated detach,
+hunter bow/crossbow exclusion and precedence, account-wide multi-player refresh,
+dead-player parity, compatible/incompatible equipment refresh, strict payload
+mode/length/UTF-8 bounds, zero RNG use, snapshot restoration and exact WOS82
+migration. Static transport coverage advances to 149 typed commands, 148 typed
+client sends, eight source-only sends and eight unmapped dispatch rows. The
+Claudium purchase and account-grant route remains a host economy-service concern;
+this slice persists and enforces supplied ownership but does not invent a local
+purchase path or claim that external service complete.
+
 **Testing stage - M14 release acceptance:**
 
 - Run the nested WOC workspace, affected Zircon packages, target reference suites, all 54 parity traces, real product journeys and platform matrix as a dependency-complete execution wave.
 - Re-run any repaired lower-layer focused batch before the complete wave. Treat indirect or missing evidence as incomplete work, not accepted residual risk.
 
 **Exit evidence:** Every catalog row and explicit objective requirement is proven; all required tests/product/platform gates pass; the full WOC project is usable from `examples/woc` without the target web runtime or a fallback language.
+
+**Review correction (2026-08-01):** The first independent review found two P1
+closure gaps: production offline bootstrap did not inject account ownership/loadout
+data, and the derived active skin code did not enter a client-consumable presentation
+projection. The forward repair adds bootstrap v2 (29 ownership markers plus eight
+loadout codes), host launch injection and first-tick world hydration. The projection
+gap is explicitly owned by the Plugins08 generic lossless dual-output transaction
+handoff; no WOC-specific VM adapter was added. A second independent review found one
+P2 host-boundary mismatch: an owned skin code in the wrong weapon-type slot could
+reach the VM. The source-generated native type table now rejects that state before
+encoding or decoding bootstrap bytes, with focused encode/decode regressions and a
+static guard. Its targeted review then caught a missing public-constant import in the
+new regression; that P1 was forward-fixed together with the decode-side mutation
+case. The final targeted independent re-review found no remaining P1/P2 issue;
+the static codegen and WOS163 guard also pass without running Cargo or ZrVM.
+Dynamic ZrVM/Cargo acceptance remains owned by the existing Plugins08 runtime handoff
+and delays only accepted closeout.
+
+### WOS164 corpse-harvest protocol and authority closure
+
+The next source-shaped command is id 13, `harvestCorpse {id, components?}`. Its
+authoritative route accepts only a numeric target id and filters the optional
+array to strings. The reducer denies a dead harvester, a non-dead/non-mob target,
+an unharvestable corpse, out-of-range interaction, or an existing claim. A failed
+capacity preflight must leave the claim and RNG untouched; a successful command
+sets the first-come claim before rolling. The retained source corpus has eight
+component tags (`hide`, `fang`, `claw`, `tusk`, `venomSac`, `silk`, `gills`,
+`horn`), a maximum of three tags per mob, and only four material mappings:
+`hide -> boar_hide`, `fang -> wolf_fang`, `silk -> webwood_silk`, and
+`venomSac -> widow_venom_sac`. Unmapped tags still consume their tier roll and
+claim the corpse.
+
+Command-payload schema 53 will encode `u64_le target_id`, a `u8` component count
+and at most three source-generated component codes. Code zero represents a
+nonmatching source string and codes one through eight represent the generated tag
+order. Omitted/empty components encode count zero. A source request whose string
+array has three or more entries canonicalizes to three zero codes: because every
+current target corpse has at most three tags, source semantics select its complete
+tag list regardless of those string values. Counts one and two preserve order,
+duplicates and known-versus-unknown membership exactly. The code generator must
+fail if the source component-tag maximum exceeds three, so this is not a silent
+future truncation.
+
+`corpse_harvest_contract_codegen` will extract the source component map and the
+retained M5 mob component tags into one JSON contract plus Zr and Rust tables.
+WOS84 will persist current per-corpse claim ids and every signed material-instance
+row needed by source `addItemInstance(itemId, { signer: meta.name })`; WOS2-WOS83
+migrate to no instances. The reducer will use the source tier weights
+`[40,30,15,10,4,1]`, concentration shift, town-focus quantity/tier bonuses, and
+the independent material rarity roll. Capacity is preflighted cumulatively at the
+focus-boosted legendary maximum before the claim and any RNG draw.
+
+Rare, epic and legendary material yields are not fungible stacks: they must retain
+the signer-bearing instance in snapshot and client projection. The existing WOS77
+Plugins08 item-instance mutable-state ABI handoff is therefore extended before
+this reducer is claimed complete. This slice must not replace an instance with a
+stack, drop its signer, reject all harvests, or create a WOC-only VM/backend path.
+While the shared capability is open, source extraction, generated tables, native
+typed payload/client intent, state-schema preparation and static source guards
+continue forward; dynamic ZrVM/Cargo acceptance remains with Plugins08.
+
+Regression coverage will pin canonical component selection, duplicate/unknown
+selection, all gates' zero-mutation/zero-draw behavior, cumulative capacity,
+first-come claiming, unmapped component draw consumption, focused quantity and
+tier shifts, independent rarity draws, signed-instance persistence/projection,
+snapshot restoration and WOS83 migration. Static transport coverage advances to
+150 typed commands, 149 typed client sends, seven source-only sends and eight
+unmapped dispatch rows with the schema-53/native/client boundary. That transport
+advance is not gameplay closure: reducer dispatch, WOS84 instance persistence and
+native projection remain contingent on the shared instance route above.
+
+### WOS165 dungeon-entry transport and lifecycle audit
+
+Source command id 112 is `enter_dungeon { dungeon }`, issued through
+`cmdWithOutcome` by `OnlineGame.enterDungeon(dungeonId)`. The server accepts a
+string before it resolves the caller, checks an overworld `dungeon_door` matching
+that id within a strict eight-unit radius, then delegates to `enterDungeon`. The
+payload boundary must therefore preserve any bounded UTF-8 string and must not
+pre-validate it against the local dungeon directory: an unknown, sealed or
+otherwise unavailable id is an authoritative lifecycle decision, not a client
+transport rejection. The pre-existing source-pinned M3 entrance contract supplies
+the six current `DUNGEONS` identities and 24 reusable slots for presentation and
+state lookup, but does not change this authority rule.
+
+Command-payload schema 54 will add the canonical `utf8_id` descriptor
+`u32_le_utf8` for id 112, with the standard 256-byte bound. Native protocol will
+expose `EnterDungeonCommandPayload { dungeon_id }` and the client will expose the
+matching typed intent; neither may send opaque bytes. Decode must reject invalid
+UTF-8, mismatched prefixes, trailing bytes and identifiers above the descriptor
+bound. Static transport coverage then advances to 151 typed commands, 150 typed
+client sends, six source-only sends and eight unmapped dispatch rows.
+
+The source lifecycle is deliberately larger than this transport slice. It
+rejects unreleased corpses, raid/standard mismatches, missing raid membership,
+Nythraxis attunement, sealed arena claims, reset and Heroic lockouts, and occupied
+or unavailable slots before it chooses or claims a party/durable-solo keyed
+instance. A claim atomically assigns difficulty, spawns its source-ordered mobs
+and objects using the shared RNG, creates an exit, clears its entered-by set, then
+teleports/rebuckets the player, clears target/autoattack, records participation
+and may resurrect a ghost. Existing M7 `DungeonState`, reset locks, heroic tuning
+and M3 collision/entrance data cover isolated pieces only; they do not yet project
+the live entity pool, durable party key, rebucket, ghost, arena queue or spawn
+transaction. WOS165 must retain that distinction and must not claim
+`enter_dungeon` gameplay parity until those dependencies are composed through
+the real `zr_vm:project` route.
+
+The source call is also a request/response API, not a fire-and-forget command:
+`cmdWithOutcome` allocates a positive safe-integer `rid`, adds it to the outgoing
+command, resolves it only from `{ t: 'commandOutcome', rid, ok }`, and resolves
+`false` after five seconds or on connection/session termination. The current WOC
+fixed-tick command envelope preserves no request id and exposes no generic outcome
+inbox or pending-request lifecycle. Consequently this slice provides exact typed
+request payload transport only; it does **not** yet reproduce
+`OnlineGame.enterDungeon(): Promise<boolean>`. Plugins 08 owns the missing
+generic `zr_vm:project` request/outcome bridge. It must carry a bounded request id
+without placing wall-clock time in an authoritative tick, correlate the returned
+boolean on the client, deterministically reject duplicate/stale ids, and resolve
+all pending calls as `false` on disconnect or host-defined timeout. WOC must use
+that generic route once available rather than inventing a dungeon-specific reply
+packet or treating a snapshot change as success.
 
 ## 状态与产出记录
 

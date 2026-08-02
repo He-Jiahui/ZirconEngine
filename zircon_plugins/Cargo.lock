@@ -7664,6 +7664,7 @@ dependencies = [
  "ron",
  "rustybuzz",
  "same-file",
+ "self_cell",
  "serde",
  "serde_json",
  "sha2",

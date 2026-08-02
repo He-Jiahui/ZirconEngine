@@ -3,7 +3,7 @@ use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_primitives::draw_border_clipped;
 use super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::paint_theme::{
-    current_host_metrics, current_host_palette, HostControlMetrics,
+    HostControlMetrics, current_host_metrics, current_host_palette,
 };
 use super::geometry::scrolled_menu_frame;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;

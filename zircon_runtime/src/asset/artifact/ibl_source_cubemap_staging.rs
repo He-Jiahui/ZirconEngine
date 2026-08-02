@@ -3,15 +3,15 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use crate::asset::assets::{
-    decode_zcube_source_cubemap_bytes, texture_asset_from_source_cubemap_zcube, TexturePayload,
-    ZcubeSourceCubemap, ZcubeSourceCubemapError, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
-};
 use crate::asset::AssetUri;
+use crate::asset::assets::{
+    TexturePayload, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE, ZcubeSourceCubemap, ZcubeSourceCubemapError,
+    decode_zcube_source_cubemap_bytes, texture_asset_from_source_cubemap_zcube,
+};
 use crate::core::framework::render::{
+    IBL_BAKE_ALGORITHM_VERSION, IblBakeArtifactRequest, SourceCubemapBakeArtifactError,
+    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapMipChain,
     build_source_cubemap_from_source_mips, source_cubemap_environment_with_bake_artifact,
-    IblBakeArtifactRequest, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
-    SourceCubemapIrradianceCube, SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION,
 };
 
 use super::ibl_bake_artifact_asset_derived::{
@@ -127,7 +127,7 @@ impl IblSourceCubemapStagingStore {
         let source = match self.read_source_cubemap_zcube(request, uri)? {
             IblSourceCubemapStagingRead::Hit(source) => source,
             IblSourceCubemapStagingRead::Missing => {
-                return Err(IblSourceCubemapStagingError::MissingSourceCubemap)
+                return Err(IblSourceCubemapStagingError::MissingSourceCubemap);
             }
         };
         let derived = match self
@@ -137,10 +137,10 @@ impl IblSourceCubemapStagingStore {
         {
             super::IblBakeArtifactAssetDerivedRead::Hit(blob) => blob,
             super::IblBakeArtifactAssetDerivedRead::Missing => {
-                return Err(IblSourceCubemapStagingError::MissingAssetDerived)
+                return Err(IblSourceCubemapStagingError::MissingAssetDerived);
             }
             super::IblBakeArtifactAssetDerivedRead::Rejected(source) => {
-                return Err(IblSourceCubemapStagingError::RejectedAssetDerived(source))
+                return Err(IblSourceCubemapStagingError::RejectedAssetDerived(source));
             }
         };
 
@@ -231,7 +231,9 @@ impl IblSourceCubemapStagedBundleReport {
 
 #[derive(Debug, Error)]
 pub enum IblSourceCubemapStagingError {
-    #[error("source cubemap layout does not match IBL bake request: request face_size={request_face_size}, mip_count={request_mip_count}; source face_size={source_face_size}, mip_count={source_mip_count}")]
+    #[error(
+        "source cubemap layout does not match IBL bake request: request face_size={request_face_size}, mip_count={request_mip_count}; source face_size={source_face_size}, mip_count={source_mip_count}"
+    )]
     RequestSourceLayoutMismatch {
         request_face_size: u32,
         request_mip_count: u32,

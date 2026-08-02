@@ -1,4 +1,4 @@
-use super::palette::{workbench_tree_row_palette, WorkbenchTreeRowPalette};
+use super::palette::{WorkbenchTreeRowPalette, workbench_tree_row_palette};
 use super::state::is_unavailable_tree_row_state;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

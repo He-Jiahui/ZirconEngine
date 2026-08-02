@@ -266,22 +266,22 @@ fn inspector_plugin_component_nodes(
                 height: 20.0,
             },
         );
-        header.text_tone = if component.drawer_available {
+        header.text_tone = if component.customization_available {
             "default".into()
         } else {
             "warning".into()
         };
-        header.surface_variant = if component.drawer_available {
+        header.surface_variant = if component.customization_available {
             "panel".into()
         } else {
             "inset".into()
         };
-        header.selected = component.drawer_available;
-        header.focused = component.drawer_available;
-        if let Some(template_id) = &component.drawer_template_id {
+        header.selected = component.customization_available;
+        header.focused = component.customization_available;
+        if let Some(template_id) = &component.customization_template_id {
             header.value_text = template_id.clone().into();
         }
-        if let Some(ui_document) = &component.drawer_ui_document {
+        if let Some(ui_document) = &component.customization_ui_document {
             header.validation_message = ui_document.clone().into();
         }
         nodes.push(header);
@@ -312,7 +312,8 @@ fn inspector_plugin_component_nodes(
 
         for property in &component.properties {
             let control_id = inspector_dynamic_component_control_id(&property.field_id);
-            let disabled = field_disabled || !component.drawer_available || !property.editable;
+            let disabled =
+                field_disabled || !component.customization_available || !property.editable;
             let mut node = if inspector_numeric_kind(&property.value_kind) {
                 inspector_number_field_node(
                     &inspector_component_key(&property.field_id),
@@ -338,12 +339,12 @@ fn inspector_plugin_component_nodes(
                     disabled,
                 )
             };
-            if !component.drawer_available {
+            if !component.customization_available {
                 node.validation_level = "warning".into();
                 node.validation_message = component
                     .diagnostic
                     .clone()
-                    .unwrap_or_else(|| "Plugin component drawer unavailable".to_string())
+                    .unwrap_or_else(|| "Plugin inspector customization unavailable".to_string())
                     .into();
             }
             nodes.push(node);
@@ -546,13 +547,13 @@ fn inspector_action_button_node(
 fn inspector_plugin_component_fallback_message(info: &str) -> Option<String> {
     let lower = info.to_ascii_lowercase();
     let mentions_plugin_component =
-        lower.contains("plugin") || lower.contains("component drawer") || lower.contains("drawer");
+        lower.contains("plugin") || lower.contains("inspector customization");
     let mentions_unavailable = lower.contains("unloaded")
         || lower.contains("missing")
         || lower.contains("unavailable")
         || lower.contains("disabled");
     (mentions_plugin_component && mentions_unavailable).then(|| {
-        "Plugin component drawer is unavailable; serialized component data stays protected until the plugin reloads."
+        "Plugin inspector customization is unavailable; serialized component data stays protected until the plugin reloads."
             .to_string()
     })
 }

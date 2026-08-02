@@ -16,6 +16,7 @@ struct SceneUniform {
     sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_rotation_sin_cos: vec4<f32>,
 };
 
 const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
@@ -103,7 +104,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
         discard;
     }
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
-    let normal = normalize(encoded_normal * 2.0 - vec3<f32>(1.0));
+    let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0));
     let material = textureLoad(gbuffer_material_tex, coord, 0);
     let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;
     return shade_deferred_environment_only_pbr(coord, albedo, material, normal, emissive);

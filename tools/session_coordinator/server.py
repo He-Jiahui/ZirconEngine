@@ -31,6 +31,7 @@ from .manifest_retention import ManifestRetentionService
 from .ownership_matrix import OwnershipMatrixService
 from .ownership_transfers import OwnershipTransferService
 from .validation_tickets import ValidationTicketService
+from .validation_ticket_worker import ValidationTicketWorker
 from .leases import LeaseService, PathPolicy, lease_paths_overlap
 from .migrations import LATEST_SCHEMA_VERSION, migrate
 from .models import CoordinatorError, SessionStatus, SupervisionState, utc_text
@@ -453,11 +454,20 @@ class CoordinatorApplication:
                 lambda: self._require_artifact_governance_clean()
             )
             self.workspace_copy.recover_interrupted_jobs()
+            self.validation_ticket_worker: ValidationTicketWorker | None = (
+                ValidationTicketWorker(
+                    self.database,
+                    config.repo_root,
+                    self.validation_tickets,
+                    self.workspace_copy,
+                )
+            )
         else:
             self.cargo_jobs = None
             self.cargo_runner = None
             self.cleanup = None
             self.workspace_copy = None
+            self.validation_ticket_worker = None
         self.rollout_audit = RolloutAuditService(
             self.database,
             config.repo_root,
@@ -2720,6 +2730,29 @@ class RunningCoordinator:
                             "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
                             (
                                 "validation_copy.recovery_failed",
+                                json.dumps({"error": str(error)}, sort_keys=True),
+                            ),
+                        )
+            if application.validation_ticket_worker is not None:
+                try:
+                    ticket_result = application.validation_ticket_worker.tick()
+                    if any(ticket_result.values()):
+                        with application.database.transaction() as connection:
+                            connection.execute(
+                                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                                (
+                                    "validation.ticket_worker_tick",
+                                    json.dumps(ticket_result, sort_keys=True),
+                                ),
+                            )
+                except Exception as error:  # pragma: no cover - defensive worker boundary
+                    if stop_event.is_set():
+                        break
+                    with application.database.transaction() as connection:
+                        connection.execute(
+                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                            (
+                                "validation.ticket_worker_failed",
                                 json.dumps({"error": str(error)}, sort_keys=True),
                             ),
                         )

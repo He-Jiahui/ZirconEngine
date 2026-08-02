@@ -67,9 +67,9 @@ doc_type: module-detail
 
 # ZrVM Host Function Ledger
 
-Runtime 13 current child-owner sync (2026-07-10): `script_binding_boundary` reports `expected_source_file_count = 19`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
+Runtime 13 current child-owner sync (2026-08-02): `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 61`, `type_descriptor_count = 2`, `builtin_callback_count = 20`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 12`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
 
-Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 52 fixed host functions, and 2 fixed script type descriptors. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
+Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 61 fixed host functions, and 2 fixed script type descriptors. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
 
 `HostExportRegistry::register_module(...)` is the runtime enforcement point. It validates module names, declared module capabilities, function arity, required function capabilities, callback/descriptor parity, type descriptors, and call-time capability grants. `builtin_host_module_descriptors()` plus `zircon_host_reflection_docs` are the machine-renderable source for the fixed built-in ledger.
 
@@ -92,7 +92,7 @@ descriptor generation behavior remain unchanged.
 | `zr.zircon.asset` | `builtin_host_modules.rs` | `asset.query` | Locator/status reads only. |
 | `zr.zircon.scene` | `builtin_host_modules.rs` | `scene.handle`, `scene.query` | Stable host-handle projection, not raw world access. |
 | `zr.zircon.render` | `builtin_host_modules.rs` | `render.query` | Read-only render metadata. |
-| `zr.zircon.math` | `builtin_host_modules.rs` macro module | none declared | Pure value descriptors and deterministic math helpers. |
+| `zr.zircon.math` | `builtin_host_modules.rs` | `math.scalar` | Version 0.2.0 deterministic value and scalar math ABI. |
 | `zr.zircon.gameplay` | `gameplay_host.rs` | `gameplay.entity`, `gameplay.input`, `gameplay.navigation` | Current gameplay ECS facade through `ScriptRuntimeCallContext`. |
 
 ## Foundation
@@ -134,8 +134,17 @@ descriptor generation behavior remain unchanged.
 | Type `ColorRgba` | `r:float`, `g:float`, `b:float`, `a:float` | `Float` descriptor, struct prototype | none |
 | `vec3_length` | `x:float`, `y:float`, `z:float` | `Float` | none |
 | `vec3_dot` | `ax:float`, `ay:float`, `az:float`, `bx:float`, `by:float`, `bz:float` | `Float` | none |
+| `abs` | `value:float` | `Float` | `math.scalar` |
+| `atan2` | `y:float`, `x:float` | `Float` | `math.scalar` |
+| `ceil` | `value:float` | `Float` | `math.scalar` |
+| `cos` | `value:float` | `Float` | `math.scalar` |
+| `exp` | `value:float` | `Float` | `math.scalar` |
+| `floor` | `value:float` | `Float` | `math.scalar` |
+| `sin` | `value:float` | `Float` | `math.scalar` |
+| `sqrt` | `value:float` | `Float` | `math.scalar` |
+| `pow` | `base:float`, `exponent:float` | `Float` | `math.scalar` |
 
-Runtime 15 F12 script host value descriptor dead-code cleanup keeps this math ledger stable while removing the production `#[allow(dead_code)]` suppressions from the descriptor-only structs. `builtin_host_modules.rs` now uses a field layout sentinel that constructs and reads `Vec3 { x, y, z }` and `ColorRgba { r, g, b, a }`; it does not add a host function, so the fixed ledger remains 6 host modules, 52 fixed host functions, and 2 fixed script type descriptors. Status: `runtime_15_script_host_value_descriptors_coremin_check_passed`; guard: `runtime_15_script_host_value_descriptors_do_not_suppress_dead_code`.
+Runtime 15 F12 script host value descriptor dead-code cleanup keeps the descriptor invariant stable while removing the production `#[allow(dead_code)]` suppressions from the descriptor-only structs. `builtin_host_modules.rs` now uses a field layout sentinel that constructs and reads `Vec3 { x, y, z }` and `ColorRgba { r, g, b, a }`; Runtime13's scalar ABI adds nine host functions, so the fixed ledger now has 6 host modules, 61 fixed host functions, and 2 fixed script type descriptors. Status: `runtime_15_script_host_value_descriptors_coremin_check_passed`; guard: `runtime_15_script_host_value_descriptors_do_not_suppress_dead_code`.
 
 ## Gameplay
 

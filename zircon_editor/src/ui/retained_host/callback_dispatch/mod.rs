@@ -44,29 +44,26 @@ pub(crate) use template_binding::{
     dispatch_template_action, dispatch_template_binding_with_arguments,
 };
 pub(crate) use template_bridge::{
-    load_startup_builtin_template_runtime, BuiltinAssetSurfaceTemplateBridge,
-    BuiltinFloatingWindowSourceFrames, BuiltinFloatingWindowSourceTemplateBridge,
-    BuiltinHostOuterShellFrames, BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
+    BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceFrames,
+    BuiltinFloatingWindowSourceTemplateBridge, BuiltinHostOuterShellFrames,
+    BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
     BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
     BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
     BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
-    WorkbenchCommandPaletteOpenState, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
-    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
+    WORKBENCH_CONTEXT_MENU_CONTROL_ID, WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+    WORKBENCH_TOAST_CONTROL_ID, WorkbenchCommandPaletteOpenState,
+    load_startup_builtin_template_runtime,
 };
 pub(crate) use viewport::dispatch_builtin_viewport_toolbar_control;
 #[cfg(test)]
 pub(crate) use viewport::dispatch_viewport_command;
 pub(crate) use viewport::{
-    dispatch_viewport_event, dispatch_viewport_pointer_event,
+    SharedViewportPointerBridge, dispatch_viewport_event, dispatch_viewport_pointer_event,
     dispatch_viewport_toolbar_pointer_route, viewport_event_from_command,
-    SharedViewportPointerBridge,
 };
 pub(crate) use welcome::dispatch_builtin_welcome_surface_control;
-#[cfg(test)]
 pub(crate) use workbench::{
-    dispatch_builtin_host_control, dispatch_builtin_host_menu_action, retained_menu_action,
-};
-pub(crate) use workbench::{
+    WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
     dispatch_componentized_workbench_binding,
     dispatch_componentized_workbench_command_palette_committed,
     dispatch_componentized_workbench_control, dispatch_componentized_workbench_menu_item_selected,
@@ -76,5 +73,8 @@ pub(crate) use workbench::{
     dispatch_componentized_workbench_surface_control_edited,
     dispatch_componentized_workbench_transform_axis_commit,
     dispatch_host_menu_action_with_template_fallback, dispatch_menu_action,
-    WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+};
+#[cfg(test)]
+pub(crate) use workbench::{
+    dispatch_builtin_host_control, dispatch_builtin_host_menu_action, retained_menu_action,
 };

@@ -8,11 +8,16 @@ fn world_property_reads_compare_normalized_segments_without_entry_vector_allocat
 
     assert!(read_source.contains("let target_component = property_path.component();"));
     assert!(read_source.contains("let target_segments = property_path.property_segments();"));
-    assert!(read_source
-        .contains("self.property_entry_value(entity, target_component, target_segments)"));
+    assert!(
+        read_source
+            .contains("self.property_entry_value(entity, target_component, target_segments)")
+    );
     assert!(read_source.contains("return Ok(value);"));
-    assert!(read_source
-        .contains("if let Some(value) = self.dynamic_component_property(entity, property_path)"));
+    assert!(
+        read_source.contains(
+            "if let Some(value) = self.dynamic_component_property(entity, property_path)"
+        )
+    );
     assert!(read_source.contains(") -> SceneResult<ScenePropertyValue>"));
     assert!(read_source.contains("SceneError::PropertyUnavailable"));
     assert!(read_source.contains("property_path: property_path.to_string()"));
@@ -26,8 +31,10 @@ fn world_property_reads_compare_normalized_segments_without_entry_vector_allocat
     assert!(entries_source.contains("fn property_literal_segments_match_normalized("));
     assert!(entries_source.contains("for segment in segments.split('.')"));
     assert!(entries_source.contains("normalized_identifier_matches(component, target_component)"));
-    assert!(entries_source
-        .contains("!normalized_identifier_matches(segment, &target_segments[target_index])"));
+    assert!(
+        entries_source
+            .contains("!normalized_identifier_matches(segment, &target_segments[target_index])")
+    );
     assert!(entries_source.contains("if include_dynamic {"));
     assert!(value_conversion_source.contains("pub(super) fn normalized_identifier_matches("));
     assert!(value_conversion_source.contains("let mut value_chars = value.chars();"));
@@ -37,26 +44,34 @@ fn world_property_reads_compare_normalized_segments_without_entry_vector_allocat
     assert!(!read_source.contains("entries\n            .into_iter()"));
     assert!(!read_source.contains("fn property_path_matches_normalized("));
     assert!(!read_source.contains("fn property_segments_match_normalized("));
-    assert!(!entries_source
-        .contains("let mut push = |path: &str, value: ScenePropertyValue, animatable: bool|"));
+    assert!(
+        !entries_source
+            .contains("let mut push = |path: &str, value: ScenePropertyValue, animatable: bool|")
+    );
     assert!(!read_source.contains("use super::value_conversion::normalized_identifier;"));
     assert!(!read_source.contains("let target_component = normalized_identifier("));
-    assert!(!read_source
-        .contains(".or_else(|| self.dynamic_component_property(entity, property_path))"));
+    assert!(
+        !read_source
+            .contains(".or_else(|| self.dynamic_component_property(entity, property_path))")
+    );
     assert!(!read_source.contains(".ok_or_else(||"));
     assert!(!read_source.contains(
         ".property_segments()\n                        .iter()\n                        .map(|segment| normalized_identifier(segment))\n                        .collect::<Vec<_>>()"
     ));
     assert!(!read_source.contains(".map(|segment| normalized_identifier(segment))"));
     assert!(!read_source.contains(".collect::<Vec<_>>()"));
-    assert!(!read_source
-        .contains("normalized_identifier(property_path.component()) == target_component"));
+    assert!(
+        !read_source
+            .contains("normalized_identifier(property_path.component()) == target_component")
+    );
     assert!(
         !read_source.contains("normalized_identifier(&segments[index]) != target_segments[index]")
     );
     assert!(!read_source.contains(".zip(target_segments)"));
-    assert!(!read_source
-        .contains(".all(|(segment, target)| normalized_identifier(segment) == *target)"));
+    assert!(
+        !read_source
+            .contains(".all(|(segment, target)| normalized_identifier(segment) == *target)")
+    );
 }
 
 #[test]
@@ -116,22 +131,30 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
     let path_resolution_source = include_str!("../../world/property_access/path_resolution.rs");
     let old_entity_path_lookup = ["resolve", "entity", "path"].join("_");
 
-    assert!(path_resolution_source
-        .contains("pub fn get_entity_by_path(&self, path: &EntityPath) -> Option<EntityId>"));
+    assert!(
+        path_resolution_source
+            .contains("pub fn get_entity_by_path(&self, path: &EntityPath) -> Option<EntityId>")
+    );
     assert!(!path_resolution_source.contains(&format!("pub fn {old_entity_path_lookup}")));
     assert!(path_resolution_source.contains("let target_segments = path.segments();"));
     assert!(path_resolution_source.contains("let mut entity_index = 0;"));
     assert!(path_resolution_source.contains("while entity_index < self.entities.len()"));
     assert!(path_resolution_source.contains("let entity = self.entities[entity_index];"));
-    assert!(path_resolution_source
-        .contains("if self.entity_matches_path_segments(entity, target_segments)"));
+    assert!(
+        path_resolution_source
+            .contains("if self.entity_matches_path_segments(entity, target_segments)")
+    );
     assert!(path_resolution_source.contains("return Some(entity);"));
     assert!(path_resolution_source.contains("entity_index += 1;"));
     assert!(path_resolution_source.contains("\n        None\n"));
-    assert!(path_resolution_source
-        .contains("Vec::with_capacity(self.entity_path_segment_capacity(entity))"));
-    assert!(path_resolution_source
-        .contains("fn entity_path_segment_capacity(&self, entity: EntityId) -> usize"));
+    assert!(
+        path_resolution_source
+            .contains("Vec::with_capacity(self.entity_path_segment_capacity(entity))")
+    );
+    assert!(
+        path_resolution_source
+            .contains("fn entity_path_segment_capacity(&self, entity: EntityId) -> usize")
+    );
     assert!(path_resolution_source.contains("capacity += 1;"));
     assert!(path_resolution_source.contains(
         "fn entity_matches_path_segments(&self, entity: EntityId, target_segments: &[String])"
@@ -159,10 +182,14 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
     assert!(path_resolution_source.contains("while candidate_index < self.entities.len()"));
     assert!(path_resolution_source.contains("let candidate = self.entities[candidate_index];"));
     assert!(path_resolution_source.contains("candidate_index += 1;"));
-    assert!(path_resolution_source
-        .contains("if candidate == entity || self.parent_of(candidate) != parent"));
-    assert!(path_resolution_source
-        .contains("let Some(candidate_name) = self.names.get(&candidate) else"));
+    assert!(
+        path_resolution_source
+            .contains("if candidate == entity || self.parent_of(candidate) != parent")
+    );
+    assert!(
+        path_resolution_source
+            .contains("let Some(candidate_name) = self.names.get(&candidate) else")
+    );
     assert!(path_resolution_source.contains("if candidate_name.0.trim() == name"));
     assert!(path_resolution_source.contains("return true;"));
     assert!(path_resolution_source.contains("\n        false\n"));
@@ -176,8 +203,10 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
     assert!(!path_resolution_source.contains(".any(|candidate| {"));
     assert!(!path_resolution_source.contains(".find(|entity| self.entity_matches_path_segments"));
     assert!(!path_resolution_source.contains("for candidate in self.entities.iter().copied()"));
-    assert!(!path_resolution_source
-        .contains("self.entities\n            .iter()\n            .copied()"));
+    assert!(
+        !path_resolution_source
+            .contains("self.entities\n            .iter()\n            .copied()")
+    );
 }
 
 #[test]
@@ -203,13 +232,17 @@ fn world_property_entries_pre_size_projection_vector() {
     assert!(physics_entries_source.contains("pub(super) fn physics_property_entry_capacity_hint"));
     assert!(physics_entries_source.contains("capacity += 17;"));
     assert!(physics_entries_source.contains("if let Some(collider) = self.colliders.get(&entity)"));
-    assert!(physics_entries_source
-        .contains("capacity += collider_shape_property_entry_capacity(&collider.shape);"));
+    assert!(
+        physics_entries_source
+            .contains("capacity += collider_shape_property_entry_capacity(&collider.shape);")
+    );
     assert!(collider_shape_entries_source.contains(
         "pub(super) fn collider_shape_property_entry_capacity(shape: &ColliderShape) -> usize"
     ));
-    assert!(collider_shape_entries_source
-        .contains("3 + collider_shape_property_entry_capacity(child_shape.as_ref())"));
+    assert!(
+        collider_shape_entries_source
+            .contains("3 + collider_shape_property_entry_capacity(child_shape.as_ref())")
+    );
     assert!(entries_source.contains("capacity += 2 + player.parameters.len();"));
     assert!(entries_source.contains("capacity += 3 + player.parameters.len();"));
     assert!(entries_source.contains("match &player.active_state"));
@@ -240,8 +273,11 @@ fn world_property_entries_pre_size_projection_vector() {
         entries_source.contains("String::with_capacity(prefix_len + decimal_digit_count(index))")
     );
     assert!(entries_source.contains("path.push_str(MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX);"));
-    assert!(entries_source
-        .contains("write!(&mut path, \"{index}\").expect(\"writing to a String cannot fail\");"));
+    assert!(
+        entries_source.contains(
+            "write!(&mut path, \"{index}\").expect(\"writing to a String cannot fail\");"
+        )
+    );
     assert!(!entries_source.contains("let mut entries = Vec::new();"));
     assert!(
         !entries_source.contains("for (index, weight) in mesh.morph_weights.iter().enumerate()")
@@ -270,7 +306,9 @@ fn world_property_dynamic_json_number_projection_uses_direct_branches() {
     assert!(json_projection_source.contains("if let Some(value) = value.as_u64()"));
     assert!(json_projection_source.contains("return Some(ScenePropertyValue::Unsigned(value));"));
     assert!(json_projection_source.contains("if let Some(value) = value.as_f64()"));
-    assert!(json_projection_source.contains("return Some(ScenePropertyValue::Scalar(value as _));"));
+    assert!(
+        json_projection_source.contains("return Some(ScenePropertyValue::Scalar(value as _));")
+    );
     assert!(!json_projection_source.contains(".map(ScenePropertyValue::Integer)"));
     assert!(!json_projection_source.contains(".or_else(||"));
 }
@@ -294,5 +332,51 @@ fn compiled_scene_property_target_reuses_normalized_component_field_identity() {
         .compile_scene_property_target(&entity_path, &equivalent_path)
         .unwrap();
 
-    assert_eq!(canonical.component_field_id(), equivalent.component_field_id());
+    assert_eq!(
+        canonical.component_field_id(),
+        equivalent.component_field_id()
+    );
+}
+
+#[test]
+fn compiled_sequence_apply_keeps_path_resolution_and_string_dispatch_at_compile_boundary() {
+    let compiled_binding_facade = include_str!("../../world/compiled_binding/mod.rs");
+    let property_writer_source = include_str!("../../world/compiled_binding/property_path.rs");
+    let transaction_source = include_str!("../../world/transaction.rs");
+    let level_system_source = include_str!("../../level_system.rs");
+    let animation_apply_source = include_str!("../../../animation/sequence/compiled.rs");
+    let apply_source = animation_apply_source
+        .split("pub fn apply_compiled_sequence_to_world")
+        .nth(1)
+        .expect("read compiled sequence frame-apply body");
+
+    assert!(compiled_binding_facade.contains("mod scene_binding_topology;"));
+    assert!(compiled_binding_facade.contains("pub use property_path::{"));
+    assert!(!compiled_binding_facade.contains("impl "));
+    assert!(!compiled_binding_facade.contains(" fn "));
+    assert!(property_writer_source.contains("pub struct PathId"));
+    assert!(property_writer_source.contains("pub struct ComponentFieldId"));
+    assert!(property_writer_source.contains("pub fn compile_scene_property_writer("));
+    assert!(property_writer_source.contains("pub fn write_compiled_scene_property("));
+    assert!(
+        property_writer_source.contains("pub(crate) fn compile_scene_property_writer_for_entity(")
+    );
+    assert!(property_writer_source.contains("canonical_entity_path: &EntityPath"));
+    assert!(animation_apply_source.contains("world.entity_path(entity)"));
+    assert!(animation_apply_source.contains("compile_scene_property_writer_for_entity("));
+    assert!(transaction_source.contains("staged.advance_scene_binding_generations_after(self);"));
+    assert!(
+        transaction_source
+            .contains("staged.advance_world_generation_after(self.world_generation());")
+    );
+    assert!(
+        level_system_source.contains("world.advance_scene_binding_generations_after(&current);")
+    );
+    assert!(
+        level_system_source
+            .contains("world.advance_world_generation_after(current.world_generation());")
+    );
+    assert!(!apply_source.contains("get_entity_by_path"));
+    assert!(!apply_source.contains("set_property("));
+    assert!(!apply_source.contains("AnimationTrackPath::new"));
 }

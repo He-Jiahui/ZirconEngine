@@ -181,6 +181,12 @@ impl EditorUiTemplateDescriptor {
     pub(crate) fn plugin_root(&self) -> Option<&Path> {
         self.plugin_root.as_deref()
     }
+
+    pub(crate) fn inherit_plugin_root_from(&mut self, previous: Option<&Self>) {
+        if self.plugin_root.is_none() {
+            self.plugin_root = previous.and_then(|descriptor| descriptor.plugin_root.clone());
+        }
+    }
 }
 
 #[derive(Clone)]

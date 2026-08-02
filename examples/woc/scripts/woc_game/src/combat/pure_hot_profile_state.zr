@@ -30,14 +30,15 @@ closeEnough(actual: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
-pureHotProfileFromSnapshot(
+pureHotProfileFromResolvedTotal(
     abilityIndex: int,
     rank: int,
-    snapshotPower: int
+    snapshotPower: int,
+    resolvedTotal: int
 ): PureHotProfile {
     var profile = new PureHotProfile();
     if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
-        rank > abilities.rankCount(abilityIndex) || snapshotPower < 0 ||
+        rank > abilities.rankCount(abilityIndex) || snapshotPower < 0 || resolvedTotal < 0 ||
         effects.count(abilityIndex, rank) != 1 ||
         effects.typeAt(abilityIndex, rank, 0) != "hot") {
         return profile;
@@ -46,7 +47,7 @@ pureHotProfileFromSnapshot(
     var interval = effects.metric(abilityIndex, rank, 0, "interval");
     if (duration <= 0.0 || interval <= 0.0 || duration < interval) { return profile; }
     var ticks = duration / interval;
-    var base = roundPositive(effects.metric(abilityIndex, rank, 0, "total") / ticks);
+    var base = roundPositive(<float>resolvedTotal / ticks);
     if (base < 1) { base = 1; }
     profile.valid = true;
     profile.snapshotPower = snapshotPower;
@@ -56,6 +57,17 @@ pureHotProfileFromSnapshot(
     return profile;
 }
 
+pureHotProfileFromSnapshot(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int
+): PureHotProfile {
+    return pureHotProfileFromResolvedTotal(
+        abilityIndex, rank, snapshotPower,
+        roundPositive(effects.metric(abilityIndex, rank, 0, "total"))
+    );
+}
+
 pub resolvePureHotProfile(
     abilityIndex: int,
     rank: int,
@@ -63,6 +75,16 @@ pub resolvePureHotProfile(
 ): PureHotProfile {
     if (spellPower < 0) { return new PureHotProfile(); }
     return pureHotProfileFromSnapshot(abilityIndex, rank, spellPower);
+}
+
+pub resolvePureHotProfileWithResolvedTotal(
+    abilityIndex: int,
+    rank: int,
+    spellPower: int,
+    resolvedTotal: int
+): PureHotProfile {
+    if (spellPower < 0) { return new PureHotProfile(); }
+    return pureHotProfileFromResolvedTotal(abilityIndex, rank, spellPower, resolvedTotal);
 }
 
 pub pureHotProfileMatches(
@@ -75,6 +97,21 @@ pub pureHotProfileMatches(
 ): bool {
     var profile = pureHotProfileFromSnapshot(abilityIndex, rank, snapshotPower);
     return profile.valid && profile.heal == heal &&
+        closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
+}
+
+// Talent-adjusted totals are captured as the Aura's resolved tick. Later
+// respecs must not cause persistence to recompute that historical snapshot.
+pub pureHotProfileSnapshotMatches(
+    abilityIndex: int,
+    rank: int,
+    snapshotPower: int,
+    heal: int,
+    duration: float,
+    interval: float
+): bool {
+    var profile = pureHotProfileFromSnapshot(abilityIndex, rank, snapshotPower);
+    return profile.valid && heal > 0 && heal <= 65535 &&
         closeEnough(profile.duration, duration) && closeEnough(profile.interval, interval);
 }
 
@@ -97,5 +134,11 @@ pub contractTest(): int {
         pureHotProfileMatches(renew, 1, 151, 39, 15.0, 3.0)) {
         return -3;
     }
+    if (!pureHotProfileSnapshotMatches(renew, 1, 150, 64, 15.0, 3.0) ||
+        pureHotProfileSnapshotMatches(renew, 1, 150, 0, 15.0, 3.0)) {
+        return -4;
+    }
+    var restoration = resolvePureHotProfileWithResolvedTotal(rejuvenation, 4, 150, 145);
+    if (!restoration.valid || restoration.heal != 66) return -5;
     return 1;
 }

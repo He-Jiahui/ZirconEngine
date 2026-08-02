@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/AutomationReportPublish", event = "Click", 
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAutomationReportQueue"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "automation_report_renderer_test_row" }, { node = "automation_report_gameplay_test_row" }, { node = "automation_report_asset_test_row" }, { node = "automation_report_ui_failure_row" }]
 

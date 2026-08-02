@@ -219,6 +219,8 @@ Rust source scan 确认旧 builder、`.feature_preset()` 与名称推断为零�
 
 ## 6. 状态与产出记录
 
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 - 产出记录：[`03/2026-07-10-optional-features-and-profile-matrix-output-records.md`](03/2026-07-10-optional-features-and-profile-matrix-output-records.md)
 - 2026-07-15 硬切记录：[`03/2026-07-15-runtime-profile-id-canonical-import.md`](03/2026-07-15-runtime-profile-id-canonical-import.md)（canonical type owner 与显式 preset-table lookup 已完成；受管 integration contract 2/2）
 - 2026-07-17 显式 export profile 记录：[`03/2026-07-17-export-profile-runtime-profile-explicit-hardcut.md`](03/2026-07-17-export-profile-runtime-profile-explicit-hardcut.md)（生产 hard-cut 已实现，受管 Cargo 验收 pending）

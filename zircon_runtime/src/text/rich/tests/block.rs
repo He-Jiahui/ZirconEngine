@@ -10,7 +10,7 @@ fn text_rich_bbcode_paragraph_attributes_use_block_metadata() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "alpha\ntail");
+    assert_eq!(parsed.text.as_ref(), "alpha\ntail");
     let (_, paragraph) = parsed
         .paragraphs
         .iter()
@@ -27,7 +27,7 @@ fn text_rich_bbcode_indent_is_a_nested_logical_level() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "outer \ninner");
+    assert_eq!(parsed.text.as_ref(), "outer \ninner");
     assert_eq!(parsed.paragraphs.len(), 2);
     let inner_offset = parsed.text.find("inner").expect("inner text") as u32;
     assert_eq!(
@@ -51,7 +51,7 @@ fn text_rich_bbcode_lists_emit_real_prefix_text_without_trailing_break() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "• one\n• two\ntail");
+    assert_eq!(parsed.text.as_ref(), "• one\n• two\ntail");
     let list_items = parsed
         .paragraphs
         .iter()
@@ -69,7 +69,7 @@ fn text_rich_bbcode_nested_lists_preserve_order_and_depth_metadata() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "A. One\n→ Inner\nB. Two");
+    assert_eq!(parsed.text.as_ref(), "A. One\n→ Inner\nB. Two");
     let prefixes = parsed
         .paragraphs
         .iter()
@@ -99,7 +99,7 @@ fn text_rich_bbcode_ordered_list_supports_alpha_and_roman_markers() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "a. alpha\nI. roman");
+    assert_eq!(parsed.text.as_ref(), "a. alpha\nI. roman");
 }
 
 #[test]

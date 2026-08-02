@@ -6,15 +6,16 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 use super::super::asset::AssetWorkspaceSnapshot;
 use super::{
-    EditorBridgeDiagnosticsSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry,
-    StatusTaskProgressSnapshot,
+    ConsoleOutputSnapshot, EditorBridgeDiagnosticsSnapshot, InspectorSnapshot,
+    ProjectOverviewSnapshot, SceneEntries, StatusTaskProgressSnapshot,
 };
 
 #[derive(Clone, Debug)]
 pub struct EditorDataSnapshot {
-    pub scene_entries: Vec<SceneEntry>,
+    pub scene_entries: SceneEntries,
     pub inspector: Option<InspectorSnapshot>,
     pub status_line: String,
+    pub console_output: ConsoleOutputSnapshot,
     pub status_task_progress: Option<StatusTaskProgressSnapshot>,
     pub hovered_axis: Option<GizmoAxis>,
     pub viewport_size: UVec2,

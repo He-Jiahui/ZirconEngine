@@ -21,21 +21,27 @@ tests:
 
 # Editor17：设置持久化与高频投影性能交接
 
-## 来源与状态
+## 来源执行者
 
 - 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
-- 修复责任：Editor17，消费联动Editor05，阻塞持久化执行复用Runtime11。
-- current-source静态证据：`docs/plans/performance/01/2026-07-30-editor-core-settings-static-review.md`。
-- 当前状态：`open / implementation_and_managed_validation_pending`。本记录不声明源码修复、Cargo通过或产品验收。
+- 来源执行切片：2026-07-30 editor core settings current-source 静态审阅。
+- 修复责任计划：`docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md`
+- 交接原因：设置 authority、无界 change retention、同步持久化与高频 snapshot 投影跨越 Editor17/Editor05/Runtime11 边界，不能由 Performance01 在局部性能切片中建立第二套缓存或调度器。
+- current-source 静态证据：`docs/plans/performance/01/2026-07-30-editor-core-settings-static-review.md`。
+- 当前状态：`open / implementation_and_managed_validation_pending`。本记录不声明源码修复、Cargo 通过或产品验收。
 
-## 失败边界
+## 失败现象与复现证据
 
 1. viewport项目吸附步进的单key UI命令clone完整registry，随后同步clone完整Project层、序列化整文档并执行write/fsync/rename/parent-sync；慢盘或大设置集直接进入编辑器调用延迟。
 2. EditorManager、retained-host design-token启动入口和viewport分别拥有或加载registry，没有唯一settings authority/generation。
 3. `SettingsRegistry::changes`无界增长且未找到生产`drain_changes` consumer；稳定workbench snapshot又反复分配三个静态key并查询多层BTreeMap。
 4. current settings text先完整解析为`Value`检查magic，再由generic versioned reader解析；该部分必须复用Editor11/PERF-MVP-570，不建立Editor17私有解析器。
 
-## 要求的架构修复
+## 最低共享层根因
+
+设置定义、运行时值、change history、持久化调度与 UI snapshot 没有围绕单一 generation authority 收敛。各消费端因此复制 registry 或重新解析/投影，单 key 更新又把整库 clone、完整序列化与同步文件系统耐久化串进 UI 调用路径；无界 `changes` 同时把短期事件日志错误地变成长期存储。
+
+## 架构修复验收
 
 - Editor17拥有唯一settings authority：注册定义后发布typed key slot与immutable generation snapshot；EditorManager、retained host、viewport和设置页只消费同一authority或delta，不复制完整registry作为第二真相。
 - no-op set不得增长revision/event；change delivery使用有entry+bytes+age预算的cursor/delta，不能以无界内部Vec保留整个编辑器生命周期。
@@ -50,9 +56,13 @@ tests:
 - 必须满足authority=1、UI caller filesystem wall=0、single-key full-registry clone bytes=0、stable snapshot key alloc/probe=0、journal/queue内存硬有界、no-op event=0；precedence、keymap、design tokens、MRU、snap、restart、crash old/new与shutdown语义保持一致。
 - 通过frontmatter focused current-source managed gate，并以F0启动和F4 viewport产品trace证明；静态rustfmt或单元测试不能替代规模与调用线程证据。
 
-## 禁止方案
+## 禁止临时方案
 
 - 不得为viewport、EditorManager或retained host各建私有缓存、线程池或settings副本。
 - 不得把整库clone移到后台后宣称单key更新已优化；不得用无界channel替代无界`changes`。
 - 不得删除fsync/atomic replace以换取速度，除非先重定义并验证durability/crash合同。
 - 不得在Editor17复制Editor11 versioned reader或Runtime11 persistence scheduler。
+
+## 修复结果与回传
+
+Open state：`implementation_and_managed_validation_pending`。本次仅把既有 failure 内容迁移到当前 handoff schema，未修改 settings 生产代码，也没有获得 managed Cargo 或产品 trace 证据。Editor17 owner 必须完成上述 authority、bounded delta、worker persistence 与 stable snapshot 合同后，再写 fixed return；不得因记录格式已通过审计而关闭本失败。

@@ -20,8 +20,16 @@ impl PickingPipelineReport {
     }
 
     pub fn from_ray_map_and_outputs(ray_map: &RayMap, outputs: &[PointerHits]) -> Self {
+        let sorted_hits = sorted_hits_by_pointer(outputs);
+        Self::from_ray_map_outputs_and_sorted_hits(ray_map, outputs, &sorted_hits)
+    }
+
+    pub(super) fn from_ray_map_outputs_and_sorted_hits(
+        ray_map: &RayMap,
+        outputs: &[PointerHits],
+        sorted_hits_by_pointer: &BTreeMap<PointerId, Vec<HitRecord>>,
+    ) -> Self {
         let ray_count_by_pointer = ray_count_by_pointer(ray_map);
-        let sorted_hits_by_pointer = sorted_hits_by_pointer(outputs);
         let output_counts_by_pointer = output_counts_by_pointer(outputs);
         let pointers = report_pointer_ids(ray_map, outputs)
             .into_iter()

@@ -123,7 +123,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionMotionMatchingPreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/MotionMatchingPreview", event = "Click", route = "workbench.extension.motion_matching.preview" }]
 
@@ -131,7 +131,7 @@ events = [{ id = "WorkbenchExtension/MotionMatchingPreview", event = "Click", ro
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionMotionMatchingRebuildButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Rebuild", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+props = { text = "Rebuild", button_variant = "filled", button_color = "accent", selected = true, checked = true }
 layout = { width = { min = 78.0, preferred = 78.0, max = 90.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/MotionMatchingRebuild", event = "Click", route = "workbench.extension.motion_matching.rebuild" }]
 
@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/MotionMatchingRebuild", event = "Click", ro
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionMotionMatchingPoseTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "motion_matching_idle_clip_table_row" }, { node = "motion_matching_start_clip_table_row" }, { node = "motion_matching_pivot_clip_table_row" }, { node = "motion_matching_stop_clip_table_row" }]
 

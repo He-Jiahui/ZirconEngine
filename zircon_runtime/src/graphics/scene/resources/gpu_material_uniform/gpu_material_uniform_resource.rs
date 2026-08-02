@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMaterialTextureTransform,
-    SHADING_MODEL_GBUFFER_ALPHA_SCALE, STANDARD_MATERIAL_MIN_ROUGHNESS,
-    STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS, STANDARD_PBR_DEFAULT_IOR,
-    STANDARD_PBR_NO_ATTENUATION_DISTANCE, StandardPbrMaterialFeatures,
+    StandardPbrMaterialFeatures, SHADING_MODEL_GBUFFER_ALPHA_SCALE,
+    STANDARD_MATERIAL_MIN_ROUGHNESS, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
+    STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,
 };
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
@@ -232,7 +232,11 @@ fn material_alpha_cutoff_scalar(alpha_cutoff: Option<f32>) -> f32 {
 }
 
 fn finite_or(value: f32, fallback: f32) -> f32 {
-    if value.is_finite() { value } else { fallback }
+    if value.is_finite() {
+        value
+    } else {
+        fallback
+    }
 }
 
 fn finite_positive_or(value: f32, fallback: f32) -> f32 {
@@ -246,13 +250,13 @@ fn finite_positive_or(value: f32, fallback: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderMaterialTextureTransform, STANDARD_MATERIAL_MIN_ROUGHNESS,
-        StandardPbrMaterialFeatures,
+        RenderMaterialTextureTransform, StandardPbrMaterialFeatures,
+        STANDARD_MATERIAL_MIN_ROUGHNESS,
     };
 
     use super::{
-        GPU_MATERIAL_UNIFORM_MIN_SIZE, STANDARD_TEXTURE_TRANSFORM_COUNT,
-        standard_material_uniform_contents_from_values,
+        standard_material_uniform_contents_from_values, GPU_MATERIAL_UNIFORM_MIN_SIZE,
+        STANDARD_TEXTURE_TRANSFORM_COUNT,
     };
 
     #[test]

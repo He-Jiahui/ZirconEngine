@@ -48,7 +48,7 @@ last_refined: 2026-07-24
 | Entity | 必需状态 |
 |---|---|
 | Camera | active；有效 projection；能看到 primitive；near/far 有效 |
-| Primitive | active/static；非零 transform scale；引用 `res://models/cube.obj` 和 `res://materials/default.zmaterial` |
+| Primitive | active/static；非零 transform scale；场景持久化 `kind = "project"` + guid + `path_hint`，registry 解析后得到 `res://models/cube.obj` 和 `res://materials/default.zmaterial` |
 | Sun | active directional light；非零 intensity；方向归一化或由 loader 合法归一 |
 
 附加合同：
@@ -73,7 +73,7 @@ last_refined: 2026-07-24
 
 ### 实现切片
 
-- [ ] 修改 `templates/projects/renderable-empty/assets/scenes/main.scene.toml`，添加唯一 cube entity 及 canonical mesh/material persisted refs。
+- [x] `templates/projects/renderable-empty/assets/scenes/main.scene.toml` 已包含唯一 Cube entity，以及 canonical project-kind mesh/material persisted refs；后续 gate 继续验证解析与可见性。
 - [ ] 根据实际 camera convention 调整 camera/cube transform，保证 primitive 位于 view frustum，避免靠测试 shader 绕过 camera。
 - [ ] 让 template contract 测试解析场景并断言实体数量、kind、active state、transform 和 refs；禁止用文本 substring 代替 schema parser。
 - [ ] 把 `write_static_lit_default_scene` 与 product template 的共享语义收敛到一个 fixture builder/parsed contract；测试 helper 不复制另一套 entity constants。
@@ -100,7 +100,7 @@ last_refined: 2026-07-24
 
 ### 实现切片
 
-- [ ] 重构 `foundation_render.rs` 的 `F2Project::create`，通过 `ProjectAuthority`/template pack 创建项目或复制 canonical template，不再手写独立 triangle/project manifest/scene。
+- [x] `foundation_render.rs` 已通过 `render_project_template(ProjectTemplateId::RenderableEmpty, ...)` 创建 canonical template 项目，不再手写独立 triangle/project manifest/scene。
 - [ ] 保留真实 `capture_frame`、RGBA ownership/free callback 和 render diagnostics 断言。
 - [ ] 使像素断言基于可见 primitive 与背景差异，不绑定只存在于测试 shader 的绿色常量；同时保留 draw/light/material error 等结构诊断。
 - [ ] 输入测试在 session event ingress 注入 resize、pointer、mouse、keyboard press/release，并验证 InputManager 实际消费。
@@ -165,14 +165,13 @@ staged `zircon_runtime` 通过正常 App entry 打开 F1 项目，进入窗口�
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 
-## Code Review 建议 (2026-07-30)
+## Code Review 处理结果 (2026-08-01)
 
-### 与代码现状不符，需修订
+### 已处理
 
-- M3.1「修改 `main.scene.toml`，添加唯一 cube entity 及 canonical mesh/material persisted refs」已在源码完成：`templates/projects/renderable-empty/assets/scenes/main.scene.toml:21-42` 已含 `Cube` 实体，带 `[entities.mesh.model]`/`[entities.mesh.material]` 两个 `kind = "project"` ref（guid + path_hint），且 `templates/projects/renderable-empty/assets/models/cube.obj`、`.../materials/default.zmaterial` 均存在。此切片应从「待实现」改为「核对既有实现是否满足 M3.1 contract 测试」。
-- M3.2「重构 `foundation_render.rs` 的 `F2Project::create`，通过 `ProjectAuthority`/template pack 创建项目或复制 canonical template，不再手写独立 triangle/project manifest/scene」也已落地：`zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs:12` 已 `use ...project::{render_project_template, ProjectTemplateId}`，并在 `foundation_render.rs:394` 调用 `render_project_template(ProjectTemplateId::RenderableEmpty, "F2BasicScene")` 落地模板资产，`foundation_render.rs:90` 断言 `res://models/cube.obj`、`res://materials/default.zmaterial` ready。该里程碑正文应更新为「验证既有 template-driven fixture 的像素/输入/second-frame 断言是否达标」，而非重述尚需搭建。
-- §2 固定 F2 场景合同描述 primitive「引用 `res://models/cube.obj` 和 `res://materials/default.zmaterial`」，但持久场景实际以 `kind = "project"` + guid + `path_hint = "assets/models/cube.obj"` 记录（见 `main.scene.toml:35-42`），由 registry 解析为 `res://` URI。建议在合同中明确区分「持久 ref 形态（project guid + path_hint）」与「解析后的逻辑 URI（res://…）」，避免执行者误以为场景文件应直接写 `res://` 字符串。
+- M3.1 的 canonical Cube/project refs 与 M3.2 的 template-driven `foundation_render` 创建路径已在实现 checklist 中标记为当前源码已落地。
+- 固定场景合同已区分持久 `kind = "project"` + guid/path_hint 与 registry 解析后的 `res://` 逻辑 URI。
 
 ### 实现风险 / 技术债
 
-- 关联 open failure `docs/plans/mvp/03/failure-2026-07-30-runtime-frame-capture-sibling-module-projection.md` 报告的 `E0433: could not find frame_capture in super`（`surface_present/redraw.rs:148`）在当前源码看起来已修复：`zircon_app/src/entry/runtime_entry_app/surface_present/redraw.rs:148` 现为 `super::super::frame_capture::write_runtime_frame_png(...)`，正确投影到 `runtime_entry_app::frame_capture`（`runtime_entry_app/mod.rs:9` 声明 `mod frame_capture`）。建议按 canonical failure/fixed 流程复核并回收该 handoff，勿让 M3.2/M3.3 因过期编译阻断被判为 blocked。
+- `failure-2026-07-30-runtime-frame-capture-sibling-module-projection.md` 的源码路径已改为 `super::super::frame_capture`，但 canonical failure 在精确受管 Rust 测试通过前继续保持 open；不得用静态路径核对替代 failure return。

@@ -1,5 +1,9 @@
+use std::collections::BTreeSet;
+
+use crate::core::editor_message::DocumentId;
+use crate::ui::host::DirtyDocumentToolkitView;
 use crate::ui::workbench::layout::MainPageId;
-use crate::ui::workbench::view::{ViewDescriptorId, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::view::ViewInstanceId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::app) enum ClosePromptTarget {
@@ -9,8 +13,9 @@ pub(in crate::ui::retained_host::app) enum ClosePromptTarget {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::app) struct DirtyCloseView {
+    pub document_id: DocumentId,
+    pub dirty_generation: u64,
     pub instance_id: ViewInstanceId,
-    pub descriptor_id: ViewDescriptorId,
     pub title: String,
 }
 
@@ -36,40 +41,31 @@ impl PendingClosePrompt {
 }
 
 pub(in crate::ui::retained_host::app) fn dirty_close_views(
-    instances: &[ViewInstance],
+    documents: &[DirtyDocumentToolkitView],
     candidate_ids: impl IntoIterator<Item = ViewInstanceId>,
 ) -> Vec<DirtyCloseView> {
-    let candidates = candidate_ids.into_iter().collect::<Vec<_>>();
-    instances
+    let candidates = candidate_ids.into_iter().collect::<BTreeSet<_>>();
+    documents
         .iter()
-        .filter(|instance| {
-            instance.dirty && candidates.iter().any(|id| id == &instance.instance_id)
-        })
-        .map(dirty_close_view_from_instance)
+        .filter(|document| candidates.contains(&document.instance_id))
+        .map(dirty_close_view_from_document)
         .collect()
 }
 
 pub(in crate::ui::retained_host::app) fn all_dirty_close_views(
-    instances: &[ViewInstance],
+    documents: &[DirtyDocumentToolkitView],
 ) -> Vec<DirtyCloseView> {
-    instances
+    documents
         .iter()
-        .filter(|instance| instance.dirty)
-        .map(dirty_close_view_from_instance)
+        .map(dirty_close_view_from_document)
         .collect()
 }
 
-pub(in crate::ui::retained_host::app) fn can_save_dirty_view(view: &DirtyCloseView) -> bool {
-    matches!(
-        view.descriptor_id.0.as_str(),
-        "editor.ui_asset" | "editor.animation_sequence" | "editor.animation_graph"
-    )
-}
-
-fn dirty_close_view_from_instance(instance: &ViewInstance) -> DirtyCloseView {
+fn dirty_close_view_from_document(document: &DirtyDocumentToolkitView) -> DirtyCloseView {
     DirtyCloseView {
-        instance_id: instance.instance_id.clone(),
-        descriptor_id: instance.descriptor_id.clone(),
-        title: instance.title.clone(),
+        document_id: document.document_id,
+        dirty_generation: document.dirty_generation,
+        instance_id: document.instance_id.clone(),
+        title: document.title.clone(),
     }
 }

@@ -8,10 +8,10 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::workbench::autolayout::{
-    balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
-    minimum_document_width_fraction, right_drawer_should_collapse_for_physical_width,
-    workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale, ShellRegionId,
-    WorkbenchChromeMetrics, WorkbenchLayoutTier,
+    ShellRegionId, WorkbenchChromeMetrics, WorkbenchLayoutTier, balanced_side_widths_for_budget,
+    compact_bottom_height_limit, compact_side_width_limit, minimum_document_width_fraction,
+    right_drawer_should_collapse_for_physical_width, workbench_layout_tier_for_physical_width,
+    workbench_logical_width_for_scale,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;

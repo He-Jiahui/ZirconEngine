@@ -1,5 +1,8 @@
 use crate::core::editing::engine::HistoryContextId;
-use crate::core::editor_extension::ComponentDrawerDescriptor;
+use crate::core::extension::{
+    FieldEditorContainer, FieldEditorInstance, InspectTarget, InspectTargetType,
+    InspectorCustomizationChain, InspectorField,
+};
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -11,17 +14,22 @@ use zircon_runtime_interface::reflect::{
 
 use super::super::{
     EditorDataSnapshot, InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot,
-    InspectorSnapshot, SceneEntry,
+    InspectorSnapshot, SceneEntries,
 };
 
 impl EditorState {
     pub fn snapshot(&self) -> EditorDataSnapshot {
-        self.snapshot_with_component_drawers(&BTreeMap::new())
+        let field_editors = FieldEditorContainer::builtin();
+        self.snapshot_with_inspector_customizations(
+            &InspectorCustomizationChain::default(),
+            &field_editors,
+        )
     }
 
-    pub(crate) fn snapshot_with_component_drawers(
+    pub(crate) fn snapshot_with_inspector_customizations(
         &self,
-        component_drawers: &BTreeMap<String, ComponentDrawerDescriptor>,
+        inspector_customizations: &InspectorCustomizationChain,
+        field_editors: &FieldEditorContainer,
     ) -> EditorDataSnapshot {
         let selection = self.viewport_controller.selection();
         let selected = selection.active_primary();
@@ -45,23 +53,17 @@ impl EditorState {
                         scene,
                         id,
                         &self.inspector_dynamic_fields,
-                        component_drawers,
+                        inspector_customizations,
+                        field_editors,
                     ),
                 });
-                let scene_entries = hierarchy
-                    .hierarchy_rows()
-                    .iter()
-                    .map(|row| SceneEntry {
-                        id: row.entity,
-                        name: row.display_name.clone(),
-                        depth: row.depth as usize,
-                        selected: selected_items.contains(&row.entity),
-                    })
-                    .collect();
+                let scene_entries = self
+                    .scene_entry_projection_cache
+                    .project(&hierarchy, &selected_items);
 
                 (scene_entries, inspector)
             })
-            .unwrap_or_else(|| (Vec::new(), None));
+            .unwrap_or_else(|| (SceneEntries::default(), None));
         let (asset_activity, asset_browser) = self.asset_workspace.build_surface_snapshots();
 
         let history = (!self.is_playing())
@@ -71,6 +73,7 @@ impl EditorState {
             scene_entries,
             inspector,
             status_line: self.status_line.clone(),
+            console_output: self.console_output(),
             status_task_progress: self.status_task_progress.clone(),
             hovered_axis: self.viewport_controller.hovered_axis(),
             viewport_size: self.viewport_controller.viewport().size,
@@ -94,7 +97,8 @@ fn inspector_plugin_components(
     scene: &Scene,
     node_id: NodeId,
     draft_fields: &BTreeMap<String, String>,
-    component_drawers: &BTreeMap<String, ComponentDrawerDescriptor>,
+    inspector_customizations: &InspectorCustomizationChain,
+    field_editors: &FieldEditorContainer,
 ) -> Vec<InspectorPluginComponentSnapshot> {
     scene
         .dynamic_components_for_entity(node_id)
@@ -122,12 +126,17 @@ fn inspector_plugin_components(
                         .map(|descriptor| descriptor.display_name.clone())
                 })
                 .unwrap_or_else(|| component_display_name(&component_id));
-            let drawer = component_drawers.get(&component_id);
-            let drawer_available = schema.is_some() && drawer.is_some();
+            let customization = InspectTargetType::new(component_id.clone())
+                .ok()
+                .and_then(|target_type| {
+                    InspectTarget::new(target_type, format!("component:{component_id}")).ok()
+                })
+                .and_then(|target| inspector_customizations.matching(&target));
+            let customization_available = schema.is_some() && customization.is_some();
             let diagnostic = inspector_plugin_component_diagnostic(
                 &component_id,
                 schema.is_some(),
-                drawer.is_some(),
+                customization.is_some(),
             );
             let properties = if let Some(schema) = schema.as_ref() {
                 inspector_plugin_component_reflected_properties(
@@ -136,6 +145,7 @@ fn inspector_plugin_components(
                     &component_id,
                     schema,
                     draft_fields,
+                    field_editors,
                 )
                 .unwrap_or_else(|| {
                     inspector_plugin_component_json_properties(
@@ -143,6 +153,7 @@ fn inspector_plugin_components(
                         &component.value,
                         false,
                         draft_fields,
+                        field_editors,
                     )
                 })
             } else {
@@ -151,23 +162,31 @@ fn inspector_plugin_components(
                     &component.value,
                     false,
                     draft_fields,
+                    field_editors,
                 )
             };
             InspectorPluginComponentSnapshot {
                 component_id,
                 display_name,
                 plugin_id,
-                drawer_available,
-                drawer_ui_document: drawer.map(|drawer| drawer.ui_document().to_string()),
-                drawer_controller: drawer.map(|drawer| drawer.controller().to_string()),
-                drawer_template_id: drawer
-                    .and_then(ComponentDrawerDescriptor::template_id)
+                customization_available,
+                customization_ui_document: customization
+                    .and_then(|customization| customization.surface())
+                    .map(|surface| surface.ui_document().to_string()),
+                customization_controller: customization
+                    .and_then(|customization| customization.surface())
+                    .map(|surface| surface.controller().to_string()),
+                customization_template_id: customization
+                    .and_then(|customization| customization.surface())
+                    .and_then(|surface| surface.template_id())
                     .map(str::to_string),
-                drawer_data_root: drawer
-                    .and_then(ComponentDrawerDescriptor::data_root)
+                customization_data_root: customization
+                    .and_then(|customization| customization.surface())
+                    .and_then(|surface| surface.data_root())
                     .map(str::to_string),
-                drawer_bindings: drawer
-                    .map(|drawer| drawer.bindings().to_vec())
+                customization_bindings: customization
+                    .and_then(|customization| customization.surface())
+                    .map(|surface| surface.bindings().to_vec())
                     .unwrap_or_default(),
                 diagnostic,
                 properties,
@@ -179,16 +198,16 @@ fn inspector_plugin_components(
 fn inspector_plugin_component_diagnostic(
     component_id: &str,
     has_runtime_schema: bool,
-    has_editor_drawer: bool,
+    has_inspector_customization: bool,
 ) -> Option<String> {
     if !has_runtime_schema {
         return Some(format!(
-            "Plugin component drawer unavailable for `{component_id}`; serialized data stays protected until the plugin reloads."
+            "Plugin inspector customization unavailable for `{component_id}`; serialized data stays protected until the plugin reloads."
         ));
     }
-    if !has_editor_drawer {
+    if !has_inspector_customization {
         return Some(format!(
-            "Plugin component drawer unavailable for `{component_id}`; editing is protected until an enabled editor extension registers a drawer."
+            "Plugin inspector customization unavailable for `{component_id}`; editing is protected until an enabled editor extension registers a customization."
         ));
     }
     None
@@ -200,6 +219,7 @@ fn inspector_plugin_component_reflected_properties(
     component_id: &str,
     schema: &ReflectTypeRegistration,
     draft_fields: &BTreeMap<String, String>,
+    field_editors: &FieldEditorContainer,
 ) -> Option<Vec<InspectorPluginComponentPropertySnapshot>> {
     let address = ReflectObjectAddress::component(node_id, component_id).ok()?;
     let fields = scene
@@ -222,6 +242,7 @@ fn inspector_plugin_component_reflected_properties(
                 &field.value_type_path,
                 field.editable,
                 draft_fields,
+                field_editors,
             ))
         })
         .collect::<Vec<_>>();
@@ -234,14 +255,26 @@ fn inspector_plugin_component_json_properties(
     value: &Value,
     editable: bool,
     draft_fields: &BTreeMap<String, String>,
+    field_editors: &FieldEditorContainer,
 ) -> Vec<InspectorPluginComponentPropertySnapshot> {
     let Some(object) = value.as_object() else {
+        let field_id = format!("{component_id}.value");
+        let value_kind = json_value_kind(value).to_string();
+        let value = json_value_label(value);
         return vec![InspectorPluginComponentPropertySnapshot {
-            field_id: format!("{component_id}.value"),
+            field_editor: field_editor_for(
+                &field_id,
+                "Value",
+                &value_kind,
+                &value,
+                false,
+                field_editors,
+            ),
+            field_id,
             name: "value".to_string(),
             label: "Value".to_string(),
-            value: json_value_label(value),
-            value_kind: json_value_kind(value).to_string(),
+            value,
+            value_kind,
             editable: false,
         }];
     };
@@ -251,13 +284,25 @@ fn inspector_plugin_component_json_properties(
         .map(|(name, value)| {
             let field_id = format!("{component_id}.{name}");
             let (value, primitive_editable) = json_edit_value(value);
+            let label = property_label(name);
+            let value_kind = json_value_kind(object.get(name).unwrap_or(&Value::Null)).to_string();
+            let editable = editable && primitive_editable;
+            let value = draft_fields.get(&field_id).cloned().unwrap_or(value);
             InspectorPluginComponentPropertySnapshot {
+                field_editor: field_editor_for(
+                    &field_id,
+                    &label,
+                    &value_kind,
+                    &value,
+                    editable,
+                    field_editors,
+                ),
                 field_id: field_id.clone(),
                 name: name.clone(),
-                label: property_label(name),
-                value: draft_fields.get(&field_id).cloned().unwrap_or(value),
-                value_kind: json_value_kind(object.get(name).unwrap_or(&Value::Null)).to_string(),
-                editable: editable && primitive_editable,
+                label,
+                value,
+                value_kind,
+                editable,
             }
         })
         .collect::<Vec<_>>();
@@ -272,17 +317,42 @@ fn inspector_plugin_component_property_from_reflected_field(
     value_type_path: &str,
     editable: bool,
     draft_fields: &BTreeMap<String, String>,
+    field_editors: &FieldEditorContainer,
 ) -> InspectorPluginComponentPropertySnapshot {
     let field_id = format!("{component_id}.{}", field.field_name);
     let value = reflected_value_label(&field.value);
+    let label = property_label(display_name);
+    let value = draft_fields.get(&field_id).cloned().unwrap_or(value);
+    let editable = editable && reflected_value_primitive_editable(&field.value);
     InspectorPluginComponentPropertySnapshot {
+        field_editor: field_editor_for(
+            &field_id,
+            &label,
+            value_type_path,
+            &value,
+            editable,
+            field_editors,
+        ),
         field_id: field_id.clone(),
         name: field.field_name.clone(),
-        label: property_label(display_name),
-        value: draft_fields.get(&field_id).cloned().unwrap_or(value),
+        label,
+        value,
         value_kind: value_type_path.to_string(),
-        editable: editable && reflected_value_primitive_editable(&field.value),
+        editable,
     }
+}
+
+fn field_editor_for(
+    field_id: &str,
+    label: &str,
+    value_kind: &str,
+    value: &str,
+    editable: bool,
+    field_editors: &FieldEditorContainer,
+) -> FieldEditorInstance {
+    InspectorField::new(field_id, label, value_kind, value, editable)
+        .map(|field| field_editors.resolve(field))
+        .unwrap_or_else(|_| FieldEditorInstance::automatic())
 }
 
 fn plugin_id_from_component_id(component_id: &str) -> String {

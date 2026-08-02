@@ -35,6 +35,7 @@ mod ecs_scheduled_native_systems;
 mod ecs_system_query_cache;
 mod ecs_systems;
 mod ecs_typed_api;
+mod ecs_worker_command_buffers;
 mod inspection;
 mod level_system_frame_state;
 mod physics_animation_components;

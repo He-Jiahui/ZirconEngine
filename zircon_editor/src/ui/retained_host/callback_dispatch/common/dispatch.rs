@@ -7,10 +7,10 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
 use crate::core::editor_event::{EditorEventEnvelope, EditorEventSource};
 use crate::ui::host::EditorHostEventController;
-use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
+use crate::ui::retained_host::event_bridge::{UiHostEventEffects, apply_record_effects};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::event::operation_path_for_menu_action;
-use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
+use crate::ui::workbench::event::{EditorHostEvent, dispatch_editor_host_binding};
 use serde_json::{Number, Value};
 use zircon_runtime_interface::ui::{
     binding::UiBindingValue, component::UiValue, dispatch::UiTemplateActionInvocation,
@@ -38,7 +38,11 @@ pub(crate) fn dispatch_editor_binding(
     }
 
     if let Some(invocation) = operation_invocation_for_binding(&binding)? {
-        let record = runtime.invoke_operation(EditorOperationSource::UiBinding, invocation)?;
+        let record = runtime.invoke_operation_with_binding_path(
+            EditorOperationSource::UiBinding,
+            invocation,
+            Some(binding.path().native_prefix()),
+        )?;
         let mut effects = UiHostEventEffects::default();
         apply_record_effects(&mut effects, &record);
         return Ok(effects);

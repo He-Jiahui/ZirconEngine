@@ -31,3 +31,53 @@ fn product_editor_paths_load_the_staged_runtime_library() {
         );
     }
 }
+
+#[test]
+fn product_editor_collects_runtime_session_teardown_before_returning_success() {
+    let source = include_str!("../../editor.rs");
+    let mut offset = 0;
+    for needle in [
+        "let runtime_teardown_failure = runtime_session.teardown_failure_state();",
+        "let host_result: Result<_, Box<dyn Error>> = (|| {",
+        "let runtime_gateway = runtime_session",
+        "let host_config = editor_host_run_config_with_first_frame_exit(",
+        "run_editor_with_config(core, runtime_gateway, host_config)",
+        "Ok(())",
+        "drop(runtime_session);",
+        "finish_editor_host(",
+        "host_result",
+        "runtime_teardown_failure.take()",
+        ")?;",
+        "Ok(0)",
+    ] {
+        let index = source[offset..]
+            .find(needle)
+            .unwrap_or_else(|| panic!("editor runtime teardown path is missing `{needle}`"));
+        offset += index + needle.len();
+    }
+}
+
+#[test]
+fn product_editor_operation_collects_runtime_session_teardown_before_returning_response() {
+    let source = include_str!("../../editor.rs");
+    let operation = source
+        .split("fn run_editor_operation")
+        .nth(1)
+        .expect("editor CLI operation path should exist");
+    let mut offset = 0;
+    for needle in [
+        "let runtime_teardown_failure = runtime_session.teardown_failure_state();",
+        "let operation_result: Result<_, Box<dyn Error>> = (|| {",
+        "runtime.attach_play_gateway(runtime_gateway)?;",
+        "let response = runtime.handle_operation_control_request_from_source(",
+        "Ok(response)",
+        "drop(runtime);",
+        "drop(runtime_session);",
+        "finish_editor_operation(operation_result, runtime_teardown_failure.take())",
+    ] {
+        let index = operation[offset..]
+            .find(needle)
+            .unwrap_or_else(|| panic!("editor CLI runtime teardown path is missing `{needle}`"));
+        offset += index + needle.len();
+    }
+}

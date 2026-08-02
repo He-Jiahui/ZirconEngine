@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
 use super::geometry::{frame_is_within, section_label_rect};
-use super::style::{section_text_color, section_title_metrics, WorkbenchSectionTitleMetrics};
+use super::style::{WorkbenchSectionTitleMetrics, section_text_color, section_title_metrics};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_section_label(

@@ -8,10 +8,10 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
             .scene_entries
             .iter()
             .map(|entry| HierarchyPaneNodePayload {
-                node_id: entry.id,
-                name: entry.name.clone(),
+                node_id: entry.entity,
+                name: entry.display_name.clone(),
                 depth: entry.depth as u32,
-                selected: entry.selected,
+                selected: context.chrome.scene_entries.is_selected(entry.entity),
             })
             .collect(),
     })

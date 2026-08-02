@@ -1,11 +1,11 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract, EnvironmentExtract,
-    GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract, ParticleExtract,
-    PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget, RenderDirectionalLightSnapshot,
-    RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot, RenderSpotLightSnapshot,
-    RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier,
-    SpriteExtract, ViewportCameraSnapshot, sort_render_cameras,
+    sort_render_cameras, CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract,
+    EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract,
+    ParticleExtract, PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
+    RenderSpotLightSnapshot, RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality,
+    ShadowResolutionTier, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, Vec3, Vec4};
@@ -72,15 +72,13 @@ fn visibility_context_records_relevance_and_filters_main_view_layers() {
     assert_eq!(main_view.stats.frustum_culled_count, 0);
     assert_eq!(main_view.stats.occlusion_culled_count, 0);
     assert_eq!(main_view.stats.visible_count, 1);
-    assert!(
-        context
-            .frame_visibility
-            .view(&VisibilityViewKey::ShadowCascade {
-                light: 10,
-                cascade: 0
-            })
-            .is_none()
-    );
+    assert!(context
+        .frame_visibility
+        .view(&VisibilityViewKey::ShadowCascade {
+            light: 10,
+            cascade: 0
+        })
+        .is_none());
 
     let visible = context
         .primitive_relevance
@@ -259,12 +257,10 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
 
     assert_eq!(context.frame_visibility.shadow_views().count(), 11);
     for cascade in 0..4 {
-        assert!(
-            context
-                .frame_visibility
-                .view(&VisibilityViewKey::ShadowCascade { light: 10, cascade })
-                .is_some()
-        );
+        assert!(context
+            .frame_visibility
+            .view(&VisibilityViewKey::ShadowCascade { light: 10, cascade })
+            .is_some());
     }
     let first_cascade = context
         .frame_visibility
@@ -286,19 +282,15 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
         first_cascade.camera.transform.translation
     );
     for face in 0..6 {
-        assert!(
-            context
-                .frame_visibility
-                .view(&VisibilityViewKey::ShadowPointFace { light: 20, face })
-                .is_some()
-        );
-    }
-    assert!(
-        context
+        assert!(context
             .frame_visibility
-            .view(&VisibilityViewKey::ShadowSpot { light: 30 })
-            .is_some()
-    );
+            .view(&VisibilityViewKey::ShadowPointFace { light: 20, face })
+            .is_some());
+    }
+    assert!(context
+        .frame_visibility
+        .view(&VisibilityViewKey::ShadowSpot { light: 30 })
+        .is_some());
 }
 
 #[test]
@@ -439,6 +431,30 @@ fn visibility_context_uses_static_index_prefilter_above_threshold() {
     assert!(
         context.static_index_report.main_view_static_candidate_count
             < context.static_index_report.main_view_static_input_count
+    );
+    assert_eq!(context.main_view_visible_entities(), vec![1]);
+}
+
+#[test]
+fn visibility_context_skips_static_prefilter_when_camera_bounds_exceed_cell_budget() {
+    let mut meshes = Vec::with_capacity(super::STATIC_INDEX_PREFILTER_MIN_STATIC_INSTANCES + 1);
+    meshes.push(mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1));
+    for index in 0..super::STATIC_INDEX_PREFILTER_MIN_STATIC_INSTANCES {
+        meshes.push(mesh_at(
+            1_000 + index as u64,
+            Vec3::new(10_000.0 + index as Real * 32.0, 0.0, -5.0),
+            1,
+        ));
+    }
+    let mut frame = frame_from_meshes(meshes);
+    frame.view.camera.z_far = 1_000.0;
+
+    let context = VisibilityContext::from_extract_with_history_and_static_index(&frame, None, None);
+
+    assert!(!context.static_index_report.main_view_prefilter_used);
+    assert_eq!(
+        context.static_index_report.main_view_static_candidate_count,
+        super::STATIC_INDEX_PREFILTER_MIN_STATIC_INSTANCES + 1
     );
     assert_eq!(context.main_view_visible_entities(), vec![1]);
 }

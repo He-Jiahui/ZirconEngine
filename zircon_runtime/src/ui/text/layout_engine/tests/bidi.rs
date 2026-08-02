@@ -68,10 +68,12 @@ fn bidi_isolate_keeps_outer_ltr_order_and_reorders_inner_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::LeftToRight);
     assert_eq!(visible_text, "A בא Z");
-    assert!(layout.lines[0]
-        .runs
-        .iter()
-        .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft));
+    assert!(
+        layout.lines[0]
+            .runs
+            .iter()
+            .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft)
+    );
 }
 
 #[test]
@@ -89,14 +91,16 @@ fn text_bidi_mirrors_paren_in_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::RightToLeft);
     assert_eq!(line.text, "(בא) םולש");
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == "(" && run.source_range == UiTextRange { start: 14, end: 15 }));
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == ")" && run.source_range == UiTextRange { start: 9, end: 10 }));
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == "(" && run.source_range == UiTextRange { start: 14, end: 15 })
+    );
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == ")" && run.source_range == UiTextRange { start: 9, end: 10 })
+    );
 }
 
 #[test]
@@ -109,15 +113,31 @@ fn text_bidi_mirrors_arrow_in_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::RightToLeft);
     assert_eq!(line.text, "← בא");
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 }));
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 })
+    );
+}
+
+#[test]
+fn text_bidi_mirrors_unicode_math_bracket_in_rtl() {
+    let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    style.text_direction = UiTextDirection::RightToLeft;
+
+    let layout = layout_text(
+        "\u{05D0}\u{05D1} \u{27E8}",
+        &style,
+        UiFrame::new(0.0, 0.0, 160.0, 12.0),
+        None,
+    );
+
+    assert_eq!(layout.lines[0].text, "\u{27E9} \u{05D1}\u{05D0}");
 }
 
 #[test]
 fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
-    use super::super::candidate_line::{append_segment, CandidateLine};
+    use super::super::candidate_line::{CandidateLine, append_segment};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -144,4 +164,47 @@ fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
 
     assert_eq!(line.text, "A בא");
     assert_eq!(visual_advances, vec![1.0, 2.0, 4.0, 3.0]);
+}
+
+#[test]
+fn bidi_visual_order_keeps_a_grapheme_split_across_style_runs_atomic() {
+    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::visual_order::apply_visual_order_with_advances;
+    use zircon_runtime_interface::ui::surface::UiTextRunKind;
+
+    let text = "a\u{301} אב";
+    let mut line = CandidateLine::empty();
+    append_segment(
+        &mut line,
+        UiTextRunKind::Plain,
+        "a",
+        UiTextRange { start: 0, end: 1 },
+    );
+    append_segment(
+        &mut line,
+        UiTextRunKind::Strong,
+        "\u{301} אב",
+        UiTextRange {
+            start: 1,
+            end: text.len(),
+        },
+    );
+    let mut visual_advances = vec![2.0, 1.0, 3.0, 4.0];
+
+    apply_visual_order_with_advances(
+        &mut line,
+        text,
+        UiTextDirection::LeftToRight,
+        &mut visual_advances,
+    );
+
+    assert_eq!(line.text, "a\u{301} בא");
+    assert_eq!(visual_advances, vec![2.0, 1.0, 4.0, 3.0]);
+    assert_eq!(
+        line.runs
+            .iter()
+            .map(|run| run.text.as_str())
+            .collect::<String>(),
+        line.text
+    );
 }

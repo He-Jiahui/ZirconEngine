@@ -4,8 +4,8 @@ use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult
 use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::super::super::super::super::routing::PanePointerRoute;
 use super::super::super::super::super::NativePointerButtonState;
+use super::super::super::super::super::routing::PanePointerRoute;
 use super::super::super::viewport::dispatch_viewport_toolbar_button;
 
 pub(super) fn dispatch_viewport_toolbar_target_button(

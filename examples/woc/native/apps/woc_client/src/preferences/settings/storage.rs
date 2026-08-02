@@ -11,27 +11,40 @@ use super::{
     registry::{BOOL_SETTINGS, NUMERIC_SETTINGS},
     state::ClientSettings,
 };
-use crate::preferences::PreferenceStorage;
+use crate::preferences::{read_preference_text, submit_preference_text, PreferenceRead};
+use zircon_runtime::core::framework::platform::{PreferenceMutationSubmission, PreferenceStorage};
 
 pub const CLIENT_SETTINGS_STORAGE_KEY: &str = "woc_settings";
 
 pub struct StoredClientSettings<S> {
     storage: S,
     settings: ClientSettings,
+    last_persistence_submission: Option<PreferenceMutationSubmission>,
 }
 
 impl<S> StoredClientSettings<S>
 where
-    S: PreferenceStorage,
+    S: AsRef<dyn PreferenceStorage>,
 {
     pub fn new(storage: S) -> Self {
-        let settings = storage
-            .read(CLIENT_SETTINGS_STORAGE_KEY)
-            .ok()
-            .flatten()
-            .map(|raw| decode_client_settings(&raw))
-            .unwrap_or_default();
-        Self { storage, settings }
+        let settings = read_settings(&storage).into_ready().unwrap_or_default();
+        Self {
+            storage,
+            settings,
+            last_persistence_submission: None,
+        }
+    }
+
+    pub fn refresh_from_storage(&mut self) -> bool {
+        let Some(settings) = read_settings(&self.storage).into_ready() else {
+            return false;
+        };
+        self.settings = settings;
+        true
+    }
+
+    pub fn take_persistence_submission(&mut self) -> Option<PreferenceMutationSubmission> {
+        self.last_persistence_submission.take()
     }
 
     pub fn set_numeric(&mut self, id: &str, value: f64) -> Option<f64> {
@@ -119,9 +132,10 @@ where
         self.storage
     }
 
-    fn save(&self) {
+    fn save(&mut self) {
         let encoded = encode_client_settings(&self.settings);
-        let _ = self.storage.write(CLIENT_SETTINGS_STORAGE_KEY, &encoded);
+        self.last_persistence_submission =
+            submit_preference_text(self.storage.as_ref(), CLIENT_SETTINGS_STORAGE_KEY, &encoded);
     }
 }
 
@@ -131,6 +145,17 @@ impl<S> Deref for StoredClientSettings<S> {
     fn deref(&self) -> &Self::Target {
         &self.settings
     }
+}
+
+fn read_settings<S>(storage: &S) -> PreferenceRead<ClientSettings>
+where
+    S: AsRef<dyn PreferenceStorage>,
+{
+    read_preference_text(storage.as_ref(), CLIENT_SETTINGS_STORAGE_KEY).map(|raw| {
+        raw.as_deref()
+            .map(decode_client_settings)
+            .unwrap_or_default()
+    })
 }
 
 pub fn decode_client_settings(raw: &str) -> ClientSettings {

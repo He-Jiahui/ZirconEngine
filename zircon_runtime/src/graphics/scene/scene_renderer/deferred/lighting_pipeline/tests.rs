@@ -1,10 +1,10 @@
 use crate::core::framework::render::{
-    GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, wgsl_include_paths,
+    wgsl_include_paths, GBufferChannelMask, ShadingModelDescriptor, ShadingModelId,
 };
 
 use super::shader_source::{
-    DEFERRED_LIGHTING_SHADER, DeferredLightingShaderSourceError,
-    DeferredLightingShaderSourceRequest, assemble_deferred_lighting_shader_source,
+    assemble_deferred_lighting_shader_source, DeferredLightingShaderSourceError,
+    DeferredLightingShaderSourceRequest, DEFERRED_LIGHTING_SHADER,
 };
 
 mod runtime_pipeline;
@@ -443,8 +443,8 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
 }
 
 #[test]
-fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha()
- {
+fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha(
+) {
     for expected in [
         "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
         "const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;",

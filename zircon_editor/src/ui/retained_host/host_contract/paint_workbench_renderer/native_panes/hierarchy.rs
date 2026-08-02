@@ -4,7 +4,9 @@ mod viewport;
 use crate::ui::retained_host::app::hierarchy_rename::{
     HIERARCHY_INLINE_RENAME_CONTROL_ID, hierarchy_inline_rename_target_id,
 };
-use crate::ui::retained_host::hierarchy_pointer::constants::{ROW_GAP, ROW_HEIGHT, ROW_Y};
+use crate::ui::retained_host::hierarchy_pointer::{
+    HierarchyRowMetrics, current_hierarchy_row_metrics, hierarchy_row_metrics_from_host_metrics,
+};
 
 pub(super) use viewport::hierarchy_viewport_frame;
 
@@ -32,8 +34,11 @@ pub(in crate::ui::retained_host::host_contract) fn draw_hierarchy_rows(
         return false;
     };
     let scroll_px = interaction.hierarchy_scroll_px.max(0.0);
+    let row_metrics = current_hierarchy_row_metrics();
 
-    for index in visible_hierarchy_row_range(&viewport, &row_clip, scroll_px, node_count) {
+    for index in
+        visible_hierarchy_row_range(&viewport, &row_clip, scroll_px, node_count, row_metrics)
+    {
         let Some(node) = pane.hierarchy.hierarchy_nodes.row_data(index) else {
             continue;
         };
@@ -70,6 +75,7 @@ fn visible_hierarchy_row_range(
     row_clip: &FrameRect,
     scroll_px: f32,
     node_count: usize,
+    row_metrics: HierarchyRowMetrics,
 ) -> std::ops::Range<usize> {
     if node_count == 0
         || row_clip.height <= 0.0
@@ -81,10 +87,10 @@ fn visible_hierarchy_row_range(
         return 0..0;
     }
 
-    let row_pitch = ROW_HEIGHT + ROW_GAP;
-    let first_row_y = viewport.y + ROW_Y;
+    let row_pitch = row_metrics.row_height + row_metrics.row_gap;
+    let first_row_y = viewport.y + row_metrics.row_y;
     let scroll_px = scroll_px.max(0.0);
-    let start = ((row_clip.y + scroll_px - first_row_y - ROW_HEIGHT) / row_pitch)
+    let start = ((row_clip.y + scroll_px - first_row_y - row_metrics.row_height) / row_pitch)
         .floor()
         .max(0.0) as usize;
     let end = ((row_clip.y + row_clip.height + scroll_px - first_row_y) / row_pitch)
@@ -135,8 +141,12 @@ mod tests {
             width: 240.0,
             height: 100.0,
         };
-        let range = visible_hierarchy_row_range(&viewport, &viewport, 560.0, 10_000);
-        let maximum_rows = (viewport.height / (ROW_HEIGHT + ROW_GAP)).ceil() as usize + 2;
+        let metrics = hierarchy_row_metrics_from_host_metrics(
+            crate::ui::retained_host::host_contract::paint_theme::METRICS,
+        );
+        let range = visible_hierarchy_row_range(&viewport, &viewport, 560.0, 10_000, metrics);
+        let maximum_rows =
+            (viewport.height / (metrics.row_height + metrics.row_gap)).ceil() as usize + 2;
 
         assert!(range.start > 0);
         assert!(range.end < 10_000);
@@ -156,6 +166,17 @@ mod tests {
             ..viewport.clone()
         };
 
-        assert!(visible_hierarchy_row_range(&viewport, &empty_clip, 0.0, 10_000).is_empty());
+        assert!(
+            visible_hierarchy_row_range(
+                &viewport,
+                &empty_clip,
+                0.0,
+                10_000,
+                hierarchy_row_metrics_from_host_metrics(
+                    crate::ui::retained_host::host_contract::paint_theme::METRICS,
+                ),
+            )
+            .is_empty()
+        );
     }
 }

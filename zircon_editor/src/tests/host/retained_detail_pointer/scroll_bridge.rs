@@ -1,7 +1,7 @@
 use crate::ui::retained_host::detail_pointer::{
+    ScrollSurfacePointerBridge, ScrollSurfacePointerRoute, ScrollSurfacePointerState,
     asset_details_content_extent, asset_details_scroll_layout, console_content_extent,
     console_scroll_layout, inspector_content_extent, inspector_scroll_layout,
-    ScrollSurfacePointerBridge, ScrollSurfacePointerRoute, ScrollSurfacePointerState,
 };
 use crate::ui::workbench::snapshot::AssetSelectionSnapshot;
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
@@ -14,9 +14,6 @@ fn shared_console_scroll_surface_bridge_uses_shared_scroll_state() {
         UiSize::new(320.0, 56.0),
         console_content_extent(
             "compile started\nmesh cache rebuilt\npreview extraction queued\nimport summary refreshed",
-            320.0,
-            false,
-            "",
         ),
     );
     bridge.sync(layout.clone(), ScrollSurfacePointerState::default());
@@ -35,6 +32,23 @@ fn shared_console_scroll_surface_bridge_uses_shared_scroll_state() {
 }
 
 #[test]
+fn console_scroll_clamps_to_the_projected_output_viewport_end() {
+    let mut bridge =
+        ScrollSurfacePointerBridge::new("zircon.editor.console.pointer", "editor.console");
+    let layout = console_scroll_layout(
+        UiSize::new(284.0, 146.0),
+        console_content_extent("0\n1\n2\n3\n4\n5\n6\n7\n8\n9"),
+    );
+    bridge.sync(layout, ScrollSurfacePointerState::default());
+
+    let clamped = bridge
+        .handle_scroll(UiPoint::new(12.0, 16.0), 4096.0)
+        .expect("console output viewport should accept scroll input");
+
+    assert_eq!(clamped.state.scroll_offset, 34.0);
+}
+
+#[test]
 fn shared_scroll_surface_bridge_skips_rebuild_for_unchanged_layout_and_state() {
     let mut bridge =
         ScrollSurfacePointerBridge::new("zircon.editor.console.pointer", "editor.console");
@@ -42,9 +56,6 @@ fn shared_scroll_surface_bridge_skips_rebuild_for_unchanged_layout_and_state() {
         UiSize::new(320.0, 56.0),
         console_content_extent(
             "compile started\nmesh cache rebuilt\npreview extraction queued\nimport summary refreshed",
-            320.0,
-            false,
-            "",
         ),
     );
     let state = ScrollSurfacePointerState::default();

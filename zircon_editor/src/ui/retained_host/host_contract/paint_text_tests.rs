@@ -8,10 +8,11 @@ use zircon_runtime_interface::ui::{
     surface::{UiResolvedStyle, UiTextOverflow, UiTextRunPaintStyle, UiTextWrap},
 };
 
-use super::draw::{draw_text_with_size_and_style, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT};
+use super::draw::{DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT, draw_text_with_size_and_style};
 use super::font::{
-    font_face_for_paint_style, font_request_for_face, font_request_for_face_with_preferences,
-    runtime_font_family_for_face, runtime_text_style_for_face, HostTextFontFace,
+    HostTextFontFace, font_face_for_paint_style, font_request_for_face,
+    font_request_for_face_with_preferences, runtime_font_family_for_face,
+    runtime_text_style_for_face,
 };
 use super::raster::rasterize_cached_glyph;
 use super::{measure_runtime_text_width, measure_runtime_text_width_with_style};
@@ -148,10 +149,12 @@ fn text_draw_skips_disjoint_active_and_explicit_clips() {
         UiTextRunPaintStyle::default(),
     );
 
-    assert!(frame
-        .as_bytes()
-        .chunks_exact(4)
-        .all(|pixel| pixel == [0, 0, 0, 255]));
+    assert!(
+        frame
+            .as_bytes()
+            .chunks_exact(4)
+            .all(|pixel| pixel == [0, 0, 0, 255])
+    );
 }
 
 #[test]

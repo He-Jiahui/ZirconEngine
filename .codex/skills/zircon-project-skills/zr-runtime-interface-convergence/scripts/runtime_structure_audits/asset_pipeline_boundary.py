@@ -107,6 +107,9 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     )
     artifact_mod = root / "zircon_runtime/src/asset/artifact/mod.rs"
     artifact_store = root / "zircon_runtime/src/asset/artifact/store.rs"
+    artifact_chunk_residency = (
+        root / "zircon_runtime/src/asset/artifact/chunk_residency.rs"
+    )
     cache_payload = root / "zircon_runtime/src/asset/artifact/cache_payload.rs"
     cache_json = root / "zircon_runtime/src/asset/artifact/cache_payload/json_value.rs"
     cache_mesh = root / "zircon_runtime/src/asset/artifact/cache_payload/mesh.rs"
@@ -163,6 +166,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
         for path in (
             artifact_mod,
             artifact_store,
+            artifact_chunk_residency,
             cache_payload,
             cache_json,
             cache_mesh,
@@ -193,6 +197,8 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
             "zircon_runtime/src/asset/tests/pipeline/worker_pool/task_pool.rs",
             "zircon_runtime/src/asset/tests/watcher.rs",
             "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
+            "zircon_runtime/src/asset/tests/assets/artifact_store/bounded_read.rs",
+            "zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs",
             "zircon_runtime/src/core/resource/tests.rs",
         )
         if (root / file_name).exists()
@@ -306,7 +312,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     if missing_doc_anchors:
         risks.append("Runtime 04 plan or mirror docs are missing required status anchors.")
     if missing_cargo_gate_anchors:
-        risks.append("Runtime 04 Cargo gate anchors are missing from docs.")
+        risks.append("Runtime 04 managed Cargo gate anchors are missing from docs.")
     if not mirror_docs_guard_present:
         risks.append("Runtime 04 mirror-doc guard anchor is missing from docs or guards.")
     if retired_worker_new_references:

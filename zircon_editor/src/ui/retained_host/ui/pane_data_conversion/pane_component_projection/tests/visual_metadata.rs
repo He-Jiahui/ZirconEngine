@@ -346,6 +346,50 @@ fn runtime_component_projection_maps_workbench_metric_aliases() {
 }
 
 #[test]
+fn runtime_component_projection_honors_optional_feedback_icons() {
+    let hidden_icon = host_template_node(projected_node(
+        "Tooltip",
+        [
+            ("icon", Value::String("info".to_owned())),
+            ("show_icon", Value::Boolean(false)),
+        ],
+    ))
+    .expect("tooltip metadata should project into the host contract");
+    assert!(hidden_icon.icon_name.is_empty());
+
+    let visible_icon = host_template_node(projected_node(
+        "Tooltip",
+        [
+            ("icon", Value::String("info".to_owned())),
+            ("show_icon", Value::Boolean(true)),
+        ],
+    ))
+    .expect("tooltip metadata should project into the host contract");
+    assert_eq!(visible_icon.icon_name.as_str(), "info");
+
+    let hidden_alias_icon = host_template_node(projected_node(
+        "Tooltip",
+        [
+            ("icon", Value::String("info".to_owned())),
+            ("showIcon", Value::Boolean(false)),
+        ],
+    ))
+    .expect("tooltip alias metadata should project into the host contract");
+    assert!(hidden_alias_icon.icon_name.is_empty());
+
+    let hidden_alert_icon = host_template_node(projected_node(
+        "Alert",
+        [
+            ("icon", Value::String("warning".to_owned())),
+            ("show_icon", Value::Boolean(false)),
+            ("severity", Value::String("warning".to_owned())),
+        ],
+    ))
+    .expect("alert metadata should project into the host contract");
+    assert!(hidden_alert_icon.icon_name.is_empty());
+}
+
+#[test]
 fn runtime_component_projection_loads_editor_svg_image_preview() {
     let image = host_template_node(projected_node(
         "Image",

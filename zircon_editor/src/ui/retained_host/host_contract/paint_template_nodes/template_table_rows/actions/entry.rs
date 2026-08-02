@@ -8,7 +8,7 @@ use super::super::style::table_row_style;
 use super::geometry::{table_action_button_rect, table_action_icon_rect};
 use super::glyphs::{push_table_gear, push_table_kebab};
 use super::metrics::table_action_metrics;
-use super::palette::{table_action_palette, WorkbenchTableActionPalette};
+use super::palette::{WorkbenchTableActionPalette, table_action_palette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 const TABLE_HEADER_ACTION_ICON: &str = "zircon_editor_shell/activity/settings.svg";

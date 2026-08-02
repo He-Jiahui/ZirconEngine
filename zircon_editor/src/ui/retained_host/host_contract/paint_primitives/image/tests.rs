@@ -108,9 +108,11 @@ fn draw_rgba_image_clipped_records_content_scoped_resource_keys() {
 
     assert_eq!(resource_keys.len(), 2);
     assert_ne!(resource_keys[0], resource_keys[1]);
-    assert!(resource_keys
-        .iter()
-        .all(|key| key.as_str().starts_with("rgba:1x1:")));
+    assert!(
+        resource_keys
+            .iter()
+            .all(|key| key.as_str().starts_with("rgba:1x1:"))
+    );
 }
 
 #[test]
@@ -119,6 +121,7 @@ fn atlas_recording_keeps_one_copy_of_atlas_pixels() {
     let source_rgba = vec![255, 0, 0, 255];
     let atlas = HostPaintAtlasImage {
         resource_key: "atlas://editor/icons".to_string(),
+        resource_generation: 0,
         width: 2,
         height: 2,
         rgba: Some(vec![7; 16]),
@@ -182,8 +185,10 @@ fn draw_rgba_image_clipped_skips_disjoint_active_and_explicit_clips() {
     );
 
     assert!(!drew);
-    assert!(frame
-        .as_bytes()
-        .chunks_exact(4)
-        .all(|pixel| pixel == [0, 0, 0, 255]));
+    assert!(
+        frame
+            .as_bytes()
+            .chunks_exact(4)
+            .all(|pixel| pixel == [0, 0, 0, 255])
+    );
 }

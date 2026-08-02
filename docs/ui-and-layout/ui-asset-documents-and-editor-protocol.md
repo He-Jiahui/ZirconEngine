@@ -76,7 +76,6 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - zircon_runtime/src/ui/template/instance.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
@@ -210,7 +209,6 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - zircon_runtime/src/ui/template/instance.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
@@ -448,24 +446,23 @@ M7 只定义 source schema policy。M16 现在把 compiled artifact header、dep
 当前正式入口有两个层级：
 
 - `UiAssetLoader::load_toml_str(...)` 返回当前 schema 的 `UiAssetDocument`，调用方无需知道 source 是否经历迁移。
-- `UiAssetLoader::load_toml_str_with_migration_report(...)` 和 `UiAssetLoader::load_toml_file_with_migration_report(...)` 返回 `UiAssetMigrationOutcome { document, report }`，供 editor/importer 读取 source kind、版本 bump、flat materialization、legacy conversion 等结构化信息。
+- `UiAssetLoader::load_toml_str_with_migration_report(...)` 和 `UiAssetLoader::load_toml_file_with_migration_report(...)` 返回 `UiAssetMigrationOutcome { document, report }`，供 editor/importer 读取 source kind、版本 bump 与 flat materialization 等结构化信息。
 
 因此正式运行链路的内存 authority 仍然只有 tree，但 formal load path 可以接受受支持的旧 source 形态并在进入 compiler/surface 之前收敛成当前 tree authority。
 
-## Flat And Legacy Migration Are Production-Owned
+## Flat Migration Is Production-Owned
 
-flat node-table 和 historical source-template fixture 迁移已经从 `zircon_runtime/src/ui/tests/asset_migration_support.rs` 移到 production schema module：
+flat node-table 迁移由 production schema module 负责：
 
 - `flat_nodes.rs` 读取旧 `[nodes.*]` registry，按 root/component 引用 materialize 递归树，并检查 missing node / cycle 等源数据错误。
-- `source_template_fixture.rs` 把历史 `UiTemplateDocument` fixture 转成 layout `UiAssetDocument`，保留 control id、bindings、attributes、slot mounts 和 component slot schema。
 - `migrator.rs` 负责形态分类、future-version 拒绝、版本 bump、final `validate_tree_authority()` 和 report 组装。
 
 这次收口后的真实边界是：
 
 - 磁盘 canonical authority：tree TOML。
-- 生产 loader：接受当前 tree、旧版本 tree、flat node-table、historical source-template fixture，并统一输出当前 schema tree document。
-- runtime test-only migration helper：已删除，不再作为 runtime 自己的迁移 owner。
-- editor test support：仍可保留本地历史 fixture canonicalize，后续可按 editor active-session 边界再切到 production migrator。
+- 生产 loader：接受当前 tree、旧版本 tree与flat node-table，并统一输出当前 schema tree document；无 `[asset]` 的historical source-template document直接拒绝。
+- runtime source-template conversion module、helper、report variants与转换测试：已原子删除，不再作为生产或测试迁移 owner。
+- editor 本地历史 fixture 不得进入 production loader；需要离线转换时应使用独立工具产出 canonical tree source，而不是恢复 runtime compatibility path。
 - 生产内存访问：tree-native helper API。
 
 ## Editor Protocol Consequences
@@ -640,7 +637,7 @@ M7 schema migration收口对应的验证命令是：
 - `rustfmt --edition 2021 --check zircon_runtime/src/ui/template/asset/mod.rs zircon_runtime/src/ui/template/asset/loader.rs zircon_runtime/src/ui/template/asset/document.rs zircon_runtime/src/ui/template/mod.rs zircon_runtime/src/ui/tests/mod.rs zircon_runtime/src/ui/tests/asset.rs zircon_runtime/src/ui/tests/asset_schema_migration.rs zircon_runtime/src/ui/template/asset/schema/*.rs`
   - 2026-05-01：首次 check 发现新 schema/test 文件需要格式化；应用 `rustfmt` 后复跑通过。
 - `cargo test -p zircon_runtime --lib ui::tests::asset_schema_migration --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-schema-migration --message-format short --color never -- --nocapture`
-  - 覆盖 current tree no-op report、older tree version bump、below-minimum/future structured rejection、flat node-table materialization、historical source-template fixture conversion。
+  - 历史运行曾覆盖 source-template conversion；2026-08-01 hard cutover 后当前合同覆盖 current tree no-op、older tree version bump、below-minimum/future rejection、flat materialization 与无 `[asset]` source-template rejection。
   - 2026-05-01：首次运行在初始依赖编译阶段超时；复跑通过，review 修复 minimum-version enforcement 后再次通过，`6 passed; 0 failed`。
 - `cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-schema-migration --message-format short --color never -- --nocapture`
   - 覆盖既有 compiler/import/style/editor helper 行为继续能消费 loader 输出的当前 tree authority。

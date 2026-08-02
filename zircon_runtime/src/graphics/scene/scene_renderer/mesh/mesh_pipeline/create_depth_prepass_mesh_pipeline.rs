@@ -5,6 +5,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_depth_prepass_mes
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-depth-prepass-mesh-pipeline"),
@@ -38,7 +39,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_depth_prepass_mes
             None
         },
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }
 
@@ -47,11 +48,11 @@ mod tests {
     use std::borrow::Cow;
     use std::sync::Arc;
 
-    use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::core::framework::render::ShaderPassType;
+    use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::graphics::scene::gpu_scene::GpuScene;
-    use crate::graphics::scene::resources::GPU_MATERIAL_UNIFORM_MIN_SIZE;
     use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::resources::GPU_MATERIAL_UNIFORM_MIN_SIZE;
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_depth_prepass_template_source_for_geometry;
 
@@ -122,7 +123,8 @@ mod tests {
         });
 
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let _pipeline = create_depth_prepass_mesh_pipeline(device, &pipeline_layout, &shader, &key);
+        let _pipeline =
+            create_depth_prepass_mesh_pipeline(device, &pipeline_layout, &shader, &key, None);
         let error = pollster::block_on(error_scope.pop());
 
         assert!(

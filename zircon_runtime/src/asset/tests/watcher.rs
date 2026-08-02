@@ -5,11 +5,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::asset::watch::{watch_loop_for_test, watched_asset_uri_for_path};
-use crate::asset::watch::{
-    AssetChange, AssetChangeKind, AssetWatchError, AssetWatchEvent, AssetWatcher,
-};
 use crate::asset::AssetUri;
+use crate::asset::watch::{
+    AssetChange, AssetChangeKind, AssetWatchBatch, AssetWatchError, AssetWatchEvent, AssetWatcher,
+    AssetWatcherOptions,
+};
+use crate::asset::watch::{watch_ingress, watch_loop_for_test, watched_asset_uri_for_path};
 
 #[test]
 fn watcher_folds_redundant_events_into_latest_change_set() {
@@ -50,18 +51,23 @@ fn rapid_successive_writes_within_debounce_window_emit_single_reload() {
     let assets_root = PathBuf::from("sandbox/assets");
     let material_path = assets_root.join("materials").join("grid.zmaterial");
     let (stop_tx, stop_rx) = unbounded();
-    let (event_tx, event_rx) = unbounded();
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_millis(10),
+        max_batch_latency: Duration::from_millis(100),
+        ..AssetWatcherOptions::default()
+    };
+    let (event_tx, event_rx) = watch_ingress(options);
     let (change_tx, change_rx) = unbounded::<Vec<AssetChange>>();
     let (error_tx, error_rx) = unbounded::<AssetWatchError>();
 
     let join = std::thread::spawn(move || {
         watch_loop_for_test(
             assets_root,
-            Duration::from_millis(10),
+            options,
             stop_rx,
             event_rx,
-            Arc::new(move |changes| {
-                let _ = change_tx.send(changes);
+            Arc::new(move |batch| {
+                let _ = change_tx.send(batch.changes);
             }),
             Arc::new(move |error| {
                 let _ = error_tx.send(error);
@@ -69,8 +75,8 @@ fn rapid_successive_writes_within_debounce_window_emit_single_reload() {
         );
     });
 
-    event_tx.send(Ok(modified_event(&material_path))).unwrap();
-    event_tx.send(Ok(modified_event(&material_path))).unwrap();
+    event_tx.try_send(Ok(modified_event(&material_path)));
+    event_tx.try_send(Ok(modified_event(&material_path)));
 
     let changes = change_rx.recv_timeout(Duration::from_secs(1)).unwrap();
     assert_eq!(
@@ -100,7 +106,12 @@ fn watcher_loop_folds_pending_events_incrementally() {
 fn watcher_failure_on_removed_directory_surfaces_observable_error() {
     let assets_root = PathBuf::from("sandbox/assets");
     let (stop_tx, stop_rx) = unbounded();
-    let (event_tx, event_rx) = unbounded();
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_millis(1),
+        max_batch_latency: Duration::from_millis(100),
+        ..AssetWatcherOptions::default()
+    };
+    let (event_tx, event_rx) = watch_ingress(options);
     let (change_tx, change_rx) = unbounded::<Vec<AssetChange>>();
     let (error_tx, error_rx) = unbounded::<AssetWatchError>();
 
@@ -108,11 +119,11 @@ fn watcher_failure_on_removed_directory_surfaces_observable_error() {
     let join = std::thread::spawn(move || {
         watch_loop_for_test(
             loop_root,
-            Duration::from_millis(1),
+            options,
             stop_rx,
             event_rx,
-            Arc::new(move |changes| {
-                let _ = change_tx.send(changes);
+            Arc::new(move |batch| {
+                let _ = change_tx.send(batch.changes);
             }),
             Arc::new(move |error| {
                 let _ = error_tx.send(error);
@@ -120,11 +131,9 @@ fn watcher_failure_on_removed_directory_surfaces_observable_error() {
         );
     });
 
-    event_tx
-        .send(Err(
-            notify::Error::path_not_found().add_path(assets_root.clone())
-        ))
-        .unwrap();
+    event_tx.try_send(Err(
+        notify::Error::path_not_found().add_path(assets_root.clone())
+    ));
 
     let error = error_rx.recv_timeout(Duration::from_secs(1)).unwrap();
     assert_eq!(error.assets_root, assets_root);
@@ -134,6 +143,127 @@ fn watcher_failure_on_removed_directory_surfaces_observable_error() {
     );
     assert!(change_rx.try_recv().is_err());
 
+    stop_tx.send(()).unwrap();
+    join.join().unwrap();
+}
+
+#[test]
+fn continuous_watcher_storm_flushes_at_the_max_batch_latency() {
+    let assets_root = PathBuf::from("sandbox/assets");
+    let material_path = assets_root.join("materials/grid.zmaterial");
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_secs(1),
+        max_batch_latency: Duration::from_millis(20),
+        ingress_entry_capacity: 256,
+        ..AssetWatcherOptions::default()
+    };
+    let (stop_tx, stop_rx) = unbounded();
+    let (event_tx, event_rx) = watch_ingress(options);
+    let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
+    let join = std::thread::spawn(move || {
+        watch_loop_for_test(
+            assets_root,
+            options,
+            stop_rx,
+            event_rx,
+            Arc::new(move |batch| {
+                let _ = batch_tx.send(batch);
+            }),
+            Arc::new(|_| {}),
+        );
+    });
+
+    let started = std::time::Instant::now();
+    while started.elapsed() < Duration::from_millis(75) {
+        event_tx.try_send(Ok(modified_event(&material_path)));
+        std::thread::yield_now();
+    }
+
+    let first = batch_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    assert_eq!(first.changes.len(), 1);
+    assert!(first.diagnostics.oldest_age >= Duration::from_millis(20));
+    assert!(batch_rx.recv_timeout(Duration::from_secs(1)).is_ok());
+    stop_tx.send(()).unwrap();
+    join.join().unwrap();
+}
+
+#[test]
+fn watcher_pending_overflow_emits_an_explicit_reconciliation_token() {
+    let assets_root = PathBuf::from("sandbox/assets");
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_millis(1),
+        max_batch_latency: Duration::from_millis(20),
+        pending_entry_capacity: 1,
+        ..AssetWatcherOptions::default()
+    };
+    let (stop_tx, stop_rx) = unbounded();
+    let (event_tx, event_rx) = watch_ingress(options);
+    let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
+    let join = std::thread::spawn(move || {
+        watch_loop_for_test(
+            assets_root.clone(),
+            options,
+            stop_rx,
+            event_rx,
+            Arc::new(move |batch| {
+                let _ = batch_tx.send(batch);
+            }),
+            Arc::new(|_| {}),
+        );
+    });
+
+    event_tx.try_send(Ok(modified_event(Path::new(
+        "sandbox/assets/materials/a.zmaterial",
+    ))));
+    event_tx.try_send(Ok(modified_event(Path::new(
+        "sandbox/assets/materials/b.zmaterial",
+    ))));
+
+    let batch = batch_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    assert!(batch.requires_reconciliation);
+    assert_eq!(batch.diagnostics.pending_overflow_count, 1);
+    assert_eq!(batch.changes.len(), 1);
+    stop_tx.send(()).unwrap();
+    join.join().unwrap();
+}
+
+#[test]
+fn watcher_ingress_overflow_wakes_the_loop_and_emits_reconciliation() {
+    let assets_root = PathBuf::from("sandbox/assets");
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_millis(1),
+        max_batch_latency: Duration::from_millis(20),
+        ingress_entry_capacity: 1,
+        ..AssetWatcherOptions::default()
+    };
+    let (stop_tx, stop_rx) = unbounded();
+    let (event_tx, event_rx) = watch_ingress(options);
+    let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
+
+    event_tx.try_send(Ok(modified_event(Path::new(
+        "sandbox/assets/materials/a.zmaterial",
+    ))));
+    event_tx.try_send(Ok(modified_event(Path::new(
+        "sandbox/assets/materials/b.zmaterial",
+    ))));
+
+    let join = std::thread::spawn(move || {
+        watch_loop_for_test(
+            assets_root,
+            options,
+            stop_rx,
+            event_rx,
+            Arc::new(move |batch| {
+                let _ = batch_tx.send(batch);
+            }),
+            Arc::new(|_| {}),
+        );
+    });
+
+    let batch = batch_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    assert!(batch.requires_reconciliation);
+    assert_eq!(batch.diagnostics.ingress_overflow_count, 1);
+    assert_eq!(batch.changes.len(), 1);
     stop_tx.send(()).unwrap();
     join.join().unwrap();
 }

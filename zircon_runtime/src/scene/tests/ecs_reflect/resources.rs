@@ -255,6 +255,8 @@ fn frame_counter_registration() -> ReflectTypeRegistration {
 
 fn frame_counter_adapter() -> ReflectResource {
     ReflectResource {
+        estimate_stage_clone_bytes: None,
+        stage_clone: None,
         ensure: None,
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,

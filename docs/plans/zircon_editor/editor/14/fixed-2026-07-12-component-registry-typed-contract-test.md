@@ -8,8 +8,7 @@ fixing_plan: docs/plans/zircon_editor/editor_layout/15-component-standardization
 origin_child_dir: docs/plans/zircon_editor/editor/14
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 related_code:
-  - zircon_editor/src/ui/component_registry.rs
-  - zircon_editor/src/ui/component_registry.rs
+  - zircon_editor/src/ui/component_registry/mod.rs
 tests:
   - cargo test -p zircon_editor --lib --locked --jobs 1 core::jobs::tests -- --test-threads=1 --nocapture
 resolved_at: 2026-07-12

@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor/09
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/asset/type_registry/registry.rs
-  - zircon_editor/src/core/editor_plugin.rs
+  - zircon_editor/src/core/plugin/mod.rs
 tests:
   - 1/100/10k/100k contribution post-extend collection length/sort/generation scaling benchmark
   - failed contribution atomicity and diagnostic-order parity

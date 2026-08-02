@@ -1,6 +1,6 @@
 use crate::core::math::Transform;
 
-use super::{SceneError, SceneResult, World};
+use super::{SceneError, SceneResult, World, transform_validation::validate_transform_for_write};
 use crate::scene::EntityId;
 use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
 use crate::scene::ecs::LifecycleEventKind;
@@ -35,6 +35,7 @@ impl World {
                 }
             }
         }
+        self.observers.remove_entity_observers(entity);
         self.remove_entity_from_archetype(entity);
         self.unregister_stable_entity(entity);
         self.entities.remove(index);
@@ -67,7 +68,11 @@ impl World {
         self.active_in_hierarchy.remove(&entity);
         self.render_layer_masks.remove(&entity);
         self.mobility.remove(&entity);
-        self.dynamic_components.remove(&entity);
+        if let Some(components) = self.dynamic_components.remove(&entity) {
+            for component_id in components.keys() {
+                self.advance_dynamic_component_generation(component_id);
+            }
+        }
         let orphaned_children = self
             .hierarchy
             .iter()
@@ -153,6 +158,7 @@ impl World {
         if local.transform == transform {
             return Ok(false);
         }
+        validate_transform_for_write(entity, transform)?;
         self.insert(entity, LocalTransform { transform })?;
         Ok(true)
     }

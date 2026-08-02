@@ -9,8 +9,8 @@ mod readiness;
 
 pub use asset::Asset;
 pub use assets::Assets;
-pub(crate) use event::typed_event_receiver;
 pub use event::{AssetEvent, AssetEventKind, AssetEventReceiver};
+pub(crate) use event::{AssetEventPoll, typed_event_receiver};
 pub use handle::Handle;
 pub use load_state::{
     AssetLoadState, AssetLoadStates, DependencyLoadState, RecursiveDependencyLoadState,

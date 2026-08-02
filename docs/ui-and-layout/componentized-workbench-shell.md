@@ -139,7 +139,7 @@ related_code:
   - zircon_editor/src/ui/workbench/model/main_host_strip/active_page.rs
   - zircon_editor/src/ui/workbench/model/build/document.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/exclusive_page.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/menu_overflow.rs
   - zircon_editor/src/ui/retained_host/ui/root_template_overlay.rs
@@ -324,7 +324,7 @@ test_files:
   - zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/layout_routes.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/exclusive_page.rs
@@ -448,6 +448,8 @@ plan_sources:
 ---
 
 # Componentized Workbench Shell
+
+> Current-source note: historical references below to `workbench_projection.rs` identify the folder-backed regression suite now rooted at `workbench_projection/mod.rs`.
 
 `docs/ui-and-layout/workbench.png` is a design-density baseline, not a runtime UI layer. The active editor workbench must be built from declared UI nodes so layout, input, render extraction, and command-stream replay remain inspectable and replaceable.
 

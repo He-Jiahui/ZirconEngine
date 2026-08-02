@@ -137,30 +137,105 @@ fn hover_map_builds_from_multiple_backend_outputs() {
 }
 
 #[test]
-fn picking_hit_resolution_avoids_repeated_projection_work() {
-    let hover_map_source = include_str!("../../core/framework/picking/hover_map.rs");
-    assert!(
-        !hover_map_source.contains("collect::<BTreeSet<_>>()"),
-        "hover-map construction must group backend outputs in one pass"
-    );
-    assert!(
-        !hover_map_source.contains("hovered_hits_for_pointer(outputs, pointer)"),
-        "hover-map construction must not rescan every backend output per pointer"
-    );
+fn picking_output_resolution_shares_one_projection_between_hover_and_report() {
+    let first_pointer = PointerId::new(1);
+    let second_pointer = PointerId::new(2);
+    let outputs = [
+        PointerHits::new(
+            first_pointer,
+            vec![
+                hit(HitTarget::handle_axis(1, PickingAxis::X), 0.1).with_pickable(Pickable::IGNORE),
+                hit(HitTarget::renderable(3), 0.3),
+                hit(HitTarget::renderable(4), 0.4),
+            ],
+            0.0,
+        ),
+        PointerHits::new(
+            first_pointer,
+            vec![hit(HitTarget::scene_gizmo(2), 0.2).with_pickable(Pickable::NON_BLOCKING)],
+            1.0,
+        ),
+        PointerHits::new(
+            second_pointer,
+            vec![hit(HitTarget::renderable(5), 0.5)],
+            0.0,
+        ),
+    ];
 
-    let pointer_hits_source = include_str!("../../core/framework/picking/pointer_hits.rs");
-    assert!(
-        !pointer_hits_source.contains("hovered.push(hit.clone())"),
-        "hover resolution owns sorted hits and must move them into its result"
-    );
+    crate::core::framework::picking::reset_sorted_hit_projection_metrics();
+    let (hover_map, report) = resolve_picking_outputs(&outputs);
+    let (projection_builds, pointer_group_sorts) =
+        crate::core::framework::picking::sorted_hit_projection_metrics();
 
-    let report_source = include_str!("../../core/framework/picking/report.rs");
-    assert!(
-        !report_source.contains("hovered_hits_for_pointer(outputs, pointer)"),
-        "pipeline reports must derive hover metrics from their existing sorted hit list"
+    assert_eq!(projection_builds, 1);
+    assert_eq!(pointer_group_sorts, 2);
+    assert_eq!(
+        hover_map
+            .get(first_pointer)
+            .iter()
+            .map(|hit| hit.target)
+            .collect::<Vec<_>>(),
+        vec![HitTarget::scene_gizmo(2), HitTarget::renderable(3)]
     );
-    assert!(
-        !report_source.contains("sorted_hits_for_pointer(outputs, pointer)"),
-        "pipeline reports must group and sort all pointer outputs in one pass"
+    let first_report = report
+        .pointer(first_pointer)
+        .expect("first pointer should be represented in the report");
+    assert_eq!(first_report.backend_output_count, 2);
+    assert_eq!(first_report.sorted_hit_count, 4);
+    assert_eq!(first_report.hovered_hit_count, 2);
+    assert_eq!(first_report.non_hoverable_hit_count, 1);
+    assert_eq!(first_report.blocking_target, Some(HitTarget::renderable(3)));
+    assert_eq!(hover_map.get(second_pointer).len(), 1);
+    assert_eq!(report.pointer(second_pointer).unwrap().hovered_hit_count, 1);
+}
+
+#[test]
+fn picking_pipeline_shares_one_sorted_hit_projection_between_hover_and_report() {
+    let pointers = [PointerId::new(1), PointerId::new(2)];
+    let viewport = RenderViewportHandle::new(1);
+    let pointer_locations =
+        pointers.map(|pointer| PointerLocation::new(pointer, viewport, Vec2::new(50.0, 50.0)));
+    let cameras = [CameraRaySource::new(
+        42,
+        viewport,
+        UVec2::new(100, 100),
+        test_camera(ProjectionMode::Perspective),
+    )];
+    let backend = PrimitivePickingBackend::new("shared-projection-test").with_primitive(
+        PickingPrimitive::sphere(HitTarget::renderable(9), Vec3::ZERO, 1.0),
     );
+    let backends: [&dyn PickingBackend; 1] = [&backend];
+    let mut state = PickingEventState::default();
+
+    crate::core::framework::picking::reset_sorted_hit_projection_metrics();
+    let output = run_picking_pipeline(
+        &mut state,
+        PickingPipelineInput::new(&pointer_locations, &[], &cameras, &backends),
+    );
+    let (projection_builds, pointer_group_sorts) =
+        crate::core::framework::picking::sorted_hit_projection_metrics();
+
+    assert_eq!(projection_builds, 1);
+    assert_eq!(pointer_group_sorts, pointers.len());
+    assert!(
+        output.hover_map.shares_storage_with(state.previous_hover()),
+        "pipeline output and next-frame event state should share hover storage"
+    );
+    assert_eq!(output.report.pointer_count, pointers.len());
+    assert_eq!(output.report.raw_hit_count, pointers.len());
+    assert_eq!(output.report.hovered_hit_count, pointers.len());
+    for pointer in pointers {
+        assert_eq!(output.hover_map.get(pointer).len(), 1);
+        let pointer_report = output
+            .report
+            .pointer(pointer)
+            .expect("each hovered pointer must be represented in the report");
+        assert_eq!(pointer_report.sorted_hit_count, 1);
+        assert_eq!(pointer_report.hovered_hit_count, 1);
+        assert_eq!(pointer_report.top_target, Some(HitTarget::renderable(9)));
+    }
+
+    state.clear_pointer(pointers[0]);
+    assert!(state.previous_hover().get(pointers[0]).is_empty());
+    assert_eq!(output.hover_map.get(pointers[0]).len(), 1);
 }

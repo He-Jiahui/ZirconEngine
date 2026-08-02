@@ -10,7 +10,7 @@ pub use admission::{
     BoundedKeyedIoAdmission, BoundedKeyedIoAdmissionError, BoundedKeyedIoCancelAuthority,
     BoundedKeyedIoWork, BoundedKeyedIoWorkDeadline,
 };
-pub use diagnostics::BoundedKeyedIoDiagnostics;
+pub use diagnostics::{BoundedKeyedIoDiagnostics, BoundedKeyedIoShutdownReport};
 pub use fence::{BoundedKeyedIoFence, GlobalAdmissionEpoch};
 pub use lane::{BoundedKeyedIoLane, BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard};
 pub use ticket::{

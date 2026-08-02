@@ -6,9 +6,11 @@ use crate::ui::retained_host::{
     host_page_pointer::{HostPagePointerBridge, HostPagePointerDispatch, HostPagePointerRoute},
 };
 use crate::ui::workbench::layout::LayoutCommand;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
-    dispatch_builtin_host_page_activation, dispatch_layout_command, BuiltinHostWindowTemplateBridge,
+    BuiltinHostWindowTemplateBridge, dispatch_builtin_host_document_tab_close,
+    dispatch_builtin_host_page_activation, dispatch_layout_command,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,6 +39,17 @@ pub(crate) fn dispatch_shared_host_page_pointer_click(
                     runtime,
                     LayoutCommand::ActivateMainPage {
                         page_id: crate::ui::workbench::layout::MainPageId::new(page_id),
+                    },
+                )?),
+            }
+        }
+        Some(HostPagePointerRoute::Close { instance_id, .. }) => {
+            match dispatch_builtin_host_document_tab_close(runtime, template_bridge, instance_id) {
+                Some(result) => Some(result?),
+                None => Some(dispatch_layout_command(
+                    runtime,
+                    LayoutCommand::CloseView {
+                        instance_id: ViewInstanceId::new(instance_id),
                     },
                 )?),
             }

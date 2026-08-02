@@ -16,13 +16,13 @@ use super::super::runtime_entry_app::{
     RuntimeEntryApp, RuntimeEntryAppConfig, RuntimeEntryAppFailureState,
 };
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession, RuntimeWakeRegistration};
+use super::EntryRunner;
 use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
 use super::runtime_session_args::{
-    invalid_runtime_project_root_error, missing_runtime_project_manifest_error,
-    parse_runtime_session_startup_args, unknown_runtime_argument_error, RuntimeSessionProfile,
-    RUNTIME_SESSION_STARTUP_HELP,
+    RUNTIME_SESSION_STARTUP_HELP, RuntimeSessionProfile, invalid_runtime_project_root_error,
+    missing_runtime_project_manifest_error, parse_runtime_session_startup_args,
+    unknown_runtime_argument_error,
 };
-use super::EntryRunner;
 
 const RUNTIME_EXIT_AFTER_FIRST_FRAME_ENV: &str = "ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME";
 const RUNTIME_FRAME_CAPTURE_PNG_ENV: &str = "ZIRCON_RUNTIME_CAPTURE_FRAME_PNG";
@@ -71,6 +71,19 @@ fn runtime_session_startup_request(
     format!("profile={} project={project_root}", profile.as_str())
 }
 
+fn runtime_library_startup_error(
+    profile: RuntimeSessionProfile,
+    project_root: Option<&Path>,
+    source: impl Display,
+) -> RuntimeStartupExecutionError {
+    runtime_startup_execution_error(
+        "runtime_library",
+        runtime_session_startup_request(profile, project_root),
+        format!("runtime library loading failed: {source}"),
+        "stage a compatible runtime library beside zircon_runtime or configure ZIRCON_RUNTIME_LIBRARY with an absolute path",
+    )
+}
+
 fn runtime_frame_capture_path_from_env() -> Result<Option<PathBuf>, RuntimeStartupExecutionError> {
     runtime_frame_capture_path_from_value(env::var_os(RUNTIME_FRAME_CAPTURE_PNG_ENV))
 }
@@ -86,14 +99,63 @@ fn runtime_frame_capture_path_from_value(
             "runtime_app",
             RUNTIME_FRAME_CAPTURE_PNG_ENV,
             "first-frame PNG capture path is empty or blank",
-            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable PNG path or unset it",
+            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
         ));
     }
-    Ok(Some(PathBuf::from(value)))
+    let path = PathBuf::from(value);
+    if !path.is_absolute() {
+        return Err(runtime_startup_execution_error(
+            "runtime_app",
+            format!("{RUNTIME_FRAME_CAPTURE_PNG_ENV}={}", path.display()),
+            "first-frame PNG capture path must be absolute",
+            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
+        ));
+    }
+    Ok(Some(path))
 }
 
 fn runtime_process_teardown_complete_diagnostic() -> &'static str {
     "runtime_process_teardown_complete"
+}
+
+fn finish_runtime_process(
+    requested: impl Into<String>,
+    event_loop_failure: Option<Box<dyn Error>>,
+    runtime_app_failure: Option<Box<dyn Error>>,
+    runtime_session_failure: Option<Box<dyn Error>>,
+) -> Result<(), Box<dyn Error>> {
+    let mut failures = Vec::with_capacity(3);
+    if let Some(failure) = event_loop_failure {
+        failures.push(("event_loop", failure));
+    }
+    if let Some(failure) = runtime_app_failure {
+        failures.push(("runtime_app", failure));
+    }
+    if let Some(failure) = runtime_session_failure {
+        failures.push(("runtime_session", failure));
+    }
+
+    if failures.is_empty() {
+        return Ok(());
+    }
+    if failures.len() == 1 {
+        if let Some((_, failure)) = failures.pop() {
+            return Err(failure);
+        }
+    }
+
+    let causes = failures
+        .iter()
+        .map(|(component, failure)| format!("{component}: {failure}"))
+        .collect::<Vec<_>>()
+        .join(" | ");
+    Err(runtime_startup_execution_error(
+        "runtime_process",
+        requested,
+        format!("multiple terminal failures: {causes}"),
+        "inspect every reported terminal failure, repair the lowest runtime owner, and restart zircon_runtime",
+    )
+    .into())
 }
 
 impl EntryRunner {
@@ -138,7 +200,13 @@ impl EntryRunner {
         let profile_capture =
             zircon_runtime::core::diagnostics::profiling::start_capture_from_env("runtime");
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_library_load_start");
-        let runtime = LoadedRuntime::load_default()?;
+        let runtime = LoadedRuntime::load_default().map_err(|error| {
+            runtime_library_startup_error(
+                runtime_session_args.profile,
+                runtime_session_args.project_root.as_deref(),
+                error,
+            )
+        })?;
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_library_load_done");
         let event_loop = EventLoop::new().map_err(|error| {
             runtime_startup_execution_error(
@@ -167,6 +235,7 @@ impl EntryRunner {
                 "verify the selected profile, project, and runtime library ABI before retrying zircon_runtime",
             )
         })?;
+        let session_teardown_failure = session.teardown_failure_state();
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_done");
         let host_config = runtime_entry_app_config_for_session_profile_with_first_frame_exit(
             runtime_session_args.profile,
@@ -185,17 +254,37 @@ impl EntryRunner {
                 None => {}
             }
         }
-        result.map_err(|error| {
-            runtime_startup_execution_error(
+        let event_loop_failure = result.err().map(|error| {
+            Box::new(runtime_startup_execution_error(
                 "runtime_event_loop",
                 "runtime_event_loop",
                 format!("event loop execution failed: {error}"),
                 "restart zircon_runtime and inspect the preceding runtime diagnostics",
-            )
-        })?;
-        if let Some(failure) = failure_state.take() {
-            return Err(failure.into());
-        }
+            )) as Box<dyn Error>
+        });
+        let runtime_app_failure = failure_state
+            .take()
+            .map(|failure| Box::new(failure) as Box<dyn Error>);
+        let runtime_session_failure = session_teardown_failure.take().map(|error| {
+            Box::new(runtime_startup_execution_error(
+                "runtime_session",
+                runtime_session_startup_request(
+                    runtime_session_args.profile,
+                    runtime_session_args.project_root.as_deref(),
+                ),
+                format!("runtime session teardown failed: {error}"),
+                "verify the runtime surface and session lifecycle, then restart zircon_runtime",
+            )) as Box<dyn Error>
+        });
+        finish_runtime_process(
+            runtime_session_startup_request(
+                runtime_session_args.profile,
+                runtime_session_args.project_root.as_deref(),
+            ),
+            event_loop_failure,
+            runtime_app_failure,
+            runtime_session_failure,
+        )?;
         zircon_runtime::diagnostic_log::write_log(
             "runtime_app",
             runtime_process_teardown_complete_diagnostic(),
@@ -266,9 +355,11 @@ mod tests {
 
         assert!(config.window_descriptor().primary_window.is_some());
         assert_eq!(config.event_loop_policy(), EventLoopPolicy::Game);
-        assert!(config
-            .window_lifecycle_policy()
-            .should_exit_after_primary_close());
+        assert!(
+            config
+                .window_lifecycle_policy()
+                .should_exit_after_primary_close()
+        );
     }
 
     #[test]
@@ -344,13 +435,113 @@ mod tests {
     }
 
     #[test]
-    fn runtime_first_frame_capture_path_accepts_a_nonempty_environment_value() {
+    fn runtime_library_failure_uses_the_selected_session_request() {
+        let error = runtime_library_startup_error(
+            RuntimeSessionProfile::Dev,
+            Some(Path::new("C:/projects/basic")),
+            "runtime ABI version mismatch",
+        );
+
         assert_eq!(
-            runtime_frame_capture_path_from_value(Some(OsString::from(
-                "E:/evidence/runtime-first-frame.png"
-            )))
-            .unwrap(),
-            Some(PathBuf::from("E:/evidence/runtime-first-frame.png"))
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_library requested=profile=dev project=C:/projects/basic cause=runtime library loading failed: runtime ABI version mismatch recovery=stage a compatible runtime library beside zircon_runtime or configure ZIRCON_RUNTIME_LIBRARY with an absolute path"
+        );
+    }
+
+    #[test]
+    fn runtime_process_finish_preserves_a_single_terminal_failure() {
+        let failure = runtime_startup_execution_error(
+            "runtime_event_loop",
+            "runtime_event_loop",
+            "event loop execution failed: host closed unexpectedly",
+            "restart zircon_runtime and inspect the preceding runtime diagnostics",
+        );
+        let error = finish_runtime_process(
+            "profile=runtime project=<none>",
+            Some(Box::new(failure)),
+            None,
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_event_loop requested=runtime_event_loop cause=event loop execution failed: host closed unexpectedly recovery=restart zircon_runtime and inspect the preceding runtime diagnostics"
+        );
+    }
+
+    #[test]
+    fn runtime_process_finish_preserves_all_terminal_failures() {
+        let error = finish_runtime_process(
+            "profile=runtime project=C:/projects/basic",
+            Some(Box::new(std::io::Error::other("event loop failed"))),
+            Some(Box::new(std::io::Error::other("frame callback failed"))),
+            Some(Box::new(std::io::Error::other("session destroy failed"))),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_process requested=profile=runtime project=C:/projects/basic cause=multiple terminal failures: event_loop: event loop failed | runtime_app: frame callback failed | runtime_session: session destroy failed recovery=inspect every reported terminal failure, repair the lowest runtime owner, and restart zircon_runtime"
+        );
+    }
+
+    #[test]
+    fn runtime_first_frame_capture_path_accepts_an_absolute_environment_value() {
+        let path = std::path::absolute("runtime-first-frame.png").unwrap();
+
+        assert_eq!(
+            runtime_frame_capture_path_from_value(Some(path.clone().into_os_string())).unwrap(),
+            Some(path)
+        );
+    }
+
+    #[test]
+    fn runtime_first_frame_capture_path_rejects_a_relative_environment_value() {
+        let error = runtime_frame_capture_path_from_value(Some(OsString::from(
+            "captures/runtime-first-frame.png",
+        )))
+        .expect_err("relative capture path must not depend on the process working directory");
+
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_app requested=ZIRCON_RUNTIME_CAPTURE_FRAME_PNG=captures/runtime-first-frame.png cause=first-frame PNG capture path must be absolute recovery=set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn runtime_first_frame_capture_path_preserves_windows_absolute_path_semantics() {
+        for absolute in [
+            PathBuf::from(r"C:\zircon\runtime-first-frame.png"),
+            PathBuf::from(r"\\server\share\runtime-first-frame.png"),
+        ] {
+            assert_eq!(
+                runtime_frame_capture_path_from_value(Some(absolute.clone().into_os_string(),))
+                    .unwrap(),
+                Some(absolute)
+            );
+        }
+
+        for relative in [
+            OsString::from(r"C:runtime-first-frame.png"),
+            OsString::from(r"\runtime-first-frame.png"),
+            OsString::from(r"/runtime-first-frame.png"),
+        ] {
+            assert!(runtime_frame_capture_path_from_value(Some(relative)).is_err());
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runtime_first_frame_capture_path_preserves_non_utf8_absolute_path() {
+        use std::os::unix::ffi::OsStringExt;
+
+        let value = OsString::from_vec(vec![b'/', b't', b'm', b'p', b'/', 0xFF]);
+
+        assert_eq!(
+            runtime_frame_capture_path_from_value(Some(value.clone())).unwrap(),
+            Some(PathBuf::from(value))
         );
     }
 
@@ -365,7 +556,7 @@ mod tests {
 
             assert_eq!(
                 error.to_string(),
-                "runtime startup diagnostic: component=runtime_app requested=ZIRCON_RUNTIME_CAPTURE_FRAME_PNG cause=first-frame PNG capture path is empty or blank recovery=set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable PNG path or unset it"
+                "runtime startup diagnostic: component=runtime_app requested=ZIRCON_RUNTIME_CAPTURE_FRAME_PNG cause=first-frame PNG capture path is empty or blank recovery=set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it"
             );
         }
     }

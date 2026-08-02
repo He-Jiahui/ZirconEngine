@@ -2,8 +2,8 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, HostChromeTabData
 use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::{
-    geometry::{contains, translated},
     ChromePointerRoute,
+    geometry::{contains, translated},
 };
 
 pub(in crate::ui::retained_host::host_contract::native_pointer::routing::chrome) fn route_drawer_header(

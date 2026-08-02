@@ -7,7 +7,6 @@ origin_plan: docs/plans/zircon_runtime/render/03-gpu-scene-gpu-driven.md
 fixing_plan: docs/plans/zircon_runtime/render/08-material-shader-permutation.md
 origin_child_dir: docs/plans/zircon_runtime/render/03
 fixing_child_dir: docs/plans/zircon_runtime/render/08
-origin_workflow_node: GS-M4
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/render/material/management/selection.rs
@@ -50,4 +49,8 @@ Material selection 的索引有意借用输入 records，但 selection 结果的
 
 ## 修复结果与回传
 
-Open state: `待修复`；当前工作树候选改动尚未形成受管验证与 fixed return，不申领通过。
+Open state: `current-source ownership repair present; managed validation pending`.
+
+- The selection index still borrows its input records, but `RenderMaterialManagementSelection::from_records` explicitly clones `(**record)` into the public owned result before deriving summary, status, and issue indexes.
+- Request ordering, duplicate-id collapse, and missing-id behavior remain in the same selection owner; no borrowed-record compatibility path was introduced.
+- The required managed material-management and Render03 product gates, including PNG/RDC evidence, remain outstanding. This handoff therefore stays `open` and does not return `fixed`.

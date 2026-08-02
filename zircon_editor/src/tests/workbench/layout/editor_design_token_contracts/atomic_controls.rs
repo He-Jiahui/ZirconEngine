@@ -1,4 +1,5 @@
-use super::assert_tokenized_assets;
+use super::support::assert_tokenized_assets;
+use toml::Value;
 
 macro_rules! workbench_asset {
     ($path:literal) => {
@@ -335,5 +336,149 @@ fn workbench_rail_button_uses_shared_large_control_geometry() {
         .iter()
         .all(|legacy_metric| !asset.contains(legacy_metric)),
         "the activity-rail button must not retain private fixed geometry"
+    );
+}
+
+#[test]
+fn component_drawer_button_samples_inherit_atomic_visuals_without_pixel_nudges() {
+    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
+    let document = asset
+        .parse::<Value>()
+        .expect("component drawer must remain valid ZUI TOML");
+    let nodes = document
+        .get("nodes")
+        .and_then(Value::as_table)
+        .expect("component drawer must expose nodes");
+    let mut button_count = 0usize;
+    let mut icon_button_count = 0usize;
+    let mut overrides = Vec::new();
+
+    for (node_id, node) in nodes {
+        let component = node.get("component").and_then(Value::as_str);
+        let Some(kind @ ("WorkbenchButton" | "WorkbenchIconButton")) = component else {
+            continue;
+        };
+        if kind == "WorkbenchButton" {
+            button_count += 1;
+        } else {
+            icon_button_count += 1;
+        }
+
+        let props = node
+            .get("props")
+            .and_then(Value::as_table)
+            .expect("drawer control samples must expose a property table");
+        for property in [
+            "background_color",
+            "border_color",
+            "foreground_color",
+            "icon_color",
+            "corner_radius",
+            "border_width",
+            "layout_offset_x",
+            "layout_offset_y",
+            "visual_brightness",
+            "disabled_opacity",
+        ] {
+            if props.contains_key(property) {
+                overrides.push(format!("{kind} `{node_id}` overrides `{property}`"));
+            }
+        }
+    }
+
+    assert_eq!(
+        button_count, 7,
+        "component drawer must retain its button samples"
+    );
+    assert_eq!(
+        icon_button_count, 8,
+        "component drawer must retain its icon-button samples"
+    );
+    assert!(
+        overrides.is_empty(),
+        "component drawer samples must inherit shared atomic visuals: {overrides:#?}"
+    );
+}
+
+#[test]
+fn component_drawer_input_samples_inherit_atomic_metrics_and_state_visuals() {
+    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
+    let document = asset
+        .parse::<Value>()
+        .expect("component drawer must remain valid ZUI TOML");
+    let nodes = document
+        .get("nodes")
+        .and_then(Value::as_table)
+        .expect("component drawer must expose nodes");
+    let atomic_kinds = [
+        "WorkbenchCheckbox",
+        "WorkbenchDropdown",
+        "WorkbenchField",
+        "WorkbenchRadio",
+        "WorkbenchRangeSlider",
+        "WorkbenchSegmentedControl",
+        "WorkbenchSlider",
+        "WorkbenchTab",
+        "WorkbenchToggle",
+    ];
+    let forbidden_properties = [
+        "background_color",
+        "border_color",
+        "foreground_color",
+        "text_color",
+        "icon_color",
+        "corner_radius",
+        "border_width",
+        "disabled_opacity",
+        "label_color",
+        "label_brightness",
+        "dot_color",
+        "dot_size",
+        "layout_icon_size",
+        "layout_offset_x",
+        "layout_offset_y",
+        "layout_spacing",
+        "selected_segment_border_width",
+        "selected_segment_underline_color",
+        "track_height",
+        "track_offset_x",
+        "track_width",
+        "track_width_delta",
+        "thumb_size",
+        "visual_brightness",
+        "value_color",
+        "arrow_color",
+        "selected_segment_underline_height",
+    ];
+    let mut sample_count = 0usize;
+    let mut overrides = Vec::new();
+
+    for (node_id, node) in nodes {
+        let Some(kind) = node.get("component").and_then(Value::as_str) else {
+            continue;
+        };
+        if !atomic_kinds.contains(&kind) {
+            continue;
+        }
+
+        sample_count += 1;
+        let props = node
+            .get("props")
+            .and_then(Value::as_table)
+            .expect("drawer control samples must expose a property table");
+        for property in forbidden_properties {
+            if props.contains_key(property) {
+                overrides.push(format!("{kind} `{node_id}` overrides `{property}`"));
+            }
+        }
+    }
+
+    assert_eq!(
+        sample_count, 20,
+        "component drawer must retain its input and selection samples"
+    );
+    assert!(
+        overrides.is_empty(),
+        "component drawer input samples must inherit shared atomic metrics and state visuals: {overrides:#?}"
     );
 }

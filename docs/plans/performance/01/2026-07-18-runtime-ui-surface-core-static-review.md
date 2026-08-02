@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/ui/surface/*.rs
+  - zircon_runtime/src/ui/surface/
   - zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime/src/ui/surface/surface/interaction_state.rs

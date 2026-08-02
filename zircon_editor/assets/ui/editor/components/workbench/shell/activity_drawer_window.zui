@@ -13,24 +13,38 @@ root = "root"
 
 [components.ActivityDrawerWindow.slots.left_top_activity]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [components.ActivityDrawerWindow.slots.left_bottom_activity]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [components.ActivityDrawerWindow.slots.right_top_activity]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [components.ActivityDrawerWindow.slots.right_bottom_activity]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [components.ActivityDrawerWindow.slots.bottom_left_activity]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [components.ActivityDrawerWindow.slots.bottom_right_activity]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [components.ActivityDrawerWindow.slots.content]
 multiple = true
+kind = "container"
+accepts = ["Container"]
 
 [nodes.root]
 component = "VerticalGroup"
@@ -48,6 +62,7 @@ children = [{ node = "left_column" }, { node = "content_slot" }, { node = "right
 [nodes.left_column]
 component = "VerticalGroup"
 control_id = "ActivityDrawerWindowLeftColumn"
+props = { responsive_min_tier = "narrow" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = "$editor.density.compact_side_min_width", preferred = "$editor.density.left_drawer_width", max = "$editor.density.left_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "left_top_slot" }, { node = "left_bottom_slot" }]
 
@@ -72,6 +87,7 @@ layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "S
 [nodes.right_column]
 component = "VerticalGroup"
 control_id = "ActivityDrawerWindowRightColumn"
+props = { responsive_min_tier = "regular" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = "$editor.density.compact_side_min_width", preferred = "$editor.density.right_drawer_width", max = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "right_top_slot" }, { node = "right_bottom_slot" }]
 
@@ -102,5 +118,5 @@ layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "S
 [nodes.bottom_right_slot]
 component = "Slot"
 control_id = "ActivityDrawerWindowBottomRightSlot"
-props = { name = "bottom_right_activity" }
+props = { name = "bottom_right_activity", responsive_min_tier = "regular" }
 layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

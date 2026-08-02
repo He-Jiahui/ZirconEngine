@@ -43,17 +43,17 @@ requireText(world, /applyPartyAcceptCommand[\s\S]*?entityPartyMasterLootEnabled[
   'party join must inherit master-loot settings');
 requireText(world, /partyClearMember[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
   'party removal must clear local master-loot columns');
-requireText(world, /writer\.u16\(<uint>71, 1, 1\)[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
-  'WOS71 master-loot tail is missing');
+requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
+  'WOS72 master-loot tail is missing');
 requireText(world, /if \(schemaVersion >= <uint>69\)[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
-  'WOS71 master-loot migration is missing');
+  'WOS72 master-loot migration is missing');
 requireText(world, /pub partyMasterLootCommandStateTest\(\): int[\s\S]*?appendPartyMasterLootCommandForTest[\s\S]*?encodeState[\s\S]*?partyLeaveCommandId/,
   'party master-loot state regression is missing');
 requireText(world, /if \(partyMasterLootCommandStateTest\(\) != 1\) \{[\s\S]*?return -138;/,
   'world selfTest must execute party master-loot coverage');
 
 const contract = read('contracts', 'world-state.md');
-requireText(contract, /WOS71[\s\S]*?Master Loot[\s\S]*?leader[\s\S]*?uncommon[\s\S]*?rare[\s\S]*?epic/,
+requireText(contract, /WOS69 also appends the party's Master Loot settings[\s\S]*?uncommon[\s\S]*?rare[\s\S]*?epic[\s\S]*?leader/,
   'world-state contract must document retained Master Loot settings');
 
 process.stdout.write(`WOS144 party Master Loot static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

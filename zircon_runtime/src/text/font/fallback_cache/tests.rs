@@ -1,6 +1,6 @@
 use crate::text::{CompositeFontDescriptor, FontFamilyName, FontQuery};
 
-use super::{composite_font_identity, fallback_query_identity, BoundedCache};
+use super::{BoundedCache, composite_font_identity, fallback_query_identity};
 
 fn query_and_composite() -> (FontQuery, CompositeFontDescriptor) {
     (

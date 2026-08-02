@@ -213,3 +213,19 @@ fn componentized_workbench_surface_control_requires_active_workbench_window_temp
         selected_before
     );
 }
+
+#[test]
+fn closing_project_dismisses_the_workbench_command_palette() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_project_close_palette");
+    harness.activate_workbench_page();
+
+    let mut host = harness.host.borrow_mut();
+    host.open_workbench_command_palette();
+    assert!(host.workbench_window_bridge.command_palette_open());
+
+    host.close_project_from_workbench()
+        .expect("project close should restore the welcome workspace");
+
+    assert!(!host.workbench_window_bridge.command_palette_open());
+}

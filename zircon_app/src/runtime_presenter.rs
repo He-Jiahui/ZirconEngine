@@ -8,8 +8,7 @@ use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 use crate::entry::runtime_library::RuntimeFrame;
 
 pub(crate) struct SoftbufferRuntimePresenter {
-    #[allow(dead_code)]
-    context: Context<Arc<dyn Window>>,
+    _context: Context<Arc<dyn Window>>,
     surface: Surface<Arc<dyn Window>, Arc<dyn Window>>,
     size: ZrRuntimeViewportSizeV1,
 }
@@ -21,7 +20,7 @@ impl SoftbufferRuntimePresenter {
         let size = current_window_size(window.as_ref());
         resize_surface(&mut surface, size)?;
         Ok(Self {
-            context,
+            _context: context,
             surface,
             size,
         })
@@ -39,7 +38,7 @@ impl SoftbufferRuntimePresenter {
 
     pub(crate) fn present(
         &mut self,
-        frame: &RuntimeFrame,
+        frame: &RuntimeFrame<'_>,
     ) -> Result<(), softbuffer::SoftBufferError> {
         zircon_runtime::profile_scope!("app", "runtime_presenter", "present");
         let frame_size = ZrRuntimeViewportSizeV1::new(frame.width().max(1), frame.height().max(1));

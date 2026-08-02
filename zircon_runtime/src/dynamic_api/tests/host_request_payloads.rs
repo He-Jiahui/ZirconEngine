@@ -2,15 +2,18 @@ use super::support::*;
 
 #[test]
 fn host_request_batch_encodes_runtime_ime_requests() {
+    let viewport = default_viewport();
     let batch = ZrRuntimeHostRequestBatchV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         vec![
-            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::Enable)),
-            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::SetCursorArea(
-                ImeCursorArea::new(16.0, 24.0, 8.0, 18.0),
-            ))),
+            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::Enable, viewport)),
+            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(
+                ImeHostRequest::SetCursorArea(ImeCursorArea::new(16.0, 24.0, 8.0, 18.0)),
+                viewport,
+            )),
             ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(
                 ImeHostRequest::SetSurroundingText(ImeSurroundingText::new("search", 6, 0)),
+                viewport,
             )),
         ],
     );
@@ -24,12 +27,14 @@ fn host_request_batch_encodes_runtime_ime_requests() {
         batch.requests[0],
         ZrRuntimeHostRequestV1::Ime(ref request)
             if request.kind == ZrRuntimeImeHostRequestKindV1::Enable
+                && request.target_viewport == Some(viewport)
     ));
     assert!(matches!(
         batch.requests[1],
         ZrRuntimeHostRequestV1::Ime(ref request)
             if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
                 && request.cursor_area.as_ref().map(|area| area.width) == Some(8.0)
+                && request.target_viewport == Some(viewport)
     ));
     assert!(matches!(
         batch.requests[2],
@@ -40,6 +45,7 @@ fn host_request_batch_encodes_runtime_ime_requests() {
                     .as_ref()
                     .map(|text| text.value.as_str())
                     == Some("search")
+                && request.target_viewport == Some(viewport)
     ));
 }
 

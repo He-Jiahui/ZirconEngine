@@ -4,12 +4,12 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
-    CapturedFrame, DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings,
-    PreviewEnvironmentExtract, RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework,
-    RenderLayerSet, RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier,
-    ViewportCameraSnapshot,
+    CapturedFrame, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};

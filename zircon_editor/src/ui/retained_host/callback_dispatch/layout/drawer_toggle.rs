@@ -7,8 +7,8 @@ use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
-    common::{merge_effects, parse_activity_drawer_slot},
     BuiltinHostWindowTemplateBridge,
+    common::{merge_effects, parse_activity_drawer_slot},
 };
 use super::dispatch_layout_command;
 

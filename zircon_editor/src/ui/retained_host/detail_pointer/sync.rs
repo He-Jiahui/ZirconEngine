@@ -3,6 +3,10 @@ use super::scroll_surface_pointer_layout::ScrollSurfacePointerLayout;
 use super::scroll_surface_pointer_state::ScrollSurfacePointerState;
 
 impl ScrollSurfacePointerBridge {
+    pub(crate) fn state(&self) -> ScrollSurfacePointerState {
+        self.state.clone()
+    }
+
     pub(crate) fn sync(
         &mut self,
         layout: ScrollSurfacePointerLayout,

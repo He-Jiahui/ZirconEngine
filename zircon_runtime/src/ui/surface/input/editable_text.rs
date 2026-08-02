@@ -2,7 +2,10 @@ mod ime_context;
 mod mutation;
 mod state_transition;
 
-pub(super) use mutation::{apply_editable_text_state, TextComponentEventKind};
+pub(super) use mutation::{
+    TextComponentEventKind, apply_editable_text_state,
+    commit_editable_text_composition_for_focus_loss,
+};
 
 use zircon_runtime_interface::ui::{
     dispatch::{
@@ -30,7 +33,7 @@ use super::{
     text_state::editable_text_state_for_node,
 };
 
-use state_transition::{committed_text_state, preedit_text_state};
+use state_transition::{committed_text_state, delete_surrounding_text_state, preedit_text_state};
 
 pub(super) fn dispatch_keyboard_text_edit(
     surface: &mut UiSurface,
@@ -123,7 +126,7 @@ pub(super) fn dispatch_ime_input(
     let clear_owner = matches!(ime.kind, UiImeInputEventKind::Cancel);
     let event = UiInputEvent::Ime(ime.clone());
     let Some(target) = target.filter(|owner| is_valid_input_owner(surface, *owner)) else {
-        surface.input.clear_input_method();
+        surface.disable_input_method_for_focus_loss();
         let mut result = owner_routed_result(surface, event, None, "ime.owner");
         result
             .diagnostics
@@ -152,15 +155,6 @@ pub(super) fn dispatch_ime_input(
         return with_editable_text_route_policy(surface, result);
     };
 
-    if matches!(ime.kind, UiImeInputEventKind::DeleteSurrounding) {
-        let mut result = owner_routed_result(surface, event, Some(target), "ime.owner");
-        result
-            .diagnostics
-            .notes
-            .push("ime delete-surrounding is not applied by editable text yet".to_string());
-        return with_editable_text_route_policy(surface, result);
-    }
-
     let component_event_kind = match ime.kind {
         UiImeInputEventKind::Commit => TextComponentEventKind::Submit,
         _ => TextComponentEventKind::Change,
@@ -181,7 +175,15 @@ pub(super) fn dispatch_ime_input(
             apply_text_edit_action(editable, UiTextEditAction::CancelComposition)
         }
         UiImeInputEventKind::DeleteSurrounding => {
-            unreachable!("delete-surrounding IME input is returned before editable text mutation")
+            let Some(delete) = ime.delete_surrounding else {
+                let result = owner_routed_result(surface, event, Some(target), "ime.edit");
+                return with_editable_text_route_policy(surface, result);
+            };
+            let Some(next) = delete_surrounding_text_state(editable, delete) else {
+                let result = owner_routed_result(surface, event, Some(target), "ime.edit");
+                return with_editable_text_route_policy(surface, result);
+            };
+            next
         }
     };
 
@@ -219,7 +221,7 @@ fn text_input_target(surface: &mut UiSurface) -> Option<UiNodeId> {
         return ime_owner;
     }
     if ime_owner.is_some() {
-        surface.input.clear_input_method();
+        surface.disable_input_method_for_focus_loss();
     }
     surface
         .focus

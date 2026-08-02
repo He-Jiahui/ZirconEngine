@@ -1,16 +1,16 @@
-use crate::text::layout::{
-    layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
-    rich_vertical_columns_with_provider, ELLIPSIS,
-};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
+use crate::text::layout::{
+    ELLIPSIS, layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
+    rich_vertical_columns_with_provider,
+};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextDirection, UiTextRange,
     UiTextWritingMode,
 };
 
-use super::super::adapter::text_style;
+use crate::text::text_style;
 use super::super::rich_text::UiParsedText;
 use super::candidate_line::CandidateLine;
 use super::ellipsis::{
@@ -30,7 +30,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
     direction: UiTextDirection,
     provider: &mut SharedTextLayoutSession,
 ) -> Option<UiResolvedTextLayout> {
-    if !parsed.runs.iter().any(|run| run.inline.is_some())
+    if !parsed.runs.iter().any(|run| run.inline().is_some())
         || !matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
     {
         return None;
@@ -46,7 +46,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
             &mut *vertical_provider,
         );
     let column_metrics = rich_vertical_columns_with_provider(
-        &parsed.rich,
+        parsed,
         &neutral_style,
         |forced_range, column_index| {
             paragraph_constraints
@@ -148,7 +148,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
     }
 
     let column_constraints = (0..columns.len())
-        .map(|index| paragraph_constraints.for_column(&parsed.text, &columns, index))
+        .map(|index| paragraph_constraints.for_column(parsed.text(), &columns, index))
         .collect::<Vec<_>>();
 
     let ellipsis_advance =
@@ -163,7 +163,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
         .zip(&column_constraints)
         .enumerate()
     {
-        apply_visual_order_with_advances(column, &parsed.text, direction, advances);
+        apply_visual_order_with_advances(column, parsed.text(), direction, advances);
         if is_ellipsis_overflow(style.text_overflow) {
             let was_ellipsized = column.ellipsized;
             if clipped_columns && index == last_visible_index {
@@ -263,11 +263,12 @@ pub(super) fn layout_inline_vertical_text_with_provider(
         measured_height: visible_layout.measured_height,
         source_range: UiTextRange {
             start: 0,
-            end: parsed.text.len(),
+            end: parsed.text().len(),
         },
         lines: resolved_lines,
         boxes: Vec::new(),
         overflow_clipped,
         editable: None,
+        rich_text_artifact: None,
     })
 }

@@ -7,7 +7,7 @@ fn default_sound_plugin_options_match_runtime_contract() {
     let options = SoundPluginOptions::default();
 
     assert!(options.enabled);
-    assert_eq!(options.backend, "software-mixer");
+    assert_eq!(options.backend, "kira-cpal");
     assert_eq!(options.sample_rate_hz, 48_000);
     assert_eq!(options.channel_count, 2);
     assert_eq!(options.channel_layout, AudioChannelLayout::stereo());

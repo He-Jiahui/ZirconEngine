@@ -1,5 +1,5 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::resolved_style_color;
 
 const SKELETON_DISABLED_OPACITY: f32 = 0.56;
@@ -15,8 +15,8 @@ fn skeleton_color_from_host(node: &TemplatePaneNodeData, palette: HostMaterialPa
         .unwrap_or(palette.surface_hover)
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_wave_color(
-) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_wave_color()
+-> [u8; 4] {
     skeleton_wave_color_from_host(current_host_palette())
 }
 

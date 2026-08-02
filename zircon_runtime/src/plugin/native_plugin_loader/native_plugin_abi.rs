@@ -9,8 +9,10 @@ use zircon_runtime_interface::{
 use crate::plugin::{PluginModuleKind, PluginPackageManifest};
 
 use super::abi_declarations::{
-    NativePluginAbiV3, NativePluginEntryReportV3, NativePluginHostFunctionTableV3,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3,
+    NativePluginAbiV2, NativePluginAbiV3, NativePluginEntryReportV2, NativePluginEntryReportV3,
+    NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3,
     ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
 };
 use super::behavior_calls::NativePluginBehavior;
@@ -18,8 +20,9 @@ use super::behavior_validation::NativePluginBehaviorValidationReport;
 use super::bridge_method_abi::bridge_method_bindings_from_abi_v3;
 use super::bridge_method_bindings::NativeBridgeMethodBinding;
 use super::host_callbacks::{
-    granted_capabilities_for_entry, native_host_abi_version_v3, native_host_diagnostic_v3,
-    native_host_has_capability_v3, native_host_log_v3, register_native_host_callback_capture,
+    granted_capabilities_for_entry, native_host_abi_version_v2, native_host_abi_version_v3,
+    native_host_diagnostic_v3, native_host_has_capability_v2, native_host_has_capability_v3,
+    native_host_log_v3, register_native_host_callback_capture,
     take_native_host_callback_diagnostics,
 };
 use super::native_strings::{
@@ -56,7 +59,11 @@ pub struct NativePluginEntryReport {
     pub behavior_validation: NativePluginBehaviorValidationReport,
 }
 
+type NativePluginDescriptorFnV2 = unsafe extern "C" fn() -> *const NativePluginAbiV2;
 type NativePluginDescriptorFnV3 = unsafe extern "C" fn() -> *const NativePluginAbiV3;
+type NativePluginEntryFnV2 = unsafe extern "C" fn(
+    *const NativePluginHostFunctionTableV2,
+) -> *const NativePluginEntryReportV2;
 type NativePluginEntryFnV3 = unsafe extern "C" fn(
     *const NativePluginHostFunctionTableV3,
 ) -> *const NativePluginEntryReportV3;
@@ -66,19 +73,41 @@ pub(super) unsafe fn probe_native_plugin_descriptor(
     library_path: &Path,
     plugin_id: &str,
 ) -> PluginLoadResult<NativePluginDescriptor> {
-    let expected_symbol = String::from_utf8_lossy(
+    let expected_v3_symbol = String::from_utf8_lossy(
         ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3
             .strip_suffix(&[0])
             .unwrap_or(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3),
     )
     .into_owned();
+    if let Ok(symbol) =
+        library.get::<NativePluginDescriptorFnV3>(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3)
+    {
+        let descriptor = symbol();
+        if descriptor.is_null() {
+            return Err(PluginLoadError::null_pointer(
+                plugin_id,
+                PluginLoadStage::DescriptorProbe,
+                "NativePluginAbiV3",
+                library_path,
+                DESCRIPTOR_EXPORT_HINT,
+            ));
+        }
+        return NativePluginDescriptor::from_abi_v3(&*descriptor, plugin_id, library_path);
+    }
+
+    let expected_v2_symbol = String::from_utf8_lossy(
+        ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2
+            .strip_suffix(&[0])
+            .unwrap_or(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2),
+    )
+    .into_owned();
     let symbol = library
-        .get::<NativePluginDescriptorFnV3>(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3)
+        .get::<NativePluginDescriptorFnV2>(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2)
         .map_err(|source| {
             PluginLoadError::missing_symbol(
                 plugin_id,
                 PluginLoadStage::DescriptorProbe,
-                expected_symbol,
+                format!("{expected_v3_symbol} or {expected_v2_symbol}"),
                 library_path,
                 DESCRIPTOR_EXPORT_HINT,
                 source,
@@ -89,12 +118,12 @@ pub(super) unsafe fn probe_native_plugin_descriptor(
         return Err(PluginLoadError::null_pointer(
             plugin_id,
             PluginLoadStage::DescriptorProbe,
-            "NativePluginAbiV3",
+            "NativePluginAbiV2",
             library_path,
             DESCRIPTOR_EXPORT_HINT,
         ));
     }
-    NativePluginDescriptor::from_abi_v3(&*descriptor, plugin_id, library_path)
+    NativePluginDescriptor::from_abi_v2(&*descriptor, plugin_id, library_path)
 }
 
 pub(super) unsafe fn call_native_plugin_entry(
@@ -106,6 +135,18 @@ pub(super) unsafe fn call_native_plugin_entry(
     descriptor: &NativePluginDescriptor,
 ) -> PluginLoadResult<NativePluginEntryReport> {
     let stage = PluginLoadStage::from(module_kind);
+    if descriptor.abi_version == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
+        return unsafe {
+            call_native_plugin_entry_v2(
+                library,
+                library_path,
+                symbol_name,
+                plugin_id,
+                module_kind,
+                descriptor,
+            )
+        };
+    }
     if descriptor.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
         return Err(PluginLoadError::contract_mismatch(
             plugin_id,
@@ -196,7 +237,119 @@ pub(super) unsafe fn call_native_plugin_entry(
     Ok(report)
 }
 
+unsafe fn call_native_plugin_entry_v2(
+    library: &Library,
+    library_path: &Path,
+    symbol_name: &str,
+    plugin_id: &str,
+    module_kind: PluginModuleKind,
+    descriptor: &NativePluginDescriptor,
+) -> PluginLoadResult<NativePluginEntryReport> {
+    let stage = PluginLoadStage::from(module_kind);
+    let symbol_bytes = native_symbol_name(symbol_name);
+    let symbol = library
+        .get::<NativePluginEntryFnV2>(&symbol_bytes[..])
+        .map_err(|source| {
+            PluginLoadError::missing_symbol(
+                plugin_id,
+                stage,
+                symbol_name,
+                library_path,
+                ENTRY_EXPORT_HINT,
+                source,
+            )
+        })?;
+    let granted_capabilities = granted_capabilities_for_entry(descriptor, module_kind);
+    let granted_capabilities_abi =
+        CString::new(granted_capabilities.join("\n")).map_err(|source| {
+            PluginLoadError::invalid_payload(
+                plugin_id,
+                stage,
+                "granted_capabilities",
+                library_path,
+                ABI_CONTRACT_HINT,
+                source,
+            )
+        })?;
+    let host_functions = NativePluginHostFunctionTableV2 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+        host_handle: 0,
+        granted_capabilities: granted_capabilities_abi.as_ptr(),
+        host_abi_version: Some(native_host_abi_version_v2),
+        host_has_capability: Some(native_host_has_capability_v2),
+    };
+    let report = symbol(&host_functions);
+    if report.is_null() {
+        return Err(PluginLoadError::null_pointer(
+            plugin_id,
+            stage,
+            "NativePluginEntryReportV2",
+            library_path,
+            ENTRY_EXPORT_HINT,
+        ));
+    }
+    NativePluginEntryReport::from_abi_v2(plugin_id, module_kind, library_path, &*report)
+}
+
 impl NativePluginDescriptor {
+    unsafe fn from_abi_v2(
+        abi: &NativePluginAbiV2,
+        expected_plugin_id: &str,
+        library_path: &Path,
+    ) -> PluginLoadResult<Self> {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
+            return Err(PluginLoadError::contract_mismatch(
+                expected_plugin_id,
+                PluginLoadStage::DescriptorProbe,
+                "abi_version",
+                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2.to_string(),
+                abi.abi_version.to_string(),
+                library_path,
+                ABI_CONTRACT_HINT,
+            ));
+        }
+        let plugin_id = read_required_descriptor_field(
+            abi.plugin_id,
+            "plugin_id",
+            expected_plugin_id,
+            library_path,
+        )?;
+        if plugin_id != expected_plugin_id {
+            return Err(PluginLoadError::contract_mismatch(
+                expected_plugin_id,
+                PluginLoadStage::DescriptorProbe,
+                "plugin_id",
+                expected_plugin_id,
+                &plugin_id,
+                library_path,
+                ABI_CONTRACT_HINT,
+            ));
+        }
+        Ok(Self {
+            abi_version: abi.abi_version,
+            plugin_id,
+            package_manifest: package_manifest_from_toml(
+                &read_optional_c_string(abi.package_manifest_toml).unwrap_or_default(),
+                "native plugin package manifest is invalid",
+            )
+            .map_err(|source| {
+                PluginLoadError::invalid_payload(
+                    expected_plugin_id,
+                    PluginLoadStage::DescriptorProbe,
+                    "package_manifest_toml",
+                    library_path,
+                    ABI_CONTRACT_HINT,
+                    source,
+                )
+            })?,
+            runtime_entry_name: read_optional_c_string(abi.runtime_entry_name),
+            editor_entry_name: read_optional_c_string(abi.editor_entry_name),
+            requested_capabilities: parse_native_string_list(
+                &read_optional_c_string(abi.requested_capabilities).unwrap_or_default(),
+            ),
+        })
+    }
+
     unsafe fn from_abi_v3(
         abi: &NativePluginAbiV3,
         expected_plugin_id: &str,
@@ -275,6 +428,78 @@ unsafe fn read_required_descriptor_field(
 }
 
 impl NativePluginEntryReport {
+    unsafe fn from_abi_v2(
+        plugin_id: &str,
+        module_kind: PluginModuleKind,
+        library_path: &Path,
+        abi: &NativePluginEntryReportV2,
+    ) -> PluginLoadResult<Self> {
+        let stage = PluginLoadStage::from(module_kind);
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
+            return Err(PluginLoadError::contract_mismatch(
+                plugin_id,
+                stage,
+                "entry_report.abi_version",
+                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2.to_string(),
+                abi.abi_version.to_string(),
+                library_path,
+                ABI_CONTRACT_HINT,
+            ));
+        }
+        let behavior = if abi.behavior.is_null() {
+            None
+        } else {
+            Some(
+                NativePluginBehavior::from_abi_v2_metadata(&*abi.behavior).map_err(|source| {
+                    PluginLoadError::invalid_payload(
+                        plugin_id,
+                        stage,
+                        "behavior",
+                        library_path,
+                        ABI_CONTRACT_HINT,
+                        source,
+                    )
+                })?,
+            )
+        };
+        let behavior_validation = NativePluginBehaviorValidationReport::from_behavior(
+            plugin_id,
+            module_kind,
+            ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+            behavior.as_ref(),
+        );
+        Ok(Self {
+            plugin_id: plugin_id.to_string(),
+            module_kind,
+            package_manifest: package_manifest_from_toml(
+                &read_optional_c_string(abi.package_manifest_toml).unwrap_or_default(),
+                "native plugin entry package manifest is invalid",
+            )
+            .map_err(|source| {
+                PluginLoadError::invalid_payload(
+                    plugin_id,
+                    stage,
+                    "package_manifest_toml",
+                    library_path,
+                    ABI_CONTRACT_HINT,
+                    source,
+                )
+            })?,
+            diagnostics: entry_diagnostics(
+                &read_optional_c_string(abi.diagnostics).unwrap_or_default(),
+            ),
+            negotiated_capabilities: parse_native_string_list(
+                &read_optional_c_string(abi.negotiated_capabilities).unwrap_or_default(),
+            ),
+            missing_required_capabilities: Vec::new(),
+            denied_capabilities: Vec::new(),
+            bridge_method_bindings: Vec::new(),
+            editor_contribution_batch: None,
+            behavior_validation,
+            behavior,
+        })
+    }
+
     unsafe fn from_abi_v3(
         plugin_id: &str,
         module_kind: PluginModuleKind,

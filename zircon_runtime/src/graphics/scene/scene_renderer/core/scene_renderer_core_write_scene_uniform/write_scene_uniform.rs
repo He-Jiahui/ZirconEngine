@@ -52,17 +52,27 @@ impl SceneRendererCore {
             }
         }
         let _reflection_probe_upload_report = self.mesh_pipelines.reflection_probes.prepare(
+            device,
             queue,
             streamer,
             frame,
             reflection_probes_enabled,
         );
+        if self
+            .mesh_pipelines
+            .reflection_probes
+            .requires_generic_environment_pbr()
+        {
+            self.mesh_pipelines
+                .disable_environment_only_pbr_base_profile();
+        }
         self.mesh_pipelines
             .lightmaps
             .prepare(device, streamer, frame.environment())?;
         self.deferred
             .set_lightmap_bindings(self.mesh_pipelines.lightmaps.bindings());
         let mut scene_uniform = SceneUniform::from_frame(frame);
+        scene_uniform.set_global_material_mip_bias(self.global_material_mip_bias);
         if let Some(prepared) = realtime_ibl {
             scene_uniform.use_realtime_ibl(
                 prepared.source_face_size(),
@@ -83,5 +93,38 @@ impl SceneRendererCore {
             bytemuck::bytes_of(&scene_uniform),
         );
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn provider_upgrade_downgrades_the_environment_variant_before_draw_construction() {
+        let uniform_source = include_str!("write_scene_uniform.rs");
+        let prepare = uniform_source
+            .find(".reflection_probes.prepare(")
+            .expect("scene uniform update must prepare reflection providers");
+        let provider_fallback = uniform_source
+            .find(".requires_generic_environment_pbr()")
+            .expect("scene uniform update must observe the provider upgrade");
+        let variant_downgrade = uniform_source
+            .find(".disable_environment_only_pbr_base_profile()")
+            .expect("scene uniform update must select the generic environment variant");
+
+        assert!(prepare < provider_fallback);
+        assert!(provider_fallback < variant_downgrade);
+
+        let render_source = include_str!("../scene_renderer_core_render_scene/render_scene.rs");
+        let write_uniform = render_source
+            .find("self.write_scene_uniform(")
+            .expect("direct rendering must update scene state before drawing");
+        let build_draws = render_source
+            .find(".build_mesh_draws(")
+            .expect("direct rendering must build mesh draw commands");
+
+        assert!(
+            write_uniform < build_draws,
+            "provider fallback must resolve before mesh variants are selected"
+        );
     }
 }

@@ -1,5 +1,5 @@
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_row_metrics::{workbench_row_palette, WorkbenchRowPalette};
+use super::super::super::template_row_metrics::{WorkbenchRowPalette, workbench_row_palette};
 use super::super::layers::field_text_order;
 use super::super::layout::{scalar_field_rect, value_text_rect};
 use super::super::text::text_command;

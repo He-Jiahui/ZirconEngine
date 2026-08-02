@@ -234,7 +234,7 @@ fn shaped_run(text: &str, direction: TextDirection, source_range: TextRange) -> 
         measured_width += advance;
     }
     ShapedGlyphRun {
-        source_text: text.to_string(),
+        source_text: std::sync::Arc::from(text),
         source_range,
         direction,
         orientation: TextOrientation::Horizontal,
@@ -244,7 +244,6 @@ fn shaped_run(text: &str, direction: TextDirection, source_range: TextRange) -> 
         measured_height: 12.0,
         lines: vec![ShapedTextLine {
             line_index: 0,
-            text: text.to_string(),
             source_range,
             visual_range: source_range,
             measured_width,

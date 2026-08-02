@@ -1,25 +1,26 @@
 use std::sync::Arc;
 
+use crate::capability::{RUNTIME_CRATE_NAME, ZR_VM_LANGUAGE_DECLARATION};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::script::{
-    ScriptBehaviorBridge, SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+    SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID, ScriptBehaviorBridge,
 };
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest,
-    PluginInterfaceManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    PluginInterfaceManifest, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
 use zircon_runtime::script::{VmGcBudget, VmGcDiagnostics, VmSystemStage};
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
-    module_descriptor, PLUGIN_ID, RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_MODULE_NAME,
-    ZR_VM_LANGUAGE_RUNTIME_CAPABILITY, ZR_VM_PROJECT_BACKEND_CAPABILITY,
+    PLUGIN_ID, RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_MODULE_NAME, ZR_VM_LANGUAGE_RUNTIME_CAPABILITY,
+    ZR_VM_PROJECT_BACKEND_CAPABILITY, module_descriptor,
 };
 
 pub const ZR_VM_LANGUAGE_DIST_CRATE_NAME: &str = "zircon_plugin_zr_vm_language_dist";
 pub const ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_zr_vm_language_runtime_entry_v3";
+pub const ZR_VM_LANGUAGE_MAIN_SYSTEM_SET: &str = "zr_vm_language.main";
 pub const ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM: &str = "zr_vm_language.script.behavior_bridge.bind";
 pub const ZR_VM_GC_STEP_SYSTEM: &str = "zr_vm_language.script.gc_step";
 const ZR_VM_LANGUAGE_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
@@ -52,9 +53,6 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
-        manifest
-            .default_packaging
-            .push(ExportPackagingStrategy::NativeDynamic);
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("zr_vm_language.dist", ZR_VM_LANGUAGE_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -99,6 +97,7 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
                     Ok(())
                 },
             )
+            .in_set(ZR_VM_LANGUAGE_MAIN_SYSTEM_SET)
             .register()?;
         module.resource(VmGcBudget::default)?;
         module.resource(VmGcDiagnostics::default)?;
@@ -121,6 +120,7 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
                             )
                         })
                 })
+                .in_set(ZR_VM_LANGUAGE_MAIN_SYSTEM_SET)
                 .register()?;
         }
         module
@@ -160,6 +160,7 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
                     })
                 },
             )
+            .in_set(ZR_VM_LANGUAGE_MAIN_SYSTEM_SET)
             .after(zircon_runtime::scene::ecs::SystemRef::System(
                 vm_system_dispatcher_id(VmSystemStage::Last).to_string(),
             ))
@@ -179,44 +180,32 @@ pub const fn vm_system_dispatcher_id(stage: zircon_runtime::script::VmSystemStag
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "ZrVM Language",
-        RuntimePluginId::ZrVmLanguage,
-        "zircon_plugin_zr_vm_language_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("runtime")
-    .with_maturity(PluginMaturity::Experimental)
-    .with_target_modes([
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::ServerRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_enabled_by_default(false)
-    // This is a linked Rust typed interface. NativeDynamic method ABI bindings
-    // remain empty until a byte-level ScriptHostValue protocol is specified.
-    .with_provided_interface(PluginInterfaceManifest::new(
-        SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
-    ))
-    .with_capability(ZR_VM_LANGUAGE_RUNTIME_CAPABILITY)
-    .with_capability(ZR_VM_PROJECT_BACKEND_CAPABILITY)
-    .with_system_anchors([
-        ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM,
-        vm_system_dispatcher_id(VmSystemStage::FixedUpdate),
-        vm_system_dispatcher_id(VmSystemStage::Update),
-        vm_system_dispatcher_id(VmSystemStage::Last),
-        ZR_VM_GC_STEP_SYSTEM,
-    ])
-    .with_capability_status(CapabilityStatusManifest::new(
-        ZR_VM_LANGUAGE_RUNTIME_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .with_capability_status(CapabilityStatusManifest::new(
-        ZR_VM_PROJECT_BACKEND_CAPABILITY,
-        CapabilityStatus::Partial,
-    ))
-    .build()
+    ZR_VM_LANGUAGE_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .with_system_sets([ZR_VM_LANGUAGE_MAIN_SYSTEM_SET])
+        .with_enabled_by_default(false)
+        // This is a linked Rust typed interface. NativeDynamic method ABI bindings
+        // remain empty until a byte-level ScriptHostValue protocol is specified.
+        .with_provided_interface(PluginInterfaceManifest::new(
+            SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+        ))
+        .with_system_anchors([
+            ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM,
+            vm_system_dispatcher_id(VmSystemStage::FixedUpdate),
+            vm_system_dispatcher_id(VmSystemStage::Update),
+            vm_system_dispatcher_id(VmSystemStage::Last),
+            ZR_VM_GC_STEP_SYSTEM,
+        ])
+        .with_capability_status(CapabilityStatusManifest::new(
+            ZR_VM_LANGUAGE_RUNTIME_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .with_capability_status(CapabilityStatusManifest::new(
+            ZR_VM_PROJECT_BACKEND_CAPABILITY,
+            CapabilityStatus::Partial,
+        ))
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(ZrVmLanguageRuntimePlugin);

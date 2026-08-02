@@ -6,6 +6,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mask
     shader: &wgpu::ShaderModule,
     target_format: wgpu::TextureFormat,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     create_taa_reactive_mask_pipeline_with_fragment_entry(
         device,
@@ -13,6 +14,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mask
         shader,
         target_format,
         key,
+        pipeline_cache,
         "zircon-taa-reactive-mask-mesh-pipeline",
         "fs_taa_reactive_mask",
     )
@@ -24,6 +26,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mate
     shader: &wgpu::ShaderModule,
     target_format: wgpu::TextureFormat,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     create_taa_reactive_mask_pipeline_with_fragment_entry(
         device,
@@ -31,6 +34,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mate
         shader,
         target_format,
         key,
+        pipeline_cache,
         "zircon-taa-reactive-material-mask-mesh-pipeline",
         "fs_taa_reactive_material_mask",
     )
@@ -42,6 +46,7 @@ fn create_taa_reactive_mask_pipeline_with_fragment_entry(
     shader: &wgpu::ShaderModule,
     target_format: wgpu::TextureFormat,
     key: &PipelineKey,
+    pipeline_cache: Option<&wgpu::PipelineCache>,
     label: &'static str,
     fragment_entry_point: &'static str,
 ) -> wgpu::RenderPipeline {
@@ -77,7 +82,7 @@ fn create_taa_reactive_mask_pipeline_with_fragment_entry(
             })],
         }),
         multiview_mask: None,
-        cache: None,
+        cache: pipeline_cache,
     })
 }
 
@@ -119,11 +124,9 @@ mod tests {
 
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_taa_reactive_mask("));
-        assert!(
-            source
-                .wgsl_source
-                .contains("fn fs_taa_reactive_material_mask(")
-        );
+        assert!(source
+            .wgsl_source
+            .contains("fn fs_taa_reactive_material_mask("));
         assert!(source.wgsl_source.contains("surface.custom0.x"));
     }
 
@@ -152,6 +155,7 @@ mod tests {
             &shader,
             wgpu::TextureFormat::R8Unorm,
             &key,
+            None,
         );
         let _material_pipeline = create_taa_reactive_material_mask_mesh_pipeline(
             device,
@@ -159,6 +163,7 @@ mod tests {
             &shader,
             wgpu::TextureFormat::R8Unorm,
             &key,
+            None,
         );
         let error = pollster::block_on(error_scope.pop());
 

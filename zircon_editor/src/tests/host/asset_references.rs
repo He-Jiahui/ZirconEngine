@@ -5,12 +5,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{
-    module_descriptor as asset_module_descriptor, AssetReference, AssetUri, PhysicsMaterialAsset,
-    ReferenceResolutionError, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
-    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
-    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneColliderAsset, SceneColliderShapeAsset,
-    SceneEntityAsset, SceneMobilityAsset, TransformAsset, ASSET_MODULE_NAME,
+    ASSET_MODULE_NAME, AssetReference, AssetUri, PhysicsMaterialAsset, ReferenceResolutionError,
+    SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
+    SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
+    SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset, SceneMobilityAsset,
+    TransformAsset, module_descriptor as asset_module_descriptor,
 };
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationGraphNodeAsset, AnimationSequenceAsset,
     AnimationSkeletonAsset, AnimationStateAsset, AnimationStateMachineAsset,
@@ -18,17 +19,20 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::framework::scene::physics::{
     PhysicsCombineRule, PhysicsMaterialMetadata,
 };
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
 
+use crate::core::document::AuthoringSceneInstaller;
+use crate::core::project::{
+    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
+};
 use crate::tests::support::env_lock;
-use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;
-use crate::ui::host::module::{module_descriptor, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::host::editor_asset_manager::{EditorAssetManager, editor_asset_manager_handle};
+use crate::ui::host::module::{EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME, module_descriptor};
 
 fn unique_temp_path(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -67,6 +71,80 @@ fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
     runtime.activate_module(ASSET_MODULE_NAME).unwrap();
     runtime.activate_module(EDITOR_MODULE_NAME).unwrap();
     runtime
+}
+
+struct AcceptingSceneInstaller;
+
+impl AuthoringSceneInstaller for AcceptingSceneInstaller {
+    type Error = &'static str;
+
+    fn install_scene(&mut self, _scene: &zircon_runtime::scene::Scene) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+#[test]
+fn create_scene_document_refreshes_editor_assets_before_document_publication() {
+    let _guard = env_lock().lock().unwrap();
+    let config_path = unique_temp_path("zircon_editor_scene_document_catalog");
+    let project_root = unique_temp_dir("zircon_editor_scene_document_catalog_project");
+    let runtime = editor_runtime_with_config_path(&config_path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let core = runtime.handle();
+    let editor_assets = zircon_runtime::core::manager::resolve_manager_service(
+        &core,
+        editor_asset_manager_handle(&core).unwrap(),
+    )
+    .unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(&NewProjectDraft {
+            project_name: "Scene Catalog".to_string(),
+            location: project_root.to_string_lossy().into_owned(),
+            template: NewProjectTemplate::RenderableEmpty,
+        })
+        .unwrap();
+    let root = created.root.clone();
+    drop(created);
+
+    manager.open_project(&root).unwrap();
+    let ticket = manager.scene_picker_ticket().unwrap();
+    let scene_uri = AssetUri::parse("res://scenes/editor-created.scene.toml").unwrap();
+    let mut installer = AcceptingSceneInstaller;
+    manager
+        .create_scene_document(
+            ticket,
+            SceneCreateRequest::new(scene_uri.clone()),
+            &mut installer,
+        )
+        .unwrap();
+
+    let catalog = editor_assets.catalog_snapshot();
+    assert!(
+        catalog
+            .assets
+            .iter()
+            .any(|asset| asset.locator == scene_uri.to_string()),
+        "editor asset catalog was not refreshed for the created scene: {:?}",
+        catalog
+            .assets
+            .iter()
+            .map(|asset| asset.locator.as_str())
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        catalog
+            .assets
+            .iter()
+            .all(|asset| !asset.locator.contains(".zircon-scene-staging-")),
+        "editor asset catalog retained a transient scene staging source"
+    );
+
+    manager.close_project().unwrap();
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(config_path);
+    let _ = fs::remove_dir_all(project_root);
 }
 
 #[test]

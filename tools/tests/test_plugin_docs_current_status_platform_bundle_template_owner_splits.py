@@ -36,9 +36,6 @@ def _current_doc_sections(repo_root: Path) -> dict[str, str]:
         "export tooling docs": (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8"),
-        "active session notes": (
-            repo_root / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8"),
     }
 
 
@@ -49,7 +46,7 @@ def _template_case(
     owner_phrase: str,
     detail_phrase: str,
 ) -> dict[str, object]:
-    status_sections = ["09 export status", "13 standalone status", "active session notes"]
+    status_sections = ["09 export status", "13 standalone status"]
     required_by_section = {
         section: [slug, owner_file, owner_phrase] for section in status_sections
     }

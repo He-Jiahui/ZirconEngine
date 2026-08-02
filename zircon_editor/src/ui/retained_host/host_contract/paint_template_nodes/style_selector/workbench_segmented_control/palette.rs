@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_palette, HostMaterialPalette,
+    HostMaterialPalette, current_host_palette,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -33,8 +33,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORK
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_SEGMENT_GROUP_LABEL_COLOR: [u8; 4] = PALETTE.text_muted;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_segmented_control_palette(
-) -> WorkbenchSegmentedControlPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_segmented_control_palette()
+-> WorkbenchSegmentedControlPalette {
     workbench_segmented_control_palette_from_host(current_host_palette())
 }
 

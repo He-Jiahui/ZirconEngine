@@ -18,9 +18,9 @@ use crate::ui::host::NativeWindowHostState;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
+use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 #[cfg(test)]
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
-use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::ShellSizePx;

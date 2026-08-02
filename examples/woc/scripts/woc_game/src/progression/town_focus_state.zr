@@ -177,16 +177,19 @@ pub setTownFocus(
         return result;
     }
     var total = 0;
+    var budget = contract.focusPointBudget();
     var index = 0;
     while (index < requested.points.length) {
         var points = <int>requested.points[index];
-        if (points > 0) total = total + points;
+        if (points > 0) {
+            if (points > budget - total) {
+                result.reason = 3;
+                result.allocation = previous;
+                return result;
+            }
+            total = total + points;
+        }
         index = index + 1;
-    }
-    if (total > contract.focusPointBudget()) {
-        result.reason = 3;
-        result.allocation = previous;
-        return result;
     }
     result.ok = true;
     result.allocation = successfulAllocation(requested);
@@ -283,6 +286,10 @@ pub contractTest(): int {
     var overBudget = new FocusAllocation();
     addEntry(overBudget, "hide", 11);
     if (setTownFocus(previous, overBudget, true).reason != 3) return -10;
+    var huge = new FocusAllocation();
+    addEntry(huge, "hide", 2147483647);
+    addEntry(huge, "ore", 2147483647);
+    if (setTownFocus(previous, huge, true).reason != 3) return -13;
 
     var costPrevious = new FocusAllocation();
     addEntry(costPrevious, "hide", 4);

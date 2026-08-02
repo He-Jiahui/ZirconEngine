@@ -4,7 +4,7 @@ use super::super::template_selection_control_geometry::{
     frame_is_within, has_paintable_selection_control_extent,
 };
 use super::checkbox::push_checkbox;
-use super::identity::{selection_control_kind, SelectionControlKind};
+use super::identity::{SelectionControlKind, selection_control_kind};
 use super::radio::push_radio;
 use super::toggle::push_toggle;
 

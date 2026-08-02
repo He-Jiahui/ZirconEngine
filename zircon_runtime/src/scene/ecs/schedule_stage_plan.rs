@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use super::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, SceneSystemDescriptor, SceneSystemRegistry,
-    SceneSystemThreadAffinity, ScheduleConflictGraph, ScheduleError, ScheduledSceneStep,
-    SystemOrderingConstraint, SystemRef, SystemSetId, SystemStage,
+    ScheduleConflictGraph, ScheduleError, ScheduledSceneStep, SystemOrderingConstraint, SystemRef,
+    SystemSetId, SystemStage,
 };
 
 /// One tick's schedule snapshot, grouped by stage to avoid repeated stage scans.
@@ -49,10 +49,7 @@ impl SceneScheduleStagePlan {
                         internal_systems_by_stage[stage.rank()].push(system);
                     }
                     PlanNodeRef::Native(system) => {
-                        let worker_safe = system.thread_affinity()
-                            == SceneSystemThreadAffinity::WorkerSafe
-                            && system.supports_worldless_execution()
-                            && system.constraints().is_empty();
+                        let worker_safe = system.supports_worker_dispatch();
                         native_steps_by_stage[stage.rank()].push(ScheduledSceneStep::native(
                             system.id(),
                             system.stage(),
@@ -60,7 +57,7 @@ impl SceneScheduleStagePlan {
                             worker_safe,
                             system.access().has_conservative_world_access(),
                         ));
-                        if system.has_deferred_commands() {
+                        if system.has_deferred_commands() && !worker_safe {
                             native_steps_by_stage[stage.rank()].push(
                                 ScheduledSceneStep::apply_deferred_after(
                                     system.id(),
@@ -134,7 +131,11 @@ fn native_step_counts_by_stage(
 ) -> [usize; SystemStage::COUNT] {
     let mut counts = [0_usize; SystemStage::COUNT];
     for system in systems {
-        let step_count = if system.has_deferred_commands() { 2 } else { 1 };
+        let step_count = if system.has_deferred_commands() && !system.supports_worker_dispatch() {
+            2
+        } else {
+            1
+        };
         counts[system.stage().rank()] += step_count;
     }
     for system in runtime_systems {

@@ -1,12 +1,14 @@
 use crate::core::math::Vec4;
 use crate::text::{
-    InlineBaseline, InlineObjectRef, RichParseResult, StyledRun, rich::parse_rich_text,
+    CompiledRichText, InlineBaseline, InlineObjectRef, StyledRun,
+    resolve_compiled_rich_text_artifact,
 };
+use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiRenderCommand, UiResolvedTextLine, UiRichTextFormat, UiTextDecorations, UiTextPaintRun,
-    UiTextRange, UiTextWritingMode,
+    UiRenderCommand, UiResolvedTextLine, UiTextDecorations, UiTextPaintRun, UiTextRange,
+    UiTextWritingMode,
 };
 
 use super::super::image::ScreenSpaceUiImageBatch;
@@ -23,28 +25,15 @@ pub(super) struct RichTextRunPresentation {
     pub text_decorations: UiTextDecorations,
 }
 
-pub(super) fn parse_command_rich_text(command: &UiRenderCommand) -> Option<RichParseResult> {
-    (!matches!(command.style.rich_text_format, UiRichTextFormat::Plain)).then(|| {
-        parse_rich_text(
-            command.text.as_deref().unwrap_or_default(),
-            command.style.rich_text_format.into(),
-        )
-    })
+pub(super) fn lookup_command_rich_text(command: &UiRenderCommand) -> Option<Arc<CompiledRichText>> {
+    resolve_compiled_rich_text_artifact(command.text_layout.as_ref()?.rich_text_artifact.as_ref()?)
 }
 
-pub(super) fn run_for_range(parsed: &RichParseResult, range: UiTextRange) -> Option<&StyledRun> {
+pub(super) fn run_for_range(parsed: &CompiledRichText, range: UiTextRange) -> Option<&StyledRun> {
     if range.start == range.end {
         return None;
     }
-    parsed.runs.iter().find(|run| {
-        let Ok(start) = usize::try_from(run.byte_range.0) else {
-            return false;
-        };
-        let Ok(end) = usize::try_from(run.byte_range.1) else {
-            return false;
-        };
-        start <= range.start && range.end <= end
-    })
+    parsed.run_for_range(range.start, range.end)
 }
 
 pub(super) fn inline_frame(
@@ -126,6 +115,7 @@ pub(super) fn inline_layout_frame(
 
 pub(super) fn plan_inline_run(
     command: &UiRenderCommand,
+    route_context: &super::ScreenSpaceUiTextRouteContext,
     run: &UiTextPaintRun,
     rich_run: Option<&StyledRun>,
     viewport: UiFrame,
@@ -173,10 +163,12 @@ pub(super) fn plan_inline_run(
                 .unwrap_or(fallback_color);
             super::push_text_batch(
                 command,
+                route_context,
                 glyph.to_string(),
                 inline_frame,
                 Some(run.source_range),
                 Vec::new(),
+                None,
                 None,
                 Some(font.as_str().to_string()),
                 run.font_weight,

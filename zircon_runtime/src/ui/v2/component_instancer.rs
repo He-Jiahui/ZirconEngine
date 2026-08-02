@@ -8,7 +8,12 @@ use zircon_runtime_interface::ui::v2::{
     UiV2Repeat, UiV2Root, UiV2StyleDeclarationBlock,
 };
 
-use super::cache::UiV2PrototypeStore;
+use super::{
+    cache::UiV2PrototypeStore,
+    component_reference::{
+        parse_v2_component_reference, parse_v2_widget_import_reference, UiV2WidgetImportReference,
+    },
+};
 
 #[derive(Clone, Debug, Default)]
 struct MountPatch {
@@ -108,7 +113,7 @@ impl UiV2ComponentInstancer {
             }
 
             if let Some(prototype) =
-                resolve_component(&task.document, &source_node.component, store)
+                resolve_component(&task.document, &source_node.component, store)?
             {
                 validate_source_graph(&prototype.document, &prototype.definition.root)?;
                 let mut stack_key = task.component_stack.clone();
@@ -121,7 +126,7 @@ impl UiV2ComponentInstancer {
                 stack_key.push(prototype.key);
                 let component_slots = children_by_slot(&source_node.children);
                 validate_component_slots(
-                    &task.document.asset.id,
+                    &task.document,
                     &source_node.component,
                     &prototype.definition,
                     &component_slots,
@@ -215,50 +220,67 @@ fn resolve_component(
     current_document: &Arc<UiV2AssetDocument>,
     component: &str,
     store: &UiV2PrototypeStore,
-) -> Option<ComponentPrototype> {
+) -> Result<Option<ComponentPrototype>, UiV2AssetError> {
     if let Some(definition) = current_document.components.get(component).cloned() {
-        return Some(ComponentPrototype {
+        return Ok(Some(ComponentPrototype {
             key: format!("{}#{component}", current_document.asset.id),
             document: Arc::clone(current_document),
             definition,
-        });
+        }));
     }
 
-    if let Some((asset_id, component_name)) = component.split_once('#') {
-        let document = store.get(asset_id)?;
-        let definition = document.components.get(component_name).cloned()?;
-        return Some(ComponentPrototype {
-            key: format!("{asset_id}#{component_name}"),
-            document,
-            definition,
-        });
+    if component.contains('#') {
+        let (asset_id, component_name) =
+            parse_v2_component_reference(&current_document.asset.id, component)?;
+        if let Some(document) = store.get(asset_id) {
+            if let Some(definition) = document.components.get(component_name).cloned() {
+                return Ok(Some(ComponentPrototype {
+                    key: format!("{asset_id}#{component_name}"),
+                    document,
+                    definition,
+                }));
+            }
+        }
     }
 
     for reference in &current_document.imports.widgets {
-        if let Some((asset_id, imported_component)) = reference.split_once('#') {
-            if imported_component != component {
-                continue;
+        match parse_v2_widget_import_reference(&current_document.asset.id, reference)? {
+            UiV2WidgetImportReference::Component {
+                asset_id,
+                component: imported_component,
+            } => {
+                if imported_component != component {
+                    continue;
+                }
+                let Some(document) = store.get(asset_id) else {
+                    continue;
+                };
+                let Some(definition) = document.components.get(component).cloned() else {
+                    continue;
+                };
+                return Ok(Some(ComponentPrototype {
+                    key: format!("{asset_id}#{component}"),
+                    document,
+                    definition,
+                }));
             }
-            let document = store.get(asset_id)?;
-            let definition = document.components.get(component).cloned()?;
-            return Some(ComponentPrototype {
-                key: format!("{asset_id}#{component}"),
-                document,
-                definition,
-            });
-        }
-
-        let document = store.get(reference)?;
-        if let Some(definition) = document.components.get(component).cloned() {
-            return Some(ComponentPrototype {
-                key: format!("{reference}#{component}"),
-                document,
-                definition,
-            });
+            UiV2WidgetImportReference::WholeAsset(asset_id) => {
+                let Some(document) = store.get(asset_id) else {
+                    continue;
+                };
+                let Some(definition) = document.components.get(component).cloned() else {
+                    continue;
+                };
+                return Ok(Some(ComponentPrototype {
+                    key: format!("{asset_id}#{component}"),
+                    document,
+                    definition,
+                }));
+            }
         }
     }
 
-    None
+    Ok(None)
 }
 
 fn patch_for_component_mount(
@@ -460,7 +482,7 @@ fn validate_source_graph(document: &UiV2AssetDocument, root: &str) -> Result<(),
 }
 
 fn validate_component_slots(
-    asset_id: &str,
+    document: &UiV2AssetDocument,
     component: &str,
     definition: &UiV2ComponentDefinition,
     children_by_slot: &BTreeMap<String, Vec<UiV2ChildMount>>,
@@ -472,24 +494,48 @@ fn validate_component_slots(
             continue;
         } else {
             return Err(UiV2AssetError::UnknownSlot {
-                asset_id: asset_id.to_string(),
+                asset_id: document.asset.id.clone(),
                 component: component.to_string(),
                 slot_name: slot_name.clone(),
             });
         };
         if !slot_schema.multiple && children_by_slot[slot_name].len() > 1 {
             return Err(UiV2AssetError::SlotDoesNotAcceptMultiple {
-                asset_id: asset_id.to_string(),
+                asset_id: document.asset.id.clone(),
                 component: component.to_string(),
                 slot_name: slot_name.clone(),
             });
+        }
+        for child in &children_by_slot[slot_name] {
+            let child_component = document
+                .nodes
+                .get(&child.node)
+                .ok_or_else(|| UiV2AssetError::MissingNode {
+                    asset_id: document.asset.id.clone(),
+                    node_id: child.node.clone(),
+                })?
+                .component
+                .as_str();
+            let child_component = if child_component.contains('#') {
+                parse_v2_component_reference(&document.asset.id, child_component)?.1
+            } else {
+                child_component
+            };
+            if !slot_schema.accepts_component(child_component) {
+                return Err(UiV2AssetError::SlotDoesNotAcceptComponent {
+                    asset_id: document.asset.id.clone(),
+                    component: component.to_string(),
+                    slot_name: slot_name.clone(),
+                    child_component: child_component.to_string(),
+                });
+            }
         }
     }
 
     for (slot_name, slot_schema) in &definition.slots {
         if slot_schema.required && !children_by_slot.contains_key(slot_name) {
             return Err(UiV2AssetError::MissingRequiredSlot {
-                asset_id: asset_id.to_string(),
+                asset_id: document.asset.id.clone(),
                 component: component.to_string(),
                 slot_name: slot_name.clone(),
             });

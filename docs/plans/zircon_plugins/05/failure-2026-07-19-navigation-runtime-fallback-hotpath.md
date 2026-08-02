@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
   - zircon_runtime/src/navigation/runtime/state.rs
-  - zircon_plugins/navigation/runtime/src/agent/repath.rs
+  - zircon_plugins/navigation/runtime/src/agent.rs
   - zircon_plugins/navigation/runtime/src/manager/tick.rs
 tests:
   - powershell -NoProfile -Command "Select-String -Path 'zircon_runtime/src/navigation/runtime/world_scan.rs' -Pattern 'node_records\(\)|serde_json::from_value'"

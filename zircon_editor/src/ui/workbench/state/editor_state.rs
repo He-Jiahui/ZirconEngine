@@ -5,9 +5,12 @@ use crate::core::context::EditorContext;
 use crate::core::editing::authoring_world::EditorAuthoringWorld;
 use crate::scene::viewport::SceneViewportController;
 use crate::ui::workbench::project::AssetWorkspaceState;
-use crate::ui::workbench::snapshot::{EditorBridgeDiagnosticsSnapshot, StatusTaskProgressSnapshot};
+use crate::ui::workbench::snapshot::{
+    EditorBridgeDiagnosticsSnapshot, SceneEntryProjectionCache, StatusTaskProgressSnapshot,
+};
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
+use super::console_history::EditorConsoleHistory;
 use super::editor_state_play_mode::EditorPlaySession;
 use super::editor_state_viewport::GizmoTransactionCapture;
 /// Editor shell state shared between the UI host and runtime scene inspection.
@@ -26,8 +29,10 @@ pub struct EditorState {
     pub(crate) welcome: WelcomePaneSnapshot,
     pub(crate) project_open: bool,
     pub(crate) status_line: String,
+    pub(in crate::ui::workbench) console_history: EditorConsoleHistory,
     pub(crate) status_task_progress: Option<StatusTaskProgressSnapshot>,
     pub(crate) bridge_diagnostics: EditorBridgeDiagnosticsSnapshot,
+    pub(in crate::ui::workbench) scene_entry_projection_cache: SceneEntryProjectionCache,
     pub(in crate::ui::workbench) gizmo_transaction: Option<GizmoTransactionCapture>,
     pub(crate) play_session: Option<EditorPlaySession>,
 }

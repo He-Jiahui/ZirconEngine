@@ -15,6 +15,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
     opacity: f32,
 ) {
     let frame = alert_action_frame(rect);
+    if frame.width <= 0.0 || frame.height <= 0.0 {
+        return;
+    }
     let color = alert_action_color(node);
     if alert_has_close_action(node) {
         push_alert_close_mark(commands, &frame, clip, order, color, opacity);

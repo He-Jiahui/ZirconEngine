@@ -53,4 +53,8 @@ World只有单项mutation API和“clone whole authority”事务办法，没有
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `前向修复中`; no pass is claimed.
+
+- 已完成：`insert_owned_node_records(Vec<NodeRecord>)` 先整体验证 stable identity、重复项、transform、next id 与 mobility，随后将 owned records 一次发布；World generation、derived/query invalidation 与 lifecycle dispatch 在整个 batch 可见后只发布一次。
+- 仍未完成：generic component/resource writes、archetype final signature 与 Editor03 inverse delta 尚未进入同一 affected-row COW transaction；当前实现也未提供 1/1k/100k clone/move/rollback probes。因此 full World clone=0 与跨层 zero-partial-mutation 未验收，handoff 保持 `open`。
+- 当前证据：仅完成格式、diff 与静态 source guard；未运行声明的受管 Cargo、Editor undo/import 上游门或 scale fixtures。

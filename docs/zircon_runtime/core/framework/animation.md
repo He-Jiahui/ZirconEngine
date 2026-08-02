@@ -28,8 +28,9 @@ related_code:
   - zircon_runtime/src/core/framework/animation/track_path_error.rs
   - zircon_runtime/src/core/framework/animation/tests.rs
   - zircon_plugins/animation/runtime/src/manager.rs
-  - zircon_runtime/src/animation/scene_hook.rs
-  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs
+  - zircon_runtime/src/animation/sequence.rs
 implementation_files:
   - zircon_runtime/src/core/framework/animation/mod.rs
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
@@ -138,7 +139,7 @@ Framework callers can request:
 2. normalized track paths;
 3. graph or state-machine evaluations;
 4. pose sampling for a clip;
-5. sequence evaluation records; concrete sequence writeback is invoked by the animation runtime/scene hook owner, not through the neutral manager;
+5. sequence evaluation records; concrete sequence writeback is invoked by the Plugin evaluation pipeline through the Runtime sequence owner, not through the neutral manager;
 6. validated, bounded IK work through `queue_ik_command`, drained by the owning world tick;
 7. runtime status through the data-only manager methods; timeline descriptors are assembled by concrete implementation adapters rather than by the neutral manager.
 
@@ -156,7 +157,7 @@ IK commands are one-shot and world-scoped. The neutral boundary validates finite
 
 Concrete managers must still validate asset availability, clip duration, graph cycles, state-machine transition validity, malformed quaternion channels, skeleton/track mismatch, GPU resource allocation, and event dispatch ordering. The framework-level error surface intentionally covers manager/apply failures that callers can act on without parsing strings: non-finite skeleton bind fields, zero-length bind rotations, sample type mismatches, non-finite samples, zero-length quaternion samples, non-finite sequence channel samples, and zero-length sequence channel quaternions.
 
-2026-06-04 plugin runtime follow-up split `zircon_plugins/animation/runtime/src/sequence.rs` into a structural facade plus `sequence/{apply,channel_sample,conversion,interpolation,target,tests,time}.rs`. The 2026-07-13 Frameworks05 hard cut then removed the concrete scene-mutation method from `AnimationManager`: sequence binding iteration, channel sampling, interpolation, target-id fallback, and scene property writeback remain runtime/plugin-owned functions invoked by their scene hook owners.
+The 2026-06-04 Plugin runtime follow-up temporarily split sequence writeback under `zircon_plugins/animation/runtime/src/sequence/`. The 2026-08-01 hard cut deleted that duplicate facade and its children: `zircon_runtime/src/animation/sequence.rs` and `sequence/{apply,channel_sample,compiled,conversion,interpolation,target,tests,time}.rs` are now the sole sequence implementation owners, re-exported by the Plugin crate root and called from `evaluation/pipeline/sequences.rs`. The earlier Frameworks05 cut remains intact: `AnimationManager` does not accept `scene::World`, and no retired scene-hook or Plugin-local sequence compatibility path survives.
 
 ## Test Coverage
 

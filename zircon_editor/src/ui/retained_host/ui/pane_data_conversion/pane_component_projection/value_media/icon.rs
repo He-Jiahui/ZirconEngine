@@ -1,11 +1,20 @@
 use std::collections::BTreeMap;
 
-use super::super::super::pane_value_conversion::value_as_string;
+use super::super::super::pane_value_conversion::{value_as_bool, value_as_string};
 
 pub(super) fn projected_icon_name(
     component_role: &str,
     attributes: &BTreeMap<String, toml::Value>,
 ) -> String {
+    if attributes
+        .get("show_icon")
+        .or_else(|| attributes.get("showIcon"))
+        .and_then(value_as_bool)
+        == Some(false)
+    {
+        return String::new();
+    }
+
     attributes
         .get("icon")
         .or_else(|| {

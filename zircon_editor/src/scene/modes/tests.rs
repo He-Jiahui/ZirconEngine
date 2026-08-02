@@ -16,6 +16,8 @@ use super::{
     ViewportOverlayBuilder, builtin_scene_mode_registry,
 };
 
+mod isolation;
+
 struct RecordingMode {
     id: SceneModeId,
     input_outcome: InputOutcome,
@@ -67,129 +69,6 @@ impl EditorSceneMode for RecordingMode {
     }
 }
 
-struct PanickingExitMode {
-    id: SceneModeId,
-    events: Arc<Mutex<Vec<String>>>,
-}
-
-impl EditorSceneMode for PanickingExitMode {
-    fn id(&self) -> &SceneModeId {
-        &self.id
-    }
-
-    fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
-
-    fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {
-        self.events
-            .lock()
-            .unwrap()
-            .push(format!("exit:{}", self.id.as_str()));
-        panic!("scene mode exit panic");
-    }
-
-    fn handle_input(
-        &mut self,
-        _input: &ViewportInput,
-        _ctx: &mut SceneModeCtx<'_>,
-    ) -> InputOutcome {
-        InputOutcome::PassThrough
-    }
-}
-
-struct PanickingEnterMode {
-    id: SceneModeId,
-    events: Arc<Mutex<Vec<String>>>,
-}
-
-impl EditorSceneMode for PanickingEnterMode {
-    fn id(&self) -> &SceneModeId {
-        &self.id
-    }
-
-    fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {
-        self.events
-            .lock()
-            .unwrap()
-            .push(format!("enter:{}", self.id.as_str()));
-        panic!("scene mode enter panic");
-    }
-
-    fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {
-        self.events
-            .lock()
-            .unwrap()
-            .push(format!("exit:{}", self.id.as_str()));
-    }
-
-    fn handle_input(
-        &mut self,
-        _input: &ViewportInput,
-        _ctx: &mut SceneModeCtx<'_>,
-    ) -> InputOutcome {
-        InputOutcome::PassThrough
-    }
-}
-
-struct PanickingInputMode {
-    id: SceneModeId,
-    events: Arc<Mutex<Vec<String>>>,
-}
-
-impl EditorSceneMode for PanickingInputMode {
-    fn id(&self) -> &SceneModeId {
-        &self.id
-    }
-
-    fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
-
-    fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {
-        self.events
-            .lock()
-            .unwrap()
-            .push(format!("exit:{}", self.id.as_str()));
-    }
-
-    fn handle_input(
-        &mut self,
-        _input: &ViewportInput,
-        _ctx: &mut SceneModeCtx<'_>,
-    ) -> InputOutcome {
-        self.events
-            .lock()
-            .unwrap()
-            .push(format!("input:{}", self.id.as_str()));
-        panic!("scene mode input panic");
-    }
-}
-
-struct PanickingDropMode {
-    id: SceneModeId,
-}
-
-impl EditorSceneMode for PanickingDropMode {
-    fn id(&self) -> &SceneModeId {
-        &self.id
-    }
-
-    fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
-
-    fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
-
-    fn handle_input(
-        &mut self,
-        _input: &ViewportInput,
-        _ctx: &mut SceneModeCtx<'_>,
-    ) -> InputOutcome {
-        InputOutcome::PassThrough
-    }
-}
-
-impl Drop for PanickingDropMode {
-    fn drop(&mut self) {
-        panic!("scene mode drop panic");
-    }
-}
-
 struct PassThroughEffectMode {
     id: SceneModeId,
 }
@@ -221,6 +100,35 @@ impl EditorSceneMode for PassThroughEffectMode {
     }
 
     fn update(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+    fn build_overlay(&self, _out: &mut ViewportOverlayBuilder) {}
+}
+
+struct PassThroughSelectionMutationMode {
+    id: SceneModeId,
+}
+
+impl PassThroughSelectionMutationMode {
+    fn new(id: &str) -> Self {
+        Self {
+            id: SceneModeId::new(id),
+        }
+    }
+}
+
+impl EditorSceneMode for PassThroughSelectionMutationMode {
+    fn id(&self) -> &SceneModeId {
+        &self.id
+    }
+
+    fn enter(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+    fn exit(&mut self, _ctx: &mut SceneModeCtx<'_>) {}
+
+    fn handle_input(&mut self, _input: &ViewportInput, ctx: &mut SceneModeCtx<'_>) -> InputOutcome {
+        ctx.selection_mut().select_only(WorldDomain::Edit, 42);
+        InputOutcome::PassThrough
+    }
 
     fn build_overlay(&self, _out: &mut ViewportOverlayBuilder) {}
 }
@@ -292,6 +200,33 @@ fn pass_through_mode_effects_do_not_leak_to_the_consuming_mode() {
         InputOutcome::Consumed
     );
     assert!(ctx.take_input_effect().is_none());
+}
+
+#[test]
+fn pass_through_mode_selection_mutations_do_not_leak_to_the_next_mode() {
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let mut selection = SelectionModel::default();
+    let settings = SceneViewportSettings::default();
+    let mut ctx = SceneModeCtx::new(&mut selection, &settings);
+    let base = Box::new(RecordingMode::new(
+        "scene.select",
+        InputOutcome::Consumed,
+        events,
+    ));
+    let mut stack = SceneModeStack::new(base, &mut ctx).unwrap();
+    stack
+        .push(
+            Box::new(PassThroughSelectionMutationMode::new("scene.navigation")),
+            &mut ctx,
+        )
+        .unwrap();
+
+    assert_eq!(
+        stack.handle_input(&ViewportInput::PointerMoved(Vec2::ZERO), &mut ctx),
+        InputOutcome::Consumed
+    );
+    assert!(ctx.selection().active_items().is_empty());
+    assert_eq!(ctx.selection().active_primary(), None);
 }
 
 #[test]
@@ -520,56 +455,6 @@ fn mode_registry_rejects_duplicate_unknown_and_mismatched_factories() {
 }
 
 #[test]
-fn isolated_scene_mode_exit_panic_does_not_skip_remaining_shutdown() {
-    let events = Arc::new(Mutex::new(Vec::new()));
-    let mut registry = SceneModeRegistry::default();
-    registry
-        .register(SceneModeRegistration::new(
-            scene_mode_descriptor("scene.safe-base"),
-            recording_factory("scene.safe-base", Arc::clone(&events)),
-        ))
-        .unwrap();
-    let panic_events = Arc::clone(&events);
-    registry
-        .register(SceneModeRegistration::new(
-            scene_mode_descriptor("scene.panicking-overlay"),
-            move || {
-                Box::new(PanickingExitMode {
-                    id: SceneModeId::new("scene.panicking-overlay"),
-                    events: Arc::clone(&panic_events),
-                }) as Box<dyn EditorSceneMode>
-            },
-        ))
-        .unwrap();
-    let mut selection = SelectionModel::default();
-    let settings = SceneViewportSettings::default();
-    let mut ctx = SceneModeCtx::new(&mut selection, &settings);
-    let mut stack = SceneModeStack::new(
-        registry
-            .create(&SceneModeId::new("scene.safe-base"))
-            .unwrap(),
-        &mut ctx,
-    )
-    .unwrap();
-    stack
-        .push(
-            registry
-                .create(&SceneModeId::new("scene.panicking-overlay"))
-                .unwrap(),
-            &mut ctx,
-        )
-        .unwrap();
-    events.lock().unwrap().clear();
-
-    stack.shutdown(&mut ctx);
-
-    assert_eq!(
-        events.lock().unwrap().as_slice(),
-        ["exit:scene.panicking-overlay", "exit:scene.safe-base"]
-    );
-}
-
-#[test]
 fn builtin_registry_maps_scene_mode_activations_to_their_registered_modes() {
     let registry = builtin_scene_mode_registry();
 
@@ -690,4 +575,64 @@ fn scene_mode_input_effect_carrier_is_inline() {
 fn command_eval_projection_uses_active_mode_and_world_selection() {
     let events = Arc::new(Mutex::new(Vec::new()));
     let mut selection = SelectionModel::default();
-    selection.
+    selection.extend(WorldDomain::Edit, [11, 12]);
+    let settings = SceneViewportSettings::default();
+    let mut ctx = SceneModeCtx::new(&mut selection, &settings);
+    let base = Box::new(RecordingMode::new(
+        "scene.select",
+        InputOutcome::PassThrough,
+        events.clone(),
+    ));
+    let mut stack = SceneModeStack::new(base, &mut ctx).unwrap();
+
+    let edit_projection =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(WhenClause::SceneModeActive(SceneModeId::new("scene.select")).eval(&edit_projection));
+    assert!(WhenClause::SelectionNonEmpty.eval(&edit_projection));
+
+    stack
+        .push(
+            Box::new(RecordingMode::new(
+                "scene.transform",
+                InputOutcome::Consumed,
+                events,
+            )),
+            &mut ctx,
+        )
+        .unwrap();
+    ctx.selection_mut().set_active_domain(WorldDomain::Play);
+    let empty_play_projection =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(
+        WhenClause::SceneModeActive(SceneModeId::new("scene.transform"))
+            .eval(&empty_play_projection)
+    );
+    assert!(!WhenClause::SelectionNonEmpty.eval(&empty_play_projection));
+
+    ctx.selection_mut().select_only(WorldDomain::Play, 99);
+    let selected_play_projection =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(WhenClause::SelectionNonEmpty.eval(&selected_play_projection));
+}
+
+fn scene_mode_descriptor(id: &str) -> SceneModeDescriptor {
+    SceneModeDescriptor::new(
+        id,
+        "Navigation",
+        "editor.scene",
+        EditorOperationPath::parse("scene.mode.activate.navigation").unwrap(),
+    )
+}
+
+fn recording_factory(
+    id: &'static str,
+    events: Arc<Mutex<Vec<String>>>,
+) -> impl Fn() -> Box<dyn EditorSceneMode> + Send + Sync + 'static {
+    move || {
+        Box::new(RecordingMode::new(
+            id,
+            InputOutcome::PassThrough,
+            events.clone(),
+        ))
+    }
+}

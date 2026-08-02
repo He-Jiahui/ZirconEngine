@@ -1,6 +1,6 @@
 use crate::core::framework::render::{RenderGpuSceneUploadPath, RenderStats};
 
-use super::{DiagnosticStore, record_bool, record_bytes, record_count};
+use super::{record_bool, record_bytes, record_count, DiagnosticStore};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -37,6 +37,13 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_gpu_scene_upload_path == RenderGpuSceneUploadPath::DirectQueueWrite,
         &["render", "gpu_scene", "upload", "direct_queue_write"],
+    );
+    record_bool(
+        store,
+        "render.gpu_scene.upload_path.staging_copy",
+        frame_index,
+        stats.last_gpu_scene_upload_path == RenderGpuSceneUploadPath::StagingCopy,
+        &["render", "gpu_scene", "upload", "staging_copy"],
     );
     record_count(
         store,

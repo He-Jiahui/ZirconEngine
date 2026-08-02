@@ -1,12 +1,118 @@
 use woc_protocol::{
     canonical_pairs, command_descriptor, decode_frame, encode_frame, require_finite,
-    validate_command_payload, Command, CommandKind, DecodeLimits, EntityRef, Event, FixedTickInput,
-    Frame, MessageKind, MovementFrame, MovementInputFlags, NetworkEnvelope,
-    OfflineSessionBootstrap, ProtocolError, RlActionBatch, RlObservationBatch, SaveState,
-    WorldSnapshot, COMMAND_CATALOG, COMMAND_PAYLOAD_SCHEMA_SHA256, FRAME_HEADER_BYTES,
-    OFFLINE_SESSION_BOOTSTRAP_VERSION, PROTOCOL_VERSION, SCHEMA_FINGERPRINT_BYTES,
-    STANDARD_OFFLINE_WORLD_SEED, WORLD_STATE_FORMAT, WORLD_STATE_SCHEMA_VERSION,
+    validate_command_payload, Command, CommandKind, DecodeLimits, EnterDungeonCommandPayload,
+    EntityRef, Event, FixedTickInput, Frame, HarvestCorpseCommandPayload, MessageKind,
+    MovementFrame, MovementInputFlags, NetworkEnvelope, OfflineSessionBootstrap,
+    OfflineWeaponSkinAccount, ProtocolError, RlActionBatch, RlObservationBatch, SaveState,
+    TownFocusAllocationEntry, TownFocusCommandPayload, WorldSnapshot, COMMAND_CATALOG,
+    COMMAND_PAYLOAD_SCHEMA_SHA256, ENTER_DUNGEON_COMMAND_ID, FRAME_HEADER_BYTES,
+    OFFLINE_SESSION_BOOTSTRAP_VERSION, OFFLINE_WEAPON_SKIN_COUNT, PROTOCOL_VERSION,
+    SCHEMA_FINGERPRINT_BYTES, STANDARD_OFFLINE_WORLD_SEED, WORLD_STATE_FORMAT,
+    WORLD_STATE_SCHEMA_VERSION,
 };
+
+#[test]
+fn enter_dungeon_payload_preserves_authoritative_dungeon_identity() {
+    let payload = EnterDungeonCommandPayload {
+        dungeon_id: "unlisted_authoritative_dungeon".to_owned(),
+    };
+    let encoded = payload.clone().encode().expect("payload encodes");
+    assert_eq!(
+        encoded,
+        [
+            30, 0, 0, 0, b'u', b'n', b'l', b'i', b's', b't', b'e', b'd', b'_', b'a', b'u', b't',
+            b'h', b'o', b'r', b'i', b't', b'a', b't', b'i', b'v', b'e', b'_', b'd', b'u', b'n',
+            b'g', b'e', b'o', b'n',
+        ]
+    );
+    assert_eq!(EnterDungeonCommandPayload::decode(&encoded), Ok(payload));
+
+    let trailing = [4, 0, 0, 0, b't', b'e', b's', b't', 0];
+    assert_eq!(
+        EnterDungeonCommandPayload::decode(&trailing),
+        Err(ProtocolError::TrailingPayload { remaining: 1 })
+    );
+    assert!(matches!(
+        EnterDungeonCommandPayload {
+            dungeon_id: "a".repeat(257),
+        }
+        .encode(),
+        Err(ProtocolError::CollectionTooLarge { .. })
+    ));
+    assert_eq!(ENTER_DUNGEON_COMMAND_ID, 112);
+}
+
+#[test]
+fn corpse_harvest_payload_roundtrips_and_rejects_noncanonical_component_codes() {
+    let payload = HarvestCorpseCommandPayload {
+        target_id: 0x0807_0605_0403_0201,
+        component_codes: vec![1, 0, 3],
+    };
+    let encoded = payload.clone().encode().expect("payload encodes");
+    assert_eq!(encoded, vec![1, 2, 3, 4, 5, 6, 7, 8, 3, 1, 0, 3]);
+    assert_eq!(HarvestCorpseCommandPayload::decode(&encoded), Ok(payload));
+
+    let invalid_code = HarvestCorpseCommandPayload {
+        target_id: 1,
+        component_codes: vec![9],
+    };
+    assert_eq!(
+        invalid_code.encode(),
+        Err(ProtocolError::InvalidCorpseHarvestComponentCode(9))
+    );
+    let too_many = HarvestCorpseCommandPayload {
+        target_id: 1,
+        component_codes: vec![1, 2, 3, 4],
+    };
+    assert!(matches!(
+        too_many.encode(),
+        Err(ProtocolError::CollectionTooLarge { .. })
+    ));
+
+    let invalid_count = [0, 0, 0, 0, 0, 0, 0, 0, 4, 1, 2, 3];
+    assert_eq!(
+        validate_command_payload(13, &invalid_count),
+        Err(ProtocolError::InvalidCorpseHarvestComponentCount(4))
+    );
+    let trailing = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0];
+    assert_eq!(
+        HarvestCorpseCommandPayload::decode(&trailing),
+        Err(ProtocolError::TrailingPayload { remaining: 1 })
+    );
+}
+
+#[test]
+fn town_focus_payload_roundtrips_integer_allocation_in_source_order() {
+    let payload = TownFocusCommandPayload {
+        allocation: vec![
+            TownFocusAllocationEntry {
+                component: "hide".to_owned(),
+                points: 6,
+            },
+            TownFocusAllocationEntry {
+                component: "fang".to_owned(),
+                points: 4,
+            },
+            TownFocusAllocationEntry {
+                component: "herb".to_owned(),
+                points: 0,
+            },
+            TownFocusAllocationEntry {
+                component: "invalid".to_owned(),
+                points: -1,
+            },
+        ],
+    };
+    let encoded = payload.clone().encode().expect("payload encodes");
+    assert_eq!(&encoded[..2], &4u16.to_le_bytes());
+    assert_eq!(TownFocusCommandPayload::decode(&encoded), Ok(payload));
+
+    let empty = TownFocusCommandPayload {
+        allocation: Vec::new(),
+    };
+    assert_eq!(empty.clone().encode(), Ok(0u16.to_le_bytes().to_vec()));
+    assert_eq!(TownFocusCommandPayload::decode(&[0, 0]), Ok(empty));
+}
 
 #[test]
 fn generated_command_catalog_is_contiguous_and_pins_transport_metadata() {
@@ -65,12 +171,12 @@ fn current_catalog_exposes_the_typed_talent_cosmetic_and_spec_payloads() {
 
 #[test]
 fn reference_identity_pins_the_opaque_world_state_compatibility_key() {
-    assert_eq!(WORLD_STATE_FORMAT, "WOS71");
-    assert_eq!(WORLD_STATE_SCHEMA_VERSION, 71);
-    assert_eq!(woc_protocol::REFERENCE_IDENTITY.world_state_format, "WOS71");
+    assert_eq!(WORLD_STATE_FORMAT, "WOS83");
+    assert_eq!(WORLD_STATE_SCHEMA_VERSION, 83);
+    assert_eq!(woc_protocol::REFERENCE_IDENTITY.world_state_format, "WOS83");
     assert_eq!(
         woc_protocol::REFERENCE_IDENTITY.world_state_schema_version,
-        71
+        83
     );
     assert_eq!(
         woc_protocol::REFERENCE_IDENTITY.command_payload_schema_sha256,
@@ -91,6 +197,9 @@ fn frame_round_trip_preserves_arbitrary_bytes() {
 
 #[test]
 fn fixed_tick_and_world_snapshot_payloads_round_trip_losslessly() {
+    let mut weapon_skin_account = OfflineWeaponSkinAccount::default();
+    weapon_skin_account.owned[0] = true;
+    weapon_skin_account.loadout_codes[0] = 1;
     let input = FixedTickInput {
         tick: 42,
         commands: vec![Command {
@@ -126,6 +235,7 @@ fn fixed_tick_and_world_snapshot_payloads_round_trip_losslessly() {
             player_class: 1,
             player_name: "Vale".to_string(),
             skin_variant: 2,
+            weapon_skin_account,
         }),
     };
     let input_bytes = input.encode_payload().expect("tick input must encode");
@@ -282,6 +392,7 @@ fn offline_bootstrap_rejects_nonstandard_seed_name_and_class_skin_mismatches() {
         player_class: 1,
         player_name: "Vale".to_string(),
         skin_variant: 0,
+        weapon_skin_account: OfflineWeaponSkinAccount::default(),
     };
     assert!(matches!(
         bootstrap.encode_payload(),
@@ -318,6 +429,112 @@ fn offline_bootstrap_rejects_nonstandard_seed_name_and_class_skin_mismatches() {
         invalid_class_skin.encode_payload(),
         Err(ProtocolError::InvalidOfflineBootstrap(_))
     ));
+
+    let unowned_weapon_skin = OfflineSessionBootstrap {
+        world_seed: STANDARD_OFFLINE_WORLD_SEED,
+        player_class: 1,
+        player_name: "Vale".to_string(),
+        skin_variant: 0,
+        weapon_skin_account: OfflineWeaponSkinAccount {
+            owned: [false; 29],
+            loadout_codes: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+        ..bootstrap
+    };
+    assert!(matches!(
+        unowned_weapon_skin.encode_payload(),
+        Err(ProtocolError::InvalidOfflineBootstrap(_))
+    ));
+
+    let mismatched_weapon_skin_type = OfflineSessionBootstrap {
+        world_seed: STANDARD_OFFLINE_WORLD_SEED,
+        player_class: 1,
+        player_name: "Vale".to_string(),
+        skin_variant: 0,
+        weapon_skin_account: OfflineWeaponSkinAccount {
+            owned: {
+                let mut owned = [false; OFFLINE_WEAPON_SKIN_COUNT];
+                owned[1] = true;
+                owned
+            },
+            loadout_codes: [2, 0, 0, 0, 0, 0, 0, 0],
+        },
+        ..bootstrap
+    };
+    assert!(matches!(
+        mismatched_weapon_skin_type.encode_payload(),
+        Err(ProtocolError::InvalidOfflineBootstrap(_))
+    ));
+
+    let valid_axe_loadout = OfflineSessionBootstrap {
+        world_seed: STANDARD_OFFLINE_WORLD_SEED,
+        player_class: 1,
+        player_name: "Vale".to_string(),
+        skin_variant: 0,
+        weapon_skin_account: OfflineWeaponSkinAccount {
+            owned: {
+                let mut owned = [false; OFFLINE_WEAPON_SKIN_COUNT];
+                owned[1] = true;
+                owned
+            },
+            loadout_codes: [0, 2, 0, 0, 0, 0, 0, 0],
+        },
+        ..bootstrap
+    };
+    let mut tampered_weapon_skin_type = valid_axe_loadout
+        .encode_payload()
+        .expect("matching axe skin loadout must encode");
+    let loadout_offset = 2 + 4 + 1 + 4 + "Vale".len() + 2 + OFFLINE_WEAPON_SKIN_COUNT;
+    tampered_weapon_skin_type[loadout_offset] = 2;
+    tampered_weapon_skin_type[loadout_offset + 1] = 0;
+    assert!(matches!(
+        OfflineSessionBootstrap::decode_payload(&tampered_weapon_skin_type),
+        Err(ProtocolError::InvalidOfflineBootstrap(_))
+    ));
+}
+
+#[test]
+fn offline_bootstrap_v2_carries_the_maximum_weapon_skin_account() {
+    let mut weapon_skin_account = OfflineWeaponSkinAccount::default();
+    weapon_skin_account.owned[0] = true;
+    weapon_skin_account.loadout_codes[0] = 1;
+    let bootstrap = OfflineSessionBootstrap {
+        launch_version: OFFLINE_SESSION_BOOTSTRAP_VERSION,
+        world_seed: STANDARD_OFFLINE_WORLD_SEED,
+        player_class: 0,
+        player_name: "Aaaaaaaaaaaaaaaa".to_string(),
+        skin_variant: 0,
+        weapon_skin_account,
+    };
+    let encoded_bootstrap = bootstrap
+        .encode_payload()
+        .expect("v2 bootstrap must encode");
+    assert_eq!(encoded_bootstrap.len(), 66);
+    assert_eq!(
+        OfflineSessionBootstrap::decode_payload(&encoded_bootstrap)
+            .expect("v2 bootstrap must decode"),
+        bootstrap
+    );
+
+    let input = FixedTickInput {
+        tick: 1,
+        commands: Vec::new(),
+        wall_time_forbidden: true,
+        committed_state: Vec::new(),
+        committed_state_digest: 0,
+        generation: 0,
+        movement_frames: Vec::new(),
+        offline_bootstrap: Some(bootstrap),
+    };
+    assert_eq!(
+        FixedTickInput::decode_payload(
+            &input
+                .encode_payload()
+                .expect("v2 bootstrap reaches fixed tick input"),
+        )
+        .expect("fixed tick input decodes"),
+        input
+    );
 }
 
 #[test]

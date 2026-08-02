@@ -1,6 +1,7 @@
 mod boundary;
 mod directory_transaction;
 mod recent_projects;
+mod scene_document;
 mod template_creation;
 
 use std::path::PathBuf;

@@ -1,4 +1,4 @@
-use crate::asset::assets::{texture_asset_from_cube_lut, ImportedAsset};
+use crate::asset::assets::{ImportedAsset, texture_asset_from_cube_lut};
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
 
 pub(crate) fn import_cube_lut(

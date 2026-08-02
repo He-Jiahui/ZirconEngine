@@ -1,5 +1,5 @@
 use super::super::super::super::data::FrameRect;
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::super::render_commands::HostPaintCommand;
 
 const PAPER_SHADOW_AMBIENT_ALPHA_SCALE: f32 = 0.27;

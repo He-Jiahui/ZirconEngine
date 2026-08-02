@@ -1,5 +1,5 @@
 use super::{
-    source_cubemap_mip_count, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT, source_cubemap_mip_count,
 };
 
 /// Independent result layout for a prefiltered radiance cubemap.

@@ -8,6 +8,15 @@ use crate::graphics::scene::scene_renderer::environment::realtime_ibl_time_slice
 use crate::render_graph::RenderGraphBuilder;
 
 #[test]
+fn realtime_ibl_graph_binding_reuses_compiled_required_resource_names() {
+    let source = include_str!("../realtime_ibl_gpu_resources.rs");
+
+    assert!(source.contains("required_resource_names: &[String]"));
+    assert!(source.contains("binary_search_by"));
+    assert!(!source.contains("use std::collections::HashSet;"));
+}
+
+#[test]
 fn gpu_resources_bind_only_live_compiled_graph_views_without_duplicate_textures() {
     let Ok(backend) = RenderBackend::new_offscreen() else {
         return;
@@ -23,11 +32,17 @@ fn gpu_resources_bind_only_live_compiled_graph_views_without_duplicate_textures(
     let plan = append_realtime_ibl_graph_plan(&mut builder, &request, &batch)
         .expect("realtime IBL graph plan");
     let graph = builder.compile().expect("realtime IBL graph");
+    let mut required_resource_names = graph
+        .resource_lifetimes()
+        .iter()
+        .map(|lifetime| lifetime.name.clone())
+        .collect::<Vec<_>>();
+    required_resource_names.sort();
     let gpu_resources = RealtimeIblGpuResources::new(&backend.device, &request);
     let mut execution_resources = RenderGraphExecutionResources::new();
 
     gpu_resources
-        .bind_graph_plan(&plan, &graph, &mut execution_resources)
+        .bind_graph_plan(&plan, &required_resource_names, &mut execution_resources)
         .expect("live A/B resources should bind");
     let report = execution_resources
         .validate_materialized_graph_resources(&graph)
@@ -40,10 +55,9 @@ fn gpu_resources_bind_only_live_compiled_graph_views_without_duplicate_textures(
         .into_iter()
         .chain(plan.work.resources())
     {
-        let is_live = graph
-            .resource_lifetimes()
-            .iter()
-            .any(|lifetime| lifetime.name == resource.name);
+        let is_live = required_resource_names
+            .binary_search_by(|name| name.as_str().cmp(resource.name.as_str()))
+            .is_ok();
         assert_eq!(
             execution_resources.has_bound_resource(&resource.name),
             is_live,
@@ -93,8 +107,14 @@ fn graph_and_gpu_mip_count_mismatch_is_rejected_before_submission() {
     let mut execution_resources = RenderGraphExecutionResources::new();
 
     let graph = builder.compile().expect("realtime IBL graph");
+    let mut required_resource_names = graph
+        .resource_lifetimes()
+        .iter()
+        .map(|lifetime| lifetime.name.clone())
+        .collect::<Vec<_>>();
+    required_resource_names.sort();
     let error = gpu_resources
-        .bind_graph_plan(&plan, &graph, &mut execution_resources)
+        .bind_graph_plan(&plan, &required_resource_names, &mut execution_resources)
         .expect_err("mismatched view counts must fail");
 
     assert!(error.contains("view counts do not match"), "{error}");

@@ -93,17 +93,17 @@ impl SceneModeStack {
         ctx: &mut SceneModeCtx<'_>,
     ) -> InputOutcome {
         for mode in self.overlays.iter_mut().rev() {
-            let checkpoint = ctx.input_effect_checkpoint();
+            let checkpoint = ctx.checkpoint();
             if mode.handle_input(input, ctx) == InputOutcome::Consumed {
                 return InputOutcome::Consumed;
             }
-            ctx.truncate_input_effects(checkpoint);
+            ctx.restore_after_pass_through(checkpoint);
         }
 
-        let checkpoint = ctx.input_effect_checkpoint();
+        let checkpoint = ctx.checkpoint();
         let outcome = self.base.handle_input(input, ctx);
         if outcome == InputOutcome::PassThrough {
-            ctx.truncate_input_effects(checkpoint);
+            ctx.restore_after_pass_through(checkpoint);
         }
         outcome
     }

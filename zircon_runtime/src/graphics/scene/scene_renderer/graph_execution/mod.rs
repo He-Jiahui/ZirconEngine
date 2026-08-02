@@ -1,5 +1,6 @@
 mod builtin_postprocess_executors;
 mod builtin_scene_executors;
+mod frame_command_encoder_set;
 mod materialization;
 mod materialization_validation;
 pub(crate) mod parallel_encoder_set;
@@ -13,6 +14,7 @@ mod render_pass_executor_registry;
 mod transient_materialization;
 mod transient_resource_pool;
 
+pub(in crate::graphics::scene::scene_renderer) use frame_command_encoder_set::FrameCommandEncoderSet;
 pub use render_graph_execution_record::{
     RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadAuditStatus,
     RenderGraphComputeWorkloadDispatchContext, RenderGraphExecutionRecord,
@@ -27,6 +29,8 @@ pub(in crate::graphics::scene::scene_renderer) use render_pass_execution_context
     RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 pub use render_pass_executor_id::RenderPassExecutorId;
-pub use render_pass_executor_registration::{RenderPassExecutor, RenderPassExecutorRegistration};
+pub use render_pass_executor_registration::{
+    RenderPassExecutor, RenderPassExecutorRegistration, RenderPassRecordingPolicy,
+};
 pub use render_pass_executor_registry::{RenderPassExecutorFn, RenderPassExecutorRegistry};
 pub(in crate::graphics::scene::scene_renderer) use transient_resource_pool::TransientResourcePool;

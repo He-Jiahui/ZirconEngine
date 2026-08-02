@@ -201,6 +201,7 @@ fn append_test_virtual_geometry_asset(
 
     instances.push(RenderVirtualGeometryInstance {
         entity: mesh.node_id,
+        stable_instance_key: 0,
         source_model: Some(source_model),
         transform: mesh.transform,
         cluster_offset: instance_cluster_offset,

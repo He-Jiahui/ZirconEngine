@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::framework::render::{
-    DEFAULT_CAMERA_EXPOSURE_EV100, EXPOSURE_HISTOGRAM_BIN_COUNT, RenderExposureMode,
-    RenderExposureSettings,
+    RenderExposureMode, RenderExposureSettings, DEFAULT_CAMERA_EXPOSURE_EV100,
+    EXPOSURE_HISTOGRAM_BIN_COUNT,
 };
 use crate::core::math::UVec2;
 

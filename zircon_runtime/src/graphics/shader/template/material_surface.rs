@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     RenderMaterialAlphaMode, ShaderFeatureBits, StandardMaterialDescriptor,
 };
 
-const STANDARD_MATERIAL_SURFACE_ENTRY_POINT: &str = "standard_material_surface";
+pub(crate) const STANDARD_MATERIAL_SURFACE_ENTRY_POINT: &str = "standard_material_surface";
 
 const STANDARD_MATERIAL_SURFACE_SOURCE: &str = r#"
 struct StandardMaterialPropertyUniform {
@@ -23,16 +23,14 @@ struct StandardMaterialPropertyUniform {
 @group(2) @binding(0) var<uniform> standard_material_properties: StandardMaterialPropertyUniform;
 @group(2) @binding(1) var standard_material_base_color_tex: texture_2d<f32>;
 @group(2) @binding(2) var standard_material_base_color_sampler: sampler;
-@group(2) @binding(3) var standard_material_normal_tex: texture_2d<f32>;
-@group(2) @binding(4) var standard_material_normal_sampler: sampler;
+__ZR_NORMAL_TEXTURE_BINDINGS__
 @group(2) @binding(5) var standard_material_metallic_roughness_tex: texture_2d<f32>;
 @group(2) @binding(6) var standard_material_metallic_roughness_sampler: sampler;
 @group(2) @binding(7) var standard_material_occlusion_tex: texture_2d<f32>;
 @group(2) @binding(8) var standard_material_occlusion_sampler: sampler;
 @group(2) @binding(9) var standard_material_emissive_tex: texture_2d<f32>;
 @group(2) @binding(10) var standard_material_emissive_sampler: sampler;
-@group(2) @binding(11) var standard_material_clearcoat_normal_tex: texture_2d<f32>;
-@group(2) @binding(12) var standard_material_clearcoat_normal_sampler: sampler;
+__ZR_CLEARCOAT_NORMAL_BINDINGS__
 
 const ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS: f32 = 0.001;
 
@@ -66,78 +64,15 @@ fn standard_material_normalize_or_fallback(value: vec3<f32>, fallback: vec3<f32>
     return normalize(value);
 }
 
-struct StandardMaterialTangentFrame {
-    tangent: vec3<f32>,
-    bitangent: vec3<f32>,
-    normal: vec3<f32>,
-};
+__ZR_TANGENT_FRAME_TYPE__
 
-fn standard_material_tangent_frame(
-    input: ZrVertexOutput,
-    normal_ws: vec3<f32>,
-) -> StandardMaterialTangentFrame {
-    let normal = standard_material_normalize_or_fallback(
-        normal_ws,
-        vec3<f32>(0.0, 0.0, 1.0),
-    );
-    var tangent = input.tangent_ws - normal * dot(input.tangent_ws, normal);
-    if (length(tangent) <= 0.00001) {
-        let helper_axis = select(
-            vec3<f32>(0.0, 1.0, 0.0),
-            vec3<f32>(1.0, 0.0, 0.0),
-            abs(normal.x) < 0.9,
-        );
-        tangent = cross(helper_axis, normal);
-    }
-    tangent = normalize(tangent);
-    let bitangent = standard_material_normalize_or_fallback(
-        cross(normal, tangent) * input.tangent_handedness,
-        vec3<f32>(0.0, 1.0, 0.0),
-    );
-    return StandardMaterialTangentFrame(tangent, bitangent, normal);
-}
+__ZR_TANGENT_FRAME_HELPER__
 
-fn standard_material_tangent_normal(
-    sampled_normal: vec3<f32>,
-    frame: StandardMaterialTangentFrame,
-) -> vec3<f32> {
-    return standard_material_normalize_or_fallback(
-        frame.tangent * sampled_normal.x
-            + frame.bitangent * sampled_normal.y
-            + frame.normal * sampled_normal.z,
-        frame.normal,
-    );
-}
+__ZR_TANGENT_NORMAL_HELPER__
 
-fn standard_material_sampled_normal(input: ZrVertexOutput, normal_uv: vec2<f32>) -> vec3<f32> {
-    let geometric_normal = standard_material_normalize_or_fallback(
-        input.normal_ws,
-        vec3<f32>(0.0, 0.0, 1.0),
-    );
-    if (!ZR_FEATURE_HAS_NORMAL_TEXTURE) {
-        return geometric_normal;
-    }
-    let frame = standard_material_tangent_frame(input, geometric_normal);
-    let sampled_normal = textureSample(
-        standard_material_normal_tex,
-        standard_material_normal_sampler,
-        normal_uv,
-    ).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
-    return standard_material_tangent_normal(sampled_normal, frame);
-}
+__ZR_NORMAL_SAMPLE_HELPER__
 
-fn standard_material_sampled_clearcoat_normal(
-    input: ZrVertexOutput,
-    normal_uv: vec2<f32>,
-) -> vec3<f32> {
-    let frame = standard_material_tangent_frame(input, input.normal_ws);
-    let sampled_normal = textureSample(
-        standard_material_clearcoat_normal_tex,
-        standard_material_clearcoat_normal_sampler,
-        normal_uv,
-    ).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
-    return standard_material_tangent_normal(sampled_normal, frame);
-}
+__ZR_CLEARCOAT_NORMAL_HELPER__
 
 fn standard_material_alpha_cutoff() -> f32 {
     let uniform_cutoff = clamp(standard_material_properties.data8.z, 0.0, 1.0);
@@ -166,12 +101,7 @@ fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
         standard_material_properties.data2,
         standard_material_properties.data7.x,
     );
-    let normal_uv = standard_material_transform_uv_channel(
-        input.uv0,
-        input.uv1,
-        standard_material_properties.data3,
-        standard_material_properties.data7.y,
-    );
+__ZR_NORMAL_UV__
     let metallic_roughness_uv = standard_material_transform_uv_channel(
         input.uv0,
         input.uv1,
@@ -191,33 +121,35 @@ fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
         standard_material_properties.data1.w,
     );
 
-    let sampled_base = textureSample(
+    let sampled_base = textureSampleBias(
         standard_material_base_color_tex,
         standard_material_base_color_sampler,
         base_color_uv,
+        scene.camera_world_position.w,
     ) * input.tint * input.color;
-    let metallic_roughness = textureSample(
+    let metallic_roughness = textureSampleBias(
         standard_material_metallic_roughness_tex,
         standard_material_metallic_roughness_sampler,
         metallic_roughness_uv,
+        scene.camera_world_position.w,
     );
-    let occlusion_sample = textureSample(
+    let occlusion_sample = textureSampleBias(
         standard_material_occlusion_tex,
         standard_material_occlusion_sampler,
         occlusion_uv,
+        scene.camera_world_position.w,
     ).r;
-    let emissive_sample = textureSample(
+    let emissive_sample = textureSampleBias(
         standard_material_emissive_tex,
         standard_material_emissive_sampler,
         emissive_uv,
+        scene.camera_world_position.w,
     ).rgb;
 
     var surface: ZrSurfaceOutput;
     surface.base_color = sampled_base;
-    surface.normal_ws = standard_material_sampled_normal(input, normal_uv);
-    let surface_frame = standard_material_tangent_frame(input, surface.normal_ws);
-    surface.tangent_ws = surface_frame.tangent;
-    surface.bitangent_ws = surface_frame.bitangent;
+__ZR_SURFACE_NORMAL_ASSIGNMENT__
+__ZR_SURFACE_TANGENT_ASSIGNMENT__
     surface.metallic = clamp(standard_material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);
     surface.roughness = clamp(standard_material_properties.data0.y * metallic_roughness.g, ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS, 1.0);
     surface.occlusion = clamp(standard_material_properties.data0.z * occlusion_sample, 0.0, 1.0);
@@ -225,7 +157,7 @@ fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
     surface.alpha_cutoff = standard_material_alpha_cutoff();
     surface.unlit = standard_material_properties.data0.w;
     surface.shading_model_id = standard_material_shading_model_id();
-    surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, normal_uv);
+__ZR_CLEARCOAT_NORMAL_ASSIGNMENT__
     surface.clearcoat = select(0.0, clamp(standard_material_properties.data9.x, 0.0, 1.0), ZR_FEATURE_PBR_CLEARCOAT);
     surface.clearcoat_roughness = select(0.5, clamp(standard_material_properties.data9.y, ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS, 1.0), ZR_FEATURE_PBR_CLEARCOAT);
     surface.anisotropy_strength = select(0.0, clamp(standard_material_properties.data9.z, 0.0, 1.0), ZR_FEATURE_PBR_ANISOTROPY);
@@ -245,6 +177,145 @@ fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
     return surface;
 }
 "#;
+
+const STANDARD_MATERIAL_NORMAL_TEXTURE_BINDINGS: &str = r#"
+@group(2) @binding(3) var standard_material_normal_tex: texture_2d<f32>;
+@group(2) @binding(4) var standard_material_normal_sampler: sampler;
+"#;
+
+const STANDARD_MATERIAL_TANGENT_FRAME_TYPE: &str = r#"
+struct StandardMaterialTangentFrame {
+    tangent: vec3<f32>,
+    bitangent: vec3<f32>,
+    normal: vec3<f32>,
+};
+"#;
+
+const STANDARD_MATERIAL_TANGENT_FRAME_HELPER: &str = r#"
+fn standard_material_tangent_frame(
+    input: ZrVertexOutput,
+    normal_ws: vec3<f32>,
+) -> StandardMaterialTangentFrame {
+    let normal = standard_material_normalize_or_fallback(
+        normal_ws,
+        vec3<f32>(0.0, 0.0, 1.0),
+    );
+    var tangent = input.tangent_ws - normal * dot(input.tangent_ws, normal);
+    if (length(tangent) <= 0.00001) {
+        let helper_axis = select(
+            vec3<f32>(0.0, 1.0, 0.0),
+            vec3<f32>(1.0, 0.0, 0.0),
+            abs(normal.x) < 0.9,
+        );
+        tangent = cross(helper_axis, normal);
+    }
+    tangent = normalize(tangent);
+    let bitangent = standard_material_normalize_or_fallback(
+        cross(normal, tangent) * input.tangent_handedness,
+        vec3<f32>(0.0, 1.0, 0.0),
+    );
+    return StandardMaterialTangentFrame(tangent, bitangent, normal);
+}
+"#;
+
+const STANDARD_MATERIAL_TANGENT_NORMAL_HELPER: &str = r#"
+fn standard_material_tangent_normal(
+    sampled_normal: vec3<f32>,
+    frame: StandardMaterialTangentFrame,
+) -> vec3<f32> {
+    return standard_material_normalize_or_fallback(
+        frame.tangent * sampled_normal.x
+            + frame.bitangent * sampled_normal.y
+            + frame.normal * sampled_normal.z,
+        frame.normal,
+    );
+}
+"#;
+
+const STANDARD_MATERIAL_NORMAL_UV: &str = r#"
+    let normal_uv = standard_material_transform_uv_channel(
+        input.uv0,
+        input.uv1,
+        standard_material_properties.data3,
+        standard_material_properties.data7.y,
+    );
+"#;
+
+const STANDARD_MATERIAL_NORMAL_TEXTURE_HELPER: &str = r#"
+fn standard_material_sampled_normal(input: ZrVertexOutput, normal_uv: vec2<f32>) -> vec3<f32> {
+    let geometric_normal = standard_material_normalize_or_fallback(
+        input.normal_ws,
+        vec3<f32>(0.0, 0.0, 1.0),
+    );
+    let frame = standard_material_tangent_frame(input, geometric_normal);
+    let sampled_normal = textureSampleBias(
+        standard_material_normal_tex,
+        standard_material_normal_sampler,
+        normal_uv,
+        scene.camera_world_position.w,
+    ).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
+    return standard_material_tangent_normal(sampled_normal, frame);
+}
+"#;
+
+const STANDARD_MATERIAL_NORMAL_GEOMETRIC_HELPER: &str = r#"
+fn standard_material_sampled_normal(input: ZrVertexOutput) -> vec3<f32> {
+    return standard_material_normalize_or_fallback(
+        input.normal_ws,
+        vec3<f32>(0.0, 0.0, 1.0),
+    );
+}
+"#;
+
+const STANDARD_MATERIAL_SURFACE_NORMAL_TEXTURE_ASSIGNMENT: &str =
+    "    surface.normal_ws = standard_material_sampled_normal(input, normal_uv);\n";
+
+const STANDARD_MATERIAL_SURFACE_NORMAL_GEOMETRIC_ASSIGNMENT: &str =
+    "    surface.normal_ws = standard_material_sampled_normal(input);\n";
+
+const STANDARD_MATERIAL_SURFACE_TANGENT_ASSIGNMENT: &str = r#"
+    surface.tangent_ws = vec3<f32>(1.0, 0.0, 0.0);
+    surface.bitangent_ws = vec3<f32>(0.0, 1.0, 0.0);
+"#;
+
+const STANDARD_MATERIAL_SURFACE_ANISOTROPIC_TANGENT_ASSIGNMENT: &str = r#"
+    surface.tangent_ws = vec3<f32>(1.0, 0.0, 0.0);
+    surface.bitangent_ws = vec3<f32>(0.0, 1.0, 0.0);
+    let surface_frame = standard_material_tangent_frame(input, surface.normal_ws);
+    surface.tangent_ws = surface_frame.tangent;
+    surface.bitangent_ws = surface_frame.bitangent;
+"#;
+
+const STANDARD_MATERIAL_CLEARCOAT_NORMAL_BINDINGS: &str = r#"
+@group(2) @binding(11) var standard_material_clearcoat_normal_tex: texture_2d<f32>;
+@group(2) @binding(12) var standard_material_clearcoat_normal_sampler: sampler;
+"#;
+
+const STANDARD_MATERIAL_CLEARCOAT_NORMAL_HELPER: &str = r#"
+fn standard_material_sampled_clearcoat_normal(
+    input: ZrVertexOutput,
+    normal_uv: vec2<f32>,
+) -> vec3<f32> {
+    let frame = standard_material_tangent_frame(input, input.normal_ws);
+    let sampled_normal = textureSampleBias(
+        standard_material_clearcoat_normal_tex,
+        standard_material_clearcoat_normal_sampler,
+        normal_uv,
+        scene.camera_world_position.w,
+    ).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
+    return standard_material_tangent_normal(sampled_normal, frame);
+}
+"#;
+
+const STANDARD_MATERIAL_CLEARCOAT_NORMAL_ASSIGNMENT: &str = r#"
+    surface.clearcoat_normal_ws = surface.normal_ws;
+    if (ZR_FEATURE_PBR_CLEARCOAT) {
+        surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, normal_uv);
+    }
+"#;
+
+const STANDARD_MATERIAL_CLEARCOAT_NORMAL_FALLBACK: &str =
+    "    surface.clearcoat_normal_ws = surface.normal_ws;\n";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct StandardMaterialSurfaceSource {
@@ -266,11 +337,94 @@ pub(crate) fn standard_material_surface_source_for_features(
     features: ShaderFeatureBits,
     alpha_cutoff: f32,
 ) -> StandardMaterialSurfaceSource {
+    let has_normal_texture = features.contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE);
+    let has_clearcoat = features.contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    let has_anisotropy = features.contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    let needs_normal_uv = has_normal_texture || has_clearcoat;
+    let needs_tangent_frame = has_normal_texture || has_clearcoat || has_anisotropy;
+    let needs_tangent_normal = has_normal_texture || has_clearcoat;
+    let clearcoat_source = if has_clearcoat {
+        (
+            STANDARD_MATERIAL_CLEARCOAT_NORMAL_BINDINGS,
+            STANDARD_MATERIAL_CLEARCOAT_NORMAL_HELPER,
+            STANDARD_MATERIAL_CLEARCOAT_NORMAL_ASSIGNMENT,
+        )
+    } else {
+        ("", "", STANDARD_MATERIAL_CLEARCOAT_NORMAL_FALLBACK)
+    };
+    let surface_source = STANDARD_MATERIAL_SURFACE_SOURCE
+        .replace(
+            "__ZR_NORMAL_TEXTURE_BINDINGS__",
+            if has_normal_texture {
+                STANDARD_MATERIAL_NORMAL_TEXTURE_BINDINGS
+            } else {
+                ""
+            },
+        )
+        .replace(
+            "__ZR_TANGENT_FRAME_TYPE__",
+            if needs_tangent_frame {
+                STANDARD_MATERIAL_TANGENT_FRAME_TYPE
+            } else {
+                ""
+            },
+        )
+        .replace(
+            "__ZR_TANGENT_FRAME_HELPER__",
+            if needs_tangent_frame {
+                STANDARD_MATERIAL_TANGENT_FRAME_HELPER
+            } else {
+                ""
+            },
+        )
+        .replace(
+            "__ZR_TANGENT_NORMAL_HELPER__",
+            if needs_tangent_normal {
+                STANDARD_MATERIAL_TANGENT_NORMAL_HELPER
+            } else {
+                ""
+            },
+        )
+        .replace(
+            "__ZR_NORMAL_SAMPLE_HELPER__",
+            if has_normal_texture {
+                STANDARD_MATERIAL_NORMAL_TEXTURE_HELPER
+            } else {
+                STANDARD_MATERIAL_NORMAL_GEOMETRIC_HELPER
+            },
+        )
+        .replace(
+            "__ZR_NORMAL_UV__",
+            if needs_normal_uv {
+                STANDARD_MATERIAL_NORMAL_UV
+            } else {
+                ""
+            },
+        )
+        .replace(
+            "__ZR_SURFACE_NORMAL_ASSIGNMENT__",
+            if has_normal_texture {
+                STANDARD_MATERIAL_SURFACE_NORMAL_TEXTURE_ASSIGNMENT
+            } else {
+                STANDARD_MATERIAL_SURFACE_NORMAL_GEOMETRIC_ASSIGNMENT
+            },
+        )
+        .replace(
+            "__ZR_SURFACE_TANGENT_ASSIGNMENT__",
+            if has_anisotropy {
+                STANDARD_MATERIAL_SURFACE_ANISOTROPIC_TANGENT_ASSIGNMENT
+            } else {
+                STANDARD_MATERIAL_SURFACE_TANGENT_ASSIGNMENT
+            },
+        )
+        .replace("__ZR_CLEARCOAT_NORMAL_BINDINGS__", clearcoat_source.0)
+        .replace("__ZR_CLEARCOAT_NORMAL_HELPER__", clearcoat_source.1)
+        .replace("__ZR_CLEARCOAT_NORMAL_ASSIGNMENT__", clearcoat_source.2);
     StandardMaterialSurfaceSource {
         source: format!(
             "const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = {};\n{}",
             format_wgsl_f32(clamp_alpha_cutoff(alpha_cutoff)),
-            STANDARD_MATERIAL_SURFACE_SOURCE
+            surface_source
         ),
         entry_point: STANDARD_MATERIAL_SURFACE_ENTRY_POINT,
         features,

@@ -441,6 +441,7 @@ mod tests {
             page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform::default(),
                 cluster_offset: 0,
@@ -521,6 +522,7 @@ mod tests {
             page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform::default(),
                 cluster_offset: 0,
@@ -611,6 +613,7 @@ mod tests {
             page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
+                stable_instance_key: 0,
                 source_model: None,
                 transform: Transform::default(),
                 cluster_offset: 0,

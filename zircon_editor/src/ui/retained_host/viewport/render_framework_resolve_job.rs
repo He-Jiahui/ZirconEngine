@@ -1,7 +1,7 @@
 use crate::core::jobs::{EditorJob, JobContext, JobError};
 use crate::scene::viewport::RenderFramework;
-use zircon_runtime::core::manager::{render_framework_handle, ManagerServiceHandle};
 use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::manager::{ManagerServiceHandle, render_framework_handle};
 
 pub(super) struct RenderFrameworkResolveJob {
     core: CoreHandle,

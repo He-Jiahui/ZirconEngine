@@ -57,4 +57,8 @@ storage/resource API把“取得独占借用”和“发生语义修改”合并
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `前向修复中`; no pass is claimed.
+
+- 已完成的 storage-backed 修复：table、SparseSet 与 resource store 分别提供同一次可变借用中的 value/ticks split borrow。`Mut<T>` 和 `ResMut<T>` 持有真实 changed-tick authority 与当前 run tick；仅 `DerefMut`、`as_mut`、`into_inner` 或显式 `set_changed` 写入 changed tick。普通只读 deref/fetch 不产生 changed 记录，重复 mutable access 重写同一 run tick。
+- Raw `World::get_mut<T>` 与 `World::get_resource_mut<T>` 仍在交付裸 `&mut` 时立即标记，避免调用者离开 wrapper 后静默漏报。fixed-scene component 的专用双存储路径继续使用这个既有 eager 语义；它不属于本 storage-backed wrapper hard cut，必须随 `world-fixed-component-storage-and-stable-query-index` 的单一正文 owner 收敛，不能在这里复制 tick authority。
+- 已加入未执行的回归合同：table `Mut` 只读 fetch、SparseSet `Mut::set_changed` 与 `ResMut::as_mut` 分别验证无访问时 tick 保持、显式/真实 mutable access 后才对 downstream changed reader 可见。尚未运行声明的 Cargo filter、wraparound/cached-query 全矩阵或 0/1/100% mutation probes，因此本 artifact 仍为 `open`。

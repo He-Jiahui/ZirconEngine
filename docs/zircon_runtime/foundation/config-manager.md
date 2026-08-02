@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/foundation.rs
+  - zircon_runtime/src/core/framework/foundation/mod.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/foundation/module.rs
   - zircon_runtime/src/foundation/persistence.rs
@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/foundation/persistence/atomic_file.rs
   - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/foundation.rs
+  - zircon_runtime/src/core/framework/foundation/mod.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/foundation/module.rs
   - zircon_runtime/src/foundation/persistence.rs

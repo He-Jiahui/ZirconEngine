@@ -5,7 +5,7 @@ use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use crate::ui::retained_host::ui_perf::{
-    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
+    UiPerfScenario, enter_ui_perf_scenario, time_ui_perf_scenario,
 };
 
 use self::active::dispatch_active_tab_drag_move;

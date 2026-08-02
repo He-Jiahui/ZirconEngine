@@ -1,26 +1,27 @@
 use crate::core::framework::render::{
     AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessStackDescriptor,
     RenderBloomSettings, RenderCameraTargetResolutionReport, RenderColorGradingSettings,
-    RenderFrameExtract, RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource,
-    RenderPostProcessEffectStackSettings, RenderViewportHandle, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPayloadSource,
+    RenderDynamicResolutionSettings, RenderFrameExtract, RenderFrameworkError,
+    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPostProcessEffectStackSettings,
+    RenderViewportHandle, RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
 };
-use crate::graphics::ViewportRenderOutputTarget;
 use crate::graphics::runtime::FrameHistoryValidationKey;
+use crate::graphics::{
+    BuiltinRenderFeature, RenderPipelineCompileOptions, ViewportRenderOutputTarget,
+};
 use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::graphics::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
+use super::super::super::budget::BudgetDegradeSettings;
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::super::frame_submission_context::{
-    FrameSubmissionContext, UiSubmissionStats, temporal_jitter_for_submission,
+    temporal_jitter_for_submission, FrameSubmissionContext, UiSubmissionStats,
 };
 use super::camera_history_key::camera_history_key_for_extract;
-use super::compile_pipeline::{
-    compile_submission_pipeline, compile_submission_pipeline_with_options,
-};
+use super::compile_pipeline::compile_submission_pipeline_with_options;
 use super::environment_ibl_compile_options::compile_options_with_environment_ibl_bake_request;
 use super::material_feature_extract::resolve_advanced_pbr_material_usage;
 use super::resolve_enabled_features::resolve_enabled_features;
@@ -72,6 +73,11 @@ fn build_frame_submission_context_from_source(
     ui_extract: Option<&UiRenderExtract>,
     source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
+    let budget_degrade_settings = {
+        let state = framework.lock_state();
+        state.degrade_ladder.settings()
+    };
+    apply_budget_render_scale(Arc::make_mut(extract_source), budget_degrade_settings);
     let mut viewport_state =
         resolve_viewport_record_state(framework, viewport, extract_source.as_ref())?;
     let primary_target_size = viewport_state.size();
@@ -110,11 +116,16 @@ fn build_frame_submission_context_from_source(
         submission_size,
         resolved_camera_target.texture_format(),
     );
-    let compiled_pipeline = compile_submission_pipeline(
+    let budget_compile_options = compile_options_for_budget_degrade(
+        viewport_state.compile_options().clone(),
+        budget_degrade_settings,
+    );
+    let compiled_pipeline = compile_submission_pipeline_with_options(
         framework,
         &viewport_state,
         sized_extract,
         compile_camera_target,
+        &budget_compile_options,
     )?;
     let advanced_runtime_plan = viewport_state.take_advanced_runtime_plan();
     let solari_runtime_report = viewport_state.take_solari_runtime_report();
@@ -142,7 +153,10 @@ fn build_frame_submission_context_from_source(
     let effective_color_grading = color_grading_enabled
         .then_some(resolved_post_process.color_grading)
         .unwrap_or_else(RenderColorGradingSettings::default);
-    let effective_effect_stack = resolved_post_process.effect_stack;
+    let effective_effect_stack = effect_stack_for_budget_degrade(
+        resolved_post_process.effect_stack,
+        budget_degrade_settings,
+    );
     let source_payloads = source_payloads
         .unwrap_or_else(|| FrameSubmissionSourcePayloads::from_extract(sized_extract));
     let source_virtual_geometry = source_payloads.virtual_geometry;
@@ -203,6 +217,7 @@ fn build_frame_submission_context_from_source(
             effective_extract,
             viewport_state.previous_visibility(),
             viewport_state.previous_static_index(),
+            viewport_state.previous_dynamic_index(),
             Some(framework.compute_task_pool()),
             effective_hybrid_gi_extract.as_ref(),
             virtual_geometry_enabled
@@ -270,8 +285,7 @@ fn build_frame_submission_context_from_source(
     let compile_options = compile_options_with_environment_ibl_bake_request(
         asset_manager.as_ref(),
         effective_extract,
-        viewport_state
-            .compile_options()
+        budget_compile_options
             .clone()
             .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
             .with_post_process_stack(post_process_stack.clone()),
@@ -366,7 +380,47 @@ fn build_frame_submission_context_from_source(
         virtual_geometry_page_upload_plan,
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),
-    ))
+    )
+    .with_global_material_mip_bias(budget_degrade_settings.global_mip_bias as f32))
+}
+
+fn apply_budget_render_scale(extract: &mut RenderFrameExtract, settings: BudgetDegradeSettings) {
+    let authored_scale = extract.view.camera.dynamic_resolution.clamped_scale();
+    let effective_scale = authored_scale.min(settings.render_scale);
+    extract.view.camera.dynamic_resolution = if effective_scale < 1.0 {
+        RenderDynamicResolutionSettings::fixed_scale(effective_scale)
+    } else {
+        RenderDynamicResolutionSettings::disabled()
+    };
+}
+
+fn compile_options_for_budget_degrade(
+    mut options: RenderPipelineCompileOptions,
+    settings: BudgetDegradeSettings,
+) -> RenderPipelineCompileOptions {
+    if settings.disable_ssao {
+        options = options
+            .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+            .with_plugin_feature_disabled("screen_space_ambient_occlusion");
+    }
+    if settings.disable_contact_shadow {
+        options = options.with_plugin_feature_disabled("contact_shadow");
+    }
+    if settings.disable_bloom_high {
+        options = options.with_feature_disabled(BuiltinRenderFeature::Bloom);
+    }
+    options
+}
+
+fn effect_stack_for_budget_degrade(
+    mut effect_stack: RenderPostProcessEffectStackSettings,
+    settings: BudgetDegradeSettings,
+) -> RenderPostProcessEffectStackSettings {
+    effect_stack.screen_space_reflection.roughness_mip_bias += settings.global_mip_bias as f32;
+    if settings.disable_ssr {
+        effect_stack.screen_space_reflection.intensity = 0.0;
+    }
+    effect_stack
 }
 
 fn apply_renderer_owned_particle_previous_state(

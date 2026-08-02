@@ -1,6 +1,6 @@
 use std::process::Child;
 
-use super::process_tree::terminate_process_tree;
+use crate::core::process::terminate_process_tree;
 
 /// Ensures an unwinding export job cannot detach a still-running child process.
 pub(in crate::ui::host) struct ExportProcessChildGuard {
@@ -49,8 +49,8 @@ mod tests {
     use std::process::{Command, Stdio};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-    use super::super::process_tree::configure_process_tree_cancellation;
     use super::ExportProcessChildGuard;
+    use crate::core::process::configure_process_tree_cancellation;
 
     #[test]
     fn dropping_guard_terminates_and_reaps_the_process_tree() {

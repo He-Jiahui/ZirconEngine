@@ -4,7 +4,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::retained_host::welcome_recent_geometry::{
-    welcome_recent_content_height, welcome_recent_viewport,
+    WelcomeRecentLayoutMetrics, welcome_recent_content_height_with_metrics,
+    welcome_recent_viewport_with_metrics,
 };
 
 use super::constants::{
@@ -15,14 +16,16 @@ use super::welcome_recent_pointer_layout::WelcomeRecentPointerLayout;
 
 pub(in crate::ui::retained_host::welcome_recent_pointer) fn viewport_frame(
     layout: &WelcomeRecentPointerLayout,
+    metrics: WelcomeRecentLayoutMetrics,
 ) -> UiFrame {
-    welcome_recent_viewport(layout.pane_size)
+    welcome_recent_viewport_with_metrics(layout.pane_size, metrics)
 }
 
 pub(in crate::ui::retained_host::welcome_recent_pointer) fn content_height(
     item_count: usize,
+    metrics: WelcomeRecentLayoutMetrics,
 ) -> f32 {
-    welcome_recent_content_height(item_count)
+    welcome_recent_content_height_with_metrics(item_count, metrics)
 }
 
 pub(in crate::ui::retained_host::welcome_recent_pointer) fn item_node_id(index: usize) -> UiNodeId {

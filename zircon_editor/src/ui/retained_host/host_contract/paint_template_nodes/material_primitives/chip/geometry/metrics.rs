@@ -1,4 +1,5 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::super::bounded_extent as chip_bounded_extent;
 use super::super::identity::{chip_is_outlined, chip_is_small};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_MEDIUM_HEIGHT:
@@ -22,19 +23,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_DELETE_SMALL_EDGE: f32 = 16.0;
 
 const CHIP_LABEL_LINE_HEIGHT_RATIO: f32 = 1.5;
-const CHIP_MIN_LABEL_WIDTH: f32 = 1.0;
 const CHIP_LABEL_VERTICAL_CENTER_RATIO: f32 = 0.5;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_font_size(
     node: &TemplatePaneNodeData,
+    rect: &FrameRect,
 ) -> f32 {
-    if node.font_size.is_finite() && node.font_size > 0.0 {
+    let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
         node.font_size
     } else if chip_is_small(node) {
         CHIP_SMALL_LABEL_FONT_SIZE
     } else {
         CHIP_LABEL_FONT_SIZE
-    }
+    };
+    requested.min(chip_bounded_extent(rect.width).min(chip_bounded_extent(rect.height)))
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_base_padding(
@@ -55,8 +57,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_la
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_line_height(
     font_size: f32,
+    rect: &FrameRect,
 ) -> f32 {
-    font_size * CHIP_LABEL_LINE_HEIGHT_RATIO
+    chip_bounded_extent(font_size * CHIP_LABEL_LINE_HEIGHT_RATIO)
+        .min(chip_bounded_extent(rect.height))
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_width(
@@ -64,15 +68,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_la
     available_width: f32,
 ) -> f32 {
     measured_width
-        .min(available_width)
-        .max(CHIP_MIN_LABEL_WIDTH)
+        .is_finite()
+        .then_some(measured_width.max(0.0))
+        .unwrap_or(0.0)
+        .min(chip_bounded_extent(available_width))
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_y(
     rect: &FrameRect,
     line_height: f32,
 ) -> f32 {
-    rect.y + (rect.height - line_height).max(0.0) * CHIP_LABEL_VERTICAL_CENTER_RATIO
+    rect.y
+        + (chip_bounded_extent(rect.height) - line_height).max(0.0)
+            * CHIP_LABEL_VERTICAL_CENTER_RATIO
 }
 
 #[cfg(test)]
@@ -94,15 +102,15 @@ mod tests {
             width: 120.0,
             height: 32.0,
         };
-        let line_height = chip_label_line_height(chip_font_size(&node(13.0)));
+        let line_height = chip_label_line_height(chip_font_size(&node(13.0), &rect), &rect);
 
         assert!((line_height - 19.5).abs() <= 0.01);
         assert!((chip_label_y(&rect, line_height) - 16.25).abs() <= 0.01);
     }
 
     #[test]
-    fn chip_label_width_clamps_to_available_and_minimum() {
+    fn chip_label_width_clamps_to_available_bounds() {
         assert!((chip_label_width(80.0, 44.0) - 44.0).abs() <= 0.01);
-        assert!((chip_label_width(0.0, 44.0) - 1.0).abs() <= 0.01);
+        assert!((chip_label_width(0.0, 44.0) - 0.0).abs() <= 0.01);
     }
 }

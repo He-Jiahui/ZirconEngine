@@ -5,5 +5,5 @@ mod store;
 
 pub use cursor::{MessageCursor, MessageReadIter};
 pub use id::{Message, MessageId};
-pub use queue::Messages;
+pub use queue::{MessageRetention, MessageRetentionMetrics, Messages};
 pub use store::MessageStore;

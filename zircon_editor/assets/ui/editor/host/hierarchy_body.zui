@@ -11,20 +11,20 @@ node = "root"
 component = "VerticalGroup"
 control_id = "HierarchyPaneBodyRoot"
 classes = ["editor-pane", "hierarchy-pane", "panel"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "header" }, { node = "tree_slot", slot = { name = "hierarchy_tree_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "HierarchyHeader"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "select_root" }]
 
 [nodes.select_root]
 component = "IconButton"
 control_id = "SelectRoot"
-props = { label = "Select Root", icon = "editor_pages/hierarchy/entity/scene.svg" }
-layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Select Root", icon = "editor_pages/hierarchy/entity/scene.svg", icon_placement = "leading" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "workbench.selection.select_scene_node" }]
 
 [nodes.tree_slot]

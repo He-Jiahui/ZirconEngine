@@ -23,16 +23,34 @@ declaration through
 `runtime_declaration(...).with_module_descriptor(module_descriptor()).into_descriptor()`;
 registration and importer behavior remain explicit in `plugin.rs`.
 
-The checked-in `plugin.toml` is the generated manifest projection. Its generated
-header, package parity tests, and the plugin structure audit keep it aligned with
-the Rust declaration. Do not hand-duplicate declared package metadata or read
-`plugin.toml` through `include_str!` in production code.
+The checked-in `plugin.toml` is the generated manifest projection. Its single
+generated header, `cargo zircon plugin check`, package parity tests, and the
+plugin structure audit keep it aligned with the Rust declaration. Dist crates
+may embed this snapshot with `include_str!` as a native package payload, but
+runtime/editor code must not treat TOML as the identity or capability authority.
 
-Native ABI packages use `zircon_plugin_sdk::native_plugin_manifest_v3!` for the
-embedded NUL-terminated manifest and ABI-facing package constants. The
-checked-in `plugin.toml` contains the same manifest text without its C-string
-terminator, and the native fixture parity test must keep the two projections
-identical.
+Native ABI packages use `declare_plugin!` to generate the NUL-terminated plugin
+ID, entry names, requested capabilities, and registration manifests consumed by
+`native_dist_runtime_plugin_v3!` or `native_dist_editor_plugin_v3!`. Dist crates
+must not restore local ABI constant tables.
+
+Install the repository tool once with
+`cargo install --path tools/cargo-zircon --locked`. The supported plugin workflow
+is then:
+
+- `cargo zircon plugin new <id> --kind importer|system|editor [--native]`
+- `cargo zircon plugin sync-manifest [<id>]`
+- `cargo zircon plugin check [--artifact-root <target-profile-directory>]`
+- `cargo zircon plugin validate <plugin-directory-or-plugin.toml> [--artifact <file>]`
+
+`plugin new` owns workspace, runtime/editor catalog, and `zircon_app` feature
+wiring. It refuses to overwrite an existing package. `check` is read-only and
+fails on declaration snapshot drift, missing workspace members, missing catalog
+snapshots, invalid manifest contracts, or a supplied dist artifact whose ABI,
+identity, embedded manifest, capabilities, or entry symbols drift. Artifact
+validation loads the dynamic library, so `--artifact` and `--artifact-root`
+must be used only with artifacts built from trusted source. The complete workflow is documented in
+[`docs/cli-and-tooling/cargo-zircon-plugin-workflow.md`](../docs/cli-and-tooling/cargo-zircon-plugin-workflow.md).
 
 | SDK API version | Migration |
 | --- | --- |

@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use super::manifest::validate_zrpack_asset_path;
 use super::{
-    zrpack_content_hash, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
-    ZrPackManifest, ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
+    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest,
+    ZrPackError, ZrPackManifest, zrpack_content_hash,
 };
 
 const ZRPACK_HEADER_SIZE: usize = 24;

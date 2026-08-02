@@ -11,7 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/text/shaping/script_segment.rs
-  - zircon_runtime/src/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/text/shaping/itemize.rs
+  - zircon_runtime/src/text/shaping/horizontal/direct.rs
   - zircon_runtime/src/text/layout_session.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
 ---
@@ -56,4 +57,12 @@ related_code:
 
 ## 修复结果与回传
 
-Open state: `PERF-MVP-233已完成model 10/10静态审查；等待Text02联动Text09回传packed script、single shared source、range-only line、serde兼容、规模内存/分配、current-source Cargo与产品trace`。
+2026-08-01 implementation state: `open / resolving_failure / non_validation_implementation_complete / secondary_review_complete / managed_validation_pending`。
+
+- `ShapedGlyphScript` 已硬切为4 B `Iso15924Tag`，保持四字符string serde契约并拒绝非法长度/非ASCII字母；glyph clone不再复制heap-owned script。
+- `ShapedGlyphRun` 以`Arc<str>`唯一持有request source；`ShapedTextLine`删除owned text，只保存absolute source range并通过`run.line_text(...)`借用切片。parallel request在完整source匹配时复用同一`Arc`。
+- `ShapedRunCacheEntry` 删除第三份exact text owner，碰撞比较直接读取run source；内存预算采用保守resident estimate，覆盖String/Vec capacity、run/source/features三个Arc header、索引clone key/LRU/lookup bucket和hash load reserve。
+- OpenType features由`CanonicalBackendShapeRequest`每个raw request至多排序去重一次；同一canonical slice贯穿cache lookup、exact key和shape attrs。bucket仍使用线性hash，但key额外保存并精确比较canonical slice与kerning，摘要碰撞不得命中。
+- shaped-cache大文件中的专属测试已迁入`cache/shaped_cache/tests.rs`；完整`ShapedGlyphRun` serde roundtrip覆盖绝对range、非空line/glyph和反序列化后的`line_text()`。当前相关production owners均低于800行，Rust 2021 focused rustfmt与text diff check通过。
+
+当前不标记fixed：未直接执行Cargo，1/100/10k allocation/bytes、serde/BIDI/vertical/cache组合门与真实产品帧仍待managed validation；没有生成或登记新的`docs/tests/runtime/text`截图。

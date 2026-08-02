@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    HostControlMetrics, current_host_metrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -15,8 +15,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub chevron_reserve: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_metrics(
-) -> WorkbenchChipMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_metrics()
+-> WorkbenchChipMetrics {
     workbench_chip_metrics_from_host(current_host_metrics())
 }
 
@@ -74,8 +74,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_ch
     workbench_chip_metrics().chevron_right
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_chevron_reserve(
-) -> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_chevron_reserve()
+-> f32 {
     workbench_chip_metrics().chevron_reserve
 }
 

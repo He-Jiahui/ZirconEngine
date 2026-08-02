@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
 
 const SHORTCUT_LEFT_RATIO: f32 = 0.58;
 const SHORTCUT_WIDTH_RATIO: f32 = 0.38;
@@ -21,8 +21,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub adornment_reserved_width: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_popup_row_metrics(
-) -> WorkbenchPopupRowMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_popup_row_metrics()
+-> WorkbenchPopupRowMetrics {
     workbench_popup_row_metrics_from_host(current_host_metrics())
 }
 

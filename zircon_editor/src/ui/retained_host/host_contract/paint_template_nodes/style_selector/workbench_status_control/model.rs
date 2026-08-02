@@ -1,5 +1,10 @@
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT:
+    &str = "diagnostic_signal";
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_SEMANTIC_STATUS_SIGNAL_VARIANT:
+    &str = "semantic_status_signal";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum WorkbenchStatusSignalKind
 {
@@ -7,6 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum Workb
     Success,
     Warning,
     Info,
+    Error,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -16,23 +16,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
     target: Option<RasterTargetSize>,
     tint: Option<[u8; 4]>,
 ) -> Option<HostPaintImagePixels> {
+    // Asset refresh clears this bounded cache, so stable paints never rescan candidates.
+    let key = image_pixels_cache_key(base_key, target, tint);
+    if let Some(cached) = cached_visual_asset_pixels(&key) {
+        return cached;
+    }
     let path = {
         zircon_runtime::profile_scope!(
             "editor",
             "host_painter",
             "visual_assets_first_existing_path"
         );
-        first_existing_path(candidates)?
+        first_existing_path(candidates)
     };
-    let key = image_pixels_cache_key(
-        base_key,
-        &path,
-        target.filter(|_| is_svg_path(&path) || mui_icons::is_module_path(&path)),
-        tint,
-    );
-    if let Some(cached) = cached_visual_asset_pixels(&key) {
-        return cached;
-    }
+    let Some(path) = path else {
+        store_visual_asset_pixels(key, None);
+        return None;
+    };
 
     let loaded = {
         zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_load_pixels");

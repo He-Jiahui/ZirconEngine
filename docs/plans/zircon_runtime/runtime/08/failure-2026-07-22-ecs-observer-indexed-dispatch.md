@@ -52,4 +52,8 @@ ObserverId只有单调编号，没有key bucket或id→slot定位；为允许cal
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `前向修复中`; no pass is claimed.
+
+- 已完成的 canonical dispatch owner：`ObserverStore` 以 `(LifecycleEventKind, ComponentId)`、`TypeId` 和 `(TypeId, EntityId)` 三类 `HashMap` key bucket 保存 immutable `Arc<[observer]>` generation，并以单一 `ObserverId -> ObserverBucket` location index 定位移除目标。注册和移除只发布受影响 bucket 的新 generation；不再把三条全局 `Vec` 作为真相或在 trigger 热路径扫描、计数、分配 callback collection。
+- dispatch 只取得对应 bucket 的 `Arc` snapshot 后释放 store borrow。bucket 内维持 ObserverId/注册顺序；当前 dispatch 中移除的 observer 仍在已取得 snapshot 内执行一次，当前 dispatch 中新增的 observer 只在下次触发可见。global entity event 仍先于 targeted bucket；lifecycle event 的 component type name 改为共享 `Arc<str>`，fanout 不再复制该 String。`entity_event_types_by_entity` 是 targeted bucket 的反向 key index；World 在 Despawn lifecycle fanout 后按该 index 释放 entity bucket 与每个 `ObserverId` location，不扫描全部 targeted observers，也不会让 ID reuse 继承旧 callback。
+- 已加入未执行回归：registration-during-dispatch 的 next-trigger visibility、target entity removal cleanup，以及 source guards 对 key bucket、location index、publication helper 和 retired Vec helpers 的约束；Runtime15 callback-registry naming guard 已前向改为断言同一 owner 的新 helper。未运行声明的 Cargo filter、recursive/despawn cleanup storm 与 0/1k/100k probes，因此 artifact 保持 `open`。

@@ -47,6 +47,10 @@ pub(crate) fn build_host_page_pointer_layout(
         .map(|page| HostPagePointerItem {
             page_id: page.id.0.clone(),
             title: page.title.clone(),
+            close_instance_id: page
+                .close_instance_id
+                .as_ref()
+                .map(|instance_id| instance_id.0.clone()),
         })
         .collect::<Vec<_>>();
     let active_index = items

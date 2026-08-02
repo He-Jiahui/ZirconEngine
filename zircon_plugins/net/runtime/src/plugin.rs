@@ -1,16 +1,19 @@
-use crate::capability::{NET_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+use crate::capability::{
+    NET_DECLARATION, NET_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
+};
 use crate::package::{attach_net_manifest_contributions, net_event_catalogs, net_options};
 use crate::runtime_system::{
-    register_runtime_systems, NET_FLUSH_EGRESS_SYSTEM, NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET,
+    NET_FLUSH_EGRESS_SYSTEM, NET_MAIN_SYSTEM_SET, NET_POLL_INGRESS_SYSTEM,
+    NET_TRANSPORT_SYSTEM_SET, register_runtime_systems,
 };
-use crate::{module_descriptor, PLUGIN_ID};
+use crate::{PLUGIN_ID, module_descriptor};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "net.runtime";
 pub const NET_DIST_CRATE_NAME: &str = "zircon_plugin_net_dist";
@@ -65,28 +68,16 @@ impl RuntimePlugin for NetRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
-    RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Network",
-        RuntimePluginId::Net,
-        "zircon_plugin_net_runtime",
-    )
-    .with_module_descriptor(module_descriptor())
-    .with_category("runtime")
-    .with_target_modes([
-        RuntimeTargetMode::ServerRuntime,
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(NET_RUNTIME_CAPABILITY)
-    .with_maturity(PluginMaturity::Beta)
-    .with_capability_status(
-        CapabilityStatusManifest::new(NET_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
-            .with_bevy_reference("dev/bevy/crates/bevy_remote/src/lib.rs"),
-    )
-    .with_system_sets([NET_SYSTEM_SET])
-    .with_system_anchors([NET_POLL_INGRESS_SYSTEM, NET_FLUSH_EGRESS_SYSTEM])
-    .build()
+    NET_DECLARATION
+        .runtime_declaration(RUNTIME_CRATE_NAME)
+        .with_module_descriptor(module_descriptor())
+        .with_capability_status(
+            CapabilityStatusManifest::new(NET_RUNTIME_CAPABILITY, CapabilityStatus::Partial)
+                .with_bevy_reference("dev/bevy/crates/bevy_remote/src/lib.rs"),
+        )
+        .with_system_sets([NET_MAIN_SYSTEM_SET, NET_TRANSPORT_SYSTEM_SET])
+        .with_system_anchors([NET_POLL_INGRESS_SYSTEM, NET_FLUSH_EGRESS_SYSTEM])
+        .into_descriptor()
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(NetRuntimePlugin);
@@ -97,9 +88,6 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
 
 pub fn runtime_package_manifest() -> PluginPackageManifest {
     let mut manifest = runtime_plugin_descriptor().package_manifest();
-    manifest
-        .default_packaging
-        .push(ExportPackagingStrategy::NativeDynamic);
     manifest = manifest.with_native_module(
         PluginModuleManifest::native("net.dist", NET_DIST_CRATE_NAME)
             .with_target_modes([

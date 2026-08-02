@@ -2,8 +2,8 @@ use std::{path::Path, sync::Arc};
 
 use super::{
     super::{
-        svg::{parse_svg_tree_data, render_svg_tree_image, render_svg_tree_pixels},
         HostPaintImagePixels, RasterTargetSize,
+        svg::{parse_svg_tree_data, render_svg_tree_image, render_svg_tree_pixels},
     },
     svg_document::module_svg,
 };

@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/core/framework/asset.rs
   - zircon_runtime/src/core/framework/channel.rs
   - zircon_runtime/src/core/framework/events.rs
-  - zircon_runtime/src/core/framework/foundation.rs
+  - zircon_runtime/src/core/framework/foundation
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/ui.rs
   - zircon_runtime/src/core/framework/ui

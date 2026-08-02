@@ -574,6 +574,148 @@ fn reflected_edit_preserves_active_multi_selection() {
 }
 
 #[test]
+fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    let (cube_name_before, camera_name_before) = state.world.with_world(|scene| {
+        (
+            scene.find_node(cube).unwrap().name.clone(),
+            scene.find_node(camera).unwrap().name.clone(),
+        )
+    });
+    assert!(state.viewport_controller.selection_mut().replace(
+        crate::scene::selection::WorldDomain::Edit,
+        [camera, cube],
+        Some(cube),
+    ));
+    state.world.with_world_mut(|scene| {
+        scene
+            .register_component_type(cloud_layer_descriptor())
+            .expect("dynamic component descriptor should register");
+        scene
+            .set_dynamic_component(
+                cube,
+                CLOUD_LAYER_TYPE_PATH,
+                json!({ "coverage": 0.25, "label": "cube" }),
+            )
+            .expect("dynamic component should attach to cube");
+        scene
+            .set_dynamic_component(
+                camera,
+                CLOUD_LAYER_TYPE_PATH,
+                json!({ "coverage": 0.5, "label": "camera" }),
+            )
+            .expect("dynamic component should attach to camera");
+    });
+    state.update_name_field("Selected Batch".to_string());
+    state.update_dynamic_component_field(
+        format!("{CLOUD_LAYER_TYPE_PATH}.coverage"),
+        "0.8".to_string(),
+    );
+
+    assert!(state.apply_inspector_changes().unwrap());
+    state.world.with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, "Selected Batch");
+        assert_eq!(scene.find_node(camera).unwrap().name, "Selected Batch");
+        assert_eq!(
+            read_reflected_field(scene, cube, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.8)
+        );
+        assert_eq!(
+            read_reflected_field(scene, camera, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.8)
+        );
+    });
+    assert_eq!(
+        state
+            .transactions()
+            .history_status(HistoryContextId::Global)
+            .unwrap()
+            .len,
+        1
+    );
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    state.world.with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, cube_name_before);
+        assert_eq!(scene.find_node(camera).unwrap().name, camera_name_before);
+        assert_eq!(
+            read_reflected_field(scene, cube, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.25)
+        );
+        assert_eq!(
+            read_reflected_field(scene, camera, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.5)
+        );
+    });
+    assert!(state.apply_intent(EditorIntent::Redo).unwrap());
+    state.world.with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, "Selected Batch");
+        assert_eq!(scene.find_node(camera).unwrap().name, "Selected Batch");
+        assert_eq!(
+            read_reflected_field(scene, cube, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.8)
+        );
+        assert_eq!(
+            read_reflected_field(scene, camera, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.8)
+        );
+    });
+}
+
+#[test]
+fn reflected_inspector_batch_rejects_missing_dynamic_component_without_partial_mutation() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    let (cube_name_before, camera_name_before) = state.world.with_world(|scene| {
+        (
+            scene.find_node(cube).unwrap().name.clone(),
+            scene.find_node(camera).unwrap().name.clone(),
+        )
+    });
+    state.world.with_world_mut(|scene| {
+        scene
+            .register_component_type(cloud_layer_descriptor())
+            .expect("dynamic component descriptor should register");
+        scene
+            .set_dynamic_component(
+                cube,
+                CLOUD_LAYER_TYPE_PATH,
+                json!({ "coverage": 0.25, "label": "thin" }),
+            )
+            .expect("dynamic component should attach to the first selected node");
+    });
+    assert!(state.viewport_controller.selection_mut().replace(
+        crate::scene::selection::WorldDomain::Edit,
+        [cube, camera],
+        Some(cube),
+    ));
+    state.update_name_field("Atomic Batch".to_string());
+    state.update_dynamic_component_field(
+        format!("{CLOUD_LAYER_TYPE_PATH}.coverage"),
+        "0.8".to_string(),
+    );
+
+    assert!(state.apply_inspector_changes().is_err());
+    state.world.with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, cube_name_before);
+        assert_eq!(scene.find_node(camera).unwrap().name, camera_name_before);
+        assert_eq!(
+            read_reflected_field(scene, cube, CLOUD_LAYER_TYPE_PATH, "coverage"),
+            ReflectedValue::Scalar(0.25)
+        );
+    });
+    assert_eq!(
+        state
+            .transactions()
+            .history_status(HistoryContextId::Global)
+            .unwrap()
+            .len,
+        0
+    );
+}
+
+#[test]
 fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflection() {
     let mut state = test_state();
     let (entity, camera) = cube_and_camera(&state);

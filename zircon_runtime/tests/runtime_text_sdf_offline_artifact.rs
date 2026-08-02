@@ -25,6 +25,14 @@ fn text_sdf_offline_build_is_deterministic_and_decodable_for_every_mode() {
 
         assert_eq!(first.bytes(), second.bytes());
         assert_eq!(first.report(), second.report());
+        assert_eq!(first.report().source_context_count, 1);
+        assert_eq!(first.report().source_hash_count, 1);
+        assert_eq!(first.report().face_parse_count, 1);
+        assert_eq!(first.report().generation_batch_count, 1);
+        assert_eq!(first.report().generation_requested_glyph_count, 3);
+        assert_eq!(first.report().generation_unique_glyph_count, 3);
+        assert_eq!(first.report().generation_duplicate_glyph_count, 0);
+        assert!(first.report().generation_worker_count >= 1);
         let inspection = inspect_font_sdf_artifact(first.bytes()).expect("decode artifact");
         assert_eq!(inspection.asset_guid, ASSET_GUID);
         assert_eq!(inspection.mode, mode);

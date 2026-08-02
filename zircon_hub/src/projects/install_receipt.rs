@@ -57,8 +57,7 @@ fn build_install_receipt(install_dir: &Path) -> Result<DeviceInstallReceipt, Hub
     files.sort_by(|left, right| left.path.cmp(&right.path));
 
     let total_bytes = files.iter().map(|file| file.bytes).sum();
-    let content_download_manifest =
-        content_download_manifest_for_install(install_dir, &files, total_bytes);
+    let content_download_manifest = content_download_manifest_for_install(install_dir, &files);
 
     Ok(DeviceInstallReceipt {
         format_version: 1,
@@ -96,7 +95,6 @@ fn collect_install_files(
 fn content_download_manifest_for_install(
     install_dir: &Path,
     files: &[DeviceInstallFileReceipt],
-    total_bytes: u64,
 ) -> HubContentDownloadManifest {
     let mut offset = 0;
     let chunks = files

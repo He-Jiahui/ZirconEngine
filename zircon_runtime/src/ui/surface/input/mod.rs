@@ -33,6 +33,7 @@ mod validation;
 mod window_pump;
 
 pub(crate) use dispatch::dispatch_input_event;
+pub(in crate::ui::surface) use editable_text::commit_editable_text_composition_for_focus_loss;
 pub(crate) use effect::{apply_dispatch_reply, apply_dispatch_reply_steps};
 pub use error::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 pub use state::UiSurfaceInputState;

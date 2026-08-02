@@ -3,7 +3,7 @@
 mod host;
 
 use crate::core::framework::render::{
-    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, ShadingModelDescriptor,
+    GeometrySourceDescriptor, ShadingModelDescriptor, GRAPHICS_MODULE_NAME,
 };
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 use crate::graphics::{
@@ -11,10 +11,11 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
+use crate::plugin::PluginShaderModuleSource;
 
 pub use host::{
-    RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME, module_descriptor,
-    module_descriptor_with_render_features,
+    module_descriptor, module_descriptor_with_render_features, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -22,6 +23,7 @@ pub struct GraphicsModule {
     render_features: Vec<RenderFeatureDescriptor>,
     plugin_geometry_sources: Vec<GeometrySourceDescriptor>,
     plugin_shading_models: Vec<ShadingModelDescriptor>,
+    plugin_shader_module_sources: Vec<PluginShaderModuleSource>,
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
     runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
@@ -37,6 +39,7 @@ impl GraphicsModule {
             render_features: render_features.into_iter().collect(),
             plugin_geometry_sources: Vec::new(),
             plugin_shading_models: Vec::new(),
+            plugin_shader_module_sources: Vec::new(),
             render_pass_executors: Vec::new(),
             runtime_prepare_collectors: Vec::new(),
             hybrid_gi_runtime_providers: Vec::new(),
@@ -56,6 +59,7 @@ impl GraphicsModule {
             render_features: render_features.into_iter().collect(),
             plugin_geometry_sources: Vec::new(),
             plugin_shading_models: Vec::new(),
+            plugin_shader_module_sources: Vec::new(),
             render_pass_executors: render_pass_executors.into_iter().collect(),
             runtime_prepare_collectors: Vec::new(),
             hybrid_gi_runtime_providers: Vec::new(),
@@ -70,6 +74,7 @@ impl GraphicsModule {
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
         hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
@@ -82,6 +87,7 @@ impl GraphicsModule {
             render_features: render_features.into_iter().collect(),
             plugin_geometry_sources: plugin_geometry_sources.into_iter().collect(),
             plugin_shading_models: plugin_shading_models.into_iter().collect(),
+            plugin_shader_module_sources: plugin_shader_module_sources.into_iter().collect(),
             render_pass_executors: render_pass_executors.into_iter().collect(),
             runtime_prepare_collectors: runtime_prepare_collectors.into_iter().collect(),
             hybrid_gi_runtime_providers: hybrid_gi_runtime_providers.into_iter().collect(),
@@ -102,6 +108,10 @@ impl GraphicsModule {
 
     pub fn plugin_shading_models(&self) -> &[ShadingModelDescriptor] {
         &self.plugin_shading_models
+    }
+
+    pub fn plugin_shader_module_sources(&self) -> &[PluginShaderModuleSource] {
+        &self.plugin_shader_module_sources
     }
 
     pub fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
@@ -141,6 +151,7 @@ impl EngineModule for GraphicsModule {
             self.render_features.clone(),
             self.plugin_geometry_sources.clone(),
             self.plugin_shading_models.clone(),
+            self.plugin_shader_module_sources.clone(),
             self.render_pass_executors.clone(),
             self.runtime_prepare_collectors.clone(),
             self.hybrid_gi_runtime_providers.clone(),

@@ -11,7 +11,7 @@ pub(in crate::serialization) struct BorrowedTextEnvelope<'a> {
 
 pub(in crate::serialization) enum TextInput<'a> {
     Envelope(BorrowedTextEnvelope<'a>),
-    Legacy,
+    Unversioned,
 }
 
 pub(in crate::serialization) enum TextReadError {
@@ -54,19 +54,19 @@ struct RawTextEnvelope<'a> {
     payload: &'a RawValue,
 }
 
-/// Identifies the reserved envelope without materializing a legacy payload Value.
+/// Identifies the reserved envelope without materializing an unversioned payload `Value`.
 pub(in crate::serialization) fn inspect_text(bytes: &[u8]) -> Result<TextInput<'_>, TextReadError> {
     if first_non_whitespace(bytes) != Some(b'{') {
-        return Ok(TextInput::Legacy);
+        return Ok(TextInput::Unversioned);
     }
 
     let probe =
         serde_json::from_slice::<EnvelopeProbe<'_>>(bytes).map_err(TextReadError::Malformed)?;
     let Some(envelope) = probe.envelope else {
-        return Ok(TextInput::Legacy);
+        return Ok(TextInput::Unversioned);
     };
     if !claims_version_header(envelope).map_err(TextReadError::InvalidEnvelope)? {
-        return Ok(TextInput::Legacy);
+        return Ok(TextInput::Unversioned);
     }
     let document = serde_json::from_slice::<RawTextDocument<'_>>(bytes)
         .map_err(TextReadError::InvalidEnvelope)?;

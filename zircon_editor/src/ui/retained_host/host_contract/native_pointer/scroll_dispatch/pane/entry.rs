@@ -3,7 +3,7 @@ use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 
-use super::super::super::routing::route_pointer_to_pane;
+use super::super::super::routing::route_pointer_scroll_to_pane;
 use super::asset::dispatch_asset_pane_scroll;
 use super::native::dispatch_native_pane_scroll;
 use super::passive::is_passive_pane_scroll_target;
@@ -16,7 +16,7 @@ pub(in super::super) fn dispatch_pane_pointer_scroll(
     y: f32,
     delta: f32,
 ) -> Option<NativePointerDispatchResult> {
-    let pointer = route_pointer_to_pane(presentation, x, y)?;
+    let pointer = route_pointer_scroll_to_pane(presentation, x, y)?;
     let damage_frame = pointer.frame.clone();
     let pane_host = ui.global::<PaneSurfaceHostContext>();
 

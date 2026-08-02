@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    DisplayMode, RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshSnapshot,
-    RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, DisplayMode, RenderMaterialPropertyUniformPayload,
+    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -16,7 +16,7 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    GpuMeshResource, ResourceStreamer, default_pipeline_key,
+    default_pipeline_key, GpuMeshResource, ResourceStreamer,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
@@ -25,8 +25,8 @@ use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    SkinnedMeshPreparedPrimitive, prepare_skinned_mesh_asset_primitive,
-    prepare_skinned_model_primitive,
+    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
+    SkinnedMeshPreparedPrimitive,
 };
 
 mod material_inputs;
@@ -114,6 +114,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     pending_draws,
                     streamer,
                     mesh_instance.node_id,
+                    mesh_instance.stable_instance_key,
                     &mut draw_ordinal,
                     mesh_instance.transform_revision,
                     static_state,
@@ -142,6 +143,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     pending_draws,
                     streamer,
                     mesh_instance.node_id,
+                    mesh_instance.stable_instance_key,
                     &mut draw_ordinal,
                     mesh_instance.transform_revision,
                     static_state,
@@ -194,6 +196,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
         });
 
     for (mesh_index, mesh) in model.meshes.iter().enumerate() {
+        let stable_instance_key = render_mesh_stable_instance_key(
+            mesh_instance.node_id,
+            u32::try_from(mesh_index)
+                .expect("model mesh primitive index exceeds stable instance key packing range"),
+        );
         if let Some(skinned_primitive) = skinned_primitives
             .as_ref()
             .and_then(|(_, primitives)| primitives.get(mesh_index))
@@ -205,6 +212,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 pending_draws,
                 streamer,
                 mesh_instance.node_id,
+                stable_instance_key,
                 &mut draw_ordinal,
                 mesh_instance.transform_revision,
                 static_state,
@@ -244,6 +252,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             pending_draws.push(PendingMeshDraw {
                 mesh: PendingMeshGeometry::Prepared(mesh.clone()),
                 source_entity: mesh_instance.node_id,
+                stable_instance_key,
                 source_draw_ordinal,
                 transform_revision: mesh_instance.transform_revision,
                 mobility: mesh_instance.mobility,
@@ -275,7 +284,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 previous_skinned_gpu_source: None,
                 command_sort_input: command_sort_input.with_tie_breaker(
                     mesh_order_command_sort_tie_breaker(
-                        mesh_instance.node_id,
+                        stable_instance_key,
                         source_draw_ordinal,
                         mesh.indirect_order_signature(),
                     ),
@@ -335,7 +344,11 @@ fn resource_revision_signature(resource_id: ResourceId, revision: u64) -> u64 {
 
 fn nonzero_hash(hasher: DefaultHasher) -> u64 {
     let signature = hasher.finish();
-    if signature == 0 { 1 } else { signature }
+    if signature == 0 {
+        1
+    } else {
+        signature
+    }
 }
 
 fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {
@@ -352,8 +365,7 @@ fn dynamic_direct_mesh_primitive(
     mesh_id: &ResourceId,
     prepared_mesh: Arc<GpuMeshResource>,
 ) -> Option<DynamicMeshPrimitive> {
-    let previous_morph_weights =
-        gpu_scene.previous_morph_weights(render_mesh_stable_instance_key(mesh_instance.node_id, 0));
+    let previous_morph_weights = gpu_scene.previous_morph_weights(mesh_instance.stable_instance_key);
     let source_morph_weights = direct_mesh_source_morph_weights(streamer, mesh_id, mesh_instance);
     if let Some((prepared, skinned_palette_signature)) =
         skinned_direct_mesh_primitive(streamer, frame, mesh_instance, mesh_id)
@@ -539,6 +551,7 @@ fn push_dynamic_mesh_draws(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
     source_entity: EntityId,
+    stable_instance_key: u64,
     draw_ordinal: &mut u32,
     transform_revision: u64,
     static_state: RenderMeshStaticState,
@@ -584,6 +597,7 @@ fn push_dynamic_mesh_draws(
         pending_draws.push(PendingMeshDraw {
             mesh,
             source_entity,
+            stable_instance_key,
             source_draw_ordinal,
             transform_revision,
             mobility,
@@ -610,7 +624,7 @@ fn push_dynamic_mesh_draws(
             resolved_skinned_gpu_source: None,
             previous_skinned_gpu_source: None,
             command_sort_input: command_sort_input.with_tie_breaker(
-                dynamic_command_sort_tie_breaker(source_entity, source_draw_ordinal),
+                dynamic_command_sort_tie_breaker(stable_instance_key, source_draw_ordinal),
             ),
             first_index,
             draw_index_count,
@@ -626,6 +640,7 @@ fn push_prepared_mesh_draws(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
     source_entity: EntityId,
+    stable_instance_key: u64,
     draw_ordinal: &mut u32,
     transform_revision: u64,
     static_state: RenderMeshStaticState,
@@ -655,6 +670,7 @@ fn push_prepared_mesh_draws(
         pending_draws.push(PendingMeshDraw {
             mesh: PendingMeshGeometry::Prepared(mesh.clone()),
             source_entity,
+            stable_instance_key,
             source_draw_ordinal,
             transform_revision,
             mobility,
@@ -682,7 +698,7 @@ fn push_prepared_mesh_draws(
             previous_skinned_gpu_source: None,
             command_sort_input: command_sort_input.with_tie_breaker(
                 mesh_order_command_sort_tie_breaker(
-                    source_entity,
+                    stable_instance_key,
                     source_draw_ordinal,
                     mesh.indirect_order_signature(),
                 ),
@@ -695,20 +711,20 @@ fn push_prepared_mesh_draws(
 }
 
 fn mesh_order_command_sort_tie_breaker(
-    source_entity: EntityId,
+    stable_instance_key: u64,
     draw_ordinal: u32,
     mesh_order_signature: u64,
 ) -> u64 {
     let mut hasher = DefaultHasher::new();
-    let stable_instance_key = crate::core::framework::render::render_mesh_stable_instance_key(
-        source_entity,
-        draw_ordinal,
-    );
     stable_instance_key.hash(&mut hasher);
+    draw_ordinal.hash(&mut hasher);
     mesh_order_signature.hash(&mut hasher);
     nonzero_hash(hasher)
 }
 
-fn dynamic_command_sort_tie_breaker(source_entity: EntityId, draw_ordinal: u32) -> u64 {
-    crate::core::framework::render::render_mesh_stable_instance_key(source_entity, draw_ordinal)
+fn dynamic_command_sort_tie_breaker(stable_instance_key: u64, draw_ordinal: u32) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    stable_instance_key.hash(&mut hasher);
+    draw_ordinal.hash(&mut hasher);
+    nonzero_hash(hasher)
 }

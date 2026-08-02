@@ -6,13 +6,13 @@ use super::*;
 use crate::core::math::{UVec2, Vec2};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
+    glyph_atlas_bitmap_run_plan_with_padding, glyph_atlas_bitmap_upload_staging_plan,
     GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    GlyphAtlasStorageFormat, glyph_atlas_bitmap_run_plan_with_padding,
-    glyph_atlas_bitmap_upload_staging_plan,
+    GlyphAtlasStorageFormat,
 };
-use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, fontdb};
-use swash::FontRef;
+use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin};
 use swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
+use swash::FontRef;
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),

@@ -4,16 +4,32 @@ zircon_plugin_sdk::declare_plugin! {
         display_name: "Opus Audio Importer",
         category: asset_importer,
         module: MODULE_NAME = "opus_importer.runtime",
-        runtime_crate: RUNTIME_CRATE_NAME = "zircon_plugin_opus_importer_runtime",
+        crate_name: RUNTIME_CRATE_NAME = "zircon_plugin_opus_importer_runtime",
         module_description: "Opus audio importer plugin",
         targets: [client_runtime, editor_host],
         platforms: [windows, linux, macos],
         capabilities: [
-            RUNTIME_CAPABILITY = "runtime.plugin.opus_importer",
-            OPUS_IMPORTER_CAPABILITY = "runtime.asset.importer.audio.opus",
+            RUNTIME_CAPABILITY = "runtime.plugin.opus_importer" => runtime_registration,
+            OPUS_IMPORTER_CAPABILITY = "runtime.asset.importer.audio.opus" => runtime_registration,
         ],
         maturity: experimental,
         packaging: [source_template, library_embed, native_dynamic],
+        native_projection: {
+            plugin_id: NATIVE_PLUGIN_ID,
+            requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,
+            runtime: {
+                entry: NATIVE_RUNTIME_ENTRY = "zircon_plugin_opus_importer_runtime_entry_v3",
+                registration_manifest: NATIVE_RUNTIME_REGISTRATION_MANIFEST,
+                modules: [{ name: "runtime", kind: "runtime" }],
+                systems: [],
+                events: [],
+                extensions: [{
+                    point: "runtime.asset.importer.audio",
+                    contribution: "plugin.opus_importer.runtime",
+                    schema: "zircon.runtime.asset-importer.audio/1",
+                }],
+            },
+        },
     }
 }
 

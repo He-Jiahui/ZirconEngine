@@ -45,17 +45,12 @@ class PluginDocsCurrentStatusNativeBuildExecutionTests(unittest.TestCase):
         export_tool_status = export_tool_text[
             export_tool_text.index("`test_zircon_export_native_build_workspace_owner_boundaries.py`") :
         ]
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         sections = {
             "Plugins 13 status": plan_13_status,
             "Plugins 09 status": plan_09_status,
             "standalone current status": standalone_status,
             "export tool docs": export_tool_status,
-            "active session": session_text,
         }
         required_phrases = [
             status_id,

@@ -1,4 +1,6 @@
-use crate::scene::viewport::{RenderFrameExtract, RenderFrameworkError};
+use crate::scene::viewport::{
+    RenderFrameExtract, RenderFrameworkError, RenderVisibleSpatialQuerySnapshot,
+};
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
@@ -25,6 +27,19 @@ impl RetainedViewportController {
         render_framework.submit_frame_extract_with_ui(viewport, extract, ui)?;
         shared.last_error = None;
         Ok(true)
+    }
+
+    pub(crate) fn visible_spatial_snapshot(
+        &self,
+    ) -> Result<Option<RenderVisibleSpatialQuerySnapshot>, RenderFrameworkError> {
+        let shared = self.lock_shared();
+        let Some(viewport) = shared.viewport else {
+            return Ok(None);
+        };
+        let Some(render_framework) = shared.resolve_stored_render_framework()? else {
+            return Ok(None);
+        };
+        render_framework.query_visible_spatial_snapshot(viewport.handle)
     }
 
     #[cfg(test)]

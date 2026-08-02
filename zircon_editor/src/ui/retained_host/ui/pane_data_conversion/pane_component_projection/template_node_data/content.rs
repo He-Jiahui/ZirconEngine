@@ -22,6 +22,7 @@ pub(super) fn assign_content_fields(
     node.layout_second_cell_offset_x = text_layout.layout_second_cell_offset_x;
     node.layout_third_cell_offset_x = text_layout.layout_third_cell_offset_x;
     node.layout_fourth_cell_offset_x = text_layout.layout_fourth_cell_offset_x;
+    node.icon_placement = text_layout.icon_placement.into();
     node.has_selected_segment_border_width = text_layout.selected_segment_border_width.is_some();
     node.selected_segment_border_width =
         text_layout.selected_segment_border_width.unwrap_or(0.0) as f32;

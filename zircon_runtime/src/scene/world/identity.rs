@@ -1,7 +1,7 @@
+use crate::scene::EntityId;
 use crate::scene::ecs::{
     ArchetypeId, ArchetypeSignature, EntityLocation, InternalEntity, StableEntityLocation,
 };
-use crate::scene::EntityId;
 
 use super::{SceneResult, World};
 

@@ -1,5 +1,6 @@
 mod activity_drawer_mode;
 mod activity_drawer_slot;
+mod console_message_filter;
 mod layout_command;
 mod main_page_id;
 mod menu_action;
@@ -14,6 +15,7 @@ mod workspace_target;
 
 pub use activity_drawer_mode::ActivityDrawerMode;
 pub use activity_drawer_slot::ActivityDrawerSlot;
+pub use console_message_filter::ConsoleMessageFilter;
 pub use layout_command::LayoutCommand;
 pub use main_page_id::MainPageId;
 pub use menu_action::MenuAction;

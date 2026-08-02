@@ -7,6 +7,7 @@ use super::property_path::{ComponentFieldId, PathId};
 #[derive(Clone, Debug)]
 pub(in crate::scene::world) struct SceneBindingGenerations {
     next: u64,
+    catalog_generation: u64,
     by_root: HashMap<EntityId, u64>,
     next_path_id: u64,
     path_ids: HashMap<Box<str>, PathId>,
@@ -18,6 +19,7 @@ impl Default for SceneBindingGenerations {
     fn default() -> Self {
         Self {
             next: 0,
+            catalog_generation: 0,
             by_root: HashMap::new(),
             next_path_id: 1,
             path_ids: HashMap::new(),
@@ -32,6 +34,10 @@ impl SceneBindingGenerations {
         self.by_root.get(&root).copied().unwrap_or_default()
     }
 
+    pub(super) const fn catalog_generation(&self) -> u64 {
+        self.catalog_generation
+    }
+
     pub(super) fn advance_roots<I>(&mut self, roots: I)
     where
         I: IntoIterator<Item = EntityId>,
@@ -42,6 +48,36 @@ impl SceneBindingGenerations {
         }
 
         self.next = self.next.saturating_add(1);
+        self.catalog_generation = self
+            .catalog_generation
+            .checked_add(1)
+            .expect("scene binding catalog generation must not exhaust u64");
+        for root in roots {
+            self.by_root.insert(root, self.next);
+        }
+    }
+
+    /// Invalidates replacement-world bindings past every generation published
+    /// by the retired world, including when entity identifiers are reused.
+    pub(super) fn advance_roots_after<I>(&mut self, previous: &Self, roots: I)
+    where
+        I: IntoIterator<Item = EntityId>,
+    {
+        let roots = roots.into_iter().collect::<Vec<_>>();
+        if roots.is_empty() {
+            return;
+        }
+
+        self.next = self
+            .next
+            .max(previous.next)
+            .checked_add(1)
+            .expect("scene binding generations must not exhaust u64");
+        self.catalog_generation = self
+            .catalog_generation
+            .max(previous.catalog_generation)
+            .checked_add(1)
+            .expect("scene binding catalog generation must not exhaust u64");
         for root in roots {
             self.by_root.insert(root, self.next);
         }

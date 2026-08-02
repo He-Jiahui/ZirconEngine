@@ -32,7 +32,10 @@ impl RetainedEditorHost {
             )
         };
         match self.workbench_window_bridge.open_command_palette(state) {
-            Ok(true) => self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA),
+            Ok(true) => {
+                self.scene_picker_session = None;
+                self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+            }
             Ok(false) => {}
             Err(error) => self.set_status_line(error.to_string()),
         }

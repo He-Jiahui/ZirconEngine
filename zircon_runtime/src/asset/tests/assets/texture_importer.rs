@@ -5,7 +5,7 @@ use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
 use crate::asset::{
-    AssetUri, ImportedAsset, TextureUploadReadiness, TextureUploadSupport, RGBA8_UNORM_FORMAT,
+    AssetUri, ImportedAsset, RGBA8_UNORM_FORMAT, TextureUploadReadiness, TextureUploadSupport,
 };
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,

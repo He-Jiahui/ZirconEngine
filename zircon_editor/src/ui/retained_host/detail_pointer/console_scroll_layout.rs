@@ -1,7 +1,8 @@
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::console_constants::CONSOLE_VIEWPORT_Y;
 use super::scroll_surface_pointer_layout::ScrollSurfacePointerLayout;
+
+const CONSOLE_VIEWPORT_Y: f32 = 0.0;
 
 pub(crate) fn console_scroll_layout(
     pane_size: UiSize,

@@ -5,6 +5,7 @@ use super::{visibility_batch_key::VisibilityBatchKey, visibility_bounds::Visibil
 #[derive(Clone, Debug, PartialEq)]
 pub struct VisibilityHistoryEntry {
     pub entity: EntityId,
+    pub stable_instance_key: u64,
     pub key: VisibilityBatchKey,
     pub bounds: VisibilityBounds,
 }

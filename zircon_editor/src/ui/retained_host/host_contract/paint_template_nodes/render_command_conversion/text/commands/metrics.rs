@@ -10,7 +10,7 @@ pub(super) fn resolved_line_height(font_size: f32, line_height: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{resolved_font_size, resolved_line_height, MIN_TEXT_METRIC_PX};
+    use super::{MIN_TEXT_METRIC_PX, resolved_font_size, resolved_line_height};
 
     #[test]
     fn text_metrics_keep_runtime_values_above_minimum() {

@@ -150,14 +150,37 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
     );
     for unbind_path in [
         "self.session.unbind_viewport_surface(self.viewport)",
+        "fn teardown_surface_present(&mut self)",
+        "format!(\"runtime surface unbind failed: {error}\")",
         "fn drop(&mut self)",
-        "self.disable_surface_present();",
+        "self.teardown_surface_present();",
     ] {
         assert!(
             runtime_surface_present_source.contains(unbind_path),
             "runtime surface-present teardown should preserve `{unbind_path}`"
         );
     }
+    assert_source_order(
+        runtime_surface_present_source.as_str(),
+        &[
+            "fn close_primary_window_after_request",
+            "self.teardown_surface_present();",
+            "fn disable_surface_present",
+            "write_warn(",
+            "fn teardown_surface_present",
+            "self.report_fatal_failure(",
+            "fn release_surface_present",
+        ],
+        "terminal close should fail closed while runtime fallback keeps recoverable unbind semantics",
+    );
+    let drop_source = runtime_surface_present_source
+        .split("impl Drop for RuntimeEntryApp")
+        .nth(1)
+        .expect("runtime entry app should retain explicit teardown");
+    assert!(
+        drop_source.contains("self.teardown_surface_present();"),
+        "RuntimeEntryApp Drop should report terminal surface-unbind failures"
+    );
     for diagnostic in [
         "runtime_surface_present_enabled",
         "runtime_surface_present_fallback",

@@ -1,6 +1,4 @@
-use zircon_runtime_interface::resource::{
-    MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord,
-};
+use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
 use crate::core::asset::{
     AssetContextCommandDescriptor, AssetCreationTemplateDescriptor, AssetTypeDefinition,
@@ -12,11 +10,13 @@ use crate::core::editor_event::{
     EditorEventSource,
 };
 use crate::core::editor_extension::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, EditorUiTemplateDescriptor,
-    EditorUiTemplatePaneDataSnapshot,
+    AssetImporterDescriptor, EditorUiTemplateDescriptor, EditorUiTemplatePaneDataSnapshot,
 };
 use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::{EditorOperationInvocation, EditorOperationSource};
+use crate::core::extension::{
+    CapabilitySet, ContributionSource, InspectTargetType, InspectorCustomization,
+};
 use crate::core::jobs::EditorJobProgressSnapshot;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
 use crate::ui::activity::ActivityViewDescriptor;
@@ -28,7 +28,7 @@ use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
     AssetOperationProjectionSnapshot, AssetTypeProjectionSnapshot, AssetWorkspaceSnapshot,
-    EditorChromeSnapshot, EditorDataSnapshot, StatusTaskProgressSnapshot,
+    ConsoleOutputSnapshot, EditorChromeSnapshot, EditorDataSnapshot, StatusTaskProgressSnapshot,
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorRenderFrameSubmission;
@@ -45,10 +45,11 @@ use zircon_runtime_interface::ui::dispatch::{
 impl EditorHostEventController {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
         let mut inner = self.shell().lock();
-        let component_drawers = Self::active_component_drawers_for_shell(&inner);
+        let inspector_customizations = Self::active_inspector_customizations_for_shell(&inner);
+        let field_editors = Self::active_field_editors_for_shell(&inner);
         let mut snapshot = inner
             .state
-            .snapshot_with_component_drawers(&component_drawers);
+            .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
         Self::project_asset_type_registry_for_shell(&mut inner, &mut snapshot);
         snapshot
     }
@@ -83,6 +84,11 @@ impl EditorHostEventController {
         self.shell().lock().state.render_snapshot()
     }
 
+    /// Returns an owned snapshot of the authoritative editor scene after pending bindings apply.
+    pub fn project_scene_snapshot(&self) -> Option<zircon_runtime::scene::Scene> {
+        self.shell().lock().state.project_scene()
+    }
+
     pub fn render_frame_extract(&self) -> Option<RenderFrameExtract> {
         self.shell().lock().state.render_frame_extract()
     }
@@ -102,6 +108,10 @@ impl EditorHostEventController {
 
     pub fn status_line(&self) -> String {
         self.shell().lock().state.status_line.clone()
+    }
+
+    pub(crate) fn console_output(&self) -> ConsoleOutputSnapshot {
+        self.shell().lock().state.console_output()
     }
 
     pub fn set_status_task_progress(&self, progress: Option<StatusTaskProgressSnapshot>) {
@@ -199,11 +209,11 @@ impl EditorHostEventController {
                 source_name: "subject".to_string(),
             }
         })?;
-        let drawer = self.component_drawer_descriptor(component_type);
+        let customization = self.inspector_customization(component_type);
         let operation_path =
             crate::ui::template_runtime::component_adapter::component_drawer::validate_component_drawer_envelope(
                 envelope,
-                drawer.as_ref(),
+                customization.as_deref(),
             )?;
         let (source, invocation) = crate::ui::template_runtime::component_adapter::component_drawer::component_drawer_operation_invocation(operation_path.clone());
         self.invoke_operation(source, invocation).map_err(|error| {
@@ -270,9 +280,15 @@ impl EditorHostEventController {
         self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
-    pub fn sync_asset_resources(&self, resources: Vec<ResourceRecord>) {
-        self.shell().lock().state.sync_asset_resources(resources);
-        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
+    pub fn sync_asset_resources(
+        &self,
+        resources: Arc<zircon_runtime::core::framework::asset::ResourceManagementGeneration>,
+    ) -> bool {
+        let changed = self.shell().lock().state.sync_asset_resources(resources);
+        if changed {
+            self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
+        }
+        changed
     }
 
     pub fn sync_asset_details(&self, details: Option<Arc<EditorAssetDetailsGeneration>>) {
@@ -334,23 +350,24 @@ impl EditorHostEventController {
             .cloned()
     }
 
-    pub fn component_drawer_descriptor(
+    pub fn inspector_customization(
         &self,
         component_type: &str,
-    ) -> Option<ComponentDrawerDescriptor> {
+    ) -> Option<Arc<dyn InspectorCustomization>> {
+        let target_type = InspectTargetType::new(component_type).ok()?;
         let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
             .enabled_capabilities()
-            .to_vec();
-        inner
-            .editor_extensions
             .iter()
-            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-            .flat_map(|registration| registration.registry().component_drawers())
-            .find(|descriptor| descriptor.component_type() == component_type)
             .cloned()
+            .collect::<CapabilitySet>();
+        inner
+            .contributions
+            .snapshot()
+            .inspector_customizations(&enabled_capabilities)
+            .find(|customization| customization.can_handle(&target_type))
     }
 
     pub fn ui_template_descriptor(&self, id: &str) -> Option<EditorUiTemplateDescriptor> {
@@ -359,12 +376,13 @@ impl EditorHostEventController {
             .manager
             .capability_snapshot()
             .enabled_capabilities()
-            .to_vec();
-        inner
-            .editor_extensions
             .iter()
-            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-            .flat_map(|registration| registration.registry().ui_templates())
+            .cloned()
+            .collect::<CapabilitySet>();
+        inner
+            .contributions
+            .snapshot()
+            .ui_templates(&enabled_capabilities)
             .find(|descriptor| descriptor.id() == id)
             .cloned()
     }
@@ -376,7 +394,7 @@ impl EditorHostEventController {
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
-        (inner.editor_template_generation, enabled_capabilities)
+        (inner.contributions.generation(), enabled_capabilities)
     }
 
     pub(crate) fn enabled_plugin_template_descriptors(
@@ -392,19 +410,30 @@ impl EditorHostEventController {
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
-        let templates_by_owner = inner
-            .editor_extensions
+        let capabilities = enabled_capabilities
             .iter()
-            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-            .fold(BTreeMap::new(), |mut templates_by_owner, registration| {
-                templates_by_owner
-                    .entry(registration.owner_id().to_owned())
-                    .or_default()
-                    .extend(registration.registry().ui_templates().into_iter().cloned());
-                templates_by_owner
-            });
+            .cloned()
+            .collect::<CapabilitySet>();
+        let templates_by_owner = inner
+            .contributions
+            .snapshot()
+            .ui_templates_with_source(&capabilities)
+            .filter_map(|(source, template)| match source {
+                ContributionSource::Plugin(plugin_id) => Some((plugin_id.as_str(), template)),
+                ContributionSource::Builtin => None,
+            })
+            .fold(
+                BTreeMap::new(),
+                |mut templates_by_owner, (owner_id, template)| {
+                    templates_by_owner
+                        .entry(owner_id.to_owned())
+                        .or_default()
+                        .push(template.clone());
+                    templates_by_owner
+                },
+            );
         (
-            inner.editor_template_generation,
+            inner.contributions.generation(),
             enabled_capabilities,
             templates_by_owner,
         )
@@ -419,12 +448,14 @@ impl EditorHostEventController {
                 .manager
                 .capability_snapshot()
                 .enabled_capabilities()
-                .to_vec();
-            inner
-                .editor_extensions
                 .iter()
-                .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-                .flat_map(|registration| registration.registry().ui_template_pane_data_sources())
+                .cloned()
+                .collect::<CapabilitySet>();
+            inner
+                .contributions
+                .snapshot()
+                .ui_template_pane_data_sources(&enabled_capabilities)
+                .map(|(template_id, source)| (template_id.to_owned(), source))
                 .collect::<BTreeMap<_, _>>()
         };
 
@@ -444,12 +475,13 @@ impl EditorHostEventController {
             .manager
             .capability_snapshot()
             .enabled_capabilities()
-            .to_vec();
-        inner
-            .editor_extensions
             .iter()
-            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-            .flat_map(|registration| registration.registry().asset_importers())
+            .cloned()
+            .collect::<CapabilitySet>();
+        inner
+            .contributions
+            .snapshot()
+            .asset_importers(&enabled_capabilities)
             .filter(|descriptor| {
                 descriptor
                     .source_extensions()
@@ -591,21 +623,7 @@ fn project_asset_workspace(snapshot: &mut AssetWorkspaceSnapshot, registry: &Ass
         }
     }
 
-    snapshot.creation_templates = registry
-        .definitions()
-        .flat_map(|definition| {
-            definition.creation_templates().iter().map(|template| {
-                AssetOperationProjectionSnapshot {
-                    asset_type_id: definition.id().to_string(),
-                    id: template.id().to_owned(),
-                    display_name: template.display_name().to_owned(),
-                    operation_id: template.operation().to_string(),
-                    icon_name: None,
-                    default_document: template.default_document().map(str::to_owned),
-                }
-            })
-        })
-        .collect();
+    snapshot.creation_menu = registry.creation_menu_generation();
 
     let selection_type = snapshot.selection.asset_type.asset_type_id.clone();
     let Ok(asset_type) = AssetTypeId::parse(selection_type) else {

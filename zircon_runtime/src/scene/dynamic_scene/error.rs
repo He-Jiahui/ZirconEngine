@@ -24,6 +24,8 @@ pub enum DynamicSceneError {
     MissingSceneParent { entity: EntityId, parent: EntityId },
     #[error("no free target entity id remains while remapping source entity {source_entity}")]
     EntityIdSpaceExhausted { source_entity: EntityId },
+    #[error("dynamic scene compiled spawn plan is missing source entity {source_entity}")]
+    CompiledPlanMissingEntityRemap { source_entity: EntityId },
     #[error("world mutation failed: {0}")]
     WorldMutation(#[from] SceneError),
     #[error("dynamic scene parse failed: {reason}")]
@@ -34,6 +36,53 @@ pub enum DynamicSceneError {
     Io { reason: String },
     #[error("dynamic scene spawn task `{label}` result is unavailable")]
     SpawnTaskResultUnavailable { label: String },
+    #[error("dynamic scene spawn task `{label}` was cancelled")]
+    SpawnTaskCancelled { label: String },
+    #[error(
+        "prepared dynamic scene requires {estimated_bytes} bytes, exceeding the {limit_bytes}-byte limit"
+    )]
+    PreparedPayloadTooLarge {
+        estimated_bytes: usize,
+        limit_bytes: usize,
+    },
+    #[error(
+        "dynamic scene reload result requires {estimated_bytes} bytes, exceeding the {limit_bytes}-byte frame limit"
+    )]
+    ReloadResultTooLarge {
+        estimated_bytes: usize,
+        limit_bytes: usize,
+    },
+    #[error(
+        "dynamic scene target world changed from generation {expected_generation} to {actual_generation} before commit"
+    )]
+    TargetWorldChanged {
+        expected_generation: u64,
+        actual_generation: u64,
+    },
+    #[error(
+        "dynamic scene target component schema changed from generation {expected_generation} to {actual_generation} before apply"
+    )]
+    TargetSchemaChanged {
+        expected_generation: u64,
+        actual_generation: u64,
+    },
+    #[error("reflected resource `{type_path}` has no atomic staging clone adapter")]
+    MissingResourceStagingClone { type_path: String },
+    #[error("reflected resource `{type_path}` has no staging clone byte estimator")]
+    MissingResourceStagingSizeEstimate { type_path: String },
+    #[error(
+        "dynamic scene target snapshot requires {estimated_bytes} bytes, exceeding the {limit_bytes}-byte limit"
+    )]
+    TargetSnapshotTooLarge {
+        estimated_bytes: usize,
+        limit_bytes: usize,
+    },
+    #[error("dynamic scene target snapshot estimation failed: {reason}")]
+    TargetSnapshotEstimation { reason: String },
+    #[error("dynamic scene transaction targets level {expected}, not {actual}")]
+    TargetLevelChanged { expected: String, actual: String },
+    #[error("dynamic scene prepared-size estimation failed: {reason}")]
+    PreparedSizeEstimation { reason: String },
     #[error("unsupported reflected value `{type_name}` for `{context}`")]
     UnsupportedValue {
         context: String,

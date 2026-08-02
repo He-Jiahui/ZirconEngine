@@ -5,13 +5,11 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use zircon_runtime::core::framework::render::{
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderQualityTier, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmReport,
 };
 use zircon_runtime::dynamic_api::{
-    default_shader_variant_cache_root_for_project, prewarm_shader_variants,
-    prewarm_shader_variants_with_wgpu_module_and_pipeline_validation,
-    prewarm_shader_variants_with_wgpu_module_validation,
-    prewarm_shader_variants_with_wgpu_pipeline_validation,
+    default_shader_variant_cache_root_for_project, prewarm_shader_variants_with_execution_budget,
 };
 
 use super::args::{parse, usage};
@@ -20,14 +18,16 @@ use super::error::{
     ShaderPrewarmResourceRegistryResult,
 };
 use super::manifest::{
-    asset_root_manifest_with_resource_registry_revisions,
+    ShaderPrewarmAssetInventory,
+    asset_root_manifest_from_inventory_with_resource_registry_revisions_and_external_inputs,
     builtin_fallback_manifest_for_quality_tiers_and_geometry_sources, merge_manifests,
     permutation_registry::{
-        shader_permutation_registry_paths, ShaderPrewarmPermutationRegistryOverlay,
+        ShaderPrewarmPermutationRegistryOverlay, shader_permutation_registry_paths,
     },
     read_manifest,
     resource_registry::{
-        shader_resource_records_from_asset_roots, ShaderPrewarmResourceRegistryOverlay,
+        ShaderPrewarmResourceRegistryOverlay, shader_resource_records_from_asset_roots,
+        shader_resource_records_from_loaded_meta_document_refs,
     },
 };
 
@@ -36,6 +36,16 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
         println!("{}", usage("zircon shader variant prewarm tool"));
         return Ok(ExitCode::SUCCESS);
     };
+    if args.execution_budget.validate().is_err() {
+        let report = prewarm_shader_variants_with_execution_budget(
+            &ShaderVariantPrewarmManifest::empty(),
+            &args.project_root,
+            args.execution_budget,
+            false,
+            false,
+        );
+        return finish_shader_prewarm_report(&report, args.report.as_deref(), args.pretty);
+    }
 
     let mut geometry_sources = args.geometry_sources.clone();
     let mut geometry_source_ids = args.geometry_source_ids.clone();
@@ -43,9 +53,10 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     let mut shading_model_ids = args.shading_model_ids.clone();
     let mut shading_model_descriptors = BTreeMap::new();
     let mut shader_modules = BTreeMap::new();
-    for registry_path in
-        shader_permutation_registry_paths(&args.permutation_registries, &args.asset_roots)
-    {
+    let permutation_registry_paths =
+        shader_permutation_registry_paths(&args.permutation_registries, &args.asset_roots);
+    let has_permutation_registry = !permutation_registry_paths.is_empty();
+    for registry_path in permutation_registry_paths {
         let registry_overlay = ShaderPrewarmPermutationRegistryOverlay::read(&registry_path)
             .map_err(|error| error.to_string())?;
         registry_overlay
@@ -59,8 +70,16 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
             )
             .map_err(|error| error.to_string())?;
     }
+    let has_external_permutation_inputs = has_permutation_registry
+        || args.quality_tiers != [ShaderQualityTier::Medium]
+        || geometry_sources != [GEOMETRY_SOURCE_ID_STATIC_MESH]
+        || !geometry_source_ids.is_empty()
+        || !shading_model_ids.is_empty()
+        || !geometry_source_descriptors.is_empty()
+        || !shading_model_descriptors.is_empty()
+        || !shader_modules.is_empty();
 
-    let mut manifest = ShaderVariantPrewarmManifest::new(Vec::new());
+    let mut manifest = ShaderVariantPrewarmManifest::empty();
     if args.builtin_fallback {
         manifest = merge_manifests(
             manifest,
@@ -77,8 +96,53 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
         manifest =
             merge_manifests(manifest, manifest_from_file).map_err(|error| error.to_string())?;
     }
-    let exported_resource_records = export_shader_resource_registry_for_asset_roots(
-        &args.asset_roots,
+    let cache_dir = args
+        .cache_dir
+        .unwrap_or_else(|| default_shader_variant_cache_root_for_project(&args.project_root));
+    fs::create_dir_all(&cache_dir).map_err(|error| {
+        format!(
+            "failed to create shader variant cache directory `{}`: {error}",
+            cache_dir.display()
+        )
+    })?;
+    if args
+        .asset_roots
+        .iter()
+        .any(|asset_root| cache_root_matches_asset_root(&cache_dir, asset_root))
+    {
+        return Err(format!(
+            "shader variant cache directory `{}` must not equal an asset root; choose a separate or nested cache directory",
+            cache_dir.display()
+        ));
+    }
+    let inventory_snapshot_root = cache_dir.join("asset_inventories");
+    let has_external_resource_registry = args.resource_registry.is_some();
+    let needs_unchanged_inventory_payload = has_external_permutation_inputs
+        || has_external_resource_registry
+        || args.export_resource_registry.is_some();
+    let mut asset_inventories = Vec::new();
+    for asset_root in &args.asset_roots {
+        if !needs_unchanged_inventory_payload
+            && ShaderPrewarmAssetInventory::warm_snapshot_is_current_excluding(
+                asset_root,
+                &inventory_snapshot_root,
+                Some(&cache_dir),
+                args.execution_budget.max_resident_source_bytes,
+            )
+        {
+            continue;
+        }
+        let inventory = ShaderPrewarmAssetInventory::collect_with_warm_snapshot_excluding(
+            asset_root,
+            &inventory_snapshot_root,
+            Some(&cache_dir),
+            args.execution_budget.max_resident_source_bytes,
+        )
+        .map_err(|error| error.to_string())?;
+        asset_inventories.push((asset_root.clone(), inventory));
+    }
+    let exported_resource_records = export_shader_resource_registry_for_asset_inventories(
+        &asset_inventories,
         args.export_resource_registry.as_ref(),
     )
     .map_err(|error| error.to_string())?;
@@ -87,48 +151,80 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     } else {
         exported_resource_records.map(ShaderPrewarmResourceRegistryOverlay::from_records)
     };
-    for asset_root in &args.asset_roots {
+    for (asset_root, inventory) in &asset_inventories {
+        if !asset_root_requires_prewarm_projection(
+            !inventory.changed_paths().is_empty(),
+            has_external_permutation_inputs,
+            has_external_resource_registry,
+        ) {
+            continue;
+        }
         manifest = merge_manifests(
             manifest,
-            asset_root_manifest_with_resource_registry_revisions(
+            asset_root_manifest_from_inventory_with_resource_registry_revisions_and_external_inputs(
                 asset_root,
+                inventory,
                 &args.quality_tiers,
                 &geometry_sources,
                 &geometry_source_descriptors,
                 &shading_model_ids,
                 &shader_modules,
                 resource_registry.as_ref(),
+                has_external_permutation_inputs,
             )
             .map_err(|error| error.to_string())?,
         )
         .map_err(|error| error.to_string())?;
     }
 
-    let cache_dir = args
-        .cache_dir
-        .unwrap_or_else(|| default_shader_variant_cache_root_for_project(&args.project_root));
-    let report = if args.validate_wgpu_modules && args.validate_wgpu_pipelines {
-        prewarm_shader_variants_with_wgpu_module_and_pipeline_validation(&manifest, &cache_dir)
-    } else if args.validate_wgpu_pipelines {
-        prewarm_shader_variants_with_wgpu_pipeline_validation(&manifest, &cache_dir)
-    } else if args.validate_wgpu_modules {
-        prewarm_shader_variants_with_wgpu_module_validation(&manifest, &cache_dir)
-    } else {
-        prewarm_shader_variants(&manifest, &cache_dir)
-    };
-    let json =
-        encode_shader_prewarm_report(&report, args.pretty).map_err(|error| error.to_string())?;
+    let report = prewarm_shader_variants_with_execution_budget(
+        &manifest,
+        &cache_dir,
+        args.execution_budget,
+        args.validate_wgpu_modules,
+        args.validate_wgpu_pipelines,
+    );
+    finish_shader_prewarm_report(&report, args.report.as_deref(), args.pretty)
+}
 
-    if let Some(report_path) = &args.report {
+fn finish_shader_prewarm_report(
+    report: &ShaderVariantPrewarmReport,
+    report_path: Option<&Path>,
+    pretty: bool,
+) -> Result<ExitCode, String> {
+    let json = encode_shader_prewarm_report(report, pretty).map_err(|error| error.to_string())?;
+
+    if let Some(report_path) = report_path {
         write_shader_prewarm_report(report_path, &json).map_err(|error| error.to_string())?;
     }
 
     println!("{json}");
-    if report.failed_count > 0 {
+    if report.failed_count > 0 || report.preflight_error.is_some() {
         Ok(ExitCode::from(2))
     } else {
         Ok(ExitCode::SUCCESS)
     }
+}
+
+/// Local inventory changes are the only input owned by a warm asset snapshot.
+/// Any module or resource overlay supplied outside that snapshot must force a
+/// conservative projection because its revision can change independently.
+fn asset_root_requires_prewarm_projection(
+    has_changed_inventory_paths: bool,
+    has_external_permutation_inputs: bool,
+    has_external_resource_registry: bool,
+) -> bool {
+    has_changed_inventory_paths || has_external_permutation_inputs || has_external_resource_registry
+}
+
+fn cache_root_matches_asset_root(cache_root: &Path, asset_root: &Path) -> bool {
+    let Ok(cache_root) = fs::canonicalize(cache_root) else {
+        return false;
+    };
+    let Ok(asset_root) = fs::canonicalize(asset_root) else {
+        return false;
+    };
+    cache_root == asset_root
 }
 
 fn encode_shader_prewarm_report(
@@ -169,6 +265,31 @@ fn export_shader_resource_registry_for_asset_roots(
         return Ok(None);
     };
     let records = shader_resource_records_from_asset_roots(asset_roots)?;
+    write_shader_resource_registry_export(export_path, &records)?;
+    Ok(Some(records))
+}
+
+fn export_shader_resource_registry_for_asset_inventories(
+    asset_inventories: &[(PathBuf, ShaderPrewarmAssetInventory)],
+    export_path: Option<&PathBuf>,
+) -> ShaderPrewarmResourceRegistryResult<Option<Vec<zircon_runtime::core::resource::ResourceRecord>>>
+{
+    let Some(export_path) = export_path else {
+        return Ok(None);
+    };
+    let records = shader_resource_records_from_loaded_meta_document_refs(
+        asset_inventories
+            .iter()
+            .flat_map(|(_, inventory)| inventory.metadata_by_path().values()),
+    )?;
+    write_shader_resource_registry_export(export_path, &records)?;
+    Ok(Some(records))
+}
+
+fn write_shader_resource_registry_export(
+    export_path: &Path,
+    records: &[zircon_runtime::core::resource::ResourceRecord],
+) -> ShaderPrewarmResourceRegistryResult<()> {
     let json = serde_json::json!({ "resources": records });
     let json = serde_json::to_string_pretty(&json)
         .map_err(|source| ShaderPrewarmResourceRegistryError::EncodeExport { source })?;
@@ -182,13 +303,10 @@ fn export_shader_resource_registry_for_asset_roots(
             })?;
         }
     }
-    fs::write(export_path, json).map_err(|source| {
-        ShaderPrewarmResourceRegistryError::WriteExport {
-            path: export_path.to_path_buf(),
-            source,
-        }
-    })?;
-    Ok(Some(records))
+    fs::write(export_path, json).map_err(|source| ShaderPrewarmResourceRegistryError::WriteExport {
+        path: export_path.to_path_buf(),
+        source,
+    })
 }
 
 #[cfg(test)]
@@ -203,12 +321,115 @@ mod tests {
             .split("let resource_registry =")
             .nth(1)
             .unwrap()
-            .split("for asset_root")
+            .split("let cache_dir")
             .next()
             .unwrap();
 
         assert!(projection.contains("exported_resource_records.map("));
         assert!(!projection.contains("exported_resource_records\n            .clone()"));
+    }
+
+    #[test]
+    fn warm_unchanged_asset_roots_skip_projection_without_external_inputs() {
+        assert!(!asset_root_requires_prewarm_projection(false, false, false));
+        assert!(asset_root_requires_prewarm_projection(true, false, false));
+        assert!(asset_root_requires_prewarm_projection(false, true, false));
+        assert!(asset_root_requires_prewarm_projection(false, false, true));
+    }
+
+    #[test]
+    fn default_warm_asset_roots_skip_inventory_payload_hydration() {
+        let source = include_str!("run.rs").split_once("#[cfg(test)]").unwrap().0;
+        let inventory_loop = source
+            .split("let inventory_snapshot_root")
+            .nth(1)
+            .expect("run should prepare an inventory snapshot root")
+            .split("let exported_resource_records")
+            .next()
+            .expect("inventory collection should end before registry export");
+
+        assert!(inventory_loop.contains("needs_unchanged_inventory_payload"));
+        assert!(inventory_loop.contains("warm_snapshot_is_current_excluding"));
+        assert!(inventory_loop.contains("continue;"));
+        assert!(
+            inventory_loop.find("warm_snapshot_is_current_excluding")
+                < inventory_loop.find("collect_with_warm_snapshot_excluding"),
+            "the compact index check must precede full inventory hydration"
+        );
+    }
+
+    #[test]
+    fn invalid_execution_budget_emits_a_json_preflight_report_before_asset_io() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_prewarm_invalid_budget_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock must be after the Unix epoch")
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).expect("fixture root should be created");
+        let project_root = root.join("missing_project");
+        let asset_root = root.join("missing_assets");
+        let report_path = root.join("preflight_report.json");
+
+        let exit_code = run([
+            "--project-root",
+            project_root.to_str().expect("fixture path should be UTF-8"),
+            "--asset-root",
+            asset_root.to_str().expect("fixture path should be UTF-8"),
+            "--report",
+            report_path.to_str().expect("fixture path should be UTF-8"),
+            "--max-resident-source-bytes",
+            "0",
+        ]
+        .into_iter()
+        .map(OsString::from))
+        .expect("invalid budget should still produce a report");
+        assert_eq!(exit_code, ExitCode::from(2));
+        assert!(
+            !project_root.exists() && !asset_root.exists(),
+            "budget preflight must run before cache creation or asset inventory IO"
+        );
+
+        let report: serde_json::Value = serde_json::from_slice(
+            &fs::read(&report_path).expect("preflight report should be written"),
+        )
+        .expect("preflight report should be JSON");
+        assert_eq!(report["requested_count"], 0);
+        assert_eq!(report["written_count"], 0);
+        assert_eq!(report["failed_count"], 0);
+        assert_eq!(report["failures"], serde_json::json!([]));
+        assert!(
+            report["preflight_error"]
+                .as_str()
+                .is_some_and(|error| error.contains("max_resident_source_bytes must be non-zero"))
+        );
+
+        fs::remove_dir_all(root).expect("fixture root should be removed");
+    }
+
+    #[test]
+    fn shader_prewarm_rejects_a_cache_root_equal_to_an_asset_root() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_prewarm_cache_root_conflict_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock must be after the Unix epoch")
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).expect("fixture root should be created");
+        let nested_cache_root = root.join("cache");
+        fs::create_dir_all(&nested_cache_root).expect("nested cache root should be created");
+
+        assert!(cache_root_matches_asset_root(&root, &root));
+        assert!(
+            !cache_root_matches_asset_root(&nested_cache_root, &root),
+            "a nested cache root remains a valid asset-inventory exclusion"
+        );
+
+        fs::remove_dir_all(root).expect("fixture root should be removed");
     }
 
     #[test]

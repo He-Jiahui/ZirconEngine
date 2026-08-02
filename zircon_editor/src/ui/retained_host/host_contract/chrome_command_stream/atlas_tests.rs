@@ -145,6 +145,7 @@ fn command_stream_replay_samples_atlas_uv_from_embedded_atlas_bytes() {
         None,
         ChromeImagePayload {
             resource_key: "lib://editor-sprite-atlases/a.png".to_string(),
+            resource_generation: 0,
             width: 2,
             height: 1,
             upload_bytes: 8,
@@ -198,6 +199,7 @@ fn push_recorded_for_test(
 fn atlas_image(resource_key: &str, min: [f32; 2], max: [f32; 2]) -> HostPaintAtlasImage {
     HostPaintAtlasImage {
         resource_key: resource_key.to_string(),
+        resource_generation: 0,
         width: 4,
         height: 4,
         rgba: Some(vec![255; 64]),

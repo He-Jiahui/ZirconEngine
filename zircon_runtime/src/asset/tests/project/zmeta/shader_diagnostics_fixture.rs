@@ -64,16 +64,12 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
 
     match manager.load_artifact(&shader_uri).unwrap() {
         ImportedAsset::Shader(shader) => {
-            assert!(shader
-                .validation_diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic
-                    .contains("wgsl_capture property `base_color` was not found")));
-            assert!(shader
-                .validation_diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic
-                    .contains("wgsl_capture texture slot `albedo` was not found")));
+            assert!(shader.validation_diagnostics.iter().any(|diagnostic| {
+                diagnostic.contains("wgsl_capture property `base_color` was not found")
+            }));
+            assert!(shader.validation_diagnostics.iter().any(|diagnostic| {
+                diagnostic.contains("wgsl_capture texture slot `albedo` was not found")
+            }));
             let readiness = shader.readiness_report();
             assert!(!readiness.is_ready());
             assert!(readiness.uses_runtime_wgsl());
@@ -81,14 +77,18 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
                 readiness.validation_diagnostics,
                 shader.validation_diagnostics
             );
-            assert!(readiness
-                .validation_diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("wgsl_capture property `base_color`")));
-            assert!(readiness
-                .validation_diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("wgsl_capture texture slot `albedo`")));
+            assert!(
+                readiness
+                    .validation_diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.contains("wgsl_capture property `base_color`"))
+            );
+            assert!(
+                readiness
+                    .validation_diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.contains("wgsl_capture texture slot `albedo`"))
+            );
         }
         other => panic!("unexpected compound shader artifact: {other:?}"),
     }
@@ -175,14 +175,18 @@ fn documented_zmeta_shader_material_fixture_parses() {
     assert_eq!(shader_meta.asset_kind, AssetKind::Shader);
     assert_eq!(shader_meta.unit, AssetSourceUnit::Compound);
     assert_eq!(shader_meta.entries.len(), 3);
-    assert!(shader_meta
-        .entries
-        .iter()
-        .any(|entry| entry.url == zshader_uri && entry.asset_kind == AssetKind::Data));
-    assert!(shader_meta
-        .entries
-        .iter()
-        .any(|entry| entry.url == wgsl_uri && entry.asset_kind == AssetKind::Data));
+    assert!(
+        shader_meta
+            .entries
+            .iter()
+            .any(|entry| entry.url == zshader_uri && entry.asset_kind == AssetKind::Data)
+    );
+    assert!(
+        shader_meta
+            .entries
+            .iter()
+            .any(|entry| entry.url == wgsl_uri && entry.asset_kind == AssetKind::Data)
+    );
 
     let zshader = ZShaderDocumentV2::from_toml_str(
         &fs::read_to_string(
@@ -271,7 +275,9 @@ fn documented_zmeta_shader_material_fixture_parses() {
     assert_eq!(material_meta.asset_kind, AssetKind::Material);
     assert_eq!(material_meta.dependencies.len(), 2);
     assert!(material_meta.dependencies.contains(&shader_uri));
-    assert!(material_meta
-        .dependencies
-        .contains(&AssetUri::parse("res://textures/hero_albedo.png").unwrap()));
+    assert!(
+        material_meta
+            .dependencies
+            .contains(&AssetUri::parse("res://textures/hero_albedo.png").unwrap())
+    );
 }

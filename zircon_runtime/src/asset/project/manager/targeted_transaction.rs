@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
-use crate::foundation::persistence::atomic_file::{atomic_write, stage_atomic_write};
+use crate::core::resource::io::atomic_file::{atomic_write, stage_atomic_write};
 
 pub(super) struct PreparedFileWrite {
     pub(super) path: PathBuf,

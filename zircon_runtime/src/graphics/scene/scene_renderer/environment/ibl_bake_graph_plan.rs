@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactContents, IblBakeArtifactRequest,
+    IblBakeArtifactContents, IblBakeArtifactRequest, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
     SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 use crate::render_graph::{
@@ -247,7 +247,11 @@ const fn div_ceil(value: u32, divisor: u32) -> u32 {
 
 const fn pmrem_mip_size(face_size: u32, mip_level: u32) -> u32 {
     let shifted = face_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 #[cfg(test)]
@@ -294,18 +298,14 @@ mod tests {
                 "compiled graph should contain PMREM mip pass `{pass_name}`"
             );
         }
-        assert!(
-            graph
-                .passes()
-                .iter()
-                .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_SH9_PASS)
-        );
-        assert!(
-            graph
-                .passes()
-                .iter()
-                .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_CUBE_PASS)
-        );
+        assert!(graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_SH9_PASS));
+        assert!(graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_CUBE_PASS));
         for mip_level in 1..8 {
             let previous = compiled_pass_by_name(&graph, &ibl_bake_pmrem_pass_name(mip_level - 1));
             let current = compiled_pass_by_name(&graph, &ibl_bake_pmrem_pass_name(mip_level));
@@ -455,16 +455,12 @@ mod tests {
         assert!(plan.resources.pmrem.is_none());
         assert!(plan.resources.irradiance_sh9.is_some());
         assert!(plan.resources.irradiance_cube.is_none());
-        assert!(
-            graph
-                .resource_lifetime_by_name(IBL_BAKE_PMREM_RESOURCE)
-                .is_none()
-        );
-        assert!(
-            graph
-                .resource_lifetime_by_name(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
-                .is_none()
-        );
+        assert!(graph
+            .resource_lifetime_by_name(IBL_BAKE_PMREM_RESOURCE)
+            .is_none());
+        assert!(graph
+            .resource_lifetime_by_name(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
+            .is_none());
     }
 
     fn compiled_pass_by_name<'a>(

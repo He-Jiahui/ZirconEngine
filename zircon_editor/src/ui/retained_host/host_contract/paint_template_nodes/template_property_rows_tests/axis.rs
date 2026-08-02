@@ -1,4 +1,4 @@
-use super::super::super::template_property_axis_values::{property_axis_values, PropertyAxisValue};
+use super::super::super::template_property_axis_values::{PropertyAxisValue, property_axis_values};
 use super::super::layout::{
     axis_field_rect, axis_label_rect, label_text_rect, property_label_width,
     property_value_area_rect, scalar_field_rect, value_text_rect,

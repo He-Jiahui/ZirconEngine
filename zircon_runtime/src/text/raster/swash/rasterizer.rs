@@ -2,12 +2,12 @@ use super::bitmap::GlyphBitmap;
 use super::error::SwashRasterError;
 use super::request::SwashRasterRequest;
 use crate::core::math::{UVec2, Vec2};
-use swash::FontRef;
 use swash::scale::{
-    Render, ScaleContext,
     image::{Content as SwashImageContent, Image as SwashImage},
+    Render, ScaleContext,
 };
 use swash::zeno::Vector as SwashVector;
+use swash::FontRef;
 use swash::{Setting as SwashSetting, Tag as SwashTag};
 
 pub(crate) struct SwashRasterizer {

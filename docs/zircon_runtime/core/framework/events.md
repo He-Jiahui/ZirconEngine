@@ -2,11 +2,11 @@
 related_code:
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/framework/mod.rs
-  - zircon_runtime/src/core/framework/foundation.rs
+  - zircon_runtime/src/core/framework/foundation/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/events.rs
   - zircon_runtime/src/core/framework/mod.rs
-  - zircon_runtime/src/core/framework/foundation.rs
+  - zircon_runtime/src/core/framework/foundation/mod.rs
 plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md

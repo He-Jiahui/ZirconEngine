@@ -161,6 +161,10 @@ pub enum ZrRuntimeGamepadRumbleRequestKindV1 {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ZrRuntimeImeHostRequestV1 {
     pub kind: ZrRuntimeImeHostRequestKindV1,
+    /// The host viewport that owns this IME session. Missing only decodes older
+    /// serialized output; current runtime producers always set this target.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_viewport: Option<ZrRuntimeViewportHandle>,
     pub cursor_area: Option<ZrRuntimeImeCursorAreaV1>,
     pub surrounding_text: Option<ZrRuntimeImeSurroundingTextV1>,
 }
@@ -169,6 +173,7 @@ impl ZrRuntimeImeHostRequestV1 {
     pub fn enable() -> Self {
         Self {
             kind: ZrRuntimeImeHostRequestKindV1::Enable,
+            target_viewport: None,
             cursor_area: None,
             surrounding_text: None,
         }
@@ -177,6 +182,7 @@ impl ZrRuntimeImeHostRequestV1 {
     pub fn disable() -> Self {
         Self {
             kind: ZrRuntimeImeHostRequestKindV1::Disable,
+            target_viewport: None,
             cursor_area: None,
             surrounding_text: None,
         }
@@ -185,6 +191,7 @@ impl ZrRuntimeImeHostRequestV1 {
     pub fn set_cursor_area(area: ZrRuntimeImeCursorAreaV1) -> Self {
         Self {
             kind: ZrRuntimeImeHostRequestKindV1::SetCursorArea,
+            target_viewport: None,
             cursor_area: Some(area),
             surrounding_text: None,
         }
@@ -193,9 +200,15 @@ impl ZrRuntimeImeHostRequestV1 {
     pub fn set_surrounding_text(text: ZrRuntimeImeSurroundingTextV1) -> Self {
         Self {
             kind: ZrRuntimeImeHostRequestKindV1::SetSurroundingText,
+            target_viewport: None,
             cursor_area: None,
             surrounding_text: Some(text),
         }
+    }
+
+    pub const fn with_target_viewport(mut self, target_viewport: ZrRuntimeViewportHandle) -> Self {
+        self.target_viewport = Some(target_viewport);
+        self
     }
 }
 
@@ -207,12 +220,22 @@ pub enum ZrRuntimeImeHostRequestKindV1 {
     SetSurroundingText,
 }
 
+/// IME cursor rectangles are window-relative logical pixels. The app submits
+/// these values to winit's logical position and size APIs without DPI scaling.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeImeCoordinateSpaceV1 {
+    #[default]
+    WindowLogical,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ZrRuntimeImeCursorAreaV1 {
     pub x: f32,
     pub y: f32,
     pub width: f32,
     pub height: f32,
+    #[serde(default)]
+    pub coordinate_space: ZrRuntimeImeCoordinateSpaceV1,
 }
 
 impl ZrRuntimeImeCursorAreaV1 {
@@ -222,6 +245,7 @@ impl ZrRuntimeImeCursorAreaV1 {
             y,
             width,
             height,
+            coordinate_space: ZrRuntimeImeCoordinateSpaceV1::WindowLogical,
         }
     }
 }
@@ -240,5 +264,64 @@ impl ZrRuntimeImeSurroundingTextV1 {
             cursor,
             anchor,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ime_host_request_keeps_its_viewport_and_logical_cursor_space() {
+        let viewport = ZrRuntimeViewportHandle::new(7);
+        let request = ZrRuntimeImeHostRequestV1::set_cursor_area(ZrRuntimeImeCursorAreaV1::new(
+            12.0, 34.0, 2.0, 18.0,
+        ))
+        .with_target_viewport(viewport);
+
+        assert_eq!(request.target_viewport, Some(viewport));
+        assert_eq!(
+            request.cursor_area.map(|area| area.coordinate_space),
+            Some(ZrRuntimeImeCoordinateSpaceV1::WindowLogical)
+        );
+
+        let encoded = serde_json::to_value(&request).expect("serialize IME host request");
+        assert_eq!(encoded["target_viewport"], serde_json::json!(7));
+        assert_eq!(
+            encoded["cursor_area"]["coordinate_space"],
+            serde_json::json!("WindowLogical")
+        );
+    }
+
+    #[test]
+    fn ime_host_request_decodes_legacy_payload_without_a_viewport_target() {
+        let legacy_request = serde_json::json!({
+            "kind": "Enable",
+            "cursor_area": null,
+            "surrounding_text": null,
+        });
+
+        let request: ZrRuntimeImeHostRequestV1 =
+            serde_json::from_value(legacy_request).expect("decode legacy IME host request");
+
+        assert_eq!(request.target_viewport, None);
+    }
+
+    #[test]
+    fn legacy_ime_cursor_area_defaults_to_window_logical_coordinates() {
+        let legacy_area = serde_json::json!({
+            "x": 12.0,
+            "y": 34.0,
+            "width": 2.0,
+            "height": 18.0,
+        });
+
+        let area: ZrRuntimeImeCursorAreaV1 =
+            serde_json::from_value(legacy_area).expect("decode legacy IME cursor area");
+
+        assert_eq!(
+            area.coordinate_space,
+            ZrRuntimeImeCoordinateSpaceV1::WindowLogical
+        );
     }
 }

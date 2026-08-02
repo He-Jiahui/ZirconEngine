@@ -1,8 +1,23 @@
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use super::ShaderVariantKey;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ShaderPipelineDiagnosticStage {
+    SourceAssembly,
+    WgslValidation,
+    PipelineCreation,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderPipelineDiagnostic {
+    pub variant_key: String,
+    pub stage: ShaderPipelineDiagnosticStage,
+    pub message: String,
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderVariantMissReport {
@@ -14,9 +29,13 @@ pub struct ShaderVariantMissReport {
     pub disk_error_count: usize,
     #[serde(default)]
     pub dimension_summary: ShaderVariantRuntimeDimensionSummary,
+    #[serde(default, deserialize_with = "deserialize_pipeline_diagnostics")]
+    pipeline_diagnostics: Vec<ShaderPipelineDiagnostic>,
 }
 
 impl ShaderVariantMissReport {
+    pub const MAX_PIPELINE_DIAGNOSTICS: usize = 8;
+
     pub fn record_request(&mut self, key: &ShaderVariantKey) {
         self.request_count += 1;
         self.dimension_summary
@@ -54,6 +73,23 @@ impl ShaderVariantMissReport {
             .record(key, ShaderVariantRuntimeOutcome::DiskError);
     }
 
+    pub fn record_pipeline_diagnostic(
+        &mut self,
+        key: &ShaderVariantKey,
+        stage: ShaderPipelineDiagnosticStage,
+        message: impl Into<String>,
+    ) {
+        self.push_pipeline_diagnostic(ShaderPipelineDiagnostic {
+            variant_key: key.canonical_string(),
+            stage,
+            message: bounded_pipeline_diagnostic_message(message.into()),
+        });
+    }
+
+    pub fn pipeline_diagnostics(&self) -> &[ShaderPipelineDiagnostic] {
+        &self.pipeline_diagnostics
+    }
+
     pub fn accumulate(&mut self, other: Self) {
         self.request_count += other.request_count;
         self.memory_hit_count += other.memory_hit_count;
@@ -62,7 +98,54 @@ impl ShaderVariantMissReport {
         self.disk_write_count += other.disk_write_count;
         self.disk_error_count += other.disk_error_count;
         self.dimension_summary.accumulate(&other.dimension_summary);
+        for diagnostic in other.pipeline_diagnostics {
+            self.push_pipeline_diagnostic(diagnostic);
+        }
     }
+
+    fn push_pipeline_diagnostic(&mut self, diagnostic: ShaderPipelineDiagnostic) {
+        let diagnostic = ShaderPipelineDiagnostic {
+            message: bounded_pipeline_diagnostic_message(diagnostic.message),
+            ..diagnostic
+        };
+        if self.pipeline_diagnostics.len() >= Self::MAX_PIPELINE_DIAGNOSTICS
+            || self
+                .pipeline_diagnostics
+                .iter()
+                .any(|current| current == &diagnostic)
+        {
+            return;
+        }
+        self.pipeline_diagnostics.push(diagnostic);
+    }
+}
+
+const MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS: usize = 2048;
+
+fn bounded_pipeline_diagnostic_message(mut message: String) -> String {
+    const TRUNCATION_SUFFIX: &str = "...";
+    let retained_char_count =
+        MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS.saturating_sub(TRUNCATION_SUFFIX.chars().count());
+    let Some((end, _)) = message.char_indices().nth(retained_char_count) else {
+        return message;
+    };
+    message.truncate(end);
+    message.push_str(TRUNCATION_SUFFIX);
+    message
+}
+
+fn deserialize_pipeline_diagnostics<'de, D>(
+    deserializer: D,
+) -> Result<Vec<ShaderPipelineDiagnostic>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let diagnostics = Vec::<ShaderPipelineDiagnostic>::deserialize(deserializer)?;
+    let mut report = ShaderVariantMissReport::default();
+    for diagnostic in diagnostics {
+        report.push_pipeline_diagnostic(diagnostic);
+    }
+    Ok(report.pipeline_diagnostics)
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,7 +255,7 @@ mod tests {
         ShaderQualityTier, ShaderVariantKey,
     };
 
-    use super::ShaderVariantMissReport;
+    use super::{ShaderPipelineDiagnosticStage, ShaderVariantMissReport};
 
     #[test]
     fn shader_variant_miss_report_groups_runtime_outcomes_by_variant_dimensions() {
@@ -223,6 +306,107 @@ mod tests {
         assert_eq!(
             report.dimension_summary.quality_tiers["high"].disk_write_count,
             1
+        );
+    }
+
+    #[test]
+    fn shader_variant_miss_report_deduplicates_and_bounds_pipeline_diagnostics() {
+        let key = ShaderVariantKey {
+            material_shader: ResourceId::from_stable_label("res://materials/diagnostic.zshader"),
+            material_revision: 12,
+            material_layout_hash: 0,
+            material_option_bits: 0,
+            geometry_source: GeometrySourceId::new(3),
+            shading_model: SHADING_MODEL_ID_STANDARD_PBR,
+            pass_type: ShaderPassType::Forward,
+            features: ShaderFeatureBits::default(),
+            quality: ShaderQualityTier::High,
+            platform_token: "wgpu-runtime".to_string(),
+        };
+        let mut report = ShaderVariantMissReport::default();
+
+        report.record_pipeline_diagnostic(
+            &key,
+            ShaderPipelineDiagnosticStage::SourceAssembly,
+            "missing surface entry",
+        );
+        report.record_pipeline_diagnostic(
+            &key,
+            ShaderPipelineDiagnosticStage::SourceAssembly,
+            "missing surface entry",
+        );
+        for index in 0..ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS {
+            report.record_pipeline_diagnostic(
+                &key,
+                ShaderPipelineDiagnosticStage::WgslValidation,
+                format!("validation failure {index}"),
+            );
+        }
+
+        assert_eq!(
+            report.pipeline_diagnostics().len(),
+            ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS
+        );
+        assert_eq!(
+            report.pipeline_diagnostics()[0].stage,
+            ShaderPipelineDiagnosticStage::SourceAssembly
+        );
+        assert!(
+            report.pipeline_diagnostics()[0]
+                .variant_key
+                .contains("res://materials/diagnostic.zshader")
+        );
+    }
+
+    #[test]
+    fn shader_variant_miss_report_deserialization_enforces_pipeline_diagnostic_limits() {
+        let mut document = serde_json::to_value(ShaderVariantMissReport::default())
+            .expect("default report serializes");
+        let diagnostics = (0..=ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS)
+            .map(|index| {
+                serde_json::json!({
+                    "variant_key": format!("variant-{index}"),
+                    "stage": "pipeline_creation",
+                    "message": "x".repeat(4096),
+                })
+            })
+            .collect();
+        document["pipeline_diagnostics"] = serde_json::Value::Array(diagnostics);
+
+        let report: ShaderVariantMissReport =
+            serde_json::from_value(document).expect("diagnostics deserialize");
+
+        assert_eq!(
+            report.pipeline_diagnostics().len(),
+            ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS
+        );
+        assert!(
+            report.pipeline_diagnostics()[0].message.chars().count()
+                <= super::MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS
+        );
+    }
+
+    #[test]
+    fn shader_variant_miss_report_accumulation_normalizes_foreign_diagnostics() {
+        let mut destination = ShaderVariantMissReport::default();
+        let mut source = ShaderVariantMissReport::default();
+        source
+            .pipeline_diagnostics
+            .push(super::ShaderPipelineDiagnostic {
+                variant_key: "foreign-variant".to_string(),
+                stage: ShaderPipelineDiagnosticStage::PipelineCreation,
+                message: "x".repeat(4096),
+            });
+
+        destination.accumulate(source);
+
+        assert_eq!(destination.pipeline_diagnostics().len(), 1);
+        assert!(
+            destination.pipeline_diagnostics()[0]
+                .message
+                .chars()
+                .count()
+                <= super::MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS
         );
     }
 }

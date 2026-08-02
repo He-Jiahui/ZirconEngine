@@ -1,5 +1,6 @@
 mod camera_history_key;
 mod capture;
+mod capture_mailbox;
 mod construct;
 mod descriptor;
 mod generation;
@@ -13,6 +14,7 @@ mod runtime_states;
 mod surface;
 mod temporal_frame_index;
 mod viewport_record;
+mod visible_spatial_query;
 
 pub(in crate::graphics::runtime::render_framework) use camera_history_key::ViewportCameraHistoryKey;
 pub(in crate::graphics::runtime::render_framework) use viewport_record::ViewportRecord;

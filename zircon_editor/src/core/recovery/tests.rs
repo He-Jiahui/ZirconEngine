@@ -1,14 +1,20 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc;
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 
 use super::{
-    AutosaveDocumentId, AutosaveDocumentState, AutosaveExtension, AutosaveJobPolicy,
-    AutosavePolicy, AutosaveScheduler, AutosaveStore,
+    AutosaveAdmissionError, AutosaveDocumentId, AutosaveDocumentRequest, AutosaveDocumentState,
+    AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy, AutosaveScheduler,
+    AutosaveSnapshot, AutosaveSnapshotSource, AutosaveStore,
 };
-use crate::core::jobs::{JobCategory, JobPriority, MutexGroup};
+use crate::core::jobs::{
+    EditorJob, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
+    JobError, JobPriority, MutexGroup, test_job_system_with_limits,
+};
 
 fn document_id(value: &str) -> AutosaveDocumentId {
     AutosaveDocumentId::parse(value).expect("test document id should be valid")
@@ -177,17 +183,21 @@ fn autosave_rejects_reusing_an_existing_snapshot_sequence() {
     store
         .write_snapshot(&document, 1, &zscene_extension, b"first snapshot")
         .unwrap();
-    assert!(store
-        .write_snapshot(&document, 1, &zscene_extension, b"replacement snapshot")
-        .is_err());
-    assert!(store
-        .write_snapshot(
-            &document,
-            1,
-            &backup_extension,
-            b"different-extension snapshot",
-        )
-        .is_err());
+    assert!(
+        store
+            .write_snapshot(&document, 1, &zscene_extension, b"replacement snapshot")
+            .is_err()
+    );
+    assert!(
+        store
+            .write_snapshot(
+                &document,
+                1,
+                &backup_extension,
+                b"different-extension snapshot",
+            )
+            .is_err()
+    );
     assert_eq!(
         fs::read(root.join(".zircon/autosave/scene_main/1.zscene")).unwrap(),
         b"first snapshot"
@@ -245,6 +255,223 @@ fn autosave_rejects_path_traversal_identifiers_and_extensions() {
     assert!(AutosaveExtension::parse("../source").is_err());
     assert!(AutosaveExtension::parse("scene.data").is_err());
     assert!(AutosaveExtension::parse(" ").is_err());
+}
+
+#[test]
+fn autosave_adapter_defers_snapshot_capture_until_the_admitted_mutex_turn() {
+    let root = temporary_root("adapter-admission");
+    let jobs =
+        test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Import, 1));
+    let save_mutex = MutexGroup::parse("save_scene_main").unwrap();
+    let (started_sender, started_receiver) = mpsc::channel();
+    let (release_sender, release_receiver) = mpsc::channel();
+    let foreground = jobs
+        .submit(
+            EditorJobSpec::new("foreground-save", JobCategory::Import)
+                .with_mutex_group(save_mutex.clone()),
+            GateJob::new(started_sender, release_receiver),
+        )
+        .unwrap();
+    started_receiver.recv().unwrap();
+
+    let source = Arc::new(CountingSnapshotSource::success());
+    let mut adapter = AutosaveJobAdapter::new(
+        jobs.clone(),
+        AutosaveStore::new(&root),
+        AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
+    );
+    let document = document_id("scene_main");
+    let dirty = [AutosaveDocumentState::from_dirty_for_test(
+        document.clone(),
+        true,
+    )];
+    assert!(
+        adapter
+            .schedule(
+                Duration::from_secs(10),
+                &dirty,
+                [AutosaveDocumentRequest::new(
+                    document,
+                    AutosaveJobPolicy::for_save_mutex(save_mutex),
+                    source.clone(),
+                )
+                .with_estimated_pending_bytes(32)],
+            )
+            .unwrap()
+    );
+    assert_eq!(source.capture_count(), 0);
+    assert!(adapter.is_in_flight());
+
+    release_sender.send(()).unwrap();
+    assert_eq!(foreground.wait(), Ok(()));
+    let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(11));
+    assert_eq!(completion.succeeded(), 1);
+    assert_eq!(completion.failed(), 0);
+    assert_eq!(source.capture_count(), 1);
+    assert!(root.join(".zircon/autosave/scene_main/1.zscene").is_file());
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn autosave_adapter_releases_single_flight_when_atomic_admission_is_rejected() {
+    let jobs = test_job_system_with_limits(EditorJobLimits::default().with_admission_limits(
+        EditorJobAdmissionLimits::new(0, 1024, Duration::from_secs(10)),
+    ));
+    let root = temporary_root("adapter-rejected");
+    let mut adapter = AutosaveJobAdapter::new(
+        jobs,
+        AutosaveStore::new(&root),
+        AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
+    );
+    let document = document_id("scene_main");
+    let dirty = [AutosaveDocumentState::from_dirty_for_test(
+        document.clone(),
+        true,
+    )];
+    let source = Arc::new(CountingSnapshotSource::success());
+
+    assert!(matches!(
+        adapter.schedule(
+            Duration::from_secs(10),
+            &dirty,
+            [AutosaveDocumentRequest::new(
+                document,
+                AutosaveJobPolicy::for_save_mutex(MutexGroup::parse("save_scene_main").unwrap()),
+                source.clone(),
+            )],
+        ),
+        Err(AutosaveAdmissionError::JobSubmit(
+            crate::core::jobs::JobSubmitError::AdmissionEntryLimitExceeded { limit: 0 }
+        ))
+    ));
+    assert!(!adapter.is_in_flight());
+    assert_eq!(source.capture_count(), 0);
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn autosave_adapter_advances_after_a_write_failure_and_shutdown_rejects_new_work() {
+    let root = temporary_root("adapter-failure-shutdown");
+    let jobs = test_job_system_with_limits(EditorJobLimits::default());
+    let mut adapter = AutosaveJobAdapter::new(
+        jobs,
+        AutosaveStore::new(&root),
+        AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
+    );
+    let document = document_id("scene_main");
+    let dirty = [AutosaveDocumentState::from_dirty_for_test(
+        document.clone(),
+        true,
+    )];
+    assert!(
+        adapter
+            .schedule(
+                Duration::from_secs(10),
+                &dirty,
+                [AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(
+                        MutexGroup::parse("save_scene_main").unwrap()
+                    ),
+                    Arc::new(CountingSnapshotSource::failure()),
+                )],
+            )
+            .unwrap()
+    );
+    let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(12));
+    assert_eq!(completion.succeeded(), 0);
+    assert_eq!(completion.failed(), 1);
+    assert!(!adapter.is_in_flight());
+
+    assert_eq!(adapter.begin_shutdown(), Vec::new());
+    assert!(!adapter.is_accepting());
+    assert!(matches!(
+        adapter.schedule(
+            Duration::from_secs(22),
+            &dirty,
+            [AutosaveDocumentRequest::new(
+                document,
+                AutosaveJobPolicy::for_save_mutex(MutexGroup::parse("save_scene_main").unwrap()),
+                Arc::new(CountingSnapshotSource::success()),
+            )],
+        ),
+        Err(AutosaveAdmissionError::ShuttingDown)
+    ));
+    remove_temporary_root(&root);
+}
+
+fn wait_for_autosave_completion(
+    adapter: &mut AutosaveJobAdapter,
+    now: Duration,
+) -> super::AutosaveCompletion {
+    for _ in 0..1_000 {
+        let completion = adapter.pump_completed(now);
+        if completion.pending() == 0 && completion.succeeded() + completion.failed() != 0 {
+            return completion;
+        }
+        thread::yield_now();
+    }
+    panic!("autosave job did not reach a terminal result");
+}
+
+struct GateJob {
+    started: mpsc::Sender<()>,
+    release: mpsc::Receiver<()>,
+}
+
+impl GateJob {
+    fn new(started: mpsc::Sender<()>, release: mpsc::Receiver<()>) -> Self {
+        Self { started, release }
+    }
+}
+
+impl EditorJob for GateJob {
+    type Output = ();
+
+    fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
+        self.started.send(()).unwrap();
+        self.release.recv().unwrap();
+        Ok(())
+    }
+}
+
+struct CountingSnapshotSource {
+    captures: AtomicUsize,
+    failure: bool,
+}
+
+impl CountingSnapshotSource {
+    fn success() -> Self {
+        Self {
+            captures: AtomicUsize::new(0),
+            failure: false,
+        }
+    }
+
+    fn failure() -> Self {
+        Self {
+            captures: AtomicUsize::new(0),
+            failure: true,
+        }
+    }
+
+    fn capture_count(&self) -> usize {
+        self.captures.load(Ordering::Acquire)
+    }
+}
+
+impl AutosaveSnapshotSource for CountingSnapshotSource {
+    fn capture(&self, _document: &AutosaveDocumentId) -> Result<AutosaveSnapshot, JobError> {
+        self.captures.fetch_add(1, Ordering::AcqRel);
+        if self.failure {
+            return Err(JobError::failed(std::io::Error::other("snapshot failure")));
+        }
+        Ok(AutosaveSnapshot::new(
+            1,
+            extension("zscene"),
+            b"autosave snapshot".to_vec(),
+        ))
+    }
 }
 
 fn temporary_root(label: &str) -> std::path::PathBuf {

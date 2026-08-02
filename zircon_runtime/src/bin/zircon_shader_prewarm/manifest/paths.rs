@@ -1,40 +1,8 @@
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::ZShaderDocumentV2;
 
 use crate::error::{ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult};
-
-pub(super) fn collect_files_with_extension(
-    root: &Path,
-    extension: &str,
-    files: &mut Vec<PathBuf>,
-) -> ShaderPrewarmAssetScanResult<()> {
-    if !root.exists() {
-        return Ok(());
-    }
-    for entry in
-        fs::read_dir(root).map_err(|source| ShaderPrewarmAssetScanError::ReadShaderPackage {
-            path: root.to_path_buf(),
-            source,
-        })?
-    {
-        let entry =
-            entry.map_err(
-                |source| ShaderPrewarmAssetScanError::ReadShaderPackageEntry {
-                    path: root.to_path_buf(),
-                    source,
-                },
-            )?;
-        let path = entry.path();
-        if path.is_dir() {
-            collect_files_with_extension(&path, extension, files)?;
-        } else if has_extension(&path, extension) {
-            files.push(path);
-        }
-    }
-    Ok(())
-}
 
 pub(super) fn meta_path_for_single_source(meta_path: &Path) -> PathBuf {
     let file_name = meta_path
@@ -45,17 +13,19 @@ pub(super) fn meta_path_for_single_source(meta_path: &Path) -> PathBuf {
     meta_path.with_file_name(file_name)
 }
 
-pub(super) fn is_inside_compound_shader_source(path: &Path) -> bool {
+pub(super) fn is_inside_compound_shader_source(path: &Path, inventory_paths: &[PathBuf]) -> bool {
     let Some(parent) = path.parent() else {
         return false;
     };
     let Some(parent_name) = parent.file_name().and_then(|name| name.to_str()) else {
         return false;
     };
-    parent
-        .parent()
-        .map(|grandparent| grandparent.join(format!("{parent_name}.zmeta")).exists())
-        .unwrap_or(false)
+    parent.parent().is_some_and(|grandparent| {
+        let metadata_path = grandparent.join(format!("{parent_name}.zmeta"));
+        inventory_paths
+            .iter()
+            .any(|candidate| candidate == &metadata_path)
+    })
 }
 
 pub(super) fn is_zmeta(path: &Path) -> bool {
@@ -64,11 +34,14 @@ pub(super) fn is_zmeta(path: &Path) -> bool {
         .is_some_and(|value| value.ends_with(".zmeta"))
 }
 
-pub(super) fn has_sidecar_zmeta(path: &Path) -> bool {
+pub(super) fn has_sidecar_zmeta(path: &Path, inventory_paths: &[PathBuf]) -> bool {
     let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
         return false;
     };
-    path.with_file_name(format!("{file_name}.zmeta")).exists()
+    let metadata_path = path.with_file_name(format!("{file_name}.zmeta"));
+    inventory_paths
+        .iter()
+        .any(|candidate| candidate == &metadata_path)
 }
 
 pub(super) fn has_extension(path: &Path, extension: &str) -> bool {
@@ -90,15 +63,14 @@ pub(super) fn stable_label_for_path(asset_root: &Path, path: &Path) -> String {
 pub(super) fn wgsl_files_for_document(
     package_dir: &Path,
     document: &ZShaderDocumentV2,
+    inventory_paths: &[PathBuf],
 ) -> ShaderPrewarmAssetScanResult<Vec<PathBuf>> {
     if !document.wgsl_files().is_empty() {
         return Ok(document.wgsl_files().iter().map(PathBuf::from).collect());
     }
-    let mut files = Vec::new();
-    collect_files_with_extension(package_dir, "wgsl", &mut files)?;
-    files.sort();
-    files
-        .into_iter()
+    inventory_paths
+        .iter()
+        .filter(|path| path.starts_with(package_dir) && has_extension(path, "wgsl"))
         .map(|path| {
             path.strip_prefix(package_dir)
                 .map(PathBuf::from)
@@ -113,11 +85,14 @@ pub(super) fn wgsl_files_for_document(
         .collect()
 }
 
-pub(super) fn primary_zshader_path(package_dir: &Path) -> Option<PathBuf> {
-    let mut files = Vec::new();
-    collect_files_with_extension(package_dir, "zshader", &mut files).ok()?;
-    files.sort();
-    files.into_iter().next()
+pub(super) fn primary_zshader_path(
+    package_dir: &Path,
+    inventory_paths: &[PathBuf],
+) -> Option<PathBuf> {
+    inventory_paths
+        .iter()
+        .find(|path| path.starts_with(package_dir) && has_extension(path, "zshader"))
+        .cloned()
 }
 
 pub(super) fn content_hash(source: &str) -> String {

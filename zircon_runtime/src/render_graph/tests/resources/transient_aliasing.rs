@@ -1,6 +1,17 @@
 use super::*;
 
 #[test]
+fn transient_allocation_indexes_buckets_slots_and_reservations() {
+    let source = include_str!("../../graph.rs");
+
+    assert!(source.contains("HashMap::<TransientAllocationBucketKey"));
+    assert!(source.contains("BTreeSet::<(usize, usize)>::new()"));
+    assert!(source.contains("HashMap::<(RenderGraphResourceKind, usize, u64), u64>::new()"));
+    assert!(!source.contains("slot_last_passes\n            .iter()\n            .position"));
+    assert!(!source.contains("lifetimes_by_bucket\n            .iter_mut()\n            .find"));
+}
+
+#[test]
 fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
     let mut builder = RenderGraphBuilder::new("aliasing");
     let history = builder.create_texture(TextureDesc::new(

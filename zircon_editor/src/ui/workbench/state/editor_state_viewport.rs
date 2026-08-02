@@ -51,7 +51,7 @@ impl EditorState {
             self.viewport_controller
                 .apply_command(Some(scene), &ViewportCommand::FrameSelection)
         });
-        self.status_line = format!("Framed node {node_id}");
+        self.set_status_line(format!("Framed node {node_id}"));
         true
     }
 
@@ -98,7 +98,7 @@ impl EditorState {
             self.sync_selection_state();
         }
         if let Some(axis) = feedback.hovered_axis {
-            self.status_line = format!("Hover gizmo axis {:?}", axis);
+            self.set_status_line(format!("Hover gizmo axis {:?}", axis));
         }
         Ok(feedback)
     }

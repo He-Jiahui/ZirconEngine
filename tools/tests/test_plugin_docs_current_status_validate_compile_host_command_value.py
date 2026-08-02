@@ -48,17 +48,12 @@ class PluginDocsCurrentStatusValidateCompileHostCommandValueTests(unittest.TestC
         export_tool_text = (
             repo_root / "docs/cli-and-tooling/zircon-export-tool.md"
         ).read_text(encoding="utf-8")
-        session_text = (
-            repo_root
-            / ".codex/sessions/20260628-0317-zui-migration-validation.md"
-        ).read_text(encoding="utf-8")
 
         sections = {
             "09 export status": export_plan_status,
             "13 standalone status": standalone_status,
             "standalone current contract": standalone_contract,
             "export tooling docs": export_tool_text,
-            "active session notes": session_text,
         }
         failures: list[str] = []
         for section_name, section in sections.items():

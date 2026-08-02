@@ -1,14 +1,15 @@
 use super::model::WorkbenchChromeKind;
 use super::palette::{
-    workbench_chrome_palette_from_host, WORKBENCH_CHROME_CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG,
-    WORKBENCH_CHROME_DRAWER_BODY_BG, WORKBENCH_CHROME_MAIN_BG, WORKBENCH_CHROME_PANEL_BG,
-    WORKBENCH_CHROME_RAIL_BG, WORKBENCH_CHROME_ROOT_BG, WORKBENCH_CHROME_SEPARATOR,
-    WORKBENCH_CHROME_SOFT_SEPARATOR, WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR,
-    WORKBENCH_CHROME_TAB_BG, WORKBENCH_CHROME_TOPBAR_BG, WORKBENCH_CHROME_VIEWPORT_FRAME_BG,
+    WORKBENCH_CHROME_CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG, WORKBENCH_CHROME_DRAWER_BODY_BG,
+    WORKBENCH_CHROME_MAIN_BG, WORKBENCH_CHROME_PANEL_BG, WORKBENCH_CHROME_RAIL_BG,
+    WORKBENCH_CHROME_ROOT_BG, WORKBENCH_CHROME_SEPARATOR, WORKBENCH_CHROME_SOFT_SEPARATOR,
+    WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR, WORKBENCH_CHROME_TAB_BG,
+    WORKBENCH_CHROME_TOPBAR_BG, WORKBENCH_CHROME_VIEWPORT_FRAME_BG,
+    workbench_chrome_palette_from_host,
 };
 use super::selection::select_workbench_chrome_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
+use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor};
 

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::collections::HashMap;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -73,12 +73,12 @@ fn lock_registry() -> MutexGuard<'static, HashMap<u64, EventLoopProxy>> {
 #[cfg(test)]
 mod tests {
     use std::fmt;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     use winit::event_loop::{EventLoopProxy, EventLoopProxyProvider};
 
-    use super::{RuntimeWakeRegistration, runtime_wake_trampoline};
+    use super::{runtime_wake_trampoline, RuntimeWakeRegistration};
 
     struct CountingWakeTarget {
         wakes: Arc<AtomicUsize>,

@@ -18,6 +18,7 @@ pub(crate) const MOTION_VECTOR_TILE_MAX_PIPELINE_LABEL: &str =
     "zircon-motion-vector-tile-max-fullscreen";
 pub(crate) const MOTION_VECTOR_SOURCE_RESOURCE: &str =
     PostProcessGraphResourceNames::SCENE_VELOCITY;
+pub(crate) const MOTION_VECTOR_TILE_SPAN_PARAMETER: &str = "tile_span";
 
 const HZB_BUILD_SHADER: &str = "builtin://shaders/compute/hzb_build";
 const HZB_BUILD_KERNEL: &str = "cs_main";
@@ -87,6 +88,7 @@ pub(crate) fn motion_vector_tile_max_pass_plan() -> &'static FullscreenPassPlan 
             .expect("builtin motion-vector fullscreen shader locator must be valid"),
         )
         .with_pipeline_label(MOTION_VECTOR_TILE_MAX_PIPELINE_LABEL)
+        .set_vec4(MOTION_VECTOR_TILE_SPAN_PARAMETER, [2.0, 2.0, 0.0, 0.0])
         .bind_texture(MOTION_VECTOR_SOURCE_RESOURCE)
         .build(
             ShaderAssetKind::Fullscreen,
@@ -119,9 +121,9 @@ fn resource(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
+        ShaderDispatchExtent, ShaderResourceAccess, ShaderResourceKind,
         COMPUTE_SHADER_PARAMS_BINDING, FULLSCREEN_PASS_INPUT_GROUP,
-        FULLSCREEN_TRIANGLE_VERTEX_ENTRY, ShaderDispatchExtent, ShaderResourceAccess,
-        ShaderResourceKind,
+        FULLSCREEN_TRIANGLE_VERTEX_ENTRY,
     };
 
     use super::*;
@@ -177,5 +179,13 @@ mod tests {
         assert_eq!(plan.resources[0].name, MOTION_VECTOR_SOURCE_RESOURCE);
         assert_eq!(plan.resources[0].abi.group, FULLSCREEN_PASS_INPUT_GROUP);
         assert_eq!(plan.resources[0].abi.binding, 0);
+        assert_eq!(
+            plan.parameters.get(MOTION_VECTOR_TILE_SPAN_PARAMETER),
+            Some(
+                &crate::core::framework::render::ShaderParameterValue::Vec4 {
+                    value: [2.0, 2.0, 0.0, 0.0],
+                }
+            )
+        );
     }
 }

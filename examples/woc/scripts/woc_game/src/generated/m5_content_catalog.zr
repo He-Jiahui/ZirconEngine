@@ -2,11 +2,11 @@
 // Source 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a; scalar M5 content projection; do not edit.
 
 pub catalogSha(): string {
-    return "3f4443c0e11ec3546fe6c70019cb45a016d6c025faec7b9ba0a54d290f13925a";
+    return "2d3f83997b3632935cbc0333475f21338fdb428b9dde921be8874535e9ab5298";
 }
 
 pub count(kind: string): int {
-    if (kind == "item") { return 35; }
+    if (kind == "item") { return 82; }
     if (kind == "quest") { return 2; }
     if (kind == "mob") { return 1; }
     if (kind == "npc") { return 6; }
@@ -53,6 +53,53 @@ pub indexOf(kind: string, id: string): int {
         if (id == "gathering_sickle") { return 32; }
         if (id == "bronze_sickle") { return 33; }
         if (id == "silverleaf_sickle") { return 34; }
+        if (id == "bone_fragments") { return 35; }
+        if (id == "linen_scrap") { return 36; }
+        if (id == "spider_leg") { return 37; }
+        if (id == "heroic_mark") { return 38; }
+        if (id == "seal_of_the_nine_oaths") { return 39; }
+        if (id == "nielas_coldlight_band") { return 40; }
+        if (id == "sutils_gambit") { return 41; }
+        if (id == "oath_of_the_round_table") { return 42; }
+        if (id == "zyzzs_deathless_signet") { return 43; }
+        if (id == "architects_cornerstone") { return 44; }
+        if (id == "yumis_keepsake_locket") { return 45; }
+        if (id == "zense_meridian") { return 46; }
+        if (id == "swiftfang_talisman") { return 47; }
+        if (id == "medallion_of_endless_profit") { return 48; }
+        if (id == "reliquary_legs") { return 49; }
+        if (id == "reliquary_shoulder") { return 50; }
+        if (id == "reliquary_gloves_rog") { return 51; }
+        if (id == "reliquary_cloth_chest") { return 52; }
+        if (id == "reliquary_leather_chest") { return 53; }
+        if (id == "reliquary_plate_chest") { return 54; }
+        if (id == "reliquary_helm") { return 55; }
+        if (id == "deacon_reliquary_helm") { return 56; }
+        if (id == "varric_shadow_cowl") { return 57; }
+        if (id == "litany_legs") { return 58; }
+        if (id == "litany_shoulder") { return 59; }
+        if (id == "litany_gloves_rog") { return 60; }
+        if (id == "litany_cloth_chest") { return 61; }
+        if (id == "litany_leather_chest") { return 62; }
+        if (id == "litany_plate_chest") { return 63; }
+        if (id == "litany_helm") { return 64; }
+        if (id == "sister_nhalia_choir_plate") { return 65; }
+        if (id == "drowned_choir_fang") { return 66; }
+        if (id == "amber_crimson_armor_plate") { return 67; }
+        if (id == "crimson_amber_armor_plate") { return 68; }
+        if (id == "cyan_magenta_armor_plate") { return 69; }
+        if (id == "magenta_cyan_armor_plate") { return 70; }
+        if (id == "orange_steel_armor_plate") { return 71; }
+        if (id == "steel_orange_armor_plate") { return 72; }
+        if (id == "forest_pink_armor_plate") { return 73; }
+        if (id == "pink_forest_armor_plate") { return 74; }
+        if (id == "amethyst_silver_armor_plate") { return 75; }
+        if (id == "ivory_copper_armor_plate") { return 76; }
+        if (id == "onyx_gold_armor_plate") { return 77; }
+        if (id == "imperial_crimson_armor_plate") { return 78; }
+        if (id == "imperial_gold_armor_plate") { return 79; }
+        if (id == "vanguard_azure_armor_plate") { return 80; }
+        if (id == "vanguard_chrome_armor_plate") { return 81; }
         return -1;
     }
     if (kind == "quest") {
@@ -129,6 +176,53 @@ pub itemIdUtf8Length(index: int): int {
     if (index == 32) { return 16; }
     if (index == 33) { return 13; }
     if (index == 34) { return 17; }
+    if (index == 35) { return 14; }
+    if (index == 36) { return 11; }
+    if (index == 37) { return 10; }
+    if (index == 38) { return 11; }
+    if (index == 39) { return 22; }
+    if (index == 40) { return 21; }
+    if (index == 41) { return 13; }
+    if (index == 42) { return 23; }
+    if (index == 43) { return 22; }
+    if (index == 44) { return 22; }
+    if (index == 45) { return 21; }
+    if (index == 46) { return 14; }
+    if (index == 47) { return 18; }
+    if (index == 48) { return 27; }
+    if (index == 49) { return 14; }
+    if (index == 50) { return 18; }
+    if (index == 51) { return 20; }
+    if (index == 52) { return 21; }
+    if (index == 53) { return 23; }
+    if (index == 54) { return 21; }
+    if (index == 55) { return 14; }
+    if (index == 56) { return 21; }
+    if (index == 57) { return 18; }
+    if (index == 58) { return 11; }
+    if (index == 59) { return 15; }
+    if (index == 60) { return 17; }
+    if (index == 61) { return 18; }
+    if (index == 62) { return 20; }
+    if (index == 63) { return 18; }
+    if (index == 64) { return 11; }
+    if (index == 65) { return 25; }
+    if (index == 66) { return 18; }
+    if (index == 67) { return 25; }
+    if (index == 68) { return 25; }
+    if (index == 69) { return 24; }
+    if (index == 70) { return 24; }
+    if (index == 71) { return 24; }
+    if (index == 72) { return 24; }
+    if (index == 73) { return 23; }
+    if (index == 74) { return 23; }
+    if (index == 75) { return 27; }
+    if (index == 76) { return 24; }
+    if (index == 77) { return 21; }
+    if (index == 78) { return 28; }
+    if (index == 79) { return 25; }
+    if (index == 80) { return 26; }
+    if (index == 81) { return 27; }
     throw "unknown WOC M5 item index";
 }
 
@@ -727,6 +821,1089 @@ pub itemIdUtf8Byte(index: int, byteIndex: int): uint {
         if (byteIndex == 16) { return <uint>101; }
         throw "unknown WOC M5 item id byte";
     }
+    if (index == 35) {
+        if (byteIndex == 0) { return <uint>98; }
+        if (byteIndex == 1) { return <uint>111; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>102; }
+        if (byteIndex == 6) { return <uint>114; }
+        if (byteIndex == 7) { return <uint>97; }
+        if (byteIndex == 8) { return <uint>103; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>110; }
+        if (byteIndex == 12) { return <uint>116; }
+        if (byteIndex == 13) { return <uint>115; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 36) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>115; }
+        if (byteIndex == 7) { return <uint>99; }
+        if (byteIndex == 8) { return <uint>114; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>112; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 37) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>112; }
+        if (byteIndex == 2) { return <uint>105; }
+        if (byteIndex == 3) { return <uint>100; }
+        if (byteIndex == 4) { return <uint>101; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>103; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 38) {
+        if (byteIndex == 0) { return <uint>104; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>114; }
+        if (byteIndex == 3) { return <uint>111; }
+        if (byteIndex == 4) { return <uint>105; }
+        if (byteIndex == 5) { return <uint>99; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>109; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>114; }
+        if (byteIndex == 10) { return <uint>107; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 39) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>108; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>111; }
+        if (byteIndex == 6) { return <uint>102; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>116; }
+        if (byteIndex == 9) { return <uint>104; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>95; }
+        if (byteIndex == 12) { return <uint>110; }
+        if (byteIndex == 13) { return <uint>105; }
+        if (byteIndex == 14) { return <uint>110; }
+        if (byteIndex == 15) { return <uint>101; }
+        if (byteIndex == 16) { return <uint>95; }
+        if (byteIndex == 17) { return <uint>111; }
+        if (byteIndex == 18) { return <uint>97; }
+        if (byteIndex == 19) { return <uint>116; }
+        if (byteIndex == 20) { return <uint>104; }
+        if (byteIndex == 21) { return <uint>115; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 40) {
+        if (byteIndex == 0) { return <uint>110; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>101; }
+        if (byteIndex == 3) { return <uint>108; }
+        if (byteIndex == 4) { return <uint>97; }
+        if (byteIndex == 5) { return <uint>115; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>99; }
+        if (byteIndex == 8) { return <uint>111; }
+        if (byteIndex == 9) { return <uint>108; }
+        if (byteIndex == 10) { return <uint>100; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>105; }
+        if (byteIndex == 13) { return <uint>103; }
+        if (byteIndex == 14) { return <uint>104; }
+        if (byteIndex == 15) { return <uint>116; }
+        if (byteIndex == 16) { return <uint>95; }
+        if (byteIndex == 17) { return <uint>98; }
+        if (byteIndex == 18) { return <uint>97; }
+        if (byteIndex == 19) { return <uint>110; }
+        if (byteIndex == 20) { return <uint>100; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 41) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>117; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>108; }
+        if (byteIndex == 5) { return <uint>115; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>103; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>98; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 42) {
+        if (byteIndex == 0) { return <uint>111; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>104; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>111; }
+        if (byteIndex == 6) { return <uint>102; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>116; }
+        if (byteIndex == 9) { return <uint>104; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>95; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>111; }
+        if (byteIndex == 14) { return <uint>117; }
+        if (byteIndex == 15) { return <uint>110; }
+        if (byteIndex == 16) { return <uint>100; }
+        if (byteIndex == 17) { return <uint>95; }
+        if (byteIndex == 18) { return <uint>116; }
+        if (byteIndex == 19) { return <uint>97; }
+        if (byteIndex == 20) { return <uint>98; }
+        if (byteIndex == 21) { return <uint>108; }
+        if (byteIndex == 22) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 43) {
+        if (byteIndex == 0) { return <uint>122; }
+        if (byteIndex == 1) { return <uint>121; }
+        if (byteIndex == 2) { return <uint>122; }
+        if (byteIndex == 3) { return <uint>122; }
+        if (byteIndex == 4) { return <uint>115; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>100; }
+        if (byteIndex == 7) { return <uint>101; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>116; }
+        if (byteIndex == 10) { return <uint>104; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>101; }
+        if (byteIndex == 13) { return <uint>115; }
+        if (byteIndex == 14) { return <uint>115; }
+        if (byteIndex == 15) { return <uint>95; }
+        if (byteIndex == 16) { return <uint>115; }
+        if (byteIndex == 17) { return <uint>105; }
+        if (byteIndex == 18) { return <uint>103; }
+        if (byteIndex == 19) { return <uint>110; }
+        if (byteIndex == 20) { return <uint>101; }
+        if (byteIndex == 21) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 44) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>99; }
+        if (byteIndex == 3) { return <uint>104; }
+        if (byteIndex == 4) { return <uint>105; }
+        if (byteIndex == 5) { return <uint>116; }
+        if (byteIndex == 6) { return <uint>101; }
+        if (byteIndex == 7) { return <uint>99; }
+        if (byteIndex == 8) { return <uint>116; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>95; }
+        if (byteIndex == 11) { return <uint>99; }
+        if (byteIndex == 12) { return <uint>111; }
+        if (byteIndex == 13) { return <uint>114; }
+        if (byteIndex == 14) { return <uint>110; }
+        if (byteIndex == 15) { return <uint>101; }
+        if (byteIndex == 16) { return <uint>114; }
+        if (byteIndex == 17) { return <uint>115; }
+        if (byteIndex == 18) { return <uint>116; }
+        if (byteIndex == 19) { return <uint>111; }
+        if (byteIndex == 20) { return <uint>110; }
+        if (byteIndex == 21) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 45) {
+        if (byteIndex == 0) { return <uint>121; }
+        if (byteIndex == 1) { return <uint>117; }
+        if (byteIndex == 2) { return <uint>109; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>115; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>107; }
+        if (byteIndex == 7) { return <uint>101; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>112; }
+        if (byteIndex == 10) { return <uint>115; }
+        if (byteIndex == 11) { return <uint>97; }
+        if (byteIndex == 12) { return <uint>107; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>95; }
+        if (byteIndex == 15) { return <uint>108; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>99; }
+        if (byteIndex == 18) { return <uint>107; }
+        if (byteIndex == 19) { return <uint>101; }
+        if (byteIndex == 20) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 46) {
+        if (byteIndex == 0) { return <uint>122; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>115; }
+        if (byteIndex == 4) { return <uint>101; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>109; }
+        if (byteIndex == 7) { return <uint>101; }
+        if (byteIndex == 8) { return <uint>114; }
+        if (byteIndex == 9) { return <uint>105; }
+        if (byteIndex == 10) { return <uint>100; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>97; }
+        if (byteIndex == 13) { return <uint>110; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 47) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>119; }
+        if (byteIndex == 2) { return <uint>105; }
+        if (byteIndex == 3) { return <uint>102; }
+        if (byteIndex == 4) { return <uint>116; }
+        if (byteIndex == 5) { return <uint>102; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>110; }
+        if (byteIndex == 8) { return <uint>103; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>97; }
+        if (byteIndex == 12) { return <uint>108; }
+        if (byteIndex == 13) { return <uint>105; }
+        if (byteIndex == 14) { return <uint>115; }
+        if (byteIndex == 15) { return <uint>109; }
+        if (byteIndex == 16) { return <uint>97; }
+        if (byteIndex == 17) { return <uint>110; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 48) {
+        if (byteIndex == 0) { return <uint>109; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>100; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>108; }
+        if (byteIndex == 5) { return <uint>108; }
+        if (byteIndex == 6) { return <uint>105; }
+        if (byteIndex == 7) { return <uint>111; }
+        if (byteIndex == 8) { return <uint>110; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>111; }
+        if (byteIndex == 11) { return <uint>102; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>110; }
+        if (byteIndex == 15) { return <uint>100; }
+        if (byteIndex == 16) { return <uint>108; }
+        if (byteIndex == 17) { return <uint>101; }
+        if (byteIndex == 18) { return <uint>115; }
+        if (byteIndex == 19) { return <uint>115; }
+        if (byteIndex == 20) { return <uint>95; }
+        if (byteIndex == 21) { return <uint>112; }
+        if (byteIndex == 22) { return <uint>114; }
+        if (byteIndex == 23) { return <uint>111; }
+        if (byteIndex == 24) { return <uint>102; }
+        if (byteIndex == 25) { return <uint>105; }
+        if (byteIndex == 26) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 49) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>108; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>103; }
+        if (byteIndex == 13) { return <uint>115; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 50) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>115; }
+        if (byteIndex == 11) { return <uint>104; }
+        if (byteIndex == 12) { return <uint>111; }
+        if (byteIndex == 13) { return <uint>117; }
+        if (byteIndex == 14) { return <uint>108; }
+        if (byteIndex == 15) { return <uint>100; }
+        if (byteIndex == 16) { return <uint>101; }
+        if (byteIndex == 17) { return <uint>114; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 51) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>103; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>111; }
+        if (byteIndex == 13) { return <uint>118; }
+        if (byteIndex == 14) { return <uint>101; }
+        if (byteIndex == 15) { return <uint>115; }
+        if (byteIndex == 16) { return <uint>95; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>111; }
+        if (byteIndex == 19) { return <uint>103; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 52) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>99; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>111; }
+        if (byteIndex == 13) { return <uint>116; }
+        if (byteIndex == 14) { return <uint>104; }
+        if (byteIndex == 15) { return <uint>95; }
+        if (byteIndex == 16) { return <uint>99; }
+        if (byteIndex == 17) { return <uint>104; }
+        if (byteIndex == 18) { return <uint>101; }
+        if (byteIndex == 19) { return <uint>115; }
+        if (byteIndex == 20) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 53) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>108; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>97; }
+        if (byteIndex == 13) { return <uint>116; }
+        if (byteIndex == 14) { return <uint>104; }
+        if (byteIndex == 15) { return <uint>101; }
+        if (byteIndex == 16) { return <uint>114; }
+        if (byteIndex == 17) { return <uint>95; }
+        if (byteIndex == 18) { return <uint>99; }
+        if (byteIndex == 19) { return <uint>104; }
+        if (byteIndex == 20) { return <uint>101; }
+        if (byteIndex == 21) { return <uint>115; }
+        if (byteIndex == 22) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 54) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>112; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>97; }
+        if (byteIndex == 13) { return <uint>116; }
+        if (byteIndex == 14) { return <uint>101; }
+        if (byteIndex == 15) { return <uint>95; }
+        if (byteIndex == 16) { return <uint>99; }
+        if (byteIndex == 17) { return <uint>104; }
+        if (byteIndex == 18) { return <uint>101; }
+        if (byteIndex == 19) { return <uint>115; }
+        if (byteIndex == 20) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 55) {
+        if (byteIndex == 0) { return <uint>114; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>105; }
+        if (byteIndex == 4) { return <uint>113; }
+        if (byteIndex == 5) { return <uint>117; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>121; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>104; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>108; }
+        if (byteIndex == 13) { return <uint>109; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 56) {
+        if (byteIndex == 0) { return <uint>100; }
+        if (byteIndex == 1) { return <uint>101; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>99; }
+        if (byteIndex == 4) { return <uint>111; }
+        if (byteIndex == 5) { return <uint>110; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>108; }
+        if (byteIndex == 10) { return <uint>105; }
+        if (byteIndex == 11) { return <uint>113; }
+        if (byteIndex == 12) { return <uint>117; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>121; }
+        if (byteIndex == 16) { return <uint>95; }
+        if (byteIndex == 17) { return <uint>104; }
+        if (byteIndex == 18) { return <uint>101; }
+        if (byteIndex == 19) { return <uint>108; }
+        if (byteIndex == 20) { return <uint>109; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 57) {
+        if (byteIndex == 0) { return <uint>118; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>114; }
+        if (byteIndex == 3) { return <uint>114; }
+        if (byteIndex == 4) { return <uint>105; }
+        if (byteIndex == 5) { return <uint>99; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>115; }
+        if (byteIndex == 8) { return <uint>104; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>100; }
+        if (byteIndex == 11) { return <uint>111; }
+        if (byteIndex == 12) { return <uint>119; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>99; }
+        if (byteIndex == 15) { return <uint>111; }
+        if (byteIndex == 16) { return <uint>119; }
+        if (byteIndex == 17) { return <uint>108; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 58) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>103; }
+        if (byteIndex == 10) { return <uint>115; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 59) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>115; }
+        if (byteIndex == 8) { return <uint>104; }
+        if (byteIndex == 9) { return <uint>111; }
+        if (byteIndex == 10) { return <uint>117; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>100; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>114; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 60) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>103; }
+        if (byteIndex == 8) { return <uint>108; }
+        if (byteIndex == 9) { return <uint>111; }
+        if (byteIndex == 10) { return <uint>118; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>115; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>111; }
+        if (byteIndex == 16) { return <uint>103; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 61) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>99; }
+        if (byteIndex == 8) { return <uint>108; }
+        if (byteIndex == 9) { return <uint>111; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>104; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>99; }
+        if (byteIndex == 14) { return <uint>104; }
+        if (byteIndex == 15) { return <uint>101; }
+        if (byteIndex == 16) { return <uint>115; }
+        if (byteIndex == 17) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 62) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>104; }
+        if (byteIndex == 12) { return <uint>101; }
+        if (byteIndex == 13) { return <uint>114; }
+        if (byteIndex == 14) { return <uint>95; }
+        if (byteIndex == 15) { return <uint>99; }
+        if (byteIndex == 16) { return <uint>104; }
+        if (byteIndex == 17) { return <uint>101; }
+        if (byteIndex == 18) { return <uint>115; }
+        if (byteIndex == 19) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 63) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>112; }
+        if (byteIndex == 8) { return <uint>108; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>99; }
+        if (byteIndex == 14) { return <uint>104; }
+        if (byteIndex == 15) { return <uint>101; }
+        if (byteIndex == 16) { return <uint>115; }
+        if (byteIndex == 17) { return <uint>116; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 64) {
+        if (byteIndex == 0) { return <uint>108; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>116; }
+        if (byteIndex == 3) { return <uint>97; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>104; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>108; }
+        if (byteIndex == 10) { return <uint>109; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 65) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>115; }
+        if (byteIndex == 3) { return <uint>116; }
+        if (byteIndex == 4) { return <uint>101; }
+        if (byteIndex == 5) { return <uint>114; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>110; }
+        if (byteIndex == 8) { return <uint>104; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>108; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>97; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>99; }
+        if (byteIndex == 15) { return <uint>104; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>105; }
+        if (byteIndex == 18) { return <uint>114; }
+        if (byteIndex == 19) { return <uint>95; }
+        if (byteIndex == 20) { return <uint>112; }
+        if (byteIndex == 21) { return <uint>108; }
+        if (byteIndex == 22) { return <uint>97; }
+        if (byteIndex == 23) { return <uint>116; }
+        if (byteIndex == 24) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 66) {
+        if (byteIndex == 0) { return <uint>100; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>111; }
+        if (byteIndex == 3) { return <uint>119; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>100; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>99; }
+        if (byteIndex == 9) { return <uint>104; }
+        if (byteIndex == 10) { return <uint>111; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>102; }
+        if (byteIndex == 15) { return <uint>97; }
+        if (byteIndex == 16) { return <uint>110; }
+        if (byteIndex == 17) { return <uint>103; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 67) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>98; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>114; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>99; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>115; }
+        if (byteIndex == 11) { return <uint>111; }
+        if (byteIndex == 12) { return <uint>110; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>97; }
+        if (byteIndex == 15) { return <uint>114; }
+        if (byteIndex == 16) { return <uint>109; }
+        if (byteIndex == 17) { return <uint>111; }
+        if (byteIndex == 18) { return <uint>114; }
+        if (byteIndex == 19) { return <uint>95; }
+        if (byteIndex == 20) { return <uint>112; }
+        if (byteIndex == 21) { return <uint>108; }
+        if (byteIndex == 22) { return <uint>97; }
+        if (byteIndex == 23) { return <uint>116; }
+        if (byteIndex == 24) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 68) {
+        if (byteIndex == 0) { return <uint>99; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>105; }
+        if (byteIndex == 3) { return <uint>109; }
+        if (byteIndex == 4) { return <uint>115; }
+        if (byteIndex == 5) { return <uint>111; }
+        if (byteIndex == 6) { return <uint>110; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>98; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>97; }
+        if (byteIndex == 15) { return <uint>114; }
+        if (byteIndex == 16) { return <uint>109; }
+        if (byteIndex == 17) { return <uint>111; }
+        if (byteIndex == 18) { return <uint>114; }
+        if (byteIndex == 19) { return <uint>95; }
+        if (byteIndex == 20) { return <uint>112; }
+        if (byteIndex == 21) { return <uint>108; }
+        if (byteIndex == 22) { return <uint>97; }
+        if (byteIndex == 23) { return <uint>116; }
+        if (byteIndex == 24) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 69) {
+        if (byteIndex == 0) { return <uint>99; }
+        if (byteIndex == 1) { return <uint>121; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>110; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>109; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>103; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>97; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>109; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>95; }
+        if (byteIndex == 19) { return <uint>112; }
+        if (byteIndex == 20) { return <uint>108; }
+        if (byteIndex == 21) { return <uint>97; }
+        if (byteIndex == 22) { return <uint>116; }
+        if (byteIndex == 23) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 70) {
+        if (byteIndex == 0) { return <uint>109; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>103; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>116; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>99; }
+        if (byteIndex == 9) { return <uint>121; }
+        if (byteIndex == 10) { return <uint>97; }
+        if (byteIndex == 11) { return <uint>110; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>109; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>95; }
+        if (byteIndex == 19) { return <uint>112; }
+        if (byteIndex == 20) { return <uint>108; }
+        if (byteIndex == 21) { return <uint>97; }
+        if (byteIndex == 22) { return <uint>116; }
+        if (byteIndex == 23) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 71) {
+        if (byteIndex == 0) { return <uint>111; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>110; }
+        if (byteIndex == 4) { return <uint>103; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>115; }
+        if (byteIndex == 8) { return <uint>116; }
+        if (byteIndex == 9) { return <uint>101; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>109; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>95; }
+        if (byteIndex == 19) { return <uint>112; }
+        if (byteIndex == 20) { return <uint>108; }
+        if (byteIndex == 21) { return <uint>97; }
+        if (byteIndex == 22) { return <uint>116; }
+        if (byteIndex == 23) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 72) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>116; }
+        if (byteIndex == 2) { return <uint>101; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>108; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>111; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>103; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>109; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>95; }
+        if (byteIndex == 19) { return <uint>112; }
+        if (byteIndex == 20) { return <uint>108; }
+        if (byteIndex == 21) { return <uint>97; }
+        if (byteIndex == 22) { return <uint>116; }
+        if (byteIndex == 23) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 73) {
+        if (byteIndex == 0) { return <uint>102; }
+        if (byteIndex == 1) { return <uint>111; }
+        if (byteIndex == 2) { return <uint>114; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>115; }
+        if (byteIndex == 5) { return <uint>116; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>112; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>107; }
+        if (byteIndex == 11) { return <uint>95; }
+        if (byteIndex == 12) { return <uint>97; }
+        if (byteIndex == 13) { return <uint>114; }
+        if (byteIndex == 14) { return <uint>109; }
+        if (byteIndex == 15) { return <uint>111; }
+        if (byteIndex == 16) { return <uint>114; }
+        if (byteIndex == 17) { return <uint>95; }
+        if (byteIndex == 18) { return <uint>112; }
+        if (byteIndex == 19) { return <uint>108; }
+        if (byteIndex == 20) { return <uint>97; }
+        if (byteIndex == 21) { return <uint>116; }
+        if (byteIndex == 22) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 74) {
+        if (byteIndex == 0) { return <uint>112; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>107; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>102; }
+        if (byteIndex == 6) { return <uint>111; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>95; }
+        if (byteIndex == 12) { return <uint>97; }
+        if (byteIndex == 13) { return <uint>114; }
+        if (byteIndex == 14) { return <uint>109; }
+        if (byteIndex == 15) { return <uint>111; }
+        if (byteIndex == 16) { return <uint>114; }
+        if (byteIndex == 17) { return <uint>95; }
+        if (byteIndex == 18) { return <uint>112; }
+        if (byteIndex == 19) { return <uint>108; }
+        if (byteIndex == 20) { return <uint>97; }
+        if (byteIndex == 21) { return <uint>116; }
+        if (byteIndex == 22) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 75) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>101; }
+        if (byteIndex == 3) { return <uint>116; }
+        if (byteIndex == 4) { return <uint>104; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>115; }
+        if (byteIndex == 7) { return <uint>116; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>105; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>118; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>95; }
+        if (byteIndex == 16) { return <uint>97; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>109; }
+        if (byteIndex == 19) { return <uint>111; }
+        if (byteIndex == 20) { return <uint>114; }
+        if (byteIndex == 21) { return <uint>95; }
+        if (byteIndex == 22) { return <uint>112; }
+        if (byteIndex == 23) { return <uint>108; }
+        if (byteIndex == 24) { return <uint>97; }
+        if (byteIndex == 25) { return <uint>116; }
+        if (byteIndex == 26) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 76) {
+        if (byteIndex == 0) { return <uint>105; }
+        if (byteIndex == 1) { return <uint>118; }
+        if (byteIndex == 2) { return <uint>111; }
+        if (byteIndex == 3) { return <uint>114; }
+        if (byteIndex == 4) { return <uint>121; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>99; }
+        if (byteIndex == 7) { return <uint>111; }
+        if (byteIndex == 8) { return <uint>112; }
+        if (byteIndex == 9) { return <uint>112; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>114; }
+        if (byteIndex == 12) { return <uint>95; }
+        if (byteIndex == 13) { return <uint>97; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>109; }
+        if (byteIndex == 16) { return <uint>111; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>95; }
+        if (byteIndex == 19) { return <uint>112; }
+        if (byteIndex == 20) { return <uint>108; }
+        if (byteIndex == 21) { return <uint>97; }
+        if (byteIndex == 22) { return <uint>116; }
+        if (byteIndex == 23) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 77) {
+        if (byteIndex == 0) { return <uint>111; }
+        if (byteIndex == 1) { return <uint>110; }
+        if (byteIndex == 2) { return <uint>121; }
+        if (byteIndex == 3) { return <uint>120; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>103; }
+        if (byteIndex == 6) { return <uint>111; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>100; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>97; }
+        if (byteIndex == 11) { return <uint>114; }
+        if (byteIndex == 12) { return <uint>109; }
+        if (byteIndex == 13) { return <uint>111; }
+        if (byteIndex == 14) { return <uint>114; }
+        if (byteIndex == 15) { return <uint>95; }
+        if (byteIndex == 16) { return <uint>112; }
+        if (byteIndex == 17) { return <uint>108; }
+        if (byteIndex == 18) { return <uint>97; }
+        if (byteIndex == 19) { return <uint>116; }
+        if (byteIndex == 20) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 78) {
+        if (byteIndex == 0) { return <uint>105; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>112; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>114; }
+        if (byteIndex == 5) { return <uint>105; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>99; }
+        if (byteIndex == 10) { return <uint>114; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>109; }
+        if (byteIndex == 13) { return <uint>115; }
+        if (byteIndex == 14) { return <uint>111; }
+        if (byteIndex == 15) { return <uint>110; }
+        if (byteIndex == 16) { return <uint>95; }
+        if (byteIndex == 17) { return <uint>97; }
+        if (byteIndex == 18) { return <uint>114; }
+        if (byteIndex == 19) { return <uint>109; }
+        if (byteIndex == 20) { return <uint>111; }
+        if (byteIndex == 21) { return <uint>114; }
+        if (byteIndex == 22) { return <uint>95; }
+        if (byteIndex == 23) { return <uint>112; }
+        if (byteIndex == 24) { return <uint>108; }
+        if (byteIndex == 25) { return <uint>97; }
+        if (byteIndex == 26) { return <uint>116; }
+        if (byteIndex == 27) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 79) {
+        if (byteIndex == 0) { return <uint>105; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>112; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>114; }
+        if (byteIndex == 5) { return <uint>105; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>103; }
+        if (byteIndex == 10) { return <uint>111; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>100; }
+        if (byteIndex == 13) { return <uint>95; }
+        if (byteIndex == 14) { return <uint>97; }
+        if (byteIndex == 15) { return <uint>114; }
+        if (byteIndex == 16) { return <uint>109; }
+        if (byteIndex == 17) { return <uint>111; }
+        if (byteIndex == 18) { return <uint>114; }
+        if (byteIndex == 19) { return <uint>95; }
+        if (byteIndex == 20) { return <uint>112; }
+        if (byteIndex == 21) { return <uint>108; }
+        if (byteIndex == 22) { return <uint>97; }
+        if (byteIndex == 23) { return <uint>116; }
+        if (byteIndex == 24) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 80) {
+        if (byteIndex == 0) { return <uint>118; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>103; }
+        if (byteIndex == 4) { return <uint>117; }
+        if (byteIndex == 5) { return <uint>97; }
+        if (byteIndex == 6) { return <uint>114; }
+        if (byteIndex == 7) { return <uint>100; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>122; }
+        if (byteIndex == 11) { return <uint>117; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>95; }
+        if (byteIndex == 15) { return <uint>97; }
+        if (byteIndex == 16) { return <uint>114; }
+        if (byteIndex == 17) { return <uint>109; }
+        if (byteIndex == 18) { return <uint>111; }
+        if (byteIndex == 19) { return <uint>114; }
+        if (byteIndex == 20) { return <uint>95; }
+        if (byteIndex == 21) { return <uint>112; }
+        if (byteIndex == 22) { return <uint>108; }
+        if (byteIndex == 23) { return <uint>97; }
+        if (byteIndex == 24) { return <uint>116; }
+        if (byteIndex == 25) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
+    if (index == 81) {
+        if (byteIndex == 0) { return <uint>118; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>103; }
+        if (byteIndex == 4) { return <uint>117; }
+        if (byteIndex == 5) { return <uint>97; }
+        if (byteIndex == 6) { return <uint>114; }
+        if (byteIndex == 7) { return <uint>100; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>99; }
+        if (byteIndex == 10) { return <uint>104; }
+        if (byteIndex == 11) { return <uint>114; }
+        if (byteIndex == 12) { return <uint>111; }
+        if (byteIndex == 13) { return <uint>109; }
+        if (byteIndex == 14) { return <uint>101; }
+        if (byteIndex == 15) { return <uint>95; }
+        if (byteIndex == 16) { return <uint>97; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>109; }
+        if (byteIndex == 19) { return <uint>111; }
+        if (byteIndex == 20) { return <uint>114; }
+        if (byteIndex == 21) { return <uint>95; }
+        if (byteIndex == 22) { return <uint>112; }
+        if (byteIndex == 23) { return <uint>108; }
+        if (byteIndex == 24) { return <uint>97; }
+        if (byteIndex == 25) { return <uint>116; }
+        if (byteIndex == 26) { return <uint>101; }
+        throw "unknown WOC M5 item id byte";
+    }
     throw "unknown WOC M5 item index";
 }
 
@@ -1152,6 +2329,570 @@ pub text(kind: string, index: int, field: string): string {
             if (field == "weaponHand") { return ""; }
             return "";
         }
+        if (index == 35) {
+            if (field == "id") { return "bone_fragments"; }
+            if (field == "name") { return "Bone Fragments"; }
+            if (field == "kind") { return "junk"; }
+            if (field == "quality") { return "common"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 36) {
+            if (field == "id") { return "linen_scrap"; }
+            if (field == "name") { return "Linen Scrap"; }
+            if (field == "kind") { return "junk"; }
+            if (field == "quality") { return "common"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 37) {
+            if (field == "id") { return "spider_leg"; }
+            if (field == "name") { return "Twitching Spider Leg"; }
+            if (field == "kind") { return "junk"; }
+            if (field == "quality") { return "common"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 38) {
+            if (field == "id") { return "heroic_mark"; }
+            if (field == "name") { return "Heroic Mark"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 39) {
+            if (field == "id") { return "seal_of_the_nine_oaths"; }
+            if (field == "name") { return "Seal of the Nine Oaths"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "ring"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 40) {
+            if (field == "id") { return "nielas_coldlight_band"; }
+            if (field == "name") { return "Niela's Coldlight Band"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "ring"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 41) {
+            if (field == "id") { return "sutils_gambit"; }
+            if (field == "name") { return "Sutil's Gambit"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "ring"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 42) {
+            if (field == "id") { return "oath_of_the_round_table"; }
+            if (field == "name") { return "Oath of the Round Table"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "ring"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 43) {
+            if (field == "id") { return "zyzzs_deathless_signet"; }
+            if (field == "name") { return "Zyzz's Deathless Signet"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "ring"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 44) {
+            if (field == "id") { return "architects_cornerstone"; }
+            if (field == "name") { return "The Architect's Cornerstone"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "ring"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 45) {
+            if (field == "id") { return "yumis_keepsake_locket"; }
+            if (field == "name") { return "Yumi's Keepsake Locket"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "neck"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 46) {
+            if (field == "id") { return "zense_meridian"; }
+            if (field == "name") { return "Zense Meridian"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "neck"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 47) {
+            if (field == "id") { return "swiftfang_talisman"; }
+            if (field == "name") { return "Swiftfang Talisman"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "neck"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 48) {
+            if (field == "id") { return "medallion_of_endless_profit"; }
+            if (field == "name") { return "Medallion of Endless Profit"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return "neck"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 49) {
+            if (field == "id") { return "reliquary_legs"; }
+            if (field == "name") { return "Vaultbound Legwraps"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "legs"; }
+            if (field == "armorType") { return "cloth"; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 50) {
+            if (field == "id") { return "reliquary_shoulder"; }
+            if (field == "name") { return "Crumbled Spaulders"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "shoulder"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 51) {
+            if (field == "id") { return "reliquary_gloves_rog"; }
+            if (field == "name") { return "Bonewarden Grips"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "gloves"; }
+            if (field == "armorType") { return "leather"; }
+            if (field == "requiredClass") { return "rogue,hunter"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 52) {
+            if (field == "id") { return "reliquary_cloth_chest"; }
+            if (field == "name") { return "Shroud of the Reliquary"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "cloth"; }
+            if (field == "requiredClass") { return "mage,priest,warlock,druid"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 53) {
+            if (field == "id") { return "reliquary_leather_chest"; }
+            if (field == "name") { return "Dustwarden Jerkin"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "leather"; }
+            if (field == "requiredClass") { return "rogue,hunter"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 54) {
+            if (field == "id") { return "reliquary_plate_chest"; }
+            if (field == "name") { return "Reliquary Guard Hauberk"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return "warrior,paladin,shaman"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 55) {
+            if (field == "id") { return "reliquary_helm"; }
+            if (field == "name") { return "Ossuary Watch Helm"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "helmet"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return "warrior,paladin,shaman"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 56) {
+            if (field == "id") { return "deacon_reliquary_helm"; }
+            if (field == "name") { return "Deacon's Reliquary Helm"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return "helmet"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return "warrior,paladin,shaman"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 57) {
+            if (field == "id") { return "varric_shadow_cowl"; }
+            if (field == "name") { return "Varric's Shadow Cowl"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return "helmet"; }
+            if (field == "armorType") { return "cloth"; }
+            if (field == "requiredClass") { return "mage,priest,warlock,druid"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 58) {
+            if (field == "id") { return "litany_legs"; }
+            if (field == "name") { return "Silt-Walker Greaves"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "legs"; }
+            if (field == "armorType") { return "cloth"; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 59) {
+            if (field == "id") { return "litany_shoulder"; }
+            if (field == "name") { return "Blackwater Drift Mantle"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "shoulder"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 60) {
+            if (field == "id") { return "litany_gloves_rog"; }
+            if (field == "name") { return "Reed-Bound Handwraps"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "gloves"; }
+            if (field == "armorType") { return "leather"; }
+            if (field == "requiredClass") { return "rogue,hunter"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 61) {
+            if (field == "id") { return "litany_cloth_chest"; }
+            if (field == "name") { return "Choir-Drowned Raiment"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "cloth"; }
+            if (field == "requiredClass") { return "mage,priest,warlock,druid"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 62) {
+            if (field == "id") { return "litany_leather_chest"; }
+            if (field == "name") { return "Silt-Deep Vestment"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "leather"; }
+            if (field == "requiredClass") { return "rogue,hunter"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 63) {
+            if (field == "id") { return "litany_plate_chest"; }
+            if (field == "name") { return "Sump-Warden Cuirass"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return "warrior,paladin,shaman"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 64) {
+            if (field == "id") { return "litany_helm"; }
+            if (field == "name") { return "Reliquant's Drowned Cowl"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return "helmet"; }
+            if (field == "armorType") { return "cloth"; }
+            if (field == "requiredClass") { return "mage,priest,warlock,druid"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 65) {
+            if (field == "id") { return "sister_nhalia_choir_plate"; }
+            if (field == "name") { return "Sister Nhalia's Choir-Forged Plate"; }
+            if (field == "kind") { return "armor"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return "chest"; }
+            if (field == "armorType") { return "mail"; }
+            if (field == "requiredClass") { return "warrior,paladin,shaman"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 66) {
+            if (field == "id") { return "drowned_choir_fang"; }
+            if (field == "name") { return "Drowned Choir-Fang"; }
+            if (field == "kind") { return "weapon"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return "mainhand"; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return "rogue,hunter"; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 67) {
+            if (field == "id") { return "amber_crimson_armor_plate"; }
+            if (field == "name") { return "Amber Crimson"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 68) {
+            if (field == "id") { return "crimson_amber_armor_plate"; }
+            if (field == "name") { return "Crimson Amber"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 69) {
+            if (field == "id") { return "cyan_magenta_armor_plate"; }
+            if (field == "name") { return "Cyan Magenta"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 70) {
+            if (field == "id") { return "magenta_cyan_armor_plate"; }
+            if (field == "name") { return "Magenta Cyan"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 71) {
+            if (field == "id") { return "orange_steel_armor_plate"; }
+            if (field == "name") { return "Orange Steel"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 72) {
+            if (field == "id") { return "steel_orange_armor_plate"; }
+            if (field == "name") { return "Steel Orange"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 73) {
+            if (field == "id") { return "forest_pink_armor_plate"; }
+            if (field == "name") { return "Forest Pink"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 74) {
+            if (field == "id") { return "pink_forest_armor_plate"; }
+            if (field == "name") { return "Pink Forest"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "uncommon"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 75) {
+            if (field == "id") { return "amethyst_silver_armor_plate"; }
+            if (field == "name") { return "Amethyst Silver"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 76) {
+            if (field == "id") { return "ivory_copper_armor_plate"; }
+            if (field == "name") { return "Ivory Copper"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 77) {
+            if (field == "id") { return "onyx_gold_armor_plate"; }
+            if (field == "name") { return "Onyx Gold"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "rare"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 78) {
+            if (field == "id") { return "imperial_crimson_armor_plate"; }
+            if (field == "name") { return "Imperial Crimson"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 79) {
+            if (field == "id") { return "imperial_gold_armor_plate"; }
+            if (field == "name") { return "Imperial Gold"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 80) {
+            if (field == "id") { return "vanguard_azure_armor_plate"; }
+            if (field == "name") { return "Vanguard Azure"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
+        if (index == 81) {
+            if (field == "id") { return "vanguard_chrome_armor_plate"; }
+            if (field == "name") { return "Vanguard Chrome"; }
+            if (field == "kind") { return "tool"; }
+            if (field == "quality") { return "epic"; }
+            if (field == "slot") { return ""; }
+            if (field == "armorType") { return ""; }
+            if (field == "requiredClass") { return ""; }
+            if (field == "questId") { return ""; }
+            if (field == "weaponHand") { return ""; }
+            return "";
+        }
         throw "unknown WOC M5 content index";
     }
     if (kind == "quest") {
@@ -1532,6 +3273,314 @@ pub metric(kind: string, index: int, field: string): float {
             if (field == "requiredLevel") { return 0.0; }
             return 0.0;
         }
+        if (index == 35) {
+            if (field == "sellValue") { return 7.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 36) {
+            if (field == "sellValue") { return 3.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 37) {
+            if (field == "sellValue") { return 4.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 38) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "stackSize") { return 20.0; }
+            return 0.0;
+        }
+        if (index == 39) {
+            if (field == "sellValue") { return 4500.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statStr") { return 7.0; }
+            if (field == "statSta") { return 4.0; }
+            return 0.0;
+        }
+        if (index == 40) {
+            if (field == "sellValue") { return 4500.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statSta") { return 4.0; }
+            if (field == "statInt") { return 7.0; }
+            return 0.0;
+        }
+        if (index == 41) {
+            if (field == "sellValue") { return 4500.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statSta") { return 4.0; }
+            if (field == "statAgi") { return 7.0; }
+            return 0.0;
+        }
+        if (index == 42) {
+            if (field == "sellValue") { return 4500.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statStr") { return 5.0; }
+            if (field == "statSta") { return 6.0; }
+            return 0.0;
+        }
+        if (index == 43) {
+            if (field == "sellValue") { return 4500.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statInt") { return 5.0; }
+            if (field == "statSpi") { return 6.0; }
+            return 0.0;
+        }
+        if (index == 44) {
+            if (field == "sellValue") { return 4500.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statInt") { return 6.0; }
+            if (field == "statSpi") { return 5.0; }
+            return 0.0;
+        }
+        if (index == 45) {
+            if (field == "sellValue") { return 6000.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statSta") { return 5.0; }
+            if (field == "statAgi") { return 7.0; }
+            return 0.0;
+        }
+        if (index == 46) {
+            if (field == "sellValue") { return 6000.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statInt") { return 7.0; }
+            if (field == "statSpi") { return 5.0; }
+            return 0.0;
+        }
+        if (index == 47) {
+            if (field == "sellValue") { return 6000.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statStr") { return 6.0; }
+            if (field == "statAgi") { return 6.0; }
+            return 0.0;
+        }
+        if (index == 48) {
+            if (field == "sellValue") { return 6000.0; }
+            if (field == "requiredLevel") { return 20.0; }
+            if (field == "statStr") { return 7.0; }
+            if (field == "statSta") { return 5.0; }
+            return 0.0;
+        }
+        if (index == 49) {
+            if (field == "sellValue") { return 195.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 2.0; }
+            if (field == "statArmor") { return 48.0; }
+            return 0.0;
+        }
+        if (index == 50) {
+            if (field == "sellValue") { return 175.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 2.0; }
+            if (field == "statArmor") { return 36.0; }
+            return 0.0;
+        }
+        if (index == 51) {
+            if (field == "sellValue") { return 190.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 1.0; }
+            if (field == "statAgi") { return 2.0; }
+            if (field == "statArmor") { return 36.0; }
+            return 0.0;
+        }
+        if (index == 52) {
+            if (field == "sellValue") { return 205.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statInt") { return 2.0; }
+            if (field == "statSpi") { return 1.0; }
+            if (field == "statArmor") { return 30.0; }
+            return 0.0;
+        }
+        if (index == 53) {
+            if (field == "sellValue") { return 215.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 1.0; }
+            if (field == "statAgi") { return 2.0; }
+            if (field == "statArmor") { return 55.0; }
+            return 0.0;
+        }
+        if (index == 54) {
+            if (field == "sellValue") { return 240.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statStr") { return 1.0; }
+            if (field == "statSta") { return 2.0; }
+            if (field == "statArmor") { return 90.0; }
+            return 0.0;
+        }
+        if (index == 55) {
+            if (field == "sellValue") { return 220.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statStr") { return 1.0; }
+            if (field == "statSta") { return 2.0; }
+            if (field == "statArmor") { return 48.0; }
+            return 0.0;
+        }
+        if (index == 56) {
+            if (field == "sellValue") { return 540.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statStr") { return 3.0; }
+            if (field == "statSta") { return 4.0; }
+            if (field == "statArmor") { return 105.0; }
+            return 0.0;
+        }
+        if (index == 57) {
+            if (field == "sellValue") { return 540.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statInt") { return 4.0; }
+            if (field == "statSpi") { return 3.0; }
+            if (field == "statArmor") { return 42.0; }
+            return 0.0;
+        }
+        if (index == 58) {
+            if (field == "sellValue") { return 235.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 3.0; }
+            if (field == "statArmor") { return 58.0; }
+            return 0.0;
+        }
+        if (index == 59) {
+            if (field == "sellValue") { return 215.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 3.0; }
+            if (field == "statArmor") { return 44.0; }
+            return 0.0;
+        }
+        if (index == 60) {
+            if (field == "sellValue") { return 225.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 2.0; }
+            if (field == "statAgi") { return 2.0; }
+            if (field == "statArmor") { return 44.0; }
+            return 0.0;
+        }
+        if (index == 61) {
+            if (field == "sellValue") { return 250.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statInt") { return 3.0; }
+            if (field == "statSpi") { return 2.0; }
+            if (field == "statArmor") { return 36.0; }
+            return 0.0;
+        }
+        if (index == 62) {
+            if (field == "sellValue") { return 265.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 2.0; }
+            if (field == "statAgi") { return 3.0; }
+            if (field == "statArmor") { return 66.0; }
+            return 0.0;
+        }
+        if (index == 63) {
+            if (field == "sellValue") { return 290.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statStr") { return 2.0; }
+            if (field == "statSta") { return 3.0; }
+            if (field == "statArmor") { return 108.0; }
+            return 0.0;
+        }
+        if (index == 64) {
+            if (field == "sellValue") { return 255.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statInt") { return 3.0; }
+            if (field == "statSpi") { return 2.0; }
+            if (field == "statArmor") { return 32.0; }
+            return 0.0;
+        }
+        if (index == 65) {
+            if (field == "sellValue") { return 650.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statStr") { return 5.0; }
+            if (field == "statSta") { return 4.0; }
+            if (field == "statArmor") { return 150.0; }
+            return 0.0;
+        }
+        if (index == 66) {
+            if (field == "sellValue") { return 620.0; }
+            if (field == "weaponMin") { return 20.0; }
+            if (field == "weaponMax") { return 32.0; }
+            if (field == "weaponSpeed") { return 1.7; }
+            if (field == "requiredLevel") { return 0.0; }
+            if (field == "statSta") { return 3.0; }
+            if (field == "statAgi") { return 4.0; }
+            return 0.0;
+        }
+        if (index == 67) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 68) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 69) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 70) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 71) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 72) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 73) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 74) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 75) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 76) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 77) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 78) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 79) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 80) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
+        if (index == 81) {
+            if (field == "sellValue") { return 0.0; }
+            if (field == "requiredLevel") { return 0.0; }
+            return 0.0;
+        }
         throw "unknown WOC M5 content index";
     }
     if (kind == "quest") {
@@ -1661,6 +3710,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1669,6 +3719,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1677,6 +3728,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1685,6 +3737,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1693,6 +3746,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1701,6 +3755,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1709,6 +3764,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1717,6 +3773,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1725,6 +3782,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1733,6 +3791,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1741,6 +3800,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1749,6 +3809,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1757,6 +3818,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1765,6 +3827,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1773,6 +3836,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1781,6 +3845,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1789,6 +3854,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1797,6 +3863,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1805,6 +3872,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return true; }
             return false;
@@ -1813,6 +3881,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1821,6 +3890,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1829,6 +3899,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1837,6 +3908,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1845,6 +3917,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1853,6 +3926,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1861,6 +3935,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1869,6 +3944,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1877,6 +3953,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1885,6 +3962,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1893,6 +3971,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1901,6 +3980,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1909,6 +3989,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1917,6 +3998,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1925,6 +4007,7 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -1933,6 +4016,430 @@ pub flag(kind: string, index: int, field: string): bool {
             if (field == "requiredLevelPresent") { return false; }
             if (field == "noDiscard") { return false; }
             if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 35) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 36) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 37) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 38) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return true; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 39) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 40) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 41) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 42) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 43) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 44) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 45) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 46) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 47) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 48) {
+            if (field == "requiredLevelPresent") { return true; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 49) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 50) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 51) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 52) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 53) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 54) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 55) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 56) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 57) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 58) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 59) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 60) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 61) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 62) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 63) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 64) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 65) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 66) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return false; }
+            if (field == "noVendorSell") { return false; }
+            if (field == "noMarketList") { return false; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return true; }
+            return false;
+        }
+        if (index == 67) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 68) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 69) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 70) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 71) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 72) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 73) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 74) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 75) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 76) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 77) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 78) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 79) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 80) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
+            if (field == "soulbound") { return false; }
+            if (field == "weaponDagger") { return false; }
+            return false;
+        }
+        if (index == 81) {
+            if (field == "requiredLevelPresent") { return false; }
+            if (field == "noDiscard") { return true; }
+            if (field == "noVendorSell") { return true; }
+            if (field == "noMarketList") { return true; }
             if (field == "soulbound") { return false; }
             if (field == "weaponDagger") { return false; }
             return false;
@@ -2065,6 +4572,53 @@ pub itemAllowsClass(index: int, cls: string): bool {
     if (index == 32) { return true; }
     if (index == 33) { return true; }
     if (index == 34) { return true; }
+    if (index == 35) { return true; }
+    if (index == 36) { return true; }
+    if (index == 37) { return true; }
+    if (index == 38) { return true; }
+    if (index == 39) { return true; }
+    if (index == 40) { return true; }
+    if (index == 41) { return true; }
+    if (index == 42) { return true; }
+    if (index == 43) { return true; }
+    if (index == 44) { return true; }
+    if (index == 45) { return true; }
+    if (index == 46) { return true; }
+    if (index == 47) { return true; }
+    if (index == 48) { return true; }
+    if (index == 49) { return true; }
+    if (index == 50) { return true; }
+    if (index == 51) { return cls == "rogue" || cls == "hunter"; }
+    if (index == 52) { return cls == "mage" || cls == "priest" || cls == "warlock" || cls == "druid"; }
+    if (index == 53) { return cls == "rogue" || cls == "hunter"; }
+    if (index == 54) { return cls == "warrior" || cls == "paladin" || cls == "shaman"; }
+    if (index == 55) { return cls == "warrior" || cls == "paladin" || cls == "shaman"; }
+    if (index == 56) { return cls == "warrior" || cls == "paladin" || cls == "shaman"; }
+    if (index == 57) { return cls == "mage" || cls == "priest" || cls == "warlock" || cls == "druid"; }
+    if (index == 58) { return true; }
+    if (index == 59) { return true; }
+    if (index == 60) { return cls == "rogue" || cls == "hunter"; }
+    if (index == 61) { return cls == "mage" || cls == "priest" || cls == "warlock" || cls == "druid"; }
+    if (index == 62) { return cls == "rogue" || cls == "hunter"; }
+    if (index == 63) { return cls == "warrior" || cls == "paladin" || cls == "shaman"; }
+    if (index == 64) { return cls == "mage" || cls == "priest" || cls == "warlock" || cls == "druid"; }
+    if (index == 65) { return cls == "warrior" || cls == "paladin" || cls == "shaman"; }
+    if (index == 66) { return cls == "rogue" || cls == "hunter"; }
+    if (index == 67) { return true; }
+    if (index == 68) { return true; }
+    if (index == 69) { return true; }
+    if (index == 70) { return true; }
+    if (index == 71) { return true; }
+    if (index == 72) { return true; }
+    if (index == 73) { return true; }
+    if (index == 74) { return true; }
+    if (index == 75) { return true; }
+    if (index == 76) { return true; }
+    if (index == 77) { return true; }
+    if (index == 78) { return true; }
+    if (index == 79) { return true; }
+    if (index == 80) { return true; }
+    if (index == 81) { return true; }
     throw "unknown WOC M5 item index";
 }
 
@@ -2115,6 +4669,542 @@ pub npcSells(index: int, itemId: string): bool {
         return false;
     }
     throw "unknown WOC M5 NPC index";
+}
+
+pub heroicVendorNpcId(): string {
+    return "heroic_quartermaster";
+}
+
+pub heroicVendorCurrencyItemId(): string {
+    return "heroic_mark";
+}
+
+pub heroicVendorOfferCount(): int {
+    return 10;
+}
+
+pub heroicVendorOfferItemIndex(index: int): int {
+    if (index == 0) { return 39; }
+    if (index == 1) { return 40; }
+    if (index == 2) { return 41; }
+    if (index == 3) { return 42; }
+    if (index == 4) { return 43; }
+    if (index == 5) { return 44; }
+    if (index == 6) { return 45; }
+    if (index == 7) { return 46; }
+    if (index == 8) { return 47; }
+    if (index == 9) { return 48; }
+    throw "unknown WOC M5 heroic vendor offer";
+}
+
+pub heroicVendorOfferMarks(index: int): int {
+    if (index == 0) { return 12; }
+    if (index == 1) { return 12; }
+    if (index == 2) { return 12; }
+    if (index == 3) { return 12; }
+    if (index == 4) { return 12; }
+    if (index == 5) { return 12; }
+    if (index == 6) { return 16; }
+    if (index == 7) { return 16; }
+    if (index == 8) { return 16; }
+    if (index == 9) { return 16; }
+    throw "unknown WOC M5 heroic vendor offer";
+}
+
+pub delveShopCount(): int {
+    return 2;
+}
+
+pub delveShopIndex(id: string): int {
+    if (id == "collapsed_reliquary") { return 0; }
+    if (id == "drowned_litany") { return 1; }
+    return -1;
+}
+
+pub delveShopId(index: int): string {
+    if (index == 0) { return "collapsed_reliquary"; }
+    if (index == 1) { return "drowned_litany"; }
+    throw "unknown WOC M5 Delve shop";
+}
+
+pub delveShopIdUtf8Length(index: int): int {
+    if (index == 0) { return 19; }
+    if (index == 1) { return 14; }
+    throw "unknown WOC M5 Delve shop";
+}
+
+pub delveShopIdUtf8Byte(index: int, byteIndex: int): uint {
+    if (index == 0) {
+        if (byteIndex == 0) { return <uint>99; }
+        if (byteIndex == 1) { return <uint>111; }
+        if (byteIndex == 2) { return <uint>108; }
+        if (byteIndex == 3) { return <uint>108; }
+        if (byteIndex == 4) { return <uint>97; }
+        if (byteIndex == 5) { return <uint>112; }
+        if (byteIndex == 6) { return <uint>115; }
+        if (byteIndex == 7) { return <uint>101; }
+        if (byteIndex == 8) { return <uint>100; }
+        if (byteIndex == 9) { return <uint>95; }
+        if (byteIndex == 10) { return <uint>114; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>108; }
+        if (byteIndex == 13) { return <uint>105; }
+        if (byteIndex == 14) { return <uint>113; }
+        if (byteIndex == 15) { return <uint>117; }
+        if (byteIndex == 16) { return <uint>97; }
+        if (byteIndex == 17) { return <uint>114; }
+        if (byteIndex == 18) { return <uint>121; }
+        throw "unknown WOC M5 Delve shop id byte";
+    }
+    if (index == 1) {
+        if (byteIndex == 0) { return <uint>100; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>111; }
+        if (byteIndex == 3) { return <uint>119; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>100; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>108; }
+        if (byteIndex == 9) { return <uint>105; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>97; }
+        if (byteIndex == 12) { return <uint>110; }
+        if (byteIndex == 13) { return <uint>121; }
+        throw "unknown WOC M5 Delve shop id byte";
+    }
+    throw "unknown WOC M5 Delve shop";
+}
+
+pub delveShopCompanionId(index: int): string {
+    if (index == 0) { return "companion_tessa"; }
+    if (index == 1) { return "companion_edda"; }
+    throw "unknown WOC M5 Delve shop";
+}
+
+pub delveShopDoorX(index: int): float {
+    if (index == 0) { return -5.0; }
+    if (index == 1) { return -95.0; }
+    throw "unknown WOC M5 Delve shop";
+}
+
+pub delveShopDoorZ(index: int): float {
+    if (index == 0) { return -52.0; }
+    if (index == 1) { return 505.0; }
+    throw "unknown WOC M5 Delve shop";
+}
+
+pub delveShopOfferCount(index: int): int {
+    if (index == 0) { return 9; }
+    if (index == 1) { return 9; }
+    return 0;
+}
+
+pub delveShopOfferItemIndex(shopIndex: int, offerIndex: int): int {
+    if (shopIndex == 0 && offerIndex == 0) { return 49; }
+    if (shopIndex == 0 && offerIndex == 1) { return 50; }
+    if (shopIndex == 0 && offerIndex == 2) { return 51; }
+    if (shopIndex == 0 && offerIndex == 3) { return 52; }
+    if (shopIndex == 0 && offerIndex == 4) { return 53; }
+    if (shopIndex == 0 && offerIndex == 5) { return 54; }
+    if (shopIndex == 0 && offerIndex == 6) { return 55; }
+    if (shopIndex == 0 && offerIndex == 7) { return 56; }
+    if (shopIndex == 0 && offerIndex == 8) { return 57; }
+    if (shopIndex == 1 && offerIndex == 0) { return 58; }
+    if (shopIndex == 1 && offerIndex == 1) { return 59; }
+    if (shopIndex == 1 && offerIndex == 2) { return 60; }
+    if (shopIndex == 1 && offerIndex == 3) { return 61; }
+    if (shopIndex == 1 && offerIndex == 4) { return 62; }
+    if (shopIndex == 1 && offerIndex == 5) { return 63; }
+    if (shopIndex == 1 && offerIndex == 6) { return 64; }
+    if (shopIndex == 1 && offerIndex == 7) { return 65; }
+    if (shopIndex == 1 && offerIndex == 8) { return 66; }
+    throw "unknown WOC M5 Delve shop offer";
+}
+
+pub delveShopOfferMarks(shopIndex: int, offerIndex: int): int {
+    if (shopIndex == 0 && offerIndex == 0) { return 8; }
+    if (shopIndex == 0 && offerIndex == 1) { return 8; }
+    if (shopIndex == 0 && offerIndex == 2) { return 8; }
+    if (shopIndex == 0 && offerIndex == 3) { return 10; }
+    if (shopIndex == 0 && offerIndex == 4) { return 10; }
+    if (shopIndex == 0 && offerIndex == 5) { return 10; }
+    if (shopIndex == 0 && offerIndex == 6) { return 12; }
+    if (shopIndex == 0 && offerIndex == 7) { return 28; }
+    if (shopIndex == 0 && offerIndex == 8) { return 28; }
+    if (shopIndex == 1 && offerIndex == 0) { return 16; }
+    if (shopIndex == 1 && offerIndex == 1) { return 16; }
+    if (shopIndex == 1 && offerIndex == 2) { return 16; }
+    if (shopIndex == 1 && offerIndex == 3) { return 20; }
+    if (shopIndex == 1 && offerIndex == 4) { return 20; }
+    if (shopIndex == 1 && offerIndex == 5) { return 20; }
+    if (shopIndex == 1 && offerIndex == 6) { return 24; }
+    if (shopIndex == 1 && offerIndex == 7) { return 56; }
+    if (shopIndex == 1 && offerIndex == 8) { return 56; }
+    throw "unknown WOC M5 Delve shop offer";
+}
+
+pub delveShopOfferGateKind(shopIndex: int, offerIndex: int): int {
+    if (shopIndex == 0 && offerIndex == 0) { return 1; }
+    if (shopIndex == 0 && offerIndex == 1) { return 1; }
+    if (shopIndex == 0 && offerIndex == 2) { return 1; }
+    if (shopIndex == 0 && offerIndex == 3) { return 1; }
+    if (shopIndex == 0 && offerIndex == 4) { return 1; }
+    if (shopIndex == 0 && offerIndex == 5) { return 1; }
+    if (shopIndex == 0 && offerIndex == 6) { return 2; }
+    if (shopIndex == 0 && offerIndex == 7) { return 3; }
+    if (shopIndex == 0 && offerIndex == 8) { return 3; }
+    if (shopIndex == 1 && offerIndex == 0) { return 1; }
+    if (shopIndex == 1 && offerIndex == 1) { return 1; }
+    if (shopIndex == 1 && offerIndex == 2) { return 1; }
+    if (shopIndex == 1 && offerIndex == 3) { return 1; }
+    if (shopIndex == 1 && offerIndex == 4) { return 1; }
+    if (shopIndex == 1 && offerIndex == 5) { return 1; }
+    if (shopIndex == 1 && offerIndex == 6) { return 2; }
+    if (shopIndex == 1 && offerIndex == 7) { return 3; }
+    if (shopIndex == 1 && offerIndex == 8) { return 3; }
+    throw "unknown WOC M5 Delve shop offer";
+}
+
+pub delveShopOfferRequiredClears(shopIndex: int, offerIndex: int): int {
+    if (shopIndex == 0 && offerIndex == 0) { return 0; }
+    if (shopIndex == 0 && offerIndex == 1) { return 0; }
+    if (shopIndex == 0 && offerIndex == 2) { return 0; }
+    if (shopIndex == 0 && offerIndex == 3) { return 0; }
+    if (shopIndex == 0 && offerIndex == 4) { return 0; }
+    if (shopIndex == 0 && offerIndex == 5) { return 0; }
+    if (shopIndex == 0 && offerIndex == 6) { return 3; }
+    if (shopIndex == 0 && offerIndex == 7) { return 0; }
+    if (shopIndex == 0 && offerIndex == 8) { return 0; }
+    if (shopIndex == 1 && offerIndex == 0) { return 0; }
+    if (shopIndex == 1 && offerIndex == 1) { return 0; }
+    if (shopIndex == 1 && offerIndex == 2) { return 0; }
+    if (shopIndex == 1 && offerIndex == 3) { return 0; }
+    if (shopIndex == 1 && offerIndex == 4) { return 0; }
+    if (shopIndex == 1 && offerIndex == 5) { return 0; }
+    if (shopIndex == 1 && offerIndex == 6) { return 3; }
+    if (shopIndex == 1 && offerIndex == 7) { return 0; }
+    if (shopIndex == 1 && offerIndex == 8) { return 0; }
+    throw "unknown WOC M5 Delve shop offer";
+}
+
+pub mechChromaCount(): int {
+    return 15;
+}
+
+pub mechChromaId(index: int): string {
+    if (index == 0) { return "amber_crimson"; }
+    if (index == 1) { return "crimson_amber"; }
+    if (index == 2) { return "cyan_magenta"; }
+    if (index == 3) { return "magenta_cyan"; }
+    if (index == 4) { return "orange_steel"; }
+    if (index == 5) { return "steel_orange"; }
+    if (index == 6) { return "forest_pink"; }
+    if (index == 7) { return "pink_forest"; }
+    if (index == 8) { return "amethyst_silver"; }
+    if (index == 9) { return "ivory_copper"; }
+    if (index == 10) { return "onyx_gold"; }
+    if (index == 11) { return "imperial_crimson"; }
+    if (index == 12) { return "imperial_gold"; }
+    if (index == 13) { return "vanguard_azure"; }
+    if (index == 14) { return "vanguard_chrome"; }
+    throw "unknown WOC M5 mech chroma";
+}
+
+pub mechChromaIdUtf8Length(index: int): int {
+    if (index == 0) { return 13; }
+    if (index == 1) { return 13; }
+    if (index == 2) { return 12; }
+    if (index == 3) { return 12; }
+    if (index == 4) { return 12; }
+    if (index == 5) { return 12; }
+    if (index == 6) { return 11; }
+    if (index == 7) { return 11; }
+    if (index == 8) { return 15; }
+    if (index == 9) { return 12; }
+    if (index == 10) { return 9; }
+    if (index == 11) { return 16; }
+    if (index == 12) { return 13; }
+    if (index == 13) { return 14; }
+    if (index == 14) { return 15; }
+    throw "unknown WOC M5 mech chroma";
+}
+
+pub mechChromaIdUtf8Byte(index: int, byteIndex: int): uint {
+    if (index == 0) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>98; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>114; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>99; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>115; }
+        if (byteIndex == 11) { return <uint>111; }
+        if (byteIndex == 12) { return <uint>110; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 1) {
+        if (byteIndex == 0) { return <uint>99; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>105; }
+        if (byteIndex == 3) { return <uint>109; }
+        if (byteIndex == 4) { return <uint>115; }
+        if (byteIndex == 5) { return <uint>111; }
+        if (byteIndex == 6) { return <uint>110; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>109; }
+        if (byteIndex == 10) { return <uint>98; }
+        if (byteIndex == 11) { return <uint>101; }
+        if (byteIndex == 12) { return <uint>114; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 2) {
+        if (byteIndex == 0) { return <uint>99; }
+        if (byteIndex == 1) { return <uint>121; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>110; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>109; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>103; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>116; }
+        if (byteIndex == 11) { return <uint>97; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 3) {
+        if (byteIndex == 0) { return <uint>109; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>103; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>110; }
+        if (byteIndex == 5) { return <uint>116; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>95; }
+        if (byteIndex == 8) { return <uint>99; }
+        if (byteIndex == 9) { return <uint>121; }
+        if (byteIndex == 10) { return <uint>97; }
+        if (byteIndex == 11) { return <uint>110; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 4) {
+        if (byteIndex == 0) { return <uint>111; }
+        if (byteIndex == 1) { return <uint>114; }
+        if (byteIndex == 2) { return <uint>97; }
+        if (byteIndex == 3) { return <uint>110; }
+        if (byteIndex == 4) { return <uint>103; }
+        if (byteIndex == 5) { return <uint>101; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>115; }
+        if (byteIndex == 8) { return <uint>116; }
+        if (byteIndex == 9) { return <uint>101; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>108; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 5) {
+        if (byteIndex == 0) { return <uint>115; }
+        if (byteIndex == 1) { return <uint>116; }
+        if (byteIndex == 2) { return <uint>101; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>108; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>111; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>97; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>103; }
+        if (byteIndex == 11) { return <uint>101; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 6) {
+        if (byteIndex == 0) { return <uint>102; }
+        if (byteIndex == 1) { return <uint>111; }
+        if (byteIndex == 2) { return <uint>114; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>115; }
+        if (byteIndex == 5) { return <uint>116; }
+        if (byteIndex == 6) { return <uint>95; }
+        if (byteIndex == 7) { return <uint>112; }
+        if (byteIndex == 8) { return <uint>105; }
+        if (byteIndex == 9) { return <uint>110; }
+        if (byteIndex == 10) { return <uint>107; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 7) {
+        if (byteIndex == 0) { return <uint>112; }
+        if (byteIndex == 1) { return <uint>105; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>107; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>102; }
+        if (byteIndex == 6) { return <uint>111; }
+        if (byteIndex == 7) { return <uint>114; }
+        if (byteIndex == 8) { return <uint>101; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>116; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 8) {
+        if (byteIndex == 0) { return <uint>97; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>101; }
+        if (byteIndex == 3) { return <uint>116; }
+        if (byteIndex == 4) { return <uint>104; }
+        if (byteIndex == 5) { return <uint>121; }
+        if (byteIndex == 6) { return <uint>115; }
+        if (byteIndex == 7) { return <uint>116; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>115; }
+        if (byteIndex == 10) { return <uint>105; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>118; }
+        if (byteIndex == 13) { return <uint>101; }
+        if (byteIndex == 14) { return <uint>114; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 9) {
+        if (byteIndex == 0) { return <uint>105; }
+        if (byteIndex == 1) { return <uint>118; }
+        if (byteIndex == 2) { return <uint>111; }
+        if (byteIndex == 3) { return <uint>114; }
+        if (byteIndex == 4) { return <uint>121; }
+        if (byteIndex == 5) { return <uint>95; }
+        if (byteIndex == 6) { return <uint>99; }
+        if (byteIndex == 7) { return <uint>111; }
+        if (byteIndex == 8) { return <uint>112; }
+        if (byteIndex == 9) { return <uint>112; }
+        if (byteIndex == 10) { return <uint>101; }
+        if (byteIndex == 11) { return <uint>114; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 10) {
+        if (byteIndex == 0) { return <uint>111; }
+        if (byteIndex == 1) { return <uint>110; }
+        if (byteIndex == 2) { return <uint>121; }
+        if (byteIndex == 3) { return <uint>120; }
+        if (byteIndex == 4) { return <uint>95; }
+        if (byteIndex == 5) { return <uint>103; }
+        if (byteIndex == 6) { return <uint>111; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>100; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 11) {
+        if (byteIndex == 0) { return <uint>105; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>112; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>114; }
+        if (byteIndex == 5) { return <uint>105; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>99; }
+        if (byteIndex == 10) { return <uint>114; }
+        if (byteIndex == 11) { return <uint>105; }
+        if (byteIndex == 12) { return <uint>109; }
+        if (byteIndex == 13) { return <uint>115; }
+        if (byteIndex == 14) { return <uint>111; }
+        if (byteIndex == 15) { return <uint>110; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 12) {
+        if (byteIndex == 0) { return <uint>105; }
+        if (byteIndex == 1) { return <uint>109; }
+        if (byteIndex == 2) { return <uint>112; }
+        if (byteIndex == 3) { return <uint>101; }
+        if (byteIndex == 4) { return <uint>114; }
+        if (byteIndex == 5) { return <uint>105; }
+        if (byteIndex == 6) { return <uint>97; }
+        if (byteIndex == 7) { return <uint>108; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>103; }
+        if (byteIndex == 10) { return <uint>111; }
+        if (byteIndex == 11) { return <uint>108; }
+        if (byteIndex == 12) { return <uint>100; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 13) {
+        if (byteIndex == 0) { return <uint>118; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>103; }
+        if (byteIndex == 4) { return <uint>117; }
+        if (byteIndex == 5) { return <uint>97; }
+        if (byteIndex == 6) { return <uint>114; }
+        if (byteIndex == 7) { return <uint>100; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>97; }
+        if (byteIndex == 10) { return <uint>122; }
+        if (byteIndex == 11) { return <uint>117; }
+        if (byteIndex == 12) { return <uint>114; }
+        if (byteIndex == 13) { return <uint>101; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    if (index == 14) {
+        if (byteIndex == 0) { return <uint>118; }
+        if (byteIndex == 1) { return <uint>97; }
+        if (byteIndex == 2) { return <uint>110; }
+        if (byteIndex == 3) { return <uint>103; }
+        if (byteIndex == 4) { return <uint>117; }
+        if (byteIndex == 5) { return <uint>97; }
+        if (byteIndex == 6) { return <uint>114; }
+        if (byteIndex == 7) { return <uint>100; }
+        if (byteIndex == 8) { return <uint>95; }
+        if (byteIndex == 9) { return <uint>99; }
+        if (byteIndex == 10) { return <uint>104; }
+        if (byteIndex == 11) { return <uint>114; }
+        if (byteIndex == 12) { return <uint>111; }
+        if (byteIndex == 13) { return <uint>109; }
+        if (byteIndex == 14) { return <uint>101; }
+        throw "unknown WOC M5 mech chroma UTF-8 byte";
+    }
+    throw "unknown WOC M5 mech chroma";
+}
+
+pub mechChromaItemIndex(index: int): int {
+    if (index == 0) { return 67; }
+    if (index == 1) { return 68; }
+    if (index == 2) { return 69; }
+    if (index == 3) { return 70; }
+    if (index == 4) { return 71; }
+    if (index == 5) { return 72; }
+    if (index == 6) { return 73; }
+    if (index == 7) { return 74; }
+    if (index == 8) { return 75; }
+    if (index == 9) { return 76; }
+    if (index == 10) { return 77; }
+    if (index == 11) { return 78; }
+    if (index == 12) { return 79; }
+    if (index == 13) { return 80; }
+    if (index == 14) { return 81; }
+    throw "unknown WOC M5 mech chroma";
+}
+
+pub mechChromaSkinIndex(index: int): int {
+    if (index == 0) { return 0; }
+    if (index == 1) { return 1; }
+    if (index == 2) { return 2; }
+    if (index == 3) { return 3; }
+    if (index == 4) { return 4; }
+    if (index == 5) { return 5; }
+    if (index == 6) { return 6; }
+    if (index == 7) { return 7; }
+    if (index == 8) { return 8; }
+    if (index == 9) { return 9; }
+    if (index == 10) { return 10; }
+    if (index == 11) { return 11; }
+    if (index == 12) { return 12; }
+    if (index == 13) { return 13; }
+    if (index == 14) { return 14; }
+    throw "unknown WOC M5 mech chroma";
 }
 
 pub mobLootCount(index: int): int {

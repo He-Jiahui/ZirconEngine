@@ -154,6 +154,14 @@ fn text_rich_forced_lines_preserve_inline_metrics_and_original_run_indices() {
 }
 
 #[test]
+fn text_rich_forced_line_ranges_share_unicode_separator_semantics() {
+    assert_eq!(
+        super::rich_forced_line_ranges("a\r\nb\u{2028}c\u{0085}"),
+        vec![(0, 1), (3, 4), (7, 8), (10, 10)]
+    );
+}
+
+#[test]
 fn text_rich_glyph_wrap_keeps_boundary_shaping_context_bounded() {
     let source = format!("A{}Z", "x".repeat(38));
     let parsed = parse_rich_text(&source, RichTextFormat::Plain);

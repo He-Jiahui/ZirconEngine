@@ -1,6 +1,6 @@
 use super::vampire_root;
-use crate::asset::project::ProjectManager;
 use crate::asset::AssetUri;
+use crate::asset::project::ProjectManager;
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::render::FallbackSkyboxKind;
 use crate::scene::world::World;

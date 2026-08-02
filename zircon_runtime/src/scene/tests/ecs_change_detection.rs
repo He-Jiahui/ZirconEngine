@@ -2,8 +2,9 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, Changed, Component, ComponentTicks,
-    QueryState, RemovedComponentsParam, SystemState, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, QueryState, RemovedComponentsParam,
+    ResMutParam, ResParam, Resource, StorageType, SystemState,
 };
 use crate::scene::{EntityId, World};
 
@@ -11,6 +12,18 @@ use crate::scene::{EntityId, World};
 struct Health(u32);
 
 impl Component for Health {}
+
+#[derive(Debug, PartialEq, Eq)]
+struct SparseHealth(u32);
+
+impl Component for SparseHealth {
+    const STORAGE_TYPE: StorageType = StorageType::SparseSet;
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ChangeTrackedResource(u32);
+
+impl Resource for ChangeTrackedResource {}
 
 fn diagnostic_current(snapshot: &DiagnosticStoreSnapshot, path: &str) -> Option<f64> {
     snapshot
@@ -156,6 +169,106 @@ fn change_detection_scan_skips_unmarked_archetypes() {
 }
 
 #[test]
+fn mut_query_marks_table_components_only_after_mutable_access() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn((Name("Tracked".to_string()), Health(10)))
+        .unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    type MutableHealth = QueryState<Mut<'static, Health>>;
+    let mut changed = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+    let mut mutable = SystemState::<MutableHealth>::new(&mut world).unwrap();
+
+    assert_eq!(
+        changed.run(&mut world, |query| {
+            query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
+        }),
+        vec![entity]
+    );
+    assert!(
+        changed
+            .run(&mut world, |query| query.iter().next())
+            .is_none()
+    );
+
+    mutable.run(&mut world, |mut query| {
+        let health = query.get_mut(entity).unwrap();
+        assert_eq!(health.0, 10);
+    });
+    assert!(
+        changed
+            .run(&mut world, |query| query.iter().next())
+            .is_none()
+    );
+
+    mutable.run(&mut world, |mut query| {
+        let mut health = query.get_mut(entity).unwrap();
+        health.0 += 1;
+    });
+    assert_eq!(
+        changed.run(&mut world, |query| {
+            query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
+        }),
+        vec![entity]
+    );
+}
+
+#[test]
+fn mut_query_marks_sparse_components_only_after_explicit_change() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn((Name("SparseTracked".to_string()), SparseHealth(10)))
+        .unwrap();
+
+    type MutableSparseHealth = QueryState<Mut<'static, SparseHealth>>;
+    let mut mutable = SystemState::<MutableSparseHealth>::new(&mut world).unwrap();
+    let before = world
+        .component_change_ticks::<SparseHealth>(entity)
+        .unwrap();
+
+    mutable.run(&mut world, |mut query| {
+        let health = query.get_mut(entity).unwrap();
+        assert_eq!(health.0, 10);
+    });
+    assert_eq!(
+        world.component_change_ticks::<SparseHealth>(entity),
+        Some(before)
+    );
+
+    mutable.run(&mut world, |mut query| {
+        let mut health = query.get_mut(entity).unwrap();
+        health.set_changed();
+    });
+    assert_ne!(
+        world.component_change_ticks::<SparseHealth>(entity),
+        Some(before)
+    );
+}
+
+#[test]
+fn res_mut_marks_resources_only_after_mutable_access() {
+    let mut world = World::empty();
+    world.insert_resource(ChangeTrackedResource(10));
+
+    let mut observed = SystemState::<ResParam<ChangeTrackedResource>>::new(&mut world).unwrap();
+    let mut mutable = SystemState::<ResMutParam<ChangeTrackedResource>>::new(&mut world).unwrap();
+
+    assert!(observed.run(&mut world, |resource| resource.is_changed()));
+    assert!(!observed.run(&mut world, |resource| resource.is_changed()));
+
+    mutable.run(&mut world, |resource| {
+        assert_eq!(resource.0, 10);
+    });
+    assert!(!observed.run(&mut world, |resource| resource.is_changed()));
+
+    mutable.run(&mut world, |mut resource| {
+        resource.as_mut().0 += 1;
+    });
+    assert!(observed.run(&mut world, |resource| resource.is_changed()));
+}
+
+#[test]
 fn removed_components_tracks_recursive_despawn() {
     let mut world = World::empty();
     let parent = world
@@ -166,9 +279,11 @@ fn removed_components_tracks_recursive_despawn() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(system
-        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-        .is_empty());
+    assert!(
+        system
+            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+            .is_empty()
+    );
 
     world.remove_entity_recursive(parent);
 
@@ -185,9 +300,11 @@ fn component_removal_emits_removal_record_in_same_frame() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(system
-        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-        .is_empty());
+    assert!(
+        system
+            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+            .is_empty()
+    );
 
     assert_eq!(world.remove::<Health>(entity).unwrap(), Some(Health(5)));
 
@@ -230,13 +347,13 @@ fn resource_store_hot_paths_use_direct_branches() {
     let get_mut_source = resource_store_source
         .split("pub fn get_mut<")
         .nth(1)
-        .and_then(|text| text.split("pub fn get_mut_at_tick_with_ticks").next())
+        .and_then(|text| text.split("pub fn get_mut_with_ticks").next())
         .expect("read ResourceStore::get_mut body");
     let ticked_get_mut_source = resource_store_source
-        .split("pub fn get_mut_at_tick_with_ticks")
+        .split("pub fn get_mut_with_ticks")
         .nth(1)
         .and_then(|text| text.split("pub fn remove<").next())
-        .expect("read ResourceStore::get_mut_at_tick_with_ticks body");
+        .expect("read ResourceStore::get_mut_with_ticks body");
     let remove_source = resource_store_source
         .split("pub fn remove<")
         .nth(1)
@@ -261,9 +378,8 @@ fn resource_store_hot_paths_use_direct_branches() {
     assert!(get_source.contains("stored.value.downcast_ref::<T>()"));
     assert!(get_mut_source.contains("let stored = self.resources.get_mut(&TypeId::of::<T>())?;"));
     assert!(get_mut_source.contains("stored.value.downcast_mut::<T>()"));
-    assert!(
-        ticked_get_mut_source.contains("let Some(value) = stored.value.downcast_mut::<T>() else")
-    );
+    assert!(ticked_get_mut_source.contains("let StoredResource { value, ticks, .. } = stored;"));
+    assert!(ticked_get_mut_source.contains("let value = value.downcast_mut::<T>()?;"));
     assert!(ticked_get_mut_source.contains("Some((value, ticks))"));
     assert!(remove_source.contains("let stored = self.resources.remove(&TypeId::of::<T>())?;"));
     assert!(remove_source.contains("let Ok(boxed) = stored.value.downcast::<T>() else"));
@@ -278,8 +394,11 @@ fn resource_store_hot_paths_use_direct_branches() {
     assert!(!insert_source.contains(".map(|boxed| *boxed)"));
     assert!(!get_source.contains(".and_then(|stored| stored.value.downcast_ref::<T>())"));
     assert!(!get_mut_source.contains(".and_then(|stored| stored.value.downcast_mut::<T>())"));
-    assert!(!ticked_get_mut_source
-        .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))"));
+    assert!(!ticked_get_mut_source.contains("set_changed"));
+    assert!(
+        !ticked_get_mut_source
+            .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))")
+    );
     assert!(!remove_source.contains(".and_then(|stored| stored.value.downcast::<T>().ok())"));
     assert!(!remove_source.contains(".map(|boxed| *boxed)"));
     assert!(!ticks_source.contains(".map(|stored| stored.ticks)"));

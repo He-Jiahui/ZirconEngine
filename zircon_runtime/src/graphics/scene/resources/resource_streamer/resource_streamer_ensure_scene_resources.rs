@@ -282,7 +282,7 @@ mod tests {
         RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderFrameExtract,
         RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension,
         RenderImageFallbackKind, RenderImageUsage, RenderPostProcessEffectStackSettings,
-        RenderSamplerDescriptor, RenderWorldSnapshotHandle,
+        RenderSamplerDescriptor, RenderWorldSnapshotHandle, TextureMetadata,
     };
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -499,6 +499,10 @@ mod tests {
             dimension,
             format: "rgba8unorm".to_string(),
             color_space: RenderImageColorSpace::Linear,
+            metadata: TextureMetadata {
+                color_space: RenderImageColorSpace::Linear,
+                ..TextureMetadata::default()
+            },
             sampler: RenderSamplerDescriptor::default(),
             usage: vec![RenderImageUsage::Sampled],
             asset_usage: Vec::new(),

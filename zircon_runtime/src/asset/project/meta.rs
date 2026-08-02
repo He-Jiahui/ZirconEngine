@@ -7,8 +7,6 @@ use thiserror::Error;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
-use crate::foundation::persistence::atomic_file::atomic_write;
-
 const ASSET_META_FORMAT_VERSION: u32 = 7;
 
 pub type AssetMetaResult<T> = std::result::Result<T, AssetMetaError>;
@@ -300,8 +298,7 @@ impl AssetMetaDocument {
     }
 
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), std::io::Error> {
-        let document = self.to_pretty_bytes()?;
-        atomic_write(path.as_ref(), &document)
+        super::meta_preview_state::save_document(self, path.as_ref())
     }
 
     pub(crate) fn to_pretty_bytes(&self) -> Result<Vec<u8>, std::io::Error> {

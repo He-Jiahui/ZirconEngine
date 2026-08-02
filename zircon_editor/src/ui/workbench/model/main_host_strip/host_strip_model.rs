@@ -21,11 +21,18 @@ pub(crate) fn host_strip_model(
             .workbench
             .main_pages
             .iter()
-            .map(|page| HostPageTabModel {
-                id: page_id(page).clone(),
-                title: page_title(page).to_string(),
-                dirty: page_dirty(page),
-                closeable: matches!(page, MainPageSnapshot::Exclusive { .. }),
+            .map(|page| {
+                let close_instance_id = match page {
+                    MainPageSnapshot::Exclusive { view, .. } => Some(view.instance_id.clone()),
+                    MainPageSnapshot::Workbench { .. } => None,
+                };
+                HostPageTabModel {
+                    id: page_id(page).clone(),
+                    title: page_title(page).to_string(),
+                    dirty: page_dirty(page),
+                    closeable: close_instance_id.is_some(),
+                    close_instance_id,
+                }
             })
             .collect(),
         active_page: page_id(active_page).clone(),

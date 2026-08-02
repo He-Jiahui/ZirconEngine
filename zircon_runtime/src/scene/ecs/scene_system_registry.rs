@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, InternalSceneSystem, IntoSceneSystem,
     RuntimeSceneSystem, SceneSystem, SceneSystemDescriptor, SceneSystemMetadata,
-    SceneSystemThreadAffinity, ScheduleConflictGraph, ScheduleConflictNode, ScheduleError,
-    SystemParam, SystemStage,
+    ScheduleConflictGraph, ScheduleConflictNode, ScheduleError, SystemParam, SystemStage,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -140,7 +139,9 @@ impl SceneSystemRegistry {
                     worker_safe_dispatch(system.as_ref()),
                     system.access().has_conservative_world_access(),
                 );
-                let apply_deferred_step = system.has_deferred_commands().then(|| {
+                let apply_deferred_step = (system.has_deferred_commands()
+                    && !worker_safe_dispatch(system.as_ref()))
+                .then(|| {
                     super::ScheduledSceneStep::apply_deferred_after(
                         system.id(),
                         system.stage(),
@@ -167,7 +168,7 @@ impl SceneSystemRegistry {
                 worker_safe_dispatch(system.as_ref()),
                 system.access().has_conservative_world_access(),
             ));
-            if system.has_deferred_commands() {
+            if system.has_deferred_commands() && !worker_safe_dispatch(system.as_ref()) {
                 steps.push(super::ScheduledSceneStep::apply_deferred_after(
                     system.id(),
                     system.stage(),
@@ -206,7 +207,7 @@ impl SceneSystemRegistry {
                 system.stage(),
                 system.access().clone(),
             ));
-            if system.has_deferred_commands() {
+            if system.has_deferred_commands() && !worker_safe_dispatch(system.as_ref()) {
                 nodes.push(ScheduleConflictNode::barrier(
                     apply_deferred_node_id(system.id()),
                     system.stage(),
@@ -548,7 +549,11 @@ fn native_conflict_graph_node_count_for_stage(
         if system.stage() != stage {
             continue;
         }
-        count += if system.has_deferred_commands() { 2 } else { 1 };
+        count += if system.has_deferred_commands() && !worker_safe_dispatch(system.as_ref()) {
+            2
+        } else {
+            1
+        };
     }
     for system in runtime_systems {
         if system.stage() == stage {
@@ -559,9 +564,7 @@ fn native_conflict_graph_node_count_for_stage(
 }
 
 fn worker_safe_dispatch(system: &dyn SceneSystem) -> bool {
-    system.thread_affinity() == SceneSystemThreadAffinity::WorkerSafe
-        && system.supports_worldless_execution()
-        && system.constraints().is_empty()
+    system.supports_worker_dispatch()
 }
 
 fn native_step_counts_by_stage(
@@ -570,7 +573,12 @@ fn native_step_counts_by_stage(
 ) -> [usize; SystemStage::COUNT] {
     let mut counts = [0_usize; SystemStage::COUNT];
     for system in systems {
-        let step_count = if system.has_deferred_commands() { 2 } else { 1 };
+        let step_count = if system.has_deferred_commands() && !worker_safe_dispatch(system.as_ref())
+        {
+            2
+        } else {
+            1
+        };
         counts[system.stage().rank()] += step_count;
     }
     for system in runtime_systems {

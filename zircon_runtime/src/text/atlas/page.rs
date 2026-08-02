@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::core::math::UVec2;
 
 use super::page_residency::{
-    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasResidentPage,
     apply_page_residency_decision, page_rebuild_residency_decision, page_residency_decision,
+    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasResidentPage,
 };
 #[cfg(test)]
 use super::page_shadow::GlyphAtlasBitmapPageShadowPatch;
@@ -156,6 +156,7 @@ pub(crate) struct GlyphAtlasSet {
     pages: Vec<GlyphAtlasResidentPage>,
     slot_cache: GlyphAtlasSlotCache,
     bitmap_page_shadow: Arc<GlyphAtlasBitmapPageShadowStore>,
+    pending_invalidated_bitmap_raster_keys: Vec<GlyphRasterKey>,
 }
 
 impl GlyphAtlasSet {
@@ -295,14 +296,33 @@ impl GlyphAtlasSet {
         Arc::make_mut(&mut self.bitmap_page_shadow).apply(&pages, commit);
     }
 
-    pub(crate) fn invalidate_bitmap_page_upload_state<I>(&mut self, page_keys: I)
+    pub(crate) fn invalidate_bitmap_page_upload_state<I>(
+        &mut self,
+        page_keys: I,
+    ) -> Vec<GlyphRasterKey>
     where
         I: IntoIterator<Item = GlyphAtlasPageKey>,
     {
-        for page_key in page_keys {
-            self.slot_cache.invalidate_page(page_key);
-            self.invalidate_bitmap_page_shadow(page_key);
+        let mut invalidated_keys = Vec::new();
+        for page_key in page_keys.into_iter().collect::<BTreeSet<_>>() {
+            invalidated_keys.extend(self.invalidate_bitmap_page_contents(page_key));
         }
+        invalidated_keys
+    }
+
+    pub(crate) fn invalidate_bitmap_raster_keys<I>(&mut self, raster_keys: I) -> Vec<GlyphRasterKey>
+    where
+        I: IntoIterator<Item = GlyphRasterKey>,
+    {
+        let page_keys = raster_keys
+            .into_iter()
+            .filter_map(|key| self.slot_cache.page_key_for_slot(key))
+            .collect::<BTreeSet<_>>();
+        self.invalidate_bitmap_page_upload_state(page_keys)
+    }
+
+    pub(crate) fn take_pending_invalidated_bitmap_raster_keys(&mut self) -> Vec<GlyphRasterKey> {
+        std::mem::take(&mut self.pending_invalidated_bitmap_raster_keys)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -318,13 +338,14 @@ impl GlyphAtlasSet {
         GlyphAtlasPersistentSlot,
         Option<GlyphAtlasPageResidencyDecision>,
     )> {
-        let existing_pages = self
-            .pages
-            .iter()
-            .filter(|page| page.key().format == key.format)
-            .map(|page| (page.key(), page.spec().size, page.spec().generation))
-            .collect::<Vec<_>>();
-        for (page_key, resident_size, page_generation) in existing_pages {
+        for page_index in 0..self.pages.len() {
+            let (page_key, resident_size, page_generation) = {
+                let page = &self.pages[page_index];
+                (page.key(), page.spec().size, page.spec().generation)
+            };
+            if page_key.format != key.format {
+                continue;
+            }
             if resident_size != page_size {
                 continue;
             }
@@ -381,9 +402,22 @@ impl GlyphAtlasSet {
 
     fn invalidate_evicted_page(&mut self, decision: GlyphAtlasPageResidencyDecision) {
         if let GlyphAtlasPageResidencyDecision::Evict(page_key) = decision {
-            self.slot_cache.invalidate_page(page_key);
+            self.pending_invalidated_bitmap_raster_keys
+                .extend(self.slot_cache.invalidate_page(page_key));
             self.invalidate_bitmap_page_shadow(page_key);
         }
+    }
+
+    fn invalidate_bitmap_page_contents(
+        &mut self,
+        page_key: GlyphAtlasPageKey,
+    ) -> Vec<GlyphRasterKey> {
+        let invalidated_keys = self.slot_cache.invalidate_page(page_key);
+        self.invalidate_bitmap_page_shadow(page_key);
+        if let Some(page) = self.pages.iter_mut().find(|page| page.key() == page_key) {
+            page.invalidate_contents();
+        }
+        invalidated_keys
     }
 
     fn invalidate_bitmap_page_shadow(&mut self, page_key: GlyphAtlasPageKey) {
@@ -448,6 +482,24 @@ mod tests {
 
         assert_eq!(atlas.page_count(), 2);
         assert_eq!(atlas.resident_page_byte_len(), 16 * 8 * (1 + 4));
+    }
+
+    #[test]
+    fn render_text_atlas_persistent_slot_allocation_does_not_snapshot_resident_pages() {
+        let source = include_str!("page.rs");
+        let allocation_start = source
+            .find("pub(crate) fn allocate_persistent_bitmap_slot")
+            .expect("persistent slot allocation owner");
+        let allocation_end = source[allocation_start..]
+            .find("\n    fn insert_persistent_bitmap_slot")
+            .map(|offset| allocation_start + offset)
+            .expect("persistent slot allocation boundary");
+        let allocation = &source[allocation_start..allocation_end];
+
+        assert!(
+            !allocation.contains("collect::<Vec<_>>()"),
+            "persistent slot allocation must scan resident pages directly"
+        );
     }
 
     #[test]

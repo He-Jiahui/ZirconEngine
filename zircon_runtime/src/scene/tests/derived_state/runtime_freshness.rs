@@ -22,16 +22,20 @@ fn projected_reads_stay_fresh_until_post_update_refreshes_retained_cache() {
     world.set_active_self(parent, false).unwrap();
 
     assert!(world.has_pending_scene_systems());
-    assert!(world
-        .nodes()
-        .iter()
-        .find(|node| node.id == child)
-        .is_some_and(|node| node.parent.is_none()));
-    assert!(world
-        .node_records()
-        .iter()
-        .find(|node| node.id == child)
-        .is_some_and(|node| node.parent == Some(parent)));
+    assert!(
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.id == child)
+            .is_some_and(|node| node.parent.is_none())
+    );
+    assert!(
+        world
+            .node_records()
+            .iter()
+            .find(|node| node.id == child)
+            .is_some_and(|node| node.parent == Some(parent))
+    );
     assert_eq!(world.find_node(child).unwrap().parent, Some(parent));
     assert_eq!(world.active_in_hierarchy(child), Some(false));
     assert_eq!(
@@ -50,10 +54,12 @@ fn projected_reads_stay_fresh_until_post_update_refreshes_retained_cache() {
 
     world.run_internal_scene_systems_for_stage(SystemStage::PostUpdate);
     let refreshed_nodes = world.nodes().to_vec();
-    assert!(refreshed_nodes
-        .iter()
-        .find(|node| node.id == child)
-        .is_some_and(|node| node.parent == Some(parent)));
+    assert!(
+        refreshed_nodes
+            .iter()
+            .find(|node| node.id == child)
+            .is_some_and(|node| node.parent == Some(parent))
+    );
     assert_eq!(world.active_in_hierarchy(child), Some(false));
     assert_eq!(
         world.world_transform(child).unwrap().translation,
@@ -86,9 +92,11 @@ fn no_op_mutators_do_not_mark_derived_state_dirty() {
     assert!(!world.has_pending_scene_systems());
 
     assert!(!world.set_parent_checked(child, Some(parent)).unwrap());
-    assert!(!world
-        .update_transform(child, Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)))
-        .unwrap());
+    assert!(
+        !world
+            .update_transform(child, Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)))
+            .unwrap()
+    );
     assert!(!world.set_active_self(parent, false).unwrap());
     assert!(!world.set_render_layer_mask(child, 0b0010).unwrap());
     assert!(!world.set_mobility(static_child, Mobility::Static).unwrap());
@@ -125,11 +133,13 @@ fn render_extract_prepare_flushes_direct_frame_and_legacy_viewport_paths() {
         RenderWorldSnapshotHandle::new(401),
         SceneViewportExtractRequest::default(),
     ));
-    assert!(frame
-        .geometry
-        .meshes
-        .iter()
-        .all(|mesh| mesh.node_id != child));
+    assert!(
+        frame
+            .geometry
+            .meshes
+            .iter()
+            .all(|mesh| mesh.node_id != child)
+    );
     assert!(!world.has_pending_scene_systems());
 }
 
@@ -141,20 +151,24 @@ fn property_path_node_cache_changes_mark_dirty_and_zero_morph_extension_is_not_n
     assert!(!world.has_pending_scene_systems());
 
     let tint_path = ComponentPropertyPath::parse("MeshRenderer.tint").unwrap();
-    assert!(world
-        .set_property(
-            mesh,
-            &tint_path,
-            ScenePropertyValue::Vec4([0.25, 0.5, 0.75, 1.0]),
-        )
-        .unwrap());
+    assert!(
+        world
+            .set_property(
+                mesh,
+                &tint_path,
+                ScenePropertyValue::Vec4([0.25, 0.5, 0.75, 1.0]),
+            )
+            .unwrap()
+    );
     assert!(world.has_pending_scene_systems());
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
 
     let morph_path = ComponentPropertyPath::parse("MeshRenderer.morph_weights.2").unwrap();
-    assert!(world
-        .set_property(mesh, &morph_path, ScenePropertyValue::Scalar(0.0))
-        .unwrap());
+    assert!(
+        world
+            .set_property(mesh, &morph_path, ScenePropertyValue::Scalar(0.0))
+            .unwrap()
+    );
     assert_eq!(
         world.get::<MeshRenderer>(mesh).unwrap().morph_weights,
         vec![0.0; 3]
@@ -162,9 +176,11 @@ fn property_path_node_cache_changes_mark_dirty_and_zero_morph_extension_is_not_n
     assert!(world.has_pending_scene_systems());
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
 
-    assert!(!world
-        .set_property(mesh, &morph_path, ScenePropertyValue::Scalar(0.0))
-        .unwrap());
+    assert!(
+        !world
+            .set_property(mesh, &morph_path, ScenePropertyValue::Scalar(0.0))
+            .unwrap()
+    );
     assert!(!world.has_pending_scene_systems());
 }
 

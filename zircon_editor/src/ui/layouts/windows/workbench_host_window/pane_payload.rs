@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
+use crate::core::editor_event::ConsoleMessageFilter;
+use crate::ui::workbench::snapshot::{ConsoleOutputLevelCounts, EditorConsoleMessageLevel};
 use zircon_runtime_interface::ui::component::{UiComponentProjectionPatch, UiValue};
 use zircon_runtime_interface::ui::surface::UiDebugOverlayPrimitive;
 
@@ -27,7 +30,10 @@ pub struct TemplateV2PanePayload {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConsolePanePayload {
-    pub status_text: String,
+    pub status_text: Arc<str>,
+    pub levels: Arc<[EditorConsoleMessageLevel]>,
+    pub counts: ConsoleOutputLevelCounts,
+    pub filter: ConsoleMessageFilter,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -45,12 +51,12 @@ pub struct InspectorPluginComponentPayload {
     pub component_id: String,
     pub display_name: String,
     pub plugin_id: String,
-    pub drawer_available: bool,
-    pub drawer_ui_document: Option<String>,
-    pub drawer_controller: Option<String>,
-    pub drawer_template_id: Option<String>,
-    pub drawer_data_root: Option<String>,
-    pub drawer_bindings: Vec<String>,
+    pub customization_available: bool,
+    pub customization_ui_document: Option<String>,
+    pub customization_controller: Option<String>,
+    pub customization_template_id: Option<String>,
+    pub customization_data_root: Option<String>,
+    pub customization_bindings: Vec<String>,
     pub diagnostic: Option<String>,
     pub properties: Vec<InspectorPluginComponentPropertyPayload>,
 }
@@ -62,6 +68,8 @@ pub struct InspectorPluginComponentPropertyPayload {
     pub label: String,
     pub value: String,
     pub value_kind: String,
+    pub field_editor_kind: String,
+    pub asset_reference_markers: Vec<String>,
     pub editable: bool,
 }
 

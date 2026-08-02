@@ -45,12 +45,18 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-acceptance.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 status: in_progress
-last_refined: 2026-07-16
+last_refined: 2026-08-01
 ---
 
 # 02 core spine 与 root surface 收束
 
-## 现状与证据（2026-06-12 重核）
+## 现状与证据（2026-08-01 current-source 对照）
+
+- **结构目标已落地**：`zircon_runtime/src/core/` 当前只有 `runtime/framework/manager/math/resource` 五个目录与 `mod.rs`；原 13 件根散件均已迁入定稿 owner。M2 的结构守卫位于 `zircon_runtime/src/tests/runtime_absorption/root_entries.rs`。
+- **crate root 别名已清零**：`zircon_runtime/src/lib.rs` 当前 49 行，无 `pub(crate) use graphics::{...}` 与 `#[allow(unused_imports)]`。M3 的验收以“无别名块/无旧调用路径”为准，不再使用会随合法模块声明变化的行数阈值。
+- **generated-code 守卫已落地**：`core_spine_root_generated.rs`、`generated_code_guard.rs` 及其 folder-backed 子树已存在。M2/M3/M4 仍保留为历史执行设计；父计划保持 `in_progress` 的原因仅是当前源码受管 Cargo/下游门与两份 open failure 尚未闭合，不是上述结构切换未实现。
+
+以下 2026-06-12 盘点保留为迁移前历史证据，不再代表当前目录形态：
 
 - **散件形态矫正**：core 根散件不是裸公开模块，而是"私有 `mod` + `core/mod.rs` 根部精选 `pub use`"形态（`core/mod.rs:3-13` 全部 `mod xxx;` 私有声明，`:23-44` 逐件再导出）。调用方使用的是 `core::FrameClock`、`core::EventBus`、`core::CoreError` / `core::CoreResult` 这类再导出名，而非 `core::frame_clock::` 全路径——迁移时改的是 `core/mod.rs` 的声明与 `pub use` 来源，调用方 `use` 行多数不变。
 - **散件清单（core/ 根实测）**：私有文件 9 件——`channel_util.rs`、`config_store.rs`、`error.rs`、`event_bus.rs`(+`event_bus/` 子目录)、`frame_clock.rs`、`job_scheduler.rs`、`lifecycle.rs`、`time.rs`、`types.rs`；公开目录 4 件——`state/`、`tasks/`、`modules/`、`diagnostics/`。五件套 spine（`runtime/framework/manager/math/resource`）之外共 13 件待归属。
@@ -68,9 +74,9 @@ last_refined: 2026-07-16
 
 ## 目标
 
-1. core 根只剩五件套 spine（+ 定稿后的 diagnostics 席位）+ `mod.rs`，13 件散件全部硬切换迁入 owner。
-2. `lib.rs` 删除 `pub(crate)` 别名块全部 34 行，8 个实测调用文件改用真实 owner 路径；收尾后 `lib.rs` 无 `#[allow(unused_imports)]`。
-3. generated-code 规则固化：显式标记规范定稿 + 结构守卫，生成文件只许 leaf binding/DTO/table。
+1. core 根只剩五件套 spine + `mod.rs`，13 件散件全部硬切换迁入 owner。**结构已达成，见 M2 守卫。**
+2. `lib.rs` 删除 `pub(crate)` graphics 别名块，调用方改用真实 owner 路径，且无 `#[allow(unused_imports)]`。**结构已达成，见 M3 守卫；当前为 49 行。**
+3. generated-code 规则固化：显式标记规范定稿 + 结构守卫，生成文件只许 leaf binding/DTO/table。**结构已达成，见 M4 守卫。**
 
 ## 非目标
 
@@ -94,12 +100,12 @@ last_refined: 2026-07-16
    - `git status --porcelain -- zircon_runtime/src/core/ zircon_runtime/src/foundation/ zircon_runtime/src/lib.rs`
    - `git status --porcelain -- zircon_runtime/src/builtin/ zircon_app/src/entry/`
 3. 事实重核（行号漂移以重核为准并回写本计划）：
-   - `ls zircon_runtime/src/core/`（核 13 件散件清单）
-   - `grep -n "pub use\|^mod \|^pub mod" zircon_runtime/src/core/mod.rs`
-   - `grep -n "pub(crate) use" zircon_runtime/src/lib.rs`（核别名块仍在 39-72 一带）
+   - `Get-ChildItem zircon_runtime/src/core/`（核五件套目录 + `mod.rs`）
+   - `Select-String -Path zircon_runtime/src/core/mod.rs -Pattern 'pub use','^mod ','^pub mod'`
+   - `Select-String -Path zircon_runtime/src/lib.rs -Pattern 'pub\(crate\) use','allow\(unused_imports\)'`（应无输出）
    - 调用面计数重跑：Grep `FrameClock|ConfigStore|JobScheduler|EventBus|LifecycleState`，path `zircon_runtime/src`
 4. 确认 `zircon_app`/`zircon_editor` 对 `zircon_runtime::core` 的引用面（迁移波及范围）：Grep `zircon_runtime::core`，path `zircon_app/src` 与 `zircon_editor/src`（实测各 ≥10 文件，M2 测试阶段必须双 crate 回归）。
-5. 基线记录：`cargo check -p zircon_runtime --lib --locked` 耗时与 `cargo test -p zircon_runtime --lib core:: --locked` 通过数，记入"状态与产出记录"。
+5. 基线记录：通过 `validate-matrix.ps1` 的 `zircon_runtime/core::` 受管门记录耗时与通过数；禁止直接运行裸 Cargo。
 
 ## 里程碑
 
@@ -187,7 +193,7 @@ last_refined: 2026-07-16
 - 纯文档里程碑：`git status --porcelain` 确认仅 docs 与本计划文件变更。
 - 验收证据：归属矩阵 + 重叠清单 + 迁移顺序表 + 会话对齐记录。
 
-### M2 散件硬切换迁移
+### M2 散件硬切换迁移（结构已落地，受管验证待闭合）
 
 > **执行对齐注记（2026-06-12 二次细化）**：本里程碑以 M1"定稿执行序"13 步为准；下方 2.1/2.2 的旧分组与 git mv 清单凡与定稿判词冲突处，以定稿为准执行——尤其：(a) `config_store` 落 `core/runtime/config_store.rs`（已执行）；(b) `channel_util` 拆分为 `core::framework::channel`（recv_latest/wait_for + Channel 别名）与 `core::runtime::tasks`（spawn_named_thread），不是整体迁 framework；(c) `types.rs` 拆分（`Channel*`→framework::channel，`ServiceObject`→runtime::descriptors，51 文件/355 行是最大迁移面）；(d) `job_scheduler` 落 `core/runtime/tasks/job_scheduler.rs`；(e) `event_bus` 拆 DTO（`EngineEvent`→framework::events）与实现（`EventBus`→runtime::events）；(f) **`state/` 归 `core::framework::state`**（中性调度契约），非 runtime；(g) `diagnostics/` 落 `core/runtime/diagnostics`，不设 spine 第六席。facade 处置按定稿表：收回 `ConfigStore`/三函数/`ServiceObject` 根导出，其余保留 facade 改源。每步完成即更新状态节（公约 §7.3）。
 
@@ -202,9 +208,9 @@ last_refined: 2026-07-16
   - `git mv zircon_runtime/src/core/job_scheduler.rs zircon_runtime/src/core/runtime/tasks/job_scheduler.rs`
   - 同切片更新 `core/mod.rs`（删 6 行 `mod`，按 M1 处置表改/删 `pub use`）与目标 owner 的 `mod.rs`。
 - 调用方迁移 owner：`prelude.rs`、`tests/prelude.rs`、`core/runtime/runtime.rs`、`core/runtime/state/core_runtime_state.rs`、`core/runtime/handle/core_handle.rs`、`core/runtime/handle/time.rs`、`asset/facade/event.rs`、`asset/pipeline/worker_pool.rs`、`asset/pipeline/manager/project_asset_manager/construction.rs`、`scene/ecs/schedule_parallel_executor.rs`。漏网扫描覆盖 `core::(config_store|frame_clock|channel_util|error|time|job_scheduler)|ConfigStore|FrameClock|JobScheduler|CoreError|CoreResult|recv_latest|spawn_named_thread|wait_for|RuntimeTimeClocks`；另由 `test_frameworks_02_core_error_single_source.py` 锁定生产 Rust 不再出现退役错误类型。
-- 改动形态：只移动 + 改 `use` 路径；不留任何旧位置 re-export；每移 2–3 件 `cargo check -p zircon_runtime --lib --locked` 轻量确认。
+- 改动形态：只移动 + 改 `use` 路径；不留任何旧位置 re-export。切片期只运行格式、diff 与结构守卫，Cargo 统一排入 M2 测试阶段。
 - 验收：`core_root_keeps_only_spine_modules_after_narrow_item_migration`（归属 `zircon_runtime/src/tests/runtime_absorption/root_entries.rs`，该文件已存在）——断言 `core/mod.rs` 源文本不再含六件的根级 `mod` 声明。
-- DoD：六件物理位置在 owner 下且 `cargo check -p zircon_runtime --lib --locked` 通过。
+- DoD：六件物理位置在 owner 下且 M2 受管验证批次通过。
 
 #### 切片 2.2 宽面七件迁移（event_bus / tasks / state / modules / lifecycle / diagnostics + foundation 重叠项）
 
@@ -216,14 +222,14 @@ last_refined: 2026-07-16
 
 #### M2 测试阶段（milestone-first）
 
-- `cargo check -p zircon_runtime --lib --locked`
-- `cargo test -p zircon_runtime --lib core:: --locked`
-- `cargo test -p zircon_runtime --lib runtime_absorption --locked -- --nocapture`（结构守卫）
-- `cargo test -p zircon_app --locked`；`cargo check -p zircon_editor --lib --locked`（双下游回归，实测各 ≥10 文件引用 `zircon_runtime::core`）
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter core::`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter runtime_absorption`（结构守卫）
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipTest`（双下游回归，实测各 ≥10 文件引用 `zircon_runtime::core`）
 - 验收证据：`core/` 根目录列表与定稿口径一致；全量 lib 测试无回归。
 - 文档：`docs/zircon_runtime/core/**` 按源码镜像同步；`docs/engine-architecture/core-runtime-service-registry.md` 路径引用刷新。
 
-### M3 lib.rs 别名块清理
+### M3 lib.rs 别名块清理（结构已落地，受管验证待闭合）
 
 #### 切片 3.1 模块名别名清除（最高优先：根命名污染）
 
@@ -237,16 +243,15 @@ last_refined: 2026-07-16
 - 目标文件：`zircon_runtime/src/lib.rs:39-72` 全删；调用方 5 文件（实测全列）：`graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs`、`record_capture.rs`、`submit_frame_extract/submit/release_previous_history.rs`、`graphics/runtime/render_framework/viewport_record/runtime_states.rs`、`tests/plugin_extensions/extension_registry.rs`——`crate::SceneRenderer` 等改 `crate::graphics::SceneRenderer` 真实路径。漏网枚举：Grep `crate::[A-Z]`，path `zircon_runtime/src`，逐条比对别名清单。
 - 改动形态：无使用者的别名（约 70 个中的大多数，`#[allow(unused_imports)]` 即旁证）直接删除；HybridGi/VG/Solari provider 别名删除后确认唯一公共入口是 `graphics::feature`/render feature descriptor 路径（与 render 计划 §5.4 一致，细节归 render 计划）。
 - 验收：`lib_rs_has_no_pub_crate_alias_block_and_no_allow_unused_imports`（root_entries.rs）——断言 lib.rs 无 `pub(crate) use` 且无 `#[allow(unused_imports)]`。
-- DoD：lib.rs 仅含模块声明、`pub use crate::core::resource`、reflection 宏与 builtin 报告导出，行数 ≤ 45。
+- DoD：lib.rs 仅含真实模块声明、`pub use crate::core::resource`、reflection 宏与测试入口；无 graphics crate-root 别名块或 unused-import 豁免。当前 49 行，行数不作为稳定合同。
 
 #### M3 测试阶段（milestone-first）
 
-- `cargo check -p zircon_runtime --lib --locked`
-- `cargo test -p zircon_runtime --lib --locked`（全量，别名清除是横切改动）
-- `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked`（插件 crate 若经 crate 根引用受影响路径）
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests`（全量，别名清除是横切改动）
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -ManifestPath zircon_plugins/Cargo.toml -SkipTest`（插件 workspace 编译边界）
 - 验收证据：lib.rs 无别名块；插件 workspace 编译通过；结构守卫进入常驻测试树。
 
-### M4 generated-code 守卫
+### M4 generated-code 守卫（结构已落地，受管验证待闭合）
 
 #### 切片 4.1 标记规范定稿与分类裁决
 
@@ -270,12 +275,12 @@ last_refined: 2026-07-16
 
 - 调用方迁移：行为迁回时同切片更新生成器模板与消费方（按 4.1 清单逐项，预计集中在 `plugin/export_build_plan/`）。
 - 验收：上列守卫 + 受影响 owner 模块聚焦测试。
-- DoD：`cargo test -p zircon_runtime --lib generated --locked` 全绿且违规清单清零（或留明确 backlog 条目）。
+- DoD：受管 `generated` 过滤门全绿且违规清单清零（或留明确 backlog 条目）。
 
 #### M4 测试阶段（milestone-first）
 
-- `cargo test -p zircon_runtime --lib generated --locked -- --nocapture`
-- `cargo test -p zircon_runtime --lib export_build_plan --locked`（生成器族无回归）
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter generated`
+- `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter export_build_plan`（生成器族无回归）
 - 验收证据：守卫进 CI 路径；`docs/engine-architecture/` generated 边界文档刷新（该文档在 `20260604-1232` 会话 touched 清单内，执行前对齐）。
 
 ## 状态与产出记录
@@ -301,20 +306,4 @@ last_refined: 2026-07-16
 - 2026-07-18 registration性能交接：当前descriptor、service entry与module三套order重复拥有RegistryName/dependency/factory，且1至5 service组合展开超过2k行。Runtime02需以冻结service arena、interned owner和index/range order收敛；参考Bevy TypeId map+order authority，但必须先量化小数组快路的startup收益再硬切。见PERF-MVP-322。
 - 2026-07-18 module DAG交接：activation sort的HashMap/DFS临时name clone已止损为借用name+usize stack；Runtime02仍须把递归sort硬切为冻结generation的迭代Kahn/显式frame order cache，避免batch每次clone完整descriptors并让100k深链可验证。见PERF-MVP-325。
 - 2026-07-23 App entry descriptor所有权补充：`ResolvedPluginGroup` single snapshot止损仍成立，但`DescriptorBackedEngineModule`因`EngineModule`名称/描述返回`&'static str`而逐构造`Box::leak`动态name+description。Runtime02按PERF-MVP-004与open [`02/failure-2026-07-17-module-descriptor-regeneration.md`](02/failure-2026-07-17-module-descriptor-regeneration.md)硬切为owner-borrowed读口或可回收冻结`Arc<str>`；禁止global永久interner。dynamic modules 1/100/1,000、entry/report/reload 1/1,000/100,000要求descriptor generation≤1/module、leaked bytes=0、drop/retire后动态文本回收，report/order/activation等价。
-
-## Code Review 建议 (2026-07-30)
-
-### 与代码现状不符，需修订
-
-- 「现状与证据」节仍以 2026-06-12 快照描述 M2/M3/M4 尚未执行的形态，与当前代码严重不符，建议整节标注「已由 M2/M3 硬切换落地」并保留为历史证据：
-  - 「core 根散件 13 件待归属」已不成立。`zircon_runtime/src/core/mod.rs:3-8` 现只声明 `runtime/framework/manager/math/resource` 五件套 spine + `mod.rs`；`config_store.rs`、`frame_clock.rs`、`error.rs`、`time.rs`、`events.rs`、`lifecycle.rs` 均已落在 `zircon_runtime/src/core/runtime/` 下（见 `core/runtime/` 目录：`config_store.rs`、`frame_clock.rs`、`error.rs`、`time.rs`、`events.rs`+`events/`、`lifecycle.rs`、`tasks/`、`modules/`、`state/`、`diagnostics/`），`channel.rs`/`state/`/`tasks/`/`events.rs` 已落 `core/framework/`。M1 定稿执行序 13 步与 M2 切片 2.1/2.2 的目标态在代码中均已实现。
-  - 「`lib.rs:39-72` 的 `pub(crate) use` graphics 别名块约 70 类型 + 8 模块名 + `#[allow(unused_imports)]`」已不存在。当前 `zircon_runtime/src/lib.rs` 共 50 行，仅含模块声明、`pub use crate::core::resource`（:23）、reflection 宏再导出（:45-47），无任何 `pub(crate) use graphics::{...}` 与 `#[allow(unused_imports)]`。M3 切片 3.1/3.2 的 DoD（lib.rs ≤45 行、无别名块）已达成（当前 50 行，略超 45 行目标，建议复核该阈值或更新为实际值）。
-- §「目标」1/2 描述的「13 件散件全部硬切换」「删除 lib.rs 别名块全部 34 行」为已完成目标，建议在目标项后标注「已达成，见 M2/M3」，避免读者误判为待办。
-
-### 设计优化建议
-
-- M2/M3/M4 三个里程碑对应的结构守卫已在代码中落地（`zircon_runtime/src/tests/runtime_absorption/root_entries.rs`、`core_spine_root_generated.rs`+`core_spine_root_generated/`、`generated_code_guard.rs`+`generated_code_guard/`）。建议把里程碑标题从计划态改为「已落地 + 守卫文件锚点」，并在状态节把 M2/M3/M4 逐条勾选为 done，仅保留「current-source Cargo/下游门」作为唯一 pending，与底部状态记录（2026-07-18 已说明父计划仅等 Cargo/下游门）口径统一。
-
-### 验证缺口
-
-- 底部状态节 2026-07-18 起累积了 8 条性能交接（PERF-MVP-004/318/319/320/321/322/325 等）与 2 条 open failure（`config-manager-synchronous-full-file-rewrite`、`module-descriptor-regeneration`），均以「current-source Cargo/WPR 前不视为验收」结尾但未在里程碑测试阶段命令清单中体现。建议在 M2/M3 测试阶段补一行显式指向这些 open failure 的收口门（如 `cargo test -p zircon_runtime --lib core::runtime::config_store --locked` 与 module descriptor generation 断言），使「未验收」有可执行的验证锚点而非仅散落在状态记录。
+- 两份 open failure 的受管收口门保持显式：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter config_manager`，以及 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app -LibTests -TestFilter resolved_plugin_group` 与 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app -SkipBuild -LibTests -TestFilter descriptor_backed_modules_borrow_dynamic_text_at_supported_cardinalities`。只有这些当前源码门与 failure 自身要求的回收/性能证据闭合后才可回传 `fixed-*`。

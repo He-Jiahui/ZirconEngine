@@ -1,6 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_geometry::inset;
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::super::render_commands::HostPaintCommand;
 use super::identity::ChartKind;
 

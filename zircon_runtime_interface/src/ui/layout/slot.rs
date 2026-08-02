@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
 
-use super::UiLinearSlotSizing;
-use super::{Anchor, Pivot, Position};
+use super::{Anchor, Pivot, Position, UiLayoutEngineFamily, UiLinearSlotSizing};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiMargin {
@@ -86,6 +85,25 @@ pub enum UiSlotKind {
     Scrollable,
     Splitter,
     Scale,
+}
+
+impl UiSlotKind {
+    /// Maps portable child-placement semantics to their default layout executor.
+    ///
+    /// A container can refine this default when its own algorithm is more specific
+    /// than the placement contract, such as BlockBox, virtual scrolling, or Masonry.
+    pub const fn layout_engine_family(self) -> UiLayoutEngineFamily {
+        match self {
+            Self::Free => UiLayoutEngineFamily::Free,
+            Self::Container | Self::Scale => UiLayoutEngineFamily::Container,
+            Self::Overlay => UiLayoutEngineFamily::Overlay,
+            Self::Linear | Self::Splitter => UiLayoutEngineFamily::Flex,
+            Self::Grid => UiLayoutEngineFamily::Grid,
+            Self::Flow => UiLayoutEngineFamily::Wrap,
+            Self::Canvas => UiLayoutEngineFamily::Canvas,
+            Self::Scrollable => UiLayoutEngineFamily::Scrollable,
+        }
+    }
 }
 
 /// Parent-owned anchor placement payload consumed by Free/Canvas-like panels

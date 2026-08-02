@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/FoliageEditorBuild", event = "Click", route
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionFoliageEditorClusterTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "foliage_editor_forest_a12_row" }, { node = "foliage_editor_forest_a13_row" }, { node = "foliage_editor_river_02_row" }, { node = "foliage_editor_cliff_01_row" }]
 

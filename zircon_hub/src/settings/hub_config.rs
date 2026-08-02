@@ -96,13 +96,13 @@ fn replace_file(tmp_path: &Path, target_path: &Path) -> Result<(), HubError> {
     match fs::rename(tmp_path, target_path) {
         Ok(()) => Ok(()),
         Err(first_error) if target_path.exists() => {
-            match fs::remove_file(target_path).and_then(|()| fs::rename(tmp_path, target_path)) {
+            match replace_existing_file(tmp_path, target_path) {
                 Ok(()) => Ok(()),
-                Err(second_error) => {
+                Err(replace_error) => {
                     let _ = fs::remove_file(tmp_path);
                     Err(HubError::message(format!(
-                        "Failed to replace Hub config: {first_error}; retry failed: {second_error}"
-                    )))
+                    "Failed to replace Hub config: {first_error}; atomic replace failed: {replace_error}"
+                )))
                 }
             }
         }
@@ -110,6 +110,53 @@ fn replace_file(tmp_path: &Path, target_path: &Path) -> Result<(), HubError> {
             let _ = fs::remove_file(tmp_path);
             Err(error.into())
         }
+    }
+}
+
+#[cfg(not(windows))]
+fn replace_existing_file(tmp_path: &Path, target_path: &Path) -> std::io::Result<()> {
+    fs::rename(tmp_path, target_path)
+}
+
+#[cfg(windows)]
+fn replace_existing_file(tmp_path: &Path, target_path: &Path) -> std::io::Result<()> {
+    use std::ffi::c_void;
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn ReplaceFileW(
+            replaced_file_name: *const u16,
+            replacement_file_name: *const u16,
+            backup_file_name: *const u16,
+            replace_flags: u32,
+            exclude: *const c_void,
+            reserved: *const c_void,
+        ) -> i32;
+    }
+    const REPLACEFILE_WRITE_THROUGH: u32 = 1;
+
+    fn wide_path(path: &Path) -> Vec<u16> {
+        path.as_os_str().encode_wide().chain(Some(0)).collect()
+    }
+
+    let target = wide_path(target_path);
+    let replacement = wide_path(tmp_path);
+    // SAFETY: both paths are NUL-terminated for the duration of the synchronous call.
+    let replaced = unsafe {
+        ReplaceFileW(
+            target.as_ptr(),
+            replacement.as_ptr(),
+            std::ptr::null(),
+            REPLACEFILE_WRITE_THROUGH,
+            std::ptr::null(),
+            std::ptr::null(),
+        )
+    };
+    if replaced == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(())
     }
 }
 
@@ -565,6 +612,38 @@ command_line = []
 
         assert!(error.to_string().contains("I/O error"));
         assert_eq!(fs::read_to_string(&path).unwrap(), original_text);
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn save_keeps_previous_config_when_atomic_replace_is_denied() {
+        let temp = temp_test_dir("zircon-hub-config-replace-denied");
+        let path = temp.join("hub.toml");
+        let mut first = HubConfig::default();
+        first.settings.jobs = 2;
+        first.save(&path).unwrap();
+        let original_text = fs::read_to_string(&path).unwrap();
+
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        permissions.set_readonly(true);
+        fs::set_permissions(&path, permissions).unwrap();
+
+        let mut second = HubConfig::default();
+        second.settings.jobs = 9;
+        let result = second.save(&path);
+        let current_text = fs::read_to_string(&path).unwrap();
+        let tmp_exists = path.with_extension("toml.tmp").exists();
+
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        permissions.set_readonly(false);
+        fs::set_permissions(&path, permissions).unwrap();
+
+        let error = result.expect_err("read-only target should reject atomic replacement");
+        assert!(error.to_string().contains("atomic replace failed"));
+        assert_eq!(current_text, original_text);
+        assert!(!tmp_exists);
 
         fs::remove_dir_all(temp).unwrap();
     }

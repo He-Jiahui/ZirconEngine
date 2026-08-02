@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/ui/tests/hit_grid.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
-  - zircon_runtime/src/ui/surface/arranged_tree.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

@@ -25,12 +25,13 @@ impl UiHostWindowEventLoop {
 
         let size = self.host.window().size();
         let requested_size = size.clone();
-        let Some(window) = create_native_window_or_exit(event_loop, requested_size) else {
+        let Some(window) = create_native_window_or_exit(event_loop, &self.host, requested_size)
+        else {
             return;
         };
         self.sync_host_window_state(window.as_ref());
         let Some((presenter_backend, presenter)) =
-            create_presenter_or_exit(event_loop, window.clone())
+            create_presenter_or_exit(event_loop, &self.host, window.clone())
         else {
             return;
         };

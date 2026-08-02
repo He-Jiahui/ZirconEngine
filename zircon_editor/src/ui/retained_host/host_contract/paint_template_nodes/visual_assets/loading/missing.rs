@@ -1,4 +1,6 @@
 use super::super::{HostPaintImagePixels, RasterTargetSize, ICON_TINT};
+use super::cache::{cached_visual_asset_pixels, store_visual_asset_pixels};
+use super::key::image_pixels_cache_key;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn missing_icon_pixels(
     base_key: &str,
@@ -6,6 +8,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn missing
     tint: Option<[u8; 4]>,
 ) -> Option<HostPaintImagePixels> {
     let color = tint.unwrap_or(ICON_TINT);
+    let cache_key = missing_icon_cache_key(base_key, target, color);
+    if let Some(cached) = cached_visual_asset_pixels(&cache_key) {
+        return cached;
+    }
     let mut rgba = vec![0; target.width as usize * target.height as usize * 4];
     let edge = target.width.min(target.height);
     let stroke = (edge / 10).clamp(1, 3);
@@ -28,11 +34,37 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn missing
     }
 
     let image = HostPaintImagePixels {
-        resource_key: format!("missing-icon:{base_key}:{}x{}", target.width, target.height),
+        resource_key: cache_key.clone(),
         width: target.width,
         height: target.height,
         rgba,
         atlas: None,
     };
-    image.is_valid().then_some(image)
+    let image = image.is_valid().then_some(image);
+    store_visual_asset_pixels(cache_key, image.clone());
+    image
+}
+
+fn missing_icon_cache_key(base_key: &str, target: RasterTargetSize, color: [u8; 4]) -> String {
+    image_pixels_cache_key(
+        &format!("missing-icon:{base_key}"),
+        Some(target),
+        Some(color),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::missing_icon_cache_key;
+    use crate::ui::retained_host::host_contract::paint_template_nodes::RasterTargetSize;
+
+    #[test]
+    fn missing_icon_cache_key_separates_tint_variants() {
+        let target = RasterTargetSize::new(16, 16).expect("valid raster size");
+
+        assert_ne!(
+            missing_icon_cache_key("icon:save", target, [1, 2, 3, 4]),
+            missing_icon_cache_key("icon:save", target, [4, 3, 2, 1]),
+        );
+    }
 }

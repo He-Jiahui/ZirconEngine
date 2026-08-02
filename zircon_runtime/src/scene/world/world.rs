@@ -16,9 +16,10 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::{
-    ArchetypeIndex, ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage,
-    DeferredCommandError, EcsFramePerformanceDiagnostics, EntityRegistry, EventStore, MessageStore,
-    ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
+    ArchetypeIndex, ChangeTick, CommandQueue, ComponentLifecycleEvent, ComponentRegistry,
+    ComponentStorage, DeferredCommandError, EcsFramePerformanceDiagnostics, EntityRegistry,
+    EventStore, MessageStore, ObserverStore, RemovedComponentEvents, ResourceRegistry,
+    ResourceStore, Schedule,
 };
 use crate::scene::event_mirror::RuntimeEventMirrorRegistry;
 use crate::scene::inspection::WorldInspectionArtifactCache;
@@ -101,6 +102,8 @@ pub struct World {
     #[serde(default)]
     pub(super) dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
     #[serde(skip, default)]
+    pub(super) dynamic_component_generations: HashMap<String, u64>,
+    #[serde(skip, default)]
     pub(super) component_types: ComponentTypeRegistry,
     #[serde(skip, default)]
     pub(super) type_registry: TypeRegistry,
@@ -134,6 +137,10 @@ pub struct World {
     pub(super) messages: MessageStore,
     #[serde(skip, default)]
     pub(super) observers: ObserverStore,
+    #[serde(skip, default)]
+    pub(super) staged_lifecycle_events: Vec<ComponentLifecycleEvent>,
+    #[serde(skip, default)]
+    pub(super) record_staged_lifecycle_events: bool,
     #[serde(skip, default)]
     pub(super) command_queue: CommandQueue,
     #[serde(skip, default)]
@@ -249,6 +256,7 @@ impl<'de> Deserialize<'de> for World {
             render_layer_masks: state.render_layer_masks,
             mobility: state.mobility,
             dynamic_components: state.dynamic_components,
+            dynamic_component_generations: HashMap::new(),
             component_types: Default::default(),
             type_registry: Default::default(),
             vm_catalog_type_paths: Default::default(),
@@ -267,6 +275,8 @@ impl<'de> Deserialize<'de> for World {
             event_mirrors: Default::default(),
             messages: Default::default(),
             observers: Default::default(),
+            staged_lifecycle_events: Vec::new(),
+            record_staged_lifecycle_events: false,
             command_queue: Default::default(),
             deferred_command_errors: Vec::new(),
             ecs_frame_performance_diagnostics: Default::default(),

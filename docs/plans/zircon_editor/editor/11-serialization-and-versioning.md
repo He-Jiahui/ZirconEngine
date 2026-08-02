@@ -5,9 +5,8 @@ related_code:
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
-  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
-  - zircon_editor/src/ui/workbench/layout/manager/persistence.rs
   - zircon_runtime/src/asset/project/manifest.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime_interface/src/manifest.rs
@@ -63,7 +62,7 @@ status: in_progress
 | --- | --- | --- | --- |
 | `DynamicScene`（`dynamic_scene/scene/mod.rs`） | Plan 11 M2.2 已删除内嵌版本字段与常量；`ensure_supported()` 只校验私有 payload header；`from_world/spawn_into/preview_spawn_into(EntityRemap)` 保持 | `$zircon.header.schema_version=2` | 已收编入壳；v0→v1 保留历史形状，v1→v2 迁移步删除旧字段 |
 | 场景反射 JSON（`reflect/conversion.rs:65-69`） | `reflected_from_json(Value)->ReflectedValue::Json` 四入口（`reflect/mod.rs:12-15`）**无 schema 头** | 无 | v0→v1 带头（与 10 AssetRef 同步） |
-| `EditorAppearancePreferences`（`ui/preferences/`） | `$zircon` schema `zircon.editor.appearance-preferences` v1；payload 不再内嵌版本；旧 v1/v2 TOML 仅作为无壳 v0 迁移输入 | 统一版本壳 + `migrated_from` | preferences 子切片已接壳；keymap/journal/layout 仍待完成 |
+| Editor settings（`core/settings/`） | `$zircon` schema `zircon.editor.settings` v1；typed design tokens 承载 appearance 设置；legacy、v0 和产生迁移结果的载荷均 fail closed | 统一版本壳；不保留私有 appearance reader 或 TOML 迁移 | 当前 owner 已收敛；历史 preferences 子切片已 supersede，keymap/journal/layout 仍由各自 owner 收口 |
 | `AssetMetaDocument`（`project/meta.rs`，09 核） | uuid/url/kind sidecar，load/save | 无 | 接壳（09 M2 加字段时同步） |
 | `ProjectManifest`（`manifest.rs:14-33`，10 核） | `format_version=1` serde default + `library_version(alias schema_version)` | 内嵌 u32 | 收编（10 M1 v2 迁移步即首个迁移链实例） |
 | `UiAssetEditorUndoStack.replay_records` | serde 可序列化 | 无 | 03 journal 化时出生带壳 |
@@ -71,7 +70,7 @@ status: in_progress
 | ABI 清单（`interface/manifest.rs:19-42`） | `abi_version` + size_bytes 自校验 | ABI 纪律 | **不动**（非目标） |
 | 03 journal / 08 keymap 用户层 / 09 zmeta 扩展 / 15 preset / 16 hub 信箱 / 17 settings | 未出生 | — | 出生即带壳 |
 
-三种版本策略并存（内嵌 u32 / 常量比对 / ABI size），**无迁移管线**——旧版本=失败或静默容错。
+当前版本策略按结构壳、业务内容版本与 ABI size 纪律分层；`DynamicScene` 和 editor settings 已使用统一版本壳，其余持久化面按 owner 接入，不允许通过私有 reader 或静默兼容恢复第二套真相。
 
 **守卫资产**：`SERIALIZED_AUTHORING_TOKENS`（`authoring_boundary.rs:3-13`）+ `assert_sorted_and_deduplicated`（:73）——runtime 序列化纯净性守卫在案，本计划全程继承，新持久化面纳入覆盖矩阵。
 
@@ -117,9 +116,9 @@ pub struct Loaded<T> { pub value: T, pub migrated_from: Option<u32> }   // 17 �
 
 ### M2 编辑器状态面收口
 
-- [ ] **M2.1 编辑器状态持久化面接壳.** preferences（常量删除）/ keymap 用户层（08）/ 03 journal / 06 布局实 IO——四面接壳；路径按 17 分层。preferences 子切片已实现，见 [2026-07-18 appearance preferences version shell](11/2026-07-18-appearance-preferences-version-shell.md)；其余三面保持开放，因此本项不勾选。
+- [ ] **M2.1 编辑器状态持久化面接壳.** appearance 设置已被 17 的统一 `core/settings` owner 吸收，使用 `zircon.editor.settings` v1 并拒绝 legacy/v0；历史私有 preferences 实现仅保留为 [superseded child record](11/2026-07-18-appearance-preferences-version-shell.md)。keymap 用户层（08）/ 03 journal / 06 布局实 IO 仍按各自 owner 收口，因此本项不勾选。
 - [x] **M2.2 DynamicScene 双写字段硬删除.** `DynamicScene.format_version` 收编（双写一版→删除，迁移步内完成硬切换）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（preferences 既有测试迁移后须过 + 各面往返/旧格式迁移）；`migrated_from` 通知断言。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`；settings 验收使用 `core/settings/tests.rs` 的 typed appearance、canonical round-trip、legacy/v0/future schema fail-closed 与原子应用回归，不再运行退役 `ui/preferences` 源码 receipt 或要求 `migrated_from` 重存。
 
 ### M3 二进制格式与等价性
 
@@ -129,7 +128,7 @@ pub struct Loaded<T> { pub value: T, pub migrated_from: Option<u32> }   // 17 �
 
 ## 风险与开放问题
 
-- 非 JSON 面（TOML preferences）值域归一有损点（日期/整数上限）：preferences 无此类字段，接受归一；未来有损面允许自持迁移函数绕值域路径，壳只强制 header。
+- editor settings 当前只接受 canonical JSON 版本壳，退役 TOML preferences 不再是迁移输入；未来新增有损格式时必须由其持久化 owner 显式设计迁移，不得恢复私有 appearance reader。
 - canonical 浮点 writer 只覆盖创作态文本面；维护负担超预期则退让「键序稳定+浮点原样」记 diff 噪声债。
 - 迁移链堆积：允许「基线重置」（v1..vN 合并新 v1 + 全量重存 commandlet），公约写入模块文档。
 - `library_version` 与壳 version 的双版本语义（10 已识别）：壳只管结构版本，内容版本是业务字段——模块文档显式区分。
@@ -143,7 +142,7 @@ pub struct Loaded<T> { pub value: T, pub migrated_from: Option<u32> }   // 17 �
 | M1 | 1.1 统一版本壳与迁移链内核 | `实现完成-接口门禁通过-独立审查闭环` | 2026-07-11 | `zircon_runtime_interface/src/serialization/` 已按 schema id/header/trait/loaded、text wire、migration step/chain/error/validate/execute、load/format/typed error 拆为 folder-backed owner；`SchemaId` 支持 const 声明与 owned 反序列化。Text envelope 只由保留 `$zircon` magic 识别，无包头 v0 可合法拥有 `header`/`payload` 业务字段；整张迁移表在任何 payload decode 前强制等于升序唯一 `0..VERSION-1`，断链、重复、乱序、多余 step 与 step failure 均返回带 schema/version/source 的 typed error。`Format::Binary` 在 M3 选型前显式 `UnsupportedFormat`，不落临时 wire/兼容 reader。TDD 首轮 RED 为八个合同符号 E0432；独立审查两轮指出并闭环 magic 歧义、整链校验、owner 拆分、分阶段错误和上下文测试。最终 focused 17/17；完整 `cargo test -p zircon_runtime_interface --locked --offline -- --test-threads=1` 为 203/203，doc-tests 0 项。模块文档：`docs/zircon_runtime_interface/serialization.md`。M1.2 场景反射/canonical writer 尚未开始，本计划保持 in_progress。 |
 | M1 | 1.2 场景版本壳、值域迁移与 canonical writer | `实现完成-规格质量复审通过-聚焦门通过-完整门待下层修复` | 2026-07-11 | 场景反射 JSON 与 `DynamicScene` 已接入 `$zircon` 版本壳；v0→v1 只按精确 `{uuid,url}` 形状迁移为 Plan10 `AssetRef`，额外字段、单字段和当前 `AssetRef` 均保持原值，任意 tagged JSON 不再猜测为 typed `ReflectedValue`。旧 `V1ProjectDocument` DTO/模块已硬删除，project-world 迁移只操作 `serde_json::Value`；`RuntimeSessionArchive` 内嵌场景信封在 payload decode 前验证 future header，writer 强制壳头与仍处于 M2.2 双写期的内嵌 `format_version=1` 一致。真实旧 writer 夹具 `tests/fixtures/serialization/scene-dynamic/v0/dynamic-scene.json` 无壳且保留历史内嵌版本 1，迁移→保存→重载同字节；独立 `plan11_scene_serialization_contract` 5/5。target-server production lib check exit 0；规格复审 `APPROVED`、质量复审整改真实夹具/单一测试 owner/迁移负例/API 文档后 `QUALITY APPROVED`，限定 rustfmt 与 `git diff --check` 通过。完整默认 Runtime 门仍由 Runtime01 `wgpu-hal` Windows 版本分裂阻断；target-server lib-test/全目标门由 Frameworks03 未按 profile 门控的 graphics/UI/script/dynamic-api/physics-contract 测试与可执行目标阻断，均已有对应 open failure 记录，故 M1 测试阶段不关闭。模块文档：`docs/zircon_runtime/scene/serialization.md`、`docs/zircon_runtime_interface/serialization.md`。 |
 | M2 | 2.2 DynamicScene 双写字段硬删除 | `切片完成-专属合同8/8-broad外部失败已路由` | 2026-07-14 | DynamicScene schema 提升到 v2，v1→v2 迁移严格要求历史内嵌版本为 1 后删除；当前结构、writer、capture、session summary 与 scene root 均不再保留旧字段、常量或兼容重导出。TDD 负例作业 `c3c58d75dc7549c6adede931f806742b` 先红，修复后 exact 作业 `feded57b4f9946cdb5e70e8cf1c18075` 1/1，最终 Plan11 作业 `e6b4ac85c8994c0eadfea26fb026061f` 8/8。core-min broad 作业 `0828b8e5681045ccb47296cbcc1880f3` 为 595/596，唯一失败归属 Plugins08 dynamic reflection，并已追加到对应开放 failure；Text01 target-client 产品作业 `d80d6dabac754907b50aa3ae2c1c1056` 1/1 且 root-export failure 已回传。M2.1 与 M3 未完成，计划保持 `in_progress`。 |
-| M2 | 2.1a appearance preferences 统一版本壳硬切 | `实现完成-静态合同4/4-rustfmt通过-Cargo待协调器解禁` | 2026-07-18 | `EditorAppearancePreferencesDocument` 删除 payload 内嵌 `version` 与本地版本常量，新写入统一为 canonical JSON `$zircon` schema v1；旧 v1/v2 TOML 只经无壳 v0 迁移链读取，不保留双写/旧 writer。启动加载消费 `migrated_from` 并提示重存，future shell fail closed。真实 v1 fixture、canonical 幂等与 future 拒绝 Rust 回归已落盘；Python 结构合同 4/4、精确 rustfmt check 通过。Cargo 因 Coordinator01 当前禁止非 immutable full compile-input snapshot 作业而未启动；M2.1 其余 keymap/journal/layout 未完成，本项仍不勾选。子记录：[2026-07-18 appearance preferences version shell](11/2026-07-18-appearance-preferences-version-shell.md)。 |
+| M2 | 2.1a appearance settings 版本壳收敛 | `历史子切片已被统一-settings-owner取代` | 2026-08-02 | 当前产品合同是 `core/settings/io.rs` 的 `zircon.editor.settings` v1：typed design tokens 承载 appearance 值，legacy/v0、future schema 与产生迁移结果的载荷 fail closed。退役 `ui/preferences` Python receipt 实跑 0/4 `FileNotFoundError`，其唯一私有 TOML fixture 已删除；当前 Rust 回归位于 `core/settings/tests.rs`。本次未运行 Cargo，不把 current-source 审阅声明为 Rust GREEN；M2.1 其余 keymap/journal/layout 仍开放。历史证据保留在 [superseded child record](11/2026-07-18-appearance-preferences-version-shell.md)。 |
 
 - fixed 已修复：[dynamic-scene-format-version-root-export-drift](../../zircon_runtime/text/01/fixed-2026-07-14-dynamic-scene-format-version-root-export-drift.md)
 - 2026-07-23 serialization性能交接（当前源复核）：`zircon_runtime_interface/src/serialization/**`物理42/42、3,598行、44 tests已读；外部owner已让generic current reader借用RawValue/direct typed、writer删除Value DOM，但`inspect_text`仍重解析whole/envelope/header/whole/envelope后再typed，canonical writer仍为每scalar/subtree建String并在祖先逐层join/format，且text无hard budget、chain每load重验。PERF-MVP-570改用bounded single strict-envelope seed（envelope≤1+payload typed≤1）、static chain result与single bounded byte/chunk owner，输出byte copy与depth解耦；1,061行write owner按serializer/error/map-key/compound/output拆分。binary按571继续保留v1 golden与64MiB/128/2M/1M/16MiB门，不得引入兼容双reader。

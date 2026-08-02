@@ -209,11 +209,6 @@ impl HubActionRequest {
             .ok_or_else(|| HubError::message(format!("Unknown Hub action: {}", self.action_id)))
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn parse(&self) -> Result<HubAction, HubError> {
-        self.parse_as(self.action()?)
-    }
-
     pub(in crate::tauri_app) fn parse_as(
         &self,
         action: HubActionId,

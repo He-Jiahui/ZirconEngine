@@ -1,6 +1,16 @@
 use super::*;
 
 #[test]
+fn render_text_atlas_page_residency_avoids_per_reservation_candidate_heap_storage() {
+    let source = include_str!("../page_residency.rs");
+
+    assert!(
+        !source.contains("collect::<Vec<_>>()"),
+        "page residency must choose a format's allocation or eviction target without building a candidate Vec"
+    );
+}
+
+#[test]
 fn render_text_atlas_allocates_missing_page_before_lru_eviction() {
     let pages = vec![
         resident_page(GlyphAtlasFormat::AlphaMask, 0, 3, false),

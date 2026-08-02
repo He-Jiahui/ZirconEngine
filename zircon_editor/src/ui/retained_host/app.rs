@@ -8,14 +8,15 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::AssetManager;
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
+use zircon_runtime::core::CoreHandle;
 use zircon_runtime::core::framework::asset::ResourceManager;
 use zircon_runtime::core::framework::channel::ChannelReceiver;
 use zircon_runtime::core::manager::{ManagerResolver, ManagerServiceHandle};
-use zircon_runtime::core::CoreHandle;
-use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime::core::resource::ResourceEventReceiver;
+use zircon_runtime::scene::{NodeId, Scene, WorldInspectionHierarchyRow};
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::resource::{
-    MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceLocator,
 };
 use zircon_runtime_interface::ui::{
     binding::UiBindingValue,
@@ -24,6 +25,7 @@ use zircon_runtime_interface::ui::{
         UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiDragPayload,
         UiDragPayloadKind, UiDragSourceMetadata, UiValue,
     },
+    design_tokens::EditorDesignTokens,
     dispatch::UiPointerComponentEvent,
     layout::UiFrame,
     layout::UiPoint,
@@ -37,14 +39,14 @@ use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::core::play::NativePluginBridgeActivation;
 use crate::core::settings::editor_design_tokens_at_startup;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
+use crate::ui::host::EditorHostEventController;
+use crate::ui::host::EditorManager;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetChange, EditorAssetChangeSubscription,
     EditorAssetManager as EditorAssetManagerContract,
 };
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
-use crate::ui::host::EditorHostEventController;
-use crate::ui::host::EditorManager;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 use crate::ui::v2_design_tokens::install_editor_v2_design_tokens;
@@ -54,13 +56,13 @@ use crate::ui::workbench::autolayout::{
 use crate::ui::workbench::layout::{ActivityDrawerMode, MainPageId};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::project::EditorProjectDocument;
-use crate::ui::workbench::snapshot::{SceneEntry, ViewContentKind};
+use crate::ui::workbench::snapshot::{SceneEntries, ViewContentKind};
 use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
 use crate::ui::workbench::state::EditorState;
 
 use super::activity_rail_pointer::{
-    build_host_activity_rail_pointer_layout_with_workbench_layout_frames,
     HostActivityRailPointerBridge, HostActivityRailPointerSide,
+    build_host_activity_rail_pointer_layout_with_workbench_layout_frames,
 };
 use super::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
@@ -73,12 +75,12 @@ use super::detail_pointer::{
     inspector_scroll_layout,
 };
 use super::document_tab_pointer::{
-    build_host_document_tab_pointer_layout_with_workbench_layout_frames,
     HostDocumentTabPointerBridge,
+    build_host_document_tab_pointer_layout_with_workbench_layout_frames,
 };
 use super::drawer_header_pointer::{
-    build_host_drawer_header_pointer_layout_with_workbench_layout_frames,
     HostDrawerHeaderPointerBridge,
+    build_host_drawer_header_pointer_layout_with_workbench_layout_frames,
 };
 use super::drawer_resize::dispatch_resize_to_group;
 use super::event_bridge::UiHostEventEffects;
@@ -86,7 +88,7 @@ use super::floating_window_projection::FloatingWindowProjectionBundle;
 use super::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerState,
 };
-use super::host_page_pointer::{build_host_page_pointer_layout, HostPagePointerBridge};
+use super::host_page_pointer::{HostPagePointerBridge, build_host_page_pointer_layout};
 use super::menu_pointer::{HostMenuPointerBridge, HostMenuPointerLayout, HostMenuPointerState};
 use super::scroll_surface_host::ScrollSurfaceHostState;
 use super::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};
@@ -99,7 +101,7 @@ use super::welcome_recent_pointer::{
     WelcomeRecentPointerState,
 };
 use super::{
-    apply_host_appearance_from_tokens, FrameRect, UiHostWindow, WorkbenchContextMenuRequestData,
+    FrameRect, UiHostWindow, WorkbenchContextMenuRequestData, apply_host_appearance_from_tokens,
 };
 
 mod asset_content_pointer;
@@ -138,6 +140,10 @@ mod product_frame_diagnostics;
 mod profiling;
 mod reference_drop_payload;
 mod runtime_diagnostics_visibility;
+mod scene_picker_actions;
+mod scene_picker_session;
+#[cfg(test)]
+mod scene_picker_session_tests;
 mod showcase_event_inputs;
 mod startup;
 #[cfg(test)]
@@ -167,8 +173,8 @@ use invalidation::HostInvalidationRoot;
 pub(crate) use native_windows::NativeWindowPresenterStore;
 #[cfg(test)]
 pub(crate) use native_windows::{
-    collect_native_floating_window_targets, configure_native_floating_window_presentation,
-    NativeFloatingWindowTarget,
+    NativeFloatingWindowTarget, collect_native_floating_window_targets,
+    configure_native_floating_window_presentation,
 };
 use product_frame_diagnostics::editor_product_frame_diagnostics;
 pub(crate) use startup::build_startup_state;
@@ -242,7 +248,11 @@ pub fn run_editor_with_config(
             editor_product_frame_diagnostics(&host.borrow().runtime.editor_snapshot())?;
         zircon_runtime::diagnostic_log::write_log("editor_host_window", &diagnostic);
     }
-    ui.run()?;
+    let run_result = ui.run();
+    if let Some(error) = ui.take_fatal_failure() {
+        return Err(error.into());
+    }
+    run_result?;
     if let Some(error) = ui.take_first_presented_frame_capture_error() {
         return Err(std::io::Error::other(error).into());
     }
@@ -270,7 +280,7 @@ struct RetainedEditorHost {
     resource_manager: ManagerServiceHandle<dyn ResourceManager>,
     asset_change_events: ChannelReceiver<AssetChange>,
     editor_asset_change_events: EditorAssetChangeSubscription,
-    resource_change_events: ChannelReceiver<ResourceEvent>,
+    resource_change_events: ResourceEventReceiver,
     asset_refresh_queue_age: assets::AssetRefreshQueueAgeState,
     startup_session: EditorStartupSessionDocument,
     welcome_project_probe: welcome_session::WelcomeProjectProbeState,
@@ -304,7 +314,7 @@ struct RetainedEditorHost {
     hierarchy_pointer_bridge: HierarchyPointerBridge,
     hierarchy_pointer_state: HierarchyPointerState,
     hierarchy_pointer_size: UiSize,
-    hierarchy_scene_entries: Arc<[SceneEntry]>,
+    hierarchy_scene_entries: Arc<[WorldInspectionHierarchyRow]>,
     hierarchy_filter_query: String,
     console_scroll_surface: ScrollSurfaceHostState,
     inspector_scroll_surface: ScrollSurfaceHostState,
@@ -325,9 +335,11 @@ struct RetainedEditorHost {
     shell_scale_factor: f32,
     chrome_metrics: WorkbenchChromeMetrics,
     shell_geometry: Option<WorkbenchShellGeometry>,
+    shell_token_region_defaults: Option<(EditorDesignTokens, BTreeMap<ShellRegionId, f32>)>,
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
+    scene_picker_session: Option<scene_picker_session::ScenePickerSession>,
     invalidation: HostInvalidationRoot,
     pending_ui_perf_scenario: Option<UiPerfScenario>,
     presentation_dirty: bool,

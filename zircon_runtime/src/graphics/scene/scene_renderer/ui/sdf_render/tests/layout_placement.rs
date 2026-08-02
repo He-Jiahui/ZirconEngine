@@ -302,6 +302,51 @@ fn sdf_draw_plan_preserves_subpixel_glyph_advance_spacing() {
 }
 
 #[test]
+fn horizontal_shaped_glyph_frame_preserves_runtime_offset() {
+    let glyph = RunGlyph {
+        slot_index: Some(0),
+        metrics: SdfGlyphMetrics {
+            bitmap_width: 8,
+            bitmap_height: 12,
+            bitmap_left: 1.0,
+            bitmap_bottom: 3.0,
+            advance: 10.0,
+            ascent: 12.0,
+        },
+        atlas_bitmap_width: 8,
+        atlas_bitmap_height: 12,
+        visible: true,
+        screen_px_range: 1.0,
+        atlas_px_range: 1.0,
+    };
+    let shaped = ScreenSpaceUiShapedGlyph {
+        glyph_id: 7,
+        font_id: None,
+        font_instance_id: None,
+        source_scalar: 'A',
+        source_range: UiTextRange { start: 0, end: 1 },
+        advance: 10.0,
+        offset_x: 2.25,
+        offset_y: -1.5,
+        rotation: ShapedGlyphRotation::None,
+        requires_atlas_slot: true,
+    };
+
+    let frame = horizontal_shaped_sdf_glyph_frame(10.0, 20.0, &glyph, &shaped);
+    let placement = GlyphRasterPlacement::from_raster_input(
+        GlyphAtlasFormat::Sdf,
+        GlyphSmoothingMode::None,
+        false,
+        13.25,
+    );
+
+    assert_eq!(frame.x, placement.snapped_x);
+    assert_eq!(frame.y, 3.5);
+    assert_eq!(frame.width, 8.0);
+    assert_eq!(frame.height, 12.0);
+}
+
+#[test]
 fn sdf_draw_plan_trims_edge_spaces_for_justify() {
     let mut justified = text_batch(" A B ", UiFrame::new(8.0, 12.0, 112.0, 20.0));
     justified.text_align = UiTextAlign::Justify;

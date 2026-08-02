@@ -1,23 +1,28 @@
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::core::framework::platform::{
-    PreferenceDurabilityState, PreferenceFlushTicket, PreferenceKey, PreferenceMutationCancelError,
-    PreferenceMutationCancellation, PreferenceMutationSubmission, PreferenceMutationTerminal,
-    PreferenceMutationTicket, PreferencePersistenceFailureProjection, PreferenceReadSnapshot,
-    PreferenceStorageBackendKind, PreferenceStorageError, PreferenceStorageErrorKind,
-    PreferenceStorageOperation, PreferenceTicketWaitResult, PreferenceWorkDeadline,
+    PreferenceDurabilityState, PreferenceEviction, PreferenceFlushTicket, PreferenceKey,
+    PreferenceMutationCancelError, PreferenceMutationCancellation, PreferenceMutationSubmission,
+    PreferenceMutationTerminal, PreferenceMutationTicket, PreferencePersistenceFailureProjection,
+    PreferenceReadSnapshot, PreferenceStorageBackendKind, PreferenceStorageError,
+    PreferenceStorageErrorKind, PreferenceStorageOperation, PreferenceTicketWaitResult,
+    PreferenceWorkDeadline,
 };
 use crate::core::runtime::{
     BoundedKeyedIoAdmissionError, BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError,
-    BoundedKeyedIoFence, BoundedKeyedIoLane, BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard,
-    BoundedKeyedIoTicket, BoundedKeyedIoWaitResult, BoundedKeyedIoWorkDeadline,
-    GlobalAdmissionEpoch, JobScheduler, TaskPools,
+    BoundedKeyedIoDiagnostics, BoundedKeyedIoFence, BoundedKeyedIoLane, BoundedKeyedIoLimits,
+    BoundedKeyedIoShutdownGuard, BoundedKeyedIoShutdownReport, BoundedKeyedIoTicket,
+    BoundedKeyedIoWaitResult, BoundedKeyedIoWorkDeadline, GlobalAdmissionEpoch, JobScheduler,
+    TaskPools,
 };
-use crate::platform::preferences::PreferenceStorageBackend;
+use crate::platform::preferences::{PreferenceStorageBackend, PreferenceStorageBackendDiagnostics};
 
-use super::overlay::{map_lane_terminal, PreferenceOverlay, PreferenceOverlayLimits};
+use super::overlay::{
+    map_lane_terminal, project_lane_failure, PreferenceOverlay, PreferenceOverlayDiagnostics,
+    PreferenceOverlayLimits,
+};
 use super::work::{lane_failure, perform_flush, perform_read, perform_remove, perform_write};
 
 pub const MAX_PREFERENCE_VALUE_BYTES: usize = 64 * 1024 * 1024;
@@ -56,13 +61,15 @@ pub struct PreferencePersistenceQuote {
 impl PreferencePersistenceQuote {
     fn quote_retained_bytes(key: &PreferenceKey, value_bytes: usize) -> Option<Self> {
         let key_bytes = key.namespace().len().checked_add(key.key().len())?;
+        let opaque_key_bytes = key_bytes.checked_add(1)?;
         let bounded_projection = MAX_PREFERENCE_FAILURE_DETAIL_BYTES;
         Some(Self {
             overlay_retained_bytes: key_bytes
                 .checked_add(value_bytes)?
                 .checked_add(OVERLAY_ENTRY_METADATA_BYTES)?
                 .checked_add(bounded_projection)?,
-            lane_retained_bytes: key_bytes
+            lane_retained_bytes: opaque_key_bytes
+                .checked_add(key_bytes)?
                 .checked_add(value_bytes)?
                 .checked_add(LANE_ENTRY_METADATA_BYTES)?
                 .checked_add(bounded_projection)?,
@@ -78,21 +85,110 @@ impl PreferencePersistenceQuote {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PreferencePersistenceLimitsError {
+    configured_max_value_bytes: usize,
+    hard_max_value_bytes: usize,
+}
+
+impl PreferencePersistenceLimitsError {
+    pub const fn configured_max_value_bytes(self) -> usize {
+        self.configured_max_value_bytes
+    }
+
+    pub const fn hard_max_value_bytes(self) -> usize {
+        self.hard_max_value_bytes
+    }
+}
+
+impl fmt::Display for PreferencePersistenceLimitsError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "configured preference value limit {} exceeds hard maximum {}",
+            self.configured_max_value_bytes, self.hard_max_value_bytes
+        )
+    }
+}
+
+impl std::error::Error for PreferencePersistenceLimitsError {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PreferencePersistenceDiagnostics {
+    pub lane: BoundedKeyedIoDiagnostics,
+    pub overlay: PreferenceOverlayDiagnostics,
+    pub backend_wall: Duration,
+    pub caller_filesystem_wall: Duration,
+    pub backend: PreferenceStorageBackendDiagnostics,
+}
+
+#[derive(Clone, Default)]
+struct PreferencePersistenceMetrics {
+    backend_wall: Arc<Mutex<Duration>>,
+}
+
+impl PreferencePersistenceMetrics {
+    fn record_backend_wall(&self, elapsed: Duration) {
+        let mut wall = lock(&self.backend_wall);
+        *wall = wall.saturating_add(elapsed);
+    }
+
+    fn backend_wall(&self) -> Duration {
+        *lock(&self.backend_wall)
+    }
+
+    fn measure_backend_wall(&self) -> PreferenceBackendWallGuard {
+        PreferenceBackendWallGuard {
+            metrics: self.clone(),
+            started: Instant::now(),
+        }
+    }
+}
+
+struct PreferenceBackendWallGuard {
+    metrics: PreferencePersistenceMetrics,
+    started: Instant,
+}
+
+impl Drop for PreferenceBackendWallGuard {
+    fn drop(&mut self) {
+        self.metrics.record_backend_wall(self.started.elapsed());
+    }
+}
+
 pub struct PreferencePersistenceAdapter {
     backend: RwLock<Arc<dyn PreferenceStorageBackend>>,
+    submission: Mutex<()>,
     lane: BoundedKeyedIoLane,
     overlay: PreferenceOverlay,
     limits: PreferencePersistenceLimits,
+    metrics: PreferencePersistenceMetrics,
+    shutdown_guard: Mutex<Option<BoundedKeyedIoShutdownGuard>>,
 }
 
 impl PreferencePersistenceAdapter {
     pub fn new(
         backend: Arc<dyn PreferenceStorageBackend>,
         limits: PreferencePersistenceLimits,
-    ) -> Self {
+    ) -> Result<Self, PreferencePersistenceLimitsError> {
         let scheduler = JobScheduler::from_pool(TaskPools::process_default().io().clone());
-        Self {
+        Self::with_scheduler(backend, limits, scheduler)
+    }
+
+    pub(super) fn with_scheduler(
+        backend: Arc<dyn PreferenceStorageBackend>,
+        limits: PreferencePersistenceLimits,
+        scheduler: JobScheduler,
+    ) -> Result<Self, PreferencePersistenceLimitsError> {
+        if limits.max_value_bytes > MAX_PREFERENCE_VALUE_BYTES {
+            return Err(PreferencePersistenceLimitsError {
+                configured_max_value_bytes: limits.max_value_bytes,
+                hard_max_value_bytes: MAX_PREFERENCE_VALUE_BYTES,
+            });
+        }
+        Ok(Self {
             backend: RwLock::new(backend),
+            submission: Mutex::new(()),
             lane: BoundedKeyedIoLane::new(
                 BoundedKeyedIoLimits::new(limits.max_lane_entries, limits.max_lane_retained_bytes),
                 scheduler,
@@ -102,7 +198,9 @@ impl PreferencePersistenceAdapter {
                 max_retained_bytes: limits.max_overlay_retained_bytes,
             }),
             limits,
-        }
+            metrics: PreferencePersistenceMetrics::default(),
+            shutdown_guard: Mutex::new(None),
+        })
     }
 
     pub fn backend_kind(&self) -> PreferenceStorageBackendKind {
@@ -110,6 +208,7 @@ impl PreferencePersistenceAdapter {
     }
 
     pub(crate) fn replace_backend(&self, backend: Arc<dyn PreferenceStorageBackend>) {
+        let _submission = self.lock_submission();
         *self.backend_mut() = backend;
     }
 
@@ -117,6 +216,7 @@ impl PreferencePersistenceAdapter {
         &self,
         key: &PreferenceKey,
     ) -> Result<PreferenceReadSnapshot, PreferenceStorageError> {
+        let _submission = self.lock_submission();
         if let Some(snapshot) = self.snapshot_if_present(key) {
             return Ok(snapshot);
         }
@@ -136,6 +236,7 @@ impl PreferencePersistenceAdapter {
         value: Arc<[u8]>,
         deadline: PreferenceWorkDeadline,
     ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        let _submission = self.lock_submission();
         if value.len() > self.limits.max_value_bytes {
             return Err(immediate_error(
                 PreferenceStorageErrorKind::CapacityExceeded,
@@ -156,6 +257,7 @@ impl PreferencePersistenceAdapter {
         key: PreferenceKey,
         deadline: PreferenceWorkDeadline,
     ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        let _submission = self.lock_submission();
         self.submit_mutation(key, None, deadline, PreferenceStorageOperation::Remove)
     }
 
@@ -163,6 +265,7 @@ impl PreferencePersistenceAdapter {
         &self,
         deadline: PreferenceWorkDeadline,
     ) -> Result<Arc<dyn PreferenceFlushTicket>, PreferenceStorageError> {
+        let _submission = self.lock_submission();
         let quote = PreferencePersistenceQuote::for_fence().ok_or_else(|| {
             immediate_error(
                 PreferenceStorageErrorKind::CapacityExceeded,
@@ -171,6 +274,8 @@ impl PreferencePersistenceAdapter {
             )
         })?;
         let backend = self.backend();
+        let known_non_durable = self.overlay.known_non_durable_failure();
+        let metrics = self.metrics.clone();
         let projection = Arc::new(Mutex::new(None));
         let projection_for_work = Arc::clone(&projection);
         let fence = self
@@ -178,11 +283,19 @@ impl PreferencePersistenceAdapter {
             .submit_fence(
                 quote.lane_retained_bytes,
                 lane_deadline(deadline),
-                Box::new(move || match perform_flush(&backend) {
-                    Ok(()) => Ok(()),
-                    Err(failure) => {
+                Box::new(move || {
+                    if let Some(failure) = known_non_durable {
                         *lock(&projection_for_work) = Some(failure.clone());
-                        Err(lane_failure(&failure))
+                        return Err(lane_failure(&failure));
+                    }
+                    let _backend_wall = metrics.measure_backend_wall();
+                    let result = perform_flush(&backend);
+                    match result {
+                        Ok(()) => Ok(()),
+                        Err(failure) => {
+                            *lock(&projection_for_work) = Some(failure.clone());
+                            Err(lane_failure(&failure))
+                        }
                     }
                 }),
             )
@@ -190,12 +303,32 @@ impl PreferencePersistenceAdapter {
         Ok(Arc::new(PreferenceFenceView { fence, projection }))
     }
 
-    pub fn diagnostics(&self) -> crate::core::runtime::BoundedKeyedIoDiagnostics {
-        self.lane.diagnostics()
+    pub fn diagnostics(&self) -> PreferencePersistenceDiagnostics {
+        PreferencePersistenceDiagnostics {
+            lane: self.lane.diagnostics(),
+            overlay: self.overlay.diagnostics(),
+            backend_wall: self.metrics.backend_wall(),
+            caller_filesystem_wall: Duration::ZERO,
+            backend: self.backend().diagnostics(),
+        }
     }
 
-    pub fn shutdown(&self) -> BoundedKeyedIoShutdownGuard {
-        self.lane.shutdown()
+    pub(crate) fn shutdown_until(
+        &self,
+        deadline: Instant,
+    ) -> Result<BoundedKeyedIoShutdownReport, BoundedKeyedIoShutdownReport> {
+        let mut shutdown_guard = lock(&self.shutdown_guard);
+        let guard = shutdown_guard.get_or_insert_with(|| self.lane.shutdown());
+        if guard.wait_until(deadline) {
+            Ok(guard.report())
+        } else {
+            Err(guard.report())
+        }
+    }
+
+    pub fn evict(&self, key: &PreferenceKey) -> Option<PreferenceEviction> {
+        let _submission = self.lock_submission();
+        self.overlay.evict(key)
     }
 
     fn submit_initial_read(&self, key: PreferenceKey) -> Result<(), PreferenceStorageError> {
@@ -209,6 +342,7 @@ impl PreferencePersistenceAdapter {
                     )
                 })?;
         let reservation = self.overlay.reserve(
+            &key,
             quote.overlay_retained_bytes,
             PreferenceStorageOperation::Read,
         )?;
@@ -217,6 +351,7 @@ impl PreferencePersistenceAdapter {
         let overlay = self.overlay.clone();
         let key_for_work = key.clone();
         let max_value_bytes = self.limits.max_value_bytes;
+        let metrics = self.metrics.clone();
         let admission = self
             .lane
             .try_admit(
@@ -225,17 +360,43 @@ impl PreferencePersistenceAdapter {
                 quote.lane_retained_bytes,
                 BoundedKeyedIoWorkDeadline::none(),
                 Box::new(move || {
+                    let _backend_wall = metrics.measure_backend_wall();
                     let result = perform_read(&backend, &key_for_work, max_value_bytes);
-                    overlay.complete_read(&key_for_work, generation, result.clone());
+                    let value_bytes = match &result {
+                        Ok(Some(value)) => value.len(),
+                        Ok(None) | Err(_) => 0,
+                    };
+                    let retained_bytes = PreferencePersistenceQuote::quote_retained_bytes(
+                        &key_for_work,
+                        value_bytes,
+                    )
+                    .map_or(quote.overlay_retained_bytes, |quote| {
+                        quote.overlay_retained_bytes
+                    });
+                    overlay.complete_read(
+                        &key_for_work,
+                        generation,
+                        retained_bytes,
+                        result.clone(),
+                    );
                     result.map(|_| ()).map_err(|failure| lane_failure(&failure))
                 }),
             )
             .map_err(|error| admission_error(error, PreferenceStorageOperation::Read))?;
         reservation.install_generation_before_runnable(
-            key,
+            key.clone(),
             None,
             PreferenceDurabilityState::Pending,
         );
+        let observer_overlay = self.overlay.clone();
+        admission.observe_terminal(move |terminal| {
+            observer_overlay.reflect_lane_terminal(
+                &key,
+                generation,
+                terminal,
+                PreferenceStorageOperation::Read,
+            );
+        });
         admission.activate();
         Ok(())
     }
@@ -258,12 +419,15 @@ impl PreferencePersistenceAdapter {
             })?;
         let reservation = self
             .overlay
-            .reserve(quote.overlay_retained_bytes, operation)?;
+            .reserve(&key, quote.overlay_retained_bytes, operation)?;
         let generation = reservation.generation();
         let backend = self.backend();
         let overlay = self.overlay.clone();
         let key_for_work = key.clone();
         let value_for_work = value.clone();
+        let metrics = self.metrics.clone();
+        let projection = Arc::new(Mutex::new(None));
+        let projection_for_work = Arc::clone(&projection);
         let admission = self
             .lane
             .try_admit(
@@ -272,10 +436,14 @@ impl PreferencePersistenceAdapter {
                 quote.lane_retained_bytes,
                 lane_deadline(deadline),
                 Box::new(move || {
+                    let _backend_wall = metrics.measure_backend_wall();
                     let result = match &value_for_work {
                         Some(value) => perform_write(&backend, &key_for_work, value),
                         None => perform_remove(&backend, &key_for_work),
                     };
+                    if let Err(failure) = &result {
+                        *lock(&projection_for_work) = Some(failure.clone());
+                    }
                     overlay.complete_mutation(&key_for_work, generation, result.clone());
                     result.map_err(|failure| lane_failure(&failure))
                 }),
@@ -288,12 +456,24 @@ impl PreferencePersistenceAdapter {
             value,
             PreferenceDurabilityState::Pending,
         );
+        let observer_overlay = self.overlay.clone();
+        let key_for_observer = key.clone();
+        admission.observe_terminal(move |terminal| {
+            observer_overlay.reflect_lane_terminal(
+                &key_for_observer,
+                generation,
+                terminal,
+                operation,
+            );
+        });
         admission.activate();
         let view = Arc::new(PreferenceTicketView {
             ticket: lane_ticket.clone(),
             overlay: self.overlay.clone(),
             key,
             generation,
+            operation,
+            projection,
         });
         let cancellation = Arc::new(PreferenceCancellationView {
             ticket: lane_ticket,
@@ -322,6 +502,12 @@ impl PreferencePersistenceAdapter {
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+
+    fn lock_submission(&self) -> MutexGuard<'_, ()> {
+        self.submission
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 }
 
 impl fmt::Debug for PreferencePersistenceAdapter {
@@ -335,28 +521,33 @@ impl fmt::Debug for PreferencePersistenceAdapter {
     }
 }
 
-impl Drop for PreferencePersistenceAdapter {
-    fn drop(&mut self) {
-        drop(self.lane.shutdown());
-    }
-}
-
 #[derive(Clone)]
 struct PreferenceTicketView {
     ticket: BoundedKeyedIoTicket,
     overlay: PreferenceOverlay,
     key: PreferenceKey,
     generation: u64,
+    operation: PreferenceStorageOperation,
+    projection: Arc<Mutex<Option<PreferencePersistenceFailureProjection>>>,
 }
 
 impl PreferenceTicketView {
     fn projected_terminal(&self) -> Option<PreferenceMutationTerminal> {
         let lane_terminal = self.ticket.terminal()?;
-        self.overlay
-            .reflect_lane_terminal(&self.key, self.generation, lane_terminal);
+        self.overlay.reflect_lane_terminal(
+            &self.key,
+            self.generation,
+            lane_terminal,
+            self.operation,
+        );
         self.overlay
             .terminal_for(&self.key, self.generation)
-            .or_else(|| map_lane_terminal(lane_terminal, None))
+            .or_else(|| {
+                let projection = lock(&self.projection)
+                    .clone()
+                    .or_else(|| lane_failure_projection(lane_terminal, self.operation));
+                map_lane_terminal(lane_terminal, projection)
+            })
     }
 }
 
@@ -385,8 +576,12 @@ impl PreferenceMutationTicket for PreferenceTicketView {
                 PreferenceTicketWaitResult::ObserverTimedOut
             }
             BoundedKeyedIoWaitResult::Terminal(terminal) => {
-                self.overlay
-                    .reflect_lane_terminal(&self.key, self.generation, terminal);
+                self.overlay.reflect_lane_terminal(
+                    &self.key,
+                    self.generation,
+                    terminal,
+                    self.operation,
+                );
                 PreferenceTicketWaitResult::Terminal(
                     self.projected_terminal()
                         .unwrap_or(PreferenceMutationTerminal::Shutdown),
@@ -475,17 +670,24 @@ fn map_fence_terminal(
     projection: Option<PreferencePersistenceFailureProjection>,
 ) -> Option<PreferenceMutationTerminal> {
     let projection = projection.or_else(|| match terminal {
-        crate::core::runtime::BoundedKeyedIoTerminal::Failed(failure) => {
-            Some(PreferencePersistenceFailureProjection::new(
-                PreferenceStorageErrorKind::TransientIo,
-                PreferenceStorageOperation::Flush,
-                "persistence_lane",
-                failure.code.to_owned(),
-            ))
-        }
+        crate::core::runtime::BoundedKeyedIoTerminal::Failed(failure) => Some(
+            project_lane_failure(&failure, PreferenceStorageOperation::Flush),
+        ),
         _ => None,
     });
     map_lane_terminal(terminal, projection)
+}
+
+fn lane_failure_projection(
+    terminal: crate::core::runtime::BoundedKeyedIoTerminal,
+    operation: PreferenceStorageOperation,
+) -> Option<PreferencePersistenceFailureProjection> {
+    match terminal {
+        crate::core::runtime::BoundedKeyedIoTerminal::Failed(failure) => {
+            Some(project_lane_failure(&failure, operation))
+        }
+        _ => None,
+    }
 }
 
 fn opaque_key(key: &PreferenceKey) -> Arc<str> {
@@ -519,6 +721,10 @@ fn admission_error(
         BoundedKeyedIoAdmissionError::RetainedBytesOverflow => (
             PreferenceStorageErrorKind::CapacityExceeded,
             "preference persistence lane retained-byte quote overflow",
+        ),
+        BoundedKeyedIoAdmissionError::DeadlineTimerUnavailable => (
+            PreferenceStorageErrorKind::CapacityExceeded,
+            "preference persistence deadline timer capacity unavailable",
         ),
     };
     PreferenceStorageError::new(kind, operation, "persistence_lane", detail)

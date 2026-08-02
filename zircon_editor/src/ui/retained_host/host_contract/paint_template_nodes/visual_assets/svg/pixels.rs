@@ -4,8 +4,8 @@ use std::sync::Arc;
 use resvg::{tiny_skia, usvg};
 
 use super::super::{
-    retained_image_resource_key, tint_non_transparent_pixels, HostPaintImagePixels,
-    RasterTargetSize,
+    HostPaintImagePixels, RasterTargetSize, retained_image_resource_key,
+    tint_non_transparent_pixels,
 };
 use super::cache::load_svg_tree;
 

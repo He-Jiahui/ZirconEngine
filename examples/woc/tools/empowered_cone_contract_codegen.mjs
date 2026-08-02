@@ -92,6 +92,8 @@ function parseAbility(source, id, code) {
   return {
     id,
     code,
+    learn_level: numeric(body, 'learnLevel', id),
+    resource_cost: numeric(body, 'cost', id),
     school: capture(body, /school:\s*'([^']+)'/, `${id} school`)[1],
     cast_time: numeric(body, 'castTime', id),
     cooldown: numeric(body, 'cooldown', id),
@@ -121,7 +123,10 @@ function renderZr(document) {
     renderStageField('stageMaximumDamage', 'max', 'float', document.abilities, 0) +
     renderStageField('stageRootDuration', 'root_duration', 'float', document.abilities, 0) +
     renderStageField('stageIncapacitateDuration', 'incapacitate_duration', 'float', document.abilities, 0) +
+    renderAbilityField('learnLevel', 'learn_level', document.abilities, 0) +
+    renderAbilityField('resourceCost', 'resource_cost', document.abilities, 0) +
     renderAbilityField('castTime', 'cast_time', document.abilities, 0) +
+    renderAbilityField('cooldown', 'cooldown', document.abilities, 0) +
     renderAbilityField('slowMultiplier', 'slow_mult', document.abilities, 0) +
     renderAbilityField('slowDuration', 'slow_duration', document.abilities, 0) +
     renderAbilityField('guaranteedCritLevel', 'guaranteed_crit_level', document.abilities, 0) +

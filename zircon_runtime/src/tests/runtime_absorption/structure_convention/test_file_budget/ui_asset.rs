@@ -34,7 +34,7 @@ fn runtime_15_ui_asset_tests_are_folder_backed() {
         "ui_asset_stylesheet_rule_write_apis_reject_invalid_selectors_atomically",
         "ui_asset_loader_rejects_duplicate_stable_style_rule_ids",
         "ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets",
-        "ui_source_template_fixture_conversion_converts_template_documents_into_asset_documents",
+        "ui_asset_loader_rejects_source_template_documents_without_asset_header",
         "ui_asset_compiler_applies_runtime_component_schema_defaults",
     ] {
         assert!(
@@ -79,10 +79,10 @@ fn runtime_15_ui_asset_tests_are_folder_backed() {
         ],
     );
     assert_contains_all(
-        "UI asset fixture-migration child owns fixture conversion contracts",
+        "UI asset fixture-migration child owns migration and rejection contracts",
         &fixture_migration,
         &[
-            "fn ui_source_template_fixture_conversion_converts_template_documents_into_asset_documents",
+            "fn ui_asset_loader_rejects_source_template_documents_without_asset_header",
             "fn ui_flat_fixture_migration_converts_flat_assets_into_tree_authority_source",
             "fn ui_asset_compiler_is_split_into_folder_backed_pipeline_modules",
         ],
@@ -110,7 +110,7 @@ fn runtime_15_ui_asset_tests_are_folder_backed() {
     .sum::<usize>();
     assert_eq!(
         child_test_total, 33,
-        "UI asset children should preserve all 32 split-time parent tests plus the component-slot layout regression"
+        "UI asset children should retain the current contract set after retiring source-template conversion"
     );
 
     for (path, source) in [

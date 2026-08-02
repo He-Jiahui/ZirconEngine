@@ -4,9 +4,9 @@ use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::actions::table_action_column_width;
 use super::super::style::table_cell_color;
-use super::allocation::{table_column_alignment, TableColumnAlignment};
+use super::allocation::{TableColumnAlignment, table_column_alignment};
 use super::geometry::table_cell_rect;
-use super::metrics::{table_cell_metrics, WorkbenchTableCellMetrics, TABLE_COLUMN_COUNT};
+use super::metrics::{TABLE_COLUMN_COUNT, WorkbenchTableCellMetrics, table_cell_metrics};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_table_cells(
@@ -132,16 +132,18 @@ mod tests {
 
     #[test]
     fn table_cell_text_outside_the_inherited_clip_emits_no_command() {
-        assert!(text_command(
-            frame(10.0, 40.0, 80.0, 18.0),
-            &frame(0.0, 10.0, 100.0, 20.0),
-            3,
-            "Asset.mesh",
-            [255, 255, 255, 255],
-            table_cell_metrics(),
-            1.0,
-        )
-        .is_none());
+        assert!(
+            text_command(
+                frame(10.0, 40.0, 80.0, 18.0),
+                &frame(0.0, 10.0, 100.0, 20.0),
+                3,
+                "Asset.mesh",
+                [255, 255, 255, 255],
+                table_cell_metrics(),
+                1.0,
+            )
+            .is_none()
+        );
     }
 
     fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {

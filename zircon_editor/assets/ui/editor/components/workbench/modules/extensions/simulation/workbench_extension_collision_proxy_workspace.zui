@@ -139,7 +139,7 @@ events = [{ id = "WorkbenchExtension/CollisionProxyTestContacts", event = "Click
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionCollisionProxyStackTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+props = {}
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "collision_proxy_source_mesh_table_row" }, { node = "collision_proxy_decimator_table_row" }, { node = "collision_proxy_hull_merge_table_row" }, { node = "collision_proxy_channel_mask_table_row" }]
 

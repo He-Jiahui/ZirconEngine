@@ -357,7 +357,11 @@ fn average_luma(frame: &CapturedFrame) -> f32 {
         count += 1.0;
     }
 
-    if count <= 0.0 { 0.0 } else { total / count }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }
 
 fn write_three_panel_png(path: &Path, frames: [&CapturedFrame; 3]) {

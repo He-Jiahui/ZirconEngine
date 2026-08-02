@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::HostResizeLayerData;
 
-use super::super::super::{geometry::contains, ChromePointerRoute};
+use super::super::super::{ChromePointerRoute, geometry::contains};
 
 pub(super) fn route_resize_splitters(
     resize_layer: &HostResizeLayerData,

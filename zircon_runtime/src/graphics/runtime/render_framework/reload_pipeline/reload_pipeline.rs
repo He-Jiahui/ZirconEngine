@@ -92,12 +92,7 @@ mod tests {
             WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
         let pipeline = plugin_virtual_geometry_pipeline();
         let handle = pipeline.handle;
-        framework
-            .state
-            .lock()
-            .unwrap()
-            .pipelines
-            .insert(handle, pipeline);
+        framework.lock_state().pipelines.insert(handle, pipeline);
 
         let error = reload_pipeline(&framework, handle)
             .expect_err("unlinked plugin executor ids should not reload");
@@ -124,12 +119,7 @@ mod tests {
         .unwrap();
         let pipeline = plugin_virtual_geometry_pipeline();
         let handle = pipeline.handle;
-        framework
-            .state
-            .lock()
-            .unwrap()
-            .pipelines
-            .insert(handle, pipeline);
+        framework.lock_state().pipelines.insert(handle, pipeline);
 
         let error = reload_pipeline(&framework, handle)
             .expect_err("plugin descriptors should not auto-register runtime no-op executors");
@@ -159,12 +149,7 @@ mod tests {
         .unwrap();
         let pipeline = plugin_virtual_geometry_pipeline();
         let handle = pipeline.handle;
-        framework
-            .state
-            .lock()
-            .unwrap()
-            .pipelines
-            .insert(handle, pipeline);
+        framework.lock_state().pipelines.insert(handle, pipeline);
 
         reload_pipeline(&framework, handle)
             .expect("explicit plugin executor registration should satisfy the graph");
@@ -180,15 +165,13 @@ mod tests {
             "plugin.virtual_geometry.reload_asset",
             Vec::new(),
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::DepthPrepass,
-                    "plugin-virtual-geometry-reload-asset",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("virtual-geometry.prepare")
-                .with_side_effects(),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "plugin-virtual-geometry-reload-asset",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("virtual-geometry.prepare")
+            .with_side_effects()],
         )
         .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
     }

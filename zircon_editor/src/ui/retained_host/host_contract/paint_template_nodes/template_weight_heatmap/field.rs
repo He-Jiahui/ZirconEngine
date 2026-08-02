@@ -3,7 +3,7 @@ use super::super::super::data::{
 };
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::WeightHeatmapGeometry;
-use super::palette::{heat_color, OUTER_BORDER, OUTER_SURFACE};
+use super::palette::{OUTER_BORDER, OUTER_SURFACE, heat_color};
 
 const MAX_HEATMAP_CELLS: usize = 4_096;
 const MAX_HEATMAP_INFLUENCE_EVALUATIONS: usize = 65_536;

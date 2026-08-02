@@ -178,7 +178,15 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        self.screen_space_ui_renderer
+        let screen_space_ui_renderer = self
+            .screen_space_ui_renderer
+            .as_deref_mut()
+            .ok_or_else(|| {
+                format!(
+                    "screen-space UI graph executor for resource `{resource_name}` requires UI renderer context"
+                )
+            })?;
+        screen_space_ui_renderer
             .record(
                 self.device,
                 self.queue,
