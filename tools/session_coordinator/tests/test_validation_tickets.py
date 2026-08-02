@@ -17,8 +17,34 @@ class _FakeWorkspaceCopy:
         self.root = root
         self.records: dict[str, SimpleNamespace] = {}
         self.materializations: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = []
+        self.generic_materializations: list[
+            tuple[str, tuple[str, ...], tuple[str, ...]]
+        ] = []
         self.starts: list[tuple[str, str, tuple[str, ...], str]] = []
         self.run_results: dict[str, dict[str, object]] = {}
+
+    def materialize_validation_async(
+        self,
+        session_id: str,
+        *,
+        dependency_roots: tuple[str, ...],
+        overlay_paths: tuple[str, ...],
+    ) -> SimpleNamespace:
+        job_id = f"copy-{len(self.records) + 1}"
+        source_root = self.root / job_id / "source"
+        record = SimpleNamespace(
+            job_id=job_id,
+            source_root=source_root,
+            status="materializing",
+            error_code=None,
+            error_stage=None,
+            error_path=None,
+        )
+        self.records[job_id] = record
+        self.generic_materializations.append(
+            (session_id, dependency_roots, overlay_paths)
+        )
+        return record
 
     def materialize_cargo_async(
         self,
@@ -243,6 +269,69 @@ class ValidationTicketTests(unittest.TestCase):
         self.assertEqual(1, completed["passed"])
         self.assertEqual("passed", self.service.get(ticket_id).status)
         self.assertEqual(ticket_id, self.workspace_copy.starts[0][3])
+
+    def test_worker_routes_non_cargo_commands_through_a_generic_workspace_copy(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="python-request",
+            source_manifest={"tools/owned.py": digest},
+            command=("python", "-m", "unittest", "focused"),
+            toolchain={"python": "3.14"},
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+            },
+        )
+
+        result = self.worker.tick()
+
+        self.assertEqual(1, result["materializing"])
+        self.assertEqual([], self.workspace_copy.materializations)
+        self.assertEqual(
+            [
+                (
+                    "primary",
+                    ("tools/session_coordinator",),
+                    ("tools/owned.py",),
+                )
+            ],
+            self.workspace_copy.generic_materializations,
+        )
+        self.assertEqual("materializing", self.service.get(receipt.ticket.ticket_id).status)
+
+    def test_worker_rejects_non_cargo_commands_without_dependency_roots(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="python-without-dependencies",
+            source_manifest={"tools/owned.py": digest},
+            command=("python", "-m", "unittest", "focused"),
+            toolchain={"python": "3.14"},
+            coverage={"kind": "focused"},
+        )
+
+        result = self.worker.tick()
+
+        self.assertEqual(1, result["failed"])
+        self.assertEqual([], self.workspace_copy.generic_materializations)
+        self.assertEqual("failed", self.service.get(receipt.ticket.ticket_id).status)
+        with self.database.connect() as connection:
+            event = connection.execute(
+                """
+                SELECT payload_json FROM validation_ticket_events
+                WHERE ticket_id=? AND event_type='validation.ticket_status_changed'
+                ORDER BY event_id DESC LIMIT 1
+                """,
+                (receipt.ticket.ticket_id,),
+            ).fetchone()
+        self.assertIn("validation_ticket_dependency_roots_missing", event[0])
 
     def test_worker_terminalizes_an_interrupted_claim_without_a_copy_link(self) -> None:
         source = self.repo / "tools" / "owned.py"

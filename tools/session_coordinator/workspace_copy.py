@@ -421,6 +421,64 @@ class WorkspaceCopyService:
         closure.  Keeping those collections separate preserves exact commit
         attribution without copying the whole repository.
         """
+        record, normalized_roots, normalized_overlays, attribution = (
+            self._plan_validation_materialization(
+                session_id,
+                dependency_roots=dependency_roots,
+                overlay_paths=overlay_paths,
+            )
+        )
+        self._begin_materialization(record.job_id)
+        return self._materialize_validation_record(
+            record, normalized_roots, normalized_overlays, attribution
+        )
+
+    def materialize_validation_async(
+        self,
+        session_id: str,
+        *,
+        dependency_roots: tuple[str, ...] | list[str],
+        overlay_paths: tuple[str, ...] | list[str],
+    ) -> WorkspaceCopyRecord:
+        """Durably reserve a dependency-scoped validation copy before archive I/O."""
+        record, normalized_roots, normalized_overlays, attribution = (
+            self._plan_validation_materialization(
+                session_id,
+                dependency_roots=dependency_roots,
+                overlay_paths=overlay_paths,
+            )
+        )
+        self._begin_materialization(record.job_id)
+        worker = threading.Thread(
+            target=self._materialize_validation_async_worker,
+            args=(record, normalized_roots, normalized_overlays, attribution),
+            name=f"zircon-validation-materialize-{record.job_id[:12]}",
+            daemon=True,
+        )
+        worker.start()
+        return WorkspaceCopyRecord(
+            record.job_id,
+            record.session_id,
+            record.job_root,
+            record.source_root,
+            record.target_root,
+            record.manifest,
+            "materializing",
+            record.external_sources,
+        )
+
+    def _plan_validation_materialization(
+        self,
+        session_id: str,
+        *,
+        dependency_roots: tuple[str, ...] | list[str],
+        overlay_paths: tuple[str, ...] | list[str],
+    ) -> tuple[
+        WorkspaceCopyRecord,
+        tuple[str, ...],
+        tuple[str, ...],
+        dict[str, str | None],
+    ]:
         normalized_roots = tuple(
             sorted({self._normalize(path) for path in dependency_roots}, key=str.casefold)
         )
@@ -457,14 +515,36 @@ class WorkspaceCopyService:
             session_id,
             include_paths=tuple(sorted(set(dependency_paths) | set(normalized_overlays))),
         )
-        self._begin_materialization(record.job_id)
+        return record, normalized_roots, normalized_overlays, attribution
+
+    def _materialize_validation_async_worker(
+        self,
+        record: WorkspaceCopyRecord,
+        dependency_roots: tuple[str, ...],
+        overlay_paths: tuple[str, ...],
+        attribution: dict[str, str | None],
+    ) -> None:
+        try:
+            self._materialize_validation_record(
+                record, dependency_roots, overlay_paths, attribution
+            )
+        except BaseException:
+            return
+
+    def _materialize_validation_record(
+        self,
+        record: WorkspaceCopyRecord,
+        dependency_roots: tuple[str, ...],
+        overlay_paths: tuple[str, ...],
+        attribution: dict[str, str | None],
+    ) -> WorkspaceCopyRecord:
         try:
             self._validate_job_root(record.job_root)
             record.source_root.mkdir(parents=True, exist_ok=False)
             record.target_root.mkdir(parents=True, exist_ok=False)
-            self._extract_baseline_dependencies(record, normalized_roots)
+            self._extract_baseline_dependencies(record, dependency_roots)
             self._overlay_attributed_sources(
-                record.source_root, normalized_overlays, attribution
+                record.source_root, overlay_paths, attribution
             )
             input_manifest_hash = self._input_manifest_hash(record)
             self._complete_materialization(record.job_id, input_manifest_hash)

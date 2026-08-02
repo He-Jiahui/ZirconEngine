@@ -18,6 +18,14 @@ _ACTIVE_COPY_STATES = frozenset({"planned", "materializing"})
 
 
 class ValidationCopyExecutor(Protocol):
+    def materialize_validation_async(
+        self,
+        session_id: str,
+        *,
+        dependency_roots: tuple[str, ...],
+        overlay_paths: tuple[str, ...],
+    ): ...
+
     def materialize_cargo_async(
         self,
         session_id: str,
@@ -86,12 +94,19 @@ class ValidationTicketWorker:
                 result["snapshot_stale"] += 1
                 continue
             try:
-                record = self.workspace_copy.materialize_cargo_async(
-                    ticket.session_id,
-                    command=ticket.command,
-                    overlay_paths=tuple(ticket.source_manifest),
-                    discover_external_sources=True,
-                )
+                if self._is_cargo_command(ticket.command):
+                    record = self.workspace_copy.materialize_cargo_async(
+                        ticket.session_id,
+                        command=ticket.command,
+                        overlay_paths=tuple(ticket.source_manifest),
+                        discover_external_sources=True,
+                    )
+                else:
+                    record = self.workspace_copy.materialize_validation_async(
+                        ticket.session_id,
+                        dependency_roots=self._dependency_roots(ticket),
+                        overlay_paths=tuple(ticket.source_manifest),
+                    )
                 self.tickets.record_worker_event(
                     ticket.ticket_id,
                     _COPY_LINK_EVENT,
@@ -287,6 +302,36 @@ class ValidationTicketWorker:
                 if len(drift) == 64:
                     break
         return drift
+
+    @staticmethod
+    def _is_cargo_command(command: tuple[str, ...]) -> bool:
+        if not command:
+            return False
+        executable = command[0].replace("\\", "/").rsplit("/", 1)[-1].casefold()
+        return executable in {"cargo", "cargo.exe"}
+
+    @staticmethod
+    def _dependency_roots(ticket: ValidationTicket) -> tuple[str, ...]:
+        roots = ticket.coverage.get("dependencyRoots")
+        if roots is None:
+            raise CoordinatorError(
+                "validation_ticket_dependency_roots_missing",
+                "Non-Cargo validation tickets must declare coverage.dependencyRoots",
+            )
+        if not isinstance(roots, (list, tuple)) or not roots:
+            raise CoordinatorError(
+                "validation_ticket_dependency_roots_invalid",
+                "Validation dependency roots must be a non-empty string array",
+            )
+        normalized: list[str] = []
+        for root in roots:
+            if not isinstance(root, str) or not root.strip():
+                raise CoordinatorError(
+                    "validation_ticket_dependency_roots_invalid",
+                    "Validation dependency roots must be a non-empty string array",
+                )
+            normalized.append(root)
+        return tuple(dict.fromkeys(normalized))
 
     @staticmethod
     def _copy_failure(record, job_id: str) -> dict[str, object]:

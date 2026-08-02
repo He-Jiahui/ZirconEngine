@@ -644,6 +644,67 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertIn("tools/session_coordinator/probe.py", result.manifest)
         self.assertIn("docs/milestone.md", result.manifest)
 
+    def test_validation_dependency_copy_materializes_off_the_request_thread(self) -> None:
+        dependency = self.repo / "tools/session_coordinator/probe.py"
+        dependency.parent.mkdir(parents=True)
+        dependency.write_text("VALUE = 'available'\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "tools/session_coordinator/probe.py"],
+            cwd=self.repo,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "test: add async validation dependency"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        )
+        overlay = self.repo / "docs/milestone.md"
+        overlay.parent.mkdir(parents=True)
+        overlay.write_text("owned milestone evidence\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["docs/milestone.md"])
+        started = threading.Event()
+        release = threading.Event()
+        original = self.service._extract_baseline_dependencies
+
+        def slow_extract(record, dependency_roots):
+            started.set()
+            release.wait(timeout=2)
+            return original(record, dependency_roots)
+
+        with mock.patch.object(
+            self.service,
+            "_extract_baseline_dependencies",
+            side_effect=slow_extract,
+        ):
+            result = self.service.materialize_validation_async(
+                "session-a",
+                dependency_roots=("tools/session_coordinator",),
+                overlay_paths=("docs/milestone.md",),
+            )
+            self.assertEqual("materializing", result.status)
+            self.assertTrue(started.wait(timeout=1))
+            self.assertEqual(
+                "materializing",
+                self.service.status("session-a", result.job_id).status,
+            )
+            release.set()
+
+        for _ in range(100):
+            completed = self.service.status("session-a", result.job_id)
+            if completed.status == "materialized":
+                break
+            threading.Event().wait(0.02)
+
+        self.assertEqual("materialized", completed.status)
+        self.assertEqual(
+            "owned milestone evidence\n",
+            (completed.source_root / "docs/milestone.md").read_text(),
+        )
+        self.assertTrue(
+            (completed.source_root / "tools/session_coordinator/probe.py").is_file()
+        )
+
     def test_copy_pins_head_even_if_repository_head_changes_during_materialize(self) -> None:
         original = self.service._head_content
         changed = False
