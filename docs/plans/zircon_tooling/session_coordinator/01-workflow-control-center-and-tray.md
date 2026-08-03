@@ -168,18 +168,27 @@ GET  /control/v1/actions/{action_id}
 
 `preview` stores action kind, canonical server-derived parameters, actor, role, risk, impact, warnings, confirmation phrase, expiry, and a fingerprint of HEAD/index/baseline/leases/Failure graph/plan/Cargo/Session state. `confirm` recomputes that fingerprint before execution. Red actions never retry automatically.
 
-### 4.4 Commit notification
+### 4.4 Candidate submission and commit notifications
 
-After a successful service-owned Git commit, the coordinator constructs exactly four lines from server-side evidence and performs one notification attempt:
+After `integration.submit` durably seals and persists a new candidate, the coordinator performs one notification attempt with an explicit coordinator-submission note:
 
 ```text
-核心内容摘要：{milestone_summary_zh}
+核心内容摘要：【{module}】提交到协调器：scoped candidate {candidate_short_id}
+提交时间：{submitted_at_iso8601}
+修改情况统计：{sealed_path_count} files sealed
+提交到协调器：candidate {candidate_id}，基线 {base_head}
+```
+
+After a successful service-owned Git commit, it performs a separate notification attempt constructed from server-side Git evidence:
+
+```text
+核心内容摘要：【{module}】{milestone_summary_zh}
 提交时间：{commit_time_iso8601}
 修改情况统计：{git_shortstat}
 提交的commit内容：{full_commit_sha} {commit_subject}
 ```
 
-The service invokes the existing WeCom skill adapter using only its process environment. It never accepts webhook content from the browser, stores a webhook URL/key, writes one into startup configuration, includes it in logs, or retries a failed delivery.
+Candidate submissions use `candidate:{candidate_id}` as their idempotency key; real commits use the Git SHA, so neither event suppresses the other. The service invokes the existing WeCom skill adapter using only its process environment. It never accepts webhook content from the browser, stores a webhook URL/key, writes one into startup configuration, includes it in logs, retries a failed delivery, or backfills historical notifications.
 
 ## Milestone M1: Control-Plane Foundation and Read-Only Browser Authentication
 

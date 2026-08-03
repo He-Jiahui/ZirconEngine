@@ -70,6 +70,7 @@ class IntegrationCandidateTests(unittest.TestCase):
         self.assertTrue(acquisition.acquired, acquisition.conflicts)
 
     def test_submit_seals_current_blobs_and_replays_the_same_request(self) -> None:
+        messages = self._enable_notifications()
         source = self.repo / "tools" / "candidate.py"
         source.parent.mkdir(parents=True)
         source.write_text("value = 1\n", encoding="utf-8")
@@ -100,6 +101,14 @@ class IntegrationCandidateTests(unittest.TestCase):
             text=True,
         ).stdout
         self.assertEqual("value = 1\n", blob_content)
+        self.assertEqual(1, len(messages))
+        self.assertIn("提交到协调器", messages[0])
+        with self.database.connect() as connection:
+            notification = connection.execute(
+                "SELECT commit_sha, status FROM notification_attempts"
+            ).fetchone()
+        self.assertEqual(f"candidate:{first.candidate_id}", notification["commit_sha"])
+        self.assertEqual("succeeded", notification["status"])
 
     def test_finalize_commits_sealed_blob_without_touching_later_worktree_edits(self) -> None:
         messages = self._enable_notifications()
@@ -138,13 +147,21 @@ class IntegrationCandidateTests(unittest.TestCase):
             text=True,
         ).stdout.strip()
         self.assertEqual("", staged)
-        self.assertEqual(1, len(messages))
+        self.assertEqual(2, len(messages))
+        self.assertIn("提交到协调器", messages[0])
+        self.assertIn("提交的commit内容", messages[1])
         with self.database.connect() as connection:
-            notification = connection.execute(
+            notifications = connection.execute(
                 "SELECT commit_sha, status FROM notification_attempts"
-            ).fetchone()
-        self.assertEqual(integrated.commit_sha, notification["commit_sha"])
-        self.assertEqual("succeeded", notification["status"])
+            ).fetchall()
+        self.assertEqual(
+            {f"candidate:{candidate.candidate_id}", integrated.commit_sha},
+            {notification["commit_sha"] for notification in notifications},
+        )
+        self.assertEqual(
+            {"succeeded"},
+            {notification["status"] for notification in notifications},
+        )
 
     def test_finalize_defers_when_main_changed_the_same_candidate_path(self) -> None:
         source = self.repo / "tools" / "candidate.py"
@@ -200,12 +217,13 @@ class IntegrationCandidateTests(unittest.TestCase):
 
         self.assertEqual("accepted", accepted.status)
         self.assertEqual(current_head, accepted.commit_sha)
-        self.assertEqual([], messages)
+        self.assertEqual(1, len(messages))
+        self.assertIn("提交到协调器", messages[0])
         with self.database.connect() as connection:
             notification_count = connection.execute(
                 "SELECT COUNT(*) FROM notification_attempts"
             ).fetchone()[0]
-        self.assertEqual(0, notification_count)
+        self.assertEqual(1, notification_count)
 
     def test_finalize_realigns_a_stale_index_for_an_integrated_candidate(self) -> None:
         source = self.repo / "tools" / "candidate.py"

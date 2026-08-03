@@ -38,6 +38,28 @@ class NotificationTests(unittest.TestCase):
         )
         self.assertNotIn("【session_coordinator】feat(workflow)", message)
 
+    def test_formats_candidate_submission_with_explicit_coordinator_note(self) -> None:
+        message = WeComNotificationService.format_candidate_submission(
+            module="session_coordinator",
+            candidate_id="a" * 32,
+            base_head="b" * 40,
+            submitted_at="2026-08-03T10:00:00+08:00",
+            sealed_path_count=2,
+        )
+
+        self.assertEqual(4, len(message.splitlines()))
+        self.assertTrue(
+            message.startswith(
+                "核心内容摘要：【session_coordinator】提交到协调器：scoped candidate aaaaaaaa"
+            )
+        )
+        self.assertIn("\n提交时间：2026-08-03T10:00:00+08:00", message)
+        self.assertIn("\n修改情况统计：2 files sealed", message)
+        self.assertIn(
+            f"\n提交到协调器：candidate {'a' * 32}，基线 {'b' * 40}", message
+        )
+        self.assertNotIn("提交的commit内容", message)
+
     def test_rejects_unsafe_notification_module(self) -> None:
         with self.assertRaises(CoordinatorError) as rejected:
             WeComNotificationService.format_message(

@@ -168,7 +168,9 @@ class IntegrationCandidateService:
                     now,
                 ),
             )
-            return self._get_in_connection(connection, candidate_id)
+            candidate = self._get_in_connection(connection, candidate_id)
+        self._notify_submitted(candidate, submitted_at=now)
+        return candidate
 
     def get(self, candidate_id: str) -> IntegrationCandidate:
         with self.database.connect() as connection:
@@ -443,18 +445,8 @@ class IntegrationCandidateService:
         if self.notifications is None:
             return
         try:
-            parts = [
-                part
-                for part in candidate.plan_path.replace("\\", "/").rstrip("/").split("/")
-                if part
-            ]
-            if len(parts) < 2:
-                raise CoordinatorError(
-                    "notification_module_unavailable",
-                    "Integration notification requires a plan path inside a module folder",
-                )
             formatted = self.notifications.format_message(
-                module=parts[-2],
+                module=self._notification_module(candidate),
                 summary=f"scoped candidate {candidate.candidate_id[:8]}: {message}",
                 commit_time=self._git("show", "-s", "--format=%cI", commit_sha),
                 shortstat=(
@@ -471,6 +463,45 @@ class IntegrationCandidateService:
                 commit_sha=commit_sha,
                 error=error,
             )
+
+    def _notify_submitted(
+        self, candidate: IntegrationCandidate, *, submitted_at: str
+    ) -> None:
+        if self.notifications is None:
+            return
+        notification_key = f"candidate:{candidate.candidate_id}"
+        try:
+            formatted = self.notifications.format_candidate_submission(
+                module=self._notification_module(candidate),
+                candidate_id=candidate.candidate_id,
+                base_head=candidate.base_head,
+                submitted_at=submitted_at,
+                sealed_path_count=len(candidate.paths),
+            )
+            self.notifications.notify_once(
+                commit_sha=notification_key,
+                message=formatted,
+            )
+        except Exception as error:
+            self.notifications.record_preparation_failure(
+                notification_key=notification_key,
+                context="candidate-submission",
+                error=error,
+            )
+
+    @staticmethod
+    def _notification_module(candidate: IntegrationCandidate) -> str:
+        parts = [
+            part
+            for part in candidate.plan_path.replace("\\", "/").rstrip("/").split("/")
+            if part
+        ]
+        if len(parts) < 2:
+            raise CoordinatorError(
+                "notification_module_unavailable",
+                "Integration notification requires a plan path inside a module folder",
+            )
+        return parts[-2]
 
     def _delay_merge(
         self,

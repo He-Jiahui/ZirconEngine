@@ -56,18 +56,10 @@ class WeComNotificationService:
         shortstat: str,
         commit_content: str,
     ) -> str:
-        normalized_module = module.strip()
-        if not _MODULE.fullmatch(normalized_module):
-            raise CoordinatorError(
-                "notification_module_invalid",
-                "Notification module must be a safe plan-folder name",
-            )
-        values = (summary, commit_time, shortstat, commit_content)
-        if any(not value.strip() or "\n" in value or "\r" in value for value in values):
-            raise CoordinatorError(
-                "notification_content_invalid",
-                "Notification fields must be non-empty single lines",
-            )
+        normalized_module, values = WeComNotificationService._validated_fields(
+            module, summary, commit_time, shortstat, commit_content
+        )
+        summary, commit_time, shortstat, commit_content = values
         return "\n".join(
             (
                 f"核心内容摘要：【{normalized_module}】{summary.strip()}",
@@ -76,6 +68,53 @@ class WeComNotificationService:
                 f"提交的commit内容：{commit_content.strip()}",
             )
         )
+
+    @staticmethod
+    def format_candidate_submission(
+        *,
+        module: str,
+        candidate_id: str,
+        base_head: str,
+        submitted_at: str,
+        sealed_path_count: int,
+    ) -> str:
+        if sealed_path_count <= 0:
+            raise CoordinatorError(
+                "notification_content_invalid",
+                "Candidate submission notification requires sealed paths",
+            )
+        normalized_module, values = WeComNotificationService._validated_fields(
+            module, candidate_id, base_head, submitted_at
+        )
+        candidate_id, base_head, submitted_at = values
+        return "\n".join(
+            (
+                f"核心内容摘要：【{normalized_module}】提交到协调器："
+                f"scoped candidate {candidate_id[:8]}",
+                f"提交时间：{submitted_at}",
+                f"修改情况统计：{sealed_path_count} files sealed",
+                f"提交到协调器：candidate {candidate_id}，基线 {base_head}",
+            )
+        )
+
+    @staticmethod
+    def _validated_fields(module: str, *values: str) -> tuple[str, tuple[str, ...]]:
+        normalized_module = module.strip()
+        if not _MODULE.fullmatch(normalized_module):
+            raise CoordinatorError(
+                "notification_module_invalid",
+                "Notification module must be a safe plan-folder name",
+            )
+        normalized_values = tuple(value.strip() for value in values)
+        if any(
+            not value or "\n" in value or "\r" in value
+            for value in normalized_values
+        ):
+            raise CoordinatorError(
+                "notification_content_invalid",
+                "Notification fields must be non-empty single lines",
+            )
+        return normalized_module, normalized_values
 
     def notify_once(
         self,
@@ -198,17 +237,39 @@ class WeComNotificationService:
         action_id: str | None = None,
     ) -> NotificationAttemptRecord:
         """Persist a non-delivery outcome without ever re-opening a committed milestone."""
+        return self.record_preparation_failure(
+            notification_key=commit_sha,
+            context="post-commit",
+            error=error,
+            run_id=run_id,
+            topology_version_id=topology_version_id,
+            node_id=node_id,
+            action_id=action_id,
+        )
+
+    def record_preparation_failure(
+        self,
+        *,
+        notification_key: str,
+        context: str,
+        error: Exception,
+        run_id: str | None = None,
+        topology_version_id: str | None = None,
+        node_id: str | None = None,
+        action_id: str | None = None,
+    ) -> NotificationAttemptRecord:
+        """Persist one preparation failure under the notification's idempotency key."""
         attempt_id = uuid.uuid4().hex
         completed_at = utc_text()
         sanitized_error = self._sanitize(
-            f"post-commit notification preparation failed: {error}"
+            f"{context} notification preparation failed: {error}"
         )
         try:
             with self.database.transaction() as connection:
                 existing = connection.execute(
                     """SELECT * FROM notification_attempts
                        WHERE commit_sha=? AND channel='wecom'""",
-                    (commit_sha,),
+                    (notification_key,),
                 ).fetchone()
                 if existing is not None:
                     return self._record(existing)
@@ -224,9 +285,9 @@ class WeComNotificationService:
                         topology_version_id,
                         node_id,
                         action_id,
-                        commit_sha,
+                        notification_key,
                         hashlib.sha256(
-                            b"post-commit notification preparation failure"
+                            f"{context} notification preparation failure".encode("utf-8")
                         ).hexdigest(),
                         completed_at,
                         completed_at,
@@ -244,7 +305,7 @@ class WeComNotificationService:
                     existing = connection.execute(
                         """SELECT * FROM notification_attempts
                            WHERE commit_sha=? AND channel='wecom'""",
-                        (commit_sha,),
+                        (notification_key,),
                     ).fetchone()
                 if existing is not None:
                     return self._record(existing)
@@ -252,7 +313,7 @@ class WeComNotificationService:
                 pass
             return NotificationAttemptRecord(
                 attempt_id,
-                commit_sha,
+                notification_key,
                 "unknown",
                 completed_at,
                 completed_at,
