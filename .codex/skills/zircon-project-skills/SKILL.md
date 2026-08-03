@@ -36,7 +36,7 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
   - `capture-hub-window-screenshot/SKILL.md`
 - For repository coordination, minimal plan/failure record ownership, or a durable-documentation exception:
   - `cross-session-coordination/SKILL.md`
-  - `close-session-goal-milestones/SKILL.md`
+  - `close-session-goal-milestones/SKILL.md` for scoped integration-candidate handoff and accepted Milestone/Goal closeout
   - `handle-plan-failure-handoffs/SKILL.md`
   - `write-plan-output-records/SKILL.md`
   - `code-module-docs-maintenance/SKILL.md`

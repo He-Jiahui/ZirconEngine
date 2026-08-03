@@ -1,20 +1,67 @@
 ---
 name: close-session-goal-milestones
-description: Use when a ZirconEngine Session reaches an accepted milestone or all work in its active Goal is complete and the shared main checkout must be closed out.
+description: Use when a ZirconEngine Session has validated owned changes to submit as a scoped integration candidate, reaches an accepted milestone, or completes its active Goal and must close out the shared main checkout.
 ---
 
 # Close Session Goal Milestones
 
 ## Overview
 
-Treat each accepted milestone as a normal Git commit boundary. Preserve foreign paths and complete the Session/Goal only at the terminal boundary.
+Hand exact validated snapshots to the coordinator without blocking later work. Treat each accepted milestone as a normal Git commit boundary, preserve foreign paths, and complete the Session/Goal only at the terminal boundary.
 
-## Asynchronous Integration Is Not Closeout
+## Submit a Scoped Integration Candidate
 
-- Use the coordinator's durable validation or integration receipt to continue a Goal, not to enter this accepted-closeout workflow. A coordinator integration SHA makes the owned snapshot `integrated_validation_pending`; it remains on `main` while full validation runs asynchronously.
-- Do not poll a pending validation ticket, repeat its submission, manually commit, or call a snapshot `accepted` merely because the request was accepted. Continue the next independent milestone, a review, static guards, or an applicable Failure repair.
-- When all planned implementation milestones are integrated or submitted, perform a second in-scope review of delivered code, owned manifests, outstanding tickets, and canonical Failure records. After that review, release the Session for coordinator wakeup rather than marking it `blocked` or holding a waiting turn.
-- Enter the Milestone or Goal closeout below only after complete validation evidence, required review, and applicable Failure resolution permit `accepted`. Pending validation delays this closeout only; it never blocks forward progress.
+Use this path after a validation ticket passes for the exact owned snapshot but before full accepted milestone closeout.
+
+1. Apply `cross-session-coordination`. Require `main`, a registered numbered Plan, current Session write scope, and live leases for every candidate path.
+2. After the final edit, run `baseline attribute --session-id <session> <paths...>`. The lease base hash is not current-content attribution.
+3. Require one passed validation ticket whose source manifest hashes exactly match every candidate path. A receipt in `queued`, `materializing`, or `running` state is not a compile ticket.
+4. Keep the shared index untouched. Do not run `git add`, `git commit`, or a manual WeCom command.
+
+Submit the exact path list once with a stable request ID:
+
+```powershell
+$submitArgs = @(
+  "integration", "submit",
+  "--session-id", $sessionId,
+  "--request-id", $requestId,
+  "--compile-ticket-id", $ticketId
+)
+foreach ($path in $candidatePaths) {
+  $submitArgs += @("--path", $path)
+}
+$submitted = & .\tools\zircon-session.ps1 -Json @submitArgs | ConvertFrom-Json
+```
+
+Require `candidate.status=integration_ready` and retain the candidate ID. On first durable creation, the service performs one WeCom attempt with an explicit coordinator note:
+
+```text
+核心内容摘要：【{module}】提交到协调器：scoped candidate {candidate_short_id}
+提交时间：{submitted_at_iso8601}
+修改情况统计：{sealed_path_count} files sealed
+提交到协调器：candidate {candidate_id}，基线 {base_head}
+```
+
+The submission notification uses `candidate:{candidate_id}` as its idempotency key. Replaying the same request returns the same candidate without another delivery. Never manually invoke `wecom-push-message`, retry a failed delivery, or backfill historical submission notifications.
+
+When the candidate is ready to land, finalize only through the coordinator:
+
+```powershell
+$finalized = & .\tools\zircon-session.ps1 -Json integration finalize `
+  --candidate-id $submitted.candidate.candidate_id `
+  --message "<specific Conventional Commit subject>" | ConvertFrom-Json
+```
+
+A real service-owned commit sends its own commit notification under the Git SHA; it cannot be suppressed by the earlier candidate notification. Treat `integrated_validation_pending` plus the integration SHA as authority that the sealed snapshot is on `main`, then continue independent Goal work while full validation runs. If HEAD already contains every sealed blob, the coordinator may return `accepted` without creating or notifying a duplicate commit.
+
+Recovery remains receipt-driven:
+
+- If a mutating command reports an accepted post-timeout request, query its exact `requestId`; do not repeat the command while its status is nonterminal.
+- If submission reports a missing lease or stale attribution, reacquire the exact paths, refresh attribution, and use a new request ID only after confirming no candidate was created.
+- If finalize records a `commit_sha` equal to HEAD but remains `integration_ready`, rerun finalize only through its recovery path; never create a second commit.
+- If `.git/index.lock` blocks recovery, identify its owner with Windows Restart Manager. Preserve live managed work and never delete or rename a lock held by another process.
+
+Do not enter accepted closeout merely because a candidate or integration receipt exists. When all planned implementation milestones are integrated or submitted, perform a second in-scope review of delivered code, owned manifests, outstanding tickets, and canonical Failure records. Release the Session for coordinator wakeup rather than marking it `blocked` or holding a waiting turn. Enter the Milestone or Goal closeout below only after complete validation evidence, required review, and applicable Failure resolution permit `accepted`.
 
 ## Choose the closeout
 
